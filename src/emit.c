@@ -4,16 +4,16 @@
 #include <errno.h>
 
 /**
- * Read network config from YAML and generate backend specific configuration
- * files.
+ * Load YAML file name into a yaml_document_t.
+ *
+ * Returns: TRUE on success, FALSE if the document is malformed; @error gets set then.
  */
 gboolean
-generate_config(const char* yaml, GError **error)
+load_yaml(const char *yaml, yaml_document_t *doc, GError **error)
 {
-    FILE* fyaml = NULL;
+    FILE *fyaml = NULL;
     yaml_parser_t parser;
-    yaml_event_t event;
-    int done = 0;
+    gboolean ret = TRUE;
 
     fyaml = g_fopen(yaml, "r");
     if (!fyaml) {
@@ -23,67 +23,78 @@ generate_config(const char* yaml, GError **error)
 
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_file(&parser, fyaml);
-
-    while (!done) {
-        /* Get the next event. */
-        if (!yaml_parser_parse(&parser, &event)) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                        "Invalid YAML at %s line %zu column %zu: %s",
-                        yaml, parser.problem_mark.line, parser.problem_mark.column, parser.problem);
-            break;
-        }
-
-        switch (event.type) {
-            case YAML_SCALAR_EVENT:
-                g_printf("scalar %s anchor %s\n", event.data.scalar.value, event.data.scalar.anchor);
-                break;
-
-            case YAML_SEQUENCE_START_EVENT:
-                g_printf("seq start anchor %s tag %s\n", event.data.sequence_start.anchor, event.data.sequence_start.tag);
-                break;
-
-            case YAML_SEQUENCE_END_EVENT:
-                g_printf("seq end\n");
-                break;
-
-            case YAML_MAPPING_START_EVENT:
-                g_printf("map start anchor %s tag %s\n", event.data.mapping_start.anchor, event.data.mapping_start.tag);
-                break;
-
-            case YAML_MAPPING_END_EVENT:
-                g_printf("map end\n");
-                break;
-
-            case YAML_ALIAS_EVENT:
-                g_printf("alias anchor: %s\n", event.data.alias.anchor);
-                break;
-
-            case YAML_STREAM_END_EVENT:
-            case YAML_DOCUMENT_END_EVENT:
-                done = 1;
-                break;
-
-            /* uninteresting */
-            case YAML_NO_EVENT:
-            case YAML_STREAM_START_EVENT:
-            case YAML_DOCUMENT_START_EVENT:
-                break;
-
-        }
-
-        yaml_event_delete(&event);
+    if (!yaml_parser_load(&parser, doc)) {
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                    "Invalid YAML at %s line %zu column %zu: %s",
+                    yaml, parser.problem_mark.line, parser.problem_mark.column, parser.problem);
+        ret = FALSE;
     }
 
-    yaml_parser_delete(&parser);
     fclose(fyaml);
-    return done > 0;
+    return ret;
 }
 
+void
+print_indent(unsigned indent)
+{
+    for (unsigned i = 0; i < indent; ++i)
+        g_printf("  ");
+}
 
-int main(int argc, char** argv)
+/**
+ * Recursively dump a yaml_node to stdout.
+ */
+void
+dump_node(yaml_document_t *doc, yaml_node_t *node, unsigned indent, const char *prefix) {
+    yaml_node_item_t *item;
+    yaml_node_pair_t *pair;
+
+    if (node == NULL)
+        return;
+
+    print_indent(indent);
+    g_printf("%s", prefix);
+
+    switch (node->type) {
+        case YAML_SCALAR_NODE:
+            g_printf("scalar %s\n", node->data.scalar.value);
+            break;
+        case YAML_SEQUENCE_NODE:
+            g_printf("seq\n");
+            for (item = node->data.sequence.items.start; item < node->data.sequence.items.top; item++)
+                dump_node(doc, yaml_document_get_node(doc, *item), indent + 1, "- ");
+            break;
+        case YAML_MAPPING_NODE:
+            g_printf("map\n");
+            for (pair = node->data.mapping.pairs.start; pair < node->data.mapping.pairs.top; pair++) {
+                dump_node(doc, yaml_document_get_node(doc, pair->key), indent + 1, "k: ");
+                dump_node(doc, yaml_document_get_node(doc, pair->value), indent + 1, "v: ");
+            }
+            break;
+        default:
+            g_assert_not_reached();
+            break;
+    }
+}
+
+/**
+ * Read network config from YAML and generate backend specific configuration
+ * files.
+ */
+gboolean
+generate_config(yaml_document_t *doc, GError **error)
+{
+    dump_node(doc, yaml_document_get_root_node(doc), 0, "");
+
+    return TRUE;
+}
+
+int main(int argc, char **argv)
 {
     GError *err = NULL;
-    if (!generate_config(argv[1], &err)) {
+    yaml_document_t doc;
+
+    if (!load_yaml(argv[1], &doc, &err) || !generate_config(&doc, &err)) {
         g_fprintf(stderr, "%s\n", err->message);
         g_error_free(err);
         return 1;
