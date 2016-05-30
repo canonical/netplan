@@ -1,0 +1,31 @@
+network:
+  version: 2
+  #renderer: NetworkManager
+  config:
+  - type: physical
+    # opaque name, only referred to by other stanzas
+    # installer etc. would autogenerate UUID-like ones, users
+    # can use “pretty” names
+    id: 4d03a641-5605-4e7c-8682-04b4cfec9424
+    # you are responsible for setting tight enough match rules
+    # that only match one device if you use set-name
+    set-name: interface0
+    mtu: 1450
+    wakeonlan: True
+    match:
+      - macaddress: 00:11:22:33:44:55
+    subnets:
+      - type: static
+        address: 192.168.14.2/24
+        routes:
+          - network: 0.0.0.0
+            netmask: 0.0.0.0
+            gateway: 192.168.14.1
+  - type: physical
+    id: caad17fc-164b-4ba1-9ed3-7659558ec155
+    set-name: lom1
+    match:
+      - driver: ixgbe
+      - name: ix1
+    subnets:
+      - type: dhcp6
