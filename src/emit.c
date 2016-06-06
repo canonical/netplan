@@ -2,8 +2,9 @@
 #include <glib/gstdio.h>
 
 #include "parse.h"
+#include "networkd.h"
 
-/* really crappy demo main() function to exercise the parser */
+/* really crappy demo main() function to exercise the parser and networkd writer */
 int main(int argc, char **argv)
 {
     GError *err = NULL;
@@ -14,7 +15,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* debugging: show the current netdev device to confirm written fields */
-    g_printf("id: %s, set-name: %s, WOL: %i match.driver: %s, prev: %p\n", netdefs->id, netdefs->set_name, netdefs->wake_on_lan, netdefs->match.driver, netdefs->prev);
+    for (net_definition *n = netdefs; n; n = n->prev)
+        write_networkd_conf(n, argc >= 3 ? argv[2] : NULL);
     return 0;
 }
