@@ -15,6 +15,10 @@ typedef enum {
     ND_ETHERNET,
 } netdef_type;
 
+/**
+ * Represent one configuration stanza in "network". This is a linked list, so
+ * that composite devices like bridges can refer to previous definitions as
+ * components */
 typedef struct net_definition {
     netdef_type type;
     const char* id;
@@ -76,6 +80,9 @@ load_yaml(const char *yaml, yaml_document_t *doc, GError **error)
     return ret;
 }
 
+/**
+ * Put a YAML specific error message for @node into @error.
+ */
 static gboolean
 yaml_error(yaml_node_t *node, GError **error, const char *msg, ...)
 {
@@ -92,6 +99,9 @@ yaml_error(yaml_node_t *node, GError **error, const char *msg, ...)
     return FALSE;
 }
 
+/**
+ * Raise a GError about a type mismatch and return FALSE.
+ */
 static gboolean
 assert_type_fn(yaml_node_t *node, yaml_node_type_t expected_type, GError **error)
 {
@@ -129,13 +139,16 @@ typedef struct mapping_entry_handler_s {
     yaml_node_type_t type;
     /* handler for the value of this key */
     node_handler handler;
-    /* convenience shortcut: if type == YAML_MAPPING_NODE and handler is NULL,
-     * use process_mapping() on this handler map as handler */
+    /* if type == YAML_MAPPING_NODE and handler is NULL, use process_mapping()
+     * on this handler map as handler */
     const struct mapping_entry_handler_s* map_handlers;
     /* user_data */
     const void* data;
 } mapping_entry_handler;
 
+/**
+ * Return the #mapping_entry_handler that matches @key, or NULL if not found.
+ */
 static const mapping_entry_handler*
 get_handler(const mapping_entry_handler* handlers, const char* key)
 {
@@ -187,21 +200,26 @@ process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_han
     return TRUE;
 }
 
+/**
+ * Generic handler for setting a state.netdefs string field from a scalar node
+ * @data: offset into state.netdefs where the const char* field to write is
+ *        located
+ */
 static gboolean
 handle_netdev_str(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
 {
-    /* data contains the offset into state.netdefs where the const char* field
-     * to write is located */
     guint offset = GPOINTER_TO_UINT(data);
     *((const char**) ((void*) state.netdefs + offset)) = (const char*) node->data.scalar.value;
     return TRUE;
 }
 
+/**
+ * Generic handler for setting a state.netdefs gboolean field from a scalar node
+ * @data: offset into state.netdefs where the gboolean field to write is located
+ */
 static gboolean
 handle_netdev_bool(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
 {
-    /* data contains the offset into state.netdefs where the gboolean field
-     * to write is located */
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
 
@@ -233,7 +251,7 @@ const mapping_entry_handler match_handlers[] = {
 };
 
 /****************************************************
- * Grammar and handlers for network config list entry
+ * Grammar and handlers for network config list item
  ****************************************************/
 
 static gboolean
