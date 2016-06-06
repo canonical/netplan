@@ -29,6 +29,9 @@ typedef struct net_definition {
     struct net_definition *prev;
 } net_definition;
 
+/* convenience macro to put the offset of a net_definition field into "void *data" */
+#define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
+
 struct {
     /* file that is currently being processed, for useful error messages */
     const char *current_file;
@@ -117,7 +120,7 @@ assert_type_fn(yaml_node_t *node, yaml_node_type_t expected_type, GError **error
  * Data types and functions for interpreting YAML nodes
  ****************************************************/
 
-typedef gboolean (*node_handler) (yaml_document_t *doc, yaml_node_t *node, GError **error);
+typedef gboolean (*node_handler) (yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error);
 
 typedef struct mapping_entry_handler_s {
     /* mapping key (must be scalar) */
@@ -129,6 +132,8 @@ typedef struct mapping_entry_handler_s {
     /* convenience shortcut: if type == YAML_MAPPING_NODE and handler is NULL,
      * use process_mapping() on this handler map as handler */
     const struct mapping_entry_handler_s* map_handlers;
+    /* user_data */
+    const void* data;
 } mapping_entry_handler;
 
 static const mapping_entry_handler*
@@ -151,7 +156,7 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
 static gboolean
-process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_handler* handlers, GError **error)
+process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_handler* handlers, const void* data, GError **error)
 {
     yaml_node_pair_t *entry;
 
@@ -171,10 +176,10 @@ process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_han
         if (h->map_handlers) {
             g_assert(h->handler == NULL);
             g_assert(h->type == YAML_MAPPING_NODE);
-            if (!process_mapping(doc, value, h->map_handlers, error))
+            if (!process_mapping(doc, value, h->map_handlers, h->data, error))
                 return FALSE;
         } else {
-            if (!h->handler(doc, value, error))
+            if (!h->handler(doc, value, h->data, error))
                 return FALSE;
         }
     }
@@ -182,19 +187,48 @@ process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_han
     return TRUE;
 }
 
+static gboolean
+handle_netdev_str(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
+{
+    /* data contains the offset into state.netdefs where the const char* field
+     * to write is located */
+    guint offset = GPOINTER_TO_UINT(data);
+    *((const char**) ((void*) state.netdefs + offset)) = (const char*) node->data.scalar.value;
+    return TRUE;
+}
+
+static gboolean
+handle_netdev_bool(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
+{
+    /* data contains the offset into state.netdefs where the gboolean field
+     * to write is located */
+    guint offset = GPOINTER_TO_UINT(data);
+    gboolean v;
+
+    if (g_ascii_strcasecmp((const char*) node->data.scalar.value, "true") == 0 ||
+        g_ascii_strcasecmp((const char*) node->data.scalar.value, "on") == 0 ||
+        g_ascii_strcasecmp((const char*) node->data.scalar.value, "yes") == 0 ||
+        g_ascii_strcasecmp((const char*) node->data.scalar.value, "1") == 0)
+        v = TRUE;
+    else if (g_ascii_strcasecmp((const char*) node->data.scalar.value, "false") == 0 ||
+        g_ascii_strcasecmp((const char*) node->data.scalar.value, "off") == 0 ||
+        g_ascii_strcasecmp((const char*) node->data.scalar.value, "no") == 0 ||
+        g_ascii_strcasecmp((const char*) node->data.scalar.value, "0") == 0)
+        v = FALSE;
+    else
+        return yaml_error(node, error, "invalid boolean value %s", node->data.scalar.value);
+
+    *((gboolean*) ((void*) state.netdefs + offset)) = v;
+    return TRUE;
+}
+
+
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
 
-static gboolean
-handle_config_match_driver(yaml_document_t *doc, yaml_node_t *node, GError **error)
-{
-    g_debug("handle_config_match_driver");
-    return TRUE;
-}
-
 const mapping_entry_handler match_handlers[] = {
-    {"driver", YAML_SCALAR_NODE, handle_config_match_driver},
+    {"driver", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(match.driver)},
     {NULL}
 };
 
@@ -203,38 +237,17 @@ const mapping_entry_handler match_handlers[] = {
  ****************************************************/
 
 static gboolean
-handle_config_id(yaml_document_t *doc, yaml_node_t *node, GError **error)
-{
-    g_debug("handle_config_id");
-    return TRUE;
-}
-
-static gboolean
-handle_config_type(yaml_document_t *doc, yaml_node_t *node, GError **error)
+handle_config_type(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
 {
     g_debug("handle_config_type");
     return TRUE;
 }
 
-static gboolean
-handle_config_set_name(yaml_document_t *doc, yaml_node_t *node, GError **error)
-{
-    g_debug("handle_config_set_name");
-    return TRUE;
-}
-
-static gboolean
-handle_config_wakeonlan(yaml_document_t *doc, yaml_node_t *node, GError **error)
-{
-    g_debug("handle_config_wakeonlan %s", node->data.scalar.value);
-    return TRUE;
-}
-
 const mapping_entry_handler config_handlers[] = {
-    {"id", YAML_SCALAR_NODE, handle_config_id},
+    {"id", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(id)},
     {"type", YAML_SCALAR_NODE, handle_config_type},
-    {"set-name", YAML_SCALAR_NODE, handle_config_set_name},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_config_wakeonlan},
+    {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"match", YAML_MAPPING_NODE, NULL, match_handlers},
     {NULL}
 };
@@ -244,7 +257,7 @@ const mapping_entry_handler config_handlers[] = {
  ****************************************************/
 
 static gboolean
-handle_network_version(yaml_document_t *doc, yaml_node_t *node, GError **error)
+handle_network_version(yaml_document_t *doc, yaml_node_t *node, const void* _, GError **error)
 {
     if (strcmp((char*) node->data.scalar.value, "2") != 0)
         return yaml_error(node, error, "Only version 2 is supported");
@@ -252,7 +265,7 @@ handle_network_version(yaml_document_t *doc, yaml_node_t *node, GError **error)
 }
 
 static gboolean
-handle_network_config(yaml_document_t *doc, yaml_node_t *node, GError **error)
+handle_network_config(yaml_document_t *doc, yaml_node_t *node, const void* _, GError **error)
 {
     g_debug("handle_network_config");
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -267,7 +280,7 @@ handle_network_config(yaml_document_t *doc, yaml_node_t *node, GError **error)
         state.netdefs = nd;
 
         /* and fill it with definitions */
-        if (!process_mapping(doc, entry, config_handlers, error))
+        if (!process_mapping(doc, entry, config_handlers, NULL, error))
             return FALSE;
     }
     return TRUE;
@@ -296,11 +309,7 @@ const mapping_entry_handler root_handlers[] = {
 gboolean
 generate_config(yaml_document_t *doc, GError **error)
 {
-    /*
-     dump_node(doc, yaml_document_get_root_node(doc), 0, "");
-    return TRUE;
-     */
-    return process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, error);
+    return process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, NULL, error);
 }
 
 int main(int argc, char **argv)
@@ -313,5 +322,8 @@ int main(int argc, char **argv)
         g_error_free(err);
         return 1;
     }
+
+    /* debugging: show the current netdev device to confirm written fields */
+    g_printf("id: %s, set-name: %s, WOL: %i match.driver: %s, prev: %p\n", state.netdefs->id, state.netdefs->set_name, state.netdefs->wake_on_lan, state.netdefs->match.driver, state.netdefs->prev);
     return 0;
 }
