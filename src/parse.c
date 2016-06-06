@@ -182,7 +182,9 @@ static gboolean
 handle_netdev_str(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    *((const char**) ((void*) netdefs + offset)) = (const char*) node->data.scalar.value;
+    char** dest = (char**) ((void*) netdefs + offset);
+    g_free(*dest);
+    *dest = g_strdup((char*) node->data.scalar.value);
     return TRUE;
 }
 
@@ -301,8 +303,11 @@ gboolean
 parse_yaml(const char* filename, GError **error)
 {
     yaml_document_t doc;
+    gboolean ret;
 
     if (!load_yaml(filename, &doc, error))
         return FALSE;
-    return process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, NULL, error);
+    ret = process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, NULL, error);
+    yaml_document_delete(&doc);
+    return ret;
 }

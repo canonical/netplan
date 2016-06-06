@@ -15,12 +15,12 @@ typedef enum {
  * components */
 typedef struct net_definition {
     netdef_type type;
-    const char* id;
-    const char* set_name;
+    char* id;
+    char* set_name;
     gboolean wake_on_lan;
     struct {
-        const char* driver;
-        const char* mac;
+        char* driver;
+        char* mac;
     } match;
 
     /* singly-linked list */
