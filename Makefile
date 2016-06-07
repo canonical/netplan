@@ -18,4 +18,7 @@ ubuntu-network-generate: src/generate.c src/parse.c src/util.c src/networkd.c
 clean:
 	rm -f ubuntu-network-generate
 
+check: default
+	tests/generate.py
+
 .PHONY: clean
