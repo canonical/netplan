@@ -83,6 +83,19 @@ class T(unittest.TestCase):
                               'id0.network': '[Match]\nDriver=ixgbe\n\n[Network]\n'
                              })
 
+    def test_eth_match_by_mac_rename(self):
+        self.generate('''network:
+  version: 2
+  config:
+    - type: ethernet
+      set-name: lom1
+      match:
+        macaddress: 11:22:33:44:55:66''')
+
+        self.assert_networkd({'id0.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'id0.network': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Network]\n'
+                             })
+
     #
     # Errors
     #

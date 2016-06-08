@@ -222,6 +222,7 @@ handle_netdev_bool(yaml_document_t *doc, yaml_node_t *node, const void* data, GE
 
 const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(match.driver)},
+    {"macaddress", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(match.mac)},
     {NULL}
 };
 
