@@ -61,6 +61,10 @@ write_network_file(net_definition* def, const char* path)
     g_autofree char *contents = NULL;
     GError *error = NULL;
 
+    /* do we need to write a .network file? */
+    if (TRUE)  /* we do not yet have any properties that need to go into a .network */
+        return;
+
     /* build file contents */
     s = g_string_sized_new(200);
     append_match_section(def, s);

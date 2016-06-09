@@ -68,8 +68,7 @@ class T(unittest.TestCase):
     id0:
       wakeonlan: true''')
 
-        self.assert_networkd({'id0.link': '[Match]\n\n[Link]\nWakeOnLan=magic\n',
-                              'id0.network': '[Match]\n\n[Network]\n'})
+        self.assert_networkd({'id0.link': '[Match]\n\n[Link]\nWakeOnLan=magic\n'})
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -80,8 +79,7 @@ class T(unittest.TestCase):
         driver: ixgbe
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
-                              'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\n'})
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
@@ -92,8 +90,7 @@ class T(unittest.TestCase):
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
-                              'def1.network': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Network]\n'})
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
 
     #
     # Errors
