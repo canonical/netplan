@@ -61,40 +61,39 @@ class T(unittest.TestCase):
     # networkd output
     #
 
-    def test_no_matches(self):
+    def test_eth_no_matches_wol(self):
         self.generate('''network:
   version: 2
-  config:
-    - type: ethernet''')
+  ethernets:
+    id0:
+      wakeonlan: true''')
 
-        self.assert_networkd({'id0.network': '[Match]\n\n[Network]\n'})
+        self.assert_networkd({'id0.link': '[Match]\n\n[Link]\nWakeOnLan=magic\n',
+                              'id0.network': '[Match]\n\n[Network]\n'})
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
   version: 2
-  config:
-    - type: ethernet
-      set-name: lom1
+  ethernets:
+    def1:
       match:
         driver: ixgbe
-      wakeonlan: true''')
+      set-name: lom1''')
 
-        self.assert_networkd({'id0.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=magic\n',
-                              'id0.network': '[Match]\nDriver=ixgbe\n\n[Network]\n'
-                             })
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\n'})
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
   version: 2
-  config:
-    - type: ethernet
-      set-name: lom1
+  ethernets:
+    def1:
       match:
-        macaddress: 11:22:33:44:55:66''')
+        macaddress: 11:22:33:44:55:66
+      set-name: lom1''')
 
-        self.assert_networkd({'id0.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
-                              'id0.network': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Network]\n'
-                             })
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Network]\n'})
 
     #
     # Errors
@@ -107,6 +106,17 @@ class T(unittest.TestCase):
     def test_invalid_version(self):
         err = self.generate('network:\n  version: 1', True)
         self.assertIn('/config line 1 column 11: Only version 2 is supported', err)
+
+    def test_duplicate_id(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    id0:
+      wakeonlan: true
+    id0:
+      wakeonlan: true
+''', True)
+        self.assertIn("Duplicate net definition ID 'id0'", err)
 
 
 unittest.main(testRunner=unittest.TextTestRunner(

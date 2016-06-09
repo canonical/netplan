@@ -6,29 +6,32 @@
 
 typedef enum {
     ND_NONE,
+    /* physical devices */
     ND_ETHERNET,
+    ND_WIFI,
+    /* virtual devices */
+    ND_VIRTUAL,
+    ND_BRIDGE = ND_VIRTUAL,
 } netdef_type;
 
 /**
- * Represent one configuration stanza in "network". This is a linked list, so
- * that composite devices like bridges can refer to previous definitions as
- * components */
+ * Represent a configuration stanza
+ */
 typedef struct net_definition {
     netdef_type type;
     char* id;
+
+    /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;
-    gboolean wake_on_lan;
     struct {
         char* driver;
         char* mac;
     } match;
-
-    /* singly-linked list */
-    struct net_definition *prev;
+    gboolean wake_on_lan;
 } net_definition;
 
-/* Written/updated by parse_yaml() */
-extern net_definition *netdefs;
+/* Written/updated by parse_yaml(): char* id →  net_definition */
+extern GHashTable *netdefs;
 
 /****************************************************
  * Functions

@@ -4,6 +4,11 @@
 #include "parse.h"
 #include "networkd.h"
 
+static void nd_iterator(gpointer key, gpointer value, gpointer user_data)
+{
+    write_networkd_conf((net_definition*) value, (const char*) user_data);
+}
+
 /* really crappy demo main() function to exercise the parser and networkd writer */
 int main(int argc, char **argv)
 {
@@ -15,7 +20,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    for (net_definition *n = netdefs; n; n = n->prev)
-        write_networkd_conf(n, argc >= 3 ? argv[2] : NULL);
+    g_hash_table_foreach(netdefs, nd_iterator, argc >= 3 ? argv[2] : NULL);
     return 0;
 }

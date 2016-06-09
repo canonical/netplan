@@ -89,7 +89,7 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     g_autofree char *path_base = NULL;
     g_autofree char *link_path = NULL, *network_path = NULL;
 
-    path_base = g_build_path("/", rootdir ?: "/", "run/systemd/network", def->id ?: generate_id(), NULL);
+    path_base = g_build_path("/", rootdir ?: "/", "run/systemd/network", def->id, NULL);
     link_path = g_strjoin(NULL, path_base, ".link", NULL);
     network_path = g_strjoin(NULL, path_base, ".network", NULL);
 

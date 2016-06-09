@@ -6,19 +6,6 @@
 #include "util.h"
 
 /**
- * Generate IDs, to be used as file names if net_definition does not set an ID.
- */
-const char*
-generate_id(void)
-{
-    static unsigned id = 0;
-    static char buf[100];
-
-    g_assert(g_snprintf(buf, sizeof(buf), "id%u", id++) < sizeof(buf) - 1);
-    return buf;
-}
-
-/**
  * Create the parent directories of given file path. Exit program on failure.
  */
 void

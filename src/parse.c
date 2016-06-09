@@ -13,8 +13,10 @@
 
 /* file that is currently being processed, for useful error messages */
 const char *current_file;
+/* net_definition that is currently being processed */
+net_definition *cur_netdef;
 
-net_definition *netdefs;
+GHashTable *netdefs;
 
 /****************************************************
  * Loading and error handling
@@ -174,23 +176,23 @@ process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_han
 }
 
 /**
- * Generic handler for setting a netdefs string field from a scalar node
- * @data: offset into netdefs where the const char* field to write is
+ * Generic handler for setting a cur_netdef string field from a scalar node
+ * @data: offset into net_definition where the const char* field to write is
  *        located
  */
 static gboolean
 handle_netdev_str(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) netdefs + offset);
+    char** dest = (char**) ((void*) cur_netdef + offset);
     g_free(*dest);
     *dest = g_strdup((char*) node->data.scalar.value);
     return TRUE;
 }
 
 /**
- * Generic handler for setting a netdefs gboolean field from a scalar node
- * @data: offset into netdefs where the gboolean field to write is located
+ * Generic handler for setting a cur_netdef gboolean field from a scalar node
+ * @data: offset into net_definition where the gboolean field to write is located
  */
 static gboolean
 handle_netdev_bool(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
@@ -211,7 +213,7 @@ handle_netdev_bool(yaml_document_t *doc, yaml_node_t *node, const void* data, GE
     else
         return yaml_error(node, error, "invalid boolean value %s", node->data.scalar.value);
 
-    *((gboolean*) ((void*) netdefs + offset)) = v;
+    *((gboolean*) ((void*) cur_netdef + offset)) = v;
     return TRUE;
 }
 
@@ -227,20 +229,10 @@ const mapping_entry_handler match_handlers[] = {
 };
 
 /****************************************************
- * Grammar and handlers for network config list item
+ * Grammar and handlers for network device definition
  ****************************************************/
 
-static gboolean
-handle_config_type(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
-{
-    /* FIXME: implement */
-    g_debug("handle_config_type");
-    return TRUE;
-}
-
-const mapping_entry_handler config_handlers[] = {
-    {"id", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(id)},
-    {"type", YAML_SCALAR_NODE, handle_config_type},
+const mapping_entry_handler ethernet_def_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"match", YAML_MAPPING_NODE, NULL, match_handlers},
@@ -259,22 +251,36 @@ handle_network_version(yaml_document_t *doc, yaml_node_t *node, const void* _, G
     return TRUE;
 }
 
+/**
+ * Callback for a net device type entry like "ethernets:" in "networks:"
+ * @data: netdef_type (as pointer)
+ */
 static gboolean
-handle_network_config(yaml_document_t *doc, yaml_node_t *node, const void* _, GError **error)
+handle_network_type(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
 {
-    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        net_definition *nd;
+    for (yaml_node_pair_t *entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t *key, *value;
+        const mapping_entry_handler* handlers;
 
-        assert_type(entry, YAML_MAPPING_NODE);
+        key = yaml_document_get_node(doc, entry->key);
+        assert_type(key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(doc, entry->value);
+        assert_type(value, YAML_MAPPING_NODE);
 
         /* create new network definition */
-        nd = g_new0(net_definition, 1);
-        nd->prev = netdefs;
-        netdefs = nd;
+        cur_netdef = g_new0(net_definition, 1);
+        cur_netdef->type = GPOINTER_TO_UINT(data);
+        cur_netdef->id = g_strdup((const char*) key->data.scalar.value);
+
+        if (!g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef))
+            return yaml_error(key, error, "Duplicate net definition ID '%s'", cur_netdef->id);
 
         /* and fill it with definitions */
-        if (!process_mapping(doc, entry, config_handlers, NULL, error))
+        switch (cur_netdef->type) {
+            case ND_ETHERNET: handlers = ethernet_def_handlers; break;
+            default: g_assert_not_reached();
+        }
+        if (!process_mapping(doc, value, handlers, NULL, error))
             return FALSE;
     }
     return TRUE;
@@ -282,7 +288,7 @@ handle_network_config(yaml_document_t *doc, yaml_node_t *node, const void* _, GE
 
 const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
-    {"config", YAML_SEQUENCE_NODE, handle_network_config},
+    {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
     {NULL}
 };
 
@@ -308,7 +314,12 @@ parse_yaml(const char* filename, GError **error)
 
     if (!load_yaml(filename, &doc, error))
         return FALSE;
+
+    if (!netdefs)
+        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
+
     ret = process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, NULL, error);
+    cur_netdef = NULL;
     yaml_document_delete(&doc);
     return ret;
 }
