@@ -62,7 +62,7 @@ write_network_file(net_definition* def, const char* path)
     GError *error = NULL;
 
     /* do we need to write a .network file? */
-    if (TRUE)  /* we do not yet have any properties that need to go into a .network */
+    if (!def->dhcp4)
         return;
 
     /* build file contents */
@@ -70,7 +70,8 @@ write_network_file(net_definition* def, const char* path)
     append_match_section(def, s);
 
     g_string_append(s, "\n[Network]\n");
-    /* FIXME: put actual properties here */
+    if (def->dhcp4)
+        g_string_append_printf(s, "DHCP=ipv4\n");
 
     contents = g_string_free(s, FALSE);
 

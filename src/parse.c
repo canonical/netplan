@@ -236,6 +236,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"match", YAML_MAPPING_NODE, NULL, match_handlers},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
     {NULL}
 };
 

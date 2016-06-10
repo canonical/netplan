@@ -21,6 +21,8 @@ typedef struct net_definition {
     netdef_type type;
     char* id;
 
+    gboolean dhcp4;
+
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;
     struct {

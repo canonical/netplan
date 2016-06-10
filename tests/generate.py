@@ -92,6 +92,26 @@ class T(unittest.TestCase):
 
         self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
 
+    def test_eth_dhcp4(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      dhcp4: true''')
+
+        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n'})
+
+    def test_eth_match_dhcp4(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        driver: ixgbe
+      dhcp4: true''')
+
+        self.assert_networkd({'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\nDHCP=ipv4\n'})
+
     #
     # Errors
     #
