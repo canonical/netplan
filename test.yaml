@@ -5,8 +5,6 @@ network:
   #renderer: NetworkManager
   ethernets:
     # opaque ID for physical interfaces, only referred to by other stanzas
-    # installer etc. would autogenerate UUID-like ones, users
-    # can use “pretty” names
     id0:
       match:
         macaddress: 00:11:22:33:44:55
@@ -18,7 +16,6 @@ network:
     lom:
       match:
         driver: ixgbe
-        name: ix1
       # you are responsible for setting tight enough match rules
       # that only match one device if you use set-name
       set-name: lom1
@@ -30,17 +27,17 @@ network:
         name: enp2*
       mtu: 1280
   wifis:
-    # not a magic value; there is no "match:", thus this applies to all wifis
-    # (usually on a system where you know there is only ever going to be one)
     all-wlans:
+      match:
+      # useful on a system where you know there is only ever going to be one device
+        name: *
       access-points:
         "Joe's home":
           # mode defaults to "managed" (client)
           wpa-psk: "s3kr1t"
-    # this creates an AP on wlp1s0 using hostapd
-    my_ap:
-      match:
-        name: wlp1s0
+    # this creates an AP on wlp1s0 using hostapd; no match rules, thus ID is
+    # the interface name
+    wlp1s0:
       access-points:
         "guest":
            mode: ap
