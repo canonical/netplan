@@ -19,6 +19,17 @@ net_definition *cur_netdef;
 GHashTable *netdefs;
 
 /****************************************************
+ * Helper functions
+ ****************************************************/
+
+gboolean
+net_definition_has_match(net_definition *nd)
+{
+    return nd->match.driver || nd->match.mac || nd->match.original_name;
+}
+
+
+/****************************************************
  * Loading and error handling
  ****************************************************/
 
@@ -257,7 +268,7 @@ static gboolean
 validate_netdef(net_definition *nd, yaml_node_t *node, GError **error)
 {
     /* set-name: requires match: */
-    if (nd->set_name && !nd->match.driver && !nd->match.mac && !nd->match.original_name)
+    if (nd->set_name && !net_definition_has_match(nd))
         return yaml_error(node, error, "%s: set-name: requires match: properties", nd->id);
 
     return TRUE;
@@ -298,6 +309,11 @@ handle_network_type(yaml_document_t *doc, yaml_node_t *node, const void* data, G
         /* validate definition-level conditions */
         if (!validate_netdef(cur_netdef, value, error))
             return FALSE;
+
+        /* convenience shortcut: physical device without match: means match
+         * name on ID */
+        if (cur_netdef->type < ND_VIRTUAL && !net_definition_has_match(cur_netdef))
+            cur_netdef->match.original_name = cur_netdef->id;
     }
     return TRUE;
 }

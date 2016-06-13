@@ -61,14 +61,14 @@ class T(unittest.TestCase):
     # networkd output
     #
 
-    def test_eth_no_matches_wol(self):
+    def test_eth_wol(self):
         self.generate('''network:
   version: 2
   ethernets:
-    id0:
+    eth0:
       wakeonlan: true''')
 
-        self.assert_networkd({'id0.link': '[Match]\n\n[Link]\nWakeOnLan=magic\n'})
+        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -92,14 +92,14 @@ class T(unittest.TestCase):
 
         self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
 
-    def test_eth_dhcp4(self):
+    def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
   version: 2
   ethernets:
-    def1:
+    engreen:
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
 
     def test_eth_match_dhcp4(self):
         self.generate('''network:
@@ -136,6 +136,16 @@ class T(unittest.TestCase):
         # the .network needs to match on the renamed name
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
                               'def1.network': '[Match]\nName=blue\n\n[Network]\nDHCP=ipv4\n'})
+
+    def test_eth_match_all(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match: {name: "*"}
+      dhcp4: true''')
+
+        self.assert_networkd({'def1.network': '[Match]\nName=*\n\n[Network]\nDHCP=ipv4\n'})
 
     #
     # Errors

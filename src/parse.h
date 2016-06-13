@@ -41,3 +41,4 @@ extern GHashTable *netdefs;
  ****************************************************/
 
 gboolean parse_yaml(const char* filename, GError **error);
+gboolean net_definition_has_match(net_definition *nd);
