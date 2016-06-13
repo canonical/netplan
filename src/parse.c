@@ -253,6 +253,16 @@ handle_network_version(yaml_document_t *doc, yaml_node_t *node, const void* _, G
     return TRUE;
 }
 
+static gboolean
+validate_netdef(net_definition *nd, yaml_node_t *node, GError **error)
+{
+    /* set-name: requires match: */
+    if (nd->set_name && !nd->match.driver && !nd->match.mac && !nd->match.original_name)
+        return yaml_error(node, error, "%s: set-name: requires match: properties", nd->id);
+
+    return TRUE;
+}
+
 /**
  * Callback for a net device type entry like "ethernets:" in "networks:"
  * @data: netdef_type (as pointer)
@@ -283,6 +293,10 @@ handle_network_type(yaml_document_t *doc, yaml_node_t *node, const void* data, G
             default: g_assert_not_reached();
         }
         if (!process_mapping(doc, value, handlers, NULL, error))
+            return FALSE;
+
+        /* validate definition-level conditions */
+        if (!validate_netdef(cur_netdef, value, error))
             return FALSE;
     }
     return TRUE;

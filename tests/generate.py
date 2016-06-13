@@ -160,6 +160,16 @@ class T(unittest.TestCase):
 ''', True)
         self.assertIn("Duplicate net definition ID 'id0'", err)
 
+    def test_set_name_without_match(self):
+
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      set-name: lom1
+''', True)
+        self.assertIn('/config line 4 column 6: def1: set-name: requires match: properties', err)
+
 
 unittest.main(testRunner=unittest.TextTestRunner(
     stream=sys.stdout, verbosity=2))
