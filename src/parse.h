@@ -28,6 +28,7 @@ typedef struct net_definition {
     struct {
         char* driver;
         char* mac;
+        char* original_name;
     } match;
     gboolean wake_on_lan;
 } net_definition;

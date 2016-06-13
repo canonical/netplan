@@ -112,6 +112,31 @@ class T(unittest.TestCase):
 
         self.assert_networkd({'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\nDHCP=ipv4\n'})
 
+    def test_eth_match_name(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: green
+      dhcp4: true''')
+
+        self.assert_networkd({'def1.network': '[Match]\nName=green\n\n[Network]\nDHCP=ipv4\n'})
+
+    def test_eth_match_name_rename(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: green
+      set-name: blue
+      dhcp4: true''')
+
+        # the .network needs to match on the renamed name
+        self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
+                              'def1.network': '[Match]\nName=blue\n\n[Network]\nDHCP=ipv4\n'})
+
     #
     # Errors
     #

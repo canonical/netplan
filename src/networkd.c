@@ -11,7 +11,7 @@
  * Append [Match] section of @def to @s.
  */
 static void
-append_match_section(net_definition* def, GString *s)
+append_match_section(net_definition* def, GString *s, gboolean is_link_file)
 {
     /* Note: an empty [Match] section is interpreted as matching all devices,
      * which is what we want for the simple case that you only have one device
@@ -22,6 +22,16 @@ append_match_section(net_definition* def, GString *s)
         g_string_append_printf(s, "Driver=%s\n", def->match.driver);
     if (def->match.mac)
         g_string_append_printf(s, "MACAddress=%s\n", def->match.mac);
+    /* name matching is special: if the .link renames the interface, the
+     * .network has to use the renamed one, otherwise the original one */
+    if (is_link_file && def->match.original_name)
+        g_string_append_printf(s, "OriginalName=%s\n", def->match.original_name);
+    if (!is_link_file) {
+        if (def->set_name)
+            g_string_append_printf(s, "Name=%s\n", def->set_name);
+        else if (def->match.original_name)
+            g_string_append_printf(s, "Name=%s\n", def->match.original_name);
+    }
 }
 
 static void
@@ -37,7 +47,7 @@ write_link_file(net_definition* def, const char* path)
 
     /* build file contents */
     s = g_string_sized_new(200);
-    append_match_section(def, s);
+    append_match_section(def, s, TRUE);
 
     g_string_append(s, "\n[Link]\n");
     if (def->set_name)
@@ -67,7 +77,7 @@ write_network_file(net_definition* def, const char* path)
 
     /* build file contents */
     s = g_string_sized_new(200);
-    append_match_section(def, s);
+    append_match_section(def, s, FALSE);
 
     g_string_append(s, "\n[Network]\n");
     if (def->dhcp4)
