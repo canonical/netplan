@@ -11,7 +11,7 @@
  * Append [Match] section of @def to @s.
  */
 static void
-append_match_section(net_definition* def, GString *s, gboolean is_link_file)
+append_match_section(net_definition* def, GString* s, gboolean is_link_file)
 {
     /* Note: an empty [Match] section is interpreted as matching all devices,
      * which is what we want for the simple case that you only have one device
@@ -37,9 +37,9 @@ append_match_section(net_definition* def, GString *s, gboolean is_link_file)
 static void
 write_link_file(net_definition* def, const char* path)
 {
-    GString *s = NULL;
-    g_autofree char *contents = NULL;
-    GError *error = NULL;
+    GString* s = NULL;
+    g_autofree char* contents = NULL;
+    GError* error = NULL;
 
     /* do we need to write a .link file? */
     if (!def->set_name && !def->wake_on_lan)
@@ -67,9 +67,9 @@ write_link_file(net_definition* def, const char* path)
 static void
 write_network_file(net_definition* def, const char* path)
 {
-    GString *s = NULL;
-    g_autofree char *contents = NULL;
-    GError *error = NULL;
+    GString* s = NULL;
+    g_autofree char* contents = NULL;
+    GError* error = NULL;
 
     /* do we need to write a .network file? */
     if (!def->dhcp4)
@@ -101,8 +101,8 @@ write_network_file(net_definition* def, const char* path)
 void
 write_networkd_conf(net_definition* def, const char* rootdir)
 {
-    g_autofree char *path_base = NULL;
-    g_autofree char *link_path = NULL, *network_path = NULL;
+    g_autofree char* path_base = NULL;
+    g_autofree char* link_path = NULL, *network_path = NULL;
 
     path_base = g_build_path("/", rootdir ?: "/", "run/systemd/network", def->id, NULL);
     link_path = g_strjoin(NULL, path_base, ".link", NULL);

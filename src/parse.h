@@ -34,11 +34,11 @@ typedef struct net_definition {
 } net_definition;
 
 /* Written/updated by parse_yaml(): char* id →  net_definition */
-extern GHashTable *netdefs;
+extern GHashTable* netdefs;
 
 /****************************************************
  * Functions
  ****************************************************/
 
-gboolean parse_yaml(const char* filename, GError **error);
-gboolean net_definition_has_match(net_definition *nd);
+gboolean parse_yaml(const char* filename, GError** error);
+gboolean net_definition_has_match(net_definition* nd);

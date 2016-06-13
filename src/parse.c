@@ -8,22 +8,22 @@
 
 #include "parse.h"
 
-/* convenience macro to put the offset of a net_definition field into "void *data" */
+/* convenience macro to put the offset of a net_definition field into "void* data" */
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
 
 /* file that is currently being processed, for useful error messages */
-const char *current_file;
+const char* current_file;
 /* net_definition that is currently being processed */
-net_definition *cur_netdef;
+net_definition* cur_netdef;
 
-GHashTable *netdefs;
+GHashTable* netdefs;
 
 /****************************************************
  * Helper functions
  ****************************************************/
 
 gboolean
-net_definition_has_match(net_definition *nd)
+net_definition_has_match(net_definition* nd)
 {
     return nd->match.driver || nd->match.mac || nd->match.original_name;
 }
@@ -39,9 +39,9 @@ net_definition_has_match(net_definition *nd)
  * Returns: TRUE on success, FALSE if the document is malformed; @error gets set then.
  */
 static gboolean
-load_yaml(const char *yaml, yaml_document_t *doc, GError **error)
+load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
 {
-    FILE *fyaml = NULL;
+    FILE* fyaml = NULL;
     yaml_parser_t parser;
     gboolean ret = TRUE;
 
@@ -70,10 +70,10 @@ load_yaml(const char *yaml, yaml_document_t *doc, GError **error)
  * Put a YAML specific error message for @node into @error.
  */
 static gboolean
-yaml_error(yaml_node_t *node, GError **error, const char *msg, ...)
+yaml_error(yaml_node_t* node, GError** error, const char* msg, ...)
 {
     va_list argp;
-    gchar *s;
+    gchar* s;
 
     va_start(argp, msg);
     g_vasprintf(&s, msg, argp);
@@ -89,7 +89,7 @@ yaml_error(yaml_node_t *node, GError **error, const char *msg, ...)
  * Raise a GError about a type mismatch and return FALSE.
  */
 static gboolean
-assert_type_fn(yaml_node_t *node, yaml_node_type_t expected_type, GError **error)
+assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error)
 {
     if (node->type == expected_type)
         return TRUE;
@@ -116,11 +116,11 @@ assert_type_fn(yaml_node_t *node, yaml_node_type_t expected_type, GError **error
  * Data types and functions for interpreting YAML nodes
  ****************************************************/
 
-typedef gboolean (*node_handler) (yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error);
+typedef gboolean (*node_handler) (yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error);
 
 typedef struct mapping_entry_handler_s {
     /* mapping key (must be scalar) */
-    const char *key;
+    const char* key;
     /* expected type  of the mapped value */
     yaml_node_type_t type;
     /* handler for the value of this key */
@@ -155,15 +155,15 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
 static gboolean
-process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_handler* handlers, const void* data, GError **error)
+process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, const void* data, GError** error)
 {
-    yaml_node_pair_t *entry;
+    yaml_node_pair_t* entry;
 
     assert_type(node, YAML_MAPPING_NODE);
 
     for (entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
-        yaml_node_t *key, *value;
-        const mapping_entry_handler *h;
+        yaml_node_t* key, *value;
+        const mapping_entry_handler* h;
 
         key = yaml_document_get_node(doc, entry->key);
         value = yaml_document_get_node(doc, entry->value);
@@ -192,7 +192,7 @@ process_mapping(yaml_document_t *doc, yaml_node_t *node, const mapping_entry_han
  *        located
  */
 static gboolean
-handle_netdev_str(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
+handle_netdev_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     char** dest = (char**) ((void*) cur_netdef + offset);
@@ -206,7 +206,7 @@ handle_netdev_str(yaml_document_t *doc, yaml_node_t *node, const void* data, GEr
  * @data: offset into net_definition where the gboolean field to write is located
  */
 static gboolean
-handle_netdev_bool(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
+handle_netdev_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
@@ -257,7 +257,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
  ****************************************************/
 
 static gboolean
-handle_network_version(yaml_document_t *doc, yaml_node_t *node, const void* _, GError **error)
+handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     if (strcmp((char*) node->data.scalar.value, "2") != 0)
         return yaml_error(node, error, "Only version 2 is supported");
@@ -265,7 +265,7 @@ handle_network_version(yaml_document_t *doc, yaml_node_t *node, const void* _, G
 }
 
 static gboolean
-validate_netdef(net_definition *nd, yaml_node_t *node, GError **error)
+validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 {
     /* set-name: requires match: */
     if (nd->set_name && !net_definition_has_match(nd))
@@ -279,10 +279,10 @@ validate_netdef(net_definition *nd, yaml_node_t *node, GError **error)
  * @data: netdef_type (as pointer)
  */
 static gboolean
-handle_network_type(yaml_document_t *doc, yaml_node_t *node, const void* data, GError **error)
+handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    for (yaml_node_pair_t *entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
-        yaml_node_t *key, *value;
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
         const mapping_entry_handler* handlers;
 
         key = yaml_document_get_node(doc, entry->key);
@@ -339,7 +339,7 @@ const mapping_entry_handler root_handlers[] = {
  * Parse given YAML file and create/update global "netdefs" list.
  */
 gboolean
-parse_yaml(const char* filename, GError **error)
+parse_yaml(const char* filename, GError** error)
 {
     yaml_document_t doc;
     gboolean ret;
