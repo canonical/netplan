@@ -19,17 +19,6 @@ net_definition* cur_netdef;
 GHashTable* netdefs;
 
 /****************************************************
- * Helper functions
- ****************************************************/
-
-gboolean
-net_definition_has_match(net_definition* nd)
-{
-    return nd->match.driver || nd->match.mac || nd->match.original_name;
-}
-
-
-/****************************************************
  * Loading and error handling
  ****************************************************/
 
@@ -245,6 +234,13 @@ const mapping_entry_handler match_handlers[] = {
  ****************************************************/
 
 static gboolean
+handle_match(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    cur_netdef->has_match = TRUE;
+    return process_mapping(doc, node, match_handlers, data, error);
+}
+
+static gboolean
 handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     /* all entries must refer to already defined IDs */
@@ -270,7 +266,7 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _,
 
 const mapping_entry_handler ethernet_def_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
-    {"match", YAML_MAPPING_NODE, NULL, match_handlers},
+    {"match", YAML_MAPPING_NODE, handle_match},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
     {NULL}
@@ -299,7 +295,7 @@ static gboolean
 validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 {
     /* set-name: requires match: */
-    if (nd->set_name && !net_definition_has_match(nd))
+    if (nd->set_name && !nd->has_match)
         return yaml_error(node, error, "%s: set-name: requires match: properties", nd->id);
 
     return TRUE;
@@ -344,7 +340,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         /* convenience shortcut: physical device without match: means match
          * name on ID */
-        if (cur_netdef->type < ND_VIRTUAL && !net_definition_has_match(cur_netdef))
+        if (cur_netdef->type < ND_VIRTUAL && !cur_netdef->has_match)
             cur_netdef->match.original_name = cur_netdef->id;
     }
     return TRUE;

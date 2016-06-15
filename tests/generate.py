@@ -137,7 +137,7 @@ class T(unittest.TestCase):
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
                               'def1.network': '[Match]\nName=blue\n\n[Network]\nDHCP=ipv4\n'})
 
-    def test_eth_match_all(self):
+    def test_eth_match_all_names(self):
         self.generate('''network:
   version: 2
   ethernets:
@@ -146,6 +146,16 @@ class T(unittest.TestCase):
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\nName=*\n\n[Network]\nDHCP=ipv4\n'})
+
+    def test_eth_match_all(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match: {}
+      dhcp4: true''')
+
+        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n'})
 
     def test_bridge_empty(self):
         self.generate('''network:

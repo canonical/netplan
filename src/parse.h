@@ -32,6 +32,7 @@ typedef struct net_definition {
         char* mac;
         char* original_name;
     } match;
+    gboolean has_match;
     gboolean wake_on_lan;
 } net_definition;
 
@@ -43,4 +44,3 @@ extern GHashTable* netdefs;
  ****************************************************/
 
 gboolean parse_yaml(const char* filename, GError** error);
-gboolean net_definition_has_match(net_definition* nd);
