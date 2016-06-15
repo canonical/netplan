@@ -28,9 +28,8 @@ network:
       mtu: 1280
   wifis:
     all-wlans:
-      match:
       # useful on a system where you know there is only ever going to be one device
-        name: *
+      match: {}
       access-points:
         "Joe's home":
           # mode defaults to "managed" (client)
