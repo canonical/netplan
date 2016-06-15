@@ -23,4 +23,8 @@ check: default
 	$(shell which pyflakes3 || echo true) tests/generate.py
 	$(shell which pep8 || echo true) --max-line-length=130 tests/generate.py
 
+install: default
+	mkdir -p $(DESTDIR)/usr/lib/ubuntu-network
+	install -m 755 ubuntu-network-generate $(DESTDIR)/usr/lib/ubuntu-network/
+
 .PHONY: clean
