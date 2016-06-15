@@ -147,6 +147,34 @@ class T(unittest.TestCase):
 
         self.assert_networkd({'def1.network': '[Match]\nName=*\n\n[Network]\nDHCP=ipv4\n'})
 
+    def test_bridge_empty(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      dhcp4: true''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+
+    def test_bridge_components(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bridges:
+    br0:
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
+                              'eno1.network': '[Match]\nName=eno1\n\n[Network]\nBridge=br0\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n[Network]\nBridge=br0\n'})
+
     #
     # Errors
     #
@@ -171,7 +199,6 @@ class T(unittest.TestCase):
         self.assertIn("Duplicate net definition ID 'id0'", err)
 
     def test_set_name_without_match(self):
-
         err = self.generate('''network:
   version: 2
   ethernets:
@@ -179,6 +206,43 @@ class T(unittest.TestCase):
       set-name: lom1
 ''', True)
         self.assertIn('/config line 4 column 6: def1: set-name: requires match: properties', err)
+
+    def test_virtual_set_name(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      set_name: br1''', True)
+        self.assertIn('/config line 4 column 6: unknown key set_name\n', err)
+
+    def test_virtual_match(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      match:
+        driver: foo''', True)
+        self.assertIn('/config line 4 column 6: unknown key match\n', err)
+
+    def test_bridge_unknown_iface(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: ['foo']''', True)
+        self.assertIn('/config line 4 column 18: bridge br0: interface foo is not defined\n', err)
+
+    def test_bridge_multiple_assignments(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [eno1]
+    br1:
+      interfaces: [eno1]''', True)
+        self.assertIn('bridge br1: interface eno1 is already assigned to bridge br0\n', err)
 
 
 unittest.main(testRunner=unittest.TextTestRunner(

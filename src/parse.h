@@ -23,6 +23,8 @@ typedef struct net_definition {
 
     gboolean dhcp4;
 
+    char* bridge;
+
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;
     struct {

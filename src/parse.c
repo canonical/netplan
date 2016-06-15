@@ -244,11 +244,42 @@ const mapping_entry_handler match_handlers[] = {
  * Grammar and handlers for network device definition
  ****************************************************/
 
+static gboolean
+handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    /* all entries must refer to already defined IDs */
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        char* ifname;
+        net_definition *component;
+
+        assert_type(entry, YAML_SCALAR_NODE);
+        ifname = (char*) entry->data.scalar.value;
+        component = g_hash_table_lookup(netdefs, ifname);
+        if (!component)
+            return yaml_error(node, error, "bridge %s: interface %s is not defined",
+                              cur_netdef->id, ifname);
+        if (component->bridge)
+            return yaml_error(node, error, "bridge %s: interface %s is already assigned to bridge %s",
+                              cur_netdef->id, ifname, component->bridge);
+        component->bridge = cur_netdef->id;
+    }
+
+    return TRUE;
+}
+
 const mapping_entry_handler ethernet_def_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"match", YAML_MAPPING_NODE, NULL, match_handlers},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
+    {NULL}
+};
+
+const mapping_entry_handler bridge_def_handlers[] = {
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
+    {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
     {NULL}
 };
 
@@ -301,6 +332,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* and fill it with definitions */
         switch (cur_netdef->type) {
             case ND_ETHERNET: handlers = ethernet_def_handlers; break;
+            case ND_BRIDGE: handlers = bridge_def_handlers; break;
             default: g_assert_not_reached();
         }
         if (!process_mapping(doc, value, handlers, NULL, error))
@@ -321,6 +353,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
     {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
+    {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
     {NULL}
 };
 
