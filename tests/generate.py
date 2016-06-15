@@ -16,7 +16,6 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
 class T(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
-        self.networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
 
     def generate(self, yaml, expect_fail=False):
         '''Call generate with given YAML string as configuration
@@ -39,12 +38,36 @@ class T(unittest.TestCase):
         return err
 
     def assert_networkd(self, file_contents_map):
+        networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
+        if not file_contents_map:
+            self.assertEqual(os.listdir(self.workdir.name), ['config'])
+            return
+
         self.assertEqual(set(os.listdir(self.workdir.name)), {'config', 'run'})
-        self.assertEqual(set(os.listdir(self.networkd_dir)),
+        self.assertEqual(set(os.listdir(networkd_dir)),
                          set(file_contents_map))
         for fname, contents in file_contents_map.items():
-            with open(os.path.join(self.networkd_dir, fname)) as f:
+            with open(os.path.join(networkd_dir, fname)) as f:
                 self.assertEqual(f.read(), contents)
+
+    def assert_nm(self, file_contents_map):
+        nm_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d')
+        if not file_contents_map:
+            self.assertFalse(os.path.exists(nm_dir))
+            return
+        self.assertEqual(set(os.listdir(nm_dir)),
+                         set(file_contents_map))
+        for fname, contents in file_contents_map.items():
+            with open(os.path.join(nm_dir, fname)) as f:
+                self.assertEqual(f.read(), contents)
+
+    def assert_udev(self, contents):
+        rule_path = os.path.join(self.workdir.name, 'run/udev/rules.d/90-ubuntu-network.rules')
+        if contents is None:
+            self.assertFalse(os.path.exists(rule_path))
+            return
+        with open(rule_path) as f:
+            self.assertEqual(f.read(), contents)
 
     #
     # Trivial cases
@@ -54,11 +77,13 @@ class T(unittest.TestCase):
     def test_no_files(self):
         subprocess.check_call([exe_generate, '--root', self.workdir.name])
         self.assertEqual(os.listdir(self.workdir.name), [])
+        self.assert_udev(None)
 
     def test_no_configs(self):
         self.generate('network:\n  version: 2')
         # should not write any files
         self.assertEqual(os.listdir(self.workdir.name), ['config'])
+        self.assert_udev(None)
 
     #
     # networkd output
@@ -72,6 +97,10 @@ class T(unittest.TestCase):
       wakeonlan: true''')
 
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:eth0,'''})
+        self.assert_udev(None)
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -83,6 +112,11 @@ class T(unittest.TestCase):
       set-name: lom1''')
 
         self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        # NM cannot match by driver, so blacklisting needs to happen via udev
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+='''})
+        self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
@@ -94,6 +128,10 @@ class T(unittest.TestCase):
       set-name: lom1''')
 
         self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=mac:11:22:33:44:55:66,'''})
+        self.assert_udev(None)
 
     def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
@@ -114,6 +152,7 @@ class T(unittest.TestCase):
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_name(self):
         self.generate('''network:
@@ -125,6 +164,10 @@ class T(unittest.TestCase):
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\nName=green\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:green,'''})
+        self.assert_udev(None)
 
     def test_eth_match_name_rename(self):
         self.generate('''network:
@@ -139,6 +182,9 @@ class T(unittest.TestCase):
         # the .network needs to match on the renamed name
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
                               'def1.network': '[Match]\nName=blue\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:blue,'''})
 
     def test_eth_match_all_names(self):
         self.generate('''network:
@@ -149,6 +195,10 @@ class T(unittest.TestCase):
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\nName=*\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:*,'''})
+        self.assert_udev(None)
 
     def test_eth_match_all(self):
         self.generate('''network:
@@ -159,6 +209,10 @@ class T(unittest.TestCase):
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=type:ethernet,'''})
+        self.assert_udev(None)
 
     def test_bridge_empty(self):
         self.generate('''network:
@@ -169,6 +223,10 @@ class T(unittest.TestCase):
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:br0,'''})
+        self.assert_udev(None)
 
     def test_bridge_components(self):
         self.generate('''network:

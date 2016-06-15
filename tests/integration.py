@@ -37,6 +37,12 @@ class NetworkTestBase(unittest.TestCase):
         # ensure we have this so that iw works
         subprocess.check_call(['modprobe', 'cfg80211'])
 
+        # ensure NM can manage our fake eths
+        os.makedirs('/run/udev/rules.d', exist_ok=True)
+        with open('/run/udev/rules.d/99-nm-veth-test.rules', 'w') as f:
+            f.write('ENV{ID_NET_DRIVER}=="veth", ENV{INTERFACE}=="eth42|eth43", ENV{NM_UNMANAGED}="0"\n')
+        subprocess.check_call(['udevadm', 'control', '--reload'])
+
         # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
         out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
         m = re.match('^country (\S+):', out)
@@ -47,6 +53,8 @@ class NetworkTestBase(unittest.TestCase):
     @classmethod
     def tearDownClass(klass):
         subprocess.check_call(['iw', 'reg', 'set', klass.orig_country])
+        subprocess.call(['systemctl', 'stop', 'NetworkManager'])
+        os.remove('/run/udev/rules.d/99-nm-veth-test.rules')
 
     @classmethod
     def create_devices(klass):
@@ -276,6 +284,21 @@ class NetworkTestBase(unittest.TestCase):
             # self.assertIn('Connected to ' + self.mac_w_ap, out)
             self.assertIn('SSID: fake net', out)
 
+    def generate_and_settle(self):
+        '''Generate config, launch and settle NM and networkd'''
+
+        subprocess.check_call([exe_generate, self.config])
+        subprocess.check_call(['systemctl', 'restart', 'NetworkManager'])
+        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
+        # wait until networkd is done
+        for timeout in range(50):
+            out = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE)
+            if b'pending' not in out and b'configuring' not in out and b'n/a' not in out:
+                break
+            time.sleep(0.1)
+        else:
+            self.fail('timed out waiting for networkd to settle down')
+
 
 class Networkd(NetworkTestBase):
     def test_eth_and_bridge(self):
@@ -292,7 +315,7 @@ class Networkd(NetworkTestBase):
       interfaces: [%(e2c)s]
       dhcp4: yes''' %
                     {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.go()
+        self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
                              ['inet 192.168.5.[0-9]+/24'],
                              ['master'])
@@ -306,18 +329,11 @@ class Networkd(NetworkTestBase):
         self.assertEqual(len(lines), 1, lines)
         self.assertIn(self.dev_e2_client, lines[0])
 
-    def go(self):
-        '''Generate config, launch and settle NM and networkd'''
+        # ensure that they do not get managed by NM
+        out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
+        for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
+            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+unmanaged' % i)
 
-        subprocess.check_call([exe_generate, self.config])
-        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
-        # wait until networkd is done
-        for timeout in range(50):
-            out = subprocess.check_output(['networkctl'])
-            if b'pending' not in out and b'configuring' not in out and b'n/a' not in out:
-                break
-            time.sleep(0.1)
-        # TODO: settle NM
 
 unittest.main(testRunner=unittest.TextTestRunner(
         stream=sys.stdout, verbosity=2))
