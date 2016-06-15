@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# Blackbox tests of ubuntu-network-generate that verify that the generated
+# configuration files look as expected. These are run during "make check" and
+# don't touch the system configuration at all.
 
 import os
 import sys
