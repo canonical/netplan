@@ -141,6 +141,11 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     g_autofree char* path_base = NULL;
     g_autofree char* link_path = NULL, *network_path = NULL, *netdev_path = NULL;
 
+    if (def->backend != BACKEND_NETWORKD) {
+        g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
+        return;
+    }
+
     path_base = g_build_path("/", rootdir ?: "/", "run/systemd/network", def->id, NULL);
     network_path = g_strjoin(NULL, path_base, ".network", NULL);
 

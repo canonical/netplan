@@ -14,11 +14,18 @@ typedef enum {
     ND_BRIDGE = ND_VIRTUAL,
 } netdef_type;
 
+typedef enum {
+    BACKEND_NONE,
+    BACKEND_NETWORKD,
+    BACKEND_NM,
+} netdef_backend;
+
 /**
  * Represent a configuration stanza
  */
 typedef struct net_definition {
     netdef_type type;
+    netdef_backend backend;
     char* id;
 
     gboolean dhcp4;
@@ -44,3 +51,4 @@ extern GHashTable* netdefs;
  ****************************************************/
 
 gboolean parse_yaml(const char* filename, GError** error);
+netdef_backend get_default_backend_for_type(netdef_type type);
