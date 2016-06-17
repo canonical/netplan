@@ -13,7 +13,7 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), 'generate')
 
 
-class T(unittest.TestCase):
+class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
 
@@ -69,9 +69,9 @@ class T(unittest.TestCase):
         with open(rule_path) as f:
             self.assertEqual(f.read(), contents)
 
-    #
-    # Trivial cases
-    #
+
+class TestNoConfig(TestBase):
+    '''Trivial cases'''
 
     @unittest.skip('need to define and implement default config location')
     def test_no_files(self):
@@ -85,9 +85,9 @@ class T(unittest.TestCase):
         self.assertEqual(os.listdir(self.workdir.name), ['config'])
         self.assert_udev(None)
 
-    #
-    # networkd output
-    #
+
+class TestNetworkd(TestBase):
+    '''networkd output'''
 
     def test_eth_wol(self):
         self.generate('''network:
@@ -246,10 +246,8 @@ unmanaged-devices+=interface-name:br0,'''})
                               'eno1.network': '[Match]\nName=eno1\n\n[Network]\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n[Network]\nBridge=br0\n'})
 
-    #
-    # Errors
-    #
 
+class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
         err = self.generate('network:\n  version', True)
         self.assertIn('/config line 1 column 2: expected mapping', err)
