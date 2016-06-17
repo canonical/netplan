@@ -1,0 +1,7 @@
+Tests: integration.py
+Tests-Directory: tests
+Depends: @,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: needs-root, isolation-machine
