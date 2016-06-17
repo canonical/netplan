@@ -51,4 +51,3 @@ extern GHashTable* netdefs;
  ****************************************************/
 
 gboolean parse_yaml(const char* filename, GError** error);
-netdef_backend get_default_backend_for_type(netdef_type type);

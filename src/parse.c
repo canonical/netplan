@@ -16,6 +16,8 @@ const char* current_file;
 /* net_definition that is currently being processed */
 net_definition* cur_netdef;
 
+netdef_backend backend_global, backend_cur_type;
+
 GHashTable* netdefs;
 
 /****************************************************
@@ -217,7 +219,6 @@ handle_netdev_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     return TRUE;
 }
 
-
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -232,6 +233,40 @@ const mapping_entry_handler match_handlers[] = {
 /****************************************************
  * Grammar and handlers for network device definition
  ****************************************************/
+
+static netdef_backend
+get_default_backend_for_type(netdef_type type)
+{
+    switch (type) {
+        case ND_WIFI:
+            return BACKEND_NM;
+        default:
+            return BACKEND_NETWORKD;
+    }
+}
+
+/**
+ * Parse scalar node's string into a netdef_backend.
+ */
+static gboolean
+parse_renderer(yaml_node_t* node, netdef_backend* backend, GError** error)
+{
+    char* val = (char*) node->data.scalar.value;
+
+    if (strcmp(val, "networkd") == 0)
+        *backend = BACKEND_NETWORKD;
+    else if (strcmp(val, "NetworkManager") == 0)
+        *backend = BACKEND_NM;
+    else
+        return yaml_error(node, error, "unknown renderer '%s'", val);
+    return TRUE;
+}
+
+static gboolean
+handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return parse_renderer(node, &cur_netdef->backend, error);
+}
 
 static gboolean
 handle_match(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
@@ -267,12 +302,14 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _,
 const mapping_entry_handler ethernet_def_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
     {"match", YAML_MAPPING_NODE, handle_match},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
     {NULL}
 };
 
 const mapping_entry_handler bridge_def_handlers[] = {
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
@@ -289,6 +326,12 @@ handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, G
     if (strcmp((char*) node->data.scalar.value, "2") != 0)
         return yaml_error(node, error, "Only version 2 is supported");
     return TRUE;
+}
+
+static gboolean
+handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return parse_renderer(node, &backend_global, error);
 }
 
 static gboolean
@@ -318,12 +361,20 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         key = yaml_document_get_node(doc, entry->key);
         assert_type(key, YAML_SCALAR_NODE);
         value = yaml_document_get_node(doc, entry->value);
+
+        /* special-case "renderer:" key to set the per-type backend */
+        if (strcmp((char*) key->data.scalar.value, "renderer") == 0) {
+            if (!parse_renderer(value, &backend_cur_type, error))
+                return FALSE;
+            continue;
+        }
+
         assert_type(value, YAML_MAPPING_NODE);
 
         /* create new network definition */
         cur_netdef = g_new0(net_definition, 1);
         cur_netdef->type = GPOINTER_TO_UINT(data);
-        cur_netdef->backend = get_default_backend_for_type(cur_netdef->type);
+        cur_netdef->backend = backend_cur_type ?: (backend_global ?: get_default_backend_for_type(cur_netdef->type));
         cur_netdef->id = g_strdup((const char*) key->data.scalar.value);
 
         if (!g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef))
@@ -347,11 +398,13 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         if (cur_netdef->type < ND_VIRTUAL && !cur_netdef->has_match)
             cur_netdef->match.original_name = cur_netdef->id;
     }
+    backend_cur_type = BACKEND_NONE;
     return TRUE;
 }
 
 const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
+    {"renderer", YAML_SCALAR_NODE, handle_network_renderer},
     {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
     {NULL}
@@ -387,15 +440,4 @@ parse_yaml(const char* filename, GError** error)
     cur_netdef = NULL;
     yaml_document_delete(&doc);
     return ret;
-}
-
-netdef_backend
-get_default_backend_for_type(netdef_type type)
-{
-    switch (type) {
-        case ND_WIFI:
-            return BACKEND_NM;
-        default:
-            return BACKEND_NETWORKD;
-    }
 }

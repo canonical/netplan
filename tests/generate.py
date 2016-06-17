@@ -85,6 +85,18 @@ class TestNoConfig(TestBase):
         self.assertEqual(os.listdir(self.workdir.name), ['config'])
         self.assert_udev(None)
 
+    def test_global_renderer_networkd(self):
+        self.generate('network:\n  version: 2\n  renderer: networkd')
+        # should not write any files
+        self.assertEqual(os.listdir(self.workdir.name), ['config'])
+        self.assert_udev(None)
+
+    def test_global_renderer_nm(self):
+        self.generate('network:\n  version: 2\n  renderer: NetworkManager')
+        # should not write any files
+        self.assertEqual(os.listdir(self.workdir.name), ['config'])
+        self.assert_udev(None)
+
 
 class TestNetworkd(TestBase):
     '''networkd output'''
@@ -214,11 +226,75 @@ unmanaged-devices+=interface-name:*,'''})
 unmanaged-devices+=type:ethernet,'''})
         self.assert_udev(None)
 
+    def test_eth_type_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    renderer: networkd
+    eth0:
+      dhcp4: true''')
+
+        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:eth0,'''})
+        self.assert_udev(None)
+
+    def test_eth_def_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    renderer: NetworkManager
+    eth0:
+      renderer: networkd
+      dhcp4: true''')
+
+        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:eth0,'''})
+        self.assert_udev(None)
+
     def test_bridge_empty(self):
         self.generate('''network:
   version: 2
   bridges:
     br0:
+      dhcp4: true''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:br0,'''})
+        self.assert_udev(None)
+
+    def test_bridge_type_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bridges:
+    renderer: networkd
+    br0:
+      dhcp4: true''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:br0,'''})
+        self.assert_udev(None)
+
+    def test_bridge_def_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bridges:
+    renderer: NetworkManager
+    br0:
+      renderer: networkd
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
@@ -312,6 +388,13 @@ class TestConfigErrors(TestBase):
     br1:
       interfaces: [eno1]''', True)
         self.assertIn('bridge br1: interface eno1 is already assigned to bridge br0\n', err)
+
+    def test_unknown_renderer(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: bogus
+''', True)
+        self.assertIn("unknown renderer 'bogus'", err)
 
 
 unittest.main(testRunner=unittest.TextTestRunner(
