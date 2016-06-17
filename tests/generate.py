@@ -10,7 +10,7 @@ import subprocess
 import unittest
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))), 'ubuntu-network-generate')
+    os.path.abspath(__file__))), 'generate')
 
 
 class T(unittest.TestCase):
