@@ -1,0 +1,5 @@
+ubuntu-network (0.0) UNRELEASED; urgency=medium
+
+  * Initial release.
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Fri, 17 Jun 2016 10:40:48 +0300

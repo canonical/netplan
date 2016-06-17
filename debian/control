@@ -1,0 +1,25 @@
+Source: ubuntu-network
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Section: net
+Priority: standard
+Standards-Version: 3.9.8
+Build-Depends: debhelper (>= 9),
+ pkg-config,
+ libyaml-dev,
+ libglib2.0-dev,
+ python3 (>= 3.1),
+ pyflakes3,
+ pep8
+Vcs-Git: git://git.launchpad.net/~pitti/+git/ubuntu-network-config
+Vcs-Browser: https://git.launchpad.net/~pitti/+git/ubuntu-network-config/
+
+Package: ubuntu-network
+Architecture: any
+Multi-Arch: foreign
+Depends: ${shlibs:Depends},
+ ${misc:Depends},
+ systemd
+Suggests: network-manager
+Breaks: network-manager (<< 1.2.2-0ubuntu4~)
+Description: YAML network configuration
+ TODO: more verbiage
