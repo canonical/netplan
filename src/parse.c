@@ -183,7 +183,7 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
  *        located
  */
 static gboolean
-handle_netdev_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     char** dest = (char**) ((void*) cur_netdef + offset);
@@ -197,7 +197,7 @@ handle_netdev_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
  * @data: offset into net_definition where the gboolean field to write is located
  */
 static gboolean
-handle_netdev_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
@@ -224,9 +224,9 @@ handle_netdev_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
  ****************************************************/
 
 const mapping_entry_handler match_handlers[] = {
-    {"driver", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(match.driver)},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(match.mac)},
-    {"name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(match.original_name)},
+    {"driver", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.driver)},
+    {"macaddress", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.mac)},
+    {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.original_name)},
     {NULL}
 };
 
@@ -300,18 +300,18 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _,
 }
 
 const mapping_entry_handler ethernet_def_handlers[] = {
-    {"set-name", YAML_SCALAR_NODE, handle_netdev_str, NULL, netdef_offset(set_name)},
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
     {"match", YAML_MAPPING_NODE, handle_match},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {NULL}
 };
 
 const mapping_entry_handler bridge_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(wake_on_lan)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdev_bool, NULL, netdef_offset(dhcp4)},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
     {NULL}
 };
