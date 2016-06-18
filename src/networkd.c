@@ -114,18 +114,20 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 void
 write_networkd_conf(net_definition* def, const char* rootdir)
 {
-    g_autofree char* path_base = NULL;
+    g_autofree char* path_base = g_build_path(G_DIR_SEPARATOR_S, "run/systemd/network", def->id, NULL);
+
+    /* We want this for all backends when renaming, as *.link files are
+     * evaluated by udev, not networkd itself or NetworkManager. */
+    if (def->type < ND_VIRTUAL &&
+            (def->backend == BACKEND_NETWORKD || def->set_name))
+        write_link_file(def, rootdir, path_base);
 
     if (def->backend != BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
         return;
     }
 
-    path_base = g_build_path(G_DIR_SEPARATOR_S, "run/systemd/network", def->id, NULL);
-
-    if (def->type < ND_VIRTUAL)
-        write_link_file(def, rootdir, path_base);
-    else
+    if (def->type >= ND_VIRTUAL)
         write_netdev_file(def, rootdir, path_base);
     write_network_file(def, rootdir, path_base);
 }
