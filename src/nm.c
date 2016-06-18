@@ -15,7 +15,7 @@ GString* udev_rules;
 static void
 g_string_append_netdef_match(GString* s, const net_definition* def)
 {
-    if (def->match.driver) {
+    if (def->match.driver && !def->set_name) {
         g_fprintf(stderr, "ERROR: NetworkManager definitions do not support matching by driver\n");
         exit(1);
     }
@@ -56,6 +56,24 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
 }
 
 /**
+ * Return NM "type=" string.
+ */
+static const char*
+type_str(netdef_type type)
+{
+    switch (type) {
+        case ND_ETHERNET:
+            return "ethernet";
+        case ND_WIFI:
+            return "wifi";
+        case ND_BRIDGE:
+            return "bridge";
+        default:
+            g_assert_not_reached();
+    }
+}
+
+/**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ from
  * the parsed #netdefs.
  * @rootdir: If not %NULL, generate configuration in this root directory
@@ -64,6 +82,7 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
 void
 write_nm_conf(net_definition* def, const char* rootdir)
 {
+    GString *s = NULL;
     g_autofree char* conf_path = NULL;
 
     if (def->backend != BACKEND_NM) {
@@ -71,8 +90,15 @@ write_nm_conf(net_definition* def, const char* rootdir)
         return;
     }
 
+    s = g_string_new(NULL);
+    g_string_append_printf(s, "[connection-%s]\ntype=%s\nmatch-device=", def->id, type_str(def->type));
+    g_string_append_netdef_match(s, def);
+    g_string_append_printf(s, "\nethernet.wake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
+    if (def->dhcp4)
+        g_string_append(s, "ipv4.method=auto\n");
+
     conf_path = g_build_path(G_DIR_SEPARATOR_S, "run/NetworkManager/conf.d", def->id, NULL);
-    g_debug("NetworkManager: creating %s", conf_path);
+    g_string_free_to_file(s, rootdir, conf_path, ".conf");
 }
 
 static void

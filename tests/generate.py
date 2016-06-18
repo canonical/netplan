@@ -40,7 +40,7 @@ class TestBase(unittest.TestCase):
     def assert_networkd(self, file_contents_map):
         networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
         if not file_contents_map:
-            self.assertEqual(os.listdir(self.workdir.name), ['config'])
+            self.assertFalse(os.path.exists(networkd_dir))
             return
 
         self.assertEqual(set(os.listdir(self.workdir.name)), {'config', 'run'})
@@ -319,6 +319,215 @@ unmanaged-devices+=interface-name:br0,'''})
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
                               'eno1.network': '[Match]\nName=eno1\n\n[Network]\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n[Network]\nBridge=br0\n'})
+
+
+class TestNetworkManager(TestBase):
+    def test_eth_wol(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      wakeonlan: true''')
+
+        self.assert_nm({'eth0.conf': '''[connection-eth0]
+type=ethernet
+match-device=interface-name:eth0
+ethernet.wake-on-lan=1
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_eth_match_by_driver(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        driver: ixgbe''', True)
+        self.assertIn('NetworkManager definitions do not support matching by driver', err)
+
+    def test_eth_match_by_driver_rename(self):
+        # in this case udev will rename the device so that NM can use the name
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        driver: ixgbe
+      set-name: lom1''')
+
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=interface-name:lom1
+ethernet.wake-on-lan=0
+'''})
+        self.assert_udev(None)
+
+    def test_eth_match_by_mac_rename(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        macaddress: 11:22:33:44:55:66
+      set-name: lom1''')
+
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=mac:11:22:33:44:55:66
+ethernet.wake-on-lan=0
+'''})
+        self.assert_udev(None)
+
+    def test_eth_implicit_name_match_dhcp4(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true''')
+
+        self.assert_nm({'engreen.conf': '''[connection-engreen]
+type=ethernet
+match-device=interface-name:engreen
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+
+    def test_eth_match_dhcp4(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        macaddress: 11:22:33:44:55:66
+      dhcp4: true''')
+
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=mac:11:22:33:44:55:66
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+
+    def test_eth_match_name(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        name: green
+      dhcp4: true''')
+
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=interface-name:green
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_eth_match_name_rename(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        name: green
+      set-name: blue
+      dhcp4: true''')
+
+        # NM needs to match on the renamed name
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=interface-name:blue
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        # ... while udev renames it
+        self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
+        self.assert_udev(None)
+
+    def test_eth_match_all_names(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match: {name: "*"}
+      dhcp4: true''')
+
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=interface-name:*
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+
+    def test_eth_match_all(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match: {}
+      dhcp4: true''')
+
+        self.assert_nm({'def1.conf': '''[connection-def1]
+type=ethernet
+match-device=type:ethernet
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+
+    def test_eth_type_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    renderer: NetworkManager
+    eth0:
+      dhcp4: true''')
+
+        self.assert_nm({'eth0.conf': '''[connection-eth0]
+type=ethernet
+match-device=interface-name:eth0
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_eth_def_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    renderer: networkd
+    eth0:
+      renderer: NetworkManager''')
+
+        self.assert_nm({'eth0.conf': '''[connection-eth0]
+type=ethernet
+match-device=interface-name:eth0
+ethernet.wake-on-lan=0
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
 
 
 class TestConfigErrors(TestBase):
