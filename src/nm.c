@@ -97,6 +97,7 @@ void
 write_nm_conf_finish(const char* rootdir)
 {
     GString *s = NULL;
+    gsize len;
 
     if (g_hash_table_size(netdefs) == 0)
         return;
@@ -104,8 +105,12 @@ write_nm_conf_finish(const char* rootdir)
     /* Set all devices not managed by us to unmanaged, so that NM does not
      * auto-connect and interferes */
     s = g_string_new("[keyfile]\n# devices managed by networkd\nunmanaged-devices+=");
+    len = s->len;
     g_hash_table_foreach(netdefs, nd_append_non_nm_ids, s);
-    g_string_free_to_file(s, rootdir, "run/NetworkManager/conf.d/ubuntu-network.conf", NULL);
+    if (s->len > len)
+        g_string_free_to_file(s, rootdir, "run/NetworkManager/conf.d/ubuntu-network.conf", NULL);
+    else
+        g_string_free(s, TRUE);
 
     /* write generated udev rules */
     if (udev_rules)

@@ -125,9 +125,7 @@ unmanaged-devices+=interface-name:eth0,'''})
 
         self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
         # NM cannot match by driver, so blacklisting needs to happen via udev
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+='''})
+        self.assert_nm({})
         self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_by_mac_rename(self):
