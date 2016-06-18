@@ -91,11 +91,20 @@ write_nm_conf(net_definition* def, const char* rootdir)
     }
 
     s = g_string_new(NULL);
-    g_string_append_printf(s, "[connection-%s]\ntype=%s\nmatch-device=", def->id, type_str(def->type));
-    g_string_append_netdef_match(s, def);
+    g_string_append_printf(s, "[connection-%s]\ntype=%s\n", def->id, type_str(def->type));
+    if (def->type < ND_VIRTUAL) {
+        /* physical (existing) devices use matching */
+        g_string_append(s, "match-device=");
+        g_string_append_netdef_match(s, def);
+    } else {
+        /* virtual (created) devices set a name */
+        g_string_append_printf(s, "connection.interface-name=%s", def->id);
+    }
     g_string_append_printf(s, "\nethernet.wake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
     if (def->dhcp4)
         g_string_append(s, "ipv4.method=auto\n");
+    if (def->bridge)
+        g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
 
     conf_path = g_build_path(G_DIR_SEPARATOR_S, "run/NetworkManager/conf.d", def->id, NULL);
     g_string_free_to_file(s, rootdir, conf_path, ".conf");

@@ -529,6 +529,98 @@ ethernet.wake-on-lan=0
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_bridge_empty(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bridges:
+    br0:
+      dhcp4: true''')
+
+        self.assert_nm({'br0.conf': '''[connection-br0]
+type=bridge
+connection.interface-name=br0
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_bridge_type_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  bridges:
+    renderer: NetworkManager
+    br0:
+      dhcp4: true''')
+
+        self.assert_nm({'br0.conf': '''[connection-br0]
+type=bridge
+connection.interface-name=br0
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_bridge_def_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  bridges:
+    renderer: networkd
+    br0:
+      renderer: NetworkManager
+      dhcp4: true''')
+
+        self.assert_nm({'br0.conf': '''[connection-br0]
+type=bridge
+connection.interface-name=br0
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_bridge_components(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        name: "enp2*"
+  bridges:
+    br0:
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_nm({'eno1.conf': '''[connection-eno1]
+type=ethernet
+match-device=interface-name:eno1
+ethernet.wake-on-lan=0
+slave-type=bridge
+master=br0
+''',
+                        'switchports.conf': '''[connection-switchports]
+type=ethernet
+match-device=interface-name:enp2*
+ethernet.wake-on-lan=0
+slave-type=bridge
+master=br0
+''',
+
+                        'br0.conf': '''[connection-br0]
+type=bridge
+connection.interface-name=br0
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
