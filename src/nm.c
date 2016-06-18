@@ -71,7 +71,7 @@ write_nm_conf(net_definition* def, const char* rootdir)
         return;
     }
 
-    conf_path = g_build_path("/", rootdir ?: "/", "run/NetworkManager/conf.d", def->id, NULL);
+    conf_path = g_build_path(G_DIR_SEPARATOR_S, "run/NetworkManager/conf.d", def->id, NULL);
     g_debug("NetworkManager: creating %s", conf_path);
 }
 
@@ -97,9 +97,6 @@ void
 write_nm_conf_finish(const char* rootdir)
 {
     GString *s = NULL;
-    GError* error = NULL;
-    g_autofree char* contents = NULL;
-    g_autofree char* path = NULL;
 
     if (g_hash_table_size(netdefs) == 0)
         return;
@@ -108,28 +105,9 @@ write_nm_conf_finish(const char* rootdir)
      * auto-connect and interferes */
     s = g_string_new("[keyfile]\n# devices managed by networkd\nunmanaged-devices+=");
     g_hash_table_foreach(netdefs, nd_append_non_nm_ids, s);
-
-    contents = g_string_free(s, FALSE);
-
-    path = g_build_path("/", rootdir ?: "/", "run/NetworkManager/conf.d/ubuntu-network.conf", NULL);
-    safe_mkdir_p_dir(path);
-    if (!g_file_set_contents(path, contents, -1, &error)) {
-        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
-        exit(1);
-    }
+    g_string_free_to_file(s, rootdir, "run/NetworkManager/conf.d/ubuntu-network.conf", NULL);
 
     /* write generated udev rules */
-    if (udev_rules) {
-        g_autofree char* rules_path = g_build_path("/", rootdir ?: "/", "run/udev/rules.d/90-ubuntu-network.rules", NULL);
-        g_autofree char* rules_contents = NULL;
-
-        rules_contents = g_string_free(udev_rules, FALSE);
-        udev_rules = NULL;
-
-        safe_mkdir_p_dir(rules_path);
-        if (!g_file_set_contents(rules_path, rules_contents, -1, &error)) {
-            g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", rules_path, error->message);
-            exit(1);
-        }
-    }
+    if (udev_rules)
+        g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-ubuntu-network.rules", NULL);
 }

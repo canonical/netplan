@@ -37,11 +37,9 @@ append_match_section(net_definition* def, GString* s, gboolean match_rename)
 }
 
 static void
-write_link_file(net_definition* def, const char* path)
+write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
-    g_autofree char* contents = NULL;
-    GError* error = NULL;
 
     g_assert(def->type < ND_VIRTUAL);
 
@@ -59,21 +57,13 @@ write_link_file(net_definition* def, const char* path)
     /* FIXME: Should this be turned from bool to str and support multiple values? */
     g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "off");
 
-    contents = g_string_free(s, FALSE);
-
-    safe_mkdir_p_dir(path);
-    if (!g_file_set_contents(path, contents, -1, &error)) {
-        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
-        exit(1);
-    }
+    g_string_free_to_file(s, rootdir, path, ".link");
 }
 
 static void
-write_netdev_file(net_definition* def, const char* path)
+write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
-    g_autofree char* contents = NULL;
-    GError* error = NULL;
 
     g_assert(def->type >= ND_VIRTUAL);
 
@@ -90,21 +80,13 @@ write_netdev_file(net_definition* def, const char* path)
             g_assert_not_reached();
     }
 
-    contents = g_string_free(s, FALSE);
-
-    safe_mkdir_p_dir(path);
-    if (!g_file_set_contents(path, contents, -1, &error)) {
-        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
-        exit(1);
-    }
+    g_string_free_to_file(s, rootdir, path, ".netdev");
 }
 
 static void
-write_network_file(net_definition* def, const char* path)
+write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
-    g_autofree char* contents = NULL;
-    GError* error = NULL;
 
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->bridge)
@@ -120,13 +102,7 @@ write_network_file(net_definition* def, const char* path)
     if (def->bridge)
         g_string_append_printf(s, "Bridge=%s\n", def->bridge);
 
-    contents = g_string_free(s, FALSE);
-
-    safe_mkdir_p_dir(path);
-    if (!g_file_set_contents(path, contents, -1, &error)) {
-        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
-        exit(1);
-    }
+    g_string_free_to_file(s, rootdir, path, ".network");
 }
 
 /**
@@ -139,22 +115,17 @@ void
 write_networkd_conf(net_definition* def, const char* rootdir)
 {
     g_autofree char* path_base = NULL;
-    g_autofree char* link_path = NULL, *network_path = NULL, *netdev_path = NULL;
 
     if (def->backend != BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
         return;
     }
 
-    path_base = g_build_path("/", rootdir ?: "/", "run/systemd/network", def->id, NULL);
-    network_path = g_strjoin(NULL, path_base, ".network", NULL);
+    path_base = g_build_path(G_DIR_SEPARATOR_S, "run/systemd/network", def->id, NULL);
 
-    if (def->type < ND_VIRTUAL) {
-        link_path = g_strjoin(NULL, path_base, ".link", NULL);
-        write_link_file(def, link_path);
-    } else {
-        netdev_path = g_strjoin(NULL, path_base, ".netdev", NULL);
-        write_netdev_file(def, netdev_path);
-    }
-    write_network_file(def, network_path);
+    if (def->type < ND_VIRTUAL)
+        write_link_file(def, rootdir, path_base);
+    else
+        write_netdev_file(def, rootdir, path_base);
+    write_network_file(def, rootdir, path_base);
 }
