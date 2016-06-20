@@ -809,6 +809,14 @@ class TestConfigErrors(TestBase):
         driver: foo''', expect_fail=True)
         self.assertIn('/config line 4 column 6: unknown key match\n', err)
 
+    def test_virtual_wol(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      wakeonlan: true''', expect_fail=True)
+        self.assertIn('/config line 4 column 6: unknown key wakeonlan\n', err)
+
     def test_bridge_unknown_iface(self):
         err = self.generate('''network:
   version: 2

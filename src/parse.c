@@ -310,7 +310,6 @@ const mapping_entry_handler ethernet_def_handlers[] = {
 
 const mapping_entry_handler bridge_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
     {NULL}
