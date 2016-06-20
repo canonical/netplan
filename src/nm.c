@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -15,10 +16,7 @@ GString* udev_rules;
 static void
 g_string_append_netdef_match(GString* s, const net_definition* def)
 {
-    if (def->match.driver && !def->set_name) {
-        g_fprintf(stderr, "ERROR: NetworkManager definitions do not support matching by driver\n");
-        exit(1);
-    }
+    g_assert(!def->match.driver || def->set_name);
     if (def->match.mac) {
         if (def->match.original_name) {
             g_fprintf(stderr, "ERROR: NetworkManager definitions can only use one match: property\n");
@@ -84,30 +82,62 @@ write_nm_conf(net_definition* def, const char* rootdir)
 {
     GString *s = NULL;
     g_autofree char* conf_path = NULL;
+    mode_t orig_umask;
 
     if (def->backend != BACKEND_NM) {
         g_debug("NetworkManager: definition %s is not for us (backend %i)", def->id, def->backend);
         return;
     }
 
+    if (def->match.driver && !def->set_name) {
+        g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support matching by driver\n", def->id);
+        exit(1);
+    }
+
     s = g_string_new(NULL);
-    g_string_append_printf(s, "[connection-%s]\ntype=%s\n", def->id, type_str(def->type));
+    g_string_append_printf(s, "[connection]\nid=ubuntu-network-%s\ntype=%s\n", def->id, type_str(def->type));
     if (def->type < ND_VIRTUAL) {
-        /* physical (existing) devices use matching */
-        g_string_append(s, "match-device=");
-        g_string_append_netdef_match(s, def);
+        /* physical (existing) devices use matching; driver matching is not
+         * supported, MAC matching is done below (different keyfile section),
+         * so only match names here */
+        if (def->set_name)
+            g_string_append_printf(s, "interface-name=%s\n", def->set_name);
+        else if (!def->has_match)
+            g_string_append_printf(s, "interface-name=%s\n", def->id);
+        else if (def->match.original_name)
+            g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
+        /* else matches on something other than the name, do not restrict interface-name */
     } else {
         /* virtual (created) devices set a name */
-        g_string_append_printf(s, "connection.interface-name=%s", def->id);
+        g_string_append_printf(s, "interface-name=%s\n", def->id);
     }
-    g_string_append_printf(s, "\nethernet.wake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
-    if (def->dhcp4)
-        g_string_append(s, "ipv4.method=auto\n");
     if (def->bridge)
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
 
-    conf_path = g_build_path(G_DIR_SEPARATOR_S, "run/NetworkManager/conf.d", def->id, NULL);
-    g_string_free_to_file(s, rootdir, conf_path, ".conf");
+    if (def->type < ND_VIRTUAL) {
+        g_string_append_printf(s, "\n[ethernet]\nwake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
+
+        if (!def->set_name && def->match.mac) {
+            switch (def->type) {
+                case ND_ETHERNET:
+                    g_string_append(s, "\n[802-3-ethernet]\n");  break;
+                case ND_WIFI:
+                    g_string_append(s, "\n[802-11-wireless]\n");  break;
+                default:
+                    g_assert_not_reached();
+            }
+            g_string_append_printf(s, "mac-address=%s\n", def->match.mac);
+        }
+    }
+
+    if (def->dhcp4)
+        g_string_append(s, "\n[ipv4]\nmethod=auto\n");
+
+    conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, NULL);
+    /* NM connection files might contain secrets, and NM insists on tight permissions */
+    orig_umask = umask(077);
+    g_string_free_to_file(s, rootdir, conf_path, NULL);
+    umask(orig_umask);
 }
 
 static void

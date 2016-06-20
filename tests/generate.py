@@ -5,6 +5,7 @@
 
 import os
 import sys
+import stat
 import tempfile
 import subprocess
 import unittest
@@ -54,16 +55,27 @@ class TestBase(unittest.TestCase):
             with open(os.path.join(networkd_dir, fname)) as f:
                 self.assertEqual(f.read(), contents)
 
-    def assert_nm(self, file_contents_map):
-        nm_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d')
-        if not file_contents_map:
-            self.assertFalse(os.path.exists(nm_dir))
-            return
-        self.assertEqual(set(os.listdir(nm_dir)),
-                         set(file_contents_map))
-        for fname, contents in file_contents_map.items():
-            with open(os.path.join(nm_dir, fname)) as f:
-                self.assertEqual(f.read(), contents)
+    def assert_nm(self, connections_map=None, conf=None):
+        # check config
+        conf_path = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d', 'ubuntu-network.conf')
+        if conf:
+            with open(conf_path) as f:
+                self.assertEqual(f.read(), conf)
+        else:
+            self.assertFalse(os.path.exists(conf_path))
+
+        # check connections
+        con_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections')
+        if connections_map:
+            self.assertEqual(set(os.listdir(con_dir)),
+                             set(['ubuntu-network-' + n for n in connections_map]))
+            for fname, contents in connections_map.items():
+                with open(os.path.join(con_dir, 'ubuntu-network-' + fname)) as f:
+                    self.assertEqual(f.read(), contents)
+                    # NM connection files might contain secrets
+                    self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        else:
+            self.assertFalse(os.path.exists(con_dir))
 
     def assert_udev(self, contents):
         rule_path = os.path.join(self.workdir.name, 'run/udev/rules.d/90-ubuntu-network.rules')
@@ -140,9 +152,9 @@ class TestNetworkd(TestBase):
       wakeonlan: true''')
 
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:eth0,'''})
+unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
     def test_eth_match_by_driver_rename(self):
@@ -156,7 +168,7 @@ unmanaged-devices+=interface-name:eth0,'''})
 
         self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
         # NM cannot match by driver, so blacklisting needs to happen via udev
-        self.assert_nm({})
+        self.assert_nm(None, None)
         self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_by_mac_rename(self):
@@ -169,9 +181,9 @@ unmanaged-devices+=interface-name:eth0,'''})
       set-name: lom1''')
 
         self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=mac:11:22:33:44:55:66,'''})
+unmanaged-devices+=mac:11:22:33:44:55:66,''')
         self.assert_udev(None)
 
     def test_eth_implicit_name_match_dhcp4(self):
@@ -205,9 +217,9 @@ unmanaged-devices+=mac:11:22:33:44:55:66,'''})
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\nName=green\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:green,'''})
+unmanaged-devices+=interface-name:green,''')
         self.assert_udev(None)
 
     def test_eth_match_name_rename(self):
@@ -223,9 +235,9 @@ unmanaged-devices+=interface-name:green,'''})
         # the .network needs to match on the renamed name
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
                               'def1.network': '[Match]\nName=blue\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:blue,'''})
+unmanaged-devices+=interface-name:blue,''')
 
     def test_eth_match_all_names(self):
         self.generate('''network:
@@ -236,9 +248,9 @@ unmanaged-devices+=interface-name:blue,'''})
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\nName=*\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:*,'''})
+unmanaged-devices+=interface-name:*,''')
         self.assert_udev(None)
 
     def test_eth_match_all(self):
@@ -250,9 +262,9 @@ unmanaged-devices+=interface-name:*,'''})
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=type:ethernet,'''})
+unmanaged-devices+=type:ethernet,''')
         self.assert_udev(None)
 
     def test_eth_global_renderer(self):
@@ -264,9 +276,9 @@ unmanaged-devices+=type:ethernet,'''})
       dhcp4: true''')
 
         self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:eth0,'''})
+unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
     def test_eth_type_renderer(self):
@@ -279,9 +291,9 @@ unmanaged-devices+=interface-name:eth0,'''})
       dhcp4: true''')
 
         self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:eth0,'''})
+unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
     def test_eth_def_renderer(self):
@@ -295,9 +307,9 @@ unmanaged-devices+=interface-name:eth0,'''})
       dhcp4: true''')
 
         self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:eth0,'''})
+unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
     def test_bridge_empty(self):
@@ -309,9 +321,9 @@ unmanaged-devices+=interface-name:eth0,'''})
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:br0,'''})
+unmanaged-devices+=interface-name:br0,''')
         self.assert_udev(None)
 
     def test_bridge_type_renderer(self):
@@ -325,9 +337,9 @@ unmanaged-devices+=interface-name:br0,'''})
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:br0,'''})
+unmanaged-devices+=interface-name:br0,''')
         self.assert_udev(None)
 
     def test_bridge_def_renderer(self):
@@ -342,9 +354,9 @@ unmanaged-devices+=interface-name:br0,'''})
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
-        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+        self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:br0,'''})
+unmanaged-devices+=interface-name:br0,''')
         self.assert_udev(None)
 
     def test_bridge_components(self):
@@ -375,10 +387,13 @@ class TestNetworkManager(TestBase):
     eth0:
       wakeonlan: true''')
 
-        self.assert_nm({'eth0.conf': '''[connection-eth0]
+        self.assert_nm({'eth0': '''[connection]
+id=ubuntu-network-eth0
 type=ethernet
-match-device=interface-name:eth0
-ethernet.wake-on-lan=1
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=1
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -405,10 +420,13 @@ ethernet.wake-on-lan=1
       set-name: lom1''')
 
         self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=interface-name:lom1
-ethernet.wake-on-lan=0
+interface-name=lom1
+
+[ethernet]
+wake-on-lan=0
 '''})
         self.assert_udev(None)
 
@@ -423,10 +441,13 @@ ethernet.wake-on-lan=0
       set-name: lom1''')
 
         self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=mac:11:22:33:44:55:66
-ethernet.wake-on-lan=0
+interface-name=lom1
+
+[ethernet]
+wake-on-lan=0
 '''})
         self.assert_udev(None)
 
@@ -438,15 +459,20 @@ ethernet.wake-on-lan=0
     engreen:
       dhcp4: true''')
 
-        self.assert_nm({'engreen.conf': '''[connection-engreen]
+        self.assert_nm({'engreen': '''[connection]
+id=ubuntu-network-engreen
 type=ethernet
-match-device=interface-name:engreen
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
 
-    def test_eth_match_dhcp4(self):
+    def test_eth_match_mac_dhcp4(self):
         self.generate('''network:
   version: 2
   renderer: NetworkManager
@@ -456,11 +482,18 @@ ipv4.method=auto
         macaddress: 11:22:33:44:55:66
       dhcp4: true''')
 
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=mac:11:22:33:44:55:66
-ethernet.wake-on-lan=0
-ipv4.method=auto
+
+[ethernet]
+wake-on-lan=0
+
+[802-3-ethernet]
+mac-address=11:22:33:44:55:66
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
 
@@ -474,11 +507,16 @@ ipv4.method=auto
         name: green
       dhcp4: true''')
 
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=interface-name:green
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=green
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -495,16 +533,23 @@ ipv4.method=auto
       dhcp4: true''')
 
         # NM needs to match on the renamed name
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=interface-name:blue
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=blue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         # ... while udev renames it
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
         self.assert_udev(None)
 
+    # glob matching not supported with NM
+    @unittest.expectedFailure
     def test_eth_match_all_names(self):
         self.generate('''network:
   version: 2
@@ -514,11 +559,15 @@ ipv4.method=auto
       match: {name: "*"}
       dhcp4: true''')
 
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=interface-name:*
-ethernet.wake-on-lan=0
-ipv4.method=auto
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
 
@@ -531,11 +580,15 @@ ipv4.method=auto
       match: {}
       dhcp4: true''')
 
-        self.assert_nm({'def1.conf': '''[connection-def1]
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
 type=ethernet
-match-device=type:ethernet
-ethernet.wake-on-lan=0
-ipv4.method=auto
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
 
@@ -547,11 +600,16 @@ ipv4.method=auto
     eth0:
       dhcp4: true''')
 
-        self.assert_nm({'eth0.conf': '''[connection-eth0]
+        self.assert_nm({'eth0': '''[connection]
+id=ubuntu-network-eth0
 type=ethernet
-match-device=interface-name:eth0
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -565,11 +623,16 @@ ipv4.method=auto
     eth0:
       dhcp4: true''')
 
-        self.assert_nm({'eth0.conf': '''[connection-eth0]
+        self.assert_nm({'eth0': '''[connection]
+id=ubuntu-network-eth0
 type=ethernet
-match-device=interface-name:eth0
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -583,10 +646,13 @@ ipv4.method=auto
     eth0:
       renderer: NetworkManager''')
 
-        self.assert_nm({'eth0.conf': '''[connection-eth0]
+        self.assert_nm({'eth0': '''[connection]
+id=ubuntu-network-eth0
 type=ethernet
-match-device=interface-name:eth0
-ethernet.wake-on-lan=0
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -599,11 +665,13 @@ ethernet.wake-on-lan=0
     br0:
       dhcp4: true''')
 
-        self.assert_nm({'br0.conf': '''[connection-br0]
+        self.assert_nm({'br0': '''[connection]
+id=ubuntu-network-br0
 type=bridge
-connection.interface-name=br0
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=br0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -617,11 +685,13 @@ ipv4.method=auto
     br0:
       dhcp4: true''')
 
-        self.assert_nm({'br0.conf': '''[connection-br0]
+        self.assert_nm({'br0': '''[connection]
+id=ubuntu-network-br0
 type=bridge
-connection.interface-name=br0
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=br0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -636,11 +706,13 @@ ipv4.method=auto
       renderer: NetworkManager
       dhcp4: true''')
 
-        self.assert_nm({'br0.conf': '''[connection-br0]
+        self.assert_nm({'br0': '''[connection]
+id=ubuntu-network-br0
 type=bridge
-connection.interface-name=br0
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=br0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -651,34 +723,41 @@ ipv4.method=auto
   renderer: NetworkManager
   ethernets:
     eno1: {}
-    switchports:
+    switchport:
       match:
-        name: "enp2*"
+        name: enp2s1
   bridges:
     br0:
-      interfaces: [eno1, switchports]
+      interfaces: [eno1, switchport]
       dhcp4: true''')
 
-        self.assert_nm({'eno1.conf': '''[connection-eno1]
+        self.assert_nm({'eno1': '''[connection]
+id=ubuntu-network-eno1
 type=ethernet
-match-device=interface-name:eno1
-ethernet.wake-on-lan=0
+interface-name=eno1
 slave-type=bridge
 master=br0
-''',
-                        'switchports.conf': '''[connection-switchports]
-type=ethernet
-match-device=interface-name:enp2*
-ethernet.wake-on-lan=0
-slave-type=bridge
-master=br0
-''',
 
-                        'br0.conf': '''[connection-br0]
+[ethernet]
+wake-on-lan=0
+''',
+                        'switchport': '''[connection]
+id=ubuntu-network-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bridge
+master=br0
+
+[ethernet]
+wake-on-lan=0
+''',
+                        'br0': '''[connection]
+id=ubuntu-network-br0
 type=bridge
-connection.interface-name=br0
-ethernet.wake-on-lan=0
-ipv4.method=auto
+interface-name=br0
+
+[ipv4]
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
