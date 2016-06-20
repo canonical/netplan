@@ -390,7 +390,7 @@ ethernet.wake-on-lan=1
   ethernets:
     def1:
       match:
-        driver: ixgbe''', True)
+        driver: ixgbe''', expect_fail=True)
         self.assertIn('NetworkManager definitions do not support matching by driver', err)
 
     def test_eth_match_by_driver_rename(self):
@@ -686,11 +686,11 @@ ipv4.method=auto
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
-        err = self.generate('network:\n  version', True)
+        err = self.generate('network:\n  version', expect_fail=True)
         self.assertIn('/config line 1 column 2: expected mapping', err)
 
     def test_invalid_version(self):
-        err = self.generate('network:\n  version: 1', True)
+        err = self.generate('network:\n  version: 1', expect_fail=True)
         self.assertIn('/config line 1 column 11: Only version 2 is supported', err)
 
     def test_duplicate_id(self):
@@ -701,7 +701,7 @@ class TestConfigErrors(TestBase):
       wakeonlan: true
     id0:
       wakeonlan: true
-''', True)
+''', expect_fail=True)
         self.assertIn("Duplicate net definition ID 'id0'", err)
 
     def test_set_name_without_match(self):
@@ -710,7 +710,7 @@ class TestConfigErrors(TestBase):
   ethernets:
     def1:
       set-name: lom1
-''', True)
+''', expect_fail=True)
         self.assertIn('/config line 4 column 6: def1: set-name: requires match: properties', err)
 
     def test_virtual_set_name(self):
@@ -718,7 +718,7 @@ class TestConfigErrors(TestBase):
   version: 2
   bridges:
     br0:
-      set_name: br1''', True)
+      set_name: br1''', expect_fail=True)
         self.assertIn('/config line 4 column 6: unknown key set_name\n', err)
 
     def test_virtual_match(self):
@@ -727,7 +727,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       match:
-        driver: foo''', True)
+        driver: foo''', expect_fail=True)
         self.assertIn('/config line 4 column 6: unknown key match\n', err)
 
     def test_bridge_unknown_iface(self):
@@ -735,7 +735,7 @@ class TestConfigErrors(TestBase):
   version: 2
   bridges:
     br0:
-      interfaces: ['foo']''', True)
+      interfaces: ['foo']''', expect_fail=True)
         self.assertIn('/config line 4 column 18: bridge br0: interface foo is not defined\n', err)
 
     def test_bridge_multiple_assignments(self):
@@ -747,14 +747,14 @@ class TestConfigErrors(TestBase):
     br0:
       interfaces: [eno1]
     br1:
-      interfaces: [eno1]''', True)
+      interfaces: [eno1]''', expect_fail=True)
         self.assertIn('bridge br1: interface eno1 is already assigned to bridge br0\n', err)
 
     def test_unknown_renderer(self):
         err = self.generate('''network:
   version: 2
   renderer: bogus
-''', True)
+''', expect_fail=True)
         self.assertIn("unknown renderer 'bogus'", err)
 
 
