@@ -12,21 +12,25 @@ import unittest
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), 'generate')
 
+# make sure we fail on criticals
+os.environ['G_DEBUG'] = 'fatal-criticals'
+
 
 class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
 
-    def generate(self, yaml, expect_fail=False):
+    def generate(self, yaml, expect_fail=False, extra_args=[]):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
         '''
-        conf = os.path.join(self.workdir.name, 'config')
+        conf = os.path.join(self.workdir.name, 'etc', 'network', 'config')
+        os.makedirs(os.path.dirname(conf))
         with open(conf, 'w') as f:
             f.write(yaml)
 
-        p = subprocess.Popen([exe_generate, conf, self.workdir.name],
+        p = subprocess.Popen([exe_generate, '--root-dir', self.workdir.name] + extra_args,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              universal_newlines=True)
         (out, err) = p.communicate()
@@ -43,7 +47,7 @@ class TestBase(unittest.TestCase):
             self.assertFalse(os.path.exists(networkd_dir))
             return
 
-        self.assertEqual(set(os.listdir(self.workdir.name)), {'config', 'run'})
+        self.assertEqual(set(os.listdir(self.workdir.name)), {'etc', 'run'})
         self.assertEqual(set(os.listdir(networkd_dir)),
                          set(file_contents_map))
         for fname, contents in file_contents_map.items():
@@ -73,17 +77,56 @@ class TestBase(unittest.TestCase):
 class TestConfigArgs(TestBase):
     '''Config file argument handling'''
 
-    @unittest.skip('need to define and implement default config location')
     def test_no_files(self):
-        subprocess.check_call([exe_generate, '--root', self.workdir.name])
+        subprocess.check_call([exe_generate, '--root-dir', self.workdir.name])
         self.assertEqual(os.listdir(self.workdir.name), [])
         self.assert_udev(None)
 
     def test_no_configs(self):
         self.generate('network:\n  version: 2')
         # should not write any files
-        self.assertEqual(os.listdir(self.workdir.name), ['config'])
+        self.assertEqual(os.listdir(self.workdir.name), ['etc'])
         self.assert_udev(None)
+
+    def test_file_args(self):
+        conf = os.path.join(self.workdir.name, 'config')
+        with open(conf, 'w') as f:
+            f.write('network: {}')
+        # when specifying custom files, it should ignore the global config
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''', extra_args=[conf])
+        self.assertEqual(os.listdir(self.workdir.name), ['etc', 'config'])
+
+    def test_file_args_notfound(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''', expect_fail=True, extra_args=['/non/existing/config'])
+        self.assertEqual(err, 'Cannot open /non/existing/config: No such file or directory\n')
+        self.assertEqual(os.listdir(self.workdir.name), ['etc'])
+
+    def test_help(self):
+        conf = os.path.join(self.workdir.name, 'etc', 'network', 'config')
+        os.makedirs(os.path.dirname(conf))
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''')
+
+        p = subprocess.Popen([exe_generate, '--root-dir', self.workdir.name, '--help'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             universal_newlines=True)
+        (out, err) = p.communicate()
+        self.assertEqual(err, '')
+        self.assertEqual(p.returncode, 0)
+        self.assertIn('Usage:', out)
+        self.assertEqual(os.listdir(self.workdir.name), ['etc'])
 
 
 class TestNetworkd(TestBase):
