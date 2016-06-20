@@ -55,6 +55,10 @@ class NetworkTestBase(unittest.TestCase):
         subprocess.check_call(['iw', 'reg', 'set', klass.orig_country])
         subprocess.call(['systemctl', 'stop', 'NetworkManager'])
         os.remove('/run/udev/rules.d/99-nm-veth-test.rules')
+        try:
+            os.remove('/etc/network/config')
+        except OSError:
+            pass
 
     @classmethod
     def create_devices(klass):
@@ -116,7 +120,8 @@ class NetworkTestBase(unittest.TestCase):
         self.addCleanup(self.shutdown_devices)
         self.workdir_obj = tempfile.TemporaryDirectory()
         self.workdir = self.workdir_obj.name
-        self.config = os.path.join(self.workdir, 'config')
+        self.config = '/etc/network/config'
+        os.makedirs('/etc/network/conf.d', exist_ok=True)
 
         # create static entropy file to avoid draining/blocking on /dev/random
         self.entropy_file = os.path.join(self.workdir, 'entropy')
@@ -287,7 +292,7 @@ class NetworkTestBase(unittest.TestCase):
     def generate_and_settle(self):
         '''Generate config, launch and settle NM and networkd'''
 
-        subprocess.check_call([exe_generate, self.config])
+        subprocess.check_call([exe_generate])
         subprocess.check_call(['systemctl', 'restart', 'NetworkManager'])
         subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
         # wait until networkd is done
