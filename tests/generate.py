@@ -70,8 +70,8 @@ class TestBase(unittest.TestCase):
             self.assertEqual(f.read(), contents)
 
 
-class TestNoConfig(TestBase):
-    '''Trivial cases'''
+class TestConfigArgs(TestBase):
+    '''Config file argument handling'''
 
     @unittest.skip('need to define and implement default config location')
     def test_no_files(self):
@@ -81,18 +81,6 @@ class TestNoConfig(TestBase):
 
     def test_no_configs(self):
         self.generate('network:\n  version: 2')
-        # should not write any files
-        self.assertEqual(os.listdir(self.workdir.name), ['config'])
-        self.assert_udev(None)
-
-    def test_global_renderer_networkd(self):
-        self.generate('network:\n  version: 2\n  renderer: networkd')
-        # should not write any files
-        self.assertEqual(os.listdir(self.workdir.name), ['config'])
-        self.assert_udev(None)
-
-    def test_global_renderer_nm(self):
-        self.generate('network:\n  version: 2\n  renderer: NetworkManager')
         # should not write any files
         self.assertEqual(os.listdir(self.workdir.name), ['config'])
         self.assert_udev(None)
@@ -222,6 +210,20 @@ unmanaged-devices+=interface-name:*,'''})
         self.assert_nm({'ubuntu-network.conf': '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=type:ethernet,'''})
+        self.assert_udev(None)
+
+    def test_eth_global_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: true''')
+
+        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm({'ubuntu-network.conf': '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:eth0,'''})
         self.assert_udev(None)
 
     def test_eth_type_renderer(self):
@@ -493,6 +495,23 @@ ethernet.wake-on-lan=0
 ipv4.method=auto
 '''})
         self.assert_networkd({})
+
+    def test_eth_global_renderer(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: true''')
+
+        self.assert_nm({'eth0.conf': '''[connection-eth0]
+type=ethernet
+match-device=interface-name:eth0
+ethernet.wake-on-lan=0
+ipv4.method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
 
     def test_eth_type_renderer(self):
         self.generate('''network:
