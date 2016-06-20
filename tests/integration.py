@@ -320,12 +320,13 @@ class NetworkTestBase(unittest.TestCase):
             self.fail('timed out waiting for NetworkManager to settle down')
 
 
-class Networkd(NetworkTestBase):
+class _CommonTests:
     def test_eth_and_bridge(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
+  renderer: %(r)s
   ethernets:
     %(ec)s:
       dhcp4: yes
@@ -333,8 +334,7 @@ class Networkd(NetworkTestBase):
   bridges:
     mybr:
       interfaces: [%(e2c)s]
-      dhcp4: yes''' %
-                    {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
                              ['inet 192.168.5.[0-9]+/24'],
@@ -349,10 +349,19 @@ class Networkd(NetworkTestBase):
         self.assertEqual(len(lines), 1, lines)
         self.assertIn(self.dev_e2_client, lines[0])
 
-        # ensure that they do not get managed by NM
+        # ensure that they do not get managed by NM for foreign backends
+        expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
-            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+unmanaged' % i)
+            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+
+
+class TestNetworkd(NetworkTestBase, _CommonTests):
+    backend = 'networkd'
+
+
+class TestNetworkManager(NetworkTestBase, _CommonTests):
+    backend = 'NetworkManager'
 
 
 unittest.main(testRunner=unittest.TextTestRunner(
