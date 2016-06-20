@@ -11,6 +11,7 @@ import time
 import subprocess
 import tempfile
 import unittest
+import shutil
 
 exe_generate = os.environ.get('UBUNTU_NETWORK_GENERATE',
                               '/usr/lib/ubuntu-network/generate')
@@ -53,12 +54,24 @@ class NetworkTestBase(unittest.TestCase):
     @classmethod
     def tearDownClass(klass):
         subprocess.check_call(['iw', 'reg', 'set', klass.orig_country])
+        try:
+            os.remove('/run/NetworkManager/conf.d/test-blacklist.conf')
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove('/run/udev/rules.d/99-nm-veth-test.rules')
+        except FileNotFoundError:
+            pass
+
+    def tearDown(self):
         subprocess.call(['systemctl', 'stop', 'NetworkManager'])
-        os.remove('/run/udev/rules.d/99-nm-veth-test.rules')
         try:
             os.remove('/etc/network/config')
-        except OSError:
+        except FileNotFoundError:
             pass
+        shutil.rmtree('/etc/network/conf.d', ignore_errors=True)
+        shutil.rmtree('/run/NetworkManager', ignore_errors=True)
+        shutil.rmtree('/run/systemd/network', ignore_errors=True)
 
     @classmethod
     def create_devices(klass):
@@ -303,6 +316,8 @@ class NetworkTestBase(unittest.TestCase):
             time.sleep(0.1)
         else:
             self.fail('timed out waiting for networkd to settle down')
+        if subprocess.call(['nm-online', '--quiet', '--timeout=60', '--wait-for-startup']) != 0:
+            self.fail('timed out waiting for NetworkManager to settle down')
 
 
 class Networkd(NetworkTestBase):
