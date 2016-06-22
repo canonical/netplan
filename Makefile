@@ -8,13 +8,8 @@ BUILDFLAGS = \
 
 default: generate
 
-src/parse.c: src/parse.h
-src/util.c: src/util.h
-src/networkd.c: src/networkd.h
-src/nm.c: src/nm.h
-
-generate: src/generate.c src/parse.c src/util.c src/networkd.c src/nm.c
-	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $^ `pkg-config --cflags --libs glib-2.0 yaml-0.1`
+generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc]
+	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 yaml-0.1`
 
 clean:
 	rm -f generate
