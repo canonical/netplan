@@ -142,6 +142,25 @@ class TestConfigArgs(TestBase):
         self.assertIn('Usage:', out)
         self.assertEqual(os.listdir(self.workdir.name), ['etc'])
 
+    def test_unknown_cli_args(self):
+        p = subprocess.Popen([exe_generate, '--foo'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             universal_newlines=True)
+        (out, err) = p.communicate()
+        self.assertIn('nknown option --foo', err)
+        self.assertNotEqual(p.returncode, 0)
+
+    def test_output_mkdir_error(self):
+        conf = os.path.join(self.workdir.name, 'config')
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''')
+        err = self.generate('', extra_args=['--root-dir', '/proc/foo', conf], expect_fail=True)
+        self.assertIn('cannot create directory /proc/foo/run/systemd/network', err)
+
 
 class TestNetworkd(TestBase):
     '''networkd output'''
@@ -151,7 +170,8 @@ class TestNetworkd(TestBase):
   version: 2
   ethernets:
     eth0:
-      wakeonlan: true''')
+      wakeonlan: true
+      dhcp4: 0''')
 
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
         self.assert_nm(None, '''[keyfile]
@@ -193,7 +213,7 @@ unmanaged-devices+=mac:11:22:33:44:55:66,''')
   version: 2
   ethernets:
     engreen:
-      dhcp4: true''')
+      dhcp4: 1''')
 
         self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
 
@@ -808,8 +828,34 @@ method=auto
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
+        err = self.generate('network:\n  version: 2\n foo: *', expect_fail=True)
+        self.assertIn('Invalid YAML', err)
+        self.assertIn('/config line 2 column 1: did not find expected key', err)
+
+    def test_yaml_expected_scalar(self):
+        err = self.generate('network:\n  version: {}', expect_fail=True)
+        self.assertIn('expected scalar', err)
+
+    def test_yaml_expected_sequence(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: {}''', expect_fail=True)
+        self.assertIn('expected sequence', err)
+
+    def test_yaml_expected_mapping(self):
         err = self.generate('network:\n  version', expect_fail=True)
         self.assertIn('/config line 1 column 2: expected mapping', err)
+
+    def test_invalid_bool(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    id0:
+      wakeonlan: wut
+''', expect_fail=True)
+        self.assertIn('invalid boolean value wut', err)
 
     def test_invalid_version(self):
         err = self.generate('network:\n  version: 1', expect_fail=True)
@@ -880,10 +926,18 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]''', expect_fail=True)
         self.assertIn('bridge br1: interface eno1 is already assigned to bridge br0\n', err)
 
-    def test_unknown_renderer(self):
+    def test_unknown_global_renderer(self):
         err = self.generate('''network:
   version: 2
   renderer: bogus
+''', expect_fail=True)
+        self.assertIn("unknown renderer 'bogus'", err)
+
+    def test_unknown_type_renderer(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    renderer: bogus
 ''', expect_fail=True)
         self.assertIn("unknown renderer 'bogus'", err)
 

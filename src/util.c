@@ -36,7 +36,11 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
     full_path = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, path, suffix, NULL);
     safe_mkdir_p_dir(full_path);
     if (!g_file_set_contents(full_path, contents, -1, &error)) {
+        /* LCOV_EXCL_START -- the mkdir() just succeeded, there is no sensible
+         * method to test this without root privileges, bind mounts, and
+         * simulating ENOSPC */
         g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
         exit(1);
+        /* LCOV_EXCL_END */
     }
 }
