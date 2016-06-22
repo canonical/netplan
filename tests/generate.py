@@ -62,7 +62,9 @@ class TestBase(unittest.TestCase):
             with open(conf_path) as f:
                 self.assertEqual(f.read(), conf)
         else:
-            self.assertFalse(os.path.exists(conf_path))
+            if os.path.exists(conf_path):
+                with open(conf_path) as f:
+                    self.fail('unexpected %s:\n%s' % (conf_path, f.read()))
 
         # check connections
         con_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections')
@@ -266,6 +268,20 @@ unmanaged-devices+=interface-name:*,''')
 # devices managed by networkd
 unmanaged-devices+=type:ethernet,''')
         self.assert_udev(None)
+
+    def test_match_multiple(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: en1s*
+        macaddress: 00:11:22:33:44:55
+      dhcp4: on''')
+        self.assert_networkd({'def1.network': '[Match]\nMACAddress=00:11:22:33:44:55\nName=en1s*\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=mac:00:11:22:33:44:55,''')
 
     def test_eth_global_renderer(self):
         self.generate('''network:
@@ -591,6 +607,33 @@ wake-on-lan=0
 method=auto
 '''})
         self.assert_networkd({})
+
+    def test_match_multiple(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        name: engreen
+        macaddress: 00:11:22:33:44:55
+      dhcp4: yes''')
+        self.assert_nm({'def1': '''[connection]
+id=ubuntu-network-def1
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[802-3-ethernet]
+mac-address=00:11:22:33:44:55
+
+[ipv4]
+method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
 
     def test_eth_global_renderer(self):
         self.generate('''network:

@@ -18,10 +18,6 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
 {
     g_assert(!def->match.driver || def->set_name);
     if (def->match.mac) {
-        if (def->match.original_name) {
-            g_fprintf(stderr, "ERROR: NetworkManager definitions can only use one match: property\n");
-            exit(1);
-        }
         g_string_append_printf(s, "mac:%s", def->match.mac);
     } else if (def->match.original_name || def->set_name || def->type >= ND_VIRTUAL) {
         /* we always have the renamed name here */
