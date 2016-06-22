@@ -77,7 +77,7 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
             break;
 
         default:
-            g_assert_not_reached();
+            g_assert_not_reached(); /* LCOV_EXCL_LINE */
     }
 
     g_string_free_to_file(s, rootdir, path, ".netdev");

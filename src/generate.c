@@ -70,14 +70,14 @@ int main(int argc, char** argv)
 
         rc = glob(path_main, GLOB_ERR, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for /etc/network/config: %m\n");
-            return 1;
+            g_fprintf(stderr, "failed to glob for /etc/network/config: %m\n"); /* LCOV_EXCL_LINE */
+            return 1; /* LCOV_EXCL_LINE */
         }
 
         rc = glob(path_dropin, GLOB_APPEND, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for /etc/network/config.d/*.conf: %m\n");
-            return 1;
+            g_fprintf(stderr, "failed to glob for /etc/network/config.d/*.conf: %m\n"); /* LCOV_EXCL_LINE */
+            return 1; /* LCOV_EXCL_LINE */
         }
 
         for (size_t i = 0; i < gl.gl_pathc; ++i)

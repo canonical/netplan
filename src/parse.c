@@ -96,7 +96,7 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
             yaml_error(node, error, "expected mapping");
             break;
         default:
-            g_assert_not_reached();
+            g_assert_not_reached(); /* LCOV_EXCL_LINE */
     }
     return FALSE;
 }
@@ -383,7 +383,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         switch (cur_netdef->type) {
             case ND_ETHERNET: handlers = ethernet_def_handlers; break;
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
-            default: g_assert_not_reached();
+            default: g_assert_not_reached(); /* LCOV_EXCL_LINE */
         }
         if (!process_mapping(doc, value, handlers, NULL, error))
             return FALSE;

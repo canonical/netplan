@@ -48,7 +48,7 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
                 g_string_append(s, "type:wifi");
                 break;
             default:
-                g_assert_not_reached();
+                g_assert_not_reached(); /* LCOV_EXCL_LINE */
         }
     }
 }
@@ -67,7 +67,7 @@ type_str(netdef_type type)
         case ND_BRIDGE:
             return "bridge";
         default:
-            g_assert_not_reached();
+            g_assert_not_reached(); /* LCOV_EXCL_LINE */
     }
 }
 
@@ -124,7 +124,7 @@ write_nm_conf(net_definition* def, const char* rootdir)
                 case ND_WIFI:
                     g_string_append(s, "\n[802-11-wireless]\n");  break;
                 default:
-                    g_assert_not_reached();
+                    g_assert_not_reached(); /* LCOV_EXCL_LINE */
             }
             g_string_append_printf(s, "mac-address=%s\n", def->match.mac);
         }
