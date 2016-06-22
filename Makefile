@@ -18,11 +18,20 @@ generate: src/generate.c src/parse.c src/util.c src/networkd.c src/nm.c
 
 clean:
 	rm -f generate
+	rm -rf test-coverage
 
 check: default
 	tests/generate.py
 	$(shell which pyflakes3 || echo true) tests/generate.py tests/integration.py
 	$(shell which pep8 || echo true) --max-line-length=130 tests/generate.py tests/integration.py
+
+coverage:
+	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
+	lcov --directory . --capture -o generate.info
+	lcov --remove generate.info "/usr*" -o generate.info
+	genhtml -o test-coverage -t "generate test coverage" generate.info
+	@rm *.gcda *.gcno generate.info generate
+	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
 
 install: default
 	mkdir -p $(DESTDIR)/usr/lib/ubuntu-network
