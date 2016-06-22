@@ -24,20 +24,10 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
         }
         g_string_append_printf(s, "mac:%s", def->match.mac);
     } else if (def->match.original_name || def->set_name || def->type >= ND_VIRTUAL) {
-        char *n;
-
-        if (def->match.mac) {
-            g_fprintf(stderr, "ERROR: NetworkManager definitions can only use one match: property\n");
-            exit(1);
-        }
         /* we always have the renamed name here */
-        if (def->type >= ND_VIRTUAL)
-            n = def->id;
-        else if (def->set_name)
-            n = def->set_name;
-        else if (def->match.original_name)
-            n = def->match.original_name;
-        g_string_append_printf(s, "interface-name:%s", n);
+        g_string_append_printf(s, "interface-name:%s",
+                (def->type >= ND_VIRTUAL) ? def->id
+                                          : (def->set_name ?: def->match.original_name));
     } else {
         /* no matches → match all devices of that type */
         switch (def->type) {
