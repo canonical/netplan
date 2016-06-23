@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <errno.h>
+#include <regex.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -101,6 +102,28 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
     return FALSE;
 }
 
+
+/**
+ * Check that node contains a valid ID/interface name. Raise GError if not.
+ */
+static gboolean
+assert_valid_id(yaml_node_t* node, GError** error)
+{
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    g_assert(node->type == YAML_SCALAR_NODE);
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^[[:alnum:][:punct:]]+$", REG_EXTENDED|REG_NOSUB) == 0);
+        re_inited = TRUE;
+    }
+
+    if (regexec(&re, (char*) node->data.scalar.value, 0, NULL, 0) != 0)
+        return yaml_error(node, error, "Invalid name '%s'", node->data.scalar.value);
+    return TRUE;
+}
+
 #define assert_type(n,t) { if (!assert_type_fn(n,t,error)) return FALSE; }
 
 /****************************************************
@@ -193,6 +216,43 @@ handle_netdef_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 }
 
 /**
+ * Generic handler for setting a cur_netdef ID/iface name field from a scalar node
+ * @data: offset into net_definition where the const char* field to write is
+ *        located
+ */
+static gboolean
+handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (!assert_valid_id(node, error))
+        return FALSE;
+    return handle_netdef_str(doc, node, data, error);
+}
+
+/**
+ * Generic handler for setting a cur_netdef MAC address field from a scalar node
+ * @data: offset into net_definition where the const char* field to write is
+ *        located
+ */
+static gboolean
+handle_netdef_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    g_assert(node->type == YAML_SCALAR_NODE);
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]$", REG_EXTENDED|REG_NOSUB) == 0);
+        re_inited = TRUE;
+    }
+
+    if (regexec(&re, (char*) node->data.scalar.value, 0, NULL, 0) != 0)
+        return yaml_error(node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", node->data.scalar.value);
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+/**
  * Generic handler for setting a cur_netdef gboolean field from a scalar node
  * @data: offset into net_definition where the gboolean field to write is located
  */
@@ -225,8 +285,8 @@ handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
 
 const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.driver)},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.mac)},
-    {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.original_name)},
+    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(match.mac)},
+    {"name", YAML_SCALAR_NODE, handle_netdef_id, NULL, netdef_offset(match.original_name)},
     {NULL}
 };
 
@@ -358,7 +418,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         const mapping_entry_handler* handlers;
 
         key = yaml_document_get_node(doc, entry->key);
-        assert_type(key, YAML_SCALAR_NODE);
+        if (!assert_valid_id(key, error))
+            return FALSE;
         value = yaml_document_get_node(doc, entry->value);
 
         /* special-case "renderer:" key to set the per-type backend */

@@ -941,6 +941,36 @@ class TestConfigErrors(TestBase):
 ''', expect_fail=True)
         self.assertIn("unknown renderer 'bogus'", err)
 
+    def test_invalid_id(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    "eth 0":
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("Invalid name 'eth 0'", err)
+
+    def test_invalid_name_match(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: |
+          fo o
+          bar
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("Invalid name 'fo o\nbar\n'", err)
+
+    def test_invalid_mac_match(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        macaddress: 00:11:ZZ
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("Invalid MAC address '00:11:ZZ', must be XX:XX:XX:XX:XX:XX", err)
+
 
 unittest.main(testRunner=unittest.TextTestRunner(
     stream=sys.stdout, verbosity=2))
