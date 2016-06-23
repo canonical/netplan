@@ -416,14 +416,20 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         const mapping_entry_handler* handlers;
+        const char* key_str;
 
         key = yaml_document_get_node(doc, entry->key);
         if (!assert_valid_id(key, error))
             return FALSE;
+        key_str = (const char*) key->data.scalar.value;
+        /* globbing is not allowed for IDs */
+        if (strpbrk(key_str, "*[]?"))
+            return yaml_error(key, error, "Definition ID '%s' must not use globbing", key_str);
+
         value = yaml_document_get_node(doc, entry->value);
 
         /* special-case "renderer:" key to set the per-type backend */
-        if (strcmp((char*) key->data.scalar.value, "renderer") == 0) {
+        if (strcmp(key_str, "renderer") == 0) {
             if (!parse_renderer(value, &backend_cur_type, error))
                 return FALSE;
             continue;
@@ -435,7 +441,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         cur_netdef = g_new0(net_definition, 1);
         cur_netdef->type = GPOINTER_TO_UINT(data);
         cur_netdef->backend = backend_cur_type ?: (backend_global ?: get_default_backend_for_type(cur_netdef->type));
-        cur_netdef->id = g_strdup((const char*) key->data.scalar.value);
+        cur_netdef->id = g_strdup(key_str);
 
         if (!g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef))
             return yaml_error(key, error, "Duplicate net definition ID '%s'", cur_netdef->id);

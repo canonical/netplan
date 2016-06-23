@@ -971,6 +971,14 @@ class TestConfigErrors(TestBase):
       dhcp4: true''', expect_fail=True)
         self.assertIn("Invalid MAC address '00:11:ZZ', must be XX:XX:XX:XX:XX:XX", err)
 
+    def test_glob_in_id(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    en*:
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("Definition ID 'en*' must not use globbing", err)
+
 
 unittest.main(testRunner=unittest.TextTestRunner(
     stream=sys.stdout, verbosity=2))
