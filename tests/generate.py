@@ -584,27 +584,17 @@ method=auto
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
         self.assert_udev(None)
 
-    # glob matching not supported with NM
-    @unittest.expectedFailure
-    def test_eth_match_all_names(self):
-        self.generate('''network:
+    def test_eth_match_name_glob(self):
+        err = self.generate('''network:
   version: 2
   renderer: NetworkManager
   ethernets:
     def1:
-      match: {name: "*"}
-      dhcp4: true''')
+      match: {name: "en*"}
+      dhcp4: true''', expect_fail=True)
+        self.assertIn('def1: NetworkManager definitions do not support name globbing', err)
 
-        self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
-type=ethernet
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=auto
-'''})
+        self.assert_nm({})
         self.assert_networkd({})
 
     def test_eth_match_all(self):

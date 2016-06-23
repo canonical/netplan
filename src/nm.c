@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #include <glib.h>
@@ -90,8 +91,14 @@ write_nm_conf(net_definition* def, const char* rootdir)
             g_string_append_printf(s, "interface-name=%s\n", def->set_name);
         else if (!def->has_match)
             g_string_append_printf(s, "interface-name=%s\n", def->id);
-        else if (def->match.original_name)
+        else if (def->match.original_name) {
+            /* NM does not support interface name globbing */
+            if (strpbrk(def->match.original_name, "*[]?")) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support name globbing\n", def->id);
+                exit(1);
+            }
             g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
+        }
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
         /* virtual (created) devices set a name */
