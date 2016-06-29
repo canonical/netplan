@@ -297,6 +297,9 @@ const mapping_entry_handler match_handlers[] = {
 static netdef_backend
 get_default_backend_for_type(netdef_type type)
 {
+    if (backend_global != BACKEND_NONE)
+        return backend_global;
+
     switch (type) {
         case ND_WIFI:
             return BACKEND_NM;
@@ -397,7 +400,6 @@ static gboolean
 validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 {
     g_assert(nd->type != ND_NONE);
-    g_assert(nd->backend != BACKEND_NONE);
 
     /* set-name: requires match: */
     if (nd->set_name && !nd->has_match)
@@ -440,7 +442,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* create new network definition */
         cur_netdef = g_new0(net_definition, 1);
         cur_netdef->type = GPOINTER_TO_UINT(data);
-        cur_netdef->backend = backend_cur_type ?: (backend_global ?: get_default_backend_for_type(cur_netdef->type));
+        cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
         cur_netdef->id = g_strdup(key_str);
 
         if (!g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef))
@@ -506,4 +508,25 @@ parse_yaml(const char* filename, GError** error)
     cur_netdef = NULL;
     yaml_document_delete(&doc);
     return ret;
+}
+
+static void
+finish_iterator(gpointer key, gpointer value, gpointer user_data)
+{
+    net_definition* nd = value;
+    if (nd->backend == BACKEND_NONE) {
+        nd->backend = get_default_backend_for_type(nd->type);
+        g_debug("%s: setting default backend to %i", nd->id, nd->backend);
+    }
+}
+
+/**
+ * Post-processing after parsing all config files
+ */
+gboolean
+finish_parse(GError** error)
+{
+    if (netdefs)
+        g_hash_table_foreach(netdefs, finish_iterator, NULL);
+    return TRUE;
 }

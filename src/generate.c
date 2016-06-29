@@ -84,6 +84,8 @@ int main(int argc, char** argv)
             process_input_file(gl.gl_pathv[i]);
     }
 
+    g_assert(finish_parse(&error));
+
     /* Generate backend specific configuration files from merged data. */
     if (netdefs) {
         g_debug("Generating output files..");

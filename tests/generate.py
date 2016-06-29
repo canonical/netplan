@@ -21,19 +21,29 @@ class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
 
-    def generate(self, yaml, expect_fail=False, extra_args=[]):
+    def generate(self, yaml, expect_fail=False, extra_args=[], config_d=None):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
         '''
         conf = os.path.join(self.workdir.name, 'etc', 'network', 'config')
         os.makedirs(os.path.dirname(conf))
-        with open(conf, 'w') as f:
-            f.write(yaml)
+        if yaml is not None:
+            with open(conf, 'w') as f:
+                f.write(yaml)
+        if config_d:
+            os.makedirs(conf + '.d')
+            for f, contents in config_d.items():
+                with open(os.path.join(conf + '.d', f + '.conf'), 'w') as f:
+                    f.write(contents)
 
-        p = subprocess.Popen([exe_generate, '--root-dir', self.workdir.name] + extra_args,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             universal_newlines=True)
+        argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args
+        if 'TEST_SHELL' in os.environ:
+            print('Test is about to run:\n%s' % ' '.join(argv))
+            subprocess.call(['bash', '-i'], cwd=self.workdir.name)
+
+        p = subprocess.Popen(argv, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, universal_newlines=True)
         (out, err) = p.communicate()
         if expect_fail:
             self.assertNotEqual(p.returncode, 0)
@@ -968,6 +978,25 @@ class TestConfigErrors(TestBase):
     en*:
       dhcp4: true''', expect_fail=True)
         self.assertIn("Definition ID 'en*' must not use globbing", err)
+
+
+class TestDropins(TestBase):
+    '''config.d/*.conf drop-in merging'''
+
+    def test_global_backend(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: 1''',
+                      config_d={'backend': 'network:\n  renderer: networkd'})
+
+        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:engreen,''')
+        self.assert_udev(None)
 
 
 unittest.main(testRunner=unittest.TextTestRunner(
