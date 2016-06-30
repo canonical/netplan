@@ -1046,6 +1046,26 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
         self.assert_networkd({'engreen.link': '[Match]\nOriginalName=engreen\n\n[Link]\nWakeOnLan=magic\n',
                               'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
 
+    def test_ref(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute''',
+                      config_d={'bridges': '''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: [eno1, switchports]
+      dhcp4: true'''})
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
+                              'eno1.network': '[Match]\nName=eno1\n\n[Network]\nBridge=br0\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n[Network]\nBridge=br0\n'})
+
 
 unittest.main(testRunner=unittest.TextTestRunner(
     stream=sys.stdout, verbosity=2))
