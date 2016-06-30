@@ -19,7 +19,12 @@ net_definition* cur_netdef;
 
 netdef_backend backend_global, backend_cur_type;
 
+/* Global ID → net_definition* map for all parsed config files */
 GHashTable* netdefs;
+/* Set of IDs in currently parsed YAML file, for being able to detect
+ * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
+ * existing definition */
+GHashTable* ids_in_file;
 
 /****************************************************
  * Loading and error handling
@@ -439,13 +444,21 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         assert_type(value, YAML_MAPPING_NODE);
 
-        /* create new network definition */
-        cur_netdef = g_new0(net_definition, 1);
-        cur_netdef->type = GPOINTER_TO_UINT(data);
-        cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
-        cur_netdef->id = g_strdup(key_str);
+        cur_netdef = g_hash_table_lookup(netdefs, key_str);
+        if (cur_netdef) {
+            /* already exists, overriding/amending previous definition */
+            if (cur_netdef->type != GPOINTER_TO_UINT(data))
+                return yaml_error(key, error, "Updated definition '%s' changes device type", key_str);
+        } else {
+            /* create new network definition */
+            cur_netdef = g_new0(net_definition, 1);
+            cur_netdef->type = GPOINTER_TO_UINT(data);
+            cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
+            cur_netdef->id = g_strdup(key_str);
+            g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+        }
 
-        if (!g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef))
+        if (!g_hash_table_add(ids_in_file, cur_netdef->id))
             return yaml_error(key, error, "Duplicate net definition ID '%s'", cur_netdef->id);
 
         /* and fill it with definitions */
@@ -504,9 +517,14 @@ parse_yaml(const char* filename, GError** error)
     if (!netdefs)
         netdefs = g_hash_table_new(g_str_hash, g_str_equal);
 
+    g_assert(ids_in_file == NULL);
+    ids_in_file = g_hash_table_new(g_str_hash, NULL);
+
     ret = process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, NULL, error);
     cur_netdef = NULL;
     yaml_document_delete(&doc);
+    g_hash_table_destroy(ids_in_file);
+    ids_in_file = NULL;
     return ret;
 }
 

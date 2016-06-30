@@ -872,6 +872,19 @@ class TestConfigErrors(TestBase):
 ''', expect_fail=True)
         self.assertIn("Duplicate net definition ID 'id0'", err)
 
+    def test_id_redef_type_mismatch(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    id0:
+      wakeonlan: true''',
+                            config_d={'redef': '''network:
+  version: 2
+  bridges:
+    id0:
+      wakeonlan: true'''}, expect_fail=True)
+        self.assertIn("redef.conf line 3 column 4: Updated definition 'id0' changes device type", err)
+
     def test_set_name_without_match(self):
         err = self.generate('''network:
   version: 2
@@ -997,6 +1010,41 @@ class TestDropins(TestBase):
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,''')
         self.assert_udev(None)
+
+    def test_add_def(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: true''',
+                      config_d={'blue': '''network:
+  version: 2
+  ethernets:
+    enblue:
+      dhcp4: true'''})
+
+        self.assert_networkd({'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n',
+                              'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
+        self.assert_udev(None)
+
+    def test_change_def(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      wakeonlan: true
+      dhcp4: false''',
+                      config_d={'green-dhcp': '''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: true'''})
+
+        self.assert_networkd({'engreen.link': '[Match]\nOriginalName=engreen\n\n[Link]\nWakeOnLan=magic\n',
+                              'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
 
 
 unittest.main(testRunner=unittest.TextTestRunner(
