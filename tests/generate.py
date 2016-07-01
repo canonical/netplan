@@ -46,7 +46,7 @@ class TestBase(unittest.TestCase):
                              stderr=subprocess.PIPE, universal_newlines=True)
         (out, err) = p.communicate()
         if expect_fail:
-            self.assertNotEqual(p.returncode, 0)
+            self.assertGreater(p.returncode, 0)
         else:
             self.assertEqual(p.returncode, 0, err)
         self.assertEqual(out, '')
