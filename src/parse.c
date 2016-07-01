@@ -17,6 +17,9 @@ const char* current_file;
 /* net_definition that is currently being processed */
 net_definition* cur_netdef;
 
+/* wifi AP that is currently being processed */
+wifi_access_point* cur_access_point;
+
 netdef_backend backend_global, backend_cur_type;
 
 /* Global ID → net_definition* map for all parsed config files */
@@ -313,6 +316,18 @@ get_default_backend_for_type(netdef_type type)
     }
 }
 
+static gboolean
+handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_access_point);
+    cur_access_point->password = g_strdup((const char*) node->data.scalar.value);
+    return TRUE;
+}
+
+const mapping_entry_handler wifi_access_point_handlers[] = {
+    {"password", YAML_SCALAR_NODE, handle_access_point_password},
+};
+
 /**
  * Parse scalar node's string into a netdef_backend.
  */
@@ -341,6 +356,35 @@ handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** er
 {
     cur_netdef->has_match = TRUE;
     return process_mapping(doc, node, match_handlers, error);
+}
+
+static gboolean
+handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+
+        key = yaml_document_get_node(doc, entry->key);
+        assert_type(key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(doc, entry->value);
+        assert_type(value, YAML_MAPPING_NODE);
+
+        g_assert(cur_access_point == NULL);
+        cur_access_point = g_new0(wifi_access_point, 1);
+        cur_access_point->ssid = g_strdup((const char*) key->data.scalar.value);
+        g_debug("%s: adding wifi AP '%s'", cur_netdef->id, cur_access_point->ssid);
+
+        if (!cur_netdef->access_points)
+            cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
+        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point))
+            return yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
+
+        if (!process_mapping(doc, value, wifi_access_point_handlers, error))
+            return FALSE;
+
+        cur_access_point = NULL;
+    }
+    return TRUE;
 }
 
 static gboolean
@@ -373,6 +417,16 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {NULL}
+};
+
+const mapping_entry_handler wifi_def_handlers[] = {
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
+    {"match", YAML_MAPPING_NODE, handle_match},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {NULL}
 };
 
@@ -409,6 +463,9 @@ validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
     /* set-name: requires match: */
     if (nd->set_name && !nd->has_match)
         return yaml_error(node, error, "%s: set-name: requires match: properties", nd->id);
+
+    if (nd->type == ND_WIFI && nd->access_points == NULL)
+        return yaml_error(node, error, "%s: No access points defined", nd->id);
 
     return TRUE;
 }
@@ -464,6 +521,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* and fill it with definitions */
         switch (cur_netdef->type) {
             case ND_ETHERNET: handlers = ethernet_def_handlers; break;
+            case ND_WIFI: handlers = wifi_def_handlers; break;
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
             default: g_assert_not_reached(); /* LCOV_EXCL_LINE */
         }
@@ -487,6 +545,7 @@ const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
     {"renderer", YAML_SCALAR_NODE, handle_network_renderer},
     {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
+    {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
     {NULL}
 };

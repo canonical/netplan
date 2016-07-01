@@ -358,6 +358,16 @@ unmanaged-devices+=interface-name:eth0,''')
 unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
+    def test_wifi(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl1:
+      renderer: networkd
+      access-points:
+        myap: {}''', expect_fail=True)
+        self.assertIn('networkd does not support wifi', err)
+
     def test_bridge_empty(self):
         self.generate('''network:
   version: 2
@@ -720,6 +730,105 @@ wake-on-lan=0
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_wifi_default(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        "Joe's Home":
+          password: "s3kr1t"
+        workplace:
+          password: "c0mpany"
+      dhcp4: yes''')
+
+        self.assert_nm({'wl0-Joe%27s%20Home': '''[connection]
+id=ubuntu-network-wl0-Joe's Home
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[wifi]
+ssid=Joe's Home
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=s3kr1t
+''',
+                        'wl0-workplace': '''[connection]
+id=ubuntu-network-wl0-workplace
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[wifi]
+ssid=workplace
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=c0mpany
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_wifi_match_mac(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    all:
+      match:
+        macaddress: 11:22:33:44:55:66
+      access-points:
+        workplace: {}''')
+
+        self.assert_nm({'all-workplace': '''[connection]
+id=ubuntu-network-all-workplace
+type=wifi
+
+[ethernet]
+wake-on-lan=0
+
+[802-11-wireless]
+mac-address=11:22:33:44:55:66
+
+[wifi]
+ssid=workplace
+mode=infrastructure
+'''})
+
+    def test_wifi_match_all(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    all:
+      match: {}
+      access-points:
+        workplace: {}''')
+
+        self.assert_nm({'all-workplace': '''[connection]
+id=ubuntu-network-all-workplace
+type=wifi
+
+[ethernet]
+wake-on-lan=0
+
+[wifi]
+ssid=workplace
+mode=infrastructure
+'''})
+
     def test_bridge_empty(self):
         self.generate('''network:
   version: 2
@@ -991,6 +1100,47 @@ class TestConfigErrors(TestBase):
     en*:
       dhcp4: true''', expect_fail=True)
         self.assertIn("Definition ID 'en*' must not use globbing", err)
+
+    def test_wifi_duplicate_ssid(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          password: "s3kr1t"
+        workplace:
+          password: "c0mpany"
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn("wl0: Duplicate access point SSID 'workplace'", err)
+
+    def test_wifi_no_ap(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn('wl0: No access points defined', err)
+
+    def test_wifi_empty_ap(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points: {}
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn('wl0: No access points defined', err)
+
+    def test_wifi_ap_unknown_key(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          something: false
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn('/etc/network/config line 6 column 10: unknown key something', err)
 
 
 class TestDropins(TestBase):

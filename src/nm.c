@@ -59,30 +59,50 @@ type_str(netdef_type type)
 }
 
 /**
- * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ from
- * the parsed #netdefs.
+ * Return NM wifi "mode=" string.
+ */
+static const char*
+wifi_mode_str(wifi_mode mode)
+{
+    switch (mode) {
+        case WIFI_MODE_INFRASTRUCTURE:
+            return "infrastructure";
+        case WIFI_MODE_ADHOC:
+            return "adhoc";
+        case WIFI_MODE_AP:
+            return "ap";
+        default:
+            g_assert_not_reached(); /* LCOV_EXCL_LINE */
+    }
+}
+
+/**
+ * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
+ * particular net_definition and wifi_access_point, as NM requires a separate
+ * connection file for each SSID.
+ * @def: The net_definition for which to create a connection
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
+ * @ap: The access point for which to create a connection. Must be %NULL for
+ *      non-wifi types.
  */
-void
-write_nm_conf(net_definition* def, const char* rootdir)
+static void
+write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_access_point* ap)
 {
     GString *s = NULL;
     g_autofree char* conf_path = NULL;
     mode_t orig_umask;
 
-    if (def->backend != BACKEND_NM) {
-        g_debug("NetworkManager: definition %s is not for us (backend %i)", def->id, def->backend);
-        return;
-    }
-
-    if (def->match.driver && !def->set_name) {
-        g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support matching by driver\n", def->id);
-        exit(1);
-    }
+    if (def->type == ND_WIFI)
+        g_assert(ap);
+    else
+        g_assert(ap == NULL);
 
     s = g_string_new(NULL);
-    g_string_append_printf(s, "[connection]\nid=ubuntu-network-%s\ntype=%s\n", def->id, type_str(def->type));
+    g_string_append_printf(s, "[connection]\nid=ubuntu-network-%s", def->id);
+    if (ap)
+        g_string_append_printf(s, "-%s", ap->ssid);
+    g_string_append_printf(s, "\ntype=%s\n", type_str(def->type));
     if (def->type < ND_VIRTUAL) {
         /* physical (existing) devices use matching; driver matching is not
          * supported, MAC matching is done below (different keyfile section),
@@ -127,10 +147,56 @@ write_nm_conf(net_definition* def, const char* rootdir)
         g_string_append(s, "\n[ipv4]\nmethod=auto\n");
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, NULL);
+
+    if (ap) {
+        g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, "-", escaped_ssid, NULL);
+
+        g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
+        if (ap->password)
+            g_string_append_printf(s, "\n[wifi-security]\nkey-mgmt=wpa-psk\npsk=%s\n", ap->password);
+    } else {
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, NULL);
+    }
+
     /* NM connection files might contain secrets, and NM insists on tight permissions */
     orig_umask = umask(077);
     g_string_free_to_file(s, rootdir, conf_path, NULL);
     umask(orig_umask);
+}
+
+/**
+ * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
+ * particular net_definition.
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ */
+void
+write_nm_conf(net_definition* def, const char* rootdir)
+{
+    if (def->backend != BACKEND_NM) {
+        g_debug("NetworkManager: definition %s is not for us (backend %i)", def->id, def->backend);
+        return;
+    }
+
+    if (def->match.driver && !def->set_name) {
+        g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support matching by driver\n", def->id);
+        exit(1);
+    }
+
+    /* for wifi we need to create a separate connection file for every SSID */
+    if (def->type == ND_WIFI) {
+        GHashTableIter iter;
+        gpointer key;
+        wifi_access_point* ap;
+        g_assert(def->access_points);
+        g_hash_table_iter_init(&iter, def->access_points);
+        while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
+            write_nm_conf_access_point(def, rootdir, ap);
+    } else {
+        g_assert(def->access_points == NULL);
+        write_nm_conf_access_point(def, rootdir, NULL);
+    }
 }
 
 static void

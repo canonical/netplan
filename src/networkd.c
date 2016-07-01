@@ -127,6 +127,11 @@ write_networkd_conf(net_definition* def, const char* rootdir)
         return;
     }
 
+    if (def->type == ND_WIFI) {
+        g_fprintf(stderr, "ERROR: %s: networkd does not support wifi\n", def->id);
+        exit(1);
+    }
+
     if (def->type >= ND_VIRTUAL)
         write_netdev_file(def, rootdir, path_base);
     write_network_file(def, rootdir, path_base);

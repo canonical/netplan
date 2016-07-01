@@ -41,7 +41,23 @@ typedef struct net_definition {
     } match;
     gboolean has_match;
     gboolean wake_on_lan;
+
+    /* these properties are only valid for ND_WIFI */
+    GHashTable* access_points; /* SSID → wifi_access_point* */
 } net_definition;
+
+typedef enum {
+    WIFI_MODE_INFRASTRUCTURE,
+    WIFI_MODE_ADHOC,
+    WIFI_MODE_AP
+} wifi_mode;
+
+typedef struct {
+    wifi_mode mode;
+    char* ssid;
+    char* password;
+} wifi_access_point;
+
 
 /* Written/updated by parse_yaml(): char* id →  net_definition */
 extern GHashTable* netdefs;
