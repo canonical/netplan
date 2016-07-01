@@ -112,6 +112,12 @@ class TestConfigArgs(TestBase):
         self.assertEqual(os.listdir(self.workdir.name), ['etc'])
         self.assert_udev(None)
 
+    def test_empty_config(self):
+        self.generate('')
+        # should not write any files
+        self.assertEqual(os.listdir(self.workdir.name), ['etc'])
+        self.assert_udev(None)
+
     def test_file_args(self):
         conf = os.path.join(self.workdir.name, 'config')
         with open(conf, 'w') as f:
