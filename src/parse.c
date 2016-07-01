@@ -174,7 +174,7 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
 static gboolean
-process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, const void* data, GError** error)
+process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, GError** error)
 {
     yaml_node_pair_t* entry;
 
@@ -194,7 +194,7 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
         if (h->map_handlers) {
             g_assert(h->handler == NULL);
             g_assert(h->type == YAML_MAPPING_NODE);
-            if (!process_mapping(doc, value, h->map_handlers, h->data, error))
+            if (!process_mapping(doc, value, h->map_handlers, error))
                 return FALSE;
         } else {
             if (!h->handler(doc, value, h->data, error))
@@ -337,10 +337,10 @@ handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 }
 
 static gboolean
-handle_match(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     cur_netdef->has_match = TRUE;
-    return process_mapping(doc, node, match_handlers, data, error);
+    return process_mapping(doc, node, match_handlers, error);
 }
 
 static gboolean
@@ -467,7 +467,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
             default: g_assert_not_reached(); /* LCOV_EXCL_LINE */
         }
-        if (!process_mapping(doc, value, handlers, NULL, error))
+        if (!process_mapping(doc, value, handlers, error))
             return FALSE;
 
         /* validate definition-level conditions */
@@ -520,7 +520,7 @@ parse_yaml(const char* filename, GError** error)
     g_assert(ids_in_file == NULL);
     ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
-    ret = process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, NULL, error);
+    ret = process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, error);
     cur_netdef = NULL;
     yaml_document_delete(&doc);
     g_hash_table_destroy(ids_in_file);
