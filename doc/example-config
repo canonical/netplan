@@ -33,7 +33,7 @@ network:
       access-points:
         "Joe's home":
           # mode defaults to "managed" (client)
-          wpa-psk: "s3kr1t"
+          password: "s3kr1t"
     # this creates an AP on wlp1s0 using hostapd; no match rules, thus ID is
     # the interface name
     wlp1s0:
