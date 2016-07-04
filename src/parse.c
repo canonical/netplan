@@ -324,7 +324,25 @@ handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void
     return TRUE;
 }
 
+static gboolean
+handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    const char* mode = (const char*) node->data.scalar.value;
+
+    g_assert(cur_access_point);
+    if (strcmp(mode, "infrastructure") == 0)
+        cur_access_point->mode = WIFI_MODE_INFRASTRUCTURE;
+    else if (strcmp(mode, "adhoc") == 0)
+        cur_access_point->mode = WIFI_MODE_ADHOC;
+    else if (strcmp(mode, "ap") == 0)
+        cur_access_point->mode = WIFI_MODE_AP;
+    else
+        return yaml_error(node, error, "unknown wifi mode '%s'", mode);
+    return TRUE;
+}
+
 const mapping_entry_handler wifi_access_point_handlers[] = {
+    {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
 };
 

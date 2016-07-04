@@ -821,7 +821,7 @@ mode=infrastructure
     all:
       match: {}
       access-points:
-        workplace: {}''')
+        workplace: {mode: infrastructure}''')
 
         self.assert_nm({'all-workplace': '''[connection]
 id=ubuntu-network-all-workplace
@@ -833,6 +833,60 @@ wake-on-lan=0
 [wifi]
 ssid=workplace
 mode=infrastructure
+'''})
+
+    def test_wifi_ap(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          mode: ap
+          password: s3cret''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=ubuntu-network-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=shared
+
+[wifi]
+ssid=homenet
+mode=ap
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=s3cret
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_wifi_adhoc(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          mode: adhoc''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=ubuntu-network-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[wifi]
+ssid=homenet
+mode=adhoc
 '''})
 
     def test_bridge_empty(self):
@@ -1147,6 +1201,16 @@ class TestConfigErrors(TestBase):
           something: false
       dhcp4: yes''', expect_fail=True)
         self.assertIn('/etc/network/config line 6 column 10: unknown key something', err)
+
+    def test_wifi_ap_unknown_mode(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          mode: bogus''', expect_fail=True)
+        self.assertIn("unknown wifi mode 'bogus'", err)
 
 
 class TestDropins(TestBase):

@@ -152,6 +152,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, "-", escaped_ssid, NULL);
 
+        if (ap->mode == WIFI_MODE_AP)
+            g_string_append(s, "\n[ipv4]\nmethod=shared\n");
+
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
         if (ap->password)
             g_string_append_printf(s, "\n[wifi-security]\nkey-mgmt=wpa-psk\npsk=%s\n", ap->password);

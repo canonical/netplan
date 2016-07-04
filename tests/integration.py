@@ -441,5 +441,43 @@ wpa_passphrase=12345678
         self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
         self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
 
+    def test_wifi_ap_open(self):
+        # we use dev_w_client and dev_w_ap in switched roles here, to keep the
+        # existing device blacklisting in NM; i. e. dev_w_client is the
+        # NM-managed AP, and dev_w_ap the manually managed client
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  wifis:
+    %(wc)s:
+      dhcp4: yes
+      access-points:
+        "fake net":
+          mode: ap''' % {'wc': self.dev_w_client})
+        self.generate_and_settle()
+
+        # nm-online doesn't wait for wifis, argh
+        self.nm_wait_connected(self.dev_w_client, 60)
+
+        out = subprocess.check_output(['iw', 'dev', self.dev_w_client, 'info'],
+                                      universal_newlines=True)
+        self.assertIn('type AP', out)
+        self.assertIn('ssid fake net', out)
+
+        # connect the other end
+        subprocess.check_call(['ip', 'link', 'set', self.dev_w_ap, 'up'])
+        subprocess.check_call(['iw', 'dev', self.dev_w_ap, 'connect', 'fake net'])
+        out = subprocess.check_output(['dhclient', '-1', '-v', self.dev_w_ap],
+                                      stderr=subprocess.STDOUT, universal_newlines=True)
+        self.assertIn('DHCPACK', out)
+        out = subprocess.check_output(['iw', 'dev', self.dev_w_ap, 'info'],
+                                      universal_newlines=True)
+        self.assertIn('type managed', out)
+        self.assertIn('ssid fake net', out)
+        out = subprocess.check_output(['ip', 'a', 'show', self.dev_w_ap],
+                                      universal_newlines=True)
+        self.assertIn('state UP', out)
+        self.assertIn('inet 10.', out)
+
+
 unittest.main(testRunner=unittest.TextTestRunner(
         stream=sys.stdout, verbosity=2))
