@@ -65,6 +65,9 @@ class NetworkTestBase(unittest.TestCase):
 
     def tearDown(self):
         subprocess.call(['systemctl', 'stop', 'NetworkManager'])
+        subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'reset-failed', 'NetworkManager'])
+        subprocess.call(['systemctl', 'reset-failed', 'systemd-networkd'])
         try:
             os.remove('/etc/network/config')
         except FileNotFoundError:
@@ -109,6 +112,11 @@ class NetworkTestBase(unittest.TestCase):
         devs = list(after_wlan - before_wlan)
         klass.dev_w_ap = devs[0]
         klass.dev_w_client = devs[1]
+
+        # don't let NM trample over our fake AP
+        os.makedirs('/run/NetworkManager/conf.d')
+        with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
+            f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices=%s\n' % klass.dev_w_ap)
 
     @classmethod
     def shutdown_devices(klass):
@@ -306,8 +314,8 @@ class NetworkTestBase(unittest.TestCase):
         '''Generate config, launch and settle NM and networkd'''
 
         subprocess.check_call([exe_generate])
-        subprocess.check_call(['systemctl', 'restart', 'NetworkManager'])
-        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
         # wait until networkd is done
         for timeout in range(50):
             out = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE)
@@ -318,6 +326,18 @@ class NetworkTestBase(unittest.TestCase):
             self.fail('timed out waiting for networkd to settle down')
         if subprocess.call(['nm-online', '--quiet', '--timeout=60', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
+
+    def nm_wait_connected(self, iface, timeout):
+        for t in range(timeout):
+            try:
+                out = subprocess.check_output(['nmcli', 'dev', 'show', iface])
+            except subprocess.CalledProcessError:
+                out = b''
+            if b'(connected' in out:
+                break
+            time.sleep(1)
+        else:
+            self.fail('timed out waiting for %s to get connected by NM:\n%s' % (iface, out.decode()))
 
 
 class _CommonTests:
@@ -363,6 +383,63 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
 
+    def test_wifi_ipv4_open(self):
+        self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
+
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  wifis:
+    %(wc)s:
+      dhcp4: yes
+      access-points:
+        "fake net": {}
+        decoy: {}''' % {'wc': self.dev_w_client})
+        self.generate_and_settle()
+        # nm-online doesn't wait for wifis, argh
+        self.nm_wait_connected(self.dev_w_client, 60)
+
+        self.assert_iface_up(self.dev_w_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+
+        out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
+                                      universal_newlines=True)
+        self.assertRegex(out, 'GENERAL.CONNECTION.*ubuntu-network-%s-fake net' % self.dev_w_client)
+        self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
+        self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
+
+    def test_wifi_ipv4_wpa2(self):
+        self.setup_ap('''hw_mode=g
+channel=1
+ssid=fake net
+wpa=1
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+wpa_passphrase=12345678
+''', None)
+
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  wifis:
+    %(wc)s:
+      dhcp4: yes
+      access-points:
+        "fake net":
+          password: 12345678
+        decoy: {}''' % {'wc': self.dev_w_client})
+        self.generate_and_settle()
+        # nm-online doesn't wait for wifis, argh
+        self.nm_wait_connected(self.dev_w_client, 60)
+
+        self.assert_iface_up(self.dev_w_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+
+        out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
+                                      universal_newlines=True)
+        self.assertRegex(out, 'GENERAL.CONNECTION.*ubuntu-network-%s-fake net' % self.dev_w_client)
+        self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
+        self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
 
 unittest.main(testRunner=unittest.TextTestRunner(
         stream=sys.stdout, verbosity=2))
