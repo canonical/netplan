@@ -1,0 +1,19 @@
+[Unit]
+Description=Ubuntu network YAML configuration
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target
+Wants=network-pre.target
+Conflicts=shutdown.target
+ConditionPathExists=|/etc/network/config
+ConditionDirectoryNotEmpty=|/etc/network/config.d
+
+[Service]
+ExecStart=/usr/lib/ubuntu-network/generate
+Type=oneshot
+RemainAfterExit=yes
+# reduce privileges
+CapabilityBoundingSet=CAP_CHOWN
+PrivateNetwork=yes
+ProtectSystem=full
+ProtectHome=yes

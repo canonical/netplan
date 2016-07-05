@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 9),
  libyaml-dev,
  libglib2.0-dev,
  python3 (>= 3.1),
+ systemd,
  pyflakes3,
  pep8
 Vcs-Git: git://git.launchpad.net/~pitti/+git/ubuntu-network-config

@@ -13,9 +13,6 @@ import tempfile
 import unittest
 import shutil
 
-exe_generate = os.environ.get('UBUNTU_NETWORK_GENERATE',
-                              '/usr/lib/ubuntu-network/generate')
-
 for program in ['wpa_supplicant', 'hostapd', 'dnsmasq']:
     if subprocess.call(['which', program], stdout=subprocess.PIPE) != 0:
         sys.stderr.write('%s is required for this test suite, but not available. Skipping\n' % program)
@@ -64,8 +61,10 @@ class NetworkTestBase(unittest.TestCase):
             pass
 
     def tearDown(self):
+        subprocess.call(['systemctl', 'stop', 'ubuntu-network'])
         subprocess.call(['systemctl', 'stop', 'NetworkManager'])
         subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'reset-failed', 'ubuntu-network'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'systemd-networkd'])
         try:
@@ -313,7 +312,7 @@ class NetworkTestBase(unittest.TestCase):
     def generate_and_settle(self):
         '''Generate config, launch and settle NM and networkd'''
 
-        subprocess.check_call([exe_generate])
+        # ubuntu-network.service ought to start as a dependency
         subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
         subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
         # wait until networkd is done

@@ -6,6 +6,8 @@ BUILDFLAGS = \
 	-Werror=format \
 	$(NULL)
 
+SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
+
 default: generate
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc]
@@ -29,7 +31,13 @@ coverage:
 	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
 
 install: default
-	mkdir -p $(DESTDIR)/usr/lib/ubuntu-network
+	mkdir -p $(DESTDIR)/usr/lib/ubuntu-network $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
 	install -m 755 generate $(DESTDIR)/usr/lib/ubuntu-network/
+	install -m 644 data/*.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
+
+	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants
+	ln -s ../ubuntu-network.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants/ubuntu-network.service
+	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants
+	ln -s ../ubuntu-network.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants/ubuntu-network.service
 
 .PHONY: clean
