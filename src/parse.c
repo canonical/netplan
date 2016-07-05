@@ -110,6 +110,12 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
     return FALSE;
 }
 
+static inline const char*
+scalar(const yaml_node_t* node)
+{
+    return (const char*) node->data.scalar.value;
+}
+
 
 /**
  * Check that node contains a valid ID/interface name. Raise GError if not.
@@ -127,8 +133,8 @@ assert_valid_id(yaml_node_t* node, GError** error)
         re_inited = TRUE;
     }
 
-    if (regexec(&re, (char*) node->data.scalar.value, 0, NULL, 0) != 0)
-        return yaml_error(node, error, "Invalid name '%s'", node->data.scalar.value);
+    if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
+        return yaml_error(node, error, "Invalid name '%s'", scalar(node));
     return TRUE;
 }
 
@@ -190,9 +196,9 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
         key = yaml_document_get_node(doc, entry->key);
         value = yaml_document_get_node(doc, entry->value);
         assert_type(key, YAML_SCALAR_NODE);
-        h = get_handler(handlers, (const char*) key->data.scalar.value);
+        h = get_handler(handlers, scalar(key));
         if (!h)
-            return yaml_error(node, error, "unknown key %s", key->data.scalar.value);
+            return yaml_error(node, error, "unknown key %s", scalar(key));
         assert_type(value, h->type);
         if (h->map_handlers) {
             g_assert(h->handler == NULL);
@@ -219,7 +225,7 @@ handle_netdef_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     guint offset = GPOINTER_TO_UINT(data);
     char** dest = (char**) ((void*) cur_netdef + offset);
     g_free(*dest);
-    *dest = g_strdup((char*) node->data.scalar.value);
+    *dest = g_strdup(scalar(node));
     return TRUE;
 }
 
@@ -254,8 +260,8 @@ handle_netdef_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
         re_inited = TRUE;
     }
 
-    if (regexec(&re, (char*) node->data.scalar.value, 0, NULL, 0) != 0)
-        return yaml_error(node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", node->data.scalar.value);
+    if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
+        return yaml_error(node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
 
     return handle_netdef_str(doc, node, data, error);
 }
@@ -270,18 +276,18 @@ handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
 
-    if (g_ascii_strcasecmp((const char*) node->data.scalar.value, "true") == 0 ||
-        g_ascii_strcasecmp((const char*) node->data.scalar.value, "on") == 0 ||
-        g_ascii_strcasecmp((const char*) node->data.scalar.value, "yes") == 0 ||
-        g_ascii_strcasecmp((const char*) node->data.scalar.value, "1") == 0)
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "1") == 0)
         v = TRUE;
-    else if (g_ascii_strcasecmp((const char*) node->data.scalar.value, "false") == 0 ||
-        g_ascii_strcasecmp((const char*) node->data.scalar.value, "off") == 0 ||
-        g_ascii_strcasecmp((const char*) node->data.scalar.value, "no") == 0 ||
-        g_ascii_strcasecmp((const char*) node->data.scalar.value, "0") == 0)
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "0") == 0)
         v = FALSE;
     else
-        return yaml_error(node, error, "invalid boolean value %s", node->data.scalar.value);
+        return yaml_error(node, error, "invalid boolean value %s", scalar(node));
 
     *((gboolean*) ((void*) cur_netdef + offset)) = v;
     return TRUE;
@@ -320,24 +326,22 @@ static gboolean
 handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_access_point);
-    cur_access_point->password = g_strdup((const char*) node->data.scalar.value);
+    cur_access_point->password = g_strdup(scalar(node));
     return TRUE;
 }
 
 static gboolean
 handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    const char* mode = (const char*) node->data.scalar.value;
-
     g_assert(cur_access_point);
-    if (strcmp(mode, "infrastructure") == 0)
+    if (strcmp(scalar(node), "infrastructure") == 0)
         cur_access_point->mode = WIFI_MODE_INFRASTRUCTURE;
-    else if (strcmp(mode, "adhoc") == 0)
+    else if (strcmp(scalar(node), "adhoc") == 0)
         cur_access_point->mode = WIFI_MODE_ADHOC;
-    else if (strcmp(mode, "ap") == 0)
+    else if (strcmp(scalar(node), "ap") == 0)
         cur_access_point->mode = WIFI_MODE_AP;
     else
-        return yaml_error(node, error, "unknown wifi mode '%s'", mode);
+        return yaml_error(node, error, "unknown wifi mode '%s'", scalar(node));
     return TRUE;
 }
 
@@ -352,14 +356,12 @@ const mapping_entry_handler wifi_access_point_handlers[] = {
 static gboolean
 parse_renderer(yaml_node_t* node, netdef_backend* backend, GError** error)
 {
-    char* val = (char*) node->data.scalar.value;
-
-    if (strcmp(val, "networkd") == 0)
+    if (strcmp(scalar(node), "networkd") == 0)
         *backend = BACKEND_NETWORKD;
-    else if (strcmp(val, "NetworkManager") == 0)
+    else if (strcmp(scalar(node), "NetworkManager") == 0)
         *backend = BACKEND_NM;
     else
-        return yaml_error(node, error, "unknown renderer '%s'", val);
+        return yaml_error(node, error, "unknown renderer '%s'", scalar(node));
     return TRUE;
 }
 
@@ -389,7 +391,7 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
 
         g_assert(cur_access_point == NULL);
         cur_access_point = g_new0(wifi_access_point, 1);
-        cur_access_point->ssid = g_strdup((const char*) key->data.scalar.value);
+        cur_access_point->ssid = g_strdup(scalar(key));
         g_debug("%s: adding wifi AP '%s'", cur_netdef->id, cur_access_point->ssid);
 
         if (!cur_netdef->access_points)
@@ -411,18 +413,16 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _,
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        char* ifname;
         net_definition *component;
 
         assert_type(entry, YAML_SCALAR_NODE);
-        ifname = (char*) entry->data.scalar.value;
-        component = g_hash_table_lookup(netdefs, ifname);
+        component = g_hash_table_lookup(netdefs, scalar(entry));
         if (!component)
             return yaml_error(node, error, "bridge %s: interface %s is not defined",
-                              cur_netdef->id, ifname);
+                              cur_netdef->id, scalar(entry));
         if (component->bridge)
             return yaml_error(node, error, "bridge %s: interface %s is already assigned to bridge %s",
-                              cur_netdef->id, ifname, component->bridge);
+                              cur_netdef->id, scalar(entry), component->bridge);
         component->bridge = cur_netdef->id;
     }
 
@@ -462,7 +462,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
 static gboolean
 handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    if (strcmp((char*) node->data.scalar.value, "2") != 0)
+    if (strcmp(scalar(node), "2") != 0)
         return yaml_error(node, error, "Only version 2 is supported");
     return TRUE;
 }
@@ -498,20 +498,18 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         const mapping_entry_handler* handlers;
-        const char* key_str;
 
         key = yaml_document_get_node(doc, entry->key);
         if (!assert_valid_id(key, error))
             return FALSE;
-        key_str = (const char*) key->data.scalar.value;
         /* globbing is not allowed for IDs */
-        if (strpbrk(key_str, "*[]?"))
-            return yaml_error(key, error, "Definition ID '%s' must not use globbing", key_str);
+        if (strpbrk(scalar(key), "*[]?"))
+            return yaml_error(key, error, "Definition ID '%s' must not use globbing", scalar(key));
 
         value = yaml_document_get_node(doc, entry->value);
 
         /* special-case "renderer:" key to set the per-type backend */
-        if (strcmp(key_str, "renderer") == 0) {
+        if (strcmp(scalar(key), "renderer") == 0) {
             if (!parse_renderer(value, &backend_cur_type, error))
                 return FALSE;
             continue;
@@ -519,17 +517,17 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         assert_type(value, YAML_MAPPING_NODE);
 
-        cur_netdef = g_hash_table_lookup(netdefs, key_str);
+        cur_netdef = g_hash_table_lookup(netdefs, scalar(key));
         if (cur_netdef) {
             /* already exists, overriding/amending previous definition */
             if (cur_netdef->type != GPOINTER_TO_UINT(data))
-                return yaml_error(key, error, "Updated definition '%s' changes device type", key_str);
+                return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
             /* create new network definition */
             cur_netdef = g_new0(net_definition, 1);
             cur_netdef->type = GPOINTER_TO_UINT(data);
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
-            cur_netdef->id = g_strdup(key_str);
+            cur_netdef->id = g_strdup(scalar(key));
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 
