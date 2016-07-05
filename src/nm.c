@@ -149,17 +149,29 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         }
     }
 
-    if (def->dhcp4)
-        g_string_append(s, "\n[ipv4]\nmethod=auto\n");
+    if (def->dhcp4 || def->ip4_addresses || (ap && ap->mode == WIFI_MODE_AP)) {
+        g_string_append(s, "\n[ipv4]\n");
+
+        if (ap && ap->mode == WIFI_MODE_AP)
+            g_string_append(s, "method=shared\n");
+        else
+            g_string_append_printf(s, "method=%s\n", def->dhcp4 ? "auto" : "manual");
+        if (def->ip4_addresses)
+            for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
+                g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip4_addresses, char*, i));
+    }
+
+    if (def->ip6_addresses) {
+        g_string_append(s, "\n[ipv6]\nmethod=manual\n");
+        for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
+            g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
+    }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, NULL);
 
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, "-", escaped_ssid, NULL);
-
-        if (ap->mode == WIFI_MODE_AP)
-            g_string_append(s, "\n[ipv4]\nmethod=shared\n");
 
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
         if (ap->password)

@@ -364,6 +364,42 @@ unmanaged-devices+=interface-name:eth0,''')
 unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
+    def test_eth_manual_addresses(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+Address=2001:FFfe::1/64
+'''})
+
+    def test_eth_manual_addresses_dhcp(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+Address=192.168.14.2/24
+Address=2001:FFfe::1/64
+'''})
+
     def test_wifi(self):
         err = self.generate('''network:
   version: 2
@@ -412,10 +448,11 @@ unmanaged-devices+=interface-name:br0,''')
     renderer: NetworkManager
     br0:
       renderer: networkd
+      addresses: [1.2.3.4/12]
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\nAddress=1.2.3.4/12\n'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
@@ -736,6 +773,65 @@ wake-on-lan=0
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_eth_manual_addresses(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24
+        - 172.16.0.4/16
+        - 2001:FFfe::1/64''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=ubuntu-network-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+address2=172.16.0.4/16
+
+[ipv6]
+method=manual
+address1=2001:FFfe::1/64
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_eth_manual_addresses_dhcp(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: yes
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=ubuntu-network-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+address1=192.168.14.2/24
+
+[ipv6]
+method=manual
+address1=2001:FFfe::1/64
+'''})
+
     def test_wifi_default(self):
         self.generate('''network:
   version: 2
@@ -936,6 +1032,7 @@ method=auto
     renderer: networkd
     br0:
       renderer: NetworkManager
+      addresses: [1.2.3.4/12]
       dhcp4: true''')
 
         self.assert_nm({'br0': '''[connection]
@@ -945,6 +1042,7 @@ interface-name=br0
 
 [ipv4]
 method=auto
+address1=1.2.3.4/12
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -1211,6 +1309,84 @@ class TestConfigErrors(TestBase):
         workplace:
           mode: bogus''', expect_fail=True)
         self.assertIn("unknown wifi mode 'bogus'", err)
+
+    def test_invalid_ipv4_address(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+        self.assertIn("malformed address '192.168.14/24', must be X.X.X.X/NN", err)
+
+    def test_missing_ipv4_prefixlen(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.1''', expect_fail=True)
+
+        self.assertIn("address '192.168.14.1' is missing /prefixlength", err)
+
+    def test_empty_ipv4_prefixlen(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.1/''', expect_fail=True)
+
+        self.assertIn("invalid prefix length in address '192.168.14.1/'", err)
+
+    def test_invalid_ipv4_prefixlen(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.1/33''', expect_fail=True)
+
+        self.assertIn("invalid prefix length in address '192.168.14.1/33'", err)
+
+    def test_invalid_ipv6_address(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 2001:G::1/64''', expect_fail=True)
+
+        self.assertIn("malformed address '2001:G::1/64', must be X.X.X.X/NN", err)
+
+    def test_missing_ipv6_prefixlen(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 2001::1''', expect_fail=True)
+        self.assertIn("address '2001::1' is missing /prefixlength", err)
+
+    def test_invalid_ipv6_prefixlen(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 2001::1/129''', expect_fail=True)
+        self.assertIn("invalid prefix length in address '2001::1/129'", err)
+
+    def test_empty_ipv6_prefixlen(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 2001::1/''', expect_fail=True)
+        self.assertIn("invalid prefix length in address '2001::1/'", err)
 
 
 class TestDropins(TestBase):

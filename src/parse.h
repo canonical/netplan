@@ -28,8 +28,12 @@ typedef struct net_definition {
     netdef_backend backend;
     char* id;
 
+    /* addresses */
     gboolean dhcp4;
+    GArray* ip4_addresses;
+    GArray* ip6_addresses;
 
+    /* master ID for slave devices */
     char* bridge;
 
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */

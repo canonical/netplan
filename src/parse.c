@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <regex.h>
+#include <arpa/inet.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -379,6 +380,61 @@ handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** er
 }
 
 static gboolean
+handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        struct in_addr a4;
+        struct in6_addr a6;
+        int ret;
+        g_autofree char* addr = NULL;
+        char* prefix_len;
+        guint64 prefix_len_num;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        /* split off /prefix_len */
+        addr = g_strdup(scalar(entry));
+        prefix_len = strrchr(addr, '/');
+        if (!prefix_len)
+            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
+        *prefix_len = '\0';
+        prefix_len++; /* skip former '/' into first char of prefix */
+        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+
+        /* is it an IPv4 address? */
+        ret = inet_pton(AF_INET, addr, &a4);
+        g_assert(ret >= 0);
+        if (ret > 0) {
+            if (prefix_len_num == 0 || prefix_len_num > 32)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
+            if (!cur_netdef->ip4_addresses)
+                cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ip4_addresses, s);
+            continue;
+        }
+
+        /* is it an IPv6 address? */
+        ret = inet_pton(AF_INET6, addr, &a6);
+        g_assert(ret >= 0);
+        if (ret > 0) {
+            if (prefix_len_num == 0 || prefix_len_num > 128)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+            if (!cur_netdef->ip6_addresses)
+                cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ip6_addresses, s);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+static gboolean
 handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
@@ -435,6 +491,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {NULL}
 };
 
@@ -444,6 +501,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {NULL}
 };
@@ -451,6 +509,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
 const mapping_entry_handler bridge_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
     {NULL}
 };

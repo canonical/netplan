@@ -89,7 +89,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     GString* s = NULL;
 
     /* do we need to write a .network file? */
-    if (!def->dhcp4 && !def->bridge)
+    if (!def->dhcp4 && !def->bridge && !def->ip4_addresses && !def->ip6_addresses)
         return;
 
     /* build file contents */
@@ -99,6 +99,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     g_string_append(s, "\n[Network]\n");
     if (def->dhcp4)
         g_string_append(s, "DHCP=ipv4\n");
+    if (def->ip4_addresses)
+        for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
+            g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip4_addresses, char*, i));
+    if (def->ip6_addresses)
+        for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
+            g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
     if (def->bridge)
         g_string_append_printf(s, "Bridge=%s\n", def->bridge);
 

@@ -374,6 +374,32 @@ class _CommonTests:
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
             self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
+    def test_manual_addresses(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: ["172.16.42.99/18", "1234:FFFF::42/64"]
+      dhcp4: yes
+    %(e2c)s:
+      addresses: ["172.16.1.2/24"]
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 172.16.42.99/18',
+                              'inet6 1234:ffff::42/64',
+                              'inet 192.168.5.[0-9]+/24'])  # from DHCP
+        self.assert_iface_up(self.dev_e2_client,
+                             ['inet 172.16.1.2/24'])
+
+        # ensure that they do not get managed by NM for foreign backends
+        expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
+        out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
+        for i in [self.dev_e_client, self.dev_e2_client]:
+            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
