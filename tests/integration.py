@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# System integration tests of ubuntu-network-generate. NM and networkd are
+# System integration tests of netplan-generate. NM and networkd are
 # started on the generated configuration, using emulated ethernets (veth) and
 # Wifi (mac80211-hwsim). These need to be run in a VM and do change the system
 # configuration.
@@ -61,10 +61,10 @@ class NetworkTestBase(unittest.TestCase):
             pass
 
     def tearDown(self):
-        subprocess.call(['systemctl', 'stop', 'ubuntu-network'])
+        subprocess.call(['systemctl', 'stop', 'netplan'])
         subprocess.call(['systemctl', 'stop', 'NetworkManager'])
         subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
-        subprocess.call(['systemctl', 'reset-failed', 'ubuntu-network'])
+        subprocess.call(['systemctl', 'reset-failed', 'netplan'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'systemd-networkd'])
         try:
@@ -312,7 +312,7 @@ class NetworkTestBase(unittest.TestCase):
     def generate_and_settle(self):
         '''Generate config, launch and settle NM and networkd'''
 
-        # ubuntu-network.service ought to start as a dependency
+        # netplan.service ought to start as a dependency
         subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
         subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
         # wait until networkd is done
@@ -429,7 +429,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
 
         out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
                                       universal_newlines=True)
-        self.assertRegex(out, 'GENERAL.CONNECTION.*ubuntu-network-%s-fake net' % self.dev_w_client)
+        self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
         self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
         self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
 
@@ -462,7 +462,7 @@ wpa_passphrase=12345678
 
         out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
                                       universal_newlines=True)
-        self.assertRegex(out, 'GENERAL.CONNECTION.*ubuntu-network-%s-fake net' % self.dev_w_client)
+        self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
         self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
         self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
 

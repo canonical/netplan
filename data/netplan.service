@@ -9,7 +9,7 @@ ConditionPathExists=|/etc/network/config
 ConditionDirectoryNotEmpty=|/etc/network/config.d
 
 [Service]
-ExecStart=/usr/lib/ubuntu-network/generate
+ExecStart=/usr/lib/netplan/generate
 Type=oneshot
 RemainAfterExit=yes
 # reduce privileges

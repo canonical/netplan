@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Blackbox tests of ubuntu-network-generate that verify that the generated
+# Blackbox tests of netplan generate that verify that the generated
 # configuration files look as expected. These are run during "make check" and
 # don't touch the system configuration at all.
 
@@ -67,7 +67,7 @@ class TestBase(unittest.TestCase):
 
     def assert_nm(self, connections_map=None, conf=None):
         # check config
-        conf_path = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d', 'ubuntu-network.conf')
+        conf_path = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d', 'netplan.conf')
         if conf:
             with open(conf_path) as f:
                 self.assertEqual(f.read(), conf)
@@ -80,9 +80,9 @@ class TestBase(unittest.TestCase):
         con_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections')
         if connections_map:
             self.assertEqual(set(os.listdir(con_dir)),
-                             set(['ubuntu-network-' + n for n in connections_map]))
+                             set(['netplan-' + n for n in connections_map]))
             for fname, contents in connections_map.items():
-                with open(os.path.join(con_dir, 'ubuntu-network-' + fname)) as f:
+                with open(os.path.join(con_dir, 'netplan-' + fname)) as f:
                     self.assertEqual(f.read(), contents)
                     # NM connection files might contain secrets
                     self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
@@ -90,7 +90,7 @@ class TestBase(unittest.TestCase):
             self.assertFalse(os.path.exists(con_dir))
 
     def assert_udev(self, contents):
-        rule_path = os.path.join(self.workdir.name, 'run/udev/rules.d/90-ubuntu-network.rules')
+        rule_path = os.path.join(self.workdir.name, 'run/udev/rules.d/90-netplan.rules')
         if contents is None:
             self.assertFalse(os.path.exists(rule_path))
             return
@@ -487,7 +487,7 @@ class TestNetworkManager(TestBase):
       wakeonlan: true''')
 
         self.assert_nm({'eth0': '''[connection]
-id=ubuntu-network-eth0
+id=netplan-eth0
 type=ethernet
 interface-name=eth0
 
@@ -520,7 +520,7 @@ wake-on-lan=1
 
         self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 interface-name=lom1
 
@@ -541,7 +541,7 @@ wake-on-lan=0
 
         self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 interface-name=lom1
 
@@ -559,7 +559,7 @@ wake-on-lan=0
       dhcp4: true''')
 
         self.assert_nm({'engreen': '''[connection]
-id=ubuntu-network-engreen
+id=netplan-engreen
 type=ethernet
 interface-name=engreen
 
@@ -582,7 +582,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 
 [ethernet]
@@ -607,7 +607,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 interface-name=green
 
@@ -633,7 +633,7 @@ method=auto
 
         # NM needs to match on the renamed name
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 interface-name=blue
 
@@ -670,7 +670,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 
 [ethernet]
@@ -692,7 +692,7 @@ method=auto
         macaddress: 00:11:22:33:44:55
       dhcp4: yes''')
         self.assert_nm({'def1': '''[connection]
-id=ubuntu-network-def1
+id=netplan-def1
 type=ethernet
 interface-name=engreen
 
@@ -717,7 +717,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'eth0': '''[connection]
-id=ubuntu-network-eth0
+id=netplan-eth0
 type=ethernet
 interface-name=eth0
 
@@ -740,7 +740,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'eth0': '''[connection]
-id=ubuntu-network-eth0
+id=netplan-eth0
 type=ethernet
 interface-name=eth0
 
@@ -763,7 +763,7 @@ method=auto
       renderer: NetworkManager''')
 
         self.assert_nm({'eth0': '''[connection]
-id=ubuntu-network-eth0
+id=netplan-eth0
 type=ethernet
 interface-name=eth0
 
@@ -785,7 +785,7 @@ wake-on-lan=0
         - 2001:FFfe::1/64''')
 
         self.assert_nm({'engreen': '''[connection]
-id=ubuntu-network-engreen
+id=netplan-engreen
 type=ethernet
 interface-name=engreen
 
@@ -816,7 +816,7 @@ address1=2001:FFfe::1/64
         - 2001:FFfe::1/64''')
 
         self.assert_nm({'engreen': '''[connection]
-id=ubuntu-network-engreen
+id=netplan-engreen
 type=ethernet
 interface-name=engreen
 
@@ -845,7 +845,7 @@ address1=2001:FFfe::1/64
       dhcp4: yes''')
 
         self.assert_nm({'wl0-Joe%27s%20Home': '''[connection]
-id=ubuntu-network-wl0-Joe's Home
+id=netplan-wl0-Joe's Home
 type=wifi
 interface-name=wl0
 
@@ -864,7 +864,7 @@ key-mgmt=wpa-psk
 psk=s3kr1t
 ''',
                         'wl0-workplace': '''[connection]
-id=ubuntu-network-wl0-workplace
+id=netplan-wl0-workplace
 type=wifi
 interface-name=wl0
 
@@ -896,7 +896,7 @@ psk=c0mpany
         workplace: {}''')
 
         self.assert_nm({'all-workplace': '''[connection]
-id=ubuntu-network-all-workplace
+id=netplan-all-workplace
 type=wifi
 
 [ethernet]
@@ -920,7 +920,7 @@ mode=infrastructure
         workplace: {mode: infrastructure}''')
 
         self.assert_nm({'all-workplace': '''[connection]
-id=ubuntu-network-all-workplace
+id=netplan-all-workplace
 type=wifi
 
 [ethernet]
@@ -942,7 +942,7 @@ mode=infrastructure
           password: s3cret''')
 
         self.assert_nm({'wl0-homenet': '''[connection]
-id=ubuntu-network-wl0-homenet
+id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
 
@@ -973,7 +973,7 @@ psk=s3cret
           mode: adhoc''')
 
         self.assert_nm({'wl0-homenet': '''[connection]
-id=ubuntu-network-wl0-homenet
+id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
 
@@ -994,7 +994,7 @@ mode=adhoc
       dhcp4: true''')
 
         self.assert_nm({'br0': '''[connection]
-id=ubuntu-network-br0
+id=netplan-br0
 type=bridge
 interface-name=br0
 
@@ -1014,7 +1014,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'br0': '''[connection]
-id=ubuntu-network-br0
+id=netplan-br0
 type=bridge
 interface-name=br0
 
@@ -1036,7 +1036,7 @@ method=auto
       dhcp4: true''')
 
         self.assert_nm({'br0': '''[connection]
-id=ubuntu-network-br0
+id=netplan-br0
 type=bridge
 interface-name=br0
 
@@ -1062,7 +1062,7 @@ address1=1.2.3.4/12
       dhcp4: true''')
 
         self.assert_nm({'eno1': '''[connection]
-id=ubuntu-network-eno1
+id=netplan-eno1
 type=ethernet
 interface-name=eno1
 slave-type=bridge
@@ -1072,7 +1072,7 @@ master=br0
 wake-on-lan=0
 ''',
                         'switchport': '''[connection]
-id=ubuntu-network-switchport
+id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
 slave-type=bridge
@@ -1082,7 +1082,7 @@ master=br0
 wake-on-lan=0
 ''',
                         'br0': '''[connection]
-id=ubuntu-network-br0
+id=netplan-br0
 type=bridge
 interface-name=br0
 

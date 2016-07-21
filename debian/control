@@ -1,4 +1,4 @@
-Source: ubuntu-network
+Source: netplan
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Section: net
 Priority: standard
@@ -11,10 +11,10 @@ Build-Depends: debhelper (>= 9),
  systemd,
  pyflakes3,
  pep8
-Vcs-Git: git://git.launchpad.net/~pitti/+git/ubuntu-network-config
-Vcs-Browser: https://git.launchpad.net/~pitti/+git/ubuntu-network-config/
+Vcs-Git: git://git.launchpad.net/~pitti/+git/netplan-config
+Vcs-Browser: https://git.launchpad.net/~pitti/+git/netplan-config/
 
-Package: ubuntu-network
+Package: netplan
 Architecture: any
 Multi-Arch: foreign
 Depends: ${shlibs:Depends},

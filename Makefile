@@ -31,13 +31,13 @@ coverage:
 	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
 
 install: default
-	mkdir -p $(DESTDIR)/usr/lib/ubuntu-network $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
-	install -m 755 generate $(DESTDIR)/usr/lib/ubuntu-network/
+	mkdir -p $(DESTDIR)/usr/lib/netplan $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
+	install -m 755 generate $(DESTDIR)/usr/lib/netplan/
 	install -m 644 data/*.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
 
 	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants
-	ln -s ../ubuntu-network.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants/ubuntu-network.service
+	ln -s ../netplan.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants/netplan.service
 	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants
-	ln -s ../ubuntu-network.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants/ubuntu-network.service
+	ln -s ../netplan.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants/netplan.service
 
 .PHONY: clean

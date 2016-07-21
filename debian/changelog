@@ -1,4 +1,4 @@
-ubuntu-network (0.0) UNRELEASED; urgency=medium
+netplan (0.0) UNRELEASED; urgency=medium
 
   * Initial release.
 

@@ -105,7 +105,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_assert(ap == NULL);
 
     s = g_string_new(NULL);
-    g_string_append_printf(s, "[connection]\nid=ubuntu-network-%s", def->id);
+    g_string_append_printf(s, "[connection]\nid=netplan-%s", def->id);
     if (ap)
         g_string_append_printf(s, "-%s", ap->ssid);
     g_string_append_printf(s, "\ntype=%s\n", type_str(def->type));
@@ -167,17 +167,17 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
     }
 
-    conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, NULL);
+    conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);
 
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, "-", escaped_ssid, NULL);
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, NULL);
 
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
         if (ap->password)
             g_string_append_printf(s, "\n[wifi-security]\nkey-mgmt=wpa-psk\npsk=%s\n", ap->password);
     } else {
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/ubuntu-network-", def->id, NULL);
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);
     }
 
     /* NM connection files might contain secrets, and NM insists on tight permissions */
@@ -253,11 +253,11 @@ write_nm_conf_finish(const char* rootdir)
     len = s->len;
     g_hash_table_foreach(netdefs, nd_append_non_nm_ids, s);
     if (s->len > len)
-        g_string_free_to_file(s, rootdir, "run/NetworkManager/conf.d/ubuntu-network.conf", NULL);
+        g_string_free_to_file(s, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL);
     else
         g_string_free(s, TRUE);
 
     /* write generated udev rules */
     if (udev_rules)
-        g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-ubuntu-network.rules", NULL);
+        g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL);
 }
