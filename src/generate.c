@@ -13,7 +13,7 @@ static gchar** files;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /"},
-    {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/network/config{,.d/}", "[config file ..]"},
+    {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/netplan/*.yaml", "[config file ..]"},
     {NULL}
 };
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     g_option_context_set_summary(opt_context, "Generate backend network configuration from Ubuntu network YAML definition.");
     g_option_context_set_description(opt_context,
                                      "This program reads the specified Ubuntu network YAML definition file(s)\n"
-                                     "or, if none are given, /etc/network/config and config.d/*.conf.\n"
+                                     "or, if none are given, /etc/netplan/*.yaml.\n"
                                      "It then generates the corresponding systemd-networkd, NetworkManager,\n"
                                      "and udev configuration files in /run.");
     g_option_context_add_main_entries(opt_context, options, NULL);
@@ -65,18 +65,11 @@ int main(int argc, char** argv)
     } else {
         glob_t gl;
         int rc;
-        g_autofree char* path_main = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/etc/network/config", NULL);
-        g_autofree char* path_dropin = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/etc/network/config.d/*.conf", NULL);
+        g_autofree char* path_configs = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/etc/netplan/*.yaml", NULL);
 
-        rc = glob(path_main, GLOB_ERR, NULL, &gl);
+        rc = glob(path_configs, 0, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for /etc/network/config: %m\n"); /* LCOV_EXCL_LINE */
-            return 1; /* LCOV_EXCL_LINE */
-        }
-
-        rc = glob(path_dropin, GLOB_APPEND, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for /etc/network/config.d/*.conf: %m\n"); /* LCOV_EXCL_LINE */
+            g_fprintf(stderr, "failed to glob for /etc/netplan/*.yaml: %m\n"); /* LCOV_EXCL_LINE */
             return 1; /* LCOV_EXCL_LINE */
         }
 

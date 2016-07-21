@@ -67,11 +67,7 @@ class NetworkTestBase(unittest.TestCase):
         subprocess.call(['systemctl', 'reset-failed', 'netplan'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'systemd-networkd'])
-        try:
-            os.remove('/etc/network/config')
-        except FileNotFoundError:
-            pass
-        shutil.rmtree('/etc/network/conf.d', ignore_errors=True)
+        shutil.rmtree('/etc/netplan', ignore_errors=True)
         shutil.rmtree('/run/NetworkManager', ignore_errors=True)
         shutil.rmtree('/run/systemd/network', ignore_errors=True)
 
@@ -140,8 +136,8 @@ class NetworkTestBase(unittest.TestCase):
         self.addCleanup(self.shutdown_devices)
         self.workdir_obj = tempfile.TemporaryDirectory()
         self.workdir = self.workdir_obj.name
-        self.config = '/etc/network/config'
-        os.makedirs('/etc/network/conf.d', exist_ok=True)
+        self.config = '/etc/netplan/01-main.yaml'
+        os.makedirs('/etc/netplan', exist_ok=True)
 
         # create static entropy file to avoid draining/blocking on /dev/random
         self.entropy_file = os.path.join(self.workdir, 'entropy')

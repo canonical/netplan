@@ -20,21 +20,21 @@ os.environ['G_DEBUG'] = 'fatal-criticals'
 class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
+        self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
 
-    def generate(self, yaml, expect_fail=False, extra_args=[], config_d=None):
+    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
         '''
-        conf = os.path.join(self.workdir.name, 'etc', 'network', 'config')
+        conf = os.path.join(self.confdir, 'a.yaml')
         os.makedirs(os.path.dirname(conf))
         if yaml is not None:
             with open(conf, 'w') as f:
                 f.write(yaml)
-        if config_d:
-            os.makedirs(conf + '.d')
-            for f, contents in config_d.items():
-                with open(os.path.join(conf + '.d', f + '.conf'), 'w') as f:
+        if confs:
+            for f, contents in confs.items():
+                with open(os.path.join(self.confdir, f + '.yaml'), 'w') as f:
                     f.write(contents)
 
         argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args
@@ -140,7 +140,7 @@ class TestConfigArgs(TestBase):
         self.assertEqual(os.listdir(self.workdir.name), ['etc'])
 
     def test_help(self):
-        conf = os.path.join(self.workdir.name, 'etc', 'network', 'config')
+        conf = os.path.join(self.workdir.name, 'etc', 'netplan', 'a.yaml')
         os.makedirs(os.path.dirname(conf))
         with open(conf, 'w') as f:
             f.write('''network:
@@ -1097,7 +1097,7 @@ class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
         err = self.generate('network:\n  version: 2\n foo: *', expect_fail=True)
         self.assertIn('Invalid YAML', err)
-        self.assertIn('/config line 2 column 1: did not find expected key', err)
+        self.assertIn('/a.yaml line 2 column 1: did not find expected key', err)
 
     def test_yaml_expected_scalar(self):
         err = self.generate('network:\n  version: {}', expect_fail=True)
@@ -1113,7 +1113,7 @@ class TestConfigErrors(TestBase):
 
     def test_yaml_expected_mapping(self):
         err = self.generate('network:\n  version', expect_fail=True)
-        self.assertIn('/config line 1 column 2: expected mapping', err)
+        self.assertIn('/a.yaml line 1 column 2: expected mapping', err)
 
     def test_invalid_bool(self):
         err = self.generate('''network:
@@ -1126,7 +1126,7 @@ class TestConfigErrors(TestBase):
 
     def test_invalid_version(self):
         err = self.generate('network:\n  version: 1', expect_fail=True)
-        self.assertIn('/config line 1 column 11: Only version 2 is supported', err)
+        self.assertIn('/a.yaml line 1 column 11: Only version 2 is supported', err)
 
     def test_duplicate_id(self):
         err = self.generate('''network:
@@ -1145,12 +1145,12 @@ class TestConfigErrors(TestBase):
   ethernets:
     id0:
       wakeonlan: true''',
-                            config_d={'redef': '''network:
+                            confs={'redef': '''network:
   version: 2
   bridges:
     id0:
       wakeonlan: true'''}, expect_fail=True)
-        self.assertIn("redef.conf line 3 column 4: Updated definition 'id0' changes device type", err)
+        self.assertIn("redef.yaml line 3 column 4: Updated definition 'id0' changes device type", err)
 
     def test_set_name_without_match(self):
         err = self.generate('''network:
@@ -1159,7 +1159,7 @@ class TestConfigErrors(TestBase):
     def1:
       set-name: lom1
 ''', expect_fail=True)
-        self.assertIn('/config line 4 column 6: def1: set-name: requires match: properties', err)
+        self.assertIn('/a.yaml line 4 column 6: def1: set-name: requires match: properties', err)
 
     def test_virtual_set_name(self):
         err = self.generate('''network:
@@ -1167,7 +1167,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       set_name: br1''', expect_fail=True)
-        self.assertIn('/config line 4 column 6: unknown key set_name\n', err)
+        self.assertIn('/a.yaml line 4 column 6: unknown key set_name\n', err)
 
     def test_virtual_match(self):
         err = self.generate('''network:
@@ -1176,7 +1176,7 @@ class TestConfigErrors(TestBase):
     br0:
       match:
         driver: foo''', expect_fail=True)
-        self.assertIn('/config line 4 column 6: unknown key match\n', err)
+        self.assertIn('/a.yaml line 4 column 6: unknown key match\n', err)
 
     def test_virtual_wol(self):
         err = self.generate('''network:
@@ -1184,7 +1184,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       wakeonlan: true''', expect_fail=True)
-        self.assertIn('/config line 4 column 6: unknown key wakeonlan\n', err)
+        self.assertIn('/a.yaml line 4 column 6: unknown key wakeonlan\n', err)
 
     def test_bridge_unknown_iface(self):
         err = self.generate('''network:
@@ -1192,7 +1192,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       interfaces: ['foo']''', expect_fail=True)
-        self.assertIn('/config line 4 column 18: bridge br0: interface foo is not defined\n', err)
+        self.assertIn('/a.yaml line 4 column 18: bridge br0: interface foo is not defined\n', err)
 
     def test_bridge_multiple_assignments(self):
         err = self.generate('''network:
@@ -1298,7 +1298,7 @@ class TestConfigErrors(TestBase):
         workplace:
           something: false
       dhcp4: yes''', expect_fail=True)
-        self.assertIn('/etc/network/config line 6 column 10: unknown key something', err)
+        self.assertIn('/etc/netplan/a.yaml line 6 column 10: unknown key something', err)
 
     def test_wifi_ap_unknown_mode(self):
         err = self.generate('''network:
@@ -1389,8 +1389,8 @@ class TestConfigErrors(TestBase):
         self.assertIn("invalid prefix length in address '2001::1/'", err)
 
 
-class TestDropins(TestBase):
-    '''config.d/*.conf drop-in merging'''
+class TestMerging(TestBase):
+    '''multiple *.yaml merging'''
 
     def test_global_backend(self):
         self.generate('''network:
@@ -1399,7 +1399,7 @@ class TestDropins(TestBase):
   ethernets:
     engreen:
       dhcp4: 1''',
-                      config_d={'backend': 'network:\n  renderer: networkd'})
+                      confs={'backend': 'network:\n  renderer: networkd'})
 
         self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
         self.assert_nm(None, '''[keyfile]
@@ -1413,7 +1413,7 @@ unmanaged-devices+=interface-name:engreen,''')
   ethernets:
     engreen:
       dhcp4: true''',
-                      config_d={'blue': '''network:
+                      confs={'blue': '''network:
   version: 2
   ethernets:
     enblue:
@@ -1433,7 +1433,7 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
     engreen:
       wakeonlan: true
       dhcp4: false''',
-                      config_d={'green-dhcp': '''network:
+                      confs={'green-dhcp': '''network:
   version: 2
   ethernets:
     engreen:
@@ -1450,7 +1450,7 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
     switchports:
       match:
         driver: yayroute''',
-                      config_d={'bridges': '''network:
+                      confs={'bridges': '''network:
   version: 2
   bridges:
     br0:
