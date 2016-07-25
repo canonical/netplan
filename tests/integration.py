@@ -318,7 +318,8 @@ class NetworkTestBase(unittest.TestCase):
                 break
             time.sleep(0.1)
         else:
-            self.fail('timed out waiting for networkd to settle down')
+            subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
+            self.fail('timed out waiting for networkd to settle down:\n%s' % out.decode())
         if subprocess.call(['nm-online', '--quiet', '--timeout=60', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
 
