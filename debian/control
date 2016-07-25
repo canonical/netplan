@@ -1,4 +1,4 @@
-Source: netplan
+Source: nplan
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Section: net
 Priority: standard
@@ -11,10 +11,10 @@ Build-Depends: debhelper (>= 9),
  systemd,
  pyflakes3,
  pep8
-Vcs-Git: git://git.launchpad.net/~pitti/+git/netplan-config
-Vcs-Browser: https://git.launchpad.net/~pitti/+git/netplan-config/
+Vcs-Git: https://git.launchpad.net/~netplan-developers/netplan
+Vcs-Browser: https://git.launchpad.net/~netplan-developers/netplan
 
-Package: netplan
+Package: nplan
 Architecture: any
 Multi-Arch: foreign
 Depends: ${shlibs:Depends},
