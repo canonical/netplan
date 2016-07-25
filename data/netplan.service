@@ -1,5 +1,5 @@
 [Unit]
-Description=Ubuntu network YAML configuration
+Description=netplan network configuration
 DefaultDependencies=no
 After=local-fs.target
 Before=network-pre.target

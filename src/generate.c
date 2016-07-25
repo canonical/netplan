@@ -44,9 +44,9 @@ int main(int argc, char** argv)
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
-    g_option_context_set_summary(opt_context, "Generate backend network configuration from Ubuntu network YAML definition.");
+    g_option_context_set_summary(opt_context, "Generate backend network configuration from netplan YAML definition.");
     g_option_context_set_description(opt_context,
-                                     "This program reads the specified Ubuntu network YAML definition file(s)\n"
+                                     "This program reads the specified netplan YAML definition file(s)\n"
                                      "or, if none are given, /etc/netplan/*.yaml.\n"
                                      "It then generates the corresponding systemd-networkd, NetworkManager,\n"
                                      "and udev configuration files in /run.");
