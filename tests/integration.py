@@ -111,7 +111,7 @@ class NetworkTestBase(unittest.TestCase):
         # don't let NM trample over our fake AP
         os.makedirs('/run/NetworkManager/conf.d')
         with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
-            f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices=%s\n' % klass.dev_w_ap)
+            f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=%s\n' % klass.dev_w_ap)
 
     @classmethod
     def shutdown_devices(klass):
