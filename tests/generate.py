@@ -128,7 +128,7 @@ class TestConfigArgs(TestBase):
   ethernets:
     eth0:
       dhcp4: true''', extra_args=[conf])
-        self.assertEqual(os.listdir(self.workdir.name), ['etc', 'config'])
+        self.assertEqual(set(os.listdir(self.workdir.name)), {'config', 'etc'})
 
     def test_file_args_notfound(self):
         err = self.generate('''network:
