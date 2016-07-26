@@ -1,3 +1,9 @@
+nplan (0.3) yakkety; urgency=medium
+
+  * Properly terminate wifi_access_point_handlers list
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 26 Jul 2016 21:57:26 +0200
+
 nplan (0.2) yakkety; urgency=medium
 
   * Fix unstable TestConfigArgs.test_file_args() test
