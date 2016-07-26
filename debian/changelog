@@ -1,5 +1,5 @@
-nplan (0.0) UNRELEASED; urgency=medium
+nplan (0.1) yakkety; urgency=medium
 
   * Initial release.
 
- -- Martin Pitt <martin.pitt@ubuntu.com>  Fri, 17 Jun 2016 10:40:48 +0300
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 26 Jul 2016 16:14:37 +0200
