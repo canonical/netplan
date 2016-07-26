@@ -366,6 +366,7 @@ handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _,
 const mapping_entry_handler wifi_access_point_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
+    {NULL}
 };
 
 /**
