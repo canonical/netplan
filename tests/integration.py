@@ -76,12 +76,9 @@ class NetworkTestBase(unittest.TestCase):
             pass
 
     def tearDown(self):
-        subprocess.call(['systemctl', 'stop', 'netplan'])
-        subprocess.call(['systemctl', 'stop', 'NetworkManager'])
-        subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
-        subprocess.call(['systemctl', 'reset-failed', 'netplan'])
-        subprocess.call(['systemctl', 'reset-failed', 'NetworkManager'])
-        subprocess.call(['systemctl', 'reset-failed', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'stop', 'netplan', 'NetworkManager', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'reset-failed', 'netplan', 'NetworkManager', 'systemd-networkd'],
+                        stderr=subprocess.DEVNULL)
         shutil.rmtree('/etc/netplan', ignore_errors=True)
         shutil.rmtree('/run/NetworkManager', ignore_errors=True)
         shutil.rmtree('/run/systemd/network', ignore_errors=True)
