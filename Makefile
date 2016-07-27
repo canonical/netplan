@@ -8,13 +8,13 @@ BUILDFLAGS = \
 
 SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
 
-default: generate
+default: generate doc/netplan.5 doc/netplan.html
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc]
 	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 yaml-0.1`
 
 clean:
-	rm -f generate
+	rm -f generate doc/*.html doc/*.[1-9]
 	rm -rf test-coverage
 
 check: default
@@ -32,12 +32,21 @@ coverage:
 
 install: default
 	mkdir -p $(DESTDIR)/usr/lib/netplan $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
+	mkdir -p $(DESTDIR)/usr/share/man/man5 $(DESTDIR)/usr/share/doc/netplan
 	install -m 755 generate $(DESTDIR)/usr/lib/netplan/
 	install -m 644 data/*.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
+	install -m 644 doc/*.html $(DESTDIR)/usr/share/doc/netplan/
+	install -m 644 doc/*.5 $(DESTDIR)/usr/share/man/man5/
 
 	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants
 	ln -s ../netplan.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants/netplan.service
 	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants
 	ln -s ../netplan.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants/netplan.service
+
+%.html: %.md
+	pandoc -s --toc -o $@ $<
+
+%.5: %.md
+	pandoc -s -o $@ $<
 
 .PHONY: clean

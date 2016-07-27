@@ -1,2 +1,4 @@
 generate
 test-coverage
+doc/*.html
+doc/*.[1-9]

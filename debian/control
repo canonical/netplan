@@ -10,7 +10,8 @@ Build-Depends: debhelper (>= 9),
  python3 (>= 3.1),
  systemd,
  pyflakes3,
- pep8
+ pep8,
+ pandoc,
 Vcs-Git: https://git.launchpad.net/~netplan-developers/netplan
 Vcs-Browser: https://git.launchpad.net/~netplan-developers/netplan
 
