@@ -1,3 +1,10 @@
+nplan (0.4) yakkety; urgency=medium
+
+  * tests/integration.py: Avoid stderr output on reset-failed
+  * Document configuration (man, html)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Fri, 29 Jul 2016 10:45:33 +0200
+
 nplan (0.3) yakkety; urgency=medium
 
   * Properly terminate wifi_access_point_handlers list
