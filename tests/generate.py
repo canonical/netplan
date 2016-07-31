@@ -202,7 +202,7 @@ class TestNetworkd(TestBase):
   ethernets:
     eth0:
       wakeonlan: true
-      dhcp4: 0''')
+      dhcp4: n''')
 
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
         self.assert_nm(None, '''[keyfile]
@@ -244,7 +244,7 @@ unmanaged-devices+=mac:11:22:33:44:55:66,''')
   version: 2
   ethernets:
     engreen:
-      dhcp4: 1''')
+      dhcp4: y''')
 
         self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
 
@@ -1413,7 +1413,7 @@ class TestMerging(TestBase):
   renderer: NetworkManager
   ethernets:
     engreen:
-      dhcp4: 1''',
+      dhcp4: y''',
                       confs={'backend': 'network:\n  renderer: networkd'})
 
         self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})

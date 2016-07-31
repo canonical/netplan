@@ -297,12 +297,12 @@ handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
         g_ascii_strcasecmp(scalar(node), "on") == 0 ||
         g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "1") == 0)
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
         v = TRUE;
     else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
         g_ascii_strcasecmp(scalar(node), "off") == 0 ||
         g_ascii_strcasecmp(scalar(node), "no") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "0") == 0)
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
         v = FALSE;
     else
         return yaml_error(node, error, "invalid boolean value %s", scalar(node));
