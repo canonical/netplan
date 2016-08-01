@@ -1,0 +1,66 @@
+#!/bin/sh
+# Check that netplan and networkd do not start without configuration and do
+# autostart with configuration
+set -eu
+
+if [ ! -x /tmp/autopkgtest-reboot ]; then
+    echo "SKIP: Testbed does not support reboot"
+    exit 0
+fi
+
+trap 'rm -f /etc/netplan/00test.yaml' EXIT INT QUIT PIPE TERM
+
+# parameters: service expect_running
+assert_is_running() {
+    if [ "$2" = 1 ] && ! systemctl --quiet is-active "$1"; then
+        echo "ERROR: expected $1 to have started, but it was not" >&2
+        systemctl --no-pager status "$1"
+        exit 1
+    elif [ "$2" = 0 ] && systemctl --quiet is-active "$1"; then
+        echo "ERROR: expected $1 to not have started, but it was" >&2
+        systemctl --no-pager status "$1"
+        exit 1
+    fi
+}
+
+
+case "${AUTOPKGTEST_REBOOT_MARK:-}" in
+    '')
+        if [ -n "$(ls /etc/netplan 2>/dev/null || true)" ]; then
+            echo "SKIP: Testbed already has netplan config"
+            exit 0
+        fi
+
+        # right after installation it should not start
+        assert_is_running systemd-networkd.service 0
+        /tmp/autopkgtest-reboot noconfig
+        ;;
+
+    noconfig)
+        assert_is_running systemd-networkd.service 0
+        if ip a show dev brtest00 2>/dev/null; then
+            echo "ERROR: brtest00 bridge unexpectedly exists" >&2
+            exit 1
+        fi
+        mkdir -p /etc/netplan
+        cat <<EOF > /etc/netplan/00test.yaml
+network:
+  version: 2
+  bridges:
+    brtest00:
+      addresses: [10.42.1.1/24]
+EOF
+
+        /tmp/autopkgtest-reboot config
+        ;;
+
+    config)
+        assert_is_running systemd-networkd.service 1
+        ip a show dev brtest00
+        ;;
+
+    *)
+        echo "INTERNAL ERROR: autopkgtest marker $AUTOPKGTEST_REBOOT_MARK unexpected" >&2
+        exit 1
+        ;;
+esac

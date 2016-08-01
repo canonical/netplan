@@ -1,5 +1,6 @@
 BUILDFLAGS = \
 	-std=c99 \
+	-D_XOPEN_SOURCE=500 \
 	-Wall \
 	-Werror=incompatible-pointer-types \
 	-Werror=implicit-function-declaration \

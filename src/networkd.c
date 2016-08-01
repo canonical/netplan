@@ -133,8 +133,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
  * parsed #netdefs.
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
+ * Returns: TRUE if @def applies to networkd, FALSE otherwise.
  */
-void
+gboolean
 write_networkd_conf(net_definition* def, const char* rootdir)
 {
     g_autofree char* path_base = g_build_path(G_DIR_SEPARATOR_S, "run/systemd/network", def->id, NULL);
@@ -147,7 +148,7 @@ write_networkd_conf(net_definition* def, const char* rootdir)
 
     if (def->backend != BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
-        return;
+        return FALSE;
     }
 
     if (def->type == ND_WIFI) {
@@ -158,4 +159,5 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     if (def->type >= ND_VIRTUAL)
         write_netdev_file(def, rootdir, path_base);
     write_network_file(def, rootdir, path_base);
+    return TRUE;
 }

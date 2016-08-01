@@ -19,4 +19,4 @@
 
 #include "parse.h"
 
-void write_networkd_conf(net_definition* def, const char* rootdir);
+gboolean write_networkd_conf(net_definition* def, const char* rootdir);

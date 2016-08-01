@@ -6,3 +6,6 @@ Depends: @,
   hostapd,
   dnsmasq-base,
 Restrictions: needs-root, isolation-machine
+
+Tests: autostart
+Restrictions: needs-root, isolation-container

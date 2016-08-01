@@ -201,7 +201,6 @@ class TestConfigArgs(TestBase):
   ethernets:
     eth0:
       dhcp4: true''')
-        self.assertEqual(set(os.listdir(self.workdir.name)), {'etc'})
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
 
@@ -210,15 +209,38 @@ class TestConfigArgs(TestBase):
         os.symlink(exe_generate, generator)
 
         subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
-        self.assertEqual(os.listdir(outdir), ['netplan.stamp'])
+        self.assertEqual(set(os.listdir(outdir)), {'netplan.stamp', 'multi-user.target.wants'})
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', 'eth0.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
+
+        # should auto-enable networkd
+        self.assertTrue(os.path.islink(os.path.join(
+            outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
+
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
                                       stderr=subprocess.STDOUT)
         self.assertFalse(os.path.exists(n))
         self.assertIn(b'netplan generate already ran', out)
+
+        # after removing the stamp it generates again, and not trip over the
+        # existing enablement symlink
+        os.unlink(os.path.join(outdir, 'netplan.stamp'))
+        subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        self.assertTrue(os.path.exists(n))
+
+    def test_systemd_generator_noconf(self):
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        # no enablement symlink here
+        self.assertEqual(os.listdir(outdir), ['netplan.stamp'])
 
 
 class TestNetworkd(TestBase):

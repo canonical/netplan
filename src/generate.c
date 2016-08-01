@@ -19,16 +19,19 @@
 #include <string.h>
 #include <glob.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#include "util.h"
 #include "parse.h"
 #include "networkd.h"
 #include "nm.h"
 
 static gchar* rootdir;
 static gchar** files;
+static gboolean any_networkd;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /"},
@@ -39,7 +42,8 @@ static GOptionEntry options[] = {
 static void
 nd_iterator(gpointer key, gpointer value, gpointer user_data)
 {
-    write_networkd_conf((net_definition*) value, (const char*) user_data);
+    if (write_networkd_conf((net_definition*) value, (const char*) user_data))
+        any_networkd = TRUE;
     write_nm_conf((net_definition*) value, (const char*) user_data);
 }
 
@@ -118,6 +122,17 @@ int main(int argc, char** argv)
     }
 
     if (called_as_generator) {
+        /* Ensure networkd starts if we have any configuration for it */
+        if (any_networkd) {
+            g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, files[0], "multi-user.target.wants", "systemd-networkd.service", NULL);
+            g_debug("We created networkd configuration, adding %s enablement symlink", link);
+            safe_mkdir_p_dir(link);
+            if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
+                g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
+                return 1; /* LCOV_EXCL_LINE */
+            }
+        }
+
         /* Leave a stamp file so that we don't regenerate the configuration
          * multiple times and userspace can wait for it to finish */
         FILE* f = fopen(generator_run_stamp, "w");
