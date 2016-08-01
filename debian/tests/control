@@ -1,6 +1,7 @@
 Tests: integration.py
 Tests-Directory: tests
 Depends: @,
+  systemd,
   network-manager,
   hostapd,
   dnsmasq-base,
