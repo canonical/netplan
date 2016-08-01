@@ -324,7 +324,7 @@ class NetworkTestBase(unittest.TestCase):
         subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
         subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
         # wait until networkd is done
-        for timeout in range(50):
+        for timeout in range(150):
             out = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE)
             if b'pending' not in out and b'configuring' not in out and b'n/a' not in out:
                 break

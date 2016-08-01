@@ -488,8 +488,10 @@ unmanaged-devices+=interface-name:br0,''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
-                              'eno1.network': '[Match]\nName=eno1\n\n[Network]\nBridge=br0\n',
-                              'switchports.network': '[Match]\nDriver=yayroute\n\n[Network]\nBridge=br0\n'})
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
 
 class TestNetworkManager(TestBase):
@@ -1474,8 +1476,10 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
-                              'eno1.network': '[Match]\nName=eno1\n\n[Network]\nBridge=br0\n',
-                              'switchports.network': '[Match]\nDriver=yayroute\n\n[Network]\nBridge=br0\n'})
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
 
 unittest.main(testRunner=unittest.TextTestRunner(
