@@ -6,7 +6,7 @@ BUILDFLAGS = \
 	-Werror=format \
 	$(NULL)
 
-SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
+SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir systemd)
 
 default: generate doc/netplan.5 doc/netplan.html
 
@@ -31,17 +31,12 @@ coverage:
 	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
 
 install: default
-	mkdir -p $(DESTDIR)/usr/lib/netplan $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
+	mkdir -p $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
 	mkdir -p $(DESTDIR)/usr/share/man/man5 $(DESTDIR)/usr/share/doc/netplan
-	install -m 755 generate $(DESTDIR)/usr/lib/netplan/
-	install -m 644 data/*.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)
+	install -m 755 generate $(DESTDIR)/lib/netplan/
+	ln -s /lib/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
 	install -m 644 doc/*.html $(DESTDIR)/usr/share/doc/netplan/
 	install -m 644 doc/*.5 $(DESTDIR)/usr/share/man/man5/
-
-	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants
-	ln -s ../netplan.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/systemd-networkd.service.wants/netplan.service
-	mkdir -p $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants
-	ln -s ../netplan.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/NetworkManager.service.wants/netplan.service
 
 %.html: %.md
 	pandoc -s --toc -o $@ $<

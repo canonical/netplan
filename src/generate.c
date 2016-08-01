@@ -16,7 +16,9 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <glob.h>
+#include <unistd.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -53,11 +55,13 @@ process_input_file(const char* f)
     }
 }
 
-/* really crappy demo main() function to exercise the parser and networkd writer */
 int main(int argc, char** argv)
 {
     GError* error = NULL;
     GOptionContext* opt_context;
+    /* are we being called as systemd generator? */
+    gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
+    g_autofree char* generator_run_stamp = NULL;
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
@@ -74,9 +78,19 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    if (called_as_generator) {
+        g_assert(g_strv_length(files) == 3);
+        g_assert(files[0] != NULL);
+        generator_run_stamp = g_build_path(G_DIR_SEPARATOR_S, files[0], "netplan.stamp", NULL);
+        if (g_access(generator_run_stamp, F_OK) == 0) {
+            g_fprintf(stderr, "netplan generate already ran, remove %s to force re-run\n", generator_run_stamp);
+            return 0;
+        }
+    }
+
     /* Read all input files. Later files override/append settings from earlier
      * ones. */
-    if (files) {
+    if (files && !called_as_generator) {
         for (gchar** f = files; f && *f; ++f)
             process_input_file(*f);
     } else {
@@ -102,5 +116,14 @@ int main(int argc, char** argv)
         g_hash_table_foreach(netdefs, nd_iterator, rootdir);
         write_nm_conf_finish(rootdir);
     }
+
+    if (called_as_generator) {
+        /* Leave a stamp file so that we don't regenerate the configuration
+         * multiple times and userspace can wait for it to finish */
+        FILE* f = fopen(generator_run_stamp, "w");
+        g_assert(f != NULL);
+        fclose(f);
+    }
+
     return 0;
 }

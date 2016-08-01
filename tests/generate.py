@@ -192,6 +192,34 @@ class TestConfigArgs(TestBase):
         err = self.generate('', extra_args=['--root-dir', '/proc/foo', conf], expect_fail=True)
         self.assertIn('cannot create directory /proc/foo/run/systemd/network', err)
 
+    def test_systemd_generator(self):
+        conf = os.path.join(self.confdir, 'a.yaml')
+        os.makedirs(os.path.dirname(conf))
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''')
+        self.assertEqual(set(os.listdir(self.workdir.name)), {'etc'})
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        self.assertEqual(os.listdir(outdir), ['netplan.stamp'])
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', 'eth0.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
+        # should be a no-op the second time while the stamp exists
+        out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
+                                      stderr=subprocess.STDOUT)
+        self.assertFalse(os.path.exists(n))
+        self.assertIn(b'netplan generate already ran', out)
+
 
 class TestNetworkd(TestBase):
     '''networkd output'''

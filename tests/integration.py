@@ -76,12 +76,16 @@ class NetworkTestBase(unittest.TestCase):
             pass
 
     def tearDown(self):
-        subprocess.call(['systemctl', 'stop', 'netplan', 'NetworkManager', 'systemd-networkd'])
-        subprocess.call(['systemctl', 'reset-failed', 'netplan', 'NetworkManager', 'systemd-networkd'],
+        subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'reset-failed', 'NetworkManager', 'systemd-networkd'],
                         stderr=subprocess.DEVNULL)
         shutil.rmtree('/etc/netplan', ignore_errors=True)
         shutil.rmtree('/run/NetworkManager', ignore_errors=True)
         shutil.rmtree('/run/systemd/network', ignore_errors=True)
+        try:
+            os.remove('/run/systemd/generator/netplan.stamp')
+        except FileNotFoundError:
+            pass
 
     @classmethod
     def create_devices(klass):
@@ -320,7 +324,15 @@ class NetworkTestBase(unittest.TestCase):
     def generate_and_settle(self):
         '''Generate config, launch and settle NM and networkd'''
 
-        # netplan.service ought to start as a dependency
+        # regenerate netplan config
+        subprocess.check_call(['systemctl', 'daemon-reload'])
+        for timeout in range(10):
+            if os.path.exists('/run/systemd/generator/netplan.stamp'):
+                break
+            time.sleep(0.1)
+        else:
+            self.fail('timed out waiting for networkd system generator to finish')
+        time.sleep(1)  # FIXME
         subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
         subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
         # wait until networkd is done
