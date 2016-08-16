@@ -44,7 +44,9 @@ install: default
 %.html: %.md
 	pandoc -s --toc -o $@ $<
 
-%.5: %.md
+doc/netplan.5: doc/netplan.md
 	pandoc -s -o $@ $<
+	# add NAME section (looks ugly in HTML, thus only do it here)
+	sed -i '/^.TH/ a\.SH NAME\nnetplan \\- YAML network configuration abstraction for various backends' $@
 
 .PHONY: clean
