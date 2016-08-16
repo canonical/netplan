@@ -16,6 +16,8 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <glob.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -60,4 +62,24 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
         exit(1);
         /* LCOV_EXCL_END */
     }
+}
+
+/**
+ * Remove all files matching given glob.
+ */
+void
+unlink_glob(const char* rootdir, const char* _glob)
+{
+    glob_t gl;
+    int rc;
+    g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, _glob, NULL);
+
+    rc = glob(rglob, 0, NULL, &gl);
+    if (rc != 0 && rc != GLOB_NOMATCH) {
+        g_fprintf(stderr, "failed to glob for %s: %m\n", rglob); /* LCOV_EXCL_LINE */
+        return; /* LCOV_EXCL_LINE */
+    }
+
+    for (size_t i = 0; i < gl.gl_pathc; ++i)
+        unlink(gl.gl_pathv[i]);
 }

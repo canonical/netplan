@@ -20,3 +20,4 @@
 #include "parse.h"
 
 gboolean write_networkd_conf(net_definition* def, const char* rootdir);
+void cleanup_networkd_conf(const char* rootdir);

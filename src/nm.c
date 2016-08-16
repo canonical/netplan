@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 
 #include <glib.h>
@@ -277,4 +278,15 @@ write_nm_conf_finish(const char* rootdir)
     /* write generated udev rules */
     if (udev_rules)
         g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL);
+}
+
+/**
+ * Clean up all generated configurations in @rootdir from previous runs.
+ */
+void
+cleanup_nm_conf(const char* rootdir)
+{
+    g_autofree char* confpath = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/netplan.conf", NULL);
+    unlink(confpath);
+    unlink_glob(rootdir, "/run/NetworkManager/system-connections/netplan-*");
 }

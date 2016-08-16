@@ -43,7 +43,7 @@ class TestBase(unittest.TestCase):
         Return stderr output.
         '''
         conf = os.path.join(self.confdir, 'a.yaml')
-        os.makedirs(os.path.dirname(conf))
+        os.makedirs(os.path.dirname(conf), exist_ok=True)
         if yaml is not None:
             with open(conf, 'w') as f:
                 f.write(yaml)
@@ -102,7 +102,8 @@ class TestBase(unittest.TestCase):
                     # NM connection files might contain secrets
                     self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         else:
-            self.assertFalse(os.path.exists(con_dir))
+            if os.path.exists(con_dir):
+                self.assertEqual(os.listdir(con_dir), [])
 
     def assert_udev(self, contents):
         rule_path = os.path.join(self.workdir.name, 'run/udev/rules.d/90-netplan.rules')
@@ -1511,6 +1512,30 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
 
         self.assert_networkd({'engreen.link': '[Match]\nOriginalName=engreen\n\n[Link]\nWakeOnLan=magic\n',
                               'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+
+    def test_cleanup_old_config(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen: {dhcp4: true}
+    enyellow: {renderer: NetworkManager}''',
+                      confs={'blue': '''network:
+  version: 2
+  ethernets:
+    enblue:
+      dhcp4: true'''})
+
+        os.unlink(os.path.join(self.confdir, 'blue.yaml'))
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen: {dhcp4: true}''')
+
+        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:engreen,''')
+        self.assert_udev(None)
 
     def test_ref(self):
         self.generate('''network:

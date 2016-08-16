@@ -114,6 +114,10 @@ int main(int argc, char** argv)
 
     g_assert(finish_parse(&error));
 
+    /* Clean up generated config from previous runs */
+    cleanup_networkd_conf(rootdir);
+    cleanup_nm_conf(rootdir);
+
     /* Generate backend specific configuration files from merged data. */
     if (netdefs) {
         g_debug("Generating output files..");

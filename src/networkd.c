@@ -161,3 +161,12 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     write_network_file(def, rootdir, path_base);
     return TRUE;
 }
+
+/**
+ * Clean up all generated configurations in @rootdir from previous runs.
+ */
+void
+cleanup_networkd_conf(const char* rootdir)
+{
+    unlink_glob(rootdir, "/run/systemd/network/netplan-*");
+}

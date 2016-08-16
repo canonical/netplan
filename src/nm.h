@@ -21,3 +21,4 @@
 
 void write_nm_conf(net_definition* def, const char* rootdir);
 void write_nm_conf_finish(const char* rootdir);
+void cleanup_nm_conf(const char* rootdir);
