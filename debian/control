@@ -20,7 +20,8 @@ Architecture: any
 Multi-Arch: foreign
 Depends: ${shlibs:Depends},
  ${misc:Depends},
- systemd
+ systemd,
+ python3
 Suggests: network-manager
 Breaks: network-manager (<< 1.2.2-0ubuntu4~)
 Description: YAML network configuration abstraction for various backends

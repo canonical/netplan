@@ -20,8 +20,9 @@ clean:
 
 check: default
 	tests/generate.py
-	$(shell which pyflakes3 || echo true) tests/generate.py tests/integration.py
-	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 tests/generate.py tests/integration.py
+	tests/cli.py
+	$(shell which pyflakes3 || echo true) src/netplan tests/generate.py tests/integration.py tests/cli.py
+	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 src/netplan tests/generate.py tests/integration.py tests/cli.py
 
 coverage:
 	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
@@ -32,9 +33,10 @@ coverage:
 	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
 
 install: default
-	mkdir -p $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
+	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
 	mkdir -p $(DESTDIR)/usr/share/man/man5 $(DESTDIR)/usr/share/doc/netplan
 	install -m 755 generate $(DESTDIR)/lib/netplan/
+	install -m 755 src/netplan $(DESTDIR)/usr/sbin/
 	ln -s /lib/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
 	install -m 644 doc/*.html $(DESTDIR)/usr/share/doc/netplan/
 	install -m 644 doc/*.5 $(DESTDIR)/usr/share/man/man5/

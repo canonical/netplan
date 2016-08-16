@@ -1,0 +1,91 @@
+#!/usr/bin/python3
+#
+# Copyright (C) 2016 Canonical, Ltd.
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+'''netplan command line'''
+
+import argparse
+import logging
+import os
+import sys
+import subprocess
+from glob import glob
+
+path_generate = '/lib/netplan/generate'
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='netplan commands')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debug messages')
+    subparsers = parser.add_subparsers(title='Available commands (see "netplan <command> --help")',
+                                       metavar='', dest='command')
+
+    # command: generate
+    p_generate = subparsers.add_parser('generate',
+                                       help='Generate backend specific configuration files from /etc/netplan/*.yaml.')
+    p_generate.add_argument('--root-dir',
+                            help='Search for and generate configuration files in this root directory instead of /')
+
+    # command: apply
+    p_generate = subparsers.add_parser('apply',
+                                       help='Apply current netplan config to running system (use with care!)')
+
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.error('You need to specify a command')
+    return args
+
+
+def command_generate():
+    argv = [path_generate]
+    if args.root_dir:
+        argv += ['--root-dir', args.root_dir]
+    logging.debug('command generate: running %s', argv)
+    os.execv(argv[0], argv)
+
+
+def command_apply():
+    if subprocess.call([path_generate]) != 0:
+        sys.exit(1)
+
+    # TODO: force-hotplug all network interfaces to apply renames
+
+    # (re)start backends
+    if glob('/run/systemd/network/netplan-*'):
+        logging.debug('netplan generated networkd configuration exists, restarting networkd')
+        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd.service'])
+    else:
+        logging.debug('no netplan generated networkd configuration exists')
+    if glob('/run/NetworkManager/system-connections/netplan-*'):
+        logging.debug('netplan generated NM configuration exists, restarting NM')
+        subprocess.check_call(['systemctl', 'restart', 'NetworkManager.service'])
+    else:
+        logging.debug('no netplan generated NM configuration exists')
+
+
+#
+# main
+#
+
+args = parse_args()
+
+if args.debug:
+    logging.basicConfig(level=logging.DEBUG)
+    os.environ['G_MESSAGES_DEBUG'] = 'all'
+
+eval('command_' + args.command)()

@@ -325,25 +325,20 @@ class NetworkTestBase(unittest.TestCase):
         '''Generate config, launch and settle NM and networkd'''
 
         # regenerate netplan config
-        subprocess.check_call(['systemctl', 'daemon-reload'])
-        for timeout in range(10):
-            if os.path.exists('/run/systemd/generator/netplan.stamp'):
-                break
-            time.sleep(0.1)
-        else:
-            self.fail('timed out waiting for networkd system generator to finish')
-        time.sleep(1)  # FIXME
-        subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['netplan', 'apply'])
+        # start NM so that we can verify that it does not manage anything
+        subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
         # wait until networkd is done
-        for timeout in range(150):
-            out = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE)
-            if b'pending' not in out and b'configuring' not in out and b'n/a' not in out:
-                break
-            time.sleep(0.1)
-        else:
-            subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
-            self.fail('timed out waiting for networkd to settle down:\n%s' % out.decode())
+        if subprocess.call(['systemctl', 'is-active', '--quiet', 'systemd-networkd.service']) == 0:
+            for timeout in range(150):
+                out = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE)
+                if b'pending' not in out and b'configuring' not in out and b'n/a' not in out:
+                    break
+                time.sleep(0.1)
+            else:
+                subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
+                self.fail('timed out waiting for networkd to settle down:\n%s' % out.decode())
+
         if subprocess.call(['nm-online', '--quiet', '--timeout=60', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
 
