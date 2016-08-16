@@ -21,7 +21,7 @@ clean:
 check: default
 	tests/generate.py
 	$(shell which pyflakes3 || echo true) tests/generate.py tests/integration.py
-	$(shell which pep8 || echo true) --max-line-length=130 tests/generate.py tests/integration.py
+	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 tests/generate.py tests/integration.py
 
 coverage:
 	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
