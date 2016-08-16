@@ -1,3 +1,9 @@
+nplan (0.7) yakkety; urgency=medium
+
+  * tests/cli.py: Fix TestGenerate to not depend on installed netplan
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 16 Aug 2016 16:39:11 +0200
+
 nplan (0.6) yakkety; urgency=medium
 
   * Enable systemd-networkd-wait-online when starting networkd (LP: #1613548)
