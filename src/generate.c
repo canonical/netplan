@@ -131,6 +131,13 @@ int main(int argc, char** argv)
                 g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
                 return 1; /* LCOV_EXCL_LINE */
             }
+
+            g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, files[0], "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
+            safe_mkdir_p_dir(link2);
+            if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
+                g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
+                return 1; /* LCOV_EXCL_LINE */
+            }
         }
 
         /* Leave a stamp file so that we don't regenerate the configuration
