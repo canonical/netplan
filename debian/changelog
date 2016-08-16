@@ -1,3 +1,16 @@
+nplan (0.6) yakkety; urgency=medium
+
+  * Enable systemd-networkd-wait-online when starting networkd (LP: #1613548)
+  * networkd: Prefix generated files with "netplan-"
+  * generate: Clean up obsolete generated configs (LP: #1608223)
+  * Prefer pycodestyle over pep8
+  * Add initial "netplan" CLI. This implements commands "generate" and "apply"
+    (partially) for now.
+  * tests/integration.py: Use systemd-networkd-wait-online instead of polling
+  * netplan.5: Add missing NAME section
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 16 Aug 2016 16:23:02 +0200
+
 nplan (0.5) yakkety; urgency=medium
 
   * Recognize booean values as per YAML spec (LP: #1606839)
