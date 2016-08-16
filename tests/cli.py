@@ -23,8 +23,8 @@ import subprocess
 import unittest
 import tempfile
 
-exe_cli = os.path.join(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))), 'src', 'netplan')
+rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+exe_cli = os.path.join(rootdir, 'src', 'netplan')
 
 
 class TestArgs(unittest.TestCase):
@@ -41,7 +41,9 @@ class TestArgs(unittest.TestCase):
         self.assertIn(b'--root-dir', out)
 
     def test_no_command(self):
-        p = subprocess.Popen([exe_cli], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        p = subprocess.Popen([exe_cli], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
         self.assertIn(b'need to specify a command', err)
