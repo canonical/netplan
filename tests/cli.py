@@ -54,12 +54,23 @@ class TestGenerate(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
 
-    def test_generate(self):
-        # we cannot assert much here as this will look at the system
-        # configuration; it just should exit successfully (assuming that the
-        # system config is not invalid) and not crash
+    def test_no_config(self):
         out = subprocess.check_output([exe_cli, 'generate', '--root-dir', self.workdir.name])
         self.assertEqual(out, b'')
+        self.assertEqual(os.listdir(self.workdir.name), [])
+
+    def test_with_config(self):
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    enlol: {dhcp4: yes}''')
+        out = subprocess.check_output([exe_cli, 'generate', '--root-dir', self.workdir.name])
+        self.assertEqual(out, b'')
+        self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
+                         ['netplan-enlol.network'])
 
 
 unittest.main(testRunner=unittest.TextTestRunner(
