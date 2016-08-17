@@ -1,3 +1,23 @@
+nplan (0.8) yakkety; urgency=medium
+
+  * tests/cli.py: Test "generate" more precisely
+  * Let "make coverage" fail if coverage is < 100%
+  * Support /run/netplan/*.yaml files.
+    This is useful if you want to try out a new network config before "committing"
+    it to /etc: if your remote server is still reachable after "apply", you copy
+    the files to /etc; otherwise rebooting will go back to the known-good state.
+  * If global renderer is set to NM, allow NM to manage all devices.
+    By default, NetworkManager only manages wifi and wwan devices (via
+    /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf). If global
+    renderer is set to NetworkManager, disable that file in /run so that NM will
+    once again manage all devices.
+    This should be configured on desktop systems.
+  * netplan apply: Asynchronously restart networkd/NM.
+    This avoids deadlocks when calling "apply" during the boot sequence.
+    (LP: #1614061)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 17 Aug 2016 16:03:33 +0200
+
 nplan (0.7) yakkety; urgency=medium
 
   * tests/cli.py: Fix TestGenerate to not depend on installed netplan
