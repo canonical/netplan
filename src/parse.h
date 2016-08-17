@@ -89,3 +89,4 @@ extern GHashTable* netdefs;
 
 gboolean parse_yaml(const char* filename, GError** error);
 gboolean finish_parse(GError** error);
+netdef_backend get_global_backend();

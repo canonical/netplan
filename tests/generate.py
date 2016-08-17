@@ -36,6 +36,8 @@ class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
         self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
+        self.nm_enable_all_conf = os.path.join(
+            self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
@@ -263,6 +265,8 @@ class TestNetworkd(TestBase):
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
+        # should not allow NM to manage everything
+        self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -401,6 +405,8 @@ unmanaged-devices+=mac:00:11:22:33:44:55,''')
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
+        # should not allow NM to manage everything
+        self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
     def test_eth_type_renderer(self):
         self.generate('''network:
@@ -415,6 +421,8 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
+        # should allow NM to manage everything else
+        self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_udev(None)
 
     def test_eth_def_renderer(self):
@@ -565,6 +573,8 @@ interface-name=eth0
 [ethernet]
 wake-on-lan=1
 '''})
+        # should allow NM to manage everything else
+        self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_networkd({})
         self.assert_udev(None)
 
@@ -841,6 +851,15 @@ interface-name=eth0
 [ethernet]
 wake-on-lan=0
 '''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_global_renderer_only(self):
+        self.generate(None, confs={'01-default-nm.yaml': 'network: {version: 2, renderer: NetworkManager}'})
+        # should allow NM to manage everything else
+        self.assertTrue(os.path.exists(self.nm_enable_all_conf))
+        # but not configure anything else
+        self.assert_nm(None, None)
         self.assert_networkd({})
         self.assert_udev(None)
 

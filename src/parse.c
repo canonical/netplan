@@ -704,3 +704,12 @@ finish_parse(GError** error)
         g_hash_table_foreach(netdefs, finish_iterator, NULL);
     return TRUE;
 }
+
+/**
+ * Return current global backend.
+ */
+netdef_backend
+get_global_backend()
+{
+    return backend_global;
+}

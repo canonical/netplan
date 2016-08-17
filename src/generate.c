@@ -144,6 +144,11 @@ int main(int argc, char** argv)
         write_nm_conf_finish(rootdir);
     }
 
+    /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
+     * (which restricts NM to wifi and wwan) if global renderer is NM */
+    if (get_global_backend() == BACKEND_NM)
+        g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
+
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */
         if (any_networkd) {
