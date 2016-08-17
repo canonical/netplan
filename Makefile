@@ -31,6 +31,9 @@ coverage:
 	genhtml -o test-coverage -t "generate test coverage" generate.info
 	@rm *.gcda *.gcno generate.info generate
 	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
+	@if grep headerCovTableEntryHi test-coverage/index.html | grep -qv '100.*%'; then \
+	    echo "FAIL: Test coverage not 100%!" >&2; exit 1; \
+	fi
 
 install: default
 	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
