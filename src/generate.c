@@ -92,24 +92,43 @@ int main(int argc, char** argv)
         }
     }
 
-    /* Read all input files. Later files override/append settings from earlier
-     * ones. */
+    /* Read all input files */
     if (files && !called_as_generator) {
         for (gchar** f = files; f && *f; ++f)
             process_input_file(*f);
     } else {
+        /* Files with asciibetically higher names override/append settings from
+         * earlier ones (in both /etc and /run) and files in /run/netplan/
+         * shadow files in /etc/netplan/. To do that, we put all found files in
+         * a hash table, then sort it by file name, and add the entries from
+         * /run after the ones from /etc. */
+        g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/etc/netplan/*.yaml", NULL);
+        g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/run/netplan/*.yaml", NULL);
         glob_t gl;
         int rc;
-        g_autofree char* path_configs = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/etc/netplan/*.yaml", NULL);
+        /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
+        g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        g_autoptr(GList) config_keys = NULL;
 
-        rc = glob(path_configs, 0, NULL, &gl);
+        rc = glob(glob_etc, 0, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for /etc/netplan/*.yaml: %m\n"); /* LCOV_EXCL_LINE */
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc); /* LCOV_EXCL_LINE */
+            return 1; /* LCOV_EXCL_LINE */
+        }
+
+        rc = glob(glob_run, GLOB_APPEND, NULL, &gl);
+        if (rc != 0 && rc != GLOB_NOMATCH) {
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run); /* LCOV_EXCL_LINE */
             return 1; /* LCOV_EXCL_LINE */
         }
 
         for (size_t i = 0; i < gl.gl_pathc; ++i)
-            process_input_file(gl.gl_pathv[i]);
+            g_hash_table_insert(configs, g_path_get_basename(gl.gl_pathv[i]), gl.gl_pathv[i]);
+
+        config_keys = g_list_sort(g_hash_table_get_keys(configs), (GCompareFunc) strcmp);
+
+        for (GList* i = config_keys; i != NULL; i = i->next)
+            process_input_file(g_hash_table_lookup(configs, i->data));
     }
 
     g_assert(finish_parse(&error));

@@ -1559,6 +1559,33 @@ unmanaged-devices+=interface-name:engreen,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
+    def test_def_in_run(self):
+        rundir = os.path.join(self.workdir.name, 'run', 'netplan')
+        os.makedirs(rundir)
+        # override b.yaml definition for enred
+        with open(os.path.join(rundir, 'b.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets: {enred: {dhcp4: true}}''')
+
+        # append new definition for enblue
+        with open(os.path.join(rundir, 'c.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets: {enblue: {dhcp4: true}}''')
+
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen: {dhcp4: true}''', confs={'b': '''network:
+  version: 2
+  ethernets: {enred: {wakeonlan: true}}'''})
+
+        # b.yaml in /run/ should completely shadow b.yaml in /etc, thus no enred.link
+        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n',
+                              'enred.network': '[Match]\nName=enred\n\n[Network]\nDHCP=ipv4\n',
+                              'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n'})
+
 
 unittest.main(testRunner=unittest.TextTestRunner(
     stream=sys.stdout, verbosity=2))

@@ -8,10 +8,10 @@ Introduction
 ============
 Distribution installers, cloud instantiation, image builds for particular
 devices, or any other way to deploy an operating system put its desired
-network configuration into a ``/etc/netplan/*.yaml`` configuration file. During
+network configuration into YAML configuration file(s). During
 early boot, the netplan "network renderer" runs which reads
-``/etc/netplan/`` and writes configuration to ``/run`` to hand off
-control of devices to the specified networking daemon.
+``/etc/netplan/*.yaml`` and ``/run/netplan/*.yaml`` and writes configuration to
+``/run`` to hand off control of devices to the specified networking daemon.
 
  - Wifi and WWAN get managed by NetworkManager
  - Any other configured devices get handled by systemd-networkd by default,
@@ -30,8 +30,11 @@ General structure
 =================
 netplan's configuration files use the
 [YAML](<http://yaml.org/spec/1.1/current.html>) format. All
-``/etc/netplan/*.yaml`` are read in order, and lexicographically later files
-amend (new mapping keys) or override (same mapping keys) previous ones.
+``/{etc,run}/netplan/*.yaml`` are considered. Lexicographically later files
+(regardless of whether they are in ``/etc`` or ``/run``) amend (new mapping
+keys) or override (same mapping keys) previous ones, and a
+file in ``/run/netplan`` completely shadows a file with same name in
+``/etc/netplan``.
 
 The top-level node in a netplan configuration file is a ``network:`` mapping
 that contains ``version: 2`` (the YAML currently being used by curtin, MaaS,
