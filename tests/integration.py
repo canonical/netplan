@@ -416,6 +416,30 @@ class _CommonTests:
         for i in [self.dev_e_client, self.dev_e2_client]:
             self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
+        # change the addresses, make sure that "apply" does not leave leftovers
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: ["172.16.5.3/20"]
+    %(e2c)s:
+      addresses: ["172.16.7.2/30", "4321:AAAA::99/80"]
+      dhcp4: yes
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 172.16.5.3/20'],
+                             ['inet 192.168.5',   # old DHCP
+                              'inet 172.16.42',   # old static IPv4
+                              'inet6 1234'])      # old static IPv6
+        self.assert_iface_up(self.dev_e2_client,
+                             ['inet 172.16.7.2/30',
+                              'inet6 4321:aaaa::99/80',
+                              'inet 192.168.6.[0-9]+/24'],  # from DHCP
+                             ['inet 172.16.1'])   # old static IPv4
+
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'

@@ -51,6 +51,16 @@ def parse_args():
     return args
 
 
+def nm_running():
+    '''Check if NetworkManager is running'''
+
+    try:
+        subprocess.check_call(['nmcli', 'general'], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def command_generate():
     argv = [path_generate]
     if args.root_dir:
@@ -71,9 +81,15 @@ def command_apply():
         subprocess.check_call(['systemctl', 'restart', '--no-block', 'systemd-networkd.service'])
     else:
         logging.debug('no netplan generated networkd configuration exists')
+
     if glob('/run/NetworkManager/system-connections/netplan-*'):
         logging.debug('netplan generated NM configuration exists, restarting NM')
-        subprocess.check_call(['systemctl', 'restart', '--no-block', 'NetworkManager.service'])
+        if nm_running():
+            # restarting NM does not cause new config to be applied, need to # shut down devices first
+            for device in os.listdir('/sys/class/net'):
+                # ignore failures here -- some/many devices might not be managed by NM
+                subprocess.call(['nmcli', 'device', 'disconnect', device], stderr=subprocess.DEVNULL)
+        subprocess.call(['systemctl', 'restart', '--no-block', 'NetworkManager.service'])
     else:
         logging.debug('no netplan generated NM configuration exists')
 
