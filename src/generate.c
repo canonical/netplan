@@ -151,22 +151,8 @@ int main(int argc, char** argv)
 
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */
-        if (any_networkd) {
-            g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, files[0], "multi-user.target.wants", "systemd-networkd.service", NULL);
-            g_debug("We created networkd configuration, adding %s enablement symlink", link);
-            safe_mkdir_p_dir(link);
-            if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
-                g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
-                return 1; /* LCOV_EXCL_LINE */
-            }
-
-            g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, files[0], "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
-            safe_mkdir_p_dir(link2);
-            if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
-                g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
-                return 1; /* LCOV_EXCL_LINE */
-            }
-        }
+        if (any_networkd)
+            enable_networkd(files[0]);
 
         /* Leave a stamp file so that we don't regenerate the configuration
          * multiple times and userspace can wait for it to finish */

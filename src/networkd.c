@@ -16,6 +16,8 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -169,4 +171,26 @@ void
 cleanup_networkd_conf(const char* rootdir)
 {
     unlink_glob(rootdir, "/run/systemd/network/netplan-*");
+}
+
+/**
+ * Create enablement symlink for systemd-networkd.service.
+ */
+void
+enable_networkd(const char* generator_dir)
+{
+    g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
+    g_debug("We created networkd configuration, adding %s enablement symlink", link);
+    safe_mkdir_p_dir(link);
+    if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
+        exit(1); /* LCOV_EXCL_LINE */
+    }
+
+    g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
+    safe_mkdir_p_dir(link2);
+    if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
+        exit(1); /* LCOV_EXCL_LINE */
+    }
 }
