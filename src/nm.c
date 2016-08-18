@@ -287,6 +287,8 @@ void
 cleanup_nm_conf(const char* rootdir)
 {
     g_autofree char* confpath = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/netplan.conf", NULL);
+    g_autofree char* global_manage_path = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
     unlink(confpath);
+    unlink(global_manage_path);
     unlink_glob(rootdir, "/run/NetworkManager/system-connections/netplan-*");
 }
