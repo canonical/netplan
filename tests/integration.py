@@ -310,10 +310,10 @@ class NetworkTestBase(unittest.TestCase):
         self.assertIn('state UP', out)
         if expected_ip_a:
             for r in expected_ip_a:
-                self.assertRegex(out, r)
+                self.assertRegex(out, r, out)
         if unexpected_ip_a:
             for r in unexpected_ip_a:
-                self.assertNotRegex(out, r)
+                self.assertNotRegex(out, r, out)
 
         if iface == self.dev_w_client:
             out = subprocess.check_output(['iw', 'dev', iface, 'link'],
@@ -332,8 +332,12 @@ class NetworkTestBase(unittest.TestCase):
         if subprocess.call(['systemctl', 'is-active', '--quiet', 'systemd-networkd.service']) == 0:
             if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--timeout=15']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
-                out = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
-                self.fail('timed out waiting for networkd to settle down:\n%s' % out)
+                st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
+                st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
+                                               stderr=subprocess.PIPE, universal_newlines=True)
+                st_e2 = subprocess.check_output(['networkctl', 'status', self.dev_e2_client],
+                                                stderr=subprocess.PIPE, universal_newlines=True)
+                self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
 
         if subprocess.call(['nm-online', '--quiet', '--timeout=60', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
