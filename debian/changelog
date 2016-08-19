@@ -1,3 +1,22 @@
+nplan (0.9) yakkety; urgency=medium
+
+  * tests/integration.py: Improve debug messages on failure
+  * netplan apply: disconnect devices from NetworkManager before restarting.
+    Merely restarting NetworkManager does not suffice to apply a changed
+    configuration, so disconnect managed devices first.
+    Add autopkgtest to reproduce the problem and confirm the fix.
+  * Fix configuration path in package description
+  * networkd: Change generated config file prefix to "10-netplan"
+    Just "netplan-*" sorts after /lib/systemd/network/99-default.link.
+  * netplan apply: Force-replug network devices which are down to apply renames.
+    Unbind/rebind network devices from their driver to simulate a hotplug, so that
+    device renames get applied. Don't do this for devices which are up (or
+    "unknown") though, to avoid disrupting existing network connections.
+  * tests/integration.py: Add workaround for NM "unmanaged-devices="
+    mishandling (LP #1615044)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Fri, 19 Aug 2016 19:10:33 +0200
+
 nplan (0.8) yakkety; urgency=medium
 
   * tests/cli.py: Test "generate" more precisely
