@@ -128,6 +128,9 @@ class NetworkTestBase(unittest.TestCase):
         os.makedirs('/run/NetworkManager/conf.d')
         with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
             f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=%s\n' % klass.dev_w_ap)
+        # work around https://launchpad.net/bugs/1615044
+        with open('/run/NetworkManager/conf.d/11-globally-managed-devices.conf', 'w') as f:
+            f.write('[keyfile]\nunmanaged-devices=')
 
     @classmethod
     def shutdown_devices(klass):
