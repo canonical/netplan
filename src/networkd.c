@@ -140,7 +140,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 gboolean
 write_networkd_conf(net_definition* def, const char* rootdir)
 {
-    g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/netplan-", def->id, NULL);
+    g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
 
     /* We want this for all backends when renaming, as *.link files are
      * evaluated by udev, not networkd itself or NetworkManager. */
@@ -170,7 +170,7 @@ write_networkd_conf(net_definition* def, const char* rootdir)
 void
 cleanup_networkd_conf(const char* rootdir)
 {
-    unlink_glob(rootdir, "/run/systemd/network/netplan-*");
+    unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
 }
 
 /**

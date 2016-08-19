@@ -76,7 +76,7 @@ def command_apply():
     # TODO: force-hotplug all network interfaces to apply renames
 
     # (re)start backends
-    if glob('/run/systemd/network/netplan-*'):
+    if glob('/run/systemd/network/*netplan-*'):
         logging.debug('netplan generated networkd configuration exists, restarting networkd')
         subprocess.check_call(['systemctl', 'restart', '--no-block', 'systemd-networkd.service'])
     else:

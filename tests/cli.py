@@ -70,7 +70,7 @@ class TestGenerate(unittest.TestCase):
         out = subprocess.check_output([exe_cli, 'generate', '--root-dir', self.workdir.name])
         self.assertEqual(out, b'')
         self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
-                         ['netplan-enlol.network'])
+                         ['10-netplan-enlol.network'])
 
 
 unittest.main(testRunner=unittest.TextTestRunner(

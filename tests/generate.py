@@ -77,9 +77,9 @@ class TestBase(unittest.TestCase):
 
         self.assertEqual(set(os.listdir(self.workdir.name)), {'etc', 'run'})
         self.assertEqual(set(os.listdir(networkd_dir)),
-                         {'netplan-' + f for f in file_contents_map})
+                         {'10-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
-            with open(os.path.join(networkd_dir, 'netplan-' + fname)) as f:
+            with open(os.path.join(networkd_dir, '10-netplan-' + fname)) as f:
                 self.assertEqual(f.read(), contents)
 
     def assert_nm(self, connections_map=None, conf=None):
@@ -214,7 +214,7 @@ class TestConfigArgs(TestBase):
         subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
         self.assertEqual(set(os.listdir(outdir)),
                          {'netplan.stamp', 'multi-user.target.wants', 'network-online.target.wants'})
-        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', 'netplan-eth0.network')
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth0.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
 
