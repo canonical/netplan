@@ -9,6 +9,7 @@ Build-Depends: debhelper (>= 9),
  libglib2.0-dev,
  python3 (>= 3.1),
  python3-coverage,
+ python3-yaml,
  systemd,
  pyflakes3,
  pycodestyle | pep8,
@@ -22,7 +23,8 @@ Multi-Arch: foreign
 Depends: ${shlibs:Depends},
  ${misc:Depends},
  systemd,
- python3
+ python3,
+ python3-yaml,
 Suggests: network-manager
 Breaks: network-manager (<< 1.2.2-0ubuntu4~)
 Description: YAML network configuration abstraction for various backends
