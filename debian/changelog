@@ -9,9 +9,9 @@ nplan (0.9) yakkety; urgency=medium
   * networkd: Change generated config file prefix to "10-netplan"
     Just "netplan-*" sorts after /lib/systemd/network/99-default.link.
   * netplan apply: Force-replug network devices which are down to apply renames.
-    Unbind/rebind network devices from their driver to simulate a hotplug, so that
-    device renames get applied. Don't do this for devices which are up (or
-    "unknown") though, to avoid disrupting existing network connections.
+    Unbind/rebind network devices from their driver to simulate a hotplug, so
+    that device renames get applied. Don't do this for devices which are up
+    (or "unknown") though, to avoid disrupting existing network connections.
   * tests/integration.py: Add workaround for NM "unmanaged-devices="
     mishandling (LP #1615044)
 
