@@ -547,5 +547,4 @@ wpa_passphrase=12345678
         self.assertIn('inet 10.', out)
 
 
-unittest.main(testRunner=unittest.TextTestRunner(
-        stream=sys.stdout, verbosity=2))
+unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

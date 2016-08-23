@@ -1606,5 +1606,4 @@ unmanaged-devices+=interface-name:engreen,''')
                               'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n'})
 
 
-unittest.main(testRunner=unittest.TextTestRunner(
-    stream=sys.stdout, verbosity=2))
+unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

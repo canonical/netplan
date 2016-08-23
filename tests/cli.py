@@ -73,5 +73,4 @@ class TestGenerate(unittest.TestCase):
                          ['10-netplan-enlol.network'])
 
 
-unittest.main(testRunner=unittest.TextTestRunner(
-    stream=sys.stdout, verbosity=2))
+unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
