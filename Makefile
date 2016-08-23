@@ -9,6 +9,8 @@ BUILDFLAGS = \
 
 SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir systemd)
 
+PYCODE = src/netplan $(wildcard src/*.py) $(wildcard tests/*.py)
+
 default: generate doc/netplan.5 doc/netplan.html
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc]
@@ -21,8 +23,8 @@ clean:
 check: default
 	tests/generate.py
 	tests/cli.py
-	$(shell which pyflakes3 || echo true) src/netplan tests/generate.py tests/integration.py tests/cli.py
-	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 src/netplan tests/generate.py tests/integration.py tests/cli.py
+	$(shell which pyflakes3 || echo true) $(PYCODE)
+	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 $(PYCODE)
 
 coverage:
 	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
