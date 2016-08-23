@@ -51,7 +51,7 @@ def parse_args():
     return args
 
 
-def nm_running():
+def nm_running():  # pragma: nocover (covered in autopkgtest)
     '''Check if NetworkManager is running'''
 
     try:
@@ -61,7 +61,7 @@ def nm_running():
         return False
 
 
-def replug(device):
+def replug(device):  # pragma: nocover (covered in autopkgtest)
     '''Unbind and rebind device if it is down'''
 
     devdir = os.path.join('/sys/class/net', device)
@@ -111,7 +111,7 @@ def command_generate():
     os.execv(argv[0], argv)
 
 
-def command_apply():
+def command_apply():  # pragma: nocover (covered in autopkgtest)
     if subprocess.call([path_generate]) != 0:
         sys.exit(1)
 
