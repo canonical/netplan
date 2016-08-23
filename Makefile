@@ -18,7 +18,7 @@ generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/n
 
 clean:
 	rm -f generate doc/*.html doc/*.[1-9]
-	rm -rf test-coverage
+	rm -rf test-coverage .coverage
 
 check: default
 	tests/generate.py
@@ -27,6 +27,7 @@ check: default
 	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 $(PYCODE)
 
 coverage:
+	rm -f .coverage
 	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
 	lcov --directory . --capture -o generate.info
 	lcov --remove generate.info "/usr*" -o generate.info
@@ -36,6 +37,7 @@ coverage:
 	@if grep headerCovTableEntryHi test-coverage/index.html | grep -qv '100.*%'; then \
 	    echo "FAIL: Test coverage not 100%!" >&2; exit 1; \
 	fi
+	python3-coverage report --include=src/netplan --show-missing
 
 install: default
 	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
