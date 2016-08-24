@@ -169,6 +169,15 @@ Common properties for all device types
 
     Example: ``addresses: [192.168.14.2/24, 2001:1::1/64]``
 
+``gateway4``, ``gateway6`` (scalar)
+
+:   Set default gateway for IPv4/6, for manual address configuration. This
+    requires setting ``addresses`` too. Gateway IPs must be in a form
+    recognized by **``inet_pton``**(3).
+
+    Example for IPv4: ``gateway4: 172.16.0.1``  
+    Example for IPv6: ``gateway6: 2001:4::1``
+
 Properties for device type ``ethernets:``
 =========================================
 Ethernet device definitions do not support any specific properties beyond the
@@ -241,6 +250,8 @@ This is a complex example which shows most available features:
           addresses:
             - 192.168.14.2/24
             - 2001:1::1/64
+          gateway4: 192.168.14.1
+          gateway6: 2001:1::2
         lom:
           match:
             driver: ixgbe

@@ -50,6 +50,8 @@ typedef struct net_definition {
     gboolean dhcp6;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
+    char* gateway4;
+    char* gateway6;
 
     /* master ID for slave devices */
     char* bridge;

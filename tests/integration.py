@@ -404,6 +404,7 @@ class _CommonTests:
       dhcp4: yes
     %(e2c)s:
       addresses: ["172.16.1.2/24"]
+      gateway4: "172.16.1.1"
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -412,6 +413,15 @@ class _CommonTests:
                               'inet 192.168.5.[0-9]+/24'])  # from DHCP
         self.assert_iface_up(self.dev_e2_client,
                              ['inet 172.16.1.2/24'])
+
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertNotIn(b'default',
+                         subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'default via 172.16.1.1',
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e2_client]))
+        self.assertNotIn(b'default',
+                         subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e2_client]))
 
         # ensure that they do not get managed by NM for foreign backends
         expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
@@ -425,7 +435,8 @@ class _CommonTests:
   renderer: %(r)s
   ethernets:
     %(ec)s:
-      addresses: ["172.16.5.3/20"]
+      addresses: ["172.16.5.3/20", "9876:BBBB::11/70"]
+      gateway6: "9876:BBBB::1"
     %(e2c)s:
       addresses: ["172.16.7.2/30", "4321:AAAA::99/80"]
       dhcp4: yes
@@ -442,6 +453,15 @@ class _CommonTests:
                               'inet6 4321:aaaa::99/80',
                               'inet 192.168.6.[0-9]+/24'],  # from DHCP
                              ['inet 172.16.1'])   # old static IPv4
+
+        self.assertNotIn(b'default',
+                         subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'default via 9876:bbbb::1',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'default via 192.168.6.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e2_client]))
+        self.assertNotIn(b'default',
+                         subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e2_client]))
 
     def test_dhcp6(self):
         self.setup_eth('slaac')

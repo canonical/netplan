@@ -453,6 +453,30 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
 }
 
 static gboolean
+handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    struct in_addr a4;
+    int ret = inet_pton(AF_INET, scalar(node), &a4);
+    g_assert(ret >= 0);
+    if (ret == 0)
+        return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
+    cur_netdef->gateway4 = g_strdup(scalar(node));
+    return TRUE;
+}
+
+static gboolean
+handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    struct in6_addr a6;
+    int ret = inet_pton(AF_INET6, scalar(node), &a6);
+    g_assert(ret >= 0);
+    if (ret == 0)
+        return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
+    cur_netdef->gateway6 = g_strdup(scalar(node));
+    return TRUE;
+}
+
+static gboolean
 handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
@@ -511,6 +535,8 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
+    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {NULL}
 };
 
@@ -522,6 +548,8 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
+    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {NULL}
 };
@@ -531,6 +559,8 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
+    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
     {NULL}
 };

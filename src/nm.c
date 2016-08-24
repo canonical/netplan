@@ -167,7 +167,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         }
     }
 
-    if (def->dhcp4 || def->ip4_addresses || (ap && ap->mode == WIFI_MODE_AP)) {
+    if (def->dhcp4 || def->ip4_addresses || def->gateway4 || (ap && ap->mode == WIFI_MODE_AP)) {
         g_string_append(s, "\n[ipv4]\n");
 
         if (ap && ap->mode == WIFI_MODE_AP)
@@ -177,14 +177,18 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         if (def->ip4_addresses)
             for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip4_addresses, char*, i));
+        if (def->gateway4)
+            g_string_append_printf(s, "gateway=%s\n", def->gateway4);
     }
 
-    if (def->dhcp6 || def->ip6_addresses) {
+    if (def->dhcp6 || def->ip6_addresses || def->gateway6) {
         g_string_append(s, "\n[ipv6]\n");
         g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
         if (def->ip6_addresses)
             for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
+        if (def->gateway6)
+            g_string_append_printf(s, "gateway=%s\n", def->gateway6);
     }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);

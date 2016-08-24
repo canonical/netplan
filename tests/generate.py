@@ -569,6 +569,25 @@ unmanaged-devices+=interface-name:br0,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
+    def test_gateway(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24", "2001:FFfe::1/64"]
+      gateway4: 192.168.14.1
+      gateway6: 2001:FFfe::2''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+Address=2001:FFfe::1/64
+Gateway=192.168.14.1
+Gateway=2001:FFfe::2
+'''})
+
 
 class TestNetworkManager(TestBase):
     def test_eth_wol(self):
@@ -1235,6 +1254,35 @@ method=auto
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_gateway(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24", "2001:FFfe::1/64"]
+      gateway4: 192.168.14.1
+      gateway6: 2001:FFfe::2''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+gateway=192.168.14.1
+
+[ipv6]
+method=manual
+address1=2001:FFfe::1/64
+gateway=2001:FFfe::2
+'''})
+
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
@@ -1530,6 +1578,24 @@ class TestConfigErrors(TestBase):
       addresses:
         - 2001::1/''', expect_fail=True)
         self.assertIn("invalid prefix length in address '2001::1/'", err)
+
+    def test_invalid_gateway4(self):
+        for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
+            err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      gateway4: %a''' % a, expect_fail=True)
+            self.assertIn("invalid IPv4 address '%s'" % a, err)
+
+    def test_invalid_gateway6(self):
+        for a in ['1234', '1:::c', '1234::1/50']:
+            err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      gateway6: %a''' % a, expect_fail=True)
+            self.assertIn("invalid IPv6 address '%s'" % a, err)
 
 
 class TestMerging(TestBase):
