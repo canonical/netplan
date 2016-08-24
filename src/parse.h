@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <uuid.h>
+
 /****************************************************
  * Parsed definitions
  ****************************************************/
@@ -29,6 +31,7 @@ typedef enum {
     /* virtual devices */
     ND_VIRTUAL,
     ND_BRIDGE = ND_VIRTUAL,
+    ND_VLAN,
 } netdef_type;
 
 typedef enum {
@@ -44,6 +47,8 @@ typedef struct net_definition {
     netdef_type type;
     netdef_backend backend;
     char* id;
+    /* only necessary for NetworkManager connection UUIDs in some cases */
+    uuid_t uuid;
 
     /* addresses */
     gboolean dhcp4;
@@ -55,6 +60,11 @@ typedef struct net_definition {
 
     /* master ID for slave devices */
     char* bridge;
+
+    /* vlan */
+    guint vlan_id;
+    struct net_definition* vlan_link;
+    gboolean has_vlans;
 
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;

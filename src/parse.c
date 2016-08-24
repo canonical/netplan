@@ -261,6 +261,28 @@ handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 }
 
 /**
+ * Generic handler for setting a cur_netdef ID/iface name field refering to an
+ * existing ID from a scalar node
+ * @data: offset into net_definition where the net_definition* field to write is
+ *        located
+ */
+static gboolean
+handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    net_definition* ref = NULL;
+
+    ref = g_hash_table_lookup(netdefs, scalar(node));
+    if (!ref)
+        return yaml_error(node, error, "%s: interface %s is not defined",
+                          cur_netdef->id, scalar(node));
+
+    *((net_definition**) ((void*) cur_netdef + offset)) = ref;
+    return TRUE;
+}
+
+
+/**
  * Generic handler for setting a cur_netdef MAC address field from a scalar node
  * @data: offset into net_definition where the const char* field to write is
  *        located
@@ -308,6 +330,25 @@ handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
         return yaml_error(node, error, "invalid boolean value %s", scalar(node));
 
     *((gboolean*) ((void*) cur_netdef + offset)) = v;
+    return TRUE;
+}
+
+/**
+ * Generic handler for setting a cur_netdef guint field from a scalar node
+ * @data: offset into net_definition where the guint field to write is located
+ */
+static gboolean
+handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid unsigned int value %s", scalar(node));
+
+    *((guint*) ((void*) cur_netdef + offset)) = (guint) v;
     return TRUE;
 }
 
@@ -565,6 +606,18 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler vlan_def_handlers[] = {
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
+    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
+    {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {NULL}
+};
+
 /****************************************************
  * Grammar and handlers for network node
  ****************************************************/
@@ -594,6 +647,16 @@ validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 
     if (nd->type == ND_WIFI && nd->access_points == NULL)
         return yaml_error(node, error, "%s: No access points defined", nd->id);
+
+    if (nd->type == ND_VLAN) {
+        if (!nd->vlan_link)
+            return yaml_error(node, error, "%s: missing link property", nd->id);
+        nd->vlan_link->has_vlans = TRUE;
+        if (nd->vlan_id == G_MAXUINT)
+            return yaml_error(node, error, "%s: missing id property", nd->id);
+        if (nd->vlan_id > 4094)
+            return yaml_error(node, error, "%s: invalid id %u (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
+    }
 
     return TRUE;
 }
@@ -638,6 +701,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->type = GPOINTER_TO_UINT(data);
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
+            cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
+            uuid_generate(cur_netdef->uuid);
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 
@@ -649,6 +714,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case ND_ETHERNET: handlers = ethernet_def_handlers; break;
             case ND_WIFI: handlers = wifi_def_handlers; break;
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
+            case ND_VLAN: handlers = vlan_def_handlers; break;
             default: g_assert_not_reached(); /* LCOV_EXCL_LINE */
         }
         if (!process_mapping(doc, value, handlers, error))
@@ -673,6 +739,7 @@ const mapping_entry_handler network_handlers[] = {
     {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
+    {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_VLAN)},
     {NULL}
 };
 

@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <glib/gprintf.h>
+#include <uuid.h>
 
 #include "nm.h"
 #include "parse.h"
@@ -77,6 +78,8 @@ type_str(netdef_type type)
             return "wifi";
         case ND_BRIDGE:
             return "bridge";
+        case ND_VLAN:
+            return "vlan";
         default:
             g_assert_not_reached(); /* LCOV_EXCL_LINE */
     }
@@ -116,6 +119,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     GString *s = NULL;
     g_autofree char* conf_path = NULL;
     mode_t orig_umask;
+    char uuidstr[37];
 
     if (def->type == ND_WIFI)
         g_assert(ap);
@@ -127,6 +131,15 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     if (ap)
         g_string_append_printf(s, "-%s", ap->ssid);
     g_string_append_printf(s, "\ntype=%s\n", type_str(def->type));
+
+    /* VLAN devices refer to us as their parent; if our ID is not a name but we
+     * have matches, parent= must be the connection UUID, so put it into the
+     * connection */
+    if (def->has_vlans && def->has_match) {
+        uuid_unparse(def->uuid, uuidstr);
+        g_string_append_printf(s, "uuid=%s\n", uuidstr);
+    }
+
     if (def->type < ND_VIRTUAL) {
         /* physical (existing) devices use matching; driver matching is not
          * supported, MAC matching is done below (different keyfile section),
@@ -164,6 +177,21 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
                     g_assert_not_reached(); /* LCOV_EXCL_LINE */
             }
             g_string_append_printf(s, "mac-address=%s\n", def->match.mac);
+        }
+    }
+
+    if (def->type == ND_VLAN) {
+        g_assert(def->vlan_id < G_MAXUINT);
+        g_assert(def->vlan_link != NULL);
+        g_string_append_printf(s, "\n[vlan]\nid=%u\nparent=", def->vlan_id);
+        if (def->vlan_link->has_match) {
+            /* we need to refer to the parent's UUID as we don't have an
+             * interface name with match: */
+            uuid_unparse(def->vlan_link->uuid, uuidstr);
+            g_string_append_printf(s, "%s\n", uuidstr);
+        } else {
+            /* if we have an interface name, use that as parent */
+            g_string_append_printf(s, "%s\n", def->vlan_link->id);
         }
     }
 

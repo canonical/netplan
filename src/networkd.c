@@ -95,6 +95,10 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append(s, "Kind=bridge\n");
             break;
 
+        case ND_VLAN:
+            g_string_append_printf(s, "Kind=vlan\n\n[VLAN]\nId=%u\n", def->vlan_id);
+            break;
+
         default:
             g_assert_not_reached(); /* LCOV_EXCL_LINE */
     }
@@ -109,7 +113,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->ip4_addresses && !def->ip6_addresses &&
-        !def->gateway4 && !def->gateway6)
+        !def->gateway4 && !def->gateway6 && !def->has_vlans)
         return;
 
     /* build file contents */
@@ -135,6 +139,15 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway6);
     if (def->bridge)
         g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bridge);
+    if (def->has_vlans) {
+        /* iterate over all netdefs to find VLANs attached to us */
+        GHashTableIter i;
+        net_definition* nd;
+        g_hash_table_iter_init(&i, netdefs);
+        while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
+            if (nd->vlan_link == def)
+                g_string_append_printf(s, "VLAN=%s\n", nd->id);
+    }
 
     g_string_free_to_file(s, rootdir, path, ".network");
 }

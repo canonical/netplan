@@ -221,6 +221,32 @@ Properties for device type ``bridges:``
             br0:
               interfaces: [switchports]
 
+Properties for device type ``vlans:``
+=======================================
+
+``id`` (scalar)
+
+:    VLAN ID, a number between 0 and 4094.
+
+``link`` (scalar)
+
+:    netplan ID of the underlying device definition on which this VLAN gets
+     created.
+
+Example:
+
+    ethernets:
+      eno1: {...}
+    vlans:
+      en-intra:
+        id: 1
+        link: eno1
+        dhcp4: yes
+      en-vpn:
+        id: 2
+        link: eno1
+        address: ...
+
 
 Examples
 ========

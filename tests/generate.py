@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import re
 import sys
 import stat
 import tempfile
@@ -587,6 +588,28 @@ Address=2001:FFfe::1/64
 Gateway=192.168.14.1
 Gateway=2001:FFfe::2
 '''})
+
+    def test_vlan(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    en1: {}
+  vlans:
+    enblue:
+      id: 1
+      link: en1
+      addresses: [1.2.3.4/24]
+    engreen: {id: 2, link: en1, dhcp6: true}''')
+
+        self.assert_networkd({'en1.network': '[Match]\nName=en1\n\n[Network]\nVLAN=enblue\nVLAN=engreen\n',
+                              'enblue.netdev': '[NetDev]\nName=enblue\nKind=vlan\n\n[VLAN]\nId=1\n',
+                              'engreen.netdev': '[NetDev]\nName=engreen\nKind=vlan\n\n[VLAN]\nId=2\n',
+                              'enblue.network': '[Match]\nName=enblue\n\n[Network]\nAddress=1.2.3.4/24\n',
+                              'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv6\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
+        self.assert_udev(None)
 
 
 class TestNetworkManager(TestBase):
@@ -1313,6 +1336,107 @@ address1=2001:FFfe::1/64
 gateway=2001:FFfe::2
 '''})
 
+    def test_vlan(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    en1: {}
+  vlans:
+    enblue:
+      id: 1
+      link: en1
+      addresses: [1.2.3.4/24]
+    engreen: {id: 2, link: en1, dhcp6: true}''')
+
+        self.assert_networkd({})
+        self.assert_nm({'en1': '''[connection]
+id=netplan-en1
+type=ethernet
+interface-name=en1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'enblue': '''[connection]
+id=netplan-enblue
+type=vlan
+interface-name=enblue
+
+[vlan]
+id=1
+parent=en1
+
+[ipv4]
+method=manual
+address1=1.2.3.4/24
+''',
+                        'engreen': '''[connection]
+id=netplan-engreen
+type=vlan
+interface-name=engreen
+
+[vlan]
+id=2
+parent=en1
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+'''})
+        self.assert_udev(None)
+
+    def test_vlan_parent_match(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    en-v:
+      match: {macaddress: "11:22:33:44:55:66"}
+  vlans:
+    engreen: {id: 2, link: en-v, dhcp4: true}''')
+
+        self.assert_networkd({})
+
+        # get assigned UUID  from en-v connection
+        with open(os.path.join(self.workdir.name, 'run/NetworkManager/system-connections/netplan-en-v')) as f:
+            m = re.search('uuid=([0-9a-fA-F-]{36})\n', f.read())
+            self.assertTrue(m)
+            uuid = m.group(1)
+
+        self.assert_nm({'en-v': '''[connection]
+id=netplan-en-v
+type=ethernet
+uuid=%s
+
+[ethernet]
+wake-on-lan=0
+
+[802-3-ethernet]
+mac-address=11:22:33:44:55:66
+
+[ipv4]
+method=link-local
+''' % uuid,
+                        'engreen': '''[connection]
+id=netplan-engreen
+type=vlan
+interface-name=engreen
+
+[vlan]
+id=2
+parent=%s
+
+[ipv4]
+method=auto
+''' % uuid})
+        self.assert_udev(None)
+
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
@@ -1626,6 +1750,43 @@ class TestConfigErrors(TestBase):
     engreen:
       gateway6: %a''' % a, expect_fail=True)
             self.assertIn("invalid IPv6 address '%s'" % a, err)
+
+    def test_vlan_missing_id(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets: {en1: {}}
+  vlans:
+    ena: {link: en1}''', expect_fail=True)
+        self.assertIn('missing id property', err)
+
+    def test_vlan_invalid_id(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets: {en1: {}}
+  vlans:
+    ena: {id: a, link: en1}''', expect_fail=True)
+        self.assertIn('invalid unsigned int value a', err)
+
+        err = self.generate('''network:
+  version: 2
+  ethernets: {en1: {}}
+  vlans:
+    ena: {id: 4095, link: en1}''', expect_fail=True)
+        self.assertIn('invalid id 4095', err)
+
+    def test_vlan_missing_link(self):
+        err = self.generate('''network:
+  version: 2
+  vlans:
+    ena: {id: 1}''', expect_fail=True)
+        self.assertIn('ena: missing link property', err)
+
+    def test_vlan_unknown_link(self):
+        err = self.generate('''network:
+  version: 2
+  vlans:
+    ena: {id: 1, link: en1}''', expect_fail=True)
+        self.assertIn('interface en1 is not defined\n', err)
 
 
 class TestMerging(TestBase):
