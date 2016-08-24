@@ -509,6 +509,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {NULL}
 };
@@ -519,6 +520,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {NULL}
@@ -527,6 +529,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
 const mapping_entry_handler bridge_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
     {NULL}

@@ -179,10 +179,12 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip4_addresses, char*, i));
     }
 
-    if (def->ip6_addresses) {
-        g_string_append(s, "\n[ipv6]\nmethod=manual\n");
-        for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
-            g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
+    if (def->dhcp6 || def->ip6_addresses) {
+        g_string_append(s, "\n[ipv6]\n");
+        g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
+        if (def->ip6_addresses)
+            for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
+                g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
     }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);

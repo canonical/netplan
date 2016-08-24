@@ -443,6 +443,17 @@ class _CommonTests:
                               'inet 192.168.6.[0-9]+/24'],  # from DHCP
                              ['inet 172.16.1'])   # old static IPv4
 
+    def test_dhcp6(self):
+        self.setup_eth('slaac')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s: {dhcp6: yes}''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
+
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'

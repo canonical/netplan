@@ -441,6 +441,20 @@ unmanaged-devices+=interface-name:eth0,''')
 unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
 
+    def test_eth_dhcp6(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0: {dhcp6: true}''')
+        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv6\n'})
+
+    def test_eth_dhcp4_and_6(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0: {dhcp4: true, dhcp6: true}''')
+        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=yes\n'})
+
     def test_eth_manual_addresses(self):
         self.generate('''network:
   version: 2
@@ -862,6 +876,45 @@ wake-on-lan=0
         self.assert_nm(None, None)
         self.assert_networkd({})
         self.assert_udev(None)
+
+    def test_eth_dhcp6(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0: {dhcp6: true}''')
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv6]
+method=auto
+'''})
+
+    def test_eth_dhcp4_and_6(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0: {dhcp4: true, dhcp6: true}''')
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+'''})
 
     def test_eth_manual_addresses(self):
         self.generate('''network:
