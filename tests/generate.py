@@ -605,6 +605,9 @@ interface-name=eth0
 
 [ethernet]
 wake-on-lan=1
+
+[ipv4]
+method=link-local
 '''})
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
@@ -640,6 +643,9 @@ interface-name=lom1
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 '''})
         self.assert_udev(None)
 
@@ -661,6 +667,9 @@ interface-name=lom1
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 '''})
         self.assert_udev(None)
 
@@ -883,6 +892,9 @@ interface-name=eth0
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -909,6 +921,9 @@ interface-name=eth0
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 
 [ipv6]
 method=auto
@@ -1067,6 +1082,9 @@ wake-on-lan=0
 [802-11-wireless]
 mac-address=11:22:33:44:55:66
 
+[ipv4]
+method=link-local
+
 [wifi]
 ssid=workplace
 mode=infrastructure
@@ -1087,6 +1105,9 @@ type=wifi
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 
 [wifi]
 ssid=workplace
@@ -1141,6 +1162,9 @@ interface-name=wl0
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 
 [wifi]
 ssid=homenet
@@ -1232,6 +1256,9 @@ master=br0
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -1242,6 +1269,9 @@ master=br0
 
 [ethernet]
 wake-on-lan=0
+
+[ipv4]
+method=link-local
 ''',
                         'br0': '''[connection]
 id=netplan-br0
