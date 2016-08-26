@@ -333,7 +333,7 @@ class NetworkTestBase(unittest.TestCase):
         subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
         if subprocess.call(['systemctl', 'is-active', '--quiet', 'systemd-networkd.service']) == 0:
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--timeout=15']) != 0:
+            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=15']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
                 st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
                 st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
