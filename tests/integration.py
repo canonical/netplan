@@ -368,10 +368,11 @@ class _CommonTests:
   ethernets:
     %(ec)s:
       dhcp4: yes
-    %(e2c)s: {}
+    ethbr:
+      match: {name: %(e2c)s}
   bridges:
     mybr:
-      interfaces: [%(e2c)s]
+      interfaces: [ethbr]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
