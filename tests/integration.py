@@ -330,7 +330,7 @@ class NetworkTestBase(unittest.TestCase):
         # regenerate netplan config
         subprocess.check_call(['netplan', 'apply'])
         # start NM so that we can verify that it does not manage anything
-        subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
+        subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
         if subprocess.call(['systemctl', 'is-active', '--quiet', 'systemd-networkd.service']) == 0:
             if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--timeout=15']) != 0:
