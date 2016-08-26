@@ -470,7 +470,8 @@ class _CommonTests:
   version: 2
   renderer: %(r)s
   ethernets:
-    %(ec)s: {dhcp6: yes}''' % {'r': self.backend, 'ec': self.dev_e_client})
+    %(ec)s: {dhcp6: yes}
+    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
 
