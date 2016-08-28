@@ -1,3 +1,18 @@
+nplan (0.10) yakkety; urgency=medium
+
+  * Add "netplan ifupdown-migrate" command.
+    This supports converting "loopback" (no-op) and "dhcp" interfaces (without
+    options) for now.
+  * Add "dhcp6:" option
+  * Add "gateway[46]:" options
+  * Ship empty /etc/netplan in the package
+  * NM: Explicitly disable implied DHCP default when DHCP is not enabled.
+    (LP: #1617051)
+  * tests/integration.py: Quiesce systemd-networkd-wait-online.
+  * Add support for VLAN.
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Sun, 28 Aug 2016 21:25:45 +0200
+
 nplan (0.9) yakkety; urgency=medium
 
   * tests/integration.py: Improve debug messages on failure
