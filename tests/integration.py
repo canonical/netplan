@@ -77,6 +77,8 @@ class NetworkTestBase(unittest.TestCase):
 
     def tearDown(self):
         subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd'])
+        # NM has KillMode=process and leaks dhclient processes
+        subprocess.call(['systemctl', 'kill', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager', 'systemd-networkd'],
                         stderr=subprocess.DEVNULL)
         shutil.rmtree('/etc/netplan', ignore_errors=True)
