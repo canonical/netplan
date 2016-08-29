@@ -524,11 +524,11 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
         self.assert_iface_up(self.dev_w_client,
                              ['inet 192.168.5.[0-9]+/24'],
                              ['master'])
-
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
         out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
                                       universal_newlines=True)
         self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
-        self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
         self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
 
     def test_wifi_ipv4_wpa2(self):
@@ -557,11 +557,11 @@ wpa_passphrase=12345678
         self.assert_iface_up(self.dev_w_client,
                              ['inet 192.168.5.[0-9]+/24'],
                              ['master'])
-
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
         out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
                                       universal_newlines=True)
         self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
-        self.assertRegex(out, 'IP4.GATEWAY.*192.168.5.1')
         self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
 
     def test_wifi_ap_open(self):
