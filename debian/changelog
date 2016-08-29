@@ -1,3 +1,22 @@
+nplan (0.11) yakkety; urgency=medium
+
+  * Support /lib/netplan/*.yaml files.
+    This is useful for configuration snippets shipped by packages.
+  * Add networkd support for wifi (LP: #1616928)
+    networkd cannot handle wifi natively, so generate a wpa_supplicant
+    configuration and unit that does the WLAN part and leave the IP part to
+    networkd.
+    This supports open and WPA2, and infrastructure and adhoc mode. "match:" is not
+    supported as the netplan-wpa@.service helper unit is bound to the named network
+    interface device unit.
+  * As networkd can now handle wifi devices, use networkd consistently as a default
+    renderer.
+  * tests/integration.py: Kill leftover NetworkManager processes between tests.
+    NetworkManager.service has KillMode=process and leaks dhclient processes.
+  * Fix package description for updated yaml paths
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Mon, 29 Aug 2016 17:25:33 +0200
+
 nplan (0.10) yakkety; urgency=medium
 
   * Add "netplan ifupdown-migrate" command.
