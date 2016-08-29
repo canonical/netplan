@@ -206,21 +206,6 @@ class NetworkTestBase(unittest.TestCase):
         if start_dnsmasq:
             self.start_dnsmasq(ipv6_mode, self.dev_e_ap)
 
-    def start_wpasupp(self, conf):
-        '''Start wpa_supplicant on client interface'''
-
-        w_conf = os.path.join(self.workdir, 'wpasupplicant.conf')
-        with open(w_conf, 'w') as f:
-            f.write('ctrl_interface=%s\nnetwork={\n%s\n}\n' % (self.workdir, conf))
-        log = os.path.join(self.workdir, 'wpasupp.log')
-        p = subprocess.Popen(['wpa_supplicant', '-Dwext', '-i', self.dev_w_client,
-                              '-e', self.entropy_file, '-c', w_conf, '-f', log],
-                             stderr=subprocess.PIPE)
-        self.addCleanup(p.wait)
-        self.addCleanup(p.terminate)
-        # TODO: why does this sometimes take so long?
-        self.poll_text(log, 'CTRL-EVENT-CONNECTED', timeout=200)
-
     #
     # Internal implementation details
     #
