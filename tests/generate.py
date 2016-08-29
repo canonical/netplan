@@ -495,7 +495,6 @@ Address=2001:FFfe::1/64
     def test_wifi(self):
         self.generate('''network:
   version: 2
-  renderer: networkd
   wifis:
     wl0:
       access-points:
@@ -538,7 +537,6 @@ network={
     def test_wifi_match(self):
         err = self.generate('''network:
   version: 2
-  renderer: networkd
   wifis:
     somewifi:
       match:
@@ -552,7 +550,6 @@ network={
     def test_wifi_ap(self):
         err = self.generate('''network:
   version: 2
-  renderer: networkd
   wifis:
     wl0:
       access-points:
@@ -1095,6 +1092,7 @@ address1=2001:FFfe::1/64
     def test_wifi_default(self):
         self.generate('''network:
   version: 2
+  renderer: NetworkManager
   wifis:
     wl0:
       access-points:
@@ -1148,6 +1146,7 @@ psk=c0mpany
     def test_wifi_match_mac(self):
         self.generate('''network:
   version: 2
+  renderer: NetworkManager
   wifis:
     all:
       match:
@@ -1176,6 +1175,7 @@ mode=infrastructure
     def test_wifi_match_all(self):
         self.generate('''network:
   version: 2
+  renderer: NetworkManager
   wifis:
     all:
       match: {}
@@ -1200,6 +1200,7 @@ mode=infrastructure
     def test_wifi_ap(self):
         self.generate('''network:
   version: 2
+  renderer: NetworkManager
   wifis:
     wl0:
       access-points:
@@ -1232,6 +1233,7 @@ psk=s3cret
     def test_wifi_adhoc(self):
         self.generate('''network:
   version: 2
+  renderer: NetworkManager
   wifis:
     wl0:
       access-points:

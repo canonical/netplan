@@ -373,12 +373,9 @@ get_default_backend_for_type(netdef_type type)
     if (backend_global != BACKEND_NONE)
         return backend_global;
 
-    switch (type) {
-        case ND_WIFI:
-            return BACKEND_NM;
-        default:
-            return BACKEND_NETWORKD;
-    }
+    /* networkd can handle all device types at the moment, so nothing
+     * type-specific */
+    return BACKEND_NETWORKD;
 }
 
 static gboolean

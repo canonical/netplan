@@ -585,6 +585,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
         with open(self.config, 'w') as f:
             f.write('''network:
   wifis:
+    renderer: NetworkManager
     %(wc)s:
       dhcp4: yes
       access-points:

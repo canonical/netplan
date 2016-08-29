@@ -150,8 +150,7 @@ Common properties for all device types
 :   Use the given networking backend for this definition. Currently supported are
     ``networkd`` and ``NetworkManager``. This property can be specified globally
     in ``networks:``, for a device type (in e. g. ``ethernets:``) or
-    for a particular device definition. Default is ``networkd`` for all device
-    types except wifi, for which ``NetworkManager`` is the default.
+    for a particular device definition. Default is ``networkd``.
 
 ``dhcp4`` (bool)
 
