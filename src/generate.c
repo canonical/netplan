@@ -98,19 +98,27 @@ int main(int argc, char** argv)
             process_input_file(*f);
     } else {
         /* Files with asciibetically higher names override/append settings from
-         * earlier ones (in both /etc and /run) and files in /run/netplan/
-         * shadow files in /etc/netplan/. To do that, we put all found files in
-         * a hash table, then sort it by file name, and add the entries from
-         * /run after the ones from /etc. */
+         * earlier ones (in all config dirs); files in /run/netplan/
+         * shadow files in /etc/netplan/ which shadow files in /lib/netplan/.
+         * To do that, we put all found files in a hash table, then sort it by
+         * file name, and add the entries from /run after the ones from /etc
+         * and those after the ones from /lib. */
         g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/etc/netplan/*.yaml", NULL);
         g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/run/netplan/*.yaml", NULL);
+        g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "/lib/netplan/*.yaml", NULL);
         glob_t gl;
         int rc;
         /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
         g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
         g_autoptr(GList) config_keys = NULL;
 
-        rc = glob(glob_etc, 0, NULL, &gl);
+        rc = glob(glob_lib, 0, NULL, &gl);
+        if (rc != 0 && rc != GLOB_NOMATCH) {
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib); /* LCOV_EXCL_LINE */
+            return 1; /* LCOV_EXCL_LINE */
+        }
+
+        rc = glob(glob_etc, GLOB_APPEND, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
             g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc); /* LCOV_EXCL_LINE */
             return 1; /* LCOV_EXCL_LINE */

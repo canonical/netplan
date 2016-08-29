@@ -76,7 +76,7 @@ class TestBase(unittest.TestCase):
             self.assertFalse(os.path.exists(networkd_dir))
             return
 
-        self.assertEqual(set(os.listdir(self.workdir.name)), {'etc', 'run'})
+        self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
         self.assertEqual(set(os.listdir(networkd_dir)),
                          {'10-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
@@ -1915,5 +1915,43 @@ unmanaged-devices+=interface-name:engreen,''')
                               'enred.network': '[Match]\nName=enred\n\n[Network]\nDHCP=ipv4\n',
                               'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n'})
 
+    def test_def_in_lib(self):
+        libdir = os.path.join(self.workdir.name, 'lib', 'netplan')
+        rundir = os.path.join(self.workdir.name, 'run', 'netplan')
+        os.makedirs(libdir)
+        os.makedirs(rundir)
+        # b.yaml is in /etc/netplan too which should have precedence
+        with open(os.path.join(libdir, 'b.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets: {notme: {dhcp4: true}}''')
+
+        # /run should trump /lib too
+        with open(os.path.join(libdir, 'c.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets: {alsonot: {dhcp4: true}}''')
+        with open(os.path.join(rundir, 'c.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets: {enyellow: {dhcp4: true}}''')
+
+        # this should be considered
+        with open(os.path.join(libdir, 'd.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets: {enblue: {dhcp4: true}}''')
+
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen: {dhcp4: true}''', confs={'b': '''network:
+  version: 2
+  ethernets: {enred: {wakeonlan: true}}'''})
+
+        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n',
+                              'enred.link': '[Match]\nOriginalName=enred\n\n[Link]\nWakeOnLan=magic\n',
+                              'enyellow.network': '[Match]\nName=enyellow\n\n[Network]\nDHCP=ipv4\n',
+                              'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n'})
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
