@@ -493,14 +493,74 @@ Address=2001:FFfe::1/64
 '''})
 
     def test_wifi(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  wifis:
+    wl0:
+      access-points:
+        "Joe's Home":
+          password: "s3kr1t"
+        workplace:
+          password: "c0mpany"
+        peer2peer:
+          mode: adhoc
+      dhcp4: yes''')
+
+        self.assert_networkd({'wl0.network': '[Match]\nName=wl0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:wl0,''')
+        self.assert_udev(None)
+
+        # generates wpa config and enables wpasupplicant unit
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
+            self.assertEqual(f.read(), '''ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="Joe's Home"
+  psk="s3kr1t"
+}
+network={
+  ssid="workplace"
+  psk="c0mpany"
+}
+network={
+  ssid="peer2peer"
+  key_mgmt=NONE
+  mode=1
+}
+''')
+            self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/multi-user.target.wants/netplan-wpa@wl0.service')))
+
+    def test_wifi_match(self):
         err = self.generate('''network:
   version: 2
+  renderer: networkd
   wifis:
-    wl1:
-      renderer: networkd
+    somewifi:
+      match:
+        driver: foo
       access-points:
-        myap: {}''', expect_fail=True)
-        self.assertIn('networkd does not support wifi', err)
+        workplace:
+          password: "c0mpany"
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn('networkd backend does not support wifi with match:', err)
+
+    def test_wifi_ap(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          password: "c0mpany"
+          mode: ap
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn('networkd does not support wifi in access point mode', err)
 
     def test_bridge_empty(self):
         self.generate('''network:

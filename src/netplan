@@ -248,7 +248,7 @@ def command_apply():  # pragma: nocover (covered in autopkgtest)
     # stop backends
     if restart_networkd:
         logging.debug('netplan generated networkd configuration exists, restarting networkd')
-        subprocess.check_call(['systemctl', 'stop', '--no-block', 'systemd-networkd.service'])
+        subprocess.check_call(['systemctl', 'stop', '--no-block', 'systemd-networkd.service', 'netplan-wpa@*.service'])
     else:
         logging.debug('no netplan generated networkd configuration exists')
 
@@ -273,7 +273,8 @@ def command_apply():  # pragma: nocover (covered in autopkgtest)
 
     # (re)start backends
     if restart_networkd:
-        subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'])
+        subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'] +
+                              [os.path.basename(f) for f in glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
     if restart_nm:
         subprocess.call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
 

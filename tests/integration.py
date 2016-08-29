@@ -318,7 +318,7 @@ class NetworkTestBase(unittest.TestCase):
         subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
         if subprocess.call(['systemctl', 'is-active', '--quiet', 'systemd-networkd.service']) == 0:
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=15']) != 0:
+            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=25']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
                 st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
                 st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
@@ -498,38 +498,37 @@ class _CommonTests:
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', 'nptesttwo']))
 
-
-class TestNetworkd(NetworkTestBase, _CommonTests):
-    backend = 'networkd'
-
-
-class TestNetworkManager(NetworkTestBase, _CommonTests):
-    backend = 'NetworkManager'
-
     def test_wifi_ipv4_open(self):
         self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
 
         with open(self.config, 'w') as f:
             f.write('''network:
+  renderer: %(r)s
   wifis:
     %(wc)s:
       dhcp4: yes
       access-points:
         "fake net": {}
-        decoy: {}''' % {'wc': self.dev_w_client})
+        decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
         self.generate_and_settle()
         # nm-online doesn't wait for wifis, argh
-        self.nm_wait_connected(self.dev_w_client, 60)
+        if self.backend == 'NetworkManager':
+            self.nm_wait_connected(self.dev_w_client, 60)
 
         self.assert_iface_up(self.dev_w_client,
                              ['inet 192.168.5.[0-9]+/24'],
                              ['master'])
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
-        out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
-                                      universal_newlines=True)
-        self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
-        self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
+        if self.backend == 'NetworkManager':
+            out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
+                                          universal_newlines=True)
+            self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
+            self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
+        else:
+            out = subprocess.check_output(['networkctl', 'status', self.dev_w_client],
+                                          universal_newlines=True)
+            self.assertRegex(out, 'DNS.*192.168.5.1')
 
     def test_wifi_ipv4_wpa2(self):
         self.setup_ap('''hw_mode=g
@@ -543,26 +542,41 @@ wpa_passphrase=12345678
 
         with open(self.config, 'w') as f:
             f.write('''network:
+  renderer: %(r)s
   wifis:
     %(wc)s:
       dhcp4: yes
       access-points:
         "fake net":
           password: 12345678
-        decoy: {}''' % {'wc': self.dev_w_client})
+        decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
         self.generate_and_settle()
         # nm-online doesn't wait for wifis, argh
-        self.nm_wait_connected(self.dev_w_client, 60)
+        if self.backend == 'NetworkManager':
+            self.nm_wait_connected(self.dev_w_client, 60)
 
         self.assert_iface_up(self.dev_w_client,
                              ['inet 192.168.5.[0-9]+/24'],
                              ['master'])
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
-        out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
-                                      universal_newlines=True)
-        self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
-        self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
+        if self.backend == 'NetworkManager':
+            out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
+                                          universal_newlines=True)
+            self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
+            self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
+        else:
+            out = subprocess.check_output(['networkctl', 'status', self.dev_w_client],
+                                          universal_newlines=True)
+            self.assertRegex(out, 'DNS.*192.168.5.1')
+
+
+class TestNetworkd(NetworkTestBase, _CommonTests):
+    backend = 'networkd'
+
+
+class TestNetworkManager(NetworkTestBase, _CommonTests):
+    backend = 'NetworkManager'
 
     def test_wifi_ap_open(self):
         # we use dev_w_client and dev_w_ap in switched roles here, to keep the

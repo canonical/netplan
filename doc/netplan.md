@@ -186,7 +186,8 @@ common ones described above.
 
 Properties for device type ``wifis:``
 =====================================
-This device type is only supported by the ``NetworkManager`` backend.
+Note that ``systemd-networkd`` does not natively support wifi, so you need
+wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``access-points`` (mapping)
 
@@ -204,6 +205,7 @@ This device type is only supported by the ``NetworkManager`` backend.
      :    Possible access point modes are ``infrastructure`` (the default),
           ``ap`` (create an access point to which other devices can connect),
           and ``adhoc`` (peer to peer networks without a central access point).
+          ``ap`` is only supported with NetworkManager.
 
 Properties for device type ``bridges:``
 =======================================

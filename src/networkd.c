@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -152,6 +153,43 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     g_string_free_to_file(s, rootdir, path, ".network");
 }
 
+static void
+write_wpa_conf(net_definition* def, const char* rootdir)
+{
+    GHashTableIter iter;
+    wifi_access_point* ap;
+    GString* s = g_string_new("ctrl_interface=/run/wpa_supplicant\n\n");
+    g_autofree char* path = g_strjoin(NULL, "run/netplan/wpa-", def->id, ".conf", NULL);
+    mode_t orig_umask;
+
+    g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
+    g_hash_table_iter_init(&iter, def->access_points);
+    while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
+        g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
+        if (ap->password)
+            g_string_append_printf(s, "  psk=\"%s\"\n", ap->password);
+        else
+            g_string_append(s, "  key_mgmt=NONE\n");
+        switch (ap->mode) {
+            case WIFI_MODE_INFRASTRUCTURE:
+                /* default in wpasupplicant */
+                break;
+            case WIFI_MODE_ADHOC:
+                g_string_append(s, "  mode=1\n");
+                break;
+            case WIFI_MODE_AP:
+                g_fprintf(stderr, "ERROR: %s: networkd does not support wifi in access point mode\n", def->id);
+                exit(1);
+        }
+        g_string_append(s, "}\n");
+    }
+
+    /* use tight permissions as this contains secrets */
+    orig_umask = umask(077);
+    g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
+}
+
 /**
  * Generate networkd configuration in @rootdir/run/systemd/network/ from the
  * parsed #netdefs.
@@ -176,8 +214,21 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     }
 
     if (def->type == ND_WIFI) {
-        g_fprintf(stderr, "ERROR: %s: networkd does not support wifi\n", def->id);
-        exit(1);
+        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/multi-user.target.wants/netplan-wpa@", def->id, ".service", NULL);
+        if (def->has_match) {
+            g_fprintf(stderr, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
+            exit(1);
+        }
+
+        write_wpa_conf(def, rootdir);
+
+        g_debug("Creating wpa_supplicant service enablement link %s", link);
+        safe_mkdir_p_dir(link);
+        if (symlink("/lib/systemd/system/netplan-wpa@.service", link) < 0 && errno != EEXIST) {
+            g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
+            exit(1); /* LCOV_EXCL_LINE */
+        }
+
     }
 
     if (def->type >= ND_VIRTUAL)
@@ -193,6 +244,8 @@ void
 cleanup_networkd_conf(const char* rootdir)
 {
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
+    unlink_glob(rootdir, "/run/netplan/*");
+    unlink_glob(rootdir, "/run/systemd/system/multi-user.target.wants/netplan-wpa@*.service");
 }
 
 /**

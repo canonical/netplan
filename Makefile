@@ -47,6 +47,7 @@ install: default
 	ln -s /lib/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
 	install -m 644 doc/*.html $(DESTDIR)/usr/share/doc/netplan/
 	install -m 644 doc/*.5 $(DESTDIR)/usr/share/man/man5/
+	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/`pkg-config --variable=systemdsystemunitdir systemd`/netplan-wpa@.service
 
 %.html: %.md
 	pandoc -s --toc -o $@ $<
