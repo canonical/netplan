@@ -29,7 +29,7 @@ Depends: ${shlibs:Depends},
 Suggests: network-manager | wpasupplicant
 Breaks: network-manager (<< 1.2.2-0ubuntu4~)
 Description: YAML network configuration abstraction for various backends
- netplan reads network configuration from /etc/netplan/*.yaml which are written
+ netplan reads YAML network configuration files which are written
  by administrators, installers, cloud image instantiations, or other OS
  deployments. During early boot it then generates backend specific
  configuration files in /run to hand off control of devices to a particular
