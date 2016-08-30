@@ -293,7 +293,8 @@ class NetworkTestBase(unittest.TestCase):
 
         out = subprocess.check_output(['ip', 'a', 'show', 'dev', iface],
                                       universal_newlines=True)
-        self.assertIn('state UP', out)
+        if 'bond' not in iface:
+            self.assertIn('state UP', out)
         if expected_ip_a:
             for r in expected_ip_a:
                 self.assertRegex(out, r, out)
@@ -376,6 +377,29 @@ class _CommonTests:
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
             self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+
+    def test_bond(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    %(e2c)s: {}
+  bonds:
+    mybond:
+      interfaces: [ethbn]
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['master mybond'],
+                             ['inet '])
+        self.assert_iface_up('mybond',
+                             ['inet 192.168.5.[0-9]+/24'])
+        with open('/sys/class/net/mybond/bonding/slaves') as f:
+            self.assertEqual(f.read().strip(), self.dev_e_client)
 
     def test_manual_addresses(self):
         self.setup_eth(None)

@@ -611,6 +611,17 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler bond_def_handlers[] = {
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
+    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
+    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
+    {NULL}
+};
+
 const mapping_entry_handler vlan_def_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
@@ -719,6 +730,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case ND_ETHERNET: handlers = ethernet_def_handlers; break;
             case ND_WIFI: handlers = wifi_def_handlers; break;
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
+            case ND_BOND: handlers = bond_def_handlers; break;
             case ND_VLAN: handlers = vlan_def_handlers; break;
             default: g_assert_not_reached(); /* LCOV_EXCL_LINE */
         }
@@ -744,6 +756,7 @@ const mapping_entry_handler network_handlers[] = {
     {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
+    {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BOND)},
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_VLAN)},
     {NULL}
 };

@@ -31,6 +31,7 @@ typedef enum {
     /* virtual devices */
     ND_VIRTUAL,
     ND_BRIDGE = ND_VIRTUAL,
+    ND_BOND,
     ND_VLAN,
 } netdef_type;
 
@@ -60,6 +61,7 @@ typedef struct net_definition {
 
     /* master ID for slave devices */
     char* bridge;
+    char* bond;
 
     /* vlan */
     guint vlan_id;

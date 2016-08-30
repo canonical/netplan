@@ -627,6 +627,40 @@ unmanaged-devices+=interface-name:br0,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
+    def test_bond_empty(self):
+        self.generate('''network:
+  version: 2
+  bonds:
+    bn0:
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
+                              'bn0.network': '[Match]\nName=bn0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:bn0,''')
+        self.assert_udev(None)
+
+    def test_bond_components(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
+                              'bn0.network': '[Match]\nName=bn0\n\n[Network]\nDHCP=ipv4\n',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
     def test_gateway(self):
         self.generate('''network:
   version: 2
@@ -1362,6 +1396,74 @@ method=link-local
 id=netplan-br0
 type=bridge
 interface-name=br0
+
+[ipv4]
+method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_bond_empty(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bonds:
+    bn0:
+      dhcp4: true''')
+
+        self.assert_nm({'bn0': '''[connection]
+id=netplan-bn0
+type=bond
+interface-name=bn0
+
+[ipv4]
+method=auto
+'''})
+
+    def test_bond_components(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+  bonds:
+    bn0:
+      interfaces: [eno1, switchport]
+      dhcp4: true''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'bn0': '''[connection]
+id=netplan-bn0
+type=bond
+interface-name=bn0
 
 [ipv4]
 method=auto

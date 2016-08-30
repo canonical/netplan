@@ -78,6 +78,8 @@ type_str(netdef_type type)
             return "wifi";
         case ND_BRIDGE:
             return "bridge";
+        case ND_BOND:
+            return "bond";
         case ND_VLAN:
             return "vlan";
         default:
@@ -163,6 +165,8 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     }
     if (def->bridge)
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
+    if (def->bond)
+        g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
 
     if (def->type < ND_VIRTUAL) {
         g_string_append_printf(s, "\n[ethernet]\nwake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);

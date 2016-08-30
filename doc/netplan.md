@@ -206,12 +206,12 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
-Properties for device type ``bridges:``
-=======================================
+Properties for device type ``bridges:`` and ``bonds:``
+======================================================
 
 ``interfaces`` (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bridge.
+:    All devices matching this ID list will be added to the bridge/bond.
 
      Example:
 
