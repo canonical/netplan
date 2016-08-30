@@ -201,10 +201,6 @@ class NetworkTestBase(unittest.TestCase):
             subprocess.check_call(['ip', 'a', 'add', '192.168.6.1/24', 'dev', self.dev_e2_ap])
         subprocess.check_call(['ip', 'link', 'set', self.dev_e_ap, 'up'])
         subprocess.check_call(['ip', 'link', 'set', self.dev_e2_ap, 'up'])
-        # we don't really want to up the client iface already, but veth doesn't
-        # work otherwise (no link detected)
-        subprocess.check_call(['ip', 'link', 'set', self.dev_e_client, 'up'])
-
         if start_dnsmasq:
             self.start_dnsmasq(ipv6_mode, self.dev_e_ap)
 
