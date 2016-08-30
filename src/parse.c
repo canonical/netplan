@@ -543,23 +543,31 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
     return TRUE;
 }
 
+/**
+ * Handler for "interfaces:" list. We don't store that list in cur_netdef, but
+ * set cur_netdef's ID in all listed interfaces' "bond" or "bridge" field.
+ * @data: offset into net_definition where the const char* ID reference field
+ *        to write is located
+ */
 static gboolean
-handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         net_definition *component;
+        char** component_ref_ptr;
 
         assert_type(entry, YAML_SCALAR_NODE);
         component = g_hash_table_lookup(netdefs, scalar(entry));
         if (!component)
-            return yaml_error(node, error, "bridge %s: interface %s is not defined",
+            return yaml_error(node, error, "%s: interface %s is not defined",
                               cur_netdef->id, scalar(entry));
-        if (component->bridge)
-            return yaml_error(node, error, "bridge %s: interface %s is already assigned to bridge %s",
-                              cur_netdef->id, scalar(entry), component->bridge);
-        component->bridge = cur_netdef->id;
+        component_ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
+        if (*component_ref_ptr)
+            return yaml_error(node, error, "%s: interface %s is already assigned to %s",
+                              cur_netdef->id, scalar(entry), *component_ref_ptr);
+        *component_ref_ptr = cur_netdef->id;
     }
 
     return TRUE;
@@ -599,7 +607,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces},
+    {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
     {NULL}
 };
 

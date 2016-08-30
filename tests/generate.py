@@ -1599,7 +1599,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       interfaces: ['foo']''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 18: bridge br0: interface foo is not defined\n', err)
+        self.assertIn('/a.yaml line 4 column 18: br0: interface foo is not defined\n', err)
 
     def test_bridge_multiple_assignments(self):
         err = self.generate('''network:
@@ -1611,7 +1611,7 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]
     br1:
       interfaces: [eno1]''', expect_fail=True)
-        self.assertIn('bridge br1: interface eno1 is already assigned to bridge br0\n', err)
+        self.assertIn('br1: interface eno1 is already assigned to br0\n', err)
 
     def test_unknown_global_renderer(self):
         err = self.generate('''network:
