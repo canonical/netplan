@@ -266,6 +266,8 @@ def command_apply():  # pragma: nocover (covered in autopkgtest)
     # force-hotplug all "down" network interfaces to apply renames
     any_replug = False
     for device in devices:
+        if not os.path.islink('/sys/class/net/' + device):
+            continue
         if replug(device):
             any_replug = True
     if any_replug:
