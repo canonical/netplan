@@ -76,7 +76,7 @@ class NetworkTestBase(unittest.TestCase):
             pass
 
     def tearDown(self):
-        subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd', 'netplan-wpa@*'])
         # NM has KillMode=process and leaks dhclient processes
         subprocess.call(['systemctl', 'kill', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager', 'systemd-networkd'],
