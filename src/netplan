@@ -103,8 +103,13 @@ def replug(device):  # pragma: nocover (covered in autopkgtest)
     try:
         # we must resolve symlinks here as the device dir will be gone after unbind
         driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
-        if os.path.basename(driver) == 'mac80211_hwsim':
+        driver_name = os.path.basename(driver)
+        if driver_name == 'mac80211_hwsim':
             logging.debug('replug %s: mac80211_hwsim does not support rebinding, ignoring', device)
+            return False
+        # workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1630285
+        if driver_name == 'mwifiex_pcie':
+            logging.debug('replug %s: mwifiex_pcie crashes on rebinding, ignoring', device)
             return False
         logging.debug('replug %s: unbinding %s from %s', device, devname, driver)
         with open(os.path.join(driver, 'unbind'), 'w') as f:
