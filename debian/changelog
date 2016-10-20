@@ -1,3 +1,13 @@
+nplan (0.13) zesty; urgency=medium
+
+  [ Jonathan Cave ]
+  * Blacklist mwifiex_pcie from rebinds (work around LP: #1630285)
+
+  [ Martin Pitt ]
+  * Add support for nameservers (LP: #1626617)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 20 Oct 2016 16:23:58 +0200
+
 nplan (0.12) yakkety; urgency=medium
 
   * netplan apply: Ignore Non-symlinks in /sys/class/net
