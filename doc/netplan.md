@@ -178,6 +178,22 @@ Common properties for all device types
     Example for IPv4: ``gateway4: 172.16.0.1``  
     Example for IPv6: ``gateway6: 2001:4::1``
 
+``nameservers`` (mapping)
+
+:   Set DNS servers and search domains, for manual address configuration. There
+are two supported fields: ``addresses:`` is a list of IPv4 or IPv6 addresses
+similar to ``gateway*``, and ``search:`` is a list of search domains.
+
+    Example:
+
+        ethernets:
+          id0:
+            [...]
+            nameservers:
+              search: [lab, home]
+              addresses: [8.8.8.8, FEDC::1]
+
+
 Properties for device type ``ethernets:``
 =========================================
 Ethernet device definitions do not support any specific properties beyond the
@@ -280,6 +296,9 @@ This is a complex example which shows most available features:
             - 2001:1::1/64
           gateway4: 192.168.14.1
           gateway6: 2001:1::2
+          nameservers:
+            search: [foo.local, bar.local]
+            addresses: [8.8.8.8]
         lom:
           match:
             driver: ixgbe
@@ -320,9 +339,6 @@ This is a complex example which shows most available features:
        - to: 0.0.0.0/0
          via: 11.0.0.1
          metric: 3
-      nameservers:
-        search: [foo.local, bar.local]
-        addresses: [8.8.8.8]
 
 <!--- vim: ft=markdown
 -->

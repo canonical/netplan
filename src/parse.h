@@ -58,6 +58,9 @@ typedef struct net_definition {
     GArray* ip6_addresses;
     char* gateway4;
     char* gateway6;
+    GArray* ip4_nameservers;
+    GArray* ip6_nameservers;
+    GArray* search_domains;
 
     /* master ID for slave devices */
     char* bridge;

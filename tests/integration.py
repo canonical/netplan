@@ -33,6 +33,10 @@ for program in ['wpa_supplicant', 'hostapd', 'dnsmasq']:
         sys.stderr.write('%s is required for this test suite, but not available. Skipping\n' % program)
         sys.exit(0)
 
+nm_uses_dnsmasq = b'dns=dnsmasq' in subprocess.check_output(['NetworkManager', '--print-config'])
+with open('/etc/nsswitch.conf') as f:
+    nss_resolve = ' resolve' in f.read()
+
 
 class NetworkTestBase(unittest.TestCase):
     '''Common functionality for network test cases
@@ -413,6 +417,9 @@ class _CommonTests:
     %(e2c)s:
       addresses: ["172.16.1.2/24"]
       gateway4: "172.16.1.1"
+      nameservers:
+        addresses: [172.1.2.3]
+        search: ["fakesuffix"]
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -436,6 +443,31 @@ class _CommonTests:
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client]:
             self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+
+        with open('/etc/resolv.conf') as f:
+                resolv_conf = f.read()
+
+        if self.backend == 'NetworkManager' and nm_uses_dnsmasq:
+            sys.stdout.write('[NM with dnsmasq] ')
+            sys.stdout.flush()
+            self.assertRegex(resolv_conf, 'search.*fakesuffix')
+            # not easy to peek dnsmasq's brain, so check its logging
+            out = subprocess.check_output(['journalctl', '--quiet', '-tdnsmasq', '-ocat', '--since=-30s'],
+                                          universal_newlines=True)
+            self.assertIn('nameserver 172.1.2.3', out)
+        elif nss_resolve:
+            sys.stdout.write('[nss-resolve] ')
+            sys.stdout.flush()
+            out = subprocess.check_output(['systemd-resolve', '--status'], universal_newlines=True)
+            self.assertIn('DNS Servers: 172.1.2.3', out)
+            self.assertIn('DNS Domain: fakesuffix', out)
+        else:
+            sys.stdout.write('[/etc/resolv.conf] ')
+            sys.stdout.flush()
+            self.assertRegex(resolv_conf, 'search.*fakesuffix')
+            # /etc/resolve.conf often already has three nameserver entries
+            if 'nameserver 172.1.2.3' not in resolv_conf:
+                self.assertGreaterEqual(resolv_conf.count('nameserver'), 3)
 
         # change the addresses, make sure that "apply" does not leave leftovers
         with open(self.config, 'w') as f:

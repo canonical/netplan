@@ -105,6 +105,17 @@ wifi_mode_str(wifi_mode mode)
     }
 }
 
+static void
+write_search_domains(const net_definition* def, GString *s)
+{
+    if (def->search_domains) {
+        g_string_append(s, "dns-search=");
+        for (unsigned i = 0; i < def->search_domains->len; ++i)
+            g_string_append_printf(s, "%s;", g_array_index(def->search_domains, char*, i));
+        g_string_append(s, "\n");
+    }
+}
+
 /**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
  * particular net_definition and wifi_access_point, as NM requires a separate
@@ -217,8 +228,15 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip4_addresses, char*, i));
     if (def->gateway4)
         g_string_append_printf(s, "gateway=%s\n", def->gateway4);
+    if (def->ip4_nameservers) {
+        g_string_append(s, "dns=");
+        for (unsigned i = 0; i < def->ip4_nameservers->len; ++i)
+            g_string_append_printf(s, "%s;", g_array_index(def->ip4_nameservers, char*, i));
+        g_string_append(s, "\n");
+    }
+    write_search_domains(def, s);
 
-    if (def->dhcp6 || def->ip6_addresses || def->gateway6) {
+    if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
         g_string_append(s, "\n[ipv6]\n");
         g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
         if (def->ip6_addresses)
@@ -226,6 +244,15 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
         if (def->gateway6)
             g_string_append_printf(s, "gateway=%s\n", def->gateway6);
+        if (def->ip6_nameservers) {
+            g_string_append(s, "dns=");
+            for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
+                g_string_append_printf(s, "%s;", g_array_index(def->ip6_nameservers, char*, i));
+            g_string_append(s, "\n");
+        }
+        /* nm-settings(5) specifies search-domain for both [ipv4] and [ipv6] --
+         * do we really need to repeat it here? */
+        write_search_domains(def, s);
     }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);

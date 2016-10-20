@@ -119,7 +119,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
         !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
-        !def->has_vlans)
+        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans)
         return;
 
     /* build file contents */
@@ -143,6 +143,18 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway4);
     if (def->gateway6)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway6);
+    if (def->ip4_nameservers)
+        for (unsigned i = 0; i < def->ip4_nameservers->len; ++i)
+            g_string_append_printf(s, "DNS=%s\n", g_array_index(def->ip4_nameservers, char*, i));
+    if (def->ip6_nameservers)
+        for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
+            g_string_append_printf(s, "DNS=%s\n", g_array_index(def->ip6_nameservers, char*, i));
+    if (def->search_domains) {
+        g_string_append_printf(s, "Domains=%s", g_array_index(def->search_domains, char*, 0));
+        for (unsigned i = 1; i < def->search_domains->len; ++i)
+            g_string_append_printf(s, " %s", g_array_index(def->search_domains, char*, i));
+        g_string_append(s, "\n");
+    }
     if (def->bridge)
         g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bridge);
     if (def->bond)

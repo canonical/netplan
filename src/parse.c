@@ -573,6 +573,64 @@ handle_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return TRUE;
 }
 
+static gboolean
+handle_nameservers_search(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+        if (!cur_netdef->search_domains)
+            cur_netdef->search_domains = g_array_new(FALSE, FALSE, sizeof(char*));
+        char* s = g_strdup(scalar(entry));
+        g_array_append_val(cur_netdef->search_domains, s);
+    }
+    return TRUE;
+}
+
+static gboolean
+handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        struct in_addr a4;
+        struct in6_addr a6;
+        int ret;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        /* is it an IPv4 address? */
+        ret = inet_pton(AF_INET, scalar(entry), &a4);
+        g_assert(ret >= 0);
+        if (ret > 0) {
+            if (!cur_netdef->ip4_nameservers)
+                cur_netdef->ip4_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ip4_nameservers, s);
+            continue;
+        }
+
+        /* is it an IPv6 address? */
+        ret = inet_pton(AF_INET6, scalar(entry), &a6);
+        g_assert(ret >= 0);
+        if (ret > 0) {
+            if (!cur_netdef->ip6_nameservers)
+                cur_netdef->ip6_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ip6_nameservers, s);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+const mapping_entry_handler nameservers_handlers[] = {
+    {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
+    {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
+    {NULL}
+};
+
 const mapping_entry_handler ethernet_def_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
     {"match", YAML_MAPPING_NODE, handle_match},
@@ -583,6 +641,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {NULL}
 };
 
@@ -596,6 +655,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {NULL}
 };
@@ -607,6 +667,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
     {NULL}
 };
@@ -618,6 +679,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
     {NULL}
 };
@@ -629,6 +691,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
     {NULL}

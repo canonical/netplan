@@ -680,6 +680,37 @@ Gateway=192.168.14.1
 Gateway=2001:FFfe::2
 '''})
 
+    def test_nameserver(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      nameservers:
+        addresses: [1.2.3.4, "1234::FFFF"]
+    enblue:
+      addresses: ["192.168.1.3/24"]
+      nameservers:
+        search: [lab, kitchen]
+        addresses: [8.8.8.8]''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+DNS=1.2.3.4
+DNS=1234::FFFF
+''',
+                              'enblue.network': '''[Match]
+Name=enblue
+
+[Network]
+Address=192.168.1.3/24
+DNS=8.8.8.8
+Domains=lab kitchen
+'''})
+
     def test_vlan(self):
         self.generate('''network:
   version: 2
@@ -1500,6 +1531,54 @@ address1=2001:FFfe::1/64
 gateway=2001:FFfe::2
 '''})
 
+    def test_nameserver(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      nameservers:
+        addresses: [1.2.3.4, 2.3.4.5, "1234::FFFF"]
+        search: [lab, kitchen]
+    enblue:
+      addresses: ["192.168.1.3/24"]
+      nameservers:
+        addresses: [8.8.8.8]''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+dns=1.2.3.4;2.3.4.5;
+dns-search=lab;kitchen;
+
+[ipv6]
+method=manual
+dns=1234::FFFF;
+dns-search=lab;kitchen;
+''',
+                        'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.1.3/24
+dns=8.8.8.8;
+'''})
+
     def test_vlan(self):
         self.generate('''network:
   version: 2
@@ -1903,7 +1982,7 @@ class TestConfigErrors(TestBase):
   version: 2
   ethernets:
     engreen:
-      gateway4: %a''' % a, expect_fail=True)
+      gateway4: %s''' % a, expect_fail=True)
             self.assertIn("invalid IPv4 address '%s'" % a, err)
 
     def test_invalid_gateway6(self):
@@ -1912,8 +1991,28 @@ class TestConfigErrors(TestBase):
   version: 2
   ethernets:
     engreen:
-      gateway6: %a''' % a, expect_fail=True)
+      gateway6: %s''' % a, expect_fail=True)
             self.assertIn("invalid IPv6 address '%s'" % a, err)
+
+    def test_invalid_nameserver_ipv4(self):
+        for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
+            err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      nameservers:
+        addresses: [%s]''' % a, expect_fail=True)
+            self.assertIn("malformed address '%s'" % a, err)
+
+    def test_invalid_nameserver_ipv6(self):
+        for a in ['1234', '1:::c', '1234::1/50']:
+            err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      nameservers:
+        addresses: ["%s"]''' % a, expect_fail=True)
+            self.assertIn("malformed address '%s'" % a, err)
 
     def test_vlan_missing_id(self):
         err = self.generate('''network:
