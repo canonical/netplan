@@ -318,7 +318,7 @@ This is a complex example which shows most available features:
           match: {}
           access-points:
             "Joe's home":
-              # mode defaults to "managed" (client)
+              # mode defaults to "infrastructure" (client)
               password: "s3kr1t"
         # this creates an AP on wlp1s0 using hostapd; no match rules, thus ID is
         # the interface name
