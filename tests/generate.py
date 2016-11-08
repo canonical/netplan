@@ -32,6 +32,11 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
+# common patterns for expected output
+ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\n'
+ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\n'
+ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\n'
+
 
 class TestBase(unittest.TestCase):
     def setUp(self):
@@ -305,7 +310,7 @@ unmanaged-devices+=mac:11:22:33:44:55:66,''')
     engreen:
       dhcp4: y''')
 
-        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
 
     def test_eth_match_dhcp4(self):
         self.generate('''network:
@@ -328,7 +333,7 @@ unmanaged-devices+=mac:11:22:33:44:55:66,''')
         name: green
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\nName=green\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'def1.network': ND_DHCP4 % 'green'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:green,''')
@@ -346,7 +351,7 @@ unmanaged-devices+=interface-name:green,''')
 
         # the .network needs to match on the renamed name
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
-                              'def1.network': '[Match]\nName=blue\n\n[Network]\nDHCP=ipv4\n'})
+                              'def1.network': ND_DHCP4 % 'blue'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:blue,''')
@@ -359,7 +364,7 @@ unmanaged-devices+=interface-name:blue,''')
       match: {name: "*"}
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\nName=*\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'def1.network': ND_DHCP4 % '*'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:*,''')
@@ -401,7 +406,7 @@ unmanaged-devices+=mac:00:11:22:33:44:55,''')
     eth0:
       dhcp4: true''')
 
-        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
@@ -418,7 +423,7 @@ unmanaged-devices+=interface-name:eth0,''')
     eth0:
       dhcp4: true''')
 
-        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
@@ -436,7 +441,7 @@ unmanaged-devices+=interface-name:eth0,''')
       renderer: networkd
       dhcp4: true''')
 
-        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
@@ -447,14 +452,14 @@ unmanaged-devices+=interface-name:eth0,''')
   version: 2
   ethernets:
     eth0: {dhcp6: true}''')
-        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=ipv6\n'})
+        self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0'})
 
     def test_eth_dhcp4_and_6(self):
         self.generate('''network:
   version: 2
   ethernets:
     eth0: {dhcp4: true, dhcp6: true}''')
-        self.assert_networkd({'eth0.network': '[Match]\nName=eth0\n\n[Network]\nDHCP=yes\n'})
+        self.assert_networkd({'eth0.network': ND_DHCPYES % 'eth0'})
 
     def test_eth_manual_addresses(self):
         self.generate('''network:
@@ -506,7 +511,7 @@ Address=2001:FFfe::1/64
           mode: adhoc
       dhcp4: yes''')
 
-        self.assert_networkd({'wl0.network': '[Match]\nName=wl0\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'wl0.network': ND_DHCP4 % 'wl0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:wl0,''')
@@ -567,7 +572,7 @@ network={
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+                              'br0.network': ND_DHCP4 % 'br0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
@@ -583,7 +588,7 @@ unmanaged-devices+=interface-name:br0,''')
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n'})
+                              'br0.network': ND_DHCP4 % 'br0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
@@ -601,7 +606,7 @@ unmanaged-devices+=interface-name:br0,''')
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\nAddress=1.2.3.4/12\n'})
+                              'br0.network': ND_DHCP4 % 'br0' + 'Address=1.2.3.4/12\n'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
@@ -621,7 +626,7 @@ unmanaged-devices+=interface-name:br0,''')
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
+                              'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -635,7 +640,7 @@ unmanaged-devices+=interface-name:br0,''')
       dhcp4: true''')
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
-                              'bn0.network': '[Match]\nName=bn0\n\n[Network]\nDHCP=ipv4\n'})
+                              'bn0.network': ND_DHCP4 % 'bn0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:bn0,''')
@@ -655,7 +660,7 @@ unmanaged-devices+=interface-name:bn0,''')
       dhcp4: true''')
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
-                              'bn0.network': '[Match]\nName=bn0\n\n[Network]\nDHCP=ipv4\n',
+                              'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -727,7 +732,7 @@ Domains=lab kitchen
                               'enblue.netdev': '[NetDev]\nName=enblue\nKind=vlan\n\n[VLAN]\nId=1\n',
                               'engreen.netdev': '[NetDev]\nName=engreen\nKind=vlan\n\n[VLAN]\nId=2\n',
                               'enblue.network': '[Match]\nName=enblue\n\n[Network]\nAddress=1.2.3.4/24\n',
-                              'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv6\n'})
+                              'engreen.network': ND_DHCP6 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
@@ -2064,7 +2069,7 @@ class TestMerging(TestBase):
       dhcp4: y''',
                       confs={'backend': 'network:\n  renderer: networkd'})
 
-        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,''')
@@ -2082,8 +2087,8 @@ unmanaged-devices+=interface-name:engreen,''')
     enblue:
       dhcp4: true'''})
 
-        self.assert_networkd({'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n',
-                              'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'enblue.network': ND_DHCP4 % 'enblue',
+                              'engreen.network': ND_DHCP4 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
@@ -2103,7 +2108,7 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
       dhcp4: true'''})
 
         self.assert_networkd({'engreen.link': '[Match]\nOriginalName=engreen\n\n[Link]\nWakeOnLan=magic\n',
-                              'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+                              'engreen.network': ND_DHCP4 % 'engreen'})
 
     def test_cleanup_old_config(self):
         self.generate('''network:
@@ -2123,7 +2128,7 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
   ethernets:
     engreen: {dhcp4: true}''')
 
-        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,''')
@@ -2145,7 +2150,7 @@ unmanaged-devices+=interface-name:engreen,''')
       dhcp4: true'''})
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '[Match]\nName=br0\n\n[Network]\nDHCP=ipv4\n',
+                              'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -2174,9 +2179,9 @@ unmanaged-devices+=interface-name:engreen,''')
   ethernets: {enred: {wakeonlan: true}}'''})
 
         # b.yaml in /run/ should completely shadow b.yaml in /etc, thus no enred.link
-        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n',
-                              'enred.network': '[Match]\nName=enred\n\n[Network]\nDHCP=ipv4\n',
-                              'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen',
+                              'enred.network': ND_DHCP4 % 'enred',
+                              'enblue.network': ND_DHCP4 % 'enblue'})
 
     def test_def_in_lib(self):
         libdir = os.path.join(self.workdir.name, 'lib', 'netplan')
@@ -2212,9 +2217,9 @@ unmanaged-devices+=interface-name:engreen,''')
   version: 2
   ethernets: {enred: {wakeonlan: true}}'''})
 
-        self.assert_networkd({'engreen.network': '[Match]\nName=engreen\n\n[Network]\nDHCP=ipv4\n',
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen',
                               'enred.link': '[Match]\nOriginalName=enred\n\n[Link]\nWakeOnLan=magic\n',
-                              'enyellow.network': '[Match]\nName=enyellow\n\n[Network]\nDHCP=ipv4\n',
-                              'enblue.network': '[Match]\nName=enblue\n\n[Network]\nDHCP=ipv4\n'})
+                              'enyellow.network': ND_DHCP4 % 'enyellow',
+                              'enblue.network': ND_DHCP4 % 'enblue'})
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
