@@ -169,6 +169,10 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
                 g_string_append_printf(s, "VLAN=%s\n", nd->id);
     }
 
+    /* NetworkManager compatible route metrics */
+    if (def->dhcp4 || def->dhcp6)
+        g_string_append_printf(s, "\n[DHCP]\nRouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+
     g_string_free_to_file(s, rootdir, path, ".network");
 }
 

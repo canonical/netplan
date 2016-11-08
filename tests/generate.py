@@ -33,9 +33,10 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
 # common patterns for expected output
-ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\n'
-ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\n'
-ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\n'
+ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\n\n[DHCP]\nRouteMetric=100\n'
+ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\n\n[DHCP]\nRouteMetric=600\n'
+ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\n\n[DHCP]\nRouteMetric=100\n'
+ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\n\n[DHCP]\nRouteMetric=100\n'
 
 
 class TestBase(unittest.TestCase):
@@ -321,7 +322,7 @@ unmanaged-devices+=mac:11:22:33:44:55:66,''')
         driver: ixgbe
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'def1.network': '[Match]\nDriver=ixgbe\n\n[Network]\nDHCP=ipv4\n\n[DHCP]\nRouteMetric=100\n'})
         self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_name(self):
@@ -378,7 +379,7 @@ unmanaged-devices+=interface-name:*,''')
       match: {}
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n\n[DHCP]\nRouteMetric=100\n'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=type:ethernet,''')
@@ -393,7 +394,16 @@ unmanaged-devices+=type:ethernet,''')
         name: en1s*
         macaddress: 00:11:22:33:44:55
       dhcp4: on''')
-        self.assert_networkd({'def1.network': '[Match]\nMACAddress=00:11:22:33:44:55\nName=en1s*\n\n[Network]\nDHCP=ipv4\n'})
+        self.assert_networkd({'def1.network': '''[Match]
+MACAddress=00:11:22:33:44:55
+Name=en1s*
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+RouteMetric=100
+'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=mac:00:11:22:33:44:55,''')
@@ -495,6 +505,9 @@ Name=engreen
 DHCP=ipv4
 Address=192.168.14.2/24
 Address=2001:FFfe::1/64
+
+[DHCP]
+RouteMetric=100
 '''})
 
     def test_wifi(self):
@@ -511,7 +524,7 @@ Address=2001:FFfe::1/64
           mode: adhoc
       dhcp4: yes''')
 
-        self.assert_networkd({'wl0.network': ND_DHCP4 % 'wl0'})
+        self.assert_networkd({'wl0.network': ND_WIFI_DHCP4 % 'wl0'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:wl0,''')
@@ -606,7 +619,15 @@ unmanaged-devices+=interface-name:br0,''')
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0' + 'Address=1.2.3.4/12\n'})
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+Address=1.2.3.4/12
+
+[DHCP]\nRouteMetric=100
+'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
