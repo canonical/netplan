@@ -1,3 +1,13 @@
+nplan (0.14) zesty; urgency=medium
+
+  * tests/generate.py: Introduce macros for commonly expected networkd output
+  * networkd: Use NetworkManager compatible DHCP route metrics (LP: #1639754)
+  * doc/netplan.md: Fix wrong wifi reference in "br0" example
+  * doc/netplan.md: Clarify introduction
+  * tests/integration.py: Fix race condition with waiting for networkd
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 09 Nov 2016 16:57:49 +0100
+
 nplan (0.13) zesty; urgency=medium
 
   [ Jonathan Cave ]
