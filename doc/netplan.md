@@ -13,13 +13,11 @@ early boot, the netplan "network renderer" runs which reads
 ``/{lib,etc,run}/netplan/*.yaml`` and writes configuration to ``/run`` to hand
 off control of devices to the specified networking daemon.
 
- - Wifi and WWAN get managed by NetworkManager
- - Any other configured devices get handled by systemd-networkd by default,
+ - Configured devices get handled by systemd-networkd by default,
    unless explicitly marked as managed by a specific renderer (NetworkManager)
  - Devices not covered by the network config do not get touched at all.
  - Usable in initramfs (few dependencies and fast)
  - No persistent generated config, only original YAML config
- - Default policy applies with no config file present
  - Parser supports multiple config files to allow applications like libvirt or lxd
    to package up expected network config (``virbr0``, ``lxdbr0``), or to change the
    global default policy to use NetworkManager for everything.
