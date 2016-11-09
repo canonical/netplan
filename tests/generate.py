@@ -2243,4 +2243,5 @@ unmanaged-devices+=interface-name:engreen,''')
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
 
+
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
