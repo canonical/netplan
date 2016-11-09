@@ -320,7 +320,7 @@ class NetworkTestBase(unittest.TestCase):
         # start NM so that we can verify that it does not manage anything
         subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
-        if subprocess.call(['systemctl', 'is-active', '--quiet', 'systemd-networkd.service']) == 0:
+        if self.is_active('systemd-networkd.service'):
             if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=25']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
                 st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
@@ -344,6 +344,14 @@ class NetworkTestBase(unittest.TestCase):
             time.sleep(1)
         else:
             self.fail('timed out waiting for %s to get connected by NM:\n%s' % (iface, out.decode()))
+
+    @classmethod
+    def is_active(klass, unit):
+        '''Check if given unit is active or activating'''
+
+        p = subprocess.Popen(['systemctl', 'is-active', unit], stdout=subprocess.PIPE)
+        out = p.communicate()[0]
+        return p.returncode == 0 or out.startswith(b'activating')
 
 
 class _CommonTests:
