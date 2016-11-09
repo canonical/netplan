@@ -333,7 +333,7 @@ This is a complex example which shows most available features:
         # set-name: allowed
         br0:
           # IDs of the components; switchports expands into multiple interfaces
-          interfaces: [my_ap, switchports]
+          interfaces: [wlp1s0, switchports]
           dhcp4: true
       routes:
        - to: 0.0.0.0/0
