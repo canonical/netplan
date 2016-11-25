@@ -15,6 +15,10 @@ network:
         - 2001:1::1/64
       gateway4: 192.168.14.1
       gateway6: 2001:1::2
+      routes:
+       - to: 11.22.0.0/16
+         via: 192.168.14.3
+         metric: 100
       nameservers:
         search: [foo.local, bar.local]
         addresses: [8.8.8.8]
@@ -54,7 +58,3 @@ network:
       # IDs of the components; switchports expands into multiple interfaces
       interfaces: [wlp1s0, switchports]
       dhcp4: true
-  routes:
-   - to: 0.0.0.0/0
-     via: 11.0.0.1
-     metric: 3
