@@ -96,7 +96,8 @@ Common properties for physical device types
      :   Current interface name. Globs are supported, and the primary use case
          for matching on names, as selecting one fixed name can be more easily
          achieved with having no ``match:`` at all and just using the ID (see
-         above).
+         above). Note that currently only networkd supports globbing,
+         NetworkManager does not.
 
      ``macaddress`` (scalar)
      :   Device's MAC address in the form "XX:XX:XX:XX:XX:XX". Globs are not
