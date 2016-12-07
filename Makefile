@@ -37,7 +37,7 @@ coverage:
 	@if grep headerCovTableEntryHi test-coverage/index.html | grep -qv '100.*%'; then \
 	    echo "FAIL: Test coverage not 100%!" >&2; exit 1; \
 	fi
-	python3-coverage report --include=src/netplan --show-missing
+	python3-coverage report --include=src/netplan --show-missing --fail-under=100
 
 install: default
 	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)

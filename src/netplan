@@ -238,7 +238,8 @@ def command_generate():
     if args.root_dir:
         argv += ['--root-dir', args.root_dir]
     logging.debug('command generate: running %s', argv)
-    os.execv(argv[0], argv)
+    # FIXME: os.execv(argv[0], argv) would be better but fails coverage
+    sys.exit(subprocess.call(argv))
 
 
 def command_apply():  # pragma: nocover (covered in autopkgtest)
