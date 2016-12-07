@@ -29,6 +29,7 @@
 
 /* convenience macro to put the offset of a net_definition field into "void* data" */
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
+#define route_offset(field) GUINT_TO_POINTER(offsetof(ip_route, field))
 
 /* file that is currently being processed, for useful error messages */
 const char* current_file;
@@ -37,6 +38,8 @@ net_definition* cur_netdef;
 
 /* wifi AP that is currently being processed */
 wifi_access_point* cur_access_point;
+
+ip_route* cur_route;
 
 netdef_backend backend_global, backend_cur_type;
 
@@ -625,6 +628,122 @@ handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void
     return TRUE;
 }
 
+
+static int
+get_ip_family(const char* address)
+{
+    struct in_addr a4;
+    struct in6_addr a6;
+    g_autofree char *ip_str;
+    char *prefix_len;
+    int ret = -1;
+
+    ip_str = g_strdup(address);
+    prefix_len = strrchr(ip_str, '/');
+    if (prefix_len)
+        *prefix_len = '\0';
+
+    ret = inet_pton(AF_INET, ip_str, &a4);
+    g_assert(ret >= 0);
+    if (ret > 0)
+        return AF_INET;
+
+    ret = inet_pton(AF_INET6, ip_str, &a6);
+    g_assert(ret >= 0);
+    if (ret > 0)
+        return AF_INET6;
+
+    return -1;
+}
+
+static gboolean
+check_and_set_family(int family)
+{
+    if (cur_route->family != -1 && cur_route->family != family)
+        return FALSE;
+
+    cur_route->family = family;
+
+    return TRUE;
+}
+
+static gboolean
+handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    int family = get_ip_family(scalar(node));
+    char** dest = (char**) ((void*) cur_route + offset);
+    g_free(*dest);
+
+    if (family < 0)
+        return yaml_error(node, error, "invalid IP family %d", family);
+
+    if (!check_and_set_family(family))
+        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+
+    *dest = g_strdup(scalar(node));
+
+    return TRUE;
+}
+
+static gboolean
+handle_routes_metric(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid unsigned int value %s", scalar(node));
+
+    cur_route->metric = (guint) v;
+    return TRUE;
+}
+
+/****************************************************
+ * Grammar and handlers for network config "routes" entry
+ ****************************************************/
+
+const mapping_entry_handler routes_handlers[] = {
+    {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
+    {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
+    {"metric", YAML_SCALAR_NODE, handle_routes_metric},
+    {NULL}
+};
+
+static gboolean
+handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+
+        cur_route = g_new0(ip_route, 1);
+        cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
+        cur_route->metric = G_MAXUINT; /* 0 is a valid metric */
+
+        if (process_mapping(doc, entry, routes_handlers, error)) {
+            if (!cur_netdef->routes) {
+                cur_netdef->routes = g_array_new(FALSE, FALSE, sizeof(ip_route*));
+            }
+
+            g_array_append_val(cur_netdef->routes, cur_route);
+        }
+
+        if (!cur_route->to || !cur_route->via)
+            return yaml_error(node, error, "route must include both a 'to' and 'via' IP");
+
+        cur_route = NULL;
+
+        if (error && *error)
+            return FALSE;
+    }
+    return TRUE;
+}
+
+/****************************************************
+ * Grammar and handlers for network devices
+ ****************************************************/
+
 const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
     {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
@@ -642,6 +761,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 
@@ -657,6 +777,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 
@@ -669,6 +790,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 
@@ -681,6 +803,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 
@@ -694,6 +817,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 

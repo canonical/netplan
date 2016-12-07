@@ -168,6 +168,15 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             if (nd->vlan_link == def)
                 g_string_append_printf(s, "VLAN=%s\n", nd->id);
     }
+    if (def->routes != NULL) {
+        for (unsigned i = 0; i < def->routes->len; ++i) {
+            ip_route* cur_route = g_array_index (def->routes, ip_route*, i);
+            g_string_append_printf(s, "\n[Route]\nDestination=%s\nGateway=%s\n",
+                                   cur_route->to, cur_route->via);
+            if (cur_route->metric != METRIC_UNSPEC)
+                g_string_append_printf(s, "Metric=%d\n", cur_route->metric);
+        }
+    }
 
     /* NetworkManager compatible route metrics */
     if (def->dhcp4 || def->dhcp6)

@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -113,6 +114,26 @@ write_search_domains(const net_definition* def, GString *s)
         for (unsigned i = 0; i < def->search_domains->len; ++i)
             g_string_append_printf(s, "%s;", g_array_index(def->search_domains, char*, i));
         g_string_append(s, "\n");
+    }
+}
+
+static void
+write_routes(const net_definition* def, GString *s, int family)
+{
+    if (def->routes != NULL) {
+        for (unsigned i = 0, j = 1; i < def->routes->len; ++i) {
+            ip_route *cur_route = g_array_index(def->routes, ip_route*, i);
+
+            if (cur_route->family != family)
+                continue;
+
+            g_string_append_printf(s, "route%d=%s,%s",
+                                   j, cur_route->to, cur_route->via);
+            if (cur_route->metric != METRIC_UNSPEC)
+                g_string_append_printf(s, ",%d", cur_route->metric);
+            g_string_append(s, "\n");
+            j++;
+        }
     }
 }
 
@@ -235,6 +256,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append(s, "\n");
     }
     write_search_domains(def, s);
+    write_routes(def, s, AF_INET);
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
         g_string_append(s, "\n[ipv6]\n");
@@ -253,6 +275,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         /* nm-settings(5) specifies search-domain for both [ipv4] and [ipv6] --
          * do we really need to repeat it here? */
         write_search_domains(def, s);
+
+        /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
+        write_routes(def, s, AF_INET6);
     }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);

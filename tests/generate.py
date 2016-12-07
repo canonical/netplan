@@ -510,6 +510,118 @@ Address=2001:FFfe::1/64
 RouteMetric=100
 '''})
 
+    def test_route_v4_single(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=100
+'''})
+
+    def test_route_v4_multiple(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 8.8.0.0/16
+          via: 192.168.1.1
+        - to: 10.10.10.8
+          via: 192.168.1.2
+          metric: 5000
+        - to: 11.11.11.0/24
+          via: 192.168.1.3
+          metric: 9999
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=8.8.0.0/16
+Gateway=192.168.1.1
+
+[Route]
+Destination=10.10.10.8
+Gateway=192.168.1.2
+Metric=5000
+
+[Route]
+Destination=11.11.11.0/24
+Gateway=192.168.1.3
+Metric=9999
+'''})
+
+    def test_route_v6_single(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enblue:
+      addresses: ["192.168.1.3/24"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1''')
+
+        self.assert_networkd({'enblue.network': '''[Match]
+Name=enblue
+
+[Network]
+Address=192.168.1.3/24
+
+[Route]
+Destination=2001:dead:beef::2/64
+Gateway=2001:beef:beef::1
+'''})
+
+    def test_route_v6_multiple(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enblue:
+      addresses: ["192.168.1.3/24"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1
+        - to: 2001:f00f:f00f::fe/64
+          via: 2001:beef:feed::1
+          metric: 1024''')
+
+        self.assert_networkd({'enblue.network': '''[Match]
+Name=enblue
+
+[Network]
+Address=192.168.1.3/24
+
+[Route]
+Destination=2001:dead:beef::2/64
+Gateway=2001:beef:beef::1
+
+[Route]
+Destination=2001:f00f:f00f::fe/64
+Gateway=2001:beef:feed::1
+Metric=1024
+'''})
+
     def test_wifi(self):
         self.generate('''network:
   version: 2
@@ -551,6 +663,38 @@ network={
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/multi-user.target.wants/netplan-wpa@wl0.service')))
+
+    def test_wifi_route(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          password: "c0mpany"
+      dhcp4: yes
+      routes:
+        - to: 10.10.10.0/24
+          via: 8.8.8.8''')
+
+        self.assert_networkd({'wl0.network': '''[Match]
+Name=wl0
+
+[Network]
+DHCP=ipv4
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=8.8.8.8
+
+[DHCP]
+RouteMetric=600
+'''})
+
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:wl0,''')
+        self.assert_udev(None)
 
     def test_wifi_match(self):
         err = self.generate('''network:
@@ -1178,6 +1322,172 @@ address1=192.168.14.2/24
 [ipv6]
 method=manual
 address1=2001:FFfe::1/64
+'''})
+
+    def test_route_v4_single(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 100
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.14.20,100
+'''})
+
+    def test_route_v4_multiple(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 8.8.0.0/16
+          via: 192.168.1.1
+          metric: 5000
+        - to: 10.10.10.8
+          via: 192.168.1.2
+        - to: 11.11.11.0/24
+          via: 192.168.1.3
+          metric: 9999
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=8.8.0.0/16,192.168.1.1,5000
+route2=10.10.10.8,192.168.1.2
+route3=11.11.11.0/24,192.168.1.3,9999
+'''})
+
+    def test_route_v6_single(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enblue:
+      addresses: ["2001:f00f:f00f::2/64"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1''')
+
+        self.assert_nm({'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=manual
+address1=2001:f00f:f00f::2/64
+route1=2001:dead:beef::2/64,2001:beef:beef::1
+'''})
+
+    def test_route_v6_multiple(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enblue:
+      addresses: ["2001:f00f:f00f::2/64"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1
+        - to: 2001:dead:feed::2/64
+          via: 2001:beef:beef::2
+          metric: 1000''')
+
+        self.assert_nm({'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=manual
+address1=2001:f00f:f00f::2/64
+route1=2001:dead:beef::2/64,2001:beef:beef::1
+route2=2001:dead:feed::2/64,2001:beef:beef::2,1000
+'''})
+
+    def test_routes_mixed(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24", "2001:f00f::2/128"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1
+          metric: 997
+        - to: 8.8.0.0/16
+          via: 192.168.1.1
+          metric: 5000
+        - to: 10.10.10.8
+          via: 192.168.1.2
+        - to: 11.11.11.0/24
+          via: 192.168.1.3
+          metric: 9999
+        - to: 2001:f00f:f00f::fe/64
+          via: 2001:beef:feed::1
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=8.8.0.0/16,192.168.1.1,5000
+route2=10.10.10.8,192.168.1.2
+route3=11.11.11.0/24,192.168.1.3,9999
+
+[ipv6]
+method=manual
+address1=2001:f00f::2/128
+route1=2001:dead:beef::2/64,2001:beef:beef::1,997
+route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 '''})
 
     def test_wifi_default(self):
@@ -2076,6 +2386,95 @@ class TestConfigErrors(TestBase):
   vlans:
     ena: {id: 1, link: en1}''', expect_fail=True)
         self.assertIn('interface en1 is not defined\n', err)
+
+    def test_device_bad_route_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - to: badlocation
+          via: 192.168.14.20
+          metric: 100
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_bad_route_via(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - to: 10.10.0.0/16
+          via: badgateway
+          metric: 100
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_bad_route_metric(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - to: 10.10.0.0/16
+          via: 10.1.1.1
+          metric: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_family_mismatch_ipv6_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - to: 2001:dead:beef::0/16
+          via: 10.1.1.1
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_family_mismatch_ipv4_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          to: 10.10.10.0/24
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_missing_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_missing_via(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - to: 2001:dead:beef::2
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
 
 
 class TestMerging(TestBase):

@@ -61,6 +61,7 @@ typedef struct net_definition {
     GArray* ip4_nameservers;
     GArray* ip6_nameservers;
     GArray* search_domains;
+    GArray* routes;
 
     /* master ID for slave devices */
     char* bridge;
@@ -97,6 +98,18 @@ typedef struct {
     char* password;
 } wifi_access_point;
 
+#define METRIC_UNSPEC G_MAXUINT
+
+typedef struct {
+    guint family;
+
+    char* to;
+    char* via;
+
+    /* valid metrics are valid positive integers.
+     * invalid metrics are represented by METRIC_UNSPEC */
+    guint metric;
+} ip_route;
 
 /* Written/updated by parse_yaml(): char* id →  net_definition */
 extern GHashTable* netdefs;
