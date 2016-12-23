@@ -1,3 +1,19 @@
+nplan (0.16) UNRELEASED; urgency=medium
+
+  [ Martin Pitt ]
+  * doc/example-config: Adjust "routes:" example.
+    It does not make sense to make "routes:" a global thing, they should be
+    tied to an interface so that the route is only set when the corresponding
+    interface exists and is up, and the config is not split in two parts.
+  * doc/netplan.md: Point out that NM does not support globbing (LP: #1631018)
+
+  [ Mathieu Trudel-Lapierre ]
+  * Fix coverage for src/netplan to be 100%, and fail if coverage falls below
+    that mark again.
+  * Add support for specifying routes.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 23 Dec 2016 12:29:14 -0500
+
 nplan (0.15) zesty; urgency=medium
 
   * tests/generate.py: Fix PEP-8 error (newly detected by -proposed
