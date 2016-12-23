@@ -1,4 +1,4 @@
-nplan (0.16) UNRELEASED; urgency=medium
+nplan (0.16) zesty; urgency=medium
 
   [ Martin Pitt ]
   * doc/example-config: Adjust "routes:" example.
@@ -12,7 +12,7 @@ nplan (0.16) UNRELEASED; urgency=medium
     that mark again.
   * Add support for specifying routes.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 23 Dec 2016 12:29:14 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 23 Dec 2016 12:33:34 -0500
 
 nplan (0.15) zesty; urgency=medium
 
