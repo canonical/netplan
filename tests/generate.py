@@ -831,6 +831,89 @@ unmanaged-devices+=interface-name:bn0,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
+    def test_bond_empty_parameters(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      parameters: {}
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
+                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
+    def test_bond_with_parameters(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      parameters:
+        mode: 802.1ad
+        lacp-rate: 10
+        mii-monitor-interval: 10
+        min-links: 10
+        up-delay: 10
+        down-delay: 10
+        all-slaves-active: true
+        transmit-hash-policy: none
+        ad-select: none
+        arp-interval: 10
+        arp-validate: all
+        arp-all-targets: all
+        fail-over-mac-policy: none
+        gratuitious-arp: 10
+        packets-per-slave: 10
+        primary-reselect-policy: none
+        resend-igmp: 10
+        learn-packet-interval: 10
+        arp-ip-targets:
+          - 10.10.10.10
+          - 20.20.20.20
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
+                                            '[Bond]\n'
+                                            'Mode=802.1ad\n'
+                                            'LACPTransmitRate=10\n'
+                                            'MIIMonitorSec=10\n'
+                                            'MinLinks=10\n'
+                                            'TransmitHashPolicy=none\n'
+                                            'AdSelect=none\n'
+                                            'AllSlavesActive=1\n'
+                                            'ARPIntervalSec=10\n'
+                                            'ARPIPTargets=10.10.10.10,20.20.20.20\n'
+                                            'ARPValidate=all\n'
+                                            'ARPAllTargets=all\n'
+                                            'UpDelaySec=10\n'
+                                            'DownDelaySec=10\n'
+                                            'FailOverMACPolicy=none\n'
+                                            'GratuitiousARP=10\n'
+                                            'PacketsPerSlave=10\n'
+                                            'PrimaryReselectPolicy=none\n'
+                                            'ResendIGMP=10\n'
+                                            'LearnPacketIntervalSec=10\n',
+                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
     def test_gateway(self):
         self.generate('''network:
   version: 2
@@ -1831,6 +1914,152 @@ method=link-local
 id=netplan-bn0
 type=bond
 interface-name=bn0
+
+[ipv4]
+method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_bond_empty_params(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+  bonds:
+    bn0:
+      interfaces: [eno1, switchport]
+      parameters: {}
+      dhcp4: true''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'bn0': '''[connection]
+id=netplan-bn0
+type=bond
+interface-name=bn0
+
+[ipv4]
+method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
+    def test_bond_with_params(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+  bonds:
+    bn0:
+      interfaces: [eno1, switchport]
+      parameters:
+        mode: 802.1ad
+        lacp-rate: 10
+        mii-monitor-interval: 10
+        min-links: 10
+        up-delay: 10
+        down-delay: 10
+        all-slaves-active: true
+        transmit-hash-policy: none
+        ad-select: none
+        arp-interval: 10
+        arp-validate: all
+        arp-all-targets: all
+        arp-ip-targets:
+          - 10.10.10.10
+          - 20.20.20.20
+        fail-over-mac-policy: none
+        gratuitious-arp: 10
+        packets-per-slave: 10
+        primary-reselect-policy: none
+        resend-igmp: 10
+        learn-packet-interval: 10
+      dhcp4: true''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'bn0': '''[connection]
+id=netplan-bn0
+type=bond
+interface-name=bn0
+
+[bond]
+mode=802.1ad
+lacp_rate=10
+miimon=10
+min_links=10
+xmit_hash_policy=none
+ad_select=none
+all_slaves_active=1
+arp_interval=10
+arp_ip_target=10.10.10.10,20.20.20.20
+arp_validate=all
+arp_all_targets=all
+updelay=10
+downdelay=10
+fail_over_mac=none
+num_grat_arp=10
+packets_per_slave=10
+primary_reselect=none
+resend_igmp=10
+lp_interval=10
 
 [ipv4]
 method=auto

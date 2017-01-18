@@ -741,6 +741,82 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 }
 
 /****************************************************
+ * Grammar and handlers for bond parameters
+ ****************************************************/
+
+static gboolean
+handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        struct in_addr a4;
+        struct in6_addr a6;
+        int ret;
+        g_autofree char* addr = NULL;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        addr = g_strdup(scalar(entry));
+
+        /* is it an IPv4 address? */
+        ret = inet_pton(AF_INET, addr, &a4);
+        g_assert(ret >= 0);
+        if (ret > 0) {
+            if (!cur_netdef->bond_params.arp_ip_targets)
+                cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->bond_params.arp_ip_targets, s);
+            continue;
+        }
+
+        /* is it an IPv6 address? */
+        ret = inet_pton(AF_INET6, addr, &a6);
+        g_assert(ret >= 0);
+        if (ret > 0) {
+            if (!cur_netdef->bond_params.arp_ip_targets)
+                cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->bond_params.arp_ip_targets, s);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+const mapping_entry_handler bond_params_handlers[] = {
+    {"mode", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.mode)},
+    {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
+    {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.monitor_interval)},
+    {"min-links", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.min_links)},
+    {"transmit-hash-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.transmit_hash_policy)},
+    {"ad-select", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.selection_logic)},
+    {"all-slaves-active", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(bond_params.all_slaves_active)},
+    {"arp-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.arp_interval)},
+    /* TODO: arp_ip_targets */
+    {"arp-ip-targets", YAML_SEQUENCE_NODE, handle_arp_ip_targets},
+    {"arp-validate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_validate)},
+    {"arp-all-targets", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_all_targets)},
+    {"up-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.up_delay)},
+    {"down-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.down_delay)},
+    {"fail-over-mac-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.fail_over_mac_policy)},
+    {"gratuitious-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitious_arp)},
+    /* TODO: unsolicited_na */
+    {"packets-per-slave", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.packets_per_slave)},
+    {"primary-reselect-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.primary_reselect_policy)},
+    {"resend-igmp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.resend_igmp)},
+    {"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.learn_interval)},
+    {NULL}
+};
+
+static gboolean
+handle_bonding(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return process_mapping(doc, node, bond_params_handlers, error);
+}
+
+/****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
 
@@ -803,7 +879,9 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
+    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"parameters", YAML_MAPPING_NODE, handle_bonding},
     {NULL}
 };
 

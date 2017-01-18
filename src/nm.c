@@ -137,6 +137,65 @@ write_routes(const net_definition* def, GString *s, int family)
     }
 }
 
+static void
+write_bond_parameters(const net_definition* def, GString *s)
+{
+    GString* params = NULL;
+
+    params = g_string_sized_new(200);
+
+    if (def->bond_params.mode)
+        g_string_append_printf(params, "\nmode=%s", def->bond_params.mode);
+    if (def->bond_params.lacp_rate)
+        g_string_append_printf(params, "\nlacp_rate=%s", def->bond_params.lacp_rate);
+    if (def->bond_params.monitor_interval)
+        g_string_append_printf(params, "\nmiimon=%d", def->bond_params.monitor_interval);
+    if (def->bond_params.min_links)
+        g_string_append_printf(params, "\nmin_links=%d", def->bond_params.min_links);
+    if (def->bond_params.transmit_hash_policy)
+        g_string_append_printf(params, "\nxmit_hash_policy=%s", def->bond_params.transmit_hash_policy);
+    if (def->bond_params.selection_logic)
+        g_string_append_printf(params, "\nad_select=%s", def->bond_params.selection_logic);
+    if (def->bond_params.all_slaves_active)
+        g_string_append_printf(params, "\nall_slaves_active=%d", def->bond_params.all_slaves_active);
+    if (def->bond_params.arp_interval)
+        g_string_append_printf(params, "\narp_interval=%d", def->bond_params.arp_interval);
+    if (def->bond_params.arp_ip_targets) {
+        g_string_append_printf(params, "\narp_ip_target=");
+        for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
+            if (i > 0)
+                g_string_append_printf(params, ",");
+            g_string_append_printf(params, "%s", g_array_index(def->bond_params.arp_ip_targets, char*, i));
+        }
+    }
+    if (def->bond_params.arp_validate)
+        g_string_append_printf(params, "\narp_validate=%s", def->bond_params.arp_validate);
+    if (def->bond_params.arp_all_targets)
+        g_string_append_printf(params, "\narp_all_targets=%s", def->bond_params.arp_all_targets);
+    if (def->bond_params.up_delay)
+        g_string_append_printf(params, "\nupdelay=%d", def->bond_params.up_delay);
+    if (def->bond_params.down_delay)
+        g_string_append_printf(params, "\ndowndelay=%d", def->bond_params.down_delay);
+    if (def->bond_params.fail_over_mac_policy)
+        g_string_append_printf(params, "\nfail_over_mac=%s", def->bond_params.fail_over_mac_policy);
+    if (def->bond_params.gratuitious_arp)
+        g_string_append_printf(params, "\nnum_grat_arp=%d", def->bond_params.gratuitious_arp);
+    /* TODO: add unsolicited_na, not documented as supported by NM. */
+    if (def->bond_params.packets_per_slave)
+        g_string_append_printf(params, "\npackets_per_slave=%d", def->bond_params.packets_per_slave);
+    if (def->bond_params.primary_reselect_policy)
+        g_string_append_printf(params, "\nprimary_reselect=%s", def->bond_params.primary_reselect_policy);
+    if (def->bond_params.resend_igmp)
+        g_string_append_printf(params, "\nresend_igmp=%d", def->bond_params.resend_igmp);
+    if (def->bond_params.learn_interval)
+        g_string_append_printf(params, "\nlp_interval=%d", def->bond_params.learn_interval);
+
+    if (params->len > 0)
+        g_string_append_printf(s, "\n[bond]%s\n", params->str);
+
+    g_string_free(params, TRUE);
+}
+
 /**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
  * particular net_definition and wifi_access_point, as NM requires a separate
@@ -197,8 +256,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     }
     if (def->bridge)
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
-    if (def->bond)
+    if (def->bond) {
         g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
+    }
 
     if (def->type < ND_VIRTUAL) {
         g_string_append_printf(s, "\n[ethernet]\nwake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
@@ -230,6 +290,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "%s\n", def->vlan_link->id);
         }
     }
+
+    if (def->type == ND_BOND)
+        write_bond_parameters(def, s);
 
     g_string_append(s, "\n[ipv4]\n");
 

@@ -72,6 +72,9 @@ typedef struct net_definition {
     struct net_definition* vlan_link;
     gboolean has_vlans;
 
+    /* Configured custom MAC address */
+    char* set_mac;
+
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;
     struct {
@@ -84,6 +87,30 @@ typedef struct net_definition {
 
     /* these properties are only valid for ND_WIFI */
     GHashTable* access_points; /* SSID → wifi_access_point* */
+
+    struct {
+        char* mode;
+        char* lacp_rate;
+        guint monitor_interval;
+        guint min_links;
+        char* transmit_hash_policy;
+        char* selection_logic;
+        gboolean all_slaves_active;
+        guint arp_interval;
+        GArray* arp_ip_targets;
+        char* arp_validate;
+        char* arp_all_targets;
+        guint up_delay;
+        guint down_delay;
+        char* fail_over_mac_policy;
+        guint gratuitious_arp;
+        /* TODO: unsolicited_na */
+        guint packets_per_slave;
+        char* primary_reselect_policy;
+        guint resend_igmp;
+        guint learn_interval;
+    } bond_params;
+
 } net_definition;
 
 typedef enum {

@@ -81,6 +81,65 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
 }
 
 static void
+write_bond_parameters(net_definition* def, GString* s)
+{
+    GString* params = NULL;
+
+    params = g_string_sized_new(200);
+
+    if (def->bond_params.mode)
+        g_string_append_printf(params, "\nMode=%s", def->bond_params.mode);
+    if (def->bond_params.lacp_rate)
+        g_string_append_printf(params, "\nLACPTransmitRate=%s", def->bond_params.lacp_rate);
+    if (def->bond_params.monitor_interval)
+        g_string_append_printf(params, "\nMIIMonitorSec=%d", def->bond_params.monitor_interval);
+    if (def->bond_params.min_links)
+        g_string_append_printf(params, "\nMinLinks=%d", def->bond_params.min_links);
+    if (def->bond_params.transmit_hash_policy)
+        g_string_append_printf(params, "\nTransmitHashPolicy=%s", def->bond_params.transmit_hash_policy);
+    if (def->bond_params.selection_logic)
+        g_string_append_printf(params, "\nAdSelect=%s", def->bond_params.selection_logic);
+    if (def->bond_params.all_slaves_active)
+        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_slaves_active);
+    if (def->bond_params.arp_interval)
+        g_string_append_printf(params, "\nARPIntervalSec=%d", def->bond_params.arp_interval);
+    if (def->bond_params.arp_ip_targets && def->bond_params.arp_ip_targets->len > 0) {
+        g_string_append_printf(params, "\nARPIPTargets=");
+        for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
+            if (i > 0)
+                g_string_append_printf(params, ",");
+            g_string_append_printf(params, "%s", g_array_index(def->bond_params.arp_ip_targets, char*, i));
+        }
+    }
+    if (def->bond_params.arp_validate)
+        g_string_append_printf(params, "\nARPValidate=%s", def->bond_params.arp_validate);
+    if (def->bond_params.arp_all_targets)
+        g_string_append_printf(params, "\nARPAllTargets=%s", def->bond_params.arp_all_targets);
+    if (def->bond_params.up_delay)
+        g_string_append_printf(params, "\nUpDelaySec=%d", def->bond_params.up_delay);
+    if (def->bond_params.down_delay)
+        g_string_append_printf(params, "\nDownDelaySec=%d", def->bond_params.down_delay);
+    if (def->bond_params.fail_over_mac_policy)
+        g_string_append_printf(params, "\nFailOverMACPolicy=%s", def->bond_params.fail_over_mac_policy);
+    if (def->bond_params.gratuitious_arp)
+        g_string_append_printf(params, "\nGratuitiousARP=%d", def->bond_params.gratuitious_arp);
+    /* TODO: add unsolicited_na, not documented as supported by NM. */
+    if (def->bond_params.packets_per_slave)
+        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_slave);
+    if (def->bond_params.primary_reselect_policy)
+        g_string_append_printf(params, "\nPrimaryReselectPolicy=%s", def->bond_params.primary_reselect_policy);
+    if (def->bond_params.resend_igmp)
+        g_string_append_printf(params, "\nResendIGMP=%d", def->bond_params.resend_igmp);
+    if (def->bond_params.learn_interval)
+        g_string_append_printf(params, "\nLearnPacketIntervalSec=%d", def->bond_params.learn_interval);
+
+    if (params->len)
+        g_string_append_printf(s, "\n[Bond]%s\n", params->str);
+
+    g_string_free(params, TRUE);
+}
+
+static void
 write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -98,6 +157,7 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 
         case ND_BOND:
             g_string_append(s, "Kind=bond\n");
+            write_bond_parameters(def, s);
             break;
 
         case ND_VLAN:
@@ -157,8 +217,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     }
     if (def->bridge)
         g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bridge);
-    if (def->bond)
+    if (def->bond) {
         g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bond);
+    }
     if (def->has_vlans) {
         /* iterate over all netdefs to find VLANs attached to us */
         GHashTableIter i;
