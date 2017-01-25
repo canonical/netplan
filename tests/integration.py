@@ -395,6 +395,193 @@ class _CommonTests:
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
             self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
+    def test_bridge_path_cost(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        path-cost:
+          ethbr: 50
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/brif/%s/path_cost' % self.dev_e2_client) as f:
+            self.assertEqual(f.read().strip(), '50')
+
+    def test_bridge_priority(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        priority: 8192
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/priority') as f:
+            self.assertEqual(f.read().strip(), '8192')
+
+    def test_bridge_ageing_time(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        ageing-time: 21
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/ageing_time') as f:
+            self.assertEqual(f.read().strip(), '2100')
+
+    def test_bridge_max_age(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        max-age: 12
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/max_age') as f:
+            self.assertEqual(f.read().strip(), '1200')
+
+    def test_bridge_hello_time(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        hello-time: 1
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/hello_time') as f:
+            self.assertEqual(f.read().strip(), '100')
+
+    def test_bridge_forward_delay(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        forward-delay: 21
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/forward_delay') as f:
+            self.assertEqual(f.read().strip(), '2100')
+
     def test_bond_base(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)

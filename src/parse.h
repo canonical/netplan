@@ -111,6 +111,14 @@ typedef struct net_definition {
         guint learn_interval;
     } bond_params;
 
+    struct {
+        guint ageing_time;
+        guint priority;
+        guint forward_delay;
+        guint hello_time;
+        guint max_age;
+        guint path_cost;
+    } bridge_params;
 } net_definition;
 
 typedef enum {

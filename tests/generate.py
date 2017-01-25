@@ -797,6 +797,40 @@ unmanaged-devices+=interface-name:br0,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
+    def test_bridge_params(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bridges:
+    br0:
+      interfaces: [eno1, switchports]
+      parameters:
+        ageing-time: 50
+        priority: 1000
+        forward-delay: 12
+        hello-time: 6
+        max-age: 24
+        path-cost:
+          eno1: 70
+      dhcp4: true''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
+                                            '[Bridge]\nAgeingTimeSec=50\n'
+                                            'Priority=1000\n'
+                                            'ForwardDelaySec=12\n'
+                                            'HelloTimeSec=6\n'
+                                            'MaxAgeSec=24\n',
+                              'br0.network': ND_DHCP4 % 'br0',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n\n'
+                                              '[Bridge]\nCost=70\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
     def test_bond_empty(self):
         self.generate('''network:
   version: 2
@@ -1853,6 +1887,75 @@ method=auto
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_bridge_params(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+  bridges:
+    br0:
+      interfaces: [eno1, switchport]
+      parameters:
+        ageing-time: 50
+        priority: 1000
+        forward-delay: 12
+        hello-time: 6
+        max-age: 24
+        path-cost:
+          eno1: 70
+      dhcp4: true''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bridge
+master=br0
+
+[bridge-port]
+path-cost=70
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bridge
+master=br0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'br0': '''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+
+[bridge]
+ageing-time=50
+priority=1000
+forward-delay=12
+hello-time=6
+max-age=24
+
+[ipv4]
+method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
     def test_bond_empty(self):
         self.generate('''network:
   version: 2
@@ -2704,6 +2807,52 @@ class TestConfigErrors(TestBase):
       addresses:
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_bridge_invalid_dev_for_path_cost(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        path-cost:
+          eth0: 50
+      dhcp4: true''', expect_fail=True)
+
+    def test_bridge_path_cost_already_defined(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        path-cost:
+          eno1: 50
+          eno1: 40
+      dhcp4: true''', expect_fail=True)
+
+    def test_bridge_invalid_path_cost(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        path-cost:
+          eno1: aa
+      dhcp4: true''', expect_fail=True)
 
 
 class TestMerging(TestBase):

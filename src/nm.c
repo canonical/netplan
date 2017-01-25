@@ -196,6 +196,30 @@ write_bond_parameters(const net_definition* def, GString *s)
     g_string_free(params, TRUE);
 }
 
+static void
+write_bridge_params(const net_definition* def, GString *s)
+{
+    GString* params = NULL;
+
+    params = g_string_sized_new(200);
+
+    if (def->bridge_params.ageing_time)
+        g_string_append_printf(params, "ageing-time=%u\n", def->bridge_params.ageing_time);
+    if (def->bridge_params.priority)
+        g_string_append_printf(params, "priority=%u\n", def->bridge_params.priority);
+    if (def->bridge_params.forward_delay)
+        g_string_append_printf(params, "forward-delay=%u\n", def->bridge_params.forward_delay);
+    if (def->bridge_params.hello_time)
+        g_string_append_printf(params, "hello-time=%u\n", def->bridge_params.hello_time);
+    if (def->bridge_params.max_age)
+        g_string_append_printf(params, "max-age=%u\n", def->bridge_params.max_age);
+
+    if (params->len > 0)
+        g_string_append_printf(s, "\n[bridge]\n%s", params->str);
+
+    g_string_free(params, TRUE);
+}
+
 /**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
  * particular net_definition and wifi_access_point, as NM requires a separate
@@ -253,12 +277,18 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     } else {
         /* virtual (created) devices set a name */
         g_string_append_printf(s, "interface-name=%s\n", def->id);
+
+        if (def->type == ND_BRIDGE)
+            write_bridge_params(def, s);
     }
-    if (def->bridge)
+    if (def->bridge) {
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
-    if (def->bond) {
-        g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
+
+        if (def->bridge_params.path_cost)
+            g_string_append_printf(s, "\n[bridge-port]\npath-cost=%u\n", def->bridge_params.path_cost);
     }
+    if (def->bond)
+        g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
 
     if (def->type < ND_VIRTUAL) {
         g_string_append_printf(s, "\n[ethernet]\nwake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);

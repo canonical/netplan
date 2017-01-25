@@ -701,6 +701,56 @@ handle_routes_metric(yaml_document_t* doc, yaml_node_t* node, const void* _, GEr
 }
 
 /****************************************************
+ * Grammar and handlers for network config "bridge_params" entry
+ ****************************************************/
+
+static gboolean
+handle_bridge_path_cost(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+        guint v;
+        gchar* endptr;
+        net_definition *component;
+        guint* ref_ptr;
+
+        key = yaml_document_get_node(doc, entry->key);
+        assert_type(key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(doc, entry->value);
+        assert_type(value, YAML_SCALAR_NODE);
+
+        component = g_hash_table_lookup(netdefs, scalar(key));
+        if (!component)
+            return yaml_error(node, error, "%s: interface %s is not defined",
+                              cur_netdef->id, scalar(key));
+
+        ref_ptr = ((guint*) ((void*) component + GPOINTER_TO_UINT(data)));
+        if (*ref_ptr)
+            return yaml_error(node, error, "%s: interface %s already has a path cost of %u",
+                              cur_netdef->id, scalar(key), *ref_ptr);
+
+        v = g_ascii_strtoull(scalar(value), &endptr, 10);
+        if (*endptr != '\0' || v > G_MAXUINT)
+            return yaml_error(node, error, "invalid unsigned int value %s", scalar(value));
+
+        g_debug("%s: adding path '%s' of cost: %d", cur_netdef->id, scalar(key), v);
+
+        *ref_ptr = v;
+    }
+    return TRUE;
+}
+
+const mapping_entry_handler bridge_params_handlers[] = {
+    {"ageing-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.ageing_time)},
+    {"priority", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.priority)},
+    {"forward-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.forward_delay)},
+    {"hello-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.hello_time)},
+    {"max-age", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.max_age)},
+    {"path-cost", YAML_MAPPING_NODE, handle_bridge_path_cost, NULL, netdef_offset(bridge_params.path_cost)},
+    {NULL}
+};
+
+/****************************************************
  * Grammar and handlers for network config "routes" entry
  ****************************************************/
 
@@ -866,6 +916,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
+    {"parameters", YAML_MAPPING_NODE, NULL, bridge_params_handlers},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
