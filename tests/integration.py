@@ -62,7 +62,7 @@ class NetworkTestBase(unittest.TestCase):
 
         # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
         out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
-        m = re.match('^country (\S+):', out)
+        m = re.match('^(?:global\n)country (\S+):', out)
         assert m
         klass.orig_country = m.group(1)
         subprocess.check_call(['iw', 'reg', 'set', 'EU'])
@@ -292,12 +292,8 @@ class NetworkTestBase(unittest.TestCase):
         else:
             self.poll_text(self.dnsmasq_log, 'DHCP, IP range')
 
-    def assert_iface_up(self, iface, expected_ip_a=None, unexpected_ip_a=None, timeout=None):
+    def assert_iface_up(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface is up'''
-
-        if timeout is not None:
-            print("Delaying assert_iface_up due to timeout.")
-            time.sleep(timeout)
 
         out = subprocess.check_output(['ip', 'a', 'show', 'dev', iface],
                                       universal_newlines=True)
@@ -564,7 +560,7 @@ class _CommonTests:
     mybr:
       interfaces: [ethbr]
       parameters:
-        forward-delay: 21
+        forward-delay: 10
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -580,7 +576,7 @@ class _CommonTests:
         self.assertEqual(len(lines), 1, lines)
         self.assertIn(self.dev_e2_client, lines[0])
         with open('/sys/class/net/mybr/bridge/forward_delay') as f:
-            self.assertEqual(f.read().strip(), '2100')
+            self.assertEqual(f.read().strip(), '1000')
 
     def test_bond_base(self):
         self.setup_eth(None)

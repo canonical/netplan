@@ -2854,6 +2854,21 @@ class TestConfigErrors(TestBase):
           eno1: aa
       dhcp4: true''', expect_fail=True)
 
+    def test_bond_invalid_arp_target(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bonds:
+    bond0:
+      interfaces: [eno1]
+      parameters:
+        arp-ip-targets:
+          - 2001:dead:beef::1
+      dhcp4: true''', expect_fail=True)
+
 
 class TestMerging(TestBase):
     '''multiple *.yaml merging'''
