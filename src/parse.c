@@ -799,7 +799,6 @@ handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         struct in_addr a4;
-        struct in6_addr a6;
         int ret;
         g_autofree char* addr = NULL;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
@@ -809,17 +808,6 @@ handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
 
         /* is it an IPv4 address? */
         ret = inet_pton(AF_INET, addr, &a4);
-        g_assert(ret >= 0);
-        if (ret > 0) {
-            if (!cur_netdef->bond_params.arp_ip_targets)
-                cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->bond_params.arp_ip_targets, s);
-            continue;
-        }
-
-        /* is it an IPv6 address? */
-        ret = inet_pton(AF_INET6, addr, &a6);
         g_assert(ret >= 0);
         if (ret > 0) {
             if (!cur_netdef->bond_params.arp_ip_targets)
