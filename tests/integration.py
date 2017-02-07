@@ -62,7 +62,7 @@ class NetworkTestBase(unittest.TestCase):
 
         # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
         out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
-        m = re.match('^(?:global\n)country (\S+):', out)
+        m = re.match('^(?:global\n)?country (\S+):', out)
         assert m
         klass.orig_country = m.group(1)
         subprocess.check_call(['iw', 'reg', 'set', 'EU'])
