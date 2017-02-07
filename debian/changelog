@@ -1,10 +1,10 @@
-nplan (0.18) UNRELEASED; urgency=medium
+nplan (0.18) zesty; urgency=medium
 
   * debian/tests/integration.py: in some cases 'iw reg get' may qualify the
     reg domain results with 'global'; we must not let that trip up tests when
     they are run on Ubuntu infrastructure vs. local tests.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 07 Feb 2017 11:07:25 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 07 Feb 2017 11:12:37 -0500
 
 nplan (0.17) zesty; urgency=medium
 
