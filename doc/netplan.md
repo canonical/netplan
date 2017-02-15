@@ -221,12 +221,12 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
-Properties for device type ``bridges:`` and ``bonds:``
-======================================================
+Properties for device type ``bridges:``
+=======================================
 
 ``interfaces`` (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bridge/bond.
+:    All devices matching this ID list will be added to the bridge.
 
      Example:
 
@@ -237,6 +237,169 @@ Properties for device type ``bridges:`` and ``bonds:``
           bridges:
             br0:
               interfaces: [switchports]
+
+``parameters`` (mapping)
+
+:    Customization parameters for special bridging options. Using the
+     NetworkManager renderer, parameter values for time intervals should be
+     expressed in milliseconds; for the systemd renderer, they should be in
+     seconds unless otherwise specified.
+
+     ``ageing-time`` (scalar)
+     :    Set the period of time to keep a MAC address in the forwarding
+          database after a packet is received.
+
+     ``priority`` (scalar)
+     :    Set the priority value for the bridge. This value should be an
+          number between ``0`` and ``65535``. Lower values mean higher
+          priority. The bridge with the higher priority will be elected as
+          the root bridge.
+
+     ``forward-delay`` (scalar)
+     :    Specify the period of time the bridge will remain in Listening and
+          Learning states before getting to the Forwarding state. This value
+          should be set in seconds for the systemd backend, and in milliseconds
+          for the NetworkManager backend.
+
+     ``hello-time`` (scalar)
+     :    Specify the interval between two hello packets being sent out from
+          the root and designated bridges. Hello packets communicate
+          information about the network topology.
+
+     ``max-age`` (scalar)
+     :    Set the maximum age of a hello packet. If the last hello packet is
+          older than that value, the bridge will attempt to become the root
+          bridge.
+
+     ``path-cost`` (scalar)
+     :    Set the cost of a path on the bridge. Faster interfaces should have
+          a lower cost. This allows a finer control on the network topology
+          so that the fastest paths are available whenever possible.
+
+
+Properties for device type ``bonds:``
+=======================================
+
+``interfaces`` (sequence of scalars)
+
+:    All devices matching this ID list will be added to the bond.
+
+     Example:
+
+          ethernets:
+            switchports:
+              match: {name: "enp2*"}
+          [...]
+          bonds:
+            bond0:
+              interfaces: [switchports]
+
+``parameters`` (mapping)
+
+:    Customization parameters for special bonding options. Using the
+     NetworkManager renderer, parameter values for intervals should be
+     expressed in milliseconds; for the systemd renderer, they should be in
+     seconds unless otherwise specified.
+
+     ``mode`` (scalar)
+     :    Set the bonding mode used for the interfaces. The default is
+          ``balance-rr`` (round robin). Possible values are ``balance-rr``,
+          ``active-backup``, ``balance-xor``, ``broadcast``, ``802.3ad``,
+          ``balance-tlb``, and ``balance-alb``.
+
+     ``lacp-rate`` (scalar)
+     :    Set the rate at which LACPDUs are transmitted. This is only useful
+          in 802.3ad mode. Possible values are ``slow`` (30 seconds, default),
+          and ``fast`` (every second).
+
+     ``mii-monitor-interval`` (scalar)
+     :    Specifies the interval for MII monitoring (verifying if an interface
+          of the bond has carrier). The default is ``0``; which disables MII
+          monitoring.
+
+     ``min-links`` (scalar)
+     :    The minimum number of links up in a bond to consider the bond
+          interface to be up.
+
+     ``transmit-hash-policy`` (scalar)
+     :    Specifies the transmit hash policy for the selection of slaves. This
+          is only useful in balance-xor, 802.3ad and balance-tlb modes.
+          Possible values are ``layer2``, ``layer3+4``, ``layer2+3``,
+          ``encap2+3``, and ``encap3+4``.
+
+     ``ad-select`` (scalar)
+     :    Set the aggregation selection mode. Possible values are ``stable``,
+          ``bandwidth``, and ``count``. This option is only used in 802.3ad
+          mode.
+
+     ``all-slaves-active`` (bool)
+     :    If the bond should drop duplicate frames received on inactive ports,
+          set this option to ``false``. If they should be delivered, set this
+          option to ``true``. The default value is false, and is the desirable
+          behavior in most situations.
+
+     ``arp-interval`` (scalar)
+     :    Set the interval value for how frequently ARP link monitoring should
+          happen. The default value is ``0``, which disables ARP monitoring.
+
+     ``arp-ip-targets`` (sequence of scalars)
+     :    IPs of other hosts on the link which should be sent ARP requests in
+          order to validate that a slave is up. This option is only used when
+          ``arp-interval`` is set to a value other than ``0``. At least one IP
+          address must be given for ARP link monitoring to function. Only IPv4
+          addresses are supported. You can specify up to 16 IP addresses. The
+          default value is an empty list.
+
+     ``arp-validate`` (scalar)
+     :    Configure how ARP replies are to be validated when using ARP link
+          monitoring. Possible values are ``none``, ``active``, ``backup``,
+          and ``all``.
+
+     ``arp-all-targets`` (scalar)
+     :    Specify whether to use any ARP IP target being up as sufficient for
+          a slave to be considered up; or if all the targets must be up. This
+          is only used for ``active-backup`` mode when ``arp-validate`` is
+          enabled. Possible values are ``any`` and ``all``.
+
+     ``up-delay`` (scalar)
+     :    Specify the delay before enabling a link once the link is physically
+          up. The default value is ``0``.
+
+     ``down-delay`` (scalar)
+     :    Specify the delay before disabling a link once the link has been
+          lost. The default value is ``0``.
+
+     ``fail-over-mac-policy`` (scalar)
+     :    Set whether to set all slaves to the same MAC address when adding
+          them to the bond, or how else the system should handle MAC addresses.
+          The possible values are ``none``, ``active``, and ``follow``.
+
+     ``gratuitious-arp`` (scalar)
+     :    Specify how many ARP packets to send after failover. Once a link is
+          up on a new slave, a notification is sent and possibly repeated if
+          this value is set to a number greater than ``1``. The default value
+          is ``1`` and valid values are between ``1`` and ``255``. This only
+          affects ``active-backup`` mode.
+
+     ``packets-per-slave`` (scalar)
+     :    In ``balance-rr`` mode, specifies the number of packets to transmit
+          on a slave before switching to the next. When this value is set to
+          ``0``, slaves are chosen at random. Allowable values are between
+          ``0`` and ``65535``. The default value is ``1``. This setting is
+          only used in ``balance-rr`` mode.
+
+     ``primary-reselect-policy`` (scalar)
+     :    Set the reselection policy for the primary slave. On failure of the
+          active slave, the system will use this policy to decide how the new
+          active slave will be chosen and how recovery will be handled. The
+          possible values are ``always``, ``better``, and ``failure``.
+
+     ``learn-packet-interval`` (scalar)
+     :    Specify the interval between sending learning packets to each slave.
+          The value range is between ``1`` and ``0x7fffffff``. The default
+          value is ``1``. This option only affects ``balance-tlb`` and
+          ``balance-alb`` modes.
+
 
 Properties for device type ``vlans:``
 =======================================

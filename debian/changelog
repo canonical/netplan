@@ -1,3 +1,9 @@
+nplan (0.19) UNRELEASED; urgency=medium
+
+  * Document bond/bridge parameters support. (LP: #1664702)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 15 Feb 2017 15:06:17 -0500
+
 nplan (0.18) zesty; urgency=medium
 
   * debian/tests/integration.py: in some cases 'iw reg get' may qualify the
