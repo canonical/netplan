@@ -904,6 +904,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
+    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"parameters", YAML_MAPPING_NODE, NULL, bridge_params_handlers},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
