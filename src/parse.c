@@ -747,8 +747,17 @@ const mapping_entry_handler bridge_params_handlers[] = {
     {"hello-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.hello_time)},
     {"max-age", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.max_age)},
     {"path-cost", YAML_MAPPING_NODE, handle_bridge_path_cost, NULL, netdef_offset(bridge_params.path_cost)},
+    {"stp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(bridge_params.stp)},
     {NULL}
 };
+
+static gboolean
+handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    cur_netdef->custom_bridging = TRUE;
+    cur_netdef->bridge_params.stp = TRUE;
+    return process_mapping(doc, node, bridge_params_handlers, error);
+}
 
 /****************************************************
  * Grammar and handlers for network config "routes" entry
@@ -904,7 +913,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
-    {"parameters", YAML_MAPPING_NODE, NULL, bridge_params_handlers},
+    {"parameters", YAML_MAPPING_NODE, handle_bridge},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };

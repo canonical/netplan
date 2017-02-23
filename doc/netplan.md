@@ -276,6 +276,11 @@ Properties for device type ``bridges:``
           a lower cost. This allows a finer control on the network topology
           so that the fastest paths are available whenever possible.
 
+     ``stp`` (bool)
+     :    Define whether the bridge should use Spanning Tree Protocol. The
+          default value is "true", which means that Spanning Tree should be
+          used.
+
 
 Properties for device type ``bonds:``
 =======================================

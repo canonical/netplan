@@ -118,7 +118,10 @@ typedef struct net_definition {
         guint hello_time;
         guint max_age;
         guint path_cost;
+        gboolean stp;
     } bridge_params;
+    gboolean custom_bridging;
+
 } net_definition;
 
 typedef enum {

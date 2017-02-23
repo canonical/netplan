@@ -814,6 +814,7 @@ unmanaged-devices+=interface-name:br0,''')
         forward-delay: 12
         hello-time: 6
         max-age: 24
+        stp: true
         path-cost:
           eno1: 70
       dhcp4: true''')
@@ -823,7 +824,8 @@ unmanaged-devices+=interface-name:br0,''')
                                             'Priority=1000\n'
                                             'ForwardDelaySec=12\n'
                                             'HelloTimeSec=6\n'
-                                            'MaxAgeSec=24\n',
+                                            'MaxAgeSec=24\n'
+                                            'STP=true\n',
                               'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n\n'
@@ -1907,6 +1909,7 @@ method=auto
         max-age: 24
         path-cost:
           eno1: 70
+        stp: true
       dhcp4: true''')
 
         self.assert_nm({'eno1': '''[connection]
@@ -1949,6 +1952,7 @@ priority=1000
 forward-delay=12
 hello-time=6
 max-age=24
+stp=true
 
 [ipv4]
 method=auto

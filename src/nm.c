@@ -201,23 +201,25 @@ write_bridge_params(const net_definition* def, GString *s)
 {
     GString* params = NULL;
 
-    params = g_string_sized_new(200);
+    if (def->custom_bridging) {
+        params = g_string_sized_new(200);
 
-    if (def->bridge_params.ageing_time)
-        g_string_append_printf(params, "ageing-time=%u\n", def->bridge_params.ageing_time);
-    if (def->bridge_params.priority)
-        g_string_append_printf(params, "priority=%u\n", def->bridge_params.priority);
-    if (def->bridge_params.forward_delay)
-        g_string_append_printf(params, "forward-delay=%u\n", def->bridge_params.forward_delay);
-    if (def->bridge_params.hello_time)
-        g_string_append_printf(params, "hello-time=%u\n", def->bridge_params.hello_time);
-    if (def->bridge_params.max_age)
-        g_string_append_printf(params, "max-age=%u\n", def->bridge_params.max_age);
+        if (def->bridge_params.ageing_time)
+            g_string_append_printf(params, "ageing-time=%u\n", def->bridge_params.ageing_time);
+        if (def->bridge_params.priority)
+            g_string_append_printf(params, "priority=%u\n", def->bridge_params.priority);
+        if (def->bridge_params.forward_delay)
+            g_string_append_printf(params, "forward-delay=%u\n", def->bridge_params.forward_delay);
+        if (def->bridge_params.hello_time)
+            g_string_append_printf(params, "hello-time=%u\n", def->bridge_params.hello_time);
+        if (def->bridge_params.max_age)
+            g_string_append_printf(params, "max-age=%u\n", def->bridge_params.max_age);
+        g_string_append_printf(params, "stp=%s\n", def->bridge_params.stp ? "true" : "false");
 
-    if (params->len > 0)
         g_string_append_printf(s, "\n[bridge]\n%s", params->str);
 
-    g_string_free(params, TRUE);
+        g_string_free(params, TRUE);
+    }
 }
 
 /**

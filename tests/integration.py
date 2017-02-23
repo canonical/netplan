@@ -406,6 +406,7 @@ class _CommonTests:
       parameters:
         path-cost:
           ethbr: 50
+        stp: false
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -437,6 +438,7 @@ class _CommonTests:
       interfaces: [ethbr]
       parameters:
         priority: 8192
+        stp: false
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -468,6 +470,7 @@ class _CommonTests:
       interfaces: [ethbr]
       parameters:
         ageing-time: 21
+        stp: false
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -499,6 +502,7 @@ class _CommonTests:
       interfaces: [ethbr]
       parameters:
         max-age: 12
+        stp: false
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -530,6 +534,7 @@ class _CommonTests:
       interfaces: [ethbr]
       parameters:
         hello-time: 1
+        stp: false
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -561,6 +566,7 @@ class _CommonTests:
       interfaces: [ethbr]
       parameters:
         forward-delay: 10
+        stp: false
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -577,6 +583,39 @@ class _CommonTests:
         self.assertIn(self.dev_e2_client, lines[0])
         with open('/sys/class/net/mybr/bridge/forward_delay') as f:
             self.assertEqual(f.read().strip(), '1000')
+
+    def test_bridge_stp_false(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        hello-time: 100000
+        max-age: 100000
+        stp: false
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/stp_state') as f:
+            self.assertEqual(f.read().strip(), '0')
 
     def test_bond_base(self):
         self.setup_eth(None)
