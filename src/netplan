@@ -276,6 +276,14 @@ def command_apply():  # pragma: nocover (covered in autopkgtest)
             continue
         if replug(device):
             any_replug = True
+        else:
+            # if the interface is up, we can still apply .link file changes
+            logging.debug('netplan triggering .link rules for %s', device)
+            with open(os.devnull, 'w') as fd:
+                subprocess.check_call(['udevadm', 'test-builtin',
+                                       'net_setup_link',
+                                       '/sys/class/net/' + device],
+                                      stdout=fd, stderr=fd)
     if any_replug:
         subprocess.check_call(['udevadm', 'settle'])
 

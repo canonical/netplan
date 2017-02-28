@@ -898,75 +898,80 @@ const mapping_entry_handler nameservers_handlers[] = {
 };
 
 const mapping_entry_handler ethernet_def_handlers[] = {
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
-    {"match", YAML_MAPPING_NODE, handle_match},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"match", YAML_MAPPING_NODE, handle_match},
+    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {NULL}
 };
 
 const mapping_entry_handler wifi_def_handlers[] = {
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
-    {"match", YAML_MAPPING_NODE, handle_match},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"match", YAML_MAPPING_NODE, handle_match},
+    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
-    {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {NULL}
 };
 
 const mapping_entry_handler bridge_def_handlers[] = {
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
+    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 
 const mapping_entry_handler bond_def_handlers[] = {
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
-    {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };
 
 const mapping_entry_handler vlan_def_handlers[] = {
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
+    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {NULL}
 };

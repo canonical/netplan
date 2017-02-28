@@ -87,10 +87,8 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
 
-    g_assert(def->type < ND_VIRTUAL);
-
     /* do we need to write a .link file? */
-    if (!def->set_name && !def->wake_on_lan)
+    if (!def->set_name && !def->wake_on_lan && !def->mtubytes)
         return;
 
     /* build file contents */
@@ -102,6 +100,9 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "Name=%s\n", def->set_name);
     /* FIXME: Should this be turned from bool to str and support multiple values? */
     g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "off");
+    if (def->mtubytes)
+        g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
+
 
     g_string_free_to_file(s, rootdir, path, ".link");
 }
@@ -328,9 +329,7 @@ write_networkd_conf(net_definition* def, const char* rootdir)
 
     /* We want this for all backends when renaming, as *.link files are
      * evaluated by udev, not networkd itself or NetworkManager. */
-    if (def->type < ND_VIRTUAL &&
-            (def->backend == BACKEND_NETWORKD || def->set_name))
-        write_link_file(def, rootdir, path_base);
+    write_link_file(def, rootdir, path_base);
 
     if (def->backend != BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
