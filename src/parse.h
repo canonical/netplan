@@ -18,6 +18,7 @@
 #pragma once
 
 #include <uuid.h>
+#include <yaml.h>
 
 /****************************************************
  * Parsed definitions
@@ -40,6 +41,11 @@ typedef enum {
     BACKEND_NETWORKD,
     BACKEND_NM,
 } netdef_backend;
+
+typedef struct missing_node {
+    char* netdef_id;
+    yaml_node_t* node;
+} missing_node;
 
 /**
  * Represent a configuration stanza

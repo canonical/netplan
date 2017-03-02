@@ -1186,6 +1186,95 @@ wpa_passphrase=12345678
                                           universal_newlines=True)
             self.assertRegex(out, 'DNS.*192.168.5.1')
 
+    def test_mix_bridge_on_bond(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br1'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  bridges:
+    br0:
+      interfaces: [bond0]
+      dhcp4: true
+  bonds:
+    bond0:
+      interfaces: [ethbn, ethb2]
+      parameters:
+        mii-monitor-interval: 100000
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['master bond0'],
+                             ['inet '])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master bond0'],
+                             ['inet '])
+        self.assert_iface_up('bond0',
+                             ['master br0'])
+        self.assert_iface_up('br0',
+                             ['inet 192.168'])
+        with open('/sys/class/net/bond0/bonding/slaves') as f:
+            result = f.read().strip()
+            self.assertIn(self.dev_e_client, result)
+            self.assertIn(self.dev_e2_client, result)
+
+    def test_mix_vlan_on_bridge_on_bond(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br1'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  vlans:
+    vlan1:
+      link: 'br0'
+      id: 1
+      addresses: [ '10.10.10.1/24' ]
+  bridges:
+    br0:
+      interfaces: ['bond0', 'vlan2']
+      parameters:
+        stp: false
+        path-cost:
+          bond0: 1000
+          vlan2: 2000
+  bonds:
+    bond0:
+      interfaces: ['br1']
+      parameters:
+        mii-monitor-interval: 100000
+  bridges:
+    br1:
+      interfaces: ['ethb2']
+  vlans:
+    vlan2:
+      link: ethbn
+      id: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up('vlan1', ['vlan1@br0'])
+        self.assert_iface_up('vlan2',
+                             ['vlan2@' + self.dev_e_client, 'master br0'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master br1'],
+                             ['inet '])
+        self.assert_iface_up('bond0',
+                             ['master br0'])
+
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'

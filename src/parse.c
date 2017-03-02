@@ -50,6 +50,13 @@ GHashTable* netdefs;
  * existing definition */
 GHashTable* ids_in_file;
 
+/* List of "seen" ids not found in netdefs yet by the parser.
+ * These are removed when it exists in this list and we reach the point of
+ * creating a netdef for that id; so by the time we're done parsing the yaml
+ * document it should be empty. */
+GHashTable *missing_id;
+int missing_ids_found;
+
 /****************************************************
  * Loading and error handling
  ****************************************************/
@@ -137,6 +144,22 @@ scalar(const yaml_node_t* node)
     return (const char*) node->data.scalar.value;
 }
 
+static void
+add_missing_node(const yaml_node_t* node)
+{
+    missing_node* missing;
+
+    /* Let's capture the current netdef we were playing with along with the
+     * actual yaml_node_t that errors (that is an identifier not previously
+     * seen by the compiler). We can use it later to write an sensible error
+     * message and point the user in the right direction. */
+    missing = g_new0(missing_node, 1);
+    missing->netdef_id = cur_netdef->id;
+    missing->node = node;
+
+    g_debug("recording missing yaml_node_t %s", scalar(node));
+    g_hash_table_insert(missing_id, (gpointer)scalar(node), missing);
+}
 
 /**
  * Check that node contains a valid ID/interface name. Raise GError if not.
@@ -276,11 +299,11 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
     net_definition* ref = NULL;
 
     ref = g_hash_table_lookup(netdefs, scalar(node));
-    if (!ref)
-        return yaml_error(node, error, "%s: interface %s is not defined",
-                          cur_netdef->id, scalar(node));
-
-    *((net_definition**) ((void*) cur_netdef + offset)) = ref;
+    if (!ref) {
+        add_missing_node(node);
+    } else {
+        *((net_definition**) ((void*) cur_netdef + offset)) = ref;
+    }
     return TRUE;
 }
 
@@ -563,14 +586,15 @@ handle_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 
         assert_type(entry, YAML_SCALAR_NODE);
         component = g_hash_table_lookup(netdefs, scalar(entry));
-        if (!component)
-            return yaml_error(node, error, "%s: interface %s is not defined",
-                              cur_netdef->id, scalar(entry));
-        component_ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
-        if (*component_ref_ptr)
-            return yaml_error(node, error, "%s: interface %s is already assigned to %s",
-                              cur_netdef->id, scalar(entry), *component_ref_ptr);
-        *component_ref_ptr = cur_netdef->id;
+        if (!component) {
+            add_missing_node(entry);
+        } else {
+            component_ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
+            if (*component_ref_ptr && *component_ref_ptr != cur_netdef->id)
+                return yaml_error(node, error, "%s: interface %s is already assigned to %s",
+                                  cur_netdef->id, scalar(entry), *component_ref_ptr);
+            *component_ref_ptr = cur_netdef->id;
+        }
     }
 
     return TRUE;
@@ -720,22 +744,22 @@ handle_bridge_path_cost(yaml_document_t* doc, yaml_node_t* node, const void* dat
         assert_type(value, YAML_SCALAR_NODE);
 
         component = g_hash_table_lookup(netdefs, scalar(key));
-        if (!component)
-            return yaml_error(node, error, "%s: interface %s is not defined",
-                              cur_netdef->id, scalar(key));
+        if (!component) {
+            add_missing_node(key);
+        } else {
+            ref_ptr = ((guint*) ((void*) component + GPOINTER_TO_UINT(data)));
+            if (*ref_ptr)
+                return yaml_error(node, error, "%s: interface %s already has a path cost of %u",
+                                  cur_netdef->id, scalar(key), *ref_ptr);
 
-        ref_ptr = ((guint*) ((void*) component + GPOINTER_TO_UINT(data)));
-        if (*ref_ptr)
-            return yaml_error(node, error, "%s: interface %s already has a path cost of %u",
-                              cur_netdef->id, scalar(key), *ref_ptr);
+            v = g_ascii_strtoull(scalar(value), &endptr, 10);
+            if (*endptr != '\0' || v > G_MAXUINT)
+                return yaml_error(node, error, "invalid unsigned int value %s", scalar(value));
 
-        v = g_ascii_strtoull(scalar(value), &endptr, 10);
-        if (*endptr != '\0' || v > G_MAXUINT)
-            return yaml_error(node, error, "invalid unsigned int value %s", scalar(value));
+            g_debug("%s: adding path '%s' of cost: %d", cur_netdef->id, scalar(key), v);
 
-        g_debug("%s: adding path '%s' of cost: %d", cur_netdef->id, scalar(key), v);
-
-        *ref_ptr = v;
+            *ref_ptr = v;
+        }
     }
     return TRUE;
 }
@@ -968,7 +992,14 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
 static gboolean
 validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 {
+    int missing_id_count = g_hash_table_size(missing_id);
     g_assert(nd->type != ND_NONE);
+
+    /* Skip all validation if we're missing some definition IDs (devices).
+     * The ones we have yet to see may be necessary for validation to succeed,
+     * we can complete it on the next parser pass. */
+    if (missing_id_count > 0)
+        return TRUE;
 
     /* set-name: requires match: */
     if (nd->set_name && !nd->has_match)
@@ -1019,6 +1050,12 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         assert_type(value, YAML_MAPPING_NODE);
 
+        /* At this point we've seen a new starting definition, if it has been
+         * already mentioned in another netdef, removing it from our "missing"
+         * list. */
+        if(g_hash_table_remove(missing_id, scalar(key)))
+            missing_ids_found++;
+
         cur_netdef = g_hash_table_lookup(netdefs, scalar(key));
         if (cur_netdef) {
             /* already exists, overriding/amending previous definition */
@@ -1035,8 +1072,9 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 
-        if (!g_hash_table_add(ids_in_file, cur_netdef->id))
-            return yaml_error(key, error, "Duplicate net definition ID '%s'", cur_netdef->id);
+        // XXX: breaks multi-pass parsing.
+        //if (!g_hash_table_add(ids_in_file, cur_netdef->id))
+        //    return yaml_error(key, error, "Duplicate net definition ID '%s'", cur_netdef->id);
 
         /* and fill it with definitions */
         switch (cur_netdef->type) {
@@ -1083,7 +1121,55 @@ const mapping_entry_handler root_handlers[] = {
     {NULL}
 };
 
+/**
+ * Handle multiple-pass parsing of the yaml document.
+ */
+static gboolean
+process_document(yaml_document_t* doc, GError** error)
+{
+    gboolean ret;
+    int previously_found;
+    int still_missing;
 
+    g_assert(missing_id == NULL);
+    missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
+
+    do {
+        g_debug("starting new processing pass");
+
+        previously_found = missing_ids_found;
+        missing_ids_found = 0;
+
+        ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, error);
+
+        still_missing = g_hash_table_size(missing_id);
+
+        if (still_missing > 0 && missing_ids_found == previously_found)
+            break;
+    } while (still_missing > 0 || missing_ids_found > 0);
+
+    if (g_hash_table_size(missing_id) > 0) {
+        GHashTableIter iter;
+        gpointer key, value;
+        missing_node *missing;
+
+        g_clear_error(error);
+
+        /* Get the first missing identifier we can get from our list, to
+         * approximate early failure and give the user a meaningful error. */
+        g_hash_table_iter_init (&iter, missing_id);
+        g_hash_table_iter_next (&iter, &key, &value);
+        missing = (missing_node*) value;
+
+        return yaml_error(missing->node, error, "%s: interface %s is not defined",
+                          missing->netdef_id,
+                          key);
+    }
+
+    g_hash_table_destroy(missing_id);
+    missing_id = NULL;
+    return ret;
+}
 
 /**
  * Parse given YAML file and create/update global "netdefs" list.
@@ -1107,7 +1193,8 @@ parse_yaml(const char* filename, GError** error)
     g_assert(ids_in_file == NULL);
     ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
-    ret = process_mapping(&doc, yaml_document_get_root_node(&doc), root_handlers, error);
+    ret = process_document(&doc, error);
+
     cur_netdef = NULL;
     yaml_document_delete(&doc);
     g_hash_table_destroy(ids_in_file);

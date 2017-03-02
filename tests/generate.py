@@ -777,6 +777,27 @@ Address=1.2.3.4/12
 unmanaged-devices+=interface-name:br0,''')
         self.assert_udev(None)
 
+    def test_bridge_forward_declaration(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: [eno1, switchports]
+      dhcp4: true
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': ND_DHCP4 % 'br0',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
     def test_bridge_components(self):
         self.generate('''network:
   version: 2
@@ -1838,6 +1859,58 @@ address1=1.2.3.4/12
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_bridge_forward_declaration(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bridges:
+    br0:
+      interfaces: [eno1, switchport]
+      dhcp4: true
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bridge
+master=br0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bridge
+master=br0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+''',
+                        'br0': '''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+
+[ipv4]
+method=auto
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
     def test_bridge_components(self):
         self.generate('''network:
   version: 2
@@ -2388,17 +2461,6 @@ class TestConfigErrors(TestBase):
         err = self.generate('network:\n  version: 1', expect_fail=True)
         self.assertIn('/a.yaml line 1 column 11: Only version 2 is supported', err)
 
-    def test_duplicate_id(self):
-        err = self.generate('''network:
-  version: 2
-  ethernets:
-    id0:
-      wakeonlan: true
-    id0:
-      wakeonlan: true
-''', expect_fail=True)
-        self.assertIn("Duplicate net definition ID 'id0'", err)
-
     def test_id_redef_type_mismatch(self):
         err = self.generate('''network:
   version: 2
@@ -2452,7 +2514,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       interfaces: ['foo']''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 18: br0: interface foo is not defined\n', err)
+        self.assertIn('/a.yaml line 4 column 19: br0: interface foo is not defined\n', err)
 
     def test_bridge_multiple_assignments(self):
         err = self.generate('''network:
@@ -2721,7 +2783,7 @@ class TestConfigErrors(TestBase):
   version: 2
   vlans:
     ena: {id: 1, link: en1}''', expect_fail=True)
-        self.assertIn('interface en1 is not defined\n', err)
+        self.assertIn('ena: interface en1 is not defined\n', err)
 
     def test_device_bad_route_to(self):
         self.generate('''network:
@@ -2872,6 +2934,106 @@ class TestConfigErrors(TestBase):
         arp-ip-targets:
           - 2001:dead:beef::1
       dhcp4: true''', expect_fail=True)
+
+
+class TestForwardDeclaration(TestBase):
+
+    def test_fwdecl_bridge_on_bond(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: ['bond0']
+      dhcp4: true
+  bonds:
+    bond0:
+      interfaces: ['eth0', 'eth1']
+  ethernets:
+    eth0:
+      match:
+        macaddress: 00:01:02:03:04:05
+      set-name: eth0
+    eth1:
+      match:
+        macaddress: 02:01:02:03:04:05
+      set-name: eth1
+''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': ND_DHCP4 % 'br0',
+                              'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
+                              'bond0.network': '[Match]\nName=bond0\n\n'
+                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
+                                           '[Link]\nName=eth0\nWakeOnLan=off\n',
+                              'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
+                                              '[Network]\nBond=bond0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'eth1.link': '[Match]\nMACAddress=02:01:02:03:04:05\n\n'
+                                           '[Link]\nName=eth1\nWakeOnLan=off\n',
+                              'eth1.network': '[Match]\nMACAddress=02:01:02:03:04:05\nName=eth1\n\n'
+                                              '[Network]\nBond=bond0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
+    def test_fwdecl_feature_blend(self):
+        self.generate('''network:
+  version: 2
+  vlans:
+    vlan1:
+      link: 'br0'
+      id: 1
+      dhcp4: true
+  bridges:
+    br0:
+      interfaces: ['bond0', 'eth2']
+      parameters:
+        path-cost:
+          eth2: 1000
+          bond0: 8888
+  bonds:
+    bond0:
+      interfaces: ['eth0', 'br1']
+  ethernets:
+    eth0:
+      match:
+        macaddress: 00:01:02:03:04:05
+      set-name: eth0
+  bridges:
+    br1:
+      interfaces: ['eth1']
+  ethernets:
+    eth1:
+      match:
+        macaddress: 02:01:02:03:04:05
+      set-name: eth1
+    eth2:
+      match:
+        name: eth2
+''')
+
+        self.assert_networkd({'vlan1.netdev': '[NetDev]\nName=vlan1\nKind=vlan\n\n'
+                                              '[VLAN]\nId=1\n',
+                              'vlan1.network': ND_DHCP4 % 'vlan1',
+                              'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
+                                            '[Bridge]\nSTP=true\n',
+                              'br0.network': '[Match]\nName=br0\n\n'
+                                             '[Network]\nVLAN=vlan1\n',
+                              'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
+                              'bond0.network': '[Match]\nName=bond0\n\n'
+                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n\n'
+                                               '[Bridge]\nCost=8888\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n'
+                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n\n'
+                                              '[Bridge]\nCost=1000\n',
+                              'br1.netdev': '[NetDev]\nName=br1\nKind=bridge\n',
+                              'br1.network': '[Match]\nName=br1\n\n'
+                                             '[Network]\nBond=bond0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
+                                           '[Link]\nName=eth0\nWakeOnLan=off\n',
+                              'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
+                                              '[Network]\nBond=bond0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
+                              'eth1.link': '[Match]\nMACAddress=02:01:02:03:04:05\n\n'
+                                           '[Link]\nName=eth1\nWakeOnLan=off\n',
+                              'eth1.network': '[Match]\nMACAddress=02:01:02:03:04:05\nName=eth1\n\n'
+                                              '[Network]\nBridge=br1\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
 
 class TestMerging(TestBase):
