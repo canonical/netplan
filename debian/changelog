@@ -1,8 +1,11 @@
 nplan (0.19) UNRELEASED; urgency=medium
 
+  * Add support for unordered definition of network devices: you can now
+    specify a virtual devices before their member devices. (LP: #1670495)
+  * Allow setting up the STP state for a bridge. (LP: #1665088)
   * Document bond/bridge parameters support. (LP: #1664702)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 15 Feb 2017 15:06:17 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 09 Mar 2017 11:00:59 -0500
 
 nplan (0.18) zesty; urgency=medium
 
