@@ -1,3 +1,11 @@
+nplan (0.20) UNRELEASED; urgency=medium
+
+  * tests/integration.py: increase timeout for integration tests (networkd and
+    NetworkManager "wait-online" checks) to account for longer bring-up times
+    when dealing with stacked virtual devices.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 04 Apr 2017 19:20:52 -0400
+
 nplan (0.19) zesty; urgency=medium
 
   * Add support for unordered definition of network devices: you can now

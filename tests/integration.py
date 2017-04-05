@@ -321,7 +321,7 @@ class NetworkTestBase(unittest.TestCase):
         subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
         if self.is_active('systemd-networkd.service'):
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=25']) != 0:
+            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=50']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
                 st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
                 st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
@@ -330,7 +330,7 @@ class NetworkTestBase(unittest.TestCase):
                                                 stderr=subprocess.PIPE, universal_newlines=True)
                 self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
 
-        if subprocess.call(['nm-online', '--quiet', '--timeout=60', '--wait-for-startup']) != 0:
+        if subprocess.call(['nm-online', '--quiet', '--timeout=90', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
 
     def nm_wait_connected(self, iface, timeout):
