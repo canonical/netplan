@@ -391,6 +391,29 @@ class _CommonTests:
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
             self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
+    def test_eth_mtu(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp4: yes
+    enmtus:
+      match: {name: %(e2c)s}
+      mtu: 1492
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['inet 192.168.6.[0-9]+/24'])
+        out = subprocess.check_output(['ip', 'a', 'show', self.dev_e2_client],
+                                      universal_newlines=True)
+        self.assertTrue('mtu 1492' in out, "checking MTU, should be 1492")
+
     def test_bridge_path_cost(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)

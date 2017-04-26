@@ -1,3 +1,10 @@
+nplan (0.21) UNRELEASED; urgency=medium
+
+  [ Ryan Harper ]
+  * Add support for setting MTU on a device. (LP: #1668693)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 27 Apr 2017 09:34:18 -0400
+
 nplan (0.20) zesty; urgency=medium
 
   * tests/integration.py: increase timeout for integration tests (networkd and

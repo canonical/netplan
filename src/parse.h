@@ -81,6 +81,9 @@ typedef struct net_definition {
     /* Configured custom MAC address */
     char* set_mac;
 
+    /* interface mtu */
+    guint mtubytes;
+
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;
     struct {

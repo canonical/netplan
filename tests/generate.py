@@ -23,6 +23,7 @@ import re
 import sys
 import stat
 import tempfile
+import textwrap
 import subprocess
 import unittest
 
@@ -274,6 +275,42 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_udev(None)
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
+
+    def test_eth_mtu(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1:
+      mtu: 1280
+      dhcp4: n''')
+
+        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n'})
+
+    def test_mtu_all(self):
+        self.generate(textwrap.dedent("""
+            network:
+              version: 2
+              ethernets:
+                eth1:
+                  mtu: 1280
+                  dhcp4: n
+              bonds:
+                bond0:
+                  interfaces:
+                  - eth1
+                  mtu: 9000
+              vlans:
+                bond0.108:
+                  link: bond0
+                  id: 108"""))
+        self.assert_networkd({
+            'bond0.108.netdev': '[NetDev]\nName=bond0.108\nKind=vlan\n\n[VLAN]\nId=108\n',
+            'bond0.link': '[Match]\n\n[Link]\nWakeOnLan=off\nMTUBytes=9000\n',
+            'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
+            'bond0.network': '[Match]\nName=bond0\n\n[Network]\nVLAN=bond0.108\n',
+            'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
+            'eth1.network': '[Match]\nName=eth1\n\n[Network]\nBond=bond0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'
+        })
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -1066,7 +1103,7 @@ method=link-local
 '''})
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
-        self.assert_networkd({})
+        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
         self.assert_udev(None)
 
     def test_eth_match_by_driver(self):
