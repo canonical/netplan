@@ -5,6 +5,8 @@ nplan (0.21) UNRELEASED; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
   * Don't rebind Atheros AR9271; it would confuse the driver. (LP: #1672740)
+  * debian/control: Add Conflicts: against netplan; the network 'plan' daemon.
+    Both ship the same /usr/sbin/netplan. (LP: #1665842)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 27 Apr 2017 09:34:18 -0400
 

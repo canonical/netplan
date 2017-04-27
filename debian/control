@@ -28,6 +28,7 @@ Depends: ${shlibs:Depends},
  python3-yaml,
 Suggests: network-manager | wpasupplicant
 Breaks: network-manager (<< 1.2.2-0ubuntu4~)
+Conflicts: netplan
 Description: YAML network configuration abstraction for various backends
  netplan reads YAML network configuration files which are written
  by administrators, installers, cloud image instantiations, or other OS
