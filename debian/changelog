@@ -1,4 +1,4 @@
-nplan (0.21) UNRELEASED; urgency=medium
+nplan (0.21) artful; urgency=medium
 
   [ Ryan Harper ]
   * Add support for setting MTU on a device. (LP: #1668693)
@@ -8,7 +8,7 @@ nplan (0.21) UNRELEASED; urgency=medium
   * debian/control: Add Conflicts: against netplan; the network 'plan' daemon.
     Both ship the same /usr/sbin/netplan. (LP: #1665842)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 27 Apr 2017 09:34:18 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 02 May 2017 09:37:57 -0400
 
 nplan (0.20) zesty; urgency=medium
 
