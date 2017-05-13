@@ -177,6 +177,9 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
     s = g_string_sized_new(200);
     g_string_append_printf(s, "[NetDev]\nName=%s\n", def->id);
 
+    if (def->set_mac)
+	g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
+
     switch (def->type) {
         case ND_BRIDGE:
             g_string_append(s, "Kind=bridge\n");

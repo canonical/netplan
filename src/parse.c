@@ -970,6 +970,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
+    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
