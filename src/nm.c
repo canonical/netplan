@@ -293,19 +293,32 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
 
     if (def->type < ND_VIRTUAL) {
+        GString *link_str = NULL;
+
+        link_str = g_string_new(NULL);
+
         g_string_append_printf(s, "\n[ethernet]\nwake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
 
         if (!def->set_name && def->match.mac) {
-            switch (def->type) {
-                case ND_ETHERNET:
-                    g_string_append(s, "\n[802-3-ethernet]\n");  break;
-                case ND_WIFI:
-                    g_string_append(s, "\n[802-11-wireless]\n");  break;
-                default:
-                    g_assert_not_reached(); /* LCOV_EXCL_LINE */
-            }
-            g_string_append_printf(s, "mac-address=%s\n", def->match.mac);
+            g_string_append_printf(link_str, "mac-address=%s\n", def->match.mac);
         }
+        if (def->set_mac) {
+            g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
+        }
+
+        if (link_str->len > 0) {
+            switch (def->type) {
+                case ND_WIFI:
+                    g_string_append_printf(s, "\n[802-11-wireless]\n%s", link_str->str);  break;
+                default:
+                    g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);  break;
+            }
+        }
+
+        g_string_free(link_str, TRUE);
+    } else {
+        if (def->set_mac)
+            g_string_append_printf(s, "\n[802-3-ethernet]\ncloned-mac-address=%s\n", def->set_mac);
     }
 
     if (def->type == ND_VLAN) {
