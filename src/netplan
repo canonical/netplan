@@ -116,6 +116,10 @@ def replug(device):  # pragma: nocover (covered in autopkgtest)
         if driver_name == 'ath9k_htc':
             logging.debug('replug %s: ath9k_htc does not support rebinding, ignoring', device)
             return False
+        # workaround for brcmfmac, interface will be gone after unbind
+        if driver_name == 'brcmfmac_sdio':
+            logging.debug('replug %s: brcmfmac_sdio does not support rebinding, ignoring', device)
+            return False
         logging.debug('replug %s: unbinding %s from %s', device, devname, driver)
         with open(os.path.join(driver, 'unbind'), 'w') as f:
             f.write(devname)
