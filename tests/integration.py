@@ -1483,6 +1483,27 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
             self.assertEqual(f.read().strip(), 'all 3')
 
+    def test_vlan_mac_address(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'myvlan'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    %(e2c)s: {}
+  vlans:
+    myvlan:
+      id: 101
+      link: ethbn
+      macaddress: aa:bb:cc:dd:ee:22
+        ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up('myvlan', ['myvlan@' + self.dev_e_client])
+        with open('/sys/class/net/myvlan/address') as f:
+            self.assertEqual(f.read().strip(), 'aa:bb:cc:dd:ee:22')
+
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
