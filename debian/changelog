@@ -1,3 +1,10 @@
+nplan (0.22) UNRELEASED; urgency=medium
+
+  * Add support for setting a custom MAC address on all device types.
+    (LP: #1690388)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 19 May 2017 17:42:22 -0400
+
 nplan (0.21) artful; urgency=medium
 
   [ Ryan Harper ]
