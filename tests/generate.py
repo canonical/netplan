@@ -1068,16 +1068,21 @@ Domains=lab kitchen
       id: 1
       link: en1
       addresses: [1.2.3.4/24]
+    enred:
+      id: 3
+      link: en1
+      macaddress: aa:bb:cc:dd:ee:11
     engreen: {id: 2, link: en1, dhcp6: true}''')
 
-        self.assert_networkd({'en1.network': '[Match]\nName=en1\n\n[Network]\nVLAN=enblue\nVLAN=engreen\n',
+        self.assert_networkd({'en1.network': '[Match]\nName=en1\n\n[Network]\nVLAN=engreen\nVLAN=enblue\nVLAN=enred\n',
                               'enblue.netdev': '[NetDev]\nName=enblue\nKind=vlan\n\n[VLAN]\nId=1\n',
                               'engreen.netdev': '[NetDev]\nName=engreen\nKind=vlan\n\n[VLAN]\nId=2\n',
+                              'enred.netdev': '[NetDev]\nName=enred\nMACAddress=aa:bb:cc:dd:ee:11\nKind=vlan\n\n[VLAN]\nId=3\n',
                               'enblue.network': '[Match]\nName=enblue\n\n[Network]\nAddress=1.2.3.4/24\n',
                               'engreen.network': ND_DHCP6 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
+unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enblue,interface-name:enred,''')
         self.assert_udev(None)
 
 
