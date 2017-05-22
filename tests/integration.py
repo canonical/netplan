@@ -1166,46 +1166,26 @@ class _CommonTests:
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', 'nptesttwo']))
 
-    def test_vlan_mac(self):
-        # we create two VLANs on e2c, and run dnsmasq on ID 2002 to test DHCP via VLAN
-        self.setup_eth(None, start_dnsmasq=False)
-        self.start_dnsmasq(None, self.dev_e2_ap)
-        subprocess.check_call(['ip', 'link', 'add', 'link', self.dev_e2_ap,
-                               'name', 'nptestsrv', 'type', 'vlan', 'id', '2002'])
-        subprocess.check_call(['ip', 'a', 'add', '192.168.5.1/24', 'dev', 'nptestsrv'])
-        subprocess.check_call(['ip', 'link', 'set', 'nptestsrv', 'up'])
-        self.start_dnsmasq(None, 'nptestsrv')
+    def test_vlan_mac_address(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'myvlan'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
-  version: 2
   renderer: %(r)s
   ethernets:
-    %(ec)s: {}
-    myether:
-      match: {name: %(e2c)s}
-      dhcp4: yes
+    ethbn:
+      match: {name: %(ec)s}
+    %(e2c)s: {}
   vlans:
-    nptestone:
-      id: 1001
-      link: myether
-      addresses: [10.9.8.7/24]
-      macaddress: 00:01:02:03:04:05
-    nptesttwo:
-      id: 2002
-      link: myether
-      macaddress: 00:01:02:03:04:06
-      dhcp4: true
-      ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+    myvlan:
+      id: 101
+      link: ethbn
+      macaddress: aa:bb:cc:dd:ee:22
+        ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
-
-        self.assert_iface_up('nptestone', ['nptestone@' + self.dev_e2_client, 'inet 10.9.8.7/24',
-                                           'ether 00:01:02:03:04:05'])
-        self.assert_iface_up('nptesttwo', ['nptesttwo@' + self.dev_e2_client, 'inet 192.168.5',
-                                           'ether 00:01:02:03:04:06'])
-        self.assertNotIn(b'default',
-                         subprocess.check_output(['ip', 'route', 'show', 'dev', 'nptestone']))
-        self.assertIn(b'default via 192.168.5.1',  # from DHCP
-                      subprocess.check_output(['ip', 'route', 'show', 'dev', 'nptesttwo']))
+        self.assert_iface_up('myvlan', ['myvlan@' + self.dev_e_client])
+        with open('/sys/class/net/myvlan/address') as f:
+            self.assertEqual(f.read().strip(), 'aa:bb:cc:dd:ee:22')
 
     def test_wifi_ipv4_open(self):
         self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
