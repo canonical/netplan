@@ -87,8 +87,12 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
 
+    /* Don't write .link files for virtual devices; they use .netdev instead */
+    if (def->type >= ND_VIRTUAL)
+        return;
+
     /* do we need to write a .link file? */
-    if (!def->set_name && !def->wake_on_lan && !def->mtubytes)
+    if (!def->set_name && !def->wake_on_lan && !def->mtubytes && !def->set_mac)
         return;
 
     /* build file contents */
@@ -102,6 +106,8 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
     g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "off");
     if (def->mtubytes)
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
+    if (def->set_mac)
+        g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
 
 
     g_string_free_to_file(s, rootdir, path, ".link");
@@ -176,6 +182,11 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
     /* build file contents */
     s = g_string_sized_new(200);
     g_string_append_printf(s, "[NetDev]\nName=%s\n", def->id);
+
+    if (def->set_mac)
+        g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
+    if (def->mtubytes)
+        g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
 
     switch (def->type) {
         case ND_BRIDGE:

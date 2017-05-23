@@ -1,8 +1,17 @@
-nplan (0.21~16.04.1) xenial; urgency=medium
+nplan (0.22~16.04.1) UNRELEASED; urgency=medium
 
-  * Backport netplan 0.21 to 16.04. (LP: #1688632)
+  * Backport netplan 0.22 to 16.04. (LP: #1688632)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 05 May 2017 14:38:36 -0400
+
+nplan (0.22) artful; urgency=medium
+
+  * Add support for setting a custom MAC address on all device types.
+    (LP: #1690388)
+  * Improved MAC/vlan integration tests; thanks for Dimitri John Ledkov for the
+    changes.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 22 May 2017 11:57:39 -0400
 
 nplan (0.21) artful; urgency=medium
 

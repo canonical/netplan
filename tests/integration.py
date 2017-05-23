@@ -107,10 +107,16 @@ class NetworkTestBase(unittest.TestCase):
                                'veth', 'peer', 'name', 'veth42'])
         klass.dev_e_ap = 'veth42'
         klass.dev_e_client = 'eth42'
+        out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth42'],
+                                      universal_newlines=True)
+        klass.dev_e_client_mac = out.split()[2]
         subprocess.check_call(['ip', 'link', 'add', 'name', 'eth43', 'type',
                                'veth', 'peer', 'name', 'veth43'])
         klass.dev_e2_ap = 'veth43'
         klass.dev_e2_client = 'eth43'
+        out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth43'],
+                                      universal_newlines=True)
+        klass.dev_e2_client_mac = out.split()[2]
 
         # create virtual wlan devs
         before_wlan = set([c for c in os.listdir('/sys/class/net') if c.startswith('wlan')])
@@ -413,6 +419,29 @@ class _CommonTests:
         out = subprocess.check_output(['ip', 'a', 'show', self.dev_e2_client],
                                       universal_newlines=True)
         self.assertTrue('mtu 1492' in out, "checking MTU, should be 1492")
+
+    def test_eth_mac(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp4: yes
+    enmac:
+      match: {name: %(e2c)s}
+      macaddress: 00:01:02:03:04:05
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e2_client,
+                             ['inet 192.168.6.[0-9]+/24', '00:01:02:03:04:05'],
+                             ['master'])
+        out = subprocess.check_output(['ip', 'link', 'show', self.dev_e2_client],
+                                      universal_newlines=True)
+        self.assertTrue('ether 00:01:02:03:04:05' in out)
+        subprocess.check_call(['ip', 'link', 'set', self.dev_e2_client,
+                               'address', self.dev_e2_client_mac])
 
     def test_bridge_path_cost(self):
         self.setup_eth(None)
@@ -1137,6 +1166,27 @@ class _CommonTests:
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', 'nptesttwo']))
 
+    def test_vlan_mac_address(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'myvlan'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    %(e2c)s: {}
+  vlans:
+    myvlan:
+      id: 101
+      link: ethbn
+      macaddress: aa:bb:cc:dd:ee:22
+        ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up('myvlan', ['myvlan@' + self.dev_e_client])
+        with open('/sys/class/net/myvlan/address') as f:
+            self.assertEqual(f.read().strip(), 'aa:bb:cc:dd:ee:22')
+
     def test_wifi_ipv4_open(self):
         self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
 
@@ -1301,6 +1351,56 @@ wpa_passphrase=12345678
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
+
+    def test_bond_mac(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match:
+        name: %(ec)s
+        macaddress: %(ec_mac)s
+  bonds:
+    mybond:
+      interfaces: [ethbn]
+      macaddress: 00:01:02:03:04:05
+      dhcp4: yes''' % {'r': self.backend,
+                       'ec': self.dev_e_client,
+                       'e2c': self.dev_e2_client,
+                       'ec_mac': self.dev_e_client_mac})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['master mybond'])
+        self.assert_iface_up('mybond',
+                             ['inet 192.168.5.[0-9]+/24', '00:01:02:03:04:05'])
+
+    def test_bridge_mac(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match:
+        name: %(ec)s
+        macaddress: %(ec_mac)s
+  bridges:
+    br0:
+      interfaces: [ethbr]
+      macaddress: 00:01:02:03:04:05
+      dhcp4: yes''' % {'r': self.backend,
+                       'ec': self.dev_e_client,
+                       'e2c': self.dev_e2_client,
+                       'ec_mac': self.dev_e_client_mac})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['master br0'], ['inet'])
+        self.assert_iface_up('br0',
+                             ['inet 192.168.5.[0-9]+/24', '00:01:02:03:04:05'])
 
     def test_bond_down_delay(self):
         self.setup_eth(None)
@@ -1486,6 +1586,14 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
+
+    @unittest.skip("NetworkManager does not support setting MAC for a bond")
+    def test_bond_mac(self):
+        pass
+
+    @unittest.skip("NetworkManager does not support setting MAC for a bridge")
+    def test_bridge_mac(self):
+        pass
 
     def test_wifi_ap_open(self):
         # we use dev_w_client and dev_w_ap in switched roles here, to keep the

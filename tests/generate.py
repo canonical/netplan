@@ -305,8 +305,7 @@ unmanaged-devices+=interface-name:eth0,''')
                   id: 108"""))
         self.assert_networkd({
             'bond0.108.netdev': '[NetDev]\nName=bond0.108\nKind=vlan\n\n[VLAN]\nId=108\n',
-            'bond0.link': '[Match]\n\n[Link]\nWakeOnLan=off\nMTUBytes=9000\n',
-            'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
+            'bond0.netdev': '[NetDev]\nName=bond0\nMTUBytes=9000\nKind=bond\n',
             'bond0.network': '[Match]\nName=bond0\n\n[Network]\nVLAN=bond0.108\n',
             'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
             'eth1.network': '[Match]\nName=eth1\n\n[Network]\nBond=bond0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'
@@ -376,6 +375,20 @@ unmanaged-devices+=mac:11:22:33:44:55:66,''')
 # devices managed by networkd
 unmanaged-devices+=interface-name:green,''')
         self.assert_udev(None)
+
+    def test_eth_set_mac(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: green
+      macaddress: 00:01:02:03:04:05
+      dhcp4: true''')
+
+        self.assert_networkd({'def1.network': ND_DHCP4 % 'green',
+                              'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nWakeOnLan=off\nMACAddress=00:01:02:03:04:05\n'
+                              })
 
     def test_eth_match_name_rename(self):
         self.generate('''network:
@@ -477,6 +490,17 @@ unmanaged-devices+=interface-name:eth0,''')
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_udev(None)
+
+    def test_bridge_set_mac(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      macaddress: 00:01:02:03:04:05
+      dhcp4: true''')
+
+        self.assert_networkd({'br0.network': ND_DHCP4 % 'br0',
+                              'br0.netdev': '[NetDev]\nName=br0\nMACAddress=00:01:02:03:04:05\nKind=bridge\n'})
 
     def test_eth_def_renderer(self):
         self.generate('''network:
@@ -1068,16 +1092,21 @@ Domains=lab kitchen
       id: 1
       link: en1
       addresses: [1.2.3.4/24]
+    enred:
+      id: 3
+      link: en1
+      macaddress: aa:bb:cc:dd:ee:11
     engreen: {id: 2, link: en1, dhcp6: true}''')
 
-        self.assert_networkd({'en1.network': '[Match]\nName=en1\n\n[Network]\nVLAN=enblue\nVLAN=engreen\n',
+        self.assert_networkd({'en1.network': '[Match]\nName=en1\n\n[Network]\nVLAN=engreen\nVLAN=enblue\nVLAN=enred\n',
                               'enblue.netdev': '[NetDev]\nName=enblue\nKind=vlan\n\n[VLAN]\nId=1\n',
                               'engreen.netdev': '[NetDev]\nName=engreen\nKind=vlan\n\n[VLAN]\nId=2\n',
+                              'enred.netdev': '[NetDev]\nName=enred\nMACAddress=aa:bb:cc:dd:ee:11\nKind=vlan\n\n[VLAN]\nId=3\n',
                               'enblue.network': '[Match]\nName=enblue\n\n[Network]\nAddress=1.2.3.4/24\n',
                               'engreen.network': ND_DHCP6 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
+unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enblue,interface-name:enred,''')
         self.assert_udev(None)
 
 
@@ -1105,6 +1134,38 @@ method=link-local
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
         self.assert_udev(None)
+
+    def test_eth_set_mac(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      macaddress: 00:01:02:03:04:05
+      dhcp4: true''')
+
+        self.assert_networkd({'eth0.link': '''[Match]
+OriginalName=eth0
+
+[Link]
+WakeOnLan=off
+MACAddress=00:01:02:03:04:05
+'''})
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[802-3-ethernet]
+cloned-mac-address=00:01:02:03:04:05
+
+[ipv4]
+method=auto
+'''})
 
     def test_eth_match_by_driver(self):
         err = self.generate('''network:
@@ -1872,6 +1933,27 @@ method=auto
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
+
+    def test_bridge_set_mac(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    renderer: NetworkManager
+    br0:
+      macaddress: 00:01:02:03:04:05
+      dhcp4: true''')
+
+        self.assert_nm({'br0': '''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+
+[802-3-ethernet]
+cloned-mac-address=00:01:02:03:04:05
+
+[ipv4]
+method=auto
+'''})
 
     def test_bridge_def_renderer(self):
         self.generate('''network:
