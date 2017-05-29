@@ -1,8 +1,8 @@
-nplan (0.23) UNRELEASED; urgency=medium
+nplan (0.22~17.04.1) zesty; urgency=medium
 
-  *
+  * Backport netplan 0.22 to 17.04. (LP: #1688632)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 24 May 2017 12:24:29 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 29 May 2017 10:23:03 -0400
 
 nplan (0.22) artful; urgency=medium
 
