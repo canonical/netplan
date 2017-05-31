@@ -476,6 +476,7 @@ class _CommonTests:
         with open('/sys/class/net/mybr/brif/%s/path_cost' % self.dev_e2_client) as f:
             self.assertEqual(f.read().strip(), '50')
 
+    @unittest.skip("SKIP on 16.10: systemd does not support bridge Priority yet")
     def test_bridge_priority(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
@@ -508,6 +509,7 @@ class _CommonTests:
         with open('/sys/class/net/mybr/bridge/priority') as f:
             self.assertEqual(f.read().strip(), '8192')
 
+    @unittest.skip("SKIP on 16.10: systemd does not support bridge AgeingTime yet")
     def test_bridge_ageing_time(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
@@ -993,31 +995,6 @@ class _CommonTests:
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'metric 99',  # check metric from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
-
-    def test_routes_v6(self):
-        self.setup_eth(None)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  renderer: %(r)s
-  ethernets:
-    %(ec)s:
-      addresses: ["9876:BBBB::11/70"]
-      gateway6: "9876:BBBB::1"
-      routes:
-          - to: 2001:f00f:f00f::1/64
-            via: 9876:BBBB::5
-            metric: 799''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet6 9876:bbbb::11/70'])
-        self.assertNotIn(b'default',
-                         subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'default via 9876:bbbb::1',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'2001:f00f:f00f::/64 via 9876:bbbb::5',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'metric 799',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', '2001:f00f:f00f::/64']))
 
     def test_manual_addresses(self):
         self.setup_eth(None)
@@ -1583,6 +1560,31 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
             self.assertEqual(f.read().strip(), 'all 3')
 
+    def test_routes_v6(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: ["9876:BBBB::11/70"]
+      gateway6: "9876:BBBB::1"
+      routes:
+          - to: 2001:f00f:f00f::1/64
+            via: 9876:BBBB::5
+            metric: 799''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet6 9876:bbbb::11/70'])
+        self.assertNotIn(b'default',
+                         subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'default via 9876:bbbb::1',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'2001:f00f:f00f::/64 via 9876:bbbb::5',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'metric 799',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', '2001:f00f:f00f::/64']))
+
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
@@ -1751,6 +1753,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
             self.assertEqual(f.read().strip(), '192.168.5.1')
 
+    @unittest.skip("SKIP 16.10: broken on 16.10 versions of linux/NetworkManager")
     def test_bond_arp_all_targets(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
@@ -1813,6 +1816,10 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
             self.assertEqual(f.read().strip(), 'balance-tlb 5')
         with open('/sys/class/net/mybond/bonding/lp_interval') as f:
             self.assertEqual(f.read().strip(), '15')
+
+    @unittest.skip("SKIP 16.10: broken on 16.10 versions of linux/NetworkManager")
+    def test_routes_v6(self):
+        pass
 
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
