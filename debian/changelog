@@ -1,8 +1,8 @@
 nplan (0.23) UNRELEASED; urgency=medium
 
-  *
+  * Do not unbind brcmfmac, interface will be gone. (LP: #1696162)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 24 May 2017 12:24:29 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 06 Jun 2017 12:06:34 -0400
 
 nplan (0.22) artful; urgency=medium
 
