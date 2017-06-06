@@ -1,8 +1,14 @@
-nplan (0.22~16.04.1) xenial; urgency=medium
+nplan (0.23~16.04.1) xenial; urgency=medium
 
-  * Backport netplan 0.22 to 16.04. (LP: #1688632)
+  * Backport netplan 0.23 to 16.04. (LP: #1688632)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 23 May 2017 13:30:21 -0400
+
+nplan (0.23) artful; urgency=medium
+
+  * Do not unbind brcmfmac, interface will be gone. (LP: #1696162)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 06 Jun 2017 12:25:22 -0400
 
 nplan (0.22) artful; urgency=medium
 
