@@ -1,8 +1,14 @@
-nplan (0.22~16.10.1) yakkety; urgency=medium
+nplan (0.23~16.10.1) yakkety; urgency=medium
 
-  * Backport netplan 0.22 to 16.10. (LP: #1688632)
+  * Backport netplan 0.23 to 16.10. (LP: #1688632)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 29 May 2017 10:19:10 -0400
+
+nplan (0.23) artful; urgency=medium
+
+  * Do not unbind brcmfmac, interface will be gone. (LP: #1696162)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 06 Jun 2017 12:25:22 -0400
 
 nplan (0.22) artful; urgency=medium
 
