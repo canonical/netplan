@@ -2,7 +2,7 @@ nplan (0.23~16.04.1) xenial; urgency=medium
 
   * Backport netplan 0.23 to 16.04. (LP: #1688632)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 23 May 2017 13:30:21 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 06 Jun 2017 17:19:10 -0700
 
 nplan (0.23) artful; urgency=medium
 
