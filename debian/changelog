@@ -1,3 +1,10 @@
+nplan (0.24) UNRELEASED; urgency=medium
+
+  * debian/control: set Priority to important to make sure we can get into
+    minimal.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 15 Jun 2017 21:36:45 -0400
+
 nplan (0.23) artful; urgency=medium
 
   * Do not unbind brcmfmac, interface will be gone. (LP: #1696162)
