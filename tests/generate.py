@@ -859,6 +859,22 @@ unmanaged-devices+=interface-name:br0,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
+    def test_eth_bridge_nm_blacklist(self):
+        self.generate('''network:
+  renderer: networkd
+  ethernets:
+    eth42:
+      dhcp4: yes
+    ethbr:
+      match: {name: eth43}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      dhcp4: yes''')
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr,''')
+
     def test_bridge_components(self):
         self.generate('''network:
   version: 2
