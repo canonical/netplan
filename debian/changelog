@@ -5,6 +5,9 @@ nplan (0.25) UNRELEASED; urgency=medium
   * tests/integration.py: clean up after br0 in networkd's test_bridge_mac; as
     the remaining interface and udev configuration can confuse NetworkManager
     now that it seems to manage random devices it did not create again.
+  * src/nm.c: set the MTU even though we also specify it in systemd-networkd
+    for consumption by udev. NetworkManager will try to set it and might
+    otherwise default to the wrong value.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 11 Jul 2017 13:43:21 -0400
 

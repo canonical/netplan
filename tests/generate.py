@@ -1151,6 +1151,91 @@ method=link-local
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
         self.assert_udev(None)
 
+    def test_eth_mtu(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth1:
+      mtu: 1280
+      dhcp4: n''')
+
+        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n'})
+        self.assert_nm({'eth1': '''[connection]
+id=netplan-eth1
+type=ethernet
+interface-name=eth1
+
+[ethernet]
+wake-on-lan=0
+
+[802-3-ethernet]
+mtu=1280
+
+[ipv4]
+method=link-local
+'''})
+
+    def test_mtu_all(self):
+        self.generate(textwrap.dedent("""
+            network:
+              version: 2
+              renderer: NetworkManager
+              ethernets:
+                eth1:
+                  mtu: 1280
+                  dhcp4: n
+              bonds:
+                bond0:
+                  interfaces:
+                  - eth1
+                  mtu: 9000
+              vlans:
+                bond0.108:
+                  link: bond0
+                  id: 108"""))
+        self.assert_nm({
+            'bond0.108': '''[connection]
+id=netplan-bond0.108
+type=vlan
+interface-name=bond0.108
+
+[vlan]
+id=108
+parent=bond0
+
+[ipv4]
+method=link-local
+''',
+            'bond0': '''[connection]
+id=netplan-bond0
+type=bond
+interface-name=bond0
+
+[802-3-ethernet]
+mtu=9000
+
+[ipv4]
+method=link-local
+''',
+            'eth1': '''[connection]
+id=netplan-eth1
+type=ethernet
+interface-name=eth1
+slave-type=bond
+master=bond0
+
+[ethernet]
+wake-on-lan=0
+
+[802-3-ethernet]
+mtu=1280
+
+[ipv4]
+method=link-local
+''',
+        })
+
     def test_eth_set_mac(self):
         self.generate('''network:
   version: 2

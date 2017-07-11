@@ -305,6 +305,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         if (def->set_mac) {
             g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
         }
+        if (def->mtubytes) {
+            g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
+        }
 
         if (link_str->len > 0) {
             switch (def->type) {
@@ -317,8 +320,22 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
         g_string_free(link_str, TRUE);
     } else {
-        if (def->set_mac)
-            g_string_append_printf(s, "\n[802-3-ethernet]\ncloned-mac-address=%s\n", def->set_mac);
+        GString *link_str = NULL;
+
+        link_str = g_string_new(NULL);
+
+        if (def->set_mac) {
+            g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
+        }
+        if (def->mtubytes) {
+            g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
+        }
+
+        if (link_str->len > 0) {
+            g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);
+        }
+
+        g_string_free(link_str, TRUE);
     }
 
     if (def->type == ND_VLAN) {
