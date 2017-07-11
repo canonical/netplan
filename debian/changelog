@@ -2,8 +2,11 @@ nplan (0.25) UNRELEASED; urgency=medium
 
   * tests/generate.py: add a test to validate that correct blacklist entries
     are added when creating virtual devices.
+  * tests/integration.py: clean up after br0 in networkd's test_bridge_mac; as
+    the remaining interface and udev configuration can confuse NetworkManager
+    now that it seems to manage random devices it did not create again.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 11 Jul 2017 13:42:22 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 11 Jul 2017 13:43:21 -0400
 
 nplan (0.24) artful; urgency=medium
 

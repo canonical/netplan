@@ -1379,6 +1379,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 
     def test_bridge_mac(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
