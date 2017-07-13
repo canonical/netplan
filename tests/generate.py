@@ -1169,6 +1169,9 @@ wake-on-lan=1
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 '''})
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
@@ -1198,6 +1201,9 @@ mtu=1280
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 '''})
 
     def test_mtu_all(self):
@@ -1230,6 +1236,9 @@ parent=bond0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
             'bond0': '''[connection]
 id=netplan-bond0
@@ -1241,6 +1250,9 @@ mtu=9000
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
             'eth1': '''[connection]
 id=netplan-eth1
@@ -1257,6 +1269,9 @@ mtu=1280
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
         })
 
@@ -1290,6 +1305,9 @@ cloned-mac-address=00:01:02:03:04:05
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
 
     def test_eth_match_by_driver(self):
@@ -1324,6 +1342,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 '''})
         self.assert_udev(None)
 
@@ -1348,6 +1369,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 '''})
         self.assert_udev(None)
 
@@ -1369,6 +1393,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
 
@@ -1394,6 +1421,9 @@ mac-address=11:22:33:44:55:66
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
 
@@ -1417,6 +1447,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -1443,6 +1476,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         # ... while udev renames it
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
@@ -1479,6 +1515,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
 
@@ -1505,6 +1544,9 @@ mac-address=00:11:22:33:44:55
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -1527,6 +1569,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -1550,6 +1595,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -1573,6 +1621,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -1712,6 +1763,9 @@ wake-on-lan=0
 method=manual
 address1=192.168.14.2/24
 route1=10.10.10.0/24,192.168.14.20,100
+
+[ipv6]
+method=ignore
 '''})
 
     def test_route_v4_multiple(self):
@@ -1746,6 +1800,9 @@ address1=192.168.14.2/24
 route1=8.8.0.0/16,192.168.1.1,5000
 route2=10.10.10.8,192.168.1.2
 route3=11.11.11.0/24,192.168.1.3,9999
+
+[ipv6]
+method=ignore
 '''})
 
     def test_route_v6_single(self):
@@ -1877,6 +1934,9 @@ wake-on-lan=0
 [ipv4]
 method=auto
 
+[ipv6]
+method=ignore
+
 [wifi]
 ssid=Joe's Home
 mode=infrastructure
@@ -1895,6 +1955,9 @@ wake-on-lan=0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 
 [wifi]
 ssid=workplace
@@ -1931,6 +1994,9 @@ mac-address=11:22:33:44:55:66
 [ipv4]
 method=link-local
 
+[ipv6]
+method=ignore
+
 [wifi]
 ssid=workplace
 mode=infrastructure
@@ -1955,6 +2021,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 
 [wifi]
 ssid=workplace
@@ -1982,6 +2051,9 @@ wake-on-lan=0
 
 [ipv4]
 method=shared
+
+[ipv6]
+method=ignore
 
 [wifi]
 ssid=homenet
@@ -2015,6 +2087,9 @@ wake-on-lan=0
 [ipv4]
 method=link-local
 
+[ipv6]
+method=ignore
+
 [wifi]
 ssid=homenet
 mode=adhoc
@@ -2035,6 +2110,9 @@ interface-name=br0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2055,6 +2133,9 @@ interface-name=br0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2078,6 +2159,9 @@ cloned-mac-address=00:01:02:03:04:05
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
 
     def test_bridge_def_renderer(self):
@@ -2099,6 +2183,9 @@ interface-name=br0
 [ipv4]
 method=auto
 address1=1.2.3.4/12
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2130,6 +2217,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -2143,6 +2233,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'br0': '''[connection]
 id=netplan-br0
@@ -2151,6 +2244,9 @@ interface-name=br0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2181,6 +2277,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -2194,6 +2293,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'br0': '''[connection]
 id=netplan-br0
@@ -2202,6 +2304,9 @@ interface-name=br0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2244,6 +2349,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -2257,6 +2365,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'br0': '''[connection]
 id=netplan-br0
@@ -2273,6 +2384,9 @@ stp=true
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2292,6 +2406,9 @@ interface-name=bn0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
 
     def test_bond_components(self):
@@ -2320,6 +2437,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -2333,6 +2453,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'bn0': '''[connection]
 id=netplan-bn0
@@ -2341,6 +2464,9 @@ interface-name=bn0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2372,6 +2498,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -2385,6 +2514,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'bn0': '''[connection]
 id=netplan-bn0
@@ -2393,6 +2525,9 @@ interface-name=bn0
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2445,6 +2580,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'switchport': '''[connection]
 id=netplan-switchport
@@ -2458,6 +2596,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'bn0': '''[connection]
 id=netplan-bn0
@@ -2487,6 +2628,9 @@ lp_interval=10
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 '''})
         self.assert_networkd({})
         self.assert_udev(None)
@@ -2566,6 +2710,9 @@ wake-on-lan=0
 method=manual
 address1=192.168.1.3/24
 dns=8.8.8.8;
+
+[ipv6]
+method=ignore
 '''})
 
     def test_vlan(self):
@@ -2592,6 +2739,9 @@ wake-on-lan=0
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''',
                         'enblue': '''[connection]
 id=netplan-enblue
@@ -2605,6 +2755,9 @@ parent=en1
 [ipv4]
 method=manual
 address1=1.2.3.4/24
+
+[ipv6]
+method=ignore
 ''',
                         'engreen': '''[connection]
 id=netplan-engreen
@@ -2654,6 +2807,9 @@ mac-address=11:22:33:44:55:66
 
 [ipv4]
 method=link-local
+
+[ipv6]
+method=ignore
 ''' % uuid,
                         'engreen': '''[connection]
 id=netplan-engreen
@@ -2666,6 +2822,9 @@ parent=%s
 
 [ipv4]
 method=auto
+
+[ipv6]
+method=ignore
 ''' % uuid})
         self.assert_udev(None)
 

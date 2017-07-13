@@ -1352,6 +1352,20 @@ wpa_passphrase=12345678
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
 
+    def test_eth_dhcp6_off(self):
+        self.setup_eth('slaac')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: no
+      addresses: [ '192.168.1.100/24' ]
+    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
+
     def test_bond_mac(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
@@ -1587,6 +1601,21 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
+
+    @unittest.skip("NetworkManager does not disable accept_ra: bug LP: #1704210")
+    def test_eth_dhcp6_off(self):
+        self.setup_eth('slaac')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: no
+      addresses: [ '192.168.1.100/24' ]
+    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
     @unittest.skip("NetworkManager does not support setting MAC for a bond")
     def test_bond_mac(self):

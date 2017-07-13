@@ -13,6 +13,10 @@ nplan (0.25) UNRELEASED; urgency=medium
     same config, SLAAC), and don't have static addresses set. This should fix
     the cases where unconfigured devices still get an IPv6 address.
     (LP: #1655440)
+  * src/nm.c: Explicitly set IPv6 method=ignore when IPv6 is otherwise not
+    configured; this follows the same logic as setting IPv6AcceptRA=no in
+    networkd, with the exception that NM does not currently disable RAs. When
+    it does, an unconfigured device for IPv6 will truly be left with no config.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 11 Jul 2017 13:43:21 -0400
 

@@ -404,6 +404,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
         write_routes(def, s, AF_INET6);
     }
+    else {
+        g_string_append(s, "\n[ipv6]\nmethod=ignore\n");
+    }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);
 
