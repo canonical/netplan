@@ -8,6 +8,10 @@ nplan (0.25) UNRELEASED; urgency=medium
   * src/nm.c: set the MTU even though we also specify it in systemd-networkd
     for consumption by udev. NetworkManager will try to set it and might
     otherwise default to the wrong value.
+  * src/networkd.c: Set IPv6AcceptRA=no anytime we don't do DHCPv6 (or by the
+    same config, SLAAC), and don't have static addresses set. This should fix
+    the cases where unconfigured devices still get an IPv6 address.
+    (LP: #1655440)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 11 Jul 2017 13:43:21 -0400
 
