@@ -1,4 +1,4 @@
-nplan (0.25) UNRELEASED; urgency=medium
+nplan (0.25) artful; urgency=medium
 
   * tests/generate.py: add a test to validate that correct blacklist entries
     are added when creating virtual devices.
@@ -18,7 +18,7 @@ nplan (0.25) UNRELEASED; urgency=medium
     networkd, with the exception that NM does not currently disable RAs. When
     it does, an unconfigured device for IPv6 will truly be left with no config.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 11 Jul 2017 13:43:21 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 13 Jul 2017 16:22:18 -0400
 
 nplan (0.24) artful; urgency=medium
 
