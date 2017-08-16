@@ -262,8 +262,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         if (def->bridge_params.path_cost)
             g_string_append_printf(s, "\n[Bridge]\nCost=%u\n", def->bridge_params.path_cost);
     }
-    if (def->bond)
+    if (def->bond) {
         g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\n", def->bond);
+
+        if (def->bond_params.primary_slave)
+            g_string_append_printf(s, "PrimarySlave=true\n");
+    }
 
     if (def->has_vlans) {
         /* iterate over all netdefs to find VLANs attached to us */

@@ -692,6 +692,35 @@ class _CommonTests:
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
 
+    def test_bond_primary_slave(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s: {}
+    %(e2c)s: {}
+  bonds:
+    mybond:
+      interfaces: [%(ec)s, %(e2c)s]
+      parameters:
+        mode: active-backup
+        primary: %(ec)s
+      addresses: [ '10.10.10.1/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['master mybond'],
+                             ['inet '])
+        self.assert_iface_up('mybond',
+                             ['inet 10.10.10.1/24'])
+        with open('/sys/class/net/mybond/bonding/slaves') as f:
+            result = f.read().strip()
+            self.assertIn(self.dev_e_client, result)
+            self.assertIn(self.dev_e2_client, result)
+        with open('/sys/class/net/mybond/bonding/primary') as f:
+            self.assertEqual(f.read().strip(), '%(ec)s' % {'ec': self.dev_e_client})
+
     def test_bond_all_slaves_active(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)

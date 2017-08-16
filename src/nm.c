@@ -189,6 +189,8 @@ write_bond_parameters(const net_definition* def, GString *s)
         g_string_append_printf(params, "\nresend_igmp=%d", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
         g_string_append_printf(params, "\nlp_interval=%d", def->bond_params.learn_interval);
+    if (def->bond_params.primary_slave)
+        g_string_append_printf(params, "\nprimary=%s", def->bond_params.primary_slave);
 
     if (params->len > 0)
         g_string_append_printf(s, "\n[bond]%s\n", params->str);

@@ -1062,6 +1062,31 @@ unmanaged-devices+=interface-name:bn0,''')
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nIPv6AcceptRA=no\nBond=bn0\nLinkLocalAddressing=no\n'})
 
+    def test_bond_primary_slave(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      parameters:
+        mode: active-backup
+        primary: eno1
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
+                                            '[Bond]\n'
+                                            'Mode=active-backup\n',
+                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nIPv6AcceptRA=no\nBond=bn0\nLinkLocalAddressing=no\nPrimarySlave=true\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nIPv6AcceptRA=no\nBond=bn0\nLinkLocalAddressing=no\n'})
+
     def test_gateway(self):
         self.generate('''network:
   version: 2
@@ -2635,6 +2660,73 @@ method=ignore
         self.assert_networkd({})
         self.assert_udev(None)
 
+    def test_bond_primary_slave(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+  bonds:
+    bn0:
+      interfaces: [eno1, switchport]
+      parameters:
+        mode: active-backup
+        primary: eno1
+      dhcp4: true''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'bn0': '''[connection]
+id=netplan-bn0
+type=bond
+interface-name=bn0
+
+[bond]
+mode=active-backup
+primary=eno1
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_udev(None)
+
     def test_gateway(self):
         self.generate('''network:
   version: 2
@@ -3336,6 +3428,38 @@ class TestConfigErrors(TestBase):
       parameters:
         arp-ip-targets:
           - 2001:dead:beef::1
+      dhcp4: true''', expect_fail=True)
+
+    def test_bond_invalid_primary_slave(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bonds:
+    bond0:
+      interfaces: [eno1]
+      parameters:
+        primary: wigglewiggle
+      dhcp4: true''', expect_fail=True)
+
+    def test_bond_duplicate_primary_slave(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+    eno2:
+      match:
+        name: eth1
+  bonds:
+    bond0:
+      interfaces: [eno1, eno2]
+      parameters:
+        primary: eno1
+        primary: eno2
       dhcp4: true''', expect_fail=True)
 
 
