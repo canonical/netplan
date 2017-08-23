@@ -2,8 +2,11 @@ nplan (0.26) UNRELEASED; urgency=medium
 
   * Bonding:
     - Add support for specifying a primary slave. (LP: #1709135)
+  * Rebind:
+    - Fix brcmfmac harder. Treat any 'brcmfmac' driver as not supporting
+      rebind. (LP: #1712224)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 16 Aug 2017 17:35:01 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 23 Aug 2017 16:05:37 -0400
 
 nplan (0.25) artful; urgency=medium
 
