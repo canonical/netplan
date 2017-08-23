@@ -14,6 +14,8 @@ nplan (0.26) UNRELEASED; urgency=medium
       will run at boot, so instead check the state, but only assert it once
       we've added a config file and before checking the state of our dummy
       device.
+    - Do a bit more to make sure "mix" tests which stack virtual devices are
+      as reliable as possible; by setting saner defaults.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 23 Aug 2017 16:05:37 -0400
 

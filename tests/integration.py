@@ -1299,12 +1299,12 @@ wpa_passphrase=12345678
   bridges:
     br0:
       interfaces: [bond0]
-      dhcp4: true
+      addresses: ['192.168.0.2/24']
   bonds:
     bond0:
       interfaces: [ethbn, ethb2]
       parameters:
-        mii-monitor-interval: 100000
+        mode: balance-rr
   ethernets:
     ethbn:
       match: {name: %(ec)s}
@@ -1320,8 +1320,9 @@ wpa_passphrase=12345678
                              ['inet '])
         self.assert_iface_up('bond0',
                              ['master br0'])
-        self.assert_iface_up('br0',
-                             ['inet 192.168'])
+        ipaddr = subprocess.check_output(['ip', 'a', 'show', 'dev', 'br0'],
+                                         universal_newlines=True)
+        self.assertIn('inet 192.168', ipaddr)
         with open('/sys/class/net/bond0/bonding/slaves') as f:
             result = f.read().strip()
             self.assertIn(self.dev_e_client, result)
@@ -1353,7 +1354,7 @@ wpa_passphrase=12345678
     bond0:
       interfaces: ['br1']
       parameters:
-        mii-monitor-interval: 100000
+        mode: balance-rr
   bridges:
     br1:
       interfaces: ['ethb2']
