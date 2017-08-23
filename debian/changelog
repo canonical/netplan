@@ -1,4 +1,4 @@
-nplan (0.26) UNRELEASED; urgency=medium
+nplan (0.26) artful; urgency=medium
 
   * Bonding:
     - Add support for specifying a primary slave. (LP: #1709135)
@@ -17,7 +17,7 @@ nplan (0.26) UNRELEASED; urgency=medium
     - Do a bit more to make sure "mix" tests which stack virtual devices are
       as reliable as possible; by setting saner defaults.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 23 Aug 2017 16:05:37 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 23 Aug 2017 19:32:33 -0400
 
 nplan (0.25) artful; urgency=medium
 
