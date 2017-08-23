@@ -5,6 +5,15 @@ nplan (0.26) UNRELEASED; urgency=medium
   * Rebind:
     - Fix brcmfmac harder. Treat any 'brcmfmac' driver as not supporting
       rebind. (LP: #1712224)
+  * Autopkgtests:
+    - Add allow-stderr. Systemd now bleats about a the networkd socket still
+      being around and enabled when we restart the service; but we don't need
+      to care since we're /restarting/ the service to load the new config.
+    - Fix the autostart package to be more sensible: we don't really care if
+      networkd autostarts or not, but we need to make sure that our generator
+      will run at boot, so instead check the state, but only assert it once
+      we've added a config file and before checking the state of our dummy
+      device.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 23 Aug 2017 16:05:37 -0400
 

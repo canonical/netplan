@@ -1,6 +1,8 @@
 #!/bin/sh
-# Check that netplan and networkd do not start without configuration and do
-# autostart with configuration
+#
+# Check that netplan and systemd/networkd will properly cooperate and run
+# out generator at boot.
+#
 set -eu
 
 if [ ! -x /tmp/autopkgtest-reboot ]; then
@@ -20,6 +22,8 @@ assert_is_running() {
         echo "ERROR: expected $1 to not have started, but it was" >&2
         systemctl --no-pager status "$1"
         exit 1
+    else
+        systemctl --no-pager status "$1"
     fi
 }
 
@@ -31,13 +35,12 @@ case "${AUTOPKGTEST_REBOOT_MARK:-}" in
             exit 0
         fi
 
-        # right after installation it should not start
-        assert_is_running systemd-networkd.service 0
+        # right after installation systemd-networkd may or may not be started
+        assert_is_running systemd-networkd.service status
         /tmp/autopkgtest-reboot noconfig
         ;;
 
     noconfig)
-        assert_is_running systemd-networkd.service 0
         if ip a show dev brtest00 2>/dev/null; then
             echo "ERROR: brtest00 bridge unexpectedly exists" >&2
             exit 1
