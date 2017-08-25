@@ -1,3 +1,59 @@
+nplan (0.26~16.04.1) UNRELEASED; urgency=medium
+
+  * Backport netplan 0.26 to 16.04. (LP: #1713142)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 25 Aug 2017 16:30:09 -0400
+
+nplan (0.26) artful; urgency=medium
+
+  * Bonding:
+    - Add support for specifying a primary slave. (LP: #1709135)
+  * Rebind:
+    - Fix brcmfmac harder. Treat any 'brcmfmac' driver as not supporting
+      rebind. (LP: #1712224)
+  * Autopkgtests:
+    - Add allow-stderr. Systemd now bleats about a the networkd socket still
+      being around and enabled when we restart the service; but we don't need
+      to care since we're /restarting/ the service to load the new config.
+    - Fix the autostart package to be more sensible: we don't really care if
+      networkd autostarts or not, but we need to make sure that our generator
+      will run at boot, so instead check the state, but only assert it once
+      we've added a config file and before checking the state of our dummy
+      device.
+    - Do a bit more to make sure "mix" tests which stack virtual devices are
+      as reliable as possible; by setting saner defaults.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 23 Aug 2017 19:32:33 -0400
+
+nplan (0.25) artful; urgency=medium
+
+  * tests/generate.py: add a test to validate that correct blacklist entries
+    are added when creating virtual devices.
+  * tests/integration.py: clean up after br0 in networkd's test_bridge_mac; as
+    the remaining interface and udev configuration can confuse NetworkManager
+    now that it seems to manage random devices it did not create again.
+    (LP: #1699371)
+  * src/nm.c: set the MTU even though we also specify it in systemd-networkd
+    for consumption by udev. NetworkManager will try to set it and might
+    otherwise default to the wrong value.
+  * src/networkd.c: Set IPv6AcceptRA=no anytime we don't do DHCPv6 (or by the
+    same config, SLAAC), and don't have static addresses set. This should fix
+    the cases where unconfigured devices still get an IPv6 address.
+    (LP: #1655440)
+  * src/nm.c: Explicitly set IPv6 method=ignore when IPv6 is otherwise not
+    configured; this follows the same logic as setting IPv6AcceptRA=no in
+    networkd, with the exception that NM does not currently disable RAs. When
+    it does, an unconfigured device for IPv6 will truly be left with no config.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 13 Jul 2017 16:22:18 -0400
+
+nplan (0.24) artful; urgency=medium
+
+  * debian/control: set Priority to important to make sure we can get into
+    minimal.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 15 Jun 2017 21:37:51 -0400
+
 nplan (0.23~16.04.1) xenial; urgency=medium
 
   * Backport netplan 0.23 to 16.04. (LP: #1688632)

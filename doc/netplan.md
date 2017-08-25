@@ -1,7 +1,9 @@
 ---
 title: netplan
 section: 5
-author: Martin Pitt (<martin.pitt@ubuntu.com>)
+author:
+- Mathieu Trudel-Lapierre (<cyphermox@ubuntu.com>)
+- Martin Pitt (<martin.pitt@ubuntu.com>)
 ...
 
 Introduction
@@ -404,6 +406,12 @@ Properties for device type ``bonds:``
           The value range is between ``1`` and ``0x7fffffff``. The default
           value is ``1``. This option only affects ``balance-tlb`` and
           ``balance-alb`` modes.
+
+     ``primary`` (scalar)
+     :    Specify a device to be used as a primary slave, or preferred device
+          to use as a slave for the bond (ie. the preferred device to send
+          data through), whenever it is available. This only affects
+          ``active-backup``, ``balance-alb``, and ``balance-tlb`` modes.
 
 
 Properties for device type ``vlans:``

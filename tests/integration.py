@@ -694,6 +694,35 @@ class _CommonTests:
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
 
+    def test_bond_primary_slave(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s: {}
+    %(e2c)s: {}
+  bonds:
+    mybond:
+      interfaces: [%(ec)s, %(e2c)s]
+      parameters:
+        mode: active-backup
+        primary: %(ec)s
+      addresses: [ '10.10.10.1/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['master mybond'],
+                             ['inet '])
+        self.assert_iface_up('mybond',
+                             ['inet 10.10.10.1/24'])
+        with open('/sys/class/net/mybond/bonding/slaves') as f:
+            result = f.read().strip()
+            self.assertIn(self.dev_e_client, result)
+            self.assertIn(self.dev_e2_client, result)
+        with open('/sys/class/net/mybond/bonding/primary') as f:
+            self.assertEqual(f.read().strip(), '%(ec)s' % {'ec': self.dev_e_client})
+
     def test_bond_all_slaves_active(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
@@ -1247,12 +1276,12 @@ wpa_passphrase=12345678
   bridges:
     br0:
       interfaces: [bond0]
-      dhcp4: true
+      addresses: ['192.168.0.2/24']
   bonds:
     bond0:
       interfaces: [ethbn, ethb2]
       parameters:
-        mii-monitor-interval: 100000
+        mode: balance-rr
   ethernets:
     ethbn:
       match: {name: %(ec)s}
@@ -1268,8 +1297,9 @@ wpa_passphrase=12345678
                              ['inet '])
         self.assert_iface_up('bond0',
                              ['master br0'])
-        self.assert_iface_up('br0',
-                             ['inet 192.168'])
+        ipaddr = subprocess.check_output(['ip', 'a', 'show', 'dev', 'br0'],
+                                         universal_newlines=True)
+        self.assertIn('inet 192.168', ipaddr)
         with open('/sys/class/net/bond0/bonding/slaves') as f:
             result = f.read().strip()
             self.assertIn(self.dev_e_client, result)
@@ -1301,7 +1331,7 @@ wpa_passphrase=12345678
     bond0:
       interfaces: ['br1']
       parameters:
-        mii-monitor-interval: 100000
+        mode: balance-rr
   bridges:
     br1:
       interfaces: ['ethb2']
@@ -1328,6 +1358,20 @@ wpa_passphrase=12345678
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
+
+    def test_eth_dhcp6_off(self):
+        self.setup_eth('slaac')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: no
+      addresses: [ '192.168.1.100/24' ]
+    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
     def test_bond_mac(self):
         self.setup_eth(None)
@@ -1356,6 +1400,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 
     def test_bridge_mac(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -1588,6 +1633,21 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
+
+    @unittest.skip("NetworkManager does not disable accept_ra: bug LP: #1704210")
+    def test_eth_dhcp6_off(self):
+        self.setup_eth('slaac')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: no
+      addresses: [ '192.168.1.100/24' ]
+    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
     @unittest.skip("NetworkManager does not support setting MAC for a bond")
     def test_bond_mac(self):

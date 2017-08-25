@@ -5,7 +5,7 @@ Depends: @,
   network-manager,
   hostapd,
   dnsmasq-base,
-Restrictions: needs-root, isolation-machine
+Restrictions: allow-stderr, needs-root, isolation-machine
 
 Tests: autostart
-Restrictions: needs-root, isolation-container
+Restrictions: allow-stderr, needs-root, isolation-container

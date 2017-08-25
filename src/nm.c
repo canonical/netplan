@@ -189,6 +189,8 @@ write_bond_parameters(const net_definition* def, GString *s)
         g_string_append_printf(params, "\nresend_igmp=%d", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
         g_string_append_printf(params, "\nlp_interval=%d", def->bond_params.learn_interval);
+    if (def->bond_params.primary_slave)
+        g_string_append_printf(params, "\nprimary=%s", def->bond_params.primary_slave);
 
     if (params->len > 0)
         g_string_append_printf(s, "\n[bond]%s\n", params->str);
@@ -305,6 +307,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         if (def->set_mac) {
             g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
         }
+        if (def->mtubytes) {
+            g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
+        }
 
         if (link_str->len > 0) {
             switch (def->type) {
@@ -317,8 +322,22 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
         g_string_free(link_str, TRUE);
     } else {
-        if (def->set_mac)
-            g_string_append_printf(s, "\n[802-3-ethernet]\ncloned-mac-address=%s\n", def->set_mac);
+        GString *link_str = NULL;
+
+        link_str = g_string_new(NULL);
+
+        if (def->set_mac) {
+            g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
+        }
+        if (def->mtubytes) {
+            g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
+        }
+
+        if (link_str->len > 0) {
+            g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);
+        }
+
+        g_string_free(link_str, TRUE);
     }
 
     if (def->type == ND_VLAN) {
@@ -386,6 +405,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
         write_routes(def, s, AF_INET6);
+    }
+    else {
+        g_string_append(s, "\n[ipv6]\nmethod=ignore\n");
     }
 
     conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);

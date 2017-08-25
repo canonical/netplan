@@ -118,6 +118,7 @@ typedef struct net_definition {
         char* primary_reselect_policy;
         guint resend_igmp;
         guint learn_interval;
+        char* primary_slave;
     } bond_params;
 
     struct {

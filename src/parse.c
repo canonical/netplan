@@ -856,6 +856,26 @@ handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
     return TRUE;
 }
 
+static gboolean
+handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    net_definition *component;
+    char** ref_ptr;
+
+    component = g_hash_table_lookup(netdefs, scalar(node));
+    if (!component) {
+        add_missing_node(node);
+    } else {
+        if (cur_netdef->bond_params.primary_slave)
+            return yaml_error(node, error, "%s: bond already has a primary slave: %s",
+                              cur_netdef->id, cur_netdef->bond_params.primary_slave);
+
+        ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
+        *ref_ptr = g_strdup(scalar(node));
+        cur_netdef->bond_params.primary_slave = g_strdup(scalar(node));
+    }
+}
+
 const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
@@ -878,6 +898,7 @@ const mapping_entry_handler bond_params_handlers[] = {
     {"primary-reselect-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.primary_reselect_policy)},
     {"resend-igmp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.resend_igmp)},
     {"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.learn_interval)},
+    {"primary", YAML_SCALAR_NODE, handle_bond_primary_slave, NULL, netdef_offset(bond_params.primary_slave)},
     {NULL}
 };
 
