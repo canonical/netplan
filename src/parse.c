@@ -132,8 +132,11 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
         case YAML_MAPPING_NODE:
             yaml_error(node, error, "expected mapping");
             break;
+
+        /* LCOV_EXCL_START */
         default:
-            g_assert_not_reached(); /* LCOV_EXCL_LINE */
+            g_assert_not_reached();
+        /* LCOV_EXCL_STOP */
     }
     return FALSE;
 }

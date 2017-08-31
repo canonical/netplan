@@ -203,8 +203,10 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "Kind=vlan\n\n[VLAN]\nId=%u\n", def->vlan_id);
             break;
 
+        /* LCOV_EXCL_START */
         default:
-            g_assert_not_reached(); /* LCOV_EXCL_LINE */
+            g_assert_not_reached();
+        /* LCOV_EXCL_STOP */
     }
 
     g_string_free_to_file(s, rootdir, path, ".netdev");
