@@ -256,6 +256,22 @@ class TestConfigArgs(TestBase):
         # no enablement symlink here
         self.assertEqual(os.listdir(outdir), ['netplan.stamp'])
 
+    def test_systemd_generator_badcall(self):
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        try:
+            subprocess.check_output([generator, '--root-dir', self.workdir.name],
+                                    stderr=subprocess.STDOUT)
+            self.fail("direct systemd generator call is expected to fail, but succeeded.")
+        except subprocess.CalledProcessError as e:
+            self.assertEqual(e.returncode, 1)
+            self.assertIn(b'can not be called directly', e.output)
+
 
 class TestNetworkd(TestBase):
     '''networkd output'''

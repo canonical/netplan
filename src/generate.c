@@ -69,6 +69,8 @@ int main(int argc, char** argv)
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
+    if (called_as_generator)
+        g_option_context_set_help_enabled(opt_context, FALSE);
     g_option_context_set_summary(opt_context, "Generate backend network configuration from netplan YAML definition.");
     g_option_context_set_description(opt_context,
                                      "This program reads the specified netplan YAML definition file(s)\n"
@@ -83,8 +85,10 @@ int main(int argc, char** argv)
     }
 
     if (called_as_generator) {
-        g_assert(g_strv_length(files) == 3);
-        g_assert(files[0] != NULL);
+        if (files == NULL || g_strv_length(files) != 3 || files[0] == NULL) {
+            g_fprintf(stderr, "%s can not be called directly, use 'netplan generate'.", argv[0]);
+            return 1;
+        }
         generator_run_stamp = g_build_path(G_DIR_SEPARATOR_S, files[0], "netplan.stamp", NULL);
         if (g_access(generator_run_stamp, F_OK) == 0) {
             g_fprintf(stderr, "netplan generate already ran, remove %s to force re-run\n", generator_run_stamp);
