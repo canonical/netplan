@@ -1,3 +1,14 @@
+nplan (0.28) UNRELEASED; urgency=medium
+
+  * Revert 56cd3eec which disabled IPv6 Router Advertisements by default. It
+    broke default network config in LXD and was contrary to the defaults used
+    by the kernel. Reopens LP: 1655440. (LP: #1717404)
+  * Add "accept-ra:" key for all device types; this will default to OFF but
+    allow users to disable processing Router Advertisements when required by
+    their network setup. (LP: #1655440)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 15 Sep 2017 10:41:32 -0700
+
 nplan (0.27) artful; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
