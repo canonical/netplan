@@ -34,10 +34,10 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
 # common patterns for expected output
-ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nIPv6AcceptRA=no\n\n[DHCP]\nRouteMetric=100\n'
-ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nIPv6AcceptRA=no\n\n[DHCP]\nRouteMetric=600\n'
-ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\n\n[DHCP]\nRouteMetric=100\n'
-ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\n\n[DHCP]\nRouteMetric=100\n'
+ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nIPv6AcceptRA=no\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
+ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nIPv6AcceptRA=no\n\n[DHCP]\nUseMTU=true\nRouteMetric=600\n'
+ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
+ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
 
 
 class TestBase(unittest.TestCase):
@@ -382,6 +382,7 @@ DHCP=ipv4
 IPv6AcceptRA=no
 
 [DHCP]
+UseMTU=true
 RouteMetric=100
 '''})
         self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
@@ -454,7 +455,8 @@ unmanaged-devices+=interface-name:*,''')
       match: {}
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nIPv6AcceptRA=no\n\n[DHCP]\nRouteMetric=100\n'})
+        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nIPv6AcceptRA=no\n\n'
+                                              '[DHCP]\nUseMTU=true\nRouteMetric=100\n'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=type:ethernet,''')
@@ -478,6 +480,7 @@ DHCP=ipv4
 IPv6AcceptRA=no
 
 [DHCP]
+UseMTU=true
 RouteMetric=100
 '''})
         self.assert_nm(None, '''[keyfile]
@@ -594,6 +597,7 @@ Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 
 [DHCP]
+UseMTU=true
 RouteMetric=100
 '''})
 
@@ -778,6 +782,7 @@ Destination=10.10.10.0/24
 Gateway=8.8.8.8
 
 [DHCP]
+UseMTU=true
 RouteMetric=600
 '''})
 
@@ -861,7 +866,9 @@ DHCP=ipv4
 Address=1.2.3.4/12
 IPv6AcceptRA=no
 
-[DHCP]\nRouteMetric=100
+[DHCP]
+UseMTU=true
+RouteMetric=100
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
