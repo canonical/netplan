@@ -1,3 +1,17 @@
+nplan (0.27) artful; urgency=medium
+
+  [ Mathieu Trudel-Lapierre ]
+  * Fix crash in systemd generator if called by an user on the command-line
+  * coverage: fix exclusions to properly not cover our "never reached defaults"
+
+  [ Dimitri John Ledkov ]
+  * tests/integration.py: In teardown, stop systemd-networkd.socket.
+  * src/networkd.c: Set UseMTU=true by default, whenever DHCP is in use.
+    (LP: #1717471)
+  * tests/integration.py: fix resolved detection.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 15 Sep 2017 14:25:22 +0100
+
 nplan (0.26) artful; urgency=medium
 
   * Bonding:
