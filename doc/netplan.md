@@ -161,6 +161,11 @@ Common properties for all device types
 
 :   Enable DHCP for IPv6. Off by default.
 
+``accept-ra`` (bool)
+
+:   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
+    On by default.
+
 ``addresses`` (sequence of scalars)
 
 :   Add static addresses to the interface in addition to the ones received

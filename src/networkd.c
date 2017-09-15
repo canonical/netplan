@@ -240,6 +240,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
+    if (!def->accept_ra)
+        g_string_append_printf(s, "IPv6AcceptRA=no\n");
     if (def->gateway4)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway4);
     if (def->gateway6)
