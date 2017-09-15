@@ -34,8 +34,10 @@ for program in ['wpa_supplicant', 'hostapd', 'dnsmasq']:
         sys.exit(0)
 
 nm_uses_dnsmasq = b'dns=dnsmasq' in subprocess.check_output(['NetworkManager', '--print-config'])
-with open('/etc/nsswitch.conf') as f:
-    nss_resolve = ' resolve' in f.read()
+
+
+def resolved_in_use():
+    return os.path.isfile('/run/systemd/resolve/resolv.conf')
 
 
 class NetworkTestBase(unittest.TestCase):
@@ -1099,8 +1101,8 @@ class _CommonTests:
             out = subprocess.check_output(['journalctl', '--quiet', '-tdnsmasq', '-ocat', '--since=-30s'],
                                           universal_newlines=True)
             self.assertIn('nameserver 172.1.2.3', out)
-        elif nss_resolve:
-            sys.stdout.write('[nss-resolve] ')
+        elif resolved_in_use():
+            sys.stdout.write('[resolved] ')
             sys.stdout.flush()
             out = subprocess.check_output(['systemd-resolve', '--status'], universal_newlines=True)
             self.assertIn('DNS Servers: 172.1.2.3', out)
