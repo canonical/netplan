@@ -552,6 +552,25 @@ unmanaged-devices+=interface-name:eth0,''')
     eth0: {dhcp6: true}''')
         self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0'})
 
+    def test_eth_dhcp6_no_accept_ra(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp6: true
+      accept-ra: no''')
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+DHCP=ipv6
+IPv6AcceptRA=no
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
     def test_eth_dhcp4_and_6(self):
         self.generate('''network:
   version: 2
@@ -1100,9 +1119,9 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'Mode=active-backup\n',
                               'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nIPv6AcceptRA=no\nBond=bn0\nLinkLocalAddressing=no\nPrimarySlave=true\n',
+                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\nPrimarySlave=true\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nIPv6AcceptRA=no\nBond=bn0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
     def test_gateway(self):
         self.generate('''network:
