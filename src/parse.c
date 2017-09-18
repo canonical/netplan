@@ -1106,7 +1106,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-            cur_netdef->accept_ra = TRUE /* By default, accept RAs */
+            cur_netdef->accept_ra = TRUE; /* By default, accept RAs */
             uuid_generate(cur_netdef->uuid);
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
