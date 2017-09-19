@@ -1,10 +1,10 @@
-nplan (0.29) UNRELEASED; urgency=medium
+nplan (0.29) artful; urgency=medium
 
   * Fix autopkgtests in a world where /run/NetworkManager/conf.d already
     exists. nplan is enabled by default, so it might well have the directory
     already created on the filesystem.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 19 Sep 2017 15:23:56 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 19 Sep 2017 15:24:17 -0400
 
 nplan (0.28) artful; urgency=medium
 
