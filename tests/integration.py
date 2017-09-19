@@ -140,7 +140,7 @@ class NetworkTestBase(unittest.TestCase):
         klass.dev_w_client = devs[1]
 
         # don't let NM trample over our fake AP
-        os.makedirs('/run/NetworkManager/conf.d')
+        os.makedirs('/run/NetworkManager/conf.d', exist_ok=True)
         with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
             f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=nptestsrv,%s\n' % klass.dev_w_ap)
         # work around https://launchpad.net/bugs/1615044
