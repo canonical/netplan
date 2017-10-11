@@ -1,3 +1,10 @@
+nplan (0.30) UNRELEASED; urgency=medium
+
+  * Reload udevd to invalidate configuration cache of .rules/.link files
+    as generate step may have changed them. LP: #1669564
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 11 Oct 2017 18:47:12 +0100
+
 nplan (0.29) artful; urgency=medium
 
   * Fix autopkgtests in a world where /run/NetworkManager/conf.d already
