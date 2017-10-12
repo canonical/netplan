@@ -57,6 +57,9 @@ typedef struct net_definition {
     /* only necessary for NetworkManager connection UUIDs in some cases */
     uuid_t uuid;
 
+    /* status options */
+    gboolean optional;
+
     /* addresses */
     gboolean dhcp4;
     gboolean dhcp6;

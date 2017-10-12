@@ -936,6 +936,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
@@ -955,6 +956,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
+    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
@@ -972,6 +974,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
@@ -989,6 +992,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
@@ -1006,6 +1010,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
