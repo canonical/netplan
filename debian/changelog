@@ -1,10 +1,10 @@
-nplan (0.30) UNRELEASED; urgency=medium
+nplan (0.30) artful; urgency=medium
 
   * Add an "optional" syntax node for now to all devices. This is unimplemented
     for now, but intended to allow users to mark some devices as optional: to
     make sure they do not delay boot when configured. (LP: #1664844)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 11 Oct 2017 14:37:48 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 11 Oct 2017 21:26:48 -0400
 
 nplan (0.29) artful; urgency=medium
 
