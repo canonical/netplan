@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+set -u
+
+case "$1" in
+    configure)
+	# Create /etc/network/interfaces as breadcrumbs if it doesn't
+	# already exist
+	if [ ! -f /etc/network/interfaces ]; then
+		cat <<EOF >/etc/network/interfaces
+# ifupdown has been replaced by netplan in new Ubuntu releases.
+# Network configuration is now written in files (in YAML format), in the
+# /etc/netplan directory.
+# Please see 'man 5 netplan' for more information.
+EOF
+	fi
+	;;
+    *)
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0
