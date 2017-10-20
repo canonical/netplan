@@ -1,3 +1,10 @@
+nplan (0.31) UNRELEASED; urgency=medium
+
+  * src/nm.c: generate a UUID for a connection only as needed; when we're
+    dealing with NM VLANs.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 20 Oct 2017 15:59:39 -0400
+
 nplan (0.30) artful; urgency=medium
 
   * Add an "optional" syntax node for now to all devices. This is unimplemented

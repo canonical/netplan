@@ -264,6 +264,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
      * have matches, parent= must be the connection UUID, so put it into the
      * connection */
     if (def->has_vlans && def->has_match) {
+        uuid_generate(def->uuid);
         uuid_unparse(def->uuid, uuidstr);
         g_string_append_printf(s, "uuid=%s\n", uuidstr);
     }
