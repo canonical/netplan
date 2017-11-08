@@ -1,3 +1,12 @@
+nplan (0.31~16.04.1) xenial; urgency=medium
+
+  * Backport netplan 0.31 to 16.04. (LP: #1713142)
+  * debian/control: Depend on systemd (>= 229-4ubuntu20) for the PrimarySlave
+    feature backported in that revision.
+  * tests/integration.py: Skip tests that are still not yet supported in xenial
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 08 Nov 2017 14:37:33 -0500
+
 nplan (0.31) bionic; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
