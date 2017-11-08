@@ -10,6 +10,10 @@ nplan (0.31) UNRELEASED; urgency=medium
   * Reload udevd to invalidate configuration cache of .rules/.link files
     as generate step may have changed them. LP: #1669564
 
+  [ Dan Streetman ]
+  * Add another interface driver exception to netplan replug to prevent unbind
+    of the Xen VIF interfaces.
+
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 20 Oct 2017 15:59:39 -0400
 
 nplan (0.30) artful; urgency=medium
