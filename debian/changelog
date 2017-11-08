@@ -3,6 +3,8 @@ nplan (0.31) UNRELEASED; urgency=medium
   [ Mathieu Trudel-Lapierre ]
   * src/nm.c: generate a UUID for a connection only as needed; when we're
     dealing with NM VLANs.
+  * debian/tests/autostart: Make the autostart test more verbose and avoid
+    failing right from the start when systemd-networkd is disabled.
 
   [ Dimitri John Ledkov ]
   * Reload udevd to invalidate configuration cache of .rules/.link files
