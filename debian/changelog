@@ -1,4 +1,4 @@
-nplan (0.31) UNRELEASED; urgency=medium
+nplan (0.31) bionic; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
   * src/nm.c: generate a UUID for a connection only as needed; when we're
@@ -19,7 +19,7 @@ nplan (0.31) UNRELEASED; urgency=medium
   * Add another interface driver exception to netplan replug to prevent unbind
     of the Xen VIF interfaces. (LP: #1729573)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 20 Oct 2017 15:59:39 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 08 Nov 2017 14:02:39 -0500
 
 nplan (0.30) artful; urgency=medium
 
