@@ -1027,6 +1027,9 @@ class _CommonTests:
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
     def test_routes_v6(self):
+        if (self.backend == "NetworkManager")
+            unittest.skip("SKIP 16.04: broken on 16.04 versions of linux/NetworkManager")
+
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -1829,6 +1832,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
             self.assertEqual(f.read().strip(), '192.168.5.1')
 
+    @unittest.skip("SKIP 16.04: broken on 16.04 versions of linux/NetworkManager")
     def test_bond_arp_all_targets(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
