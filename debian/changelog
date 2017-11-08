@@ -5,6 +5,9 @@ nplan (0.31) UNRELEASED; urgency=medium
     dealing with NM VLANs.
   * debian/tests/autostart: Make the autostart test more verbose and avoid
     failing right from the start when systemd-networkd is disabled.
+  * tests/integration.py: bump the NetworkManager timeout for settling to
+    120 seconds, autopkgtest infrastructure tends to be a little slow for the
+    network device configuration to be applied and noticed by NM.
 
   [ Dimitri John Ledkov ]
   * Reload udevd to invalidate configuration cache of .rules/.link files
