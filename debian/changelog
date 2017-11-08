@@ -1,3 +1,9 @@
+nplan (0.31~17.04.1) zesty; urgency=medium
+
+  * Backport 0.31 to 17.04. (LP: #1713142)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 08 Nov 2017 15:11:33 -0500
+
 nplan (0.31) bionic; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
