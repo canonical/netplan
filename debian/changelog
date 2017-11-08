@@ -2,12 +2,14 @@ nplan (0.31) UNRELEASED; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
   * src/nm.c: generate a UUID for a connection only as needed; when we're
-    dealing with NM VLANs.
+    dealing with NM VLANs. (LP: #1712921)
   * debian/tests/autostart: Make the autostart test more verbose and avoid
     failing right from the start when systemd-networkd is disabled.
+    (LP: #1699371)
   * tests/integration.py: bump the NetworkManager timeout for settling to
     120 seconds, autopkgtest infrastructure tends to be a little slow for the
     network device configuration to be applied and noticed by NM.
+    (LP: #1699371)
 
   [ Dimitri John Ledkov ]
   * Reload udevd to invalidate configuration cache of .rules/.link files
@@ -15,7 +17,7 @@ nplan (0.31) UNRELEASED; urgency=medium
 
   [ Dan Streetman ]
   * Add another interface driver exception to netplan replug to prevent unbind
-    of the Xen VIF interfaces.
+    of the Xen VIF interfaces. (LP: #1729573)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 20 Oct 2017 15:59:39 -0400
 
