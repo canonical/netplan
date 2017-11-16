@@ -231,6 +231,13 @@ write_bridge_params(const net_definition* def, GString *s)
     }
 }
 
+static void
+maybe_generate_uuid(net_definition* def)
+{
+    if (uuid_is_null(def->uuid))
+        uuid_generate(def->uuid);
+}
+
 /**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
  * particular net_definition and wifi_access_point, as NM requires a separate
@@ -264,7 +271,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
      * have matches, parent= must be the connection UUID, so put it into the
      * connection */
     if (def->has_vlans && def->has_match) {
-        uuid_generate(def->uuid);
+        maybe_generate_uuid(def);
         uuid_unparse(def->uuid, uuidstr);
         g_string_append_printf(s, "uuid=%s\n", uuidstr);
     }
@@ -355,6 +362,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         if (def->vlan_link->has_match) {
             /* we need to refer to the parent's UUID as we don't have an
              * interface name with match: */
+            maybe_generate_uuid(def->vlan_link);
             uuid_unparse(def->vlan_link->uuid, uuidstr);
             g_string_append_printf(s, "%s\n", uuidstr);
         } else {

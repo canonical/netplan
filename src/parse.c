@@ -877,6 +877,8 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
         *ref_ptr = g_strdup(scalar(node));
         cur_netdef->bond_params.primary_slave = g_strdup(scalar(node));
     }
+
+    return TRUE;
 }
 
 const mapping_entry_handler bond_params_handlers[] = {

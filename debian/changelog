@@ -1,11 +1,19 @@
-nplan (0.31~16.04.1) xenial; urgency=medium
+nplan (0.32~16.04.1) UNRELEASED; urgency=medium
 
-  * Backport netplan 0.31 to 16.04. (LP: #1713142)
+  * Backport netplan 0.32 to 16.04. (LP: #1713142)
   * debian/control: Depend on systemd (>= 229-4ubuntu20) for the PrimarySlave
     feature backported in that revision.
   * tests/integration.py: Skip tests that are still not yet supported in xenial
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 08 Nov 2017 14:37:33 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 16 Nov 2017 10:09:12 -0500
+
+nplan (0.32) bionic; urgency=medium
+
+  * src/nm.c: better handle the UUID generation; the order of iterating
+    through interaces may affect things here. Also make sure the tests catch
+    a null UUID.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 14 Nov 2017 08:53:51 -0500
 
 nplan (0.31) bionic; urgency=medium
 
