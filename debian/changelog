@@ -1,3 +1,9 @@
+nplan (0.32~17.10.1) artful; urgency=medium
+
+  * Backport 0.32 to Ubuntu 17.10. (LP: #1713142)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 23 Nov 2017 12:30:51 -0500
+
 nplan (0.32) bionic; urgency=medium
 
   * src/nm.c: better handle the UUID generation; the order of iterating
