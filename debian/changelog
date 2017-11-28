@@ -1,3 +1,10 @@
+nplan (0.32~16.04.2) UNRELEASED; urgency=medium
+
+  * tests/integration.py: Fix test_routes_v6 that I clobbered when I re-applied
+    the skip rules for 16.04 after merging in 0.32.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 28 Nov 2017 11:47:17 -0500
+
 nplan (0.32~16.04.1) xenial; urgency=medium
 
   * Backport netplan 0.32 to 16.04. (LP: #1713142)

@@ -1027,7 +1027,7 @@ class _CommonTests:
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
     def test_routes_v6(self):
-        if (self.backend == "NetworkManager")
+        if (self.backend == "NetworkManager"):
             unittest.skip("SKIP 16.04: broken on 16.04 versions of linux/NetworkManager")
 
         self.setup_eth(None)
