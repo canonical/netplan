@@ -277,16 +277,25 @@ class TestNetworkd(TestBase):
     '''networkd output'''
 
     def test_eth_optional(self):
-        # TODO: cyphermox: this is to validate that "optional" does not cause
-        #       any extra config to be generated; and will fail once it's actually
-        #       implemented.
         self.generate('''network:
   version: 2
   ethernets:
     eth0:
       dhcp6: true
       optional: true''')
-        self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0'})
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Link]
+RequiredForOnline=no
+
+[Network]
+DHCP=ipv6
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
 
     def test_eth_wol(self):
         self.generate('''network:
