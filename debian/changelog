@@ -1,9 +1,9 @@
-nplan (0.32~16.04.3) UNRELEASED; urgency=medium
+nplan (0.32~16.04.3) xenial; urgency=medium
 
   * tests/integration.py: Really fix skipping test_routes_v6 for the NM
     backend.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Dec 2017 10:21:16 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Dec 2017 10:57:34 -0500
 
 nplan (0.32~16.04.2) xenial; urgency=medium
 
