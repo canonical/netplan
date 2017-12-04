@@ -1026,34 +1026,6 @@ class _CommonTests:
         self.assertIn(b'metric 99',  # check metric from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
-    def test_routes_v6(self):
-        if (self.backend == "NetworkManager"):
-            unittest.skip("SKIP 16.04: broken on 16.04 versions of linux/NetworkManager")
-
-        self.setup_eth(None)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  renderer: %(r)s
-  ethernets:
-    %(ec)s:
-      addresses: ["9876:BBBB::11/70"]
-      gateway6: "9876:BBBB::1"
-      routes:
-          - to: 2001:f00f:f00f::1/64
-            via: 9876:BBBB::5
-            metric: 799''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet6 9876:bbbb::11/70'])
-        self.assertNotIn(b'default',
-                         subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'default via 9876:bbbb::1',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'2001:f00f:f00f::/64 via 9876:bbbb::5',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'metric 799',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', '2001:f00f:f00f::/64']))
-
     def test_manual_addresses(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
@@ -1649,9 +1621,38 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
             self.assertEqual(f.read().strip(), 'all 3')
 
+    def test_routes_v6(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: ["9876:BBBB::11/70"]
+      gateway6: "9876:BBBB::1"
+      routes:
+          - to: 2001:f00f:f00f::1/64
+            via: 9876:BBBB::5
+            metric: 799''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet6 9876:bbbb::11/70'])
+        self.assertNotIn(b'default',
+                         subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'default via 9876:bbbb::1',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'2001:f00f:f00f::/64 via 9876:bbbb::5',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'metric 799',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', '2001:f00f:f00f::/64']))
+
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'
+
+    @unittest.skip("SKIP 16.04: broken on 16.04 versions of linux/NetworkManager")
+    def test_routes_v6(self):
+        pass
 
     @unittest.skip("NetworkManager does not disable accept_ra: bug LP: #1704210")
     def test_eth_dhcp6_off(self):
