@@ -213,6 +213,49 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 }
 
 static void
+write_route(ip_route* r, GString* s)
+{
+    g_string_append_printf(s, "\n[Route]\n");
+
+    g_string_append_printf(s, "Destination=%s\nGateway=%s\n",
+                           r->to, r->via);
+
+    if (r->from)
+        g_string_append_printf(s, "From=%s\n", r->from);
+
+    if (r->scope)
+        g_string_append_printf(s, "Scope=%s\n", r->scope);
+    if (r->type)
+        g_string_append_printf(s, "Type=%s\n", r->type);
+    if (r->onlink)
+        g_string_append_printf(s, "GatewayOnLink=true\n");
+    if (r->metric != METRIC_UNSPEC)
+        g_string_append_printf(s, "Metric=%d\n", r->metric);
+    if (r->table != ROUTE_TABLE_UNSPEC)
+        g_string_append_printf(s, "Table=%d\n", r->table);
+}
+
+static void
+write_ip_rule(ip_rule* r, GString* s)
+{
+    g_string_append_printf(s, "\n[RoutingPolicyRule]\n");
+
+    if (r->from)
+        g_string_append_printf(s, "From=%s\n", r->from);
+    if (r->to)
+        g_string_append_printf(s, "To=%s\n", r->to);
+
+    if (r->table != ROUTE_TABLE_UNSPEC)
+        g_string_append_printf(s, "Table=%d\n", r->table);
+    if (r->priority != IP_RULE_PRIO_UNSPEC)
+        g_string_append_printf(s, "Priority=%d\n", r->priority);
+    if (r->fwmark != IP_RULE_FW_MARK_UNSPEC)
+        g_string_append_printf(s, "FirewallMark=%d\n", r->fwmark);
+    if (r->tos != IP_RULE_TOS_UNSPEC)
+        g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
+}
+
+static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -280,13 +323,17 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             if (nd->vlan_link == def)
                 g_string_append_printf(s, "VLAN=%s\n", nd->id);
     }
+
     if (def->routes != NULL) {
         for (unsigned i = 0; i < def->routes->len; ++i) {
             ip_route* cur_route = g_array_index (def->routes, ip_route*, i);
-            g_string_append_printf(s, "\n[Route]\nDestination=%s\nGateway=%s\n",
-                                   cur_route->to, cur_route->via);
-            if (cur_route->metric != METRIC_UNSPEC)
-                g_string_append_printf(s, "Metric=%d\n", cur_route->metric);
+            write_route(cur_route, s);
+        }
+    }
+    if (def->ip_rules != NULL) {
+        for (unsigned i = 0; i < def->ip_rules->len; ++i) {
+            ip_rule* cur_rule = g_array_index (def->ip_rules, ip_rule*, i);
+            write_ip_rule(cur_rule, s);
         }
     }
 

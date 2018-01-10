@@ -72,6 +72,7 @@ typedef struct net_definition {
     GArray* ip6_nameservers;
     GArray* search_domains;
     GArray* routes;
+    GArray* ip_rules;
 
     /* master ID for slave devices */
     char* bridge;
@@ -151,17 +152,42 @@ typedef struct {
 } wifi_access_point;
 
 #define METRIC_UNSPEC G_MAXUINT
+#define ROUTE_TABLE_UNSPEC 0
+#define IP_RULE_PRIO_UNSPEC G_MAXUINT
+#define IP_RULE_FW_MARK_UNSPEC 0
+#define IP_RULE_TOS_UNSPEC G_MAXUINT
 
 typedef struct {
     guint family;
+    char* type;
+    char* scope;
+    guint table;
 
+    char* from;
     char* to;
     char* via;
+
+    gboolean onlink;
 
     /* valid metrics are valid positive integers.
      * invalid metrics are represented by METRIC_UNSPEC */
     guint metric;
 } ip_route;
+
+typedef struct {
+    guint family;
+
+    char* from;
+    char* to;
+
+    /* table: Valid values are 1 <= x <= 4294967295) */
+    guint table;
+    guint priority;
+    /* fwmark: Valid values are 1 <= x <= 4294967295) */
+    guint fwmark;
+    /* type-of-service: between 0 and 255 */
+    guint tos;
+} ip_rule;
 
 /* Written/updated by parse_yaml(): char* id →  net_definition */
 extern GHashTable* netdefs;
