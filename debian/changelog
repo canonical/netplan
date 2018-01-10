@@ -6,6 +6,7 @@ nplan (0.32~16.04.4) UNRELEASED; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
   * Re-add snap support patch. (LP: #1747714)
+  * Fix syntax for IPv6 addresses in doc. (LP: #1735317)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 10 Jan 2018 13:54:07 -0500
 
