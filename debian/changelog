@@ -1,3 +1,9 @@
+nplan (0.32~17.10.2) UNRELEASED; urgency=medium
+
+  * Fix syntax for IPv6 addresses in doc. (LP: #1735317)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 26 Feb 2018 10:24:47 -0500
+
 nplan (0.32~17.10.1) artful; urgency=medium
 
   * Backport 0.32 to Ubuntu 17.10. (LP: #1713142)
