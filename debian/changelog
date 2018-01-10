@@ -1,3 +1,11 @@
+nplan (0.33) UNRELEASED; urgency=medium
+
+  * replug: Do not unbind ath9kl_sdio. Thanks Oliver! (LP: #1741910)
+  * doc: fix syntax for IPv6 example addresses. IPv6 needs to be escaped in
+    YAML. (LP: #1735317)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 10 Jan 2018 14:24:19 -0500
+
 nplan (0.32) bionic; urgency=medium
 
   * src/nm.c: better handle the UUID generation; the order of iterating
