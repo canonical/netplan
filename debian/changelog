@@ -1,3 +1,42 @@
+nplan (0.33) UNRELEASED; urgency=medium
+
+  * replug: Do not unbind ath9kl_sdio. Thanks Oliver! (LP: #1741910)
+  * doc: fix syntax for IPv6 example addresses. IPv6 needs to be escaped in
+    YAML. (LP: #1735317)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 10 Jan 2018 14:24:19 -0500
+
+nplan (0.32) bionic; urgency=medium
+
+  * src/nm.c: better handle the UUID generation; the order of iterating
+    through interaces may affect things here. Also make sure the tests catch
+    a null UUID.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 14 Nov 2017 08:53:51 -0500
+
+nplan (0.31) bionic; urgency=medium
+
+  [ Mathieu Trudel-Lapierre ]
+  * src/nm.c: generate a UUID for a connection only as needed; when we're
+    dealing with NM VLANs. (LP: #1712921)
+  * debian/tests/autostart: Make the autostart test more verbose and avoid
+    failing right from the start when systemd-networkd is disabled.
+    (LP: #1699371)
+  * tests/integration.py: bump the NetworkManager timeout for settling to
+    120 seconds, autopkgtest infrastructure tends to be a little slow for the
+    network device configuration to be applied and noticed by NM.
+    (LP: #1699371)
+
+  [ Dimitri John Ledkov ]
+  * Reload udevd to invalidate configuration cache of .rules/.link files
+    as generate step may have changed them. LP: #1669564
+
+  [ Dan Streetman ]
+  * Add another interface driver exception to netplan replug to prevent unbind
+    of the Xen VIF interfaces. (LP: #1729573)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 08 Nov 2017 14:02:39 -0500
+
 nplan (0.30) artful; urgency=medium
 
   * Add an "optional" syntax node for now to all devices. This is unimplemented

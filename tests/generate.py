@@ -2923,6 +2923,7 @@ method=auto
             m = re.search('uuid=([0-9a-fA-F-]{36})\n', f.read())
             self.assertTrue(m)
             uuid = m.group(1)
+            self.assertNotEquals(uuid, "00000000-0000-0000-0000-000000000000")
 
         self.assert_nm({'en-v': '''[connection]
 id=netplan-en-v

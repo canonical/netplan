@@ -877,6 +877,8 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
         *ref_ptr = g_strdup(scalar(node));
         cur_netdef->bond_params.primary_slave = g_strdup(scalar(node));
     }
+
+    return TRUE;
 }
 
 const mapping_entry_handler bond_params_handlers[] = {
@@ -1112,7 +1114,6 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
             cur_netdef->accept_ra = TRUE; /* By default, accept RAs */
-            uuid_generate(cur_netdef->uuid);
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 

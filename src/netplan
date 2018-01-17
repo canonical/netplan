@@ -102,6 +102,8 @@ def replug(device):  # pragma: nocover (covered in autopkgtest)
 
     try:
         # we must resolve symlinks here as the device dir will be gone after unbind
+        subsystem = os.path.realpath(os.path.join(devdir, 'device', 'subsystem'))
+        subsystem_name = os.path.basename(subsystem)
         driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
         driver_name = os.path.basename(driver)
         if driver_name == 'mac80211_hwsim':
@@ -111,6 +113,10 @@ def replug(device):  # pragma: nocover (covered in autopkgtest)
         if driver_name == 'mwifiex_pcie':
             logging.debug('replug %s: mwifiex_pcie crashes on rebinding, ignoring', device)
             return False
+        # workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1729573
+        if subsystem_name == 'xen' and driver_name == 'vif':
+            logging.debug('replug %s: xen:vif fails on rebinding, ignoring', device)
+            return False
         # workaround for problem with ath9k_htc module: this driver is async and does not support
         # sequential unbind / rebind, one soon after the other
         if driver_name == 'ath9k_htc':
@@ -119,6 +125,10 @@ def replug(device):  # pragma: nocover (covered in autopkgtest)
         # workaround for brcmfmac, interface will be gone after unbind
         if 'brcmfmac' in driver_name:
             logging.debug('replug %s: brcmfmac drivers do not support rebinding, ignoring', device)
+            return False
+        # workaround for ath6kl_sdio, interface does not work after unbinding
+        if 'ath6kl_sdio' in driver_name:
+            logging.debug('replug %s: ath6kl_sdio driver does not support rebinding, ignoring', device)
             return False
         logging.debug('replug %s: unbinding %s from %s', device, devname, driver)
         with open(os.path.join(driver, 'unbind'), 'w') as f:

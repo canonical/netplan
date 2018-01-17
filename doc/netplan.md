@@ -173,7 +173,7 @@ Common properties for all device types
     form ``addr/prefixlen``. ``addr`` is an IPv4 or IPv6 address as recognized
     by **``inet_pton``**(3) and ``prefixlen`` the number of bits of the subnet.
 
-    Example: ``addresses: [192.168.14.2/24, 2001:1::1/64]``
+    Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
 ``gateway4``, ``gateway6`` (scalar)
 
@@ -182,7 +182,7 @@ Common properties for all device types
     recognized by **``inet_pton``**(3).
 
     Example for IPv4: ``gateway4: 172.16.0.1``  
-    Example for IPv6: ``gateway6: 2001:4::1``
+    Example for IPv6: ``gateway6: "2001:4::1"``
 
 ``nameservers`` (mapping)
 
@@ -197,7 +197,7 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             [...]
             nameservers:
               search: [lab, home]
-              addresses: [8.8.8.8, FEDC::1]
+              addresses: [8.8.8.8, "FEDC::1"]
 
 
 Properties for device type ``ethernets:``
@@ -473,9 +473,9 @@ This is a complex example which shows most available features:
           dhcp4: true
           addresses:
             - 192.168.14.2/24
-            - 2001:1::1/64
+            - "2001:1::1/64"
           gateway4: 192.168.14.1
-          gateway6: 2001:1::2
+          gateway6: "2001:1::2"
           nameservers:
             search: [foo.local, bar.local]
             addresses: [8.8.8.8]
