@@ -40,7 +40,14 @@ typedef enum {
     BACKEND_NONE,
     BACKEND_NETWORKD,
     BACKEND_NM,
+    _BACKEND_MAX,
 } netdef_backend;
+
+static const char* const netdef_backend_to_name[_BACKEND_MAX] = {
+        [BACKEND_NONE] = "none",
+        [BACKEND_NETWORKD] = "networkd",
+        [BACKEND_NM] = "NetworkManager",
+};
 
 typedef struct missing_node {
     char* netdef_id;

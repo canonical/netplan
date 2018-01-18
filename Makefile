@@ -14,7 +14,7 @@ PYCODE = src/netplan $(wildcard src/*.py) $(wildcard tests/*.py)
 default: generate doc/netplan.5 doc/netplan.html
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc]
-	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 yaml-0.1 uuid`
+	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 clean:
 	rm -f generate doc/*.html doc/*.[1-9]
