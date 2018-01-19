@@ -34,6 +34,7 @@ class Netplan(argparse.Namespace):
 
     def __init__(self):
         self._args = None
+        self.commandclass = None
 
     #
     # helper functions
@@ -44,6 +45,8 @@ class Netplan(argparse.Namespace):
                                  help='Enable debug messages')
         subparsers = self.parser.add_subparsers(title='Available commands (see "netplan <command> --help")',
                                                 metavar='', dest='command')
+
+        from netplan.cli.commands import NetplanIp
 
         # command: generate
         p_generate = subparsers.add_parser('generate',
@@ -70,7 +73,17 @@ class Netplan(argparse.Namespace):
                                 help='Print converted netplan configuration to stdout instead of writing/changing files')
         p_ifupdown.set_defaults(func=self.command_ifupdown_migrate)
 
+        # command: ip
+        self.command_ip = NetplanIp()
+        p_ip = subparsers.add_parser('ip',
+                                     description='Describe current IP configuration',
+                                     help='Describe current IP configuration',
+                                     add_help=False)
+        p_ip.set_defaults(func=self.command_ip.run, commandclass=self.command_ip)
+
         ns, self._args = self.parser.parse_known_args(namespace=self)
+        if self.commandclass and hasattr(self.commandclass, 'update'):
+            self.commandclass.update(self._args)
 
         if not self.command:
             print('You need to specify a command', file=sys.stderr)
