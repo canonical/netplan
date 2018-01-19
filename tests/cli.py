@@ -27,10 +27,12 @@ import shutil
 import yaml
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-exe_cli = [os.path.join(rootdir, 'src', 'netplan')]
+exe_cli = [os.path.join(rootdir, 'src', 'netplan.script')]
 if shutil.which('python3-coverage'):
     exe_cli = ['python3-coverage', 'run', '--append', '--'] + exe_cli
 
+# Make sure we can import our development netplan.
+os.environ.update({'PYTHONPATH': '.'})
 
 class TestArgs(unittest.TestCase):
     '''Generic argument parsing tests'''
