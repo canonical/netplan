@@ -392,6 +392,3 @@ class Netplan(argparse.Namespace):
 
         self.run_command()
 
-
-netplan = Netplan()
-netplan.main()
