@@ -34,6 +34,7 @@ if shutil.which('python3-coverage'):
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
 
+
 class TestArgs(unittest.TestCase):
     '''Generic argument parsing tests'''
 

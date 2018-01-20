@@ -20,7 +20,6 @@
 import argparse
 import logging
 import os
-import sys
 import subprocess
 
 from netplan.cli.core import Netplan
@@ -37,6 +36,7 @@ lease_path = {
         'method': 'nm_connection',
     },
 }
+
 
 class NetplanIp(Netplan):
 
@@ -75,17 +75,20 @@ class NetplanIp(Netplan):
                     with open(ifindex_f) as f:
                         return f.readlines()[0].strip()
                 except IOError as e:
-                    logging.debug('Cannot replug %s: cannot read link %s/ifindex: %s', device, devdir, str(e))
+                    logging.debug('Cannot read file %s:', ifindex_f, str(e))
                     raise
-                return ifindex
 
             def lease_method_nm_connection():
-                nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface], env={'LC_ALL': 'C'}, stdout=subprocess.PIPE)
+                nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
+                                                 env={'LC_ALL': 'C'},
+                                                 stdout=subprocess.PIPE)
                 for line in nmcli_dev_out.stdout:
                     line = line.decode('utf-8')
                     if 'GENERAL.CONNECTION' in line:
                         conn_id = line.split(':')[1].rstrip().strip()
-                        nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id], env={'LC_ALL': 'C'}, stdout=subprocess.PIPE)
+                        nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id],
+                                                         env={'LC_ALL': 'C'},
+                                                         stdout=subprocess.PIPE)
                         for line in nmcli_con_out.stdout:
                             line = line.decode('utf-8')
                             if 'connection.uuid' in line:

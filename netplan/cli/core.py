@@ -404,4 +404,3 @@ class Netplan(argparse.Namespace):
             logging.basicConfig(level=logging.INFO, format='%(message)s')
 
         self.run_command()
-

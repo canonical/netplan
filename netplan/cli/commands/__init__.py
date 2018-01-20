@@ -16,3 +16,5 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from netplan.cli.commands.ip import NetplanIp
+
+__all__ = [NetplanIp]

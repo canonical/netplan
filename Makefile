@@ -9,7 +9,7 @@ BUILDFLAGS = \
 
 SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir systemd)
 
-PYCODE = src/netplan $(wildcard src/*.py) $(wildcard tests/*.py)
+PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)
 
 default: generate doc/netplan.5 doc/netplan.html
 
@@ -26,18 +26,26 @@ check: default
 	$(shell which pyflakes3 || echo true) $(PYCODE)
 	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 $(PYCODE)
 
-coverage:
+coverage: | pre-coverage c-coverage python-coverage
+
+pre-coverage:
 	rm -f .coverage
 	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
+	mkdir -p test-coverage/C test-coverage/python
+
+c-coverage:
 	lcov --directory . --capture -o generate.info
 	lcov --remove generate.info "/usr*" -o generate.info
-	genhtml -o test-coverage -t "generate test coverage" generate.info
+	genhtml -o test-coverage/C/ -t "generate test coverage" generate.info
 	@rm *.gcda *.gcno generate.info generate
 	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
 	@if grep headerCovTableEntryHi test-coverage/index.html | grep -qv '100.*%'; then \
 	    echo "FAIL: Test coverage not 100%!" >&2; exit 1; \
 	fi
-	python3-coverage report --include=src/netplan --show-missing --fail-under=100
+
+python-coverage:
+	python3-coverage html -d test-coverage/python --omit=/usr* || true
+	python3-coverage report --omit=/usr* --show-missing --fail-under=100
 
 install: default
 	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
