@@ -20,9 +20,11 @@ clean:
 	rm -f generate doc/*.html doc/*.[1-9]
 	rm -rf test-coverage .coverage
 
-check: default
+check: default linting
 	tests/generate.py
 	tests/cli.py
+
+linting:
 	$(shell which pyflakes3 || echo true) $(PYCODE)
 	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 $(PYCODE)
 

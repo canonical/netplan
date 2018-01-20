@@ -20,6 +20,7 @@
 import argparse
 import logging
 import os
+import sys
 import subprocess
 
 from netplan.cli.core import Netplan
@@ -74,11 +75,11 @@ class NetplanIp(Netplan):
                 try:
                     with open(ifindex_f) as f:
                         return f.readlines()[0].strip()
-                except IOError as e:
-                    logging.debug('Cannot read file %s:', ifindex_f, str(e))
+                except Exception as e:
+                    logging.debug('Cannot read file %s: %s', ifindex_f, str(e))
                     raise
 
-            def lease_method_nm_connection():
+            def lease_method_nm_connection():  # pragma: nocover (covered in autopkgtest)
                 nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
                                                  env={'LC_ALL': 'C'},
                                                  stdout=subprocess.PIPE)
@@ -93,18 +94,31 @@ class NetplanIp(Netplan):
                             line = line.decode('utf-8')
                             if 'connection.uuid' in line:
                                 return line.split(':')[1].rstrip().strip()
-                raise IOError('device not found')
+                raise Exception('Could not find a NetworkManager connection for the interface')
 
             lease_pattern = lease_path[mapping['backend']]['pattern']
             lease_method = lease_path[mapping['backend']]['method']
 
-            lease_id = eval("lease_method_" + lease_method)()
-            with open(os.path.join('/',
-                                   os.path.abspath(self.root_dir),
-                                   lease_pattern.format(interface=self.interface,
-                                                        lease_id=lease_id))) as f:
-                for line in f.readlines():
-                    print(line.rstrip())
+            try:
+                lease_id = eval("lease_method_" + lease_method)()
+
+                # We found something to build the path to the lease file with,
+                # at this point we may have something to look at; but if not,
+                # we'll rely on open() throwing an error.
+                # This might happen if networkd doesn't use DHCP for the interface,
+                # for instance.
+                with open(os.path.join('/',
+                                       os.path.abspath(self.root_dir),
+                                       lease_pattern.format(interface=self.interface,
+                                                            lease_id=lease_id))) as f:
+                    for line in f.readlines():
+                        print(line.rstrip())
+            except FileNotFoundError as e:
+                print("No lease found for interface '%s'" % self.interface, file=sys.stderr)
+                sys.exit(1)
+            except Exception as e:
+                print("An error occurred: %s" % e, file=sys.stderr)
+                sys.exit(1)
 
         argv = [path_generate]
         if self.root_dir:

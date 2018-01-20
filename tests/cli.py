@@ -89,8 +89,8 @@ class TestGenerate(unittest.TestCase):
   version: 2
   ethernets:
     enlol: {dhcp4: yes}''')
-        #p = subprocess.Popen(exe_cli + ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'], stdout=subprocess.PIPE)
-        out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'])
+        out = subprocess.check_output(exe_cli +
+                                      ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'])
         self.assertNotEqual(b'', out)
         self.assertIn('enlol', out.decode('utf-8'))
 
@@ -306,6 +306,99 @@ source-directory /etc/network/interfaces.d''')[0]
         self.assertIn(b'non-automatic interfaces are not supported', err)
         # should keep original ifupdown config
         self.assertTrue(os.path.exists(self.ifaces_path))
+
+
+class TestIp(unittest.TestCase):
+    def setUp(self):
+        self.workdir = tempfile.TemporaryDirectory()
+
+    def test_valid_subcommand(self):
+        p = subprocess.Popen(exe_cli + ['ip'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        self.assertEqual(out, b'')
+        self.assertIn(b'Available command', err)
+        self.assertNotEqual(p.returncode, 0)
+
+    def test_ip_leases_networkd(self):
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            # match against loopback so as to succesfully get a predictable
+            # ifindex
+            f.write('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enlol:
+      match:
+        name: lo
+      dhcp4: yes
+''')
+        fake_netif_lease_dir = os.path.join(self.workdir.name,
+                                            'run', 'systemd', 'netif', 'leases')
+        os.makedirs(fake_netif_lease_dir)
+        with open(os.path.join(fake_netif_lease_dir, '1'), 'w') as f:
+            f.write('''THIS IS A FAKE NETIF LEASE FOR LO''')
+        out = subprocess.check_output(exe_cli +
+                                      ['ip', 'leases',
+                                       '--root-dir', self.workdir.name, 'lo'])
+        self.assertNotEqual(out, b'')
+        self.assertIn('FAKE NETIF', out.decode('utf-8'))
+
+    def test_ip_leases_nm(self):
+        unittest.skip("Cannot be tested offline due to calls required to nmcli."
+                      "This is tested in integration tests.")
+
+    def test_ip_leases_no_networkd_lease(self):
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            # match against loopback so as to succesfully get a predictable
+            # ifindex
+            f.write('''network:
+  version: 2
+  ethernets:
+    enlol:
+      match:
+        name: lo
+      dhcp4: yes
+''')
+        p = subprocess.Popen(exe_cli +
+                             ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        self.assertEqual(out, b'')
+        self.assertIn(b'No lease found', err)
+        self.assertNotEqual(p.returncode, 0)
+
+    def test_ip_leases_no_nm_lease(self):
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            # match against loopback so as to succesfully get a predictable
+            # ifindex
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enlol:
+      match:
+        name: lo
+      dhcp4: yes
+''')
+        p = subprocess.Popen(exe_cli +
+                             ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        self.assertEqual(out, b'')
+        self.assertIn(b'not found', err)
+        self.assertNotEqual(p.returncode, 0)
 
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
