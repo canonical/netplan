@@ -54,6 +54,8 @@ class Netplan(argparse.Namespace):
                                            help='Generate backend specific configuration files from /etc/netplan/*.yaml')
         p_generate.add_argument('--root-dir',
                                 help='Search for and generate configuration files in this root directory instead of /')
+        p_generate.add_argument('--mapping',
+                                help='Display the netplan device ID/backend/interface name mapping and exit.')
         p_generate.set_defaults(func=self.command_generate)
 
         # command: apply
@@ -278,6 +280,8 @@ class Netplan(argparse.Namespace):
         argv = [path_generate]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
+        if self.mapping:
+            argv += ['--mapping', self.mapping]
         logging.debug('command generate: running %s', argv)
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
         sys.exit(subprocess.call(argv))

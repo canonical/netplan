@@ -80,6 +80,20 @@ class TestGenerate(unittest.TestCase):
         self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
                          ['10-netplan-enlol.network'])
 
+    def test_mapping_with_config(self):
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    enlol: {dhcp4: yes}''')
+        #p = subprocess.Popen(exe_cli + ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'], stdout=subprocess.PIPE)
+        out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'])
+        self.assertNotEqual(b'', out)
+        self.assertIn('enlol', out.decode('utf-8'))
+
 
 class TestIfupdownMigrate(unittest.TestCase):
     def setUp(self):
