@@ -970,18 +970,18 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
       interfaces: [eno1, switchports]
       parameters:
         ageing-time: 50
-        priority: 1000
         forward-delay: 12
         hello-time: 6
         max-age: 24
         stp: true
         path-cost:
           eno1: 70
+        port-priority:
+          eno1: 14
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
                                             '[Bridge]\nAgeingTimeSec=50\n'
-                                            'Priority=1000\n'
                                             'ForwardDelaySec=12\n'
                                             'HelloTimeSec=6\n'
                                             'MaxAgeSec=24\n'
@@ -989,7 +989,7 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
                               'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n\n'
-                                              '[Bridge]\nCost=70\n',
+                                              '[Bridge]\nCost=70\nPriority=14\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBridge=br0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
 
@@ -2394,6 +2394,8 @@ method=ignore
         max-age: 24
         path-cost:
           eno1: 70
+        port-priority:
+          eno1: 61
         stp: true
       dhcp4: true''')
 
@@ -2406,6 +2408,7 @@ master=br0
 
 [bridge-port]
 path-cost=70
+priority=61
 
 [ethernet]
 wake-on-lan=0
@@ -3452,6 +3455,52 @@ class TestConfigErrors(TestBase):
       parameters:
         path-cost:
           eno1: aa
+      dhcp4: true''', expect_fail=True)
+
+    def test_bridge_invalid_dev_for_port_prio(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-priority:
+          eth0: 50
+      dhcp4: true''', expect_fail=True)
+
+    def test_bridge_port_prio_already_defined(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-priority:
+          eno1: 50
+          eno1: 40
+      dhcp4: true''', expect_fail=True)
+
+    def test_bridge_invalid_port_prio(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-priority:
+          eno1: 257
       dhcp4: true''', expect_fail=True)
 
     def test_bond_invalid_arp_target(self):
