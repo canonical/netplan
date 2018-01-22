@@ -128,6 +128,7 @@ typedef struct net_definition {
     struct {
         guint ageing_time;
         guint priority;
+        guint port_priority;
         guint forward_delay;
         guint hello_time;
         guint max_age;
