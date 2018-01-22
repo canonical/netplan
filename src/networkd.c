@@ -66,8 +66,14 @@ write_bridge_params(GString* s, net_definition* def)
 
         if (def->bridge_params.ageing_time)
             g_string_append_printf(params, "AgeingTimeSec=%u\n", def->bridge_params.ageing_time);
+#if 0
+	/* FIXME: Priority= is not valid for the bridge itself, although it should work as the
+         *        STP priority of the bridge itself. It's not supported by networkd, but let's
+         *        keep it around in case it becomes supported in the future.
+         */
         if (def->bridge_params.priority)
             g_string_append_printf(params, "Priority=%u\n", def->bridge_params.priority);
+#endif
         if (def->bridge_params.forward_delay)
             g_string_append_printf(params, "ForwardDelaySec=%u\n", def->bridge_params.forward_delay);
         if (def->bridge_params.hello_time)
@@ -261,8 +267,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (def->bridge) {
         g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bridge);
 
+        if (def->bridge_params.path_cost || def->bridge_params.port_priority)
+            g_string_append_printf(s, "\n[Bridge]\n");
         if (def->bridge_params.path_cost)
-            g_string_append_printf(s, "\n[Bridge]\nCost=%u\n", def->bridge_params.path_cost);
+            g_string_append_printf(s, "Cost=%u\n", def->bridge_params.path_cost);
+        if (def->bridge_params.port_priority)
+            g_string_append_printf(s, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond) {
         g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bond);

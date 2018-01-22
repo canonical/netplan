@@ -262,6 +262,12 @@ Properties for device type ``bridges:``
           priority. The bridge with the higher priority will be elected as
           the root bridge.
 
+     ``port-priority`` (scalar)
+     :    Set the port priority to <priority>. The priority value is
+          an unsigned 8-bit quantity (a number between ``0`` and ``255``),
+          and has no dimension. This metric is used in the designated port and
+          root port selection algorithms.
+
      ``forward-delay`` (scalar)
      :    Specify the period of time the bridge will remain in Listening and
           Learning states before getting to the Forwarding state. This value

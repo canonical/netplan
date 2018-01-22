@@ -303,8 +303,12 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     if (def->bridge) {
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
 
+        if (def->bridge_params.path_cost || def->bridge_params.port_priority)
+            g_string_append_printf(s, "\n[bridge-port]\n");
         if (def->bridge_params.path_cost)
-            g_string_append_printf(s, "\n[bridge-port]\npath-cost=%u\n", def->bridge_params.path_cost);
+            g_string_append_printf(s, "path-cost=%u\n", def->bridge_params.path_cost);
+        if (def->bridge_params.port_priority)
+            g_string_append_printf(s, "priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond)
         g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
