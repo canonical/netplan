@@ -792,8 +792,9 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
                                   cur_netdef->id, scalar(key), *ref_ptr);
 
             v = g_ascii_strtoull(scalar(value), &endptr, 10);
-            if (*endptr != '\0' || v > G_MAXINT8)
-                return yaml_error(node, error, "invalid unsigned int 8-bit value %s", scalar(value));
+            if (*endptr != '\0' || v > 63)
+                return yaml_error(node, error, "invalid port priority value (must be between 0 and 63): %s",
+                                  scalar(value));
 
             g_debug("%s: adding port '%s' of priority: %d", cur_netdef->id, scalar(key), v);
 
