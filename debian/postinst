@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+set -u
+
+case "$1" in
+    configure)
+	if dpkg --compare-versions "$2" lt-nl "0.33"; then
+	    # Create /etc/network/interfaces as breadcrumbs if it doesn't
+	    # already exist
+	    if [ ! -f /etc/network/interfaces ]; then
+		cat <<EOF >/etc/network/interfaces
+# ifupdown has been replaced by netplan(5) on this system.  Do not edit.
+EOF
+	   fi
+	fi
+	;;
+    *)
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0
