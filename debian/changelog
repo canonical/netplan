@@ -5,6 +5,9 @@ nplan (0.33) UNRELEASED; urgency=medium
     YAML. (LP: #1735317)
   * debian/postinst: Write breadcrumbs on disk in /etc/network/interfaces to
     denote the migration to using netplan.
+  * bridge: implement port-priority support for the NM and networkd backends.
+    (LP: #1735821)
+  * Rework CLI parsing / code layout to better handle subcommands.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 10 Jan 2018 14:24:19 -0500
 
