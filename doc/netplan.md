@@ -479,6 +479,10 @@ This is a complex example which shows most available features:
           nameservers:
             search: [foo.local, bar.local]
             addresses: [8.8.8.8]
+          routes:
+            - to: 0.0.0.0/0
+              via: 11.0.0.1
+              metric: 3
         lom:
           match:
             driver: ixgbe
@@ -515,10 +519,6 @@ This is a complex example which shows most available features:
           # IDs of the components; switchports expands into multiple interfaces
           interfaces: [wlp1s0, switchports]
           dhcp4: true
-      routes:
-       - to: 0.0.0.0/0
-         via: 11.0.0.1
-         metric: 3
 
 <!--- vim: ft=markdown
 -->
