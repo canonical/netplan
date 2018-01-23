@@ -2395,7 +2395,7 @@ method=ignore
         path-cost:
           eno1: 70
         port-priority:
-          eno1: 101
+          eno1: 61
         stp: true
       dhcp4: true''')
 
@@ -2408,7 +2408,7 @@ master=br0
 
 [bridge-port]
 path-cost=70
-priority=101
+priority=61
 
 [ethernet]
 wake-on-lan=0
