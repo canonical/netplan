@@ -4,7 +4,7 @@ nplan (0.33) UNRELEASED; urgency=medium
   * doc: fix syntax for IPv6 example addresses. IPv6 needs to be escaped in
     YAML. (LP: #1735317)
   * debian/postinst: Write breadcrumbs on disk in /etc/network/interfaces to
-    denote the migration to using netplan.
+    denote the migration to using netplan. (LP: #1744968)
   * bridge: implement port-priority support for the NM and networkd backends.
     (LP: #1735821)
   * doc: routes are not top-level but per-interface. (LP: #1726695)
