@@ -397,7 +397,7 @@ class TestIp(unittest.TestCase):
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
-        self.assertIn(b'not found', err)
+        self.assertIn(b'No lease found', err)
         self.assertNotEqual(p.returncode, 0)
 
 

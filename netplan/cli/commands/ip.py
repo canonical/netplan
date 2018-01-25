@@ -80,20 +80,23 @@ class NetplanIp(Netplan):
                     raise
 
             def lease_method_nm_connection():  # pragma: nocover (covered in autopkgtest)
-                nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
-                                                 env={'LC_ALL': 'C'},
-                                                 stdout=subprocess.PIPE)
-                for line in nmcli_dev_out.stdout:
-                    line = line.decode('utf-8')
-                    if 'GENERAL.CONNECTION' in line:
-                        conn_id = line.split(':')[1].rstrip().strip()
-                        nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id],
-                                                         env={'LC_ALL': 'C'},
-                                                         stdout=subprocess.PIPE)
-                        for line in nmcli_con_out.stdout:
-                            line = line.decode('utf-8')
-                            if 'connection.uuid' in line:
-                                return line.split(':')[1].rstrip().strip()
+                try:
+                    nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
+                                                     env={'LC_ALL': 'C'},
+                                                     stdout=subprocess.PIPE)
+                    for line in nmcli_dev_out.stdout:
+                        line = line.decode('utf-8')
+                        if 'GENERAL.CONNECTION' in line:
+                            conn_id = line.split(':')[1].rstrip().strip()
+                            nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id],
+                                                             env={'LC_ALL': 'C'},
+                                                             stdout=subprocess.PIPE)
+                            for line in nmcli_con_out.stdout:
+                                line = line.decode('utf-8')
+                                if 'connection.uuid' in line:
+                                    return line.split(':')[1].rstrip().strip()
+                except Exception as e:
+                    raise Exception('Could not find a NetworkManager connection for the interface: %s' % str(e))
                 raise Exception('Could not find a NetworkManager connection for the interface')
 
             lease_pattern = lease_path[mapping['backend']]['pattern']
