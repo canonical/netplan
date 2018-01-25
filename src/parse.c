@@ -98,7 +98,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
  * Put a YAML specific error message for @node into @error.
  */
 static gboolean
-yaml_error(yaml_node_t* node, GError** error, const char* msg, ...)
+yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
 {
     va_list argp;
     gchar* s;
