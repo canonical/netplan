@@ -116,11 +116,9 @@ class NetplanIp(Netplan):
                                                             lease_id=lease_id))) as f:
                     for line in f.readlines():
                         print(line.rstrip())
-            except FileNotFoundError as e:
-                print("No lease found for interface '%s'" % self.interface, file=sys.stderr)
-                sys.exit(1)
             except Exception as e:
-                print("An error occurred: %s" % e, file=sys.stderr)
+                print("No lease found for interface '%s': %s" % (self.interface, str(e)),
+                      file=sys.stderr)
                 sys.exit(1)
 
         argv = [path_generate]
