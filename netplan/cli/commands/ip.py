@@ -80,6 +80,7 @@ class NetplanIp(Netplan):
                     raise
 
             def lease_method_nm_connection():  # pragma: nocover (covered in autopkgtest)
+                # FIXME: handle older versions of NM where 'nmcli dev show' doesn't exist
                 try:
                     nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
                                                      env={'LC_ALL': 'C'},
