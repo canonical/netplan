@@ -51,7 +51,7 @@ static const char* const netdef_backend_to_name[_BACKEND_MAX] = {
 
 typedef struct missing_node {
     char* netdef_id;
-    yaml_node_t* node;
+    const yaml_node_t* node;
 } missing_node;
 
 /**
