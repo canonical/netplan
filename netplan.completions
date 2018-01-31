@@ -1,0 +1,55 @@
+# netplan(1) completion                                       -*- shell-script -*-
+
+_netplan()
+{
+    local cur prev words cword
+    _init_completion || return
+
+    #echo cur="$cur" prev="$prev" words=\""${words}"\" cword="$cword" 1=\""$@"\" cwo="cur=${COMP_WORDS[COMP_CWORD-2]}"
+    case $prev in
+        netplan)
+            COMPREPLY=( $( compgen -W 'apply generate ifupdown-migrate ip' "$cur" ) )
+            return
+            ;;
+        apply|generate)
+            return
+            ;;
+        ip)
+            COMPREPLY=( $( compgen -W 'leases' -- "$cur" ) )
+            return
+            ;;
+        leases)
+            if [ "${COMP_WORDS[COMP_CWORD-2]}" = "ip" ]; then
+                _available_interfaces -a
+            fi
+            return
+            ;;
+        --cacert|-E|--cert)
+            _filedir '@(c?(e)rt|cer|pem|der)'
+            return
+            ;;
+        --capath)
+            _filedir -d
+            return
+            ;;
+        --delegation)
+            COMPREPLY=( $( compgen -W 'none policy always' -- "$cur" ) )
+            return
+            ;;
+        --engine)
+            COMPREPLY=( $( compgen -W 'list' -- "$cur" ) )
+            return
+            ;;
+        --interface)
+            _available_interfaces -a
+            return
+            ;;
+    esac
+
+    if [[ $cur == -* ]]; then
+        COMPREPLY=( $( compgen -W '$( _parse_help "$1" )' -- "$cur" ) )
+    fi
+} &&
+complete -F _netplan netplan
+
+# ex: ts=4 sw=4 et filetype=sh
