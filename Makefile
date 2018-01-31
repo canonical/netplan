@@ -34,19 +34,20 @@ pre-coverage:
 	$(MAKE) CFLAGS="-g -O0 --coverage" clean check
 	mkdir -p test-coverage/C test-coverage/python
 
+check-coverage: coverage
+	@if grep headerCovTableEntryHi test-coverage/C/index.html | grep -qv '100.*%'; then \
+	    echo "FAIL: Test coverage not 100%!" >&2; exit 1; \
+	fi
+	python3-coverage report --omit=/usr* --show-missing --fail-under=100
+
 c-coverage:
 	lcov --directory . --capture -o generate.info
 	lcov --remove generate.info "/usr*" -o generate.info
 	genhtml -o test-coverage/C/ -t "generate test coverage" generate.info
-	@echo "generated report: file://$(CURDIR)/test-coverage/index.html"
-	@if grep headerCovTableEntryHi test-coverage/index.html | grep -qv '100.*%'; then \
-	    echo "FAIL: Test coverage not 100%!" >&2; exit 1; \
-	fi
 
 python-coverage:
 	python3-coverage html -d test-coverage/python --omit=/usr* || true
 	python3-coverage xml --omit=/usr* || true
-	python3-coverage report --omit=/usr* --show-missing --fail-under=100
 
 install: default
 	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
