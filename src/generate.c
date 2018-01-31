@@ -80,8 +80,10 @@ find_interface(gchar* interface)
                               G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET,
                               0, NULL, NULL);
     if (info != NULL) {
+	/* LCOV_EXCL_START - testing for driver matching is done via autopkgtest */
         driver = g_path_get_basename (g_file_info_get_symlink_target (info));
         g_object_unref (info);
+	/* LCOV_EXCL_STOP */
     }
     g_object_unref (driver_file);
     g_free (driver_path);
@@ -97,16 +99,18 @@ find_interface(gchar* interface)
             g_ptr_array_add (found, (gpointer) nd);
     }
     if (found->len == 0 && driver != NULL) {
+	/* LCOV_EXCL_START - testing for driver matching is done via autopkgtest */
         g_hash_table_iter_init (&iter, netdefs);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
             net_definition *nd = (net_definition *) value;
             if (!g_strcmp0(nd->match.driver, driver))
                 g_ptr_array_add (found, (gpointer) nd);
         }
+	/* LCOV_EXCL_STOP */
     }
 
     if (driver)
-        g_free (driver);
+        g_free (driver); /* LCOV_EXCL_LINE */
 
     if (found->len != 1) {
         goto exit_find;

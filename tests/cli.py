@@ -80,7 +80,23 @@ class TestGenerate(unittest.TestCase):
         self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
                          ['10-netplan-enlol.network'])
 
-    def test_mapping_with_config(self):
+    def test_mapping_for_unknown_iface(self):
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    enlol: {dhcp4: yes}''')
+        p = subprocess.Popen(exe_cli +
+                             ['generate', '--root-dir', self.workdir.name, '--mapping', 'inexistant'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertNotIn(b'inexistant', out)
+
+    def test_mapping_for_interface(self):
         os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
@@ -93,6 +109,25 @@ class TestGenerate(unittest.TestCase):
                                       ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'])
         self.assertNotEqual(b'', out)
         self.assertIn('enlol', out.decode('utf-8'))
+
+    def test_mapping_for_renamed_iface(self):
+        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    myif:
+      match:
+        name: enlol
+      set-name: renamediface
+      dhcp4: yes
+''')
+        out = subprocess.check_output(exe_cli +
+                                      ['generate', '--root-dir', self.workdir.name, '--mapping', 'renamediface'])
+        self.assertNotEqual(b'', out)
+        self.assertIn('renamediface', out.decode('utf-8'))
 
 
 class TestIfupdownMigrate(unittest.TestCase):
