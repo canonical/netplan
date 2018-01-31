@@ -45,8 +45,8 @@ c-coverage:
 
 python-coverage:
 	python3-coverage html -d test-coverage/python --omit=/usr* || true
+	python3-coverage xml --omit=/usr* || true
 	python3-coverage report --omit=/usr* --show-missing --fail-under=100
-	python3-coverage xml --omit=/usr*
 
 install: default
 	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
