@@ -47,6 +47,7 @@ install: default
 	install -m 644 doc/*.html $(DESTDIR)/usr/share/doc/netplan/
 	install -m 644 doc/*.5 $(DESTDIR)/usr/share/man/man5/
 	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/`pkg-config --variable=systemdsystemunitdir systemd`/netplan-wpa@.service
+	install -T -D -m 644 netplan.completions $(DESTDIR)/usr/share/bash-completions/completions/netplan
 
 %.html: %.md
 	pandoc -s --toc -o $@ $<
