@@ -141,6 +141,8 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
     return FALSE;
 }
 
+#define assert_type(n,t) { if (!assert_type_fn(n,t,error)) return FALSE; }
+
 static inline const char*
 scalar(const yaml_node_t* node)
 {
@@ -173,7 +175,7 @@ assert_valid_id(yaml_node_t* node, GError** error)
     static regex_t re;
     static gboolean re_inited = FALSE;
 
-    g_assert(node->type == YAML_SCALAR_NODE);
+    assert_type(node, YAML_SCALAR_NODE);
 
     if (!re_inited) {
         g_assert(regcomp(&re, "^[[:alnum:][:punct:]]+$", REG_EXTENDED|REG_NOSUB) == 0);
@@ -184,8 +186,6 @@ assert_valid_id(yaml_node_t* node, GError** error)
         return yaml_error(node, error, "Invalid name '%s'", scalar(node));
     return TRUE;
 }
-
-#define assert_type(n,t) { if (!assert_type_fn(n,t,error)) return FALSE; }
 
 /****************************************************
  * Data types and functions for interpreting YAML nodes
