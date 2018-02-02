@@ -240,6 +240,8 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
         yaml_node_t* key, *value;
         const mapping_entry_handler* h;
 
+        g_assert(*error == NULL);
+
         key = yaml_document_get_node(doc, entry->key);
         value = yaml_document_get_node(doc, entry->value);
         assert_type(key, YAML_SCALAR_NODE);
@@ -1221,6 +1223,8 @@ process_document(yaml_document_t* doc, GError** error)
 
         previously_found = missing_ids_found;
         missing_ids_found = 0;
+
+        g_clear_error(error);
 
         ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, error);
 
