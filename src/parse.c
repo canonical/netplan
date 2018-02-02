@@ -563,11 +563,20 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
 
         if (!cur_netdef->access_points)
             cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
-        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point))
-            return yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
+        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point)) {
+            /* Even in the error case, NULL out cur_access_point. Otherwise we
+             * have an assert failure if we do a multi-pass parse. */
+            gboolean ret;
 
-        if (!process_mapping(doc, value, wifi_access_point_handlers, error))
-            return FALSE;
+            ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
+            cur_access_point = NULL;
+            return ret;
+	}
+
+        if (!process_mapping(doc, value, wifi_access_point_handlers, error)) {
+	    cur_access_point = NULL;
+	    return FALSE;
+        }
 
         cur_access_point = NULL;
     }
