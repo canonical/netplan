@@ -5,13 +5,15 @@ _netplan()
     local cur prev words cword
     _init_completion || return
 
-    #echo cur="$cur" prev="$prev" words=\""${words}"\" cword="$cword" 1=\""$@"\" cwo="cur=${COMP_WORDS[COMP_CWORD-2]}"
     case $prev in
         netplan)
             COMPREPLY=( $( compgen -W 'apply generate ifupdown-migrate ip' "$cur" ) )
             return
             ;;
         apply|generate)
+            return
+            ;;
+        ifupdown-migrate)
             return
             ;;
         ip)
@@ -22,26 +24,6 @@ _netplan()
             if [ "${COMP_WORDS[COMP_CWORD-2]}" = "ip" ]; then
                 _available_interfaces -a
             fi
-            return
-            ;;
-        --cacert|-E|--cert)
-            _filedir '@(c?(e)rt|cer|pem|der)'
-            return
-            ;;
-        --capath)
-            _filedir -d
-            return
-            ;;
-        --delegation)
-            COMPREPLY=( $( compgen -W 'none policy always' -- "$cur" ) )
-            return
-            ;;
-        --engine)
-            COMPREPLY=( $( compgen -W 'list' -- "$cur" ) )
-            return
-            ;;
-        --interface)
-            _available_interfaces -a
             return
             ;;
     esac
