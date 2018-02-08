@@ -159,7 +159,7 @@ add_missing_node(const yaml_node_t* node)
      * seen by the compiler). We can use it later to write an sensible error
      * message and point the user in the right direction. */
     missing = g_new0(missing_node, 1);
-    missing->netdef_id = cur_netdef->id;
+    missing->netdef_id = g_strdup(cur_netdef->id);
     missing->node = node;
 
     g_debug("recording missing yaml_node_t %s", scalar(node));
@@ -1222,7 +1222,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* convenience shortcut: physical device without match: means match
          * name on ID */
         if (cur_netdef->type < ND_VIRTUAL && !cur_netdef->has_match)
-            cur_netdef->match.original_name = cur_netdef->id;
+            cur_netdef->match.original_name = g_strdup(cur_netdef->id);
     }
     backend_cur_type = BACKEND_NONE;
     return TRUE;
@@ -1300,6 +1300,111 @@ process_document(yaml_document_t* doc, GError** error)
     return ret;
 }
 
+/*
+ * Validate that all the pointers in all netdefs are unique
+ * to that netdef - that is, that there are no inter-netdef
+ * pointers. This allows us to do safe rollback
+ */
+#define check_and_add(x) \
+  if (netdef->x) { \
+      g_assert(g_ptr_array_find(ptrs, netdef->x, NULL) == FALSE);    \
+      g_ptr_array_add(ptrs, netdef->x); \
+  }
+
+#define check_string_array(x) \
+  if (netdef->x) { \
+      g_assert(g_ptr_array_find(ptrs, netdef->x, NULL) == FALSE);	\
+      g_ptr_array_add(ptrs, netdef->x); \
+      for (guint i = 0; i < netdef->x->len; i++) { \
+          char *val = g_array_index(netdef->x, char*, i); \
+          g_assert(g_ptr_array_find(ptrs, val, NULL) == FALSE); \
+          g_ptr_array_add(ptrs, val); \
+      } \
+  }
+
+static void
+validate_netdefs_independent()
+{
+    GPtrArray *ptrs;
+    GHashTableIter iter, wifi_iter;
+    gpointer key, wifi_key;
+    net_definition* netdef;
+    wifi_access_point* ap;
+    guint i;
+    ip_route* route;
+
+    ptrs = g_ptr_array_new();
+
+    g_hash_table_iter_init(&iter, netdefs);
+    while (g_hash_table_iter_next(&iter, &key, (gpointer*)&netdef)) {
+        check_and_add(id);
+        check_string_array(ip4_addresses);
+        check_string_array(ip6_addresses);
+        check_and_add(gateway4);
+        check_and_add(gateway6);
+        check_string_array(ip4_nameservers);
+        check_string_array(ip6_nameservers);
+        check_string_array(search_domains);
+
+        if (netdef->routes) {
+             g_assert(g_ptr_array_find(ptrs, netdef->routes, NULL) == FALSE);
+             g_ptr_array_add(ptrs, netdef->routes);
+             for (i = 0; i < netdef->routes->len; i++) {
+                 route = g_array_index(netdef->routes, ip_route*, i);
+                 g_assert(g_ptr_array_find(ptrs, route, NULL) == FALSE);
+                 g_ptr_array_add(ptrs, route);
+                 g_assert(g_ptr_array_find(ptrs, route->to, NULL) == FALSE);
+                 g_ptr_array_add(ptrs, route->to);
+                 g_assert(g_ptr_array_find(ptrs, route->via, NULL) == FALSE);
+                 g_ptr_array_add(ptrs, route->via);
+             }
+        }
+
+        /* master ID for slave devices */
+        check_and_add(bridge);
+        check_and_add(bond);
+
+        /* vlan */
+        check_and_add(vlan_link_id);
+
+        /* Configured custom MAC address */
+        check_and_add(set_mac);
+
+        /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
+        check_and_add(set_name);
+        check_and_add(match.driver);
+        check_and_add(match.mac);
+        check_and_add(match.original_name);
+
+        /* these properties are only valid for ND_WIFI */
+        check_and_add(access_points);
+        if (netdef->access_points) {
+            g_hash_table_iter_init(&wifi_iter, netdef->access_points);
+            while (g_hash_table_iter_next(&wifi_iter, &wifi_key, (gpointer*)&ap)) {
+                g_assert(g_ptr_array_find(ptrs, ap->ssid, NULL) == FALSE);
+                g_ptr_array_add(ptrs, ap->ssid);
+                if (ap->password) {
+                    g_assert(g_ptr_array_find(ptrs, ap->password, NULL) == FALSE);
+                    g_ptr_array_add(ptrs, ap->password);
+                }
+            }
+        }
+
+        check_and_add(bond_params.mode);
+        check_and_add(bond_params.lacp_rate);
+        check_and_add(bond_params.transmit_hash_policy);
+        check_and_add(bond_params.selection_logic);
+        check_string_array(bond_params.arp_ip_targets);
+        check_and_add(bond_params.arp_validate);
+        check_and_add(bond_params.arp_all_targets);
+        check_and_add(bond_params.fail_over_mac_policy);
+        check_and_add(bond_params.primary_reselect_policy);
+        check_and_add(bond_params.primary_slave);
+    }
+}
+#undef check_and_add
+#undef check_string_array
+
 /**
  * Parse given YAML file and create/update global "netdefs" list.
  */
@@ -1323,6 +1428,8 @@ parse_yaml(const char* filename, GError** error)
     ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
     ret = process_document(&doc, error);
+
+    validate_netdefs_independent();
 
     cur_netdef = NULL;
     yaml_document_delete(&doc);
