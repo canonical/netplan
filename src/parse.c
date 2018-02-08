@@ -573,35 +573,66 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
 }
 
 /**
- * Handler for "interfaces:" list. We don't store that list in cur_netdef, but
- * set cur_netdef's ID in all listed interfaces' "bond" or "bridge" field.
- * @data: offset into net_definition where the const char* ID reference field
- *        to write is located
+ * Handler for bridge "interfaces:" list. We don't store that list in cur_netdef,
+ * but set cur_netdef's ID in all listed interfaces' "bond" or "bridge" field.
+ * @data: ignored
  */
 static gboolean
-handle_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         net_definition *component;
-        char** component_ref_ptr;
 
         assert_type(entry, YAML_SCALAR_NODE);
         component = g_hash_table_lookup(netdefs, scalar(entry));
         if (!component) {
             add_missing_node(entry);
         } else {
-            component_ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
-            if (*component_ref_ptr && *component_ref_ptr != cur_netdef->id)
-                return yaml_error(node, error, "%s: interface %s is already assigned to %s",
-                                  cur_netdef->id, scalar(entry), *component_ref_ptr);
-            *component_ref_ptr = cur_netdef->id;
+            if (component->bridge && g_strcmp0(component->bridge, cur_netdef->id) != 0)
+                return yaml_error(node, error, "%s: interface %s is already assigned to bridge %s",
+                                  cur_netdef->id, scalar(entry), component->bridge);
+            if (component->bond)
+                return yaml_error(node, error, "%s: interface %s is already assigned to bond %s",
+                                  cur_netdef->id, scalar(entry), component->bond);
+           component->bridge = g_strdup(cur_netdef->id);
         }
     }
 
     return TRUE;
 }
+
+/**
+ * Handler for bond "interfaces:" list.
+ * @data: ignored
+ */
+static gboolean
+handle_bond_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    /* all entries must refer to already defined IDs */
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        net_definition *component;
+
+        assert_type(entry, YAML_SCALAR_NODE);
+        component = g_hash_table_lookup(netdefs, scalar(entry));
+        if (!component) {
+            add_missing_node(entry);
+        } else {
+            if (component->bridge)
+                return yaml_error(node, error, "%s: interface %s is already assigned to bridge %s",
+                                  cur_netdef->id, scalar(entry), component->bridge);
+            if (component->bond && g_strcmp0(component->bond, cur_netdef->id) != 0)
+                return yaml_error(node, error, "%s: interface %s is already assigned to bond %s",
+                                  cur_netdef->id, scalar(entry), component->bond);
+            component->bond = g_strdup(cur_netdef->id);
+        }
+    }
+
+    return TRUE;
+}
+
 
 static gboolean
 handle_nameservers_search(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
@@ -1006,7 +1037,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
+    {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
@@ -1024,7 +1055,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
+    {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},

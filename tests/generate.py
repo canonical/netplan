@@ -3063,7 +3063,7 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]
     br1:
       interfaces: [eno1]''', expect_fail=True)
-        self.assertIn('br1: interface eno1 is already assigned to br0\n', err)
+        self.assertIn('br1: interface eno1 is already assigned to bridge br0\n', err)
 
     def test_unknown_global_renderer(self):
         err = self.generate('''network:
@@ -3549,6 +3549,56 @@ class TestConfigErrors(TestBase):
         primary: eno1
         primary: eno2
       dhcp4: true''', expect_fail=True)
+
+    def test_bond_multiple_assignments(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      interfaces: [eno1]
+    bond1:
+      interfaces: [eno1]''', expect_fail=True)
+        self.assertIn('bond1: interface eno1 is already assigned to bond bond0\n', err)
+
+    def test_bond_bridge_cross_assignments1(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      interfaces: [eno1]
+  bridges:
+    br1:
+      interfaces: [eno1]''', expect_fail=True)
+        self.assertIn('br1: interface eno1 is already assigned to bond bond0\n', err)
+
+    def test_bond_bridge_cross_assignments2(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [eno1]
+  bonds:
+    bond1:
+      interfaces: [eno1]''', expect_fail=True)
+        self.assertIn('bond1: interface eno1 is already assigned to bridge br0\n', err)
+
+    def test_bond_bridge_nested_assignments(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      interfaces: [eno1]
+  bridges:
+    br1:
+      interfaces: [bond0]''')
 
 
 class TestForwardDeclaration(TestBase):
