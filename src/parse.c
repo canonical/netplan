@@ -307,7 +307,7 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
     if (!ref) {
         add_missing_node(node);
     } else {
-        *((net_definition**) ((void*) cur_netdef + offset)) = ref;
+        *((char**) ((void*) cur_netdef + offset)) = g_strdup(ref->id);
     }
     return TRUE;
 }
@@ -1085,7 +1085,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
-    {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link_id)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1117,6 +1117,7 @@ static gboolean
 validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 {
     int missing_id_count = g_hash_table_size(missing_id);
+    net_definition *vlan_link;
     g_assert(nd->type != ND_NONE);
 
     /* Skip all validation if we're missing some definition IDs (devices).
@@ -1133,9 +1134,11 @@ validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
         return yaml_error(node, error, "%s: No access points defined", nd->id);
 
     if (nd->type == ND_VLAN) {
-        if (!nd->vlan_link)
+        if (!nd->vlan_link_id)
             return yaml_error(node, error, "%s: missing link property", nd->id);
-        nd->vlan_link->has_vlans = TRUE;
+        vlan_link = g_hash_table_lookup(netdefs, nd->vlan_link_id);
+        g_assert(vlan_link != NULL);
+        vlan_link->has_vlans = TRUE;
         if (nd->vlan_id == G_MAXUINT)
             return yaml_error(node, error, "%s: missing id property", nd->id);
         if (nd->vlan_id > 4094)

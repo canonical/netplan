@@ -86,7 +86,7 @@ typedef struct net_definition {
 
     /* vlan */
     guint vlan_id;
-    struct net_definition* vlan_link;
+    char* vlan_link_id;
     gboolean has_vlans;
 
     /* Configured custom MAC address */

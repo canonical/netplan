@@ -290,7 +290,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         net_definition* nd;
         g_hash_table_iter_init(&i, netdefs);
         while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
-            if (nd->vlan_link == def)
+            if (g_strcmp0(nd->vlan_link_id, def->id) == 0)
                 g_string_append_printf(s, "VLAN=%s\n", nd->id);
     }
     if (def->routes != NULL) {
