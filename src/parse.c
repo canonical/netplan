@@ -1290,9 +1290,12 @@ process_document(yaml_document_t* doc, GError** error)
         g_hash_table_iter_next (&iter, &key, &value);
         missing = (missing_node*) value;
 
-        return yaml_error(missing->node, error, "%s: interface %s is not defined",
-                          missing->netdef_id,
-                          key);
+        ret = yaml_error(missing->node, error, "%s: interface %s is not defined",
+                         missing->netdef_id,
+                         key);
+        g_hash_table_destroy(missing_id);
+        missing_id = NULL;
+        return ret;
     }
 
     g_hash_table_destroy(missing_id);
@@ -1404,6 +1407,163 @@ validate_netdefs_independent()
 }
 #undef check_and_add
 #undef check_string_array
+
+static GArray*
+duplicate_str_array(const GArray* array)
+{
+    int i;
+    char *s;
+    GArray* ret;
+
+    if (!array)
+        return NULL;
+
+    ret = g_array_new(FALSE, FALSE, sizeof(char*));
+    for (i=0; i<array->len; i++) {
+        s = g_strdup(g_array_index(array, char*, i));
+        g_array_append_val(ret, s);
+    }
+    return ret;
+}
+
+
+/**
+ * duplicate a given netdef
+ * creates a deep copy, completely indepedent of supplied definition
+ * caller must free
+ */
+static net_definition*
+duplicate_net_definition(const net_definition* def)
+{
+    net_definition *ret = g_new0(net_definition, 1);
+    int i;
+    GHashTableIter wifi_iter;
+    gpointer wifi_key;
+    wifi_access_point *ap;
+
+
+    ret->type = def->type;
+    ret->backend = def->backend;
+    ret->id = g_strdup(def->id);
+    /* only necessary for NetworkManager connection UUIDs in some cases */
+    uuid_copy(ret->uuid, def->uuid);
+
+    /* status options */
+    ret->optional = def->optional;
+
+    /* addresses */
+    ret->dhcp4 = def->dhcp4;
+    ret->dhcp6 = def->dhcp6;
+    ret->accept_ra = def->accept_ra;
+    ret->ip4_addresses = duplicate_str_array(def->ip4_addresses);
+    ret->ip6_addresses = duplicate_str_array(def->ip6_addresses);
+    ret->gateway4 = g_strdup(def->gateway4);
+    ret->gateway6 = g_strdup(def->gateway6);
+    ret->ip4_nameservers = duplicate_str_array(def->ip4_nameservers);
+    ret->ip6_nameservers = duplicate_str_array(def->ip6_nameservers);
+    ret->search_domains = duplicate_str_array(def->search_domains);
+
+    if (def->routes) {
+        ret->routes = g_array_new(FALSE, FALSE, sizeof(ip_route*));
+        for (i=0; i<def->routes->len; i++) {
+            ip_route *new_r, *old_r;
+            old_r = g_array_index(def->routes, ip_route*, i);
+            new_r = g_new0(ip_route, 1);
+            new_r->family = old_r->family;
+            new_r->to = g_strdup(old_r->to);
+            new_r->via = g_strdup(old_r->via);
+            new_r->metric = old_r->metric;
+
+            g_array_append_val(ret->routes, new_r);
+        }
+    }
+
+    /* master ID for slave devices */
+    ret->bridge = g_strdup(def->bridge);
+    ret->bond = g_strdup(def->bond);
+
+    /* vlan */
+    ret->vlan_id = def->vlan_id;
+    ret->vlan_link_id = g_strdup(def->vlan_link_id);
+    ret->has_vlans = def->has_vlans;
+
+    /* Configured custom MAC address */
+    ret->set_mac = g_strdup(def->set_mac);
+
+    /* interface mtu */
+    ret->mtubytes = def->mtubytes;
+
+    /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
+    ret->set_name = g_strdup(def->set_name);
+
+    ret->match.driver = g_strdup(def->match.driver);
+    ret->match.mac = g_strdup(def->match.mac);
+    ret->match.original_name = g_strdup(def->match.original_name);
+
+    ret->has_match = def->has_match;
+    ret->wake_on_lan = def->wake_on_lan;
+
+    /* these properties are only valid for ND_WIFI */
+    if (def->access_points) {
+        ret->access_points = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_iter_init(&wifi_iter, def->access_points);
+        while (g_hash_table_iter_next(&wifi_iter, &wifi_key, (gpointer*)&ap)) {
+            wifi_access_point *new_ap = g_new0(wifi_access_point, 1);
+            new_ap->mode = ap->mode;
+            new_ap->ssid = g_strdup(ap->ssid);
+            new_ap->password = g_strdup(ap->password);
+            g_hash_table_insert(ret->access_points, new_ap->ssid, new_ap);
+        }
+    }
+
+    ret->bond_params.mode = g_strdup(def->bond_params.mode);
+    ret->bond_params.lacp_rate = g_strdup(def->bond_params.lacp_rate);
+    ret->bond_params.monitor_interval = def->bond_params.monitor_interval;
+    ret->bond_params.min_links = def->bond_params.min_links;
+    ret->bond_params.transmit_hash_policy = g_strdup(def->bond_params.transmit_hash_policy);
+    ret->bond_params.selection_logic = g_strdup(def->bond_params.selection_logic);
+    ret->bond_params.all_slaves_active = def->bond_params.all_slaves_active;
+    ret->bond_params.arp_interval = def->bond_params.arp_interval;
+    ret->bond_params.arp_ip_targets = duplicate_str_array(def->bond_params.arp_ip_targets);
+    ret->bond_params.arp_validate = g_strdup(def->bond_params.arp_validate);
+    ret->bond_params.arp_all_targets = g_strdup(def->bond_params.arp_all_targets);
+    ret->bond_params.up_delay = def->bond_params.up_delay;
+    ret->bond_params.down_delay = def->bond_params.down_delay;
+    ret->bond_params.fail_over_mac_policy = g_strdup(def->bond_params.fail_over_mac_policy);
+    ret->bond_params.gratuitious_arp = def->bond_params.gratuitious_arp;
+    /* TODO: unsolicited_na */
+    ret->bond_params.packets_per_slave = def->bond_params.packets_per_slave;
+    ret->bond_params.primary_reselect_policy = g_strdup(def->bond_params.primary_reselect_policy);
+    ret->bond_params.resend_igmp = def->bond_params.resend_igmp;
+    ret->bond_params.learn_interval = def->bond_params.learn_interval;
+    ret->bond_params.primary_slave = g_strdup(def->bond_params.primary_slave);
+
+    ret->bridge_params = def->bridge_params;
+    ret->custom_bridging = def->custom_bridging;
+
+    return ret;
+}
+
+GHashTable*
+duplicate_netdefs()
+{
+    GHashTableIter iter;
+    gpointer key;
+    net_definition* netdef;
+    GHashTable *newht;
+
+    if (!netdefs)
+        return NULL;
+
+    newht = g_hash_table_new(g_str_hash, g_str_equal);
+
+    g_hash_table_iter_init(&iter, netdefs);
+    while (g_hash_table_iter_next(&iter, &key, (gpointer*)&netdef)) {
+        g_hash_table_insert(newht, g_strdup((char*) key), duplicate_net_definition(netdef));
+    }
+
+    return newht;
+}
 
 /**
  * Parse given YAML file and create/update global "netdefs" list.

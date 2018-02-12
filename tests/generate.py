@@ -47,7 +47,7 @@ class TestBase(unittest.TestCase):
         self.nm_enable_all_conf = os.path.join(
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
 
-    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
+    def generate(self, yaml, strict=True, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
@@ -63,6 +63,8 @@ class TestBase(unittest.TestCase):
                     f.write(contents)
 
         argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args
+        if strict:
+            argv += ['--strict']
         if 'TEST_SHELL' in os.environ:
             print('Test is about to run:\n%s' % ' '.join(argv))
             subprocess.call(['bash', '-i'], cwd=self.workdir.name)
@@ -3762,6 +3764,95 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
 
         self.assert_networkd({'engreen.link': '[Match]\nOriginalName=engreen\n\n[Link]\nWakeOnLan=magic\n',
                               'engreen.network': ND_DHCP4 % 'engreen'})
+
+    def test_strict_broken_config(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      wakeonlan: true
+      dhcp4: false''',
+                      confs={'green-dhcp': '''network:
+  version: 2
+  ethernets:
+    engreen:
+                      dhcp4: xyzzy'''}, expect_fail=True)
+
+    def test_lenient_broken_config(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      wakeonlan: true
+      dhcp4: true''',
+                      confs={'red': '''network:
+  version: 2
+  ethernets:
+    enred:
+      dhcp4: xyzzy'''}, strict=False)
+        networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
+        self.assertNotIn('10-netplan-enred.link', os.listdir(networkd_dir))
+        self.assertIn('10-netplan-engreen.link', os.listdir(networkd_dir))
+
+        self.assert_networkd({'engreen.link': '[Match]\nOriginalName=engreen\n\n[Link]\nWakeOnLan=magic\n',
+                              'engreen.network': ND_DHCP4 % 'engreen'})
+        networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
+        self.assertNotIn('enred.link', os.listdir(networkd_dir))
+
+    def test_duplication(self):
+        """Lenient mode relies on duplication of the network definitions.
+        Make sure that's all exercised."""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        "Joe's Home":
+          password: "s3kr1t"
+      addresses:
+        - 192.168.14.123/24''', confs={'b': '''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 100''', 'c': '''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      mtu: 1280'''})
+
+        self.assert_nm({'wl0-Joe%27s%20Home': '''[connection]
+id=netplan-wl0-Joe's Home
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[802-11-wireless]
+mtu=1280
+
+[ipv4]
+method=manual
+address1=192.168.14.123/24
+route1=10.10.10.0/24,192.168.14.20,100
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=Joe's Home
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=s3kr1t
+'''})
 
     def test_cleanup_old_config(self):
         self.generate('''network:

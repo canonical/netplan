@@ -35,8 +35,10 @@ static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd;
 static gchar* mapping_iface;
+static gboolean strict;
 
 static GOptionEntry options[] = {
+    {"strict", 's', 0, G_OPTION_ARG_NONE, &strict, "Exit on first error rather than ignoring broken files"},
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/netplan/*.yaml", "[config file ..]"},
     {"mapping", 0, 0, G_OPTION_ARG_STRING, &mapping_iface, "Only show the device to backend mapping for the specified interface."},
@@ -138,10 +140,21 @@ process_input_file(const char* f)
 {
     GError* error = NULL;
 
+    GHashTable* save = duplicate_netdefs();
     g_debug("Processing input file %s..", f);
     if (!parse_yaml(f, &error)) {
         g_fprintf(stderr, "%s\n", error->message);
-        exit(1);
+        if (strict)
+            exit(1);
+        g_fprintf(stderr, "WARNING: ignoring file %s\n", f);
+        /* restore the saved hash table. For now, free the original
+         * hash table and just leak the contents */
+        g_hash_table_destroy(netdefs);
+        netdefs = save;
+    } else {
+        /* success: just free the saved hash table (again leaking the contents) */
+        if (save)
+            g_hash_table_destroy(save);
     }
 }
 
