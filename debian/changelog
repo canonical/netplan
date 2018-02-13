@@ -4,6 +4,9 @@ nplan (0.32~16.04.4) UNRELEASED; urgency=medium
   * Prevent unbinding ath6kl_sdio, driver does not support it correctly.
     (LP: #1741910)
 
+  [ Mathieu Trudel-Lapierre ]
+  * Re-add snap support patch. (LP: #1747714)
+
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 10 Jan 2018 13:54:07 -0500
 
 nplan (0.32~16.04.3) xenial; urgency=medium
