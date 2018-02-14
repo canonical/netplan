@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2016 Canonical, Ltd.
+# Copyright (C) 2018 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
 #
@@ -27,31 +27,28 @@ import subprocess
 from glob import glob
 import yaml
 
+import netplan.cli.utils as utils
+
 path_generate = os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
 
 
-class Netplan(argparse.Namespace):
+class Netplan(utils.NetplanCommand):
 
     def __init__(self):
-        self._args = None
-        self.commandclass = None
+        super().__init__(command_id='',
+                         description='Network configuration in YAML',
+                         leaf=False)
 
     #
     # helper functions
     #
     def parse_args(self):
-        self.parser = argparse.ArgumentParser(description='netplan commands')
-        self.parser.add_argument('--debug', action='store_true',
-                                 help='Enable debug messages')
-        subparsers = self.parser.add_subparsers(title='Available commands (see "netplan <command> --help")',
-                                                metavar='', dest='command')
-
         from netplan.cli.commands import NetplanIp
 
         # command: generate
-        p_generate = subparsers.add_parser('generate',
-                                           description='Generate backend specific configuration files from /etc/netplan/*.yaml',
-                                           help='Generate backend specific configuration files from /etc/netplan/*.yaml')
+        p_generate = self.subparsers.add_parser('generate',
+                                                description='Generate backend specific configuration files from /etc/netplan/*.yaml',
+                                                help='Generate backend specific configuration files from /etc/netplan/*.yaml')
         p_generate.add_argument('--root-dir',
                                 help='Search for and generate configuration files in this root directory instead of /')
         p_generate.add_argument('--mapping',
@@ -59,16 +56,16 @@ class Netplan(argparse.Namespace):
         p_generate.set_defaults(func=self.command_generate)
 
         # command: apply
-        p_apply = subparsers.add_parser('apply',
-                                        description='Apply current netplan config to running system',
-                                        help='Apply current netplan config to running system (use with care!)')
+        p_apply = self.subparsers.add_parser('apply',
+                                             description='Apply current netplan config to running system',
+                                             help='Apply current netplan config to running system (use with care!)')
         p_apply.set_defaults(func=self.command_apply)
 
         # command: ifupdown-migrate
-        p_ifupdown = subparsers.add_parser('ifupdown-migrate',
-                                           description='Migration of /etc/network/interfaces to netplan',
-                                           help='Try to convert /etc/network/interfaces to netplan '
-                                                'If successful, disable /etc/network/interfaces')
+        p_ifupdown = self.subparsers.add_parser('ifupdown-migrate',
+                                                description='Migration of /etc/network/interfaces to netplan',
+                                                help='Try to convert /etc/network/interfaces to netplan '
+                                                     'If successful, disable /etc/network/interfaces')
         p_ifupdown.add_argument('--root-dir',
                                 help='Search for and generate configuration files in this root directory instead of /')
         p_ifupdown.add_argument('--dry-run', action='store_true',
@@ -77,28 +74,13 @@ class Netplan(argparse.Namespace):
 
         # command: ip
         self.command_ip = NetplanIp()
-        p_ip = subparsers.add_parser('ip',
-                                     description='Describe current IP configuration',
-                                     help='Describe current IP configuration',
-                                     add_help=False)
+        p_ip = self.subparsers.add_parser('ip',
+                                          description='Describe current IP configuration',
+                                          help='Describe current IP configuration',
+                                          add_help=False)
         p_ip.set_defaults(func=self.command_ip.run, commandclass=self.command_ip)
 
-        ns, self._args = self.parser.parse_known_args(namespace=self)
-        if self.commandclass and hasattr(self.commandclass, 'update'):
-            self.commandclass.update(self._args)
-
-        if not self.command:
-            print('You need to specify a command', file=sys.stderr)
-            self.print_usage(self.parser)
-
-        return
-
-    def print_usage(self, parser):
-        parser.print_help(file=sys.stderr)
-        sys.exit(os.EX_USAGE)
-
-    def run_command(self):
-        self.func()
+        super().parse_args()
 
     def nm_running(self):  # pragma: nocover (covered in autopkgtest)
         '''Check if NetworkManager is running'''

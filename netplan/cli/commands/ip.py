@@ -23,7 +23,7 @@ import os
 import sys
 import subprocess
 
-from netplan.cli.core import Netplan
+from netplan.cli.utils import NetplanCommand
 
 path_generate = os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
 
@@ -39,36 +39,50 @@ lease_path = {
 }
 
 
-class NetplanIp(Netplan):
+class NetplanIp(NetplanCommand):
 
     def __init__(self):
-        self._args = None
-
-    def update(self, args):
-        self._args = args
+        super().__init__(command_id='ip',
+                         description='Retrieve IP information from the system',
+                         leaf=False)
 
     def run(self):
-        parser = argparse.ArgumentParser(prog='netplan ip', description='netplan ip commands')
-        subparsers = parser.add_subparsers(title='Available commands (see "netplan ip <command> --help")',
-                                           metavar='', dest='subcommand')
+        self.command_leases = NetplanIpLeases()
 
         # subcommand: leases
-        p_ip_leases = subparsers.add_parser('leases',
-                                            help='Display IP leases.')
-        p_ip_leases.add_argument('interface',
+        p_ip_leases = self.subparsers.add_parser('leases',
+                                                 help='Display IP leases',
+                                                 add_help=False)
+        p_ip_leases.set_defaults(func=self.command_leases.run, commandclass=self.command_leases)
+
+        self.parse_args()
+        self.run_command()
+
+
+
+class NetplanIpLeases(NetplanCommand):
+
+    def __init__(self):
+        super().__init__(command_id='ip leases',
+                         description='Display IP leases',
+                         leaf=True)
+
+    def run(self):
+        self.parser.add_argument('interface',
                                  help='Interface for which to display IP lease settings.')
-        p_ip_leases.add_argument('--root-dir',
+        self.parser.add_argument('--root-dir',
                                  help='Search for configuration files in this root directory instead of /')
-        p_ip_leases.set_defaults(func=self.command_ip_leases)
 
-        args = parser.parse_args(self._args, namespace=self)
+        self.func = self.command_ip_leases
 
-        if not self.subcommand:
-            self.print_usage(parser)
-
-        args.func()
+        self.parse_args()
+        self.run_command()
 
     def command_ip_leases(self):
+
+        if self.interface == 'help':
+            self.print_usage()
+
         def find_lease_file(mapping):
             def lease_method_ifindex():
                 ifindex_f = os.path.join('/sys/class/net', self.interface, 'ifindex')
