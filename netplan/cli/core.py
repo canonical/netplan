@@ -28,8 +28,6 @@ import yaml
 
 import netplan.cli.utils as utils
 
-path_generate = os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
-
 
 class Netplan(utils.NetplanCommand):
 
@@ -250,7 +248,7 @@ class Netplan(utils.NetplanCommand):
     # implementation of the top-level commands
     #
     def command_generate(self):
-        argv = [path_generate]
+        argv = [utils.get_generator_path()]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
         if self.mapping:
@@ -260,7 +258,7 @@ class Netplan(utils.NetplanCommand):
         sys.exit(subprocess.call(argv))
 
     def command_apply(self):  # pragma: nocover (covered in autopkgtest)
-        if subprocess.call([path_generate]) != 0:
+        if subprocess.call([utils.get_generator_path()]) != 0:
             sys.exit(1)
 
         devices = os.listdir('/sys/class/net')

@@ -24,6 +24,10 @@ NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
 
 
+def get_generator_path():
+    return os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
+
+
 def is_nm_snap_enabled():  # pragma: nocover (covered in autopkgtest)
     return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
 
