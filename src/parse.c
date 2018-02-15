@@ -141,6 +141,8 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
     return FALSE;
 }
 
+#define assert_type(n,t) { if (!assert_type_fn(n,t,error)) return FALSE; }
+
 static inline const char*
 scalar(const yaml_node_t* node)
 {
@@ -173,7 +175,7 @@ assert_valid_id(yaml_node_t* node, GError** error)
     static regex_t re;
     static gboolean re_inited = FALSE;
 
-    g_assert(node->type == YAML_SCALAR_NODE);
+    assert_type(node, YAML_SCALAR_NODE);
 
     if (!re_inited) {
         g_assert(regcomp(&re, "^[[:alnum:][:punct:]]+$", REG_EXTENDED|REG_NOSUB) == 0);
@@ -184,8 +186,6 @@ assert_valid_id(yaml_node_t* node, GError** error)
         return yaml_error(node, error, "Invalid name '%s'", scalar(node));
     return TRUE;
 }
-
-#define assert_type(n,t) { if (!assert_type_fn(n,t,error)) return FALSE; }
 
 /****************************************************
  * Data types and functions for interpreting YAML nodes
@@ -239,6 +239,8 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
     for (entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         const mapping_entry_handler* h;
+
+        g_assert(*error == NULL);
 
         key = yaml_document_get_node(doc, entry->key);
         value = yaml_document_get_node(doc, entry->value);
@@ -561,11 +563,20 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
 
         if (!cur_netdef->access_points)
             cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
-        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point))
-            return yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
+        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point)) {
+            /* Even in the error case, NULL out cur_access_point. Otherwise we
+             * have an assert failure if we do a multi-pass parse. */
+            gboolean ret;
 
-        if (!process_mapping(doc, value, wifi_access_point_handlers, error))
-            return FALSE;
+            ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
+            cur_access_point = NULL;
+            return ret;
+	}
+
+        if (!process_mapping(doc, value, wifi_access_point_handlers, error)) {
+	    cur_access_point = NULL;
+	    return FALSE;
+        }
 
         cur_access_point = NULL;
     }
@@ -1221,6 +1232,8 @@ process_document(yaml_document_t* doc, GError** error)
 
         previously_found = missing_ids_found;
         missing_ids_found = 0;
+
+        g_clear_error(error);
 
         ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, error);
 
