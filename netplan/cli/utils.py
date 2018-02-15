@@ -18,6 +18,44 @@
 import sys
 import os
 import argparse
+import subprocess
+
+NM_SERVICE_NAME = 'NetworkManager.service'
+NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
+
+
+def is_nm_snap_enabled():  # pragma: nocover (covered in autopkgtest)
+    return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
+
+
+def nmcli(args):  # pragma: nocover (covered in autopkgtest)
+    binary_name = 'nmcli'
+
+    if is_nm_snap_enabled():
+        binary_name = 'network-manager.nmcli'
+
+    subprocess.check_call([binary_name] + args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def nm_running():  # pragma: nocover (covered in autopkgtest)
+    '''Check if NetworkManager is running'''
+
+    try:
+        nmcli(['general'])
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def systemctl_network_manager(action):  # pragma: nocover (covered in autopkgtest)
+    service_name = NM_SERVICE_NAME
+
+    # If the network-manager snap is installed use its service
+    # name rather than the one of the deb packaged NetworkManager
+    if is_nm_snap_enabled():
+        service_name = NM_SNAP_SERVICE_NAME
+
+    subprocess.check_call(['systemctl', action, '--no-block', service_name])
 
 
 class NetplanCommand(argparse.Namespace):
