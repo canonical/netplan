@@ -103,13 +103,13 @@ class Netplan(argparse.Namespace):
     def run_command(self):
         self.func()
 
-    def is_nm_snap_enabled():
+    def is_nm_snap_enabled():  # pragma: nocover (covered in autopkgtest)
         return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
 
-    def nmcli(args):
+    def nmcli(self, args):  # pragma: nocover (covered in autopkgtest)
         binary_name = 'nmcli'
 
-        if is_nm_snap_enabled():
+        if self.is_nm_snap_enabled():
             binary_name = 'network-manager.nmcli'
 
         subprocess.check_call([binary_name] + args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -118,17 +118,17 @@ class Netplan(argparse.Namespace):
         '''Check if NetworkManager is running'''
 
         try:
-            nmcli(['general'])
+            self.nmcli(['general'])
             return True
         except (OSError, subprocess.SubprocessError):
             return False
 
-    def systemctl_network_manager(action):
+    def systemctl_network_manager(self, action):  # pragma: nocover (covered in autopkgtest)
         service_name = NM_SERVICE_NAME
 
         # If the network-manager snap is installed use its service
         # name rather than the one of the deb packaged NetworkManager
-        if is_nm_snap_enabled():
+        if self.is_nm_snap_enabled():
             service_name = NM_SNAP_SERVICE_NAME
 
         subprocess.check_call(['systemctl', action, '--no-block', service_name])
@@ -333,11 +333,11 @@ class Netplan(argparse.Namespace):
                 for device in devices:
                     # ignore failures here -- some/many devices might not be managed by NM
                     try:
-                        nmcli(['device', 'disconnect', device])
+                        self.nmcli(['device', 'disconnect', device])
                     except subprocess.CalledProcessError:
                         pass
 
-                systemctl_network_manager('stop')
+                self.systemctl_network_manager('stop')
         else:
             logging.debug('no netplan generated NM configuration exists')
 
@@ -364,7 +364,7 @@ class Netplan(argparse.Namespace):
             subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'] +
                                   [os.path.basename(f) for f in glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
         if restart_nm:
-            systemctl_network_manager('start')
+            self.systemctl_network_manager('start')
 
     def command_ifupdown_migrate(self):
         netplan_config = {}
