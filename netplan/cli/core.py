@@ -178,6 +178,10 @@ class Netplan(argparse.Namespace):
             if driver_name == 'ath9k_htc':
                 logging.debug('replug %s: ath9k_htc does not support rebinding, ignoring', device)
                 return False
+            # workaround for ath6kl_sdio, interface does not work after unbinding
+            if 'ath6kl_sdio' in driver_name:
+                logging.debug('replug %s: ath6kl_sdio driver does not support rebinding, ignoring', device)
+                return False
             # workaround for brcmfmac, interface will be gone after unbind
             if 'brcmfmac' in driver_name:
                 logging.debug('replug %s: brcmfmac drivers do not support rebinding, ignoring', device)
