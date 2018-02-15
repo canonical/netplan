@@ -1294,7 +1294,7 @@ wpa_passphrase=12345678
       addresses: ['192.168.0.2/24']
   bonds:
     bond0:
-      interfaces: [ethbn, ethb2]
+      interfaces: [ethb2]
       parameters:
         mode: balance-rr
   ethernets:
@@ -1304,9 +1304,6 @@ wpa_passphrase=12345678
       match: {name: %(e2c)s}
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master bond0'],
-                             ['inet '])
         self.assert_iface_up(self.dev_e2_client,
                              ['master bond0'],
                              ['inet '])
@@ -1317,7 +1314,6 @@ wpa_passphrase=12345678
         self.assertIn('inet 192.168', ipaddr)
         with open('/sys/class/net/bond0/bonding/slaves') as f:
             result = f.read().strip()
-            self.assertIn(self.dev_e_client, result)
             self.assertIn(self.dev_e2_client, result)
 
     def test_mix_vlan_on_bridge_on_bond(self):
