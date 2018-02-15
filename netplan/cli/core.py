@@ -18,7 +18,6 @@
 
 '''netplan command line'''
 
-import argparse
 import logging
 import os
 import sys
@@ -50,7 +49,8 @@ class Netplan(utils.NetplanCommand):
 
         # command: generate
         p_generate = self.subparsers.add_parser('generate',
-                                                description='Generate backend specific configuration files from /etc/netplan/*.yaml',
+                                                description='Generate backend specific configuration files'
+                                                            ' from /etc/netplan/*.yaml',
                                                 help='Generate backend specific configuration files from /etc/netplan/*.yaml')
         p_generate.add_argument('--root-dir',
                                 help='Search for and generate configuration files in this root directory instead of /')

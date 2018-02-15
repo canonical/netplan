@@ -17,7 +17,6 @@
 
 '''netplan ip command line'''
 
-import argparse
 import logging
 import os
 import sys
@@ -59,7 +58,6 @@ class NetplanIp(NetplanCommand):
         self.run_command()
 
 
-
 class NetplanIpLeases(NetplanCommand):
 
     def __init__(self):
@@ -80,7 +78,7 @@ class NetplanIpLeases(NetplanCommand):
 
     def command_ip_leases(self):
 
-        if self.interface == 'help':
+        if self.interface == 'help':  # pragma: nocover (covered in autopkgtest)
             self.print_usage()
 
         def find_lease_file(mapping):

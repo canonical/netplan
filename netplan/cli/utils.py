@@ -44,7 +44,6 @@ class NetplanCommand(argparse.Namespace):
                                                 help='Show this help message')
             p_help.set_defaults(func=self.print_usage)
 
-
     def update(self, args):
         self._args = args
 
@@ -64,4 +63,3 @@ class NetplanCommand(argparse.Namespace):
     def print_usage(self):
         self.parser.print_help(file=sys.stderr)
         sys.exit(os.EX_USAGE)
-
