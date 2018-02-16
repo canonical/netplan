@@ -18,9 +18,11 @@
 from netplan.cli.commands.apply import NetplanApply
 from netplan.cli.commands.generate import NetplanGenerate
 from netplan.cli.commands.ip import NetplanIp
+from netplan.cli.commands.migrate import NetplanMigrate
 
 __all__ = [
     NetplanApply,
     NetplanGenerate,
     NetplanIp,
+    NetplanMigrate,
 ]
