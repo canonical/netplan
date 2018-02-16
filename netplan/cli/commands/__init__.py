@@ -21,8 +21,8 @@ from netplan.cli.commands.ip import NetplanIp
 from netplan.cli.commands.migrate import NetplanMigrate
 
 __all__ = [
-    NetplanApply,
-    NetplanGenerate,
-    NetplanIp,
-    NetplanMigrate,
+    'NetplanApply',
+    'NetplanGenerate',
+    'NetplanIp',
+    'NetplanMigrate',
 ]
