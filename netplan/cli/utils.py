@@ -100,6 +100,10 @@ class NetplanCommand(argparse.Namespace):
         if self.commandclass:
             self.commandclass.update(self._args)
 
+        # TODO: (cyphermox) this is actually testable in tests/cli.py; add it.
+        if self.leaf_command and 'help' in self._args:  # pragma: nocover (covered in autopkgtest)
+            self.print_usage()
+
         self.func()
 
     def print_usage(self):
