@@ -16,5 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from netplan.cli.commands.ip import NetplanIp
+from netplan.cli.commands.ifupdown_migrate import NetplanIfupdownMigrate
 
-__all__ = [NetplanIp]
+__all__ = [NetplanIp, NetplanIfupdownMigrate]
