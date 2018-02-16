@@ -2,6 +2,9 @@ nplan (0.34) UNRELEASED; urgency=medium
 
   * Implement "optional: true" to correctly write systemd network definitions
     with "RequiredForOnline=false", such that these networks do not block boot.
+    (LP: #1664844)
+  * Implement 'help' as a subcommand of any netplan command, so that running
+    'netplan * help' always returns some helpful information. (LP: #1748629)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 25 Jan 2018 19:01:33 -0500
 
