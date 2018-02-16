@@ -33,7 +33,7 @@ class NetplanApply(utils.NetplanCommand):
                          description='Apply current netplan config to running system',
                          leaf=True)
 
-    def run(self):
+    def run(self):  # pragma: nocover (covered in autopkgtest)
         self.func = self.command_apply
 
         self.parse_args()
