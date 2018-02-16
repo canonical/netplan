@@ -27,6 +27,7 @@ import re
 from glob import glob
 import yaml
 from collections import OrderedDict
+import ipaddress
 
 from netplan.cli.core import Netplan
 
@@ -178,7 +179,143 @@ class NetplanIfupdownMigrate(Netplan):
                     else:
                         assert family == 'inet6'
                         c['dhcp6'] = True
-                else:
+
+                elif config['method'] == 'static':
+                    c = netplan_config.setdefault('network', {}).setdefault('ethernets', {}).setdefault(iface, {})
+
+                    if 'addresses' not in c:
+                        c['addresses'] = []
+
+                    # ipv4
+                    if family == 'inet':
+
+                        # Supported: address netmask gateway
+                        # Not supported yet: metric(?) hwaddress mtu
+                        # No YAML support: pointopoint scope broadcast
+                        supported_opts = set(['address', 'netmask', 'gateway'])
+                        unsupported_opts = set(['broadcast', 'metric', 'hwaddress', 'mtu',
+                                                'pointopoint', 'scope'])
+
+                        opts = set(config['options'].keys())
+                        bad_opts = opts - supported_opts
+                        if bad_opts:
+                            for unsupported in bad_opts.intersection(unsupported_opts):
+                                logging.error('%s: unsupported %s option "%s"', iface, family, unsupported)
+                                sys.exit(2)
+                            for unknown in bad_opts - unsupported_opts:
+                                logging.error('%s: unknown %s option "%s"', iface, family, unknown)
+                                sys.exit(2)
+
+                        # the address may contain a /prefix suffix, or
+                        # the netmask property may be used. It's not clear
+                        # what happens if both are supplied.
+                        if 'address' not in config['options']:
+                            logging.error('%s: no address supplied in static method', iface)
+                            sys.exit(2)
+
+                        if '/' in config['options']['address']:
+                            addr_spec = config['options']['address'].split('/')[0]
+                            net_spec = config['options']['address']
+                        else:
+                            if 'netmask' not in config['options']:
+                                logging.error('%s: address does not specify prefix length, and netmask not specified',
+                                              iface)
+                                sys.exit(2)
+                            addr_spec = config['options']['address']
+                            net_spec = config['options']['address'] + '/' + config['options']['netmask']
+
+                        try:
+                            ipaddr = ipaddress.IPv4Address(addr_spec)
+                        except ipaddress.AddressValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv4 address: %s', iface, addr_spec, a)
+                            sys.exit(2)
+
+                        try:
+                            ipnet = ipaddress.IPv4Network(net_spec, strict=False)
+                        except ipaddress.NetmaskValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv4 network: %s', iface, net_spec, a)
+                            sys.exit(2)
+
+                        c['addresses'] += [str(ipaddr) + '/' + str(ipnet.prefixlen)]
+
+                        if 'gateway' in config['options']:
+                            # validate?
+                            c['gateway4'] = config['options']['gateway']
+
+                    # ipv6
+                    else:
+                        assert family == 'inet6'
+
+                        # supported: address netmask gateway
+                        # partially supported: accept_ra (0/1 supported, 2 has no YAML rep)
+                        # unsupported: metric(?) hwaddress mtu
+                        # no YAML representation: media autoconf privext scope
+                        #                         preferred-lifetime dad-attempts dad-interval
+                        supported_opts = set(['address', 'netmask', 'gateway', 'accept_ra'])
+                        unsupported_opts = set(['metric', 'hwaddress', 'mtu', 'media', 'autoconf', 'privext',
+                                                'scope', 'preferred-lifetime', 'dad-attempts', 'dad-interval'])
+
+                        opts = set(config['options'].keys())
+                        bad_opts = opts - supported_opts
+                        if bad_opts:
+                            for unsupported in bad_opts.intersection(unsupported_opts):
+                                logging.error('%s: unsupported %s option "%s"', iface, family, unsupported)
+                                sys.exit(2)
+                            for unknown in bad_opts - unsupported_opts:
+                                logging.error('%s: unknown %s option "%s"', iface, family, unknown)
+                                sys.exit(2)
+
+                        # the address may contain a /prefix suffix, or
+                        # the netmask property may be used. It's not clear
+                        # what happens if both are supplied.
+                        if 'address' not in config['options']:
+                            logging.error('%s: no address supplied in static method', iface)
+                            sys.exit(2)
+
+                        if '/' in config['options']['address']:
+                            addr_spec = config['options']['address'].split('/')[0]
+                            net_spec = config['options']['address']
+                        else:
+                            if 'netmask' not in config['options']:
+                                logging.error('%s: address does not specify prefix length, and netmask not specified',
+                                              iface)
+                                sys.exit(2)
+                            addr_spec = config['options']['address']
+                            net_spec = config['options']['address'] + '/' + config['options']['netmask']
+
+                        try:
+                            ipaddr = ipaddress.IPv6Address(addr_spec)
+                        except ipaddress.AddressValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv6 address: %s', iface, addr_spec, a)
+                            sys.exit(2)
+
+                        try:
+                            ipnet = ipaddress.IPv6Network(net_spec, strict=False)
+                        except ipaddress.NetmaskValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv6 network: %s', iface, net_spec, a)
+                            sys.exit(2)
+
+                        c['addresses'] += [str(ipaddr) + '/' + str(ipnet.prefixlen)]
+
+                        if 'gateway' in config['options']:
+                            # validate?
+                            c['gateway6'] = config['options']['gateway']
+
+                        if 'accept_ra' in config['options']:
+                            if config['options']['accept_ra'] == '0':
+                                c['accept_ra'] = False
+                            elif config['options']['accept_ra'] == '1':
+                                c['accept_ra'] = True
+                            elif config['options']['accept_ra'] == '2':
+                                logging.error('%s: netplan does not support accept_ra=2', iface)
+                                sys.exit(2)
+                            else:
+                                logging.error('%s: unexpected accept_ra value "%s"', iface,
+                                              config['options']['accept_ra'])
+                                sys.exit(2)
+
+                else:  # pragma nocover
+                    # this should be unreachable
                     logging.error('%s: method %s is not supported', iface, config['method'])
                     sys.exit(2)
 
