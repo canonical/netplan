@@ -122,7 +122,7 @@ class NetplanIpLeases(utils.NetplanCommand):
                 # This might happen if networkd doesn't use DHCP for the interface,
                 # for instance.
                 with open(os.path.join('/',
-                                       os.path.abspath(self.root_dir),
+                                       os.path.abspath(self.root_dir) if self.root_dir else "",
                                        lease_pattern.format(interface=self.interface,
                                                             lease_id=lease_id))) as f:
                     for line in f.readlines():
