@@ -22,7 +22,7 @@ import os
 import sys
 import subprocess
 
-import netplan.cli.utils
+import netplan.cli.utils as utils
 
 lease_path = {
     'networkd': {
@@ -56,7 +56,7 @@ class NetplanIp(utils.NetplanCommand):
         self.run_command()
 
 
-class NetplanIpLeases(NetplanCommand):
+class NetplanIpLeases(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='ip leases',
