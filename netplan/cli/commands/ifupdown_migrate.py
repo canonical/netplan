@@ -143,6 +143,35 @@ class NetplanIfupdownMigrate(Netplan):
         logging.debug('final parsed interfaces: %s; auto ifaces: %s', ifaces, auto)
         return (ifaces, auto)
 
+    def parse_dns_options(self, if_options, if_config):
+        """Parse dns options (dns-nameservers and dns-search) from if_options
+        (an interface options dict) into the interface configuration if_config
+        Mutates the arguments in place.
+        """
+        if 'dns-nameservers' in if_options:
+            if 'nameservers' not in if_config:
+                if_config['nameservers'] = {}
+            if 'addresses' not in if_config['nameservers']:
+                if_config['nameservers']['addresses'] = []
+            for ns in if_options['dns-nameservers'].split(' '):
+                # allow multiple spaces in the dns-nameservers entry
+                if not ns:
+                    continue
+                # validate?
+                if_config['nameservers']['addresses'] += [ns]
+            del if_options['dns-nameservers']
+        if 'dns-search' in if_options:
+            if 'nameservers' not in if_config:
+                if_config['nameservers'] = {}
+            if 'search' not in if_config['nameservers']:
+                if_config['nameservers']['search'] = []
+            for domain in if_options['dns-search'].split(' '):
+                # allow multiple spaces in the dns-search entry
+                if not domain:
+                    continue
+                if_config['nameservers']['search'] += [domain]
+            del if_options['dns-search']
+
     def run(self):
         parser = argparse.ArgumentParser(prog='netplan ifupdown-migrate',
                                          description='Try to convert /etc/network/interfaces to netplan '
@@ -170,10 +199,14 @@ class NetplanIfupdownMigrate(Netplan):
                     # both systemd and modern ifupdown set up lo automatically
                     logging.debug('Ignoring loopback interface %s', iface)
                 elif config['method'] == 'dhcp':
-                    if config['options']:
-                        logging.error('%s: options are not supported for dhcp method', iface)
-                        sys.exit(2)
                     c = netplan_config.setdefault('network', {}).setdefault('ethernets', {}).setdefault(iface, {})
+
+                    self.parse_dns_options(config['options'], c)
+
+                    if config['options']:
+                        logging.error('%s: option(s) %s are not supported for dhcp method',
+                                      iface, ", ".join(config['options'].keys()))
+                        sys.exit(2)
                     if family == 'inet':
                         c['dhcp4'] = True
                     else:
@@ -186,9 +219,10 @@ class NetplanIfupdownMigrate(Netplan):
                     if 'addresses' not in c:
                         c['addresses'] = []
 
+                    self.parse_dns_options(config['options'], c)
+
                     # ipv4
                     if family == 'inet':
-
                         # Supported: address netmask gateway
                         # Not supported yet: metric(?) hwaddress mtu
                         # No YAML support: pointopoint scope broadcast
