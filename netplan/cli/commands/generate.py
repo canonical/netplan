@@ -27,7 +27,7 @@ import netplan.cli.utils as utils
 class NetplanGenerate(utils.NetplanCommand):
 
     def __init__(self):
-        super().__init__(command_id='netplan generate',
+        super().__init__(command_id='generate',
                          description='Generate backend specific configuration files'
                                      ' from /etc/netplan/*.yaml',
                          leaf=True)

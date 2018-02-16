@@ -29,7 +29,7 @@ import netplan.cli.utils as utils
 class NetplanApply(utils.NetplanCommand):
 
     def __init__(self):
-        super().__init__(command_id='netplan apply',
+        super().__init__(command_id='apply',
                          description='Apply current netplan config to running system',
                          leaf=True)
 

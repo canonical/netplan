@@ -64,14 +64,16 @@ def systemctl_network_manager(action):  # pragma: nocover (covered in autopkgtes
 
 class NetplanCommand(argparse.Namespace):
 
-    def __init__(self, command_id, description, leaf):
+    def __init__(self, command_id, description, leaf=True):
         self.command_id = command_id
+        self.description = description
         self.leaf_command = leaf
-        self.debug = False
         self._args = None
+        self.debug = False
         self.commandclass = None
-        self.func = None
+        self.subcommands = {}
         self.subcommand = None
+        self.func = None
 
         self.parser = argparse.ArgumentParser(prog="%s %s" % (sys.argv[0], command_id),
                                               description=description,
@@ -109,3 +111,23 @@ class NetplanCommand(argparse.Namespace):
     def print_usage(self):
         self.parser.print_help(file=sys.stderr)
         sys.exit(os.EX_USAGE)
+
+    def _add_subparser_from_class(self, name, commandclass):
+        instance = commandclass()
+
+        self.subcommands[name] = {}
+        self.subcommands[name]['class'] = name
+        self.subcommands[name]['instance'] = instance
+
+        p = self.subparsers.add_parser(instance.command_id,
+                                       description=instance.description,
+                                       help=instance.description,
+                                       add_help=False)
+        p.set_defaults(func=instance.run, commandclass=instance)
+        self.subcommands[name]['parser'] = p
+
+    def _import_subcommands(self, submodules):
+        import inspect
+        for name, obj in inspect.getmembers(submodules):
+            if inspect.isclass(obj) and issubclass(obj, NetplanCommand):
+                self._add_subparser_from_class(name, obj)
