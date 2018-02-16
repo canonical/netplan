@@ -281,6 +281,155 @@ source-directory /etc/network/interfaces.d''')[0]
         self.assertTrue(os.path.exists(self.ifaces_path))
 
     #
+    # static
+    #
+
+    def test_static_ipv4_prefix(self):
+        out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["1.2.3.4/8"]}}}}, out.decode())
+
+    def test_static_ipv4_netmask(self):
+        out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4\nnetmask 255.0.0.0', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["1.2.3.4/8"]}}}}, out.decode())
+
+    def test_static_ipv4_no_address(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\nnetmask 1.2.3.4', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'no address supplied', err)
+
+    def test_static_ipv4_no_network(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'does not specify prefix length, and netmask not specified', err)
+
+    def test_static_ipv4_invalid_addr(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.400/8', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'error parsing "1.2.3.400" as an IPv4 address', err)
+
+    def test_static_ipv4_invalid_netmask(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4\nnetmask 123.123.123.0', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'error parsing "1.2.3.4/123.123.123.0" as an IPv4 network', err)
+
+    def test_static_ipv4_invalid_prefixlen(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/42', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'error parsing "1.2.3.4/42" as an IPv4 network', err)
+
+    def test_static_ipv4_unsupported_option(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/24\nmtu 1280', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'unsupported inet option "mtu"', err)
+
+    def test_static_ipv4_unknown_option(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/24\nxyzzy 1280', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'unknown inet option "xyzzy"', err)
+
+    def test_static_ipv6_prefix(self):
+        out = self.do_test('auto en1\niface en1 inet6 static\naddress fc00:0123:4567:89ab:cdef::1234/64', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"]}}}}, out.decode())
+
+    def test_static_ipv6_netmask(self):
+        out = self.do_test('auto en1\niface en1 inet6 static\n'
+                           'address fc00:0123:4567:89ab:cdef::1234\nnetmask 64', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"]}}}}, out.decode())
+
+    def test_static_ipv6_no_address(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\nnetmask 64', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'no address supplied', err)
+
+    def test_static_ipv6_no_network(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'does not specify prefix length, and netmask not specified', err)
+
+    def test_static_ipv6_invalid_addr(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::12345/64', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'error parsing "fc00:0123:4567:89ab:cdef::12345" as an IPv6 address', err)
+
+    def test_static_ipv6_invalid_netmask(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234\nnetmask 129', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'error parsing "fc00:0123:4567:89ab:cdef::1234/129" as an IPv6 network', err)
+
+    def test_static_ipv6_invalid_prefixlen(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234/129', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'error parsing "fc00:0123:4567:89ab:cdef::1234/129" as an IPv6 network', err)
+
+    def test_static_ipv6_unsupported_option(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234/64\nmtu 1280', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'unsupported inet6 option "mtu"', err)
+
+    def test_static_ipv6_unknown_option(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234/64\nxyzzy 1280', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'unknown inet6 option "xyzzy"', err)
+
+    def test_static_ipv6_accept_ra_0(self):
+        out = self.do_test('auto en1\niface en1 inet6 static\n'
+                           'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 0', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"],
+                                  'accept_ra': False}}}}, out.decode())
+
+    def test_static_ipv6_accept_ra_1(self):
+        out = self.do_test('auto en1\niface en1 inet6 static\n'
+                           'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 1', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"],
+                                  'accept_ra': True}}}}, out.decode())
+
+    def test_static_ipv6_accept_ra_2(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 2', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'netplan does not support accept_ra=2', err)
+
+    def test_static_ipv6_accept_ra_unexpected(self):
+        out, err = self.do_test('auto en1\niface en1 inet6 static\n'
+                                'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra fish', expect_success=False)
+        self.assertEqual(out, b'')
+        self.assertIn(b'unexpected accept_ra value "fish"', err)
+
+    def test_static_gateway(self):
+        out = self.do_test("""auto en1
+iface en1 inet static
+  address 1.2.3.4
+  netmask 255.0.0.0
+  gateway 1.1.1.1
+iface en1 inet6 static
+  address fc00:0123:4567:89ab:cdef::1234/64
+  gateway fc00:0123:4567:89ab::1""", dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1':
+                          {'addresses': ["1.2.3.4/8", "fc00:123:4567:89ab:cdef::1234/64"],
+                           'gateway4': "1.1.1.1",
+                           'gateway6': "fc00:0123:4567:89ab::1"}}}}, out.decode())
+
+    #
     # configs which are not supported
     #
 
@@ -293,11 +442,6 @@ source-directory /etc/network/interfaces.d''')[0]
         (out, err) = self.do_test('auto en1\niface en1 inet dhcp\nup myhook', expect_success=False)
         self.assertEqual(out, b'')
         self.assertIn(b'options are not supported for dhcp method', err)
-
-    def test_static(self):
-        (out, err) = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4', expect_success=False)
-        self.assertEqual(out, b'')
-        self.assertIn(b'method static is not supported', err)
 
     def test_mapping(self):
         (out, err) = self.do_test('mapping en*\n  script /some/path/mapscheme\nmap HOME en1-home\n\n'
