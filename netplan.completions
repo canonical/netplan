@@ -1,5 +1,13 @@
 # netplan(1) completion                                       -*- shell-script -*-
 
+_compgen_help()
+{
+    local options=$1
+    shift
+
+    compgen -W '${options} help' $@
+}
+
 _netplan()
 {
     local cur prev words cword
@@ -7,7 +15,7 @@ _netplan()
 
     case $prev in
         netplan)
-            COMPREPLY=( $( compgen -W 'apply generate ifupdown-migrate ip' "$cur" ) )
+            COMPREPLY=( $( _compgen_help 'apply generate ifupdown-migrate ip' "$cur" ) )
             return
             ;;
         apply|generate)
@@ -17,7 +25,7 @@ _netplan()
             return
             ;;
         ip)
-            COMPREPLY=( $( compgen -W 'leases' -- "$cur" ) )
+            COMPREPLY=( $( _compgen_help 'leases' -- "$cur" ) )
             return
             ;;
         leases)
