@@ -429,6 +429,35 @@ iface en1 inet6 static
                            'gateway4': "1.1.1.1",
                            'gateway6': "fc00:0123:4567:89ab::1"}}}}, out.decode())
 
+    def test_static_dns(self):
+        out = self.do_test("""auto en1
+iface en1 inet static
+  address 1.2.3.4
+  netmask 255.0.0.0
+  dns-nameservers 1.2.1.1  1.2.2.1
+  dns-search weird.network
+iface en1 inet6 static
+  address fc00:0123:4567:89ab:cdef::1234/64
+  dns-nameservers fc00:0123:4567:89ab:1::1  fc00:0123:4567:89ab:2::1""", dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1':
+                          {'addresses': ["1.2.3.4/8", "fc00:123:4567:89ab:cdef::1234/64"],
+                           'nameservers': {
+                               'search': ['weird.network'],
+                               'addresses': ['1.2.1.1', '1.2.2.1',
+                                             'fc00:0123:4567:89ab:1::1', 'fc00:0123:4567:89ab:2::1']
+                           }}}}}, out.decode())
+
+    def test_static_dns2(self):
+        out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\ndns-search foo  foo.bar', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["1.2.3.4/8"],
+                                  'nameservers': {
+                                      'search': ['foo', 'foo.bar']
+                                  }}}}}, out.decode())
+
     #
     # configs which are not supported
     #
@@ -441,7 +470,7 @@ iface en1 inet6 static
     def test_dhcp_options(self):
         (out, err) = self.do_test('auto en1\niface en1 inet dhcp\nup myhook', expect_success=False)
         self.assertEqual(out, b'')
-        self.assertIn(b'options are not supported for dhcp method', err)
+        self.assertIn(b'option(s) up are not supported for dhcp method', err)
 
     def test_mapping(self):
         (out, err) = self.do_test('mapping en*\n  script /some/path/mapscheme\nmap HOME en1-home\n\n'
