@@ -22,9 +22,7 @@ import os
 import sys
 import subprocess
 
-from netplan.cli.utils import NetplanCommand
-
-path_generate = os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
+import netplan.cli.utils
 
 lease_path = {
     'networkd': {
@@ -38,7 +36,7 @@ lease_path = {
 }
 
 
-class NetplanIp(NetplanCommand):
+class NetplanIp(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='ip',
@@ -134,7 +132,7 @@ class NetplanIpLeases(NetplanCommand):
                       file=sys.stderr)
                 sys.exit(1)
 
-        argv = [path_generate]
+        argv = [utils.get_generator_path()]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
         argv += ['--mapping', self.interface]
