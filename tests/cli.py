@@ -322,9 +322,9 @@ source-directory /etc/network/interfaces.d''')[0]
         self.assertIn(b'error parsing "1.2.3.4/42" as an IPv4 network', err)
 
     def test_static_ipv4_unsupported_option(self):
-        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/24\nmtu 1280', expect_success=False)
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/24\nmetric 1280', expect_success=False)
         self.assertEqual(out, b'')
-        self.assertIn(b'unsupported inet option "mtu"', err)
+        self.assertIn(b'unsupported inet option "metric"', err)
 
     def test_static_ipv4_unknown_option(self):
         out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/24\nxyzzy 1280', expect_success=False)
@@ -375,9 +375,9 @@ source-directory /etc/network/interfaces.d''')[0]
 
     def test_static_ipv6_unsupported_option(self):
         out, err = self.do_test('auto en1\niface en1 inet6 static\n'
-                                'address fc00:0123:4567:89ab:cdef::1234/64\nmtu 1280', expect_success=False)
+                                'address fc00:0123:4567:89ab:cdef::1234/64\nmetric 1280', expect_success=False)
         self.assertEqual(out, b'')
-        self.assertIn(b'unsupported inet6 option "mtu"', err)
+        self.assertIn(b'unsupported inet6 option "metric"', err)
 
     def test_static_ipv6_unknown_option(self):
         out, err = self.do_test('auto en1\niface en1 inet6 static\n'
@@ -457,6 +457,24 @@ iface en1 inet6 static
                                   'nameservers': {
                                       'search': ['foo', 'foo.bar']
                                   }}}}}, out.decode())
+
+    def test_static_mtu(self):
+        out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nmtu 1280', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["1.2.3.4/8"],
+                                  'mtu': 1280}}}}, out.decode())
+
+    def test_static_invalid_mtu(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nmtu fish', expect_success=False)
+        self.assertEqual(b'', out)
+        self.assertIn(b'cannot parse "fish" as an MTU', err)
+
+    def test_static_two_different_mtus(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nmtu 1280\n'
+                                'iface en1 inet6 static\naddress 2001::1/64\nmtu 9000', expect_success=False)
+        self.assertEqual(b'', out)
+        self.assertIn(b'tried to set MTU=9000, but already have MTU=1280', err)
 
     #
     # configs which are not supported
