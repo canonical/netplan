@@ -476,6 +476,19 @@ iface en1 inet6 static
         self.assertEqual(b'', out)
         self.assertIn(b'tried to set MTU=9000, but already have MTU=1280', err)
 
+    def test_static_hwaddress(self):
+        out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nhwaddress 52:54:00:6b:3c:59', dry_run=True)[0]
+        self.assertEqual(yaml.load(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["1.2.3.4/8"],
+                                  'macaddress': '52:54:00:6b:3c:59'}}}}, out.decode())
+
+    def test_static_two_different_macs(self):
+        out, err = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nhwaddress 52:54:00:6b:3c:59\n'
+                                'iface en1 inet6 static\naddress 2001::1/64\nhwaddress 52:54:00:6b:3c:58', expect_success=False)
+        self.assertEqual(b'', out)
+        self.assertIn(b'tried to set MAC 52:54:00:6b:3c:58, but already have MAC 52:54:00:6b:3c:59', err)
+
     #
     # configs which are not supported
     #

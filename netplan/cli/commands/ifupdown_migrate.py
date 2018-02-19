@@ -191,6 +191,21 @@ class NetplanIfupdownMigrate(Netplan):
             if_config['mtu'] = mtu
             del if_options['mtu']
 
+    def parse_hwaddress(self, iface, if_options, if_config):
+        """Parse out the manually configured MAC.
+        Operates the same way as parse_dns_options
+        iface is the name of the interface, used only to print error messages
+        """
+
+        if 'hwaddress' in if_options:
+            if 'macaddress' in if_config and not if_config['macaddress'] == if_options['hwaddress']:
+                logging.error('%s: tried to set MAC %s, but already have MAC %s', iface,
+                              if_options['hwaddress'], if_config['macaddress'])
+                sys.exit(2)
+
+            if_config['macaddress'] = if_options['hwaddress']
+            del if_options['hwaddress']
+
     def run(self):
         parser = argparse.ArgumentParser(prog='netplan ifupdown-migrate',
                                          description='Try to convert /etc/network/interfaces to netplan '
@@ -221,6 +236,7 @@ class NetplanIfupdownMigrate(Netplan):
                     c = netplan_config.setdefault('network', {}).setdefault('ethernets', {}).setdefault(iface, {})
 
                     self.parse_dns_options(config['options'], c)
+                    self.parse_hwaddress(iface, config['options'], c)
 
                     if config['options']:
                         logging.error('%s: option(s) %s are not supported for dhcp method',
@@ -240,16 +256,16 @@ class NetplanIfupdownMigrate(Netplan):
 
                     self.parse_dns_options(config['options'], c)
                     self.parse_mtu(iface, config['options'], c)
+                    self.parse_hwaddress(iface, config['options'], c)
 
                     # ipv4
                     if family == 'inet':
-                        # Already handled: mtu
+                        # Already handled: mtu, hwaddress
                         # Supported: address netmask gateway
-                        # Not supported yet: metric(?) hwaddress
+                        # Not supported yet: metric(?)
                         # No YAML support: pointopoint scope broadcast
                         supported_opts = set(['address', 'netmask', 'gateway'])
-                        unsupported_opts = set(['broadcast', 'metric', 'hwaddress',
-                                                'pointopoint', 'scope'])
+                        unsupported_opts = set(['broadcast', 'metric', 'pointopoint', 'scope'])
 
                         opts = set(config['options'].keys())
                         bad_opts = opts - supported_opts
@@ -301,14 +317,14 @@ class NetplanIfupdownMigrate(Netplan):
                     else:
                         assert family == 'inet6'
 
-                        # Already handled: mtu
+                        # Already handled: mtu, hwaddress
                         # supported: address netmask gateway
                         # partially supported: accept_ra (0/1 supported, 2 has no YAML rep)
-                        # unsupported: metric(?) hwaddress
+                        # unsupported: metric(?)
                         # no YAML representation: media autoconf privext scope
                         #                         preferred-lifetime dad-attempts dad-interval
                         supported_opts = set(['address', 'netmask', 'gateway', 'accept_ra'])
-                        unsupported_opts = set(['metric', 'hwaddress', 'media', 'autoconf', 'privext',
+                        unsupported_opts = set(['metric', 'media', 'autoconf', 'privext',
                                                 'scope', 'preferred-lifetime', 'dad-attempts', 'dad-interval'])
 
                         opts = set(config['options'].keys())
