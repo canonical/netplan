@@ -527,7 +527,6 @@ This is a complex example which shows most available features:
           access-points:
             "guest":
                mode: ap
-               channel: 11
                # no WPA config implies default of open
       bridges:
         # the key name is the name for virtual (created) interfaces; no match: and
