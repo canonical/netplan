@@ -287,7 +287,7 @@ class TestNetworkd(TestBase):
 Name=eth0
 
 [Link]
-RequiredForOnline=yes
+RequiredForOnline=no
 
 [Network]
 DHCP=ipv6
