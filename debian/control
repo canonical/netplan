@@ -25,7 +25,7 @@ Depends: ${shlibs:Depends},
  ${misc:Depends},
  python3,
  python3-yaml,
- systemd,
+ systemd (>= 235-3ubuntu3),
 Suggests: network-manager | wpasupplicant
 Conflicts: netplan
 Breaks: network-manager (<< 1.2.2-0ubuntu4~)
