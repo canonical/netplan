@@ -427,6 +427,17 @@ Properties for device type ``bonds:``
           active slave will be chosen and how recovery will be handled. The
           possible values are ``always``, ``better``, and ``failure``.
 
+     ``resend-igmp`` (scalar)
+     :    In modes ``balance-rr``, ``active-backup``, ``balance-tlb`` and
+          ``balance-alb``, a failover can switch IGMP traffic from one
+          slave to another.
+
+          This parameter specifies how many IGMP membership reports
+          are issued on a failover event. Values range from 0 to 255. 0
+          disables sending membership reports. Otherwise, the first
+          membership report is sent on failover and subsequent reports
+          are sent at 200ms intervals.
+
      ``learn-packet-interval`` (scalar)
      :    Specify the interval between sending learning packets to each slave.
           The value range is between ``1`` and ``0x7fffffff``. The default
