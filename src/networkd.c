@@ -234,7 +234,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     append_match_section(def, s, TRUE);
 
     if (def->optional)
-        g_string_append(s, "\n[Link]\nRequiredForOnline=yes\n");
+        g_string_append(s, "\n[Link]\nRequiredForOnline=no\n");
 
     g_string_append(s, "\n[Network]\n");
     if (def->dhcp4 && def->dhcp6)
