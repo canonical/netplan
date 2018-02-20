@@ -199,6 +199,34 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
               search: [lab, home]
               addresses: [8.8.8.8, "FEDC::1"]
 
+``macaddress`` (scalar)
+
+:   Set the device's MAC address. The MAC address must be in the form
+"XX:XX:XX:XX:XX:XX".
+
+    Example:
+
+        ethernets:
+          id0:
+            [...]
+            macaddress: 52:54:00:6b:3c:59
+
+``optional`` (boolean)
+
+: An optional device is not required for booting. Normally, networkd
+will wait some time for device to become configured before proceeding
+with booting. However, if a device is marked as optional, networkd
+will not wait for it. This is *only* supported by networkd, and the
+default is false.
+
+    Example:
+
+        ethernets:
+          eth7:
+            # this is plugged into a test network that is often
+            # down - don't wait for it to come up during boot.
+            dhcp4: true
+            optional: true
 
 Properties for device type ``ethernets:``
 =========================================
@@ -411,6 +439,17 @@ Properties for device type ``bonds:``
           active slave will be chosen and how recovery will be handled. The
           possible values are ``always``, ``better``, and ``failure``.
 
+     ``resend-igmp`` (scalar)
+     :    In modes ``balance-rr``, ``active-backup``, ``balance-tlb`` and
+          ``balance-alb``, a failover can switch IGMP traffic from one
+          slave to another.
+
+          This parameter specifies how many IGMP membership reports
+          are issued on a failover event. Values range from 0 to 255. 0
+          disables sending membership reports. Otherwise, the first
+          membership report is sent on failover and subsequent reports
+          are sent at 200ms intervals.
+
      ``learn-packet-interval`` (scalar)
      :    Specify the interval between sending learning packets to each slave.
           The value range is between ``1`` and ``0x7fffffff``. The default
@@ -497,7 +536,7 @@ This is a complex example which shows most available features:
           dhcp6: true
         switchports:
           # all cards on second PCI bus; unconfigured by themselves, will be added
-          # to br0 below
+          # to br0 below (note: globbing is not supported by NetworkManager)
           match:
             name: enp2*
           mtu: 1280
@@ -515,7 +554,6 @@ This is a complex example which shows most available features:
           access-points:
             "guest":
                mode: ap
-               channel: 11
                # no WPA config implies default of open
       bridges:
         # the key name is the name for virtual (created) interfaces; no match: and
