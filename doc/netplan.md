@@ -524,7 +524,7 @@ This is a complex example which shows most available features:
           dhcp6: true
         switchports:
           # all cards on second PCI bus; unconfigured by themselves, will be added
-          # to br0 below
+          # to br0 below (note: globbing is not supported by NetworkManager)
           match:
             name: enp2*
           mtu: 1280
