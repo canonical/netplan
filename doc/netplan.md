@@ -199,6 +199,18 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
               search: [lab, home]
               addresses: [8.8.8.8, "FEDC::1"]
 
+``macaddress`` (scalar)
+
+:   Set the device's MAC address. The MAC address must be in the form
+"XX:XX:XX:XX:XX:XX".
+
+    Example:
+
+        ethernets:
+          id0:
+            [...]
+            macaddress: 52:54:00:6b:3c:59
+
 
 Properties for device type ``ethernets:``
 =========================================
