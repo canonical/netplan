@@ -211,6 +211,22 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             [...]
             macaddress: 52:54:00:6b:3c:59
 
+``optional`` (boolean)
+
+: An optional device is not required for booting. Normally, networkd
+will wait some time for device to become configured before proceeding
+with booting. However, if a device is marked as optional, networkd
+will not wait for it. This is *only* supported by networkd, and the
+default is false.
+
+    Example:
+
+        ethernets:
+          eth7:
+            # this is plugged into a test network that is often
+            # down - don't wait for it to come up during boot.
+            dhcp4: true
+            optional: true
 
 Properties for device type ``ethernets:``
 =========================================
