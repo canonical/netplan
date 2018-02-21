@@ -23,6 +23,7 @@ import sys
 import re
 from glob import glob
 import yaml
+from collections import OrderedDict
 
 import netplan.cli.utils as utils
 
@@ -154,7 +155,7 @@ class NetplanMigrate(utils.NetplanCommand):
         # read and normalize all lines from config, with resolving includes
         lines = self._ifupdown_lines_from_file(rootdir, '/etc/network/interfaces')
 
-        ifaces = {}
+        ifaces = OrderedDict()
         auto = set()
         in_options = None  # interface name if parsing options lines after iface stanza
         in_family = None
@@ -197,7 +198,7 @@ class NetplanMigrate(utils.NetplanCommand):
                     raise ValueError('Unsupported method %s' % fields[3])
                 in_options = fields[1]
                 in_family = fields[2]
-                ifaces.setdefault(fields[1], {})[in_family] = {'method': fields[3], 'options': {}}
+                ifaces.setdefault(fields[1], OrderedDict())[in_family] = {'method': fields[3], 'options': {}}
             else:
                 raise NotImplementedError('stanza type %s is not implemented' % fields[0])  # pragma nocover
 
