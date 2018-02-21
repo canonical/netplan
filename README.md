@@ -6,7 +6,7 @@
 
 # Website
 
-http://wiki.ubuntu.com/Netplan
+http://netplan.io
 
 # Documentation
 
