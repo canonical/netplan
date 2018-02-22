@@ -45,8 +45,8 @@ class NetplanApply(utils.NetplanCommand):
 
         devices = os.listdir('/sys/class/net')
 
-        restart_networkd = bool(glob('/run/systemd/network/*netplan-*'))
-        restart_nm = bool(glob('/run/NetworkManager/system-connections/netplan-*'))
+        restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
+        restart_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
 
         # stop backends
         if restart_networkd:
@@ -91,7 +91,7 @@ class NetplanApply(utils.NetplanCommand):
         # (re)start backends
         if restart_networkd:
             subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'] +
-                                  [os.path.basename(f) for f in glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
+                                  [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
         if restart_nm:
             utils.systemctl_network_manager('start')
 
