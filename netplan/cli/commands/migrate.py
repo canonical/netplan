@@ -23,6 +23,8 @@ import sys
 import re
 from glob import glob
 import yaml
+from collections import OrderedDict
+import ipaddress
 
 import netplan.cli.utils as utils
 
@@ -33,6 +35,69 @@ class NetplanMigrate(utils.NetplanCommand):
         super().__init__(command_id='ifupdown-migrate',
                          description='Migration of /etc/network/interfaces to netplan',
                          leaf=True)
+
+    def parse_dns_options(self, if_options, if_config):
+        """Parse dns options (dns-nameservers and dns-search) from if_options
+        (an interface options dict) into the interface configuration if_config
+        Mutates the arguments in place.
+        """
+        if 'dns-nameservers' in if_options:
+            if 'nameservers' not in if_config:
+                if_config['nameservers'] = {}
+            if 'addresses' not in if_config['nameservers']:
+                if_config['nameservers']['addresses'] = []
+            for ns in if_options['dns-nameservers'].split(' '):
+                # allow multiple spaces in the dns-nameservers entry
+                if not ns:
+                    continue
+                # validate?
+                if_config['nameservers']['addresses'] += [ns]
+            del if_options['dns-nameservers']
+        if 'dns-search' in if_options:
+            if 'nameservers' not in if_config:
+                if_config['nameservers'] = {}
+            if 'search' not in if_config['nameservers']:
+                if_config['nameservers']['search'] = []
+            for domain in if_options['dns-search'].split(' '):
+                # allow multiple spaces in the dns-search entry
+                if not domain:
+                    continue
+                if_config['nameservers']['search'] += [domain]
+            del if_options['dns-search']
+
+    def parse_mtu(self, iface, if_options, if_config):
+        """Parse out the MTU. Operates the same way as parse_dns_options
+        iface is the name of the interface, used only to print error messages
+        """
+
+        if 'mtu' in if_options:
+            try:
+                mtu = int(if_options['mtu'])
+            except ValueError:
+                logging.error('%s: cannot parse "%s" as an MTU', iface, if_options['mtu'])
+                sys.exit(2)
+
+            if 'mtu' in if_config and not if_config['mtu'] == mtu:
+                logging.error('%s: tried to set MTU=%d, but already have MTU=%d', iface, mtu, if_config['mtu'])
+                sys.exit(2)
+
+            if_config['mtu'] = mtu
+            del if_options['mtu']
+
+    def parse_hwaddress(self, iface, if_options, if_config):
+        """Parse out the manually configured MAC.
+        Operates the same way as parse_dns_options
+        iface is the name of the interface, used only to print error messages
+        """
+
+        if 'hwaddress' in if_options:
+            if 'macaddress' in if_config and not if_config['macaddress'] == if_options['hwaddress']:
+                logging.error('%s: tried to set MAC %s, but already have MAC %s', iface,
+                              if_options['hwaddress'], if_config['macaddress'])
+                sys.exit(2)
+
+            if_config['macaddress'] = if_options['hwaddress']
+            del if_options['hwaddress']
 
     def run(self):
         self.parser.add_argument('--root-dir',
@@ -61,16 +126,161 @@ class NetplanMigrate(utils.NetplanCommand):
                     # both systemd and modern ifupdown set up lo automatically
                     logging.debug('Ignoring loopback interface %s', iface)
                 elif config['method'] == 'dhcp':
-                    if config['options']:
-                        logging.error('%s: options are not supported for dhcp method', iface)
-                        sys.exit(2)
                     c = netplan_config.setdefault('network', {}).setdefault('ethernets', {}).setdefault(iface, {})
+
+                    self.parse_dns_options(config['options'], c)
+                    self.parse_hwaddress(iface, config['options'], c)
+
+                    if config['options']:
+                        logging.error('%s: option(s) %s are not supported for dhcp method',
+                                      iface, ", ".join(config['options'].keys()))
+                        sys.exit(2)
                     if family == 'inet':
                         c['dhcp4'] = True
                     else:
                         assert family == 'inet6'
                         c['dhcp6'] = True
-                else:
+
+                elif config['method'] == 'static':
+                    c = netplan_config.setdefault('network', {}).setdefault('ethernets', {}).setdefault(iface, {})
+
+                    if 'addresses' not in c:
+                        c['addresses'] = []
+
+                    self.parse_dns_options(config['options'], c)
+                    self.parse_mtu(iface, config['options'], c)
+                    self.parse_hwaddress(iface, config['options'], c)
+
+                    # ipv4
+                    if family == 'inet':
+                        # Already handled: mtu, hwaddress
+                        # Supported: address netmask gateway
+                        # Not supported yet: metric(?)
+                        # No YAML support: pointopoint scope broadcast
+                        supported_opts = set(['address', 'netmask', 'gateway'])
+                        unsupported_opts = set(['broadcast', 'metric', 'pointopoint', 'scope'])
+
+                        opts = set(config['options'].keys())
+                        bad_opts = opts - supported_opts
+                        if bad_opts:
+                            for unsupported in bad_opts.intersection(unsupported_opts):
+                                logging.error('%s: unsupported %s option "%s"', iface, family, unsupported)
+                                sys.exit(2)
+                            for unknown in bad_opts - unsupported_opts:
+                                logging.error('%s: unknown %s option "%s"', iface, family, unknown)
+                                sys.exit(2)
+
+                        # the address may contain a /prefix suffix, or
+                        # the netmask property may be used. It's not clear
+                        # what happens if both are supplied.
+                        if 'address' not in config['options']:
+                            logging.error('%s: no address supplied in static method', iface)
+                            sys.exit(2)
+
+                        if '/' in config['options']['address']:
+                            addr_spec = config['options']['address'].split('/')[0]
+                            net_spec = config['options']['address']
+                        else:
+                            if 'netmask' not in config['options']:
+                                logging.error('%s: address does not specify prefix length, and netmask not specified',
+                                              iface)
+                                sys.exit(2)
+                            addr_spec = config['options']['address']
+                            net_spec = config['options']['address'] + '/' + config['options']['netmask']
+
+                        try:
+                            ipaddr = ipaddress.IPv4Address(addr_spec)
+                        except ipaddress.AddressValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv4 address: %s', iface, addr_spec, a)
+                            sys.exit(2)
+
+                        try:
+                            ipnet = ipaddress.IPv4Network(net_spec, strict=False)
+                        except ipaddress.NetmaskValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv4 network: %s', iface, net_spec, a)
+                            sys.exit(2)
+
+                        c['addresses'] += [str(ipaddr) + '/' + str(ipnet.prefixlen)]
+
+                        if 'gateway' in config['options']:
+                            # validate?
+                            c['gateway4'] = config['options']['gateway']
+
+                    # ipv6
+                    else:
+                        assert family == 'inet6'
+
+                        # Already handled: mtu, hwaddress
+                        # supported: address netmask gateway
+                        # partially supported: accept_ra (0/1 supported, 2 has no YAML rep)
+                        # unsupported: metric(?)
+                        # no YAML representation: media autoconf privext scope
+                        #                         preferred-lifetime dad-attempts dad-interval
+                        supported_opts = set(['address', 'netmask', 'gateway', 'accept_ra'])
+                        unsupported_opts = set(['metric', 'media', 'autoconf', 'privext',
+                                                'scope', 'preferred-lifetime', 'dad-attempts', 'dad-interval'])
+
+                        opts = set(config['options'].keys())
+                        bad_opts = opts - supported_opts
+                        if bad_opts:
+                            for unsupported in bad_opts.intersection(unsupported_opts):
+                                logging.error('%s: unsupported %s option "%s"', iface, family, unsupported)
+                                sys.exit(2)
+                            for unknown in bad_opts - unsupported_opts:
+                                logging.error('%s: unknown %s option "%s"', iface, family, unknown)
+                                sys.exit(2)
+
+                        # the address may contain a /prefix suffix, or
+                        # the netmask property may be used. It's not clear
+                        # what happens if both are supplied.
+                        if 'address' not in config['options']:
+                            logging.error('%s: no address supplied in static method', iface)
+                            sys.exit(2)
+
+                        if '/' in config['options']['address']:
+                            addr_spec = config['options']['address'].split('/')[0]
+                            net_spec = config['options']['address']
+                        else:
+                            if 'netmask' not in config['options']:
+                                logging.error('%s: address does not specify prefix length, and netmask not specified',
+                                              iface)
+                                sys.exit(2)
+                            addr_spec = config['options']['address']
+                            net_spec = config['options']['address'] + '/' + config['options']['netmask']
+
+                        try:
+                            ipaddr = ipaddress.IPv6Address(addr_spec)
+                        except ipaddress.AddressValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv6 address: %s', iface, addr_spec, a)
+                            sys.exit(2)
+
+                        try:
+                            ipnet = ipaddress.IPv6Network(net_spec, strict=False)
+                        except ipaddress.NetmaskValueError as a:
+                            logging.error('%s: error parsing "%s" as an IPv6 network: %s', iface, net_spec, a)
+                            sys.exit(2)
+
+                        c['addresses'] += [str(ipaddr) + '/' + str(ipnet.prefixlen)]
+
+                        if 'gateway' in config['options']:
+                            # validate?
+                            c['gateway6'] = config['options']['gateway']
+
+                        if 'accept_ra' in config['options']:
+                            if config['options']['accept_ra'] == '0':
+                                c['accept_ra'] = False
+                            elif config['options']['accept_ra'] == '1':
+                                c['accept_ra'] = True
+                            elif config['options']['accept_ra'] == '2':
+                                logging.error('%s: netplan does not support accept_ra=2', iface)
+                                sys.exit(2)
+                            else:
+                                logging.error('%s: unexpected accept_ra value "%s"', iface,
+                                              config['options']['accept_ra'])
+                                sys.exit(2)
+
+                else:  # pragma nocover
+                    # this should be unreachable
                     logging.error('%s: method %s is not supported', iface, config['method'])
                     sys.exit(2)
 
@@ -154,7 +364,7 @@ class NetplanMigrate(utils.NetplanCommand):
         # read and normalize all lines from config, with resolving includes
         lines = self._ifupdown_lines_from_file(rootdir, '/etc/network/interfaces')
 
-        ifaces = {}
+        ifaces = OrderedDict()
         auto = set()
         in_options = None  # interface name if parsing options lines after iface stanza
         in_family = None
@@ -197,7 +407,7 @@ class NetplanMigrate(utils.NetplanCommand):
                     raise ValueError('Unsupported method %s' % fields[3])
                 in_options = fields[1]
                 in_family = fields[2]
-                ifaces.setdefault(fields[1], {})[in_family] = {'method': fields[3], 'options': {}}
+                ifaces.setdefault(fields[1], OrderedDict())[in_family] = {'method': fields[3], 'options': {}}
             else:
                 raise NotImplementedError('stanza type %s is not implemented' % fields[0])  # pragma nocover
 
