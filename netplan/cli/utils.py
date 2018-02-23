@@ -64,10 +64,11 @@ def systemctl_network_manager(action):  # pragma: nocover (covered in autopkgtes
 
 class NetplanCommand(argparse.Namespace):
 
-    def __init__(self, command_id, description, leaf=True):
+    def __init__(self, command_id, description, leaf=True, testing=False):
         self.command_id = command_id
         self.description = description
         self.leaf_command = leaf
+        self.testing = testing
         self._args = None
         self.debug = False
         self.commandclass = None
@@ -118,6 +119,10 @@ class NetplanCommand(argparse.Namespace):
         self.subcommands[name] = {}
         self.subcommands[name]['class'] = name
         self.subcommands[name]['instance'] = instance
+
+        if instance.testing:
+            if not os.environ.get('ENABLE_TEST_COMMANDS', None):
+                return
 
         p = self.subparsers.add_parser(instance.command_id,
                                        description=instance.description,

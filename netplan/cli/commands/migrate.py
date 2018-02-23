@@ -34,7 +34,8 @@ class NetplanMigrate(utils.NetplanCommand):
     def __init__(self):
         super().__init__(command_id='ifupdown-migrate',
                          description='Migration of /etc/network/interfaces to netplan',
-                         leaf=True)
+                         leaf=True,
+                         testing=True)
 
     def parse_dns_options(self, if_options, if_config):
         """Parse dns options (dns-nameservers and dns-search) from if_options
