@@ -1,4 +1,4 @@
-nplan (0.32~16.04.4) UNRELEASED; urgency=medium
+nplan (0.32~16.04.4) xenial; urgency=medium
 
   [ Oliver Grawert ]
   * Prevent unbinding ath6kl_sdio, driver does not support it correctly.
@@ -14,7 +14,7 @@ nplan (0.32~16.04.4) UNRELEASED; urgency=medium
     (LP: #1664844)
   * Various documentation fixes. (LP: #1751814)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 10 Jan 2018 13:54:07 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 26 Feb 2018 11:06:31 -0500
 
 nplan (0.32~16.04.3) xenial; urgency=medium
 
