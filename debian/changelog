@@ -1,4 +1,4 @@
-nplan (0.32~17.10.2) UNRELEASED; urgency=medium
+nplan (0.32~17.10.2) artful; urgency=medium
 
   * Fix syntax for IPv6 addresses in doc. (LP: #1735317)
   * doc: routes are not top-level but per-interface. (LP: #1726695)
@@ -8,7 +8,7 @@ nplan (0.32~17.10.2) UNRELEASED; urgency=medium
     (LP: #1664844)
   * Various documentation fixes. (LP: #1751814)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 26 Feb 2018 10:24:47 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 26 Feb 2018 11:07:39 -0500
 
 nplan (0.32~17.10.1) artful; urgency=medium
 
