@@ -213,7 +213,7 @@ class NetplanMigrate(utils.NetplanCommand):
 
                         # Already handled: mtu, hwaddress
                         # supported: address netmask gateway
-                        # partially supported: accept_ra (0/1 supported, 2 has no YAML rep)
+                        # partially supported: accept_ra (0/2 supported, 1 unsupported by systemd)
                         # unsupported: metric(?)
                         # no YAML representation: media autoconf privext scope
                         #                         preferred-lifetime dad-attempts dad-interval
@@ -270,10 +270,10 @@ class NetplanMigrate(utils.NetplanCommand):
                         if 'accept_ra' in config['options']:
                             if config['options']['accept_ra'] == '0':
                                 c['accept_ra'] = False
-                            elif config['options']['accept_ra'] == '1':
-                                c['accept_ra'] = True
                             elif config['options']['accept_ra'] == '2':
-                                logging.error('%s: netplan does not support accept_ra=2', iface)
+                                c['accept_ra'] = True
+                            elif config['options']['accept_ra'] == '1':
+                                logging.error('%s: netplan does not support accept_ra=1', iface)
                                 sys.exit(2)
                             else:
                                 logging.error('%s: unexpected accept_ra value "%s"', iface,

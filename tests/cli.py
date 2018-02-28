@@ -393,19 +393,19 @@ source-directory /etc/network/interfaces.d''')[0]
             'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"],
                                   'accept_ra': False}}}}, out.decode())
 
-    def test_static_ipv6_accept_ra_1(self):
+    def test_static_ipv6_accept_ra_2(self):
         out = self.do_test('auto en1\niface en1 inet6 static\n'
-                           'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 1', dry_run=True)[0]
+                           'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 2', dry_run=True)[0]
         self.assertEqual(yaml.load(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"],
                                   'accept_ra': True}}}}, out.decode())
 
-    def test_static_ipv6_accept_ra_2(self):
+    def test_static_ipv6_accept_ra_1(self):
         out, err = self.do_test('auto en1\niface en1 inet6 static\n'
-                                'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 2', expect_success=False)
+                                'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 1', expect_success=False)
         self.assertEqual(out, b'')
-        self.assertIn(b'netplan does not support accept_ra=2', err)
+        self.assertIn(b'netplan does not support accept_ra=1', err)
 
     def test_static_ipv6_accept_ra_unexpected(self):
         out, err = self.do_test('auto en1\niface en1 inet6 static\n'
