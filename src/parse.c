@@ -1303,6 +1303,23 @@ process_document(yaml_document_t* doc, GError** error)
     return ret;
 }
 
+#if !GLIB_CHECK_VERSION(2, 54, 0)
+static gboolean g_ptr_array_find(GPtrArray *haystack,
+                                 gconstpointer needle,
+                                 guint *index)
+{
+    guint i;
+    /* we exclue the found case from coverage, because if we hit
+     * it we're about to throw an assert */
+    for (i = 0; i < haystack->len; i++) {
+        if (g_ptr_array_index(haystack, i) == needle)
+            return TRUE; /* LCOV_EXCL_LINE */
+    }
+
+    return FALSE;
+}
+#endif
+
 /*
  * Validate that all the pointers in all netdefs are unique
  * to that netdef - that is, that there are no inter-netdef
