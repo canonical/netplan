@@ -21,7 +21,7 @@ clean:
 
 check: default linting
 	tests/generate.py
-	tests/cli.py
+	ENABLE_TEST_COMMANDS=1 tests/cli.py
 
 linting:
 	$(shell which pyflakes3 || echo true) $(PYCODE)

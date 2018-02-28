@@ -122,7 +122,7 @@ class NetplanCommand(argparse.Namespace):
 
         if instance.testing:
             if not os.environ.get('ENABLE_TEST_COMMANDS', None):
-                return
+                return  # pragma: nocover
 
         p = self.subparsers.add_parser(instance.command_id,
                                        description=instance.description,
