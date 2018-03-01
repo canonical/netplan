@@ -714,7 +714,7 @@ Address=192.168.14.2/24
 [Route]
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
-GatewayOnLink=true
+GatewayOnlink=true
 Metric=100
 '''})
 
@@ -845,7 +845,6 @@ Address=192.168.14.2/24
 [Route]
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
-Type=unicast
 Metric=100
 '''})
 
@@ -3746,6 +3745,19 @@ class TestConfigErrors(TestBase):
     engreen:
       routes:
         - to: 2001:dead:beef::2
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_type_missing_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          type: prohibit
           metric: 1
       addresses:
         - 192.168.14.2/24

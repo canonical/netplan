@@ -225,10 +225,10 @@ write_route(ip_route* r, GString* s)
 
     if (r->scope)
         g_string_append_printf(s, "Scope=%s\n", r->scope);
-    if (r->type)
+    if (g_strcmp0(r->type, "unicast") != 0)
         g_string_append_printf(s, "Type=%s\n", r->type);
     if (r->onlink)
-        g_string_append_printf(s, "GatewayOnLink=true\n");
+        g_string_append_printf(s, "GatewayOnlink=true\n");
     if (r->metric != METRIC_UNSPEC)
         g_string_append_printf(s, "Metric=%d\n", r->metric);
     if (r->table != ROUTE_TABLE_UNSPEC)
