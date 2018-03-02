@@ -14,7 +14,7 @@ nplan (0.32~16.04.4) xenial; urgency=medium
     (LP: #1664844)
   * Various documentation fixes. (LP: #1751814)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 26 Feb 2018 11:06:31 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 02 Mar 2018 17:02:03 -0500
 
 nplan (0.32~16.04.3) xenial; urgency=medium
 
