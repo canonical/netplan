@@ -1,8 +1,8 @@
-nplan (0.32~17.10.3) UNRELEASED; urgency=medium
+nplan (0.32~17.10.3) artful; urgency=medium
 
   * Don't silently break Bridge Priority by adding port-priority.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 02 Mar 2018 16:49:55 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 02 Mar 2018 16:50:47 -0500
 
 nplan (0.32~17.10.2) artful; urgency=medium
 
