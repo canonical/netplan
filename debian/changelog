@@ -1,3 +1,9 @@
+nplan (0.32~17.10.3) UNRELEASED; urgency=medium
+
+  * Don't silently break Bridge Priority by adding port-priority.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 02 Mar 2018 16:49:55 -0500
+
 nplan (0.32~17.10.2) artful; urgency=medium
 
   * Fix syntax for IPv6 addresses in doc. (LP: #1735317)
