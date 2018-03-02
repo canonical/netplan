@@ -575,6 +575,38 @@ class _CommonTests:
         with open('/sys/class/net/mybr/bridge/hello_time') as f:
             self.assertEqual(f.read().strip(), '100')
 
+    def test_bridge_priority(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]
+      parameters:
+        priority: 16384
+        stp: false
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+        with open('/sys/class/net/mybr/bridge/priority') as f:
+            self.assertEqual(f.read().strip(), '16384')
+
     def test_bridge_forward_delay(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
@@ -1897,38 +1929,6 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
             self.assertEqual(f.read().strip(), 'balance-tlb 5')
         with open('/sys/class/net/mybond/bonding/lp_interval') as f:
             self.assertEqual(f.read().strip(), '15')
-
-    def test_bridge_priority(self):
-        self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  renderer: %(r)s
-  ethernets:
-    ethbr:
-      match: {name: %(e2c)s}
-  bridges:
-    mybr:
-      interfaces: [ethbr]
-      parameters:
-        priority: 16384
-        stp: false
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet 192.168.5.[0-9]+/24'],
-                             ['master'])
-        self.assert_iface_up(self.dev_e2_client,
-                             ['master mybr'],
-                             ['inet '])
-        self.assert_iface_up('mybr',
-                             ['inet 192.168.6.[0-9]+/24'])
-        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
-                                        universal_newlines=True).splitlines()
-        self.assertEqual(len(lines), 1, lines)
-        self.assertIn(self.dev_e2_client, lines[0])
-        with open('/sys/class/net/mybr/bridge/priority') as f:
-            self.assertEqual(f.read().strip(), '16384')
 
     def test_bridge_port_priority(self):
         self.setup_eth(None)

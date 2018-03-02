@@ -66,14 +66,8 @@ write_bridge_params(GString* s, net_definition* def)
 
         if (def->bridge_params.ageing_time)
             g_string_append_printf(params, "AgeingTimeSec=%u\n", def->bridge_params.ageing_time);
-#if 0
-	/* FIXME: Priority= is not valid for the bridge itself, although it should work as the
-         *        STP priority of the bridge itself. It's not supported by networkd, but let's
-         *        keep it around in case it becomes supported in the future.
-         */
         if (def->bridge_params.priority)
             g_string_append_printf(params, "Priority=%u\n", def->bridge_params.priority);
-#endif
         if (def->bridge_params.forward_delay)
             g_string_append_printf(params, "ForwardDelaySec=%u\n", def->bridge_params.forward_delay);
         if (def->bridge_params.hello_time)
