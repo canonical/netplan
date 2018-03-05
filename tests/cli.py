@@ -137,12 +137,14 @@ class TestIfupdownMigrate(unittest.TestCase):
         self.converted_path = os.path.join(self.workdir.name, 'etc/netplan/10-ifupdown.yaml')
 
     def test_system(self):
+        os.environ.update({"ENABLE_TEST_COMMANDS": "1"})
         rc = subprocess.call(exe_cli + ['ifupdown-migrate', '--dry-run'],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # may succeed or fail, but should not crash
         self.assertIn(rc, [0, 2])
 
     def do_test(self, iface_file, expect_success=True, dry_run=True, dropins=None):
+        os.environ.update({"ENABLE_TEST_COMMANDS": "1"})
         if iface_file is not None:
             os.makedirs(os.path.dirname(self.ifaces_path))
             with open(self.ifaces_path, 'w') as f:
