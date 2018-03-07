@@ -15,7 +15,10 @@ nplan (0.34) UNRELEASED; urgency=medium
     * Miscellaneous coverage, linting, and fuzzing fixes.
     * Refactor subcommands into separate source files, automate command loading
       and various code cleanups.
+    * Disable "ifupdown-migrate"; which is incomplete and thus risks breaking
+      systems. Better iterate over it without showing it as a viable option.
     * Add better routing support, implement initial routing policy support.
+      - Add 'on-link' support. (LP: #1735193)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 25 Jan 2018 19:01:33 -0500
 
