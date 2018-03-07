@@ -1236,6 +1236,7 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
         forward-delay: 12
         hello-time: 6
         max-age: 24
+        priority: 1000
         stp: true
         path-cost:
           eno1: 70
@@ -1245,6 +1246,7 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
                                             '[Bridge]\nAgeingTimeSec=50\n'
+                                            'Priority=1000\n'
                                             'ForwardDelaySec=12\n'
                                             'HelloTimeSec=6\n'
                                             'MaxAgeSec=24\n'
