@@ -11,6 +11,7 @@ nplan (0.34) UNRELEASED; urgency=medium
     * Added bash completion. (LP: #1749869)
     * Implement 'netplan ip leases': allows users to retrieve lease information
       for the backend in use; to query for custom DHCP options.
+    * Don't silently break bridge-priority; fix it instead. (LP: #1752162)
     * Miscellaneous coverage, linting, and fuzzing fixes.
     * Refactor subcommands into separate source files, automate command loading
       and various code cleanups.
