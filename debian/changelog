@@ -1,16 +1,19 @@
 nplan (0.34) UNRELEASED; urgency=medium
 
-  * Implement "optional: true" to correctly write systemd network definitions
-    with "RequiredForOnline=false", such that these networks do not block boot.
-    (LP: #1664844)
-  * Implement 'help' as a subcommand of any netplan command, so that running
-    'netplan * help' always returns some helpful information. (LP: #1748629)
-  * Reinstate snap support for dealing with the NetworkManager snap.
-    (LP: #1747714)
-  * Added bash completion. (LP: #1749869)
-  * Implement 'netplan ip leases': allows users to retrieve lease information
-    for the backend in use; to query for custom DHCP options.
-  * Miscellaneous coverage, linting, and fuzzing fixes.
+  * New release 0.34:
+    * Implement "optional: true" to correctly write systemd network definitions
+      with "RequiredForOnline=false", so that these networks do not block boot.
+      (LP: #1664844)
+    * Implement 'help' as a subcommand of any netplan command, so that running
+      'netplan * help' always returns some helpful information. (LP: #1748629)
+    * Reinstate snap support for dealing with the NetworkManager snap.
+      (LP: #1747714)
+    * Added bash completion. (LP: #1749869)
+    * Implement 'netplan ip leases': allows users to retrieve lease information
+      for the backend in use; to query for custom DHCP options.
+    * Miscellaneous coverage, linting, and fuzzing fixes.
+    * Refactor subcommands into separate source files, automate command loading
+      and various code cleanups.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 25 Jan 2018 19:01:33 -0500
 
