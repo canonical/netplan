@@ -1,4 +1,4 @@
-nplan (0.34) UNRELEASED; urgency=medium
+netplan.io (0.34) UNRELEASED; urgency=medium
 
   * New release 0.34 (LP: #1754019):
     * Implement "optional: true" to correctly write systemd network definitions
@@ -19,6 +19,15 @@ nplan (0.34) UNRELEASED; urgency=medium
       systems. Better iterate over it without showing it as a viable option.
     * Add better routing support, implement initial routing policy support.
       - Add 'on-link' support. (LP: #1735193)
+  * debian/control:
+    - Renamed source and "real" binary to netplan.io.
+    - Added a transitional package for nplan.
+    - Updated Vcs-* fields to point to the Github project we now use.
+    - Updated Standards-Version, debhelper.
+  * debian/compat: bump to debhelper compat level 11.
+  * debian/copyright: Update Format: field for https.
+  * debian/netplan.io.install: obligatory file to install files.
+  * debian/source/format: now we're 3.0 native, for reals.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 25 Jan 2018 19:01:33 -0500
 
