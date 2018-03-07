@@ -1033,8 +1033,8 @@ class _CommonTests:
                              ['inet6 9876:bbbb::11/70'])
         self.assertNotIn(b'default',
                          subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'default via 9876:bbbb::1',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'via 9876:bbbb::1',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'default']))
         self.assertIn(b'2001:f00f:f00f::/64 via 9876:bbbb::5',
                       subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'metric 799',
@@ -1131,8 +1131,8 @@ class _CommonTests:
 
         self.assertNotIn(b'default',
                          subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'default via 9876:bbbb::1',
-                      subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'via 9876:bbbb::1',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'default']))
         self.assertIn(b'default via 192.168.6.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e2_client]))
         self.assertNotIn(b'default',
