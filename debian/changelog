@@ -1,6 +1,6 @@
 nplan (0.34) UNRELEASED; urgency=medium
 
-  * New release 0.34:
+  * New release 0.34 (LP: #1754019):
     * Implement "optional: true" to correctly write systemd network definitions
       with "RequiredForOnline=false", so that these networks do not block boot.
       (LP: #1664844)
