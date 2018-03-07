@@ -15,6 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from netplan.cli.commands.apply import NetplanApply
+from netplan.cli.commands.generate import NetplanGenerate
 from netplan.cli.commands.ip import NetplanIp
+from netplan.cli.commands.migrate import NetplanMigrate
 
-__all__ = [NetplanIp]
+__all__ = [
+    'NetplanApply',
+    'NetplanGenerate',
+    'NetplanIp',
+    'NetplanMigrate',
+]
