@@ -1664,6 +1664,78 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybr/brif/%s/priority' % self.dev_e2_client) as f:
             self.assertEqual(f.read().strip(), '42')
 
+    @unittest.skip("networkd does not handle non-unicast routes correctly yet (Invalid argument)")
+    def test_route_type_blackhole(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      addresses: [ "10.20.10.1/24" ]
+      routes:
+        - to: 10.10.10.0/24
+          via: 10.20.10.100
+          type: blackhole''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet '])
+        self.assertIn(b'blackhole 10.10.10.0/24',
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+
+    def test_route_on_link(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      dhcp4: no
+      addresses: [ "10.20.10.1/24" ]
+      routes:
+        - to: 20.0.0.0/24
+          via: 10.10.10.10
+          on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet '])
+        self.assertIn(b'20.0.0.0/24 via 10.10.10.10 proto static onlink',
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+
+    def test_route_with_policy(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      addresses: [ "10.20.10.1/24" ]
+      routes:
+        - to: 40.0.0.0/24
+          via: 10.20.10.55
+          metric: 50
+        - to: 40.0.0.0/24
+          via: 10.20.10.88
+          table: 99
+          metric: 50
+      routing-policy:
+        - from: 10.20.10.0/24
+          to: 40.0.0.0/24
+          table: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet '])
+        self.assertIn(b'to 40.0.0.0/24 lookup 99',
+                      subprocess.check_output(['ip', 'rule', 'show']))
+        self.assertIn(b'40.0.0.0/24 via 10.20.10.88',
+                      subprocess.check_output(['ip', 'route', 'show', 'table', '99']))
+
 
 class TestNetworkManager(NetworkTestBase, _CommonTests):
     backend = 'NetworkManager'

@@ -30,6 +30,7 @@
 /* convenience macro to put the offset of a net_definition field into "void* data" */
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
 #define route_offset(field) GUINT_TO_POINTER(offsetof(ip_route, field))
+#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(ip_rule, field))
 
 /* file that is currently being processed, for useful error messages */
 const char* current_file;
@@ -40,6 +41,7 @@ net_definition* cur_netdef;
 wifi_access_point* cur_access_point;
 
 ip_route* cur_route;
+ip_rule* cur_ip_rule;
 
 netdef_backend backend_global, backend_cur_type;
 
@@ -726,14 +728,70 @@ get_ip_family(const char* address)
 }
 
 static gboolean
-check_and_set_family(int family)
+check_and_set_family(int family, guint* dest)
 {
-    if (cur_route->family != -1 && cur_route->family != family)
+    if (*dest != -1 && *dest != family)
         return FALSE;
 
-    cur_route->family = family;
+    *dest = family;
 
     return TRUE;
+}
+
+/* TODO: (cyphermox) Refactor the functions below. There's a lot of room for reuse. */
+
+static gboolean
+handle_routes_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    gboolean v;
+
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        v = TRUE;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        v = FALSE;
+    else
+        return yaml_error(node, error, "invalid boolean value %s", scalar(node));
+
+    *((gboolean*) ((void*) cur_route + offset)) = v;
+    return TRUE;
+}
+
+static gboolean
+handle_routes_scope(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_route->scope)
+        g_free(cur_route->scope);
+    cur_route->scope = g_strdup(scalar(node));
+
+    if (g_ascii_strcasecmp(cur_route->scope, "global") == 0 ||
+        g_ascii_strcasecmp(cur_route->scope, "link") == 0 ||
+        g_ascii_strcasecmp(cur_route->scope, "host") == 0)
+        return TRUE;
+
+    return yaml_error(node, error, "invalid route scope '%s'", cur_route->scope);
+}
+
+static gboolean
+handle_routes_type(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_route->type)
+        g_free(cur_route->type);
+    cur_route->type = g_strdup(scalar(node));
+
+    if (g_ascii_strcasecmp(cur_route->type, "unicast") == 0 ||
+        g_ascii_strcasecmp(cur_route->type, "unreachable") == 0 ||
+        g_ascii_strcasecmp(cur_route->type, "blackhole") == 0 ||
+        g_ascii_strcasecmp(cur_route->type, "prohibit") == 0)
+        return TRUE;
+
+    return yaml_error(node, error, "invalid route type '%s'", cur_route->type);
 }
 
 static gboolean
@@ -747,11 +805,100 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
     if (family < 0)
         return yaml_error(node, error, "invalid IP family %d", family);
 
-    if (!check_and_set_family(family))
+    if (!check_and_set_family(family, &cur_route->family))
         return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
     *dest = g_strdup(scalar(node));
 
+    return TRUE;
+}
+
+static gboolean
+handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    int family = get_ip_family(scalar(node));
+    char** dest = (char**) ((void*) cur_ip_rule + offset);
+    g_free(*dest);
+
+    if (family < 0)
+        return yaml_error(node, error, "invalid IP family %d", family);
+
+    if (!check_and_set_family(family, &cur_ip_rule->family))
+        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+
+    *dest = g_strdup(scalar(node));
+
+    return TRUE;
+}
+
+static gboolean
+handle_ip_rule_prio(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid priority value %s", scalar(node));
+
+    cur_ip_rule->priority = (guint) v;
+    return TRUE;
+}
+
+static gboolean
+handle_ip_rule_tos(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > 255)
+        return yaml_error(node, error, "invalid ToS (must be between 0 and 255): %s", scalar(node));
+
+    cur_ip_rule->tos = (guint) v;
+    return TRUE;
+}
+
+static gboolean
+handle_routes_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid routing table %s", scalar(node));
+
+    cur_route->table = (guint) v;
+    return TRUE;
+}
+
+static gboolean
+handle_ip_rule_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid routing table %s", scalar(node));
+
+    cur_ip_rule->table = (guint) v;
+    return TRUE;
+}
+
+static gboolean
+handle_ip_rule_fwmark(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid fwmark value %s", scalar(node));
+
+    cur_ip_rule->fwmark = (guint) v;
     return TRUE;
 }
 
@@ -870,7 +1017,12 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
  ****************************************************/
 
 const mapping_entry_handler routes_handlers[] = {
+    {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
+    {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
+    {"scope", YAML_SCALAR_NODE, handle_routes_scope},
+    {"table", YAML_SCALAR_NODE, handle_routes_table},
     {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
+    {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, handle_routes_metric},
     {NULL}
@@ -883,6 +1035,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
 
         cur_route = g_new0(ip_route, 1);
+        cur_route->type = g_strdup("unicast");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = G_MAXUINT; /* 0 is a valid metric */
 
@@ -894,10 +1047,55 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
             g_array_append_val(cur_netdef->routes, cur_route);
         }
 
-        if (!cur_route->to || !cur_route->via)
-            return yaml_error(node, error, "route must include both a 'to' and 'via' IP");
+        if (g_ascii_strcasecmp(cur_route->type, "unicast") == 0 &&
+            (!cur_route->to || !cur_route->via))
+            return yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
+        else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to)
+            return yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
 
         cur_route = NULL;
+
+        if (error && *error)
+            return FALSE;
+    }
+    return TRUE;
+}
+
+const mapping_entry_handler ip_rules_handlers[] = {
+    {"from", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(from)},
+    {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark},
+    {"priority", YAML_SCALAR_NODE, handle_ip_rule_prio},
+    {"table", YAML_SCALAR_NODE, handle_ip_rule_table},
+    {"to", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(to)},
+    {"type-of-service", YAML_SCALAR_NODE, handle_ip_rule_tos},
+    {NULL}
+};
+
+static gboolean
+handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+
+        cur_ip_rule = g_new0(ip_rule, 1);
+        cur_ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
+        cur_ip_rule->priority = IP_RULE_PRIO_UNSPEC;
+        cur_ip_rule->table = ROUTE_TABLE_UNSPEC;
+        cur_ip_rule->tos = IP_RULE_TOS_UNSPEC;
+        cur_ip_rule->fwmark = IP_RULE_FW_MARK_UNSPEC;
+
+        if (process_mapping(doc, entry, ip_rules_handlers, error)) {
+            if (!cur_netdef->ip_rules) {
+                cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(ip_rule*));
+            }
+
+            g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
+        }
+
+        if (!cur_ip_rule->from && !cur_ip_rule->to)
+            return yaml_error(node, error, "IP routing policy must include either a 'from' or 'to' IP");
+
+        cur_ip_rule = NULL;
 
         if (error && *error)
             return FALSE;
@@ -1015,6 +1213,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
@@ -1035,6 +1234,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
@@ -1055,6 +1255,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
@@ -1073,6 +1274,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
@@ -1091,6 +1293,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
+    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };

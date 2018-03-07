@@ -14,6 +14,7 @@ nplan (0.34) UNRELEASED; urgency=medium
     * Miscellaneous coverage, linting, and fuzzing fixes.
     * Refactor subcommands into separate source files, automate command loading
       and various code cleanups.
+    * Add better routing support, implement initial routing policy support.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 25 Jan 2018 19:01:33 -0500
 

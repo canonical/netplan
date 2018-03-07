@@ -228,6 +228,100 @@ default is false.
             dhcp4: true
             optional: true
 
+``routes`` (mapping)
+
+:   Configure static routing for the device; see the ``Routing`` section below.
+
+``routing-policy`` (mapping)
+
+:   Configure policy routing for the device; see the ``Routing`` section below.
+
+
+Routing
+=======
+Complex routing is possible with netplan. Standard static routes as well
+as policy routing using routing tables are supported via the ``networkd``
+backend.
+
+These options are available for all types of interfaces.
+
+``routes`` (mapping)
+
+:    The ``routes`` block defines standard static routes for an interface.
+     At least ``to`` and ``via`` must be specified.
+
+     For ``from``, ``to``, and ``via``, both IPv4 and IPv6 addresses are
+     recognized, and must be in the form ``addr/prefixlen`` or ``addr``.
+
+     ``from`` (scalar)
+     :    Set a source IP address for traffic going through the route.
+
+     ``to`` (scalar)
+     :    Destination address for the route.
+
+     ``via`` (scalar)
+     :    Address to the gateway to use for this route.
+
+     ``on-link`` (bool)
+     :    When set to "true", specifies that the route is directly connected
+          to the interface.
+
+     ``metric`` (scalar)
+     :    The relative priority of the route. Must be a positive integer value.
+
+     ``type`` (scalar)
+     :    The type of route. Valid options are "unicast" (default),
+          "unreachable", "blackhole" or "prohibited".
+
+     ``scope`` (scalar)
+     :    The route scope, how wide-ranging it is to the network. Possible
+          values are "global", "link", or "host".
+
+     ``table`` (scalar)
+     :    The table number to use for the route. In some scenarios, it may be
+          useful to set routes in a separate routing table. It may also be used
+          to refer to routing policy rules which also accept a ``table``
+          parameter. Allowed values are positive integers starting from 1.
+          Some values are already in use to refer to specific routing tables:
+          see ``/etc/iproute2/rt_tables``.
+
+``routing-policy`` (mapping)
+
+:    The ``routing-policy`` block defines extra routing policy for a network,
+     where traffic may be handled specially based on the source IP, firewall
+     marking, etc.
+
+     For ``from``, ``to``, both IPv4 and IPv6 addresses are recognized, and
+     must be in the form ``addr/prefixlen`` or ``addr``.
+
+     ``from`` (scalar)
+     :    Set a source IP address to match traffic for this policy rule.
+
+     ``to`` (scalar)
+     :    Match on traffic going to the specified destination.
+
+     ``table`` (scalar)
+     :    The table number to match for the route. In some scenarios, it may be
+          useful to set routes in a separate routing table. It may also be used
+          to refer to routes which also accept a ``table`` parameter.
+          Allowed values are positive integers starting from 1.
+          Some values are already in use to refer to specific routing tables:
+          see ``/etc/iproute2/rt_tables``.
+
+     ``priority`` (scalar)
+     :    Specify a priority for the routing policy rule, to influence the order
+          in which routing rules are processed. A higher number means lower
+          priority: rules are processed in order by increasing priority number.
+
+     ``fwmark`` (scalar)
+     :    Have this routing policy rule match on traffic that has been marked
+          by the iptables firewall with this value. Allowed values are positive
+          integers starting from 1.
+
+     ``type-of-service`` (scalar)
+     :    Match this policy rule based on the type of service number applied to
+          the traffic.
+
 Properties for device type ``ethernets:``
 =========================================
 Ethernet device definitions do not support any specific properties beyond the
@@ -517,6 +611,7 @@ This is a complex example which shows most available features:
           dhcp4: true
           addresses:
             - 192.168.14.2/24
+            - 192.168.14.3/24
             - "2001:1::1/64"
           gateway4: 192.168.14.1
           gateway6: "2001:1::2"
@@ -526,7 +621,18 @@ This is a complex example which shows most available features:
           routes:
             - to: 0.0.0.0/0
               via: 11.0.0.1
+              table: 70
+              on-link: true
               metric: 3
+          routing-policy:
+            - to: 10.0.0.0/8
+              from: 192.168.14.2/24
+              table: 70
+              priority: 100
+            - to: 20.0.0.0/8
+              from: 192.168.14.3/24
+              table: 70
+              priority: 50
         lom:
           match:
             driver: ixgbe

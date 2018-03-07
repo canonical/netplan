@@ -701,6 +701,214 @@ Gateway=192.168.1.3
 Metric=9999
 '''})
 
+    def test_route_v4_onlink(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          on-link: true
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+GatewayOnlink=true
+Metric=100
+'''})
+
+    def test_route_v4_onlink_no(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          on-link: n
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=100
+'''})
+
+    def test_route_v4_scope(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          scope: link
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Scope=link
+Metric=100
+'''})
+
+    def test_route_v4_scope_redefine(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          scope: host
+          via: 192.168.14.20
+          scope: link
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Scope=link
+Metric=100
+'''})
+
+    def test_route_v4_type_blackhole(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          type: blackhole
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Type=blackhole
+Metric=100
+'''})
+
+    def test_route_v4_type_redefine(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          type: prohibit
+          via: 192.168.14.20
+          type: unicast
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=100
+'''})
+
+    def test_route_v4_table(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          table: 201
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=100
+Table=201
+'''})
+
+    def test_route_v4_from(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          from: 192.168.14.2/32
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+From=192.168.14.2/32
+Metric=100
+'''})
+
     def test_route_v6_single(self):
         self.generate('''network:
   version: 2
@@ -720,6 +928,52 @@ Address=192.168.1.3/24
 [Route]
 Destination=2001:dead:beef::2/64
 Gateway=2001:beef:beef::1
+'''})
+
+    def test_route_v6_type(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1
+          type: prohibit''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=2001:dead:beef::2/64
+Gateway=2001:beef:beef::1
+Type=prohibit
+'''})
+
+    def test_route_v6_scope_host(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 2001:dead:beef::2/64
+          via: 2001:beef:beef::1
+          scope: host''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[Route]
+Destination=2001:dead:beef::2/64
+Gateway=2001:beef:beef::1
+Scope=host
 '''})
 
     def test_route_v6_multiple(self):
@@ -1220,6 +1474,94 @@ Domains=lab kitchen
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enblue,interface-name:enred,''')
         self.assert_udev(None)
+
+    def test_ip_rule_table(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          table: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+To=10.10.10.0/24
+Table=100
+'''})
+
+    def test_ip_rule_priority(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          priority: 99
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+To=10.10.10.0/24
+Priority=99
+'''})
+
+    def test_ip_rule_fwmark(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - from: 10.10.10.0/24
+          mark: 50
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+From=10.10.10.0/24
+FirewallMark=50
+'''})
+
+    def test_ip_rule_tos(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          type-of-service: 250
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+To=10.10.10.0/24
+TypeOfService=250
+'''})
 
 
 class TestNetworkManager(TestBase):
@@ -3420,6 +3762,71 @@ class TestConfigErrors(TestBase):
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)
 
+    def test_device_route_type_missing_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          type: prohibit
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_invalid_onlink(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          to: 2000:cafe:cafe::1/24
+          on-link: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_invalid_table(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          to: 2000:cafe:cafe::1/24
+          table: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_invalid_type(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          to: 2000:cafe:cafe::1/24
+          type: thisisinvalidtype
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_invalid_scope(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          to: 2000:cafe:cafe::1/24
+          scope: linky
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
     def test_bridge_invalid_dev_for_path_cost(self):
         self.generate('''network:
   version: 2
@@ -3608,6 +4015,91 @@ class TestConfigErrors(TestBase):
   bridges:
     br1:
       interfaces: [bond0]''')
+
+    def test_device_ip_rule_mismatched_addresses(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          to: 2000:dead:beef::3/64
+          table: 50
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_missing_address(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - table: 50
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_tos(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          type-of-service: 256
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_prio(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          priority: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_table(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          table: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_fwmark(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          mark: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_address(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - to: 10.10.10.0/24
+          from: someinvalidaddress
+          mark: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
 
 
 class TestForwardDeclaration(TestBase):
