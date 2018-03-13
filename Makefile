@@ -6,8 +6,22 @@ BUILDFLAGS = \
 	$(NULL)
 
 SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir systemd)
+SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
+BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completion || echo "/etc/bash_completion.d")
+
+ROOTPREFIX ?= /
+PREFIX ?= /usr
+ROOTLIBEXECDIR ?= $(ROOTPREFIX)/lib
+SBINDIR ?= $(PREFIX)/sbin
+DATADIR ?= $(PREFIX)/share
+DOCDIR ?= $(DATADIR)/doc
+MANDIR ?= $(DATADIR)/man
 
 PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)
+
+# Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
+PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
+PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
 
 default: generate doc/netplan.5 doc/netplan.html
 
@@ -24,8 +38,8 @@ check: default linting
 	tests/cli.py
 
 linting:
-	$(shell which pyflakes3 || echo true) $(PYCODE)
-	$(shell which pycodestyle || which pep8 || echo true) --max-line-length=130 $(PYCODE)
+	$(PYFLAKES3) $(PYCODE)
+	$(PYCODESTYLE3) --max-line-length=130 $(PYCODE)
 
 coverage: | pre-coverage c-coverage python-coverage
 
@@ -50,18 +64,18 @@ python-coverage:
 	python3-coverage xml --omit=/usr* || true
 
 install: default
-	mkdir -p $(DESTDIR)/usr/sbin $(DESTDIR)/lib/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
-	mkdir -p $(DESTDIR)/usr/share/man/man5 $(DESTDIR)/usr/share/doc/netplan
-	mkdir -p $(DESTDIR)/usr/share/netplan/netplan
-	install -m 755 generate $(DESTDIR)/lib/netplan/
-	find netplan/ -name '*.py' -exec install -Dm 644 "{}" "$(DESTDIR)/usr/share/netplan/{}" \;
-	install -m 755 src/netplan.script $(DESTDIR)/usr/share/netplan/
-	ln -s /usr/share/netplan/netplan.script $(DESTDIR)/usr/sbin/netplan
-	ln -s /lib/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
-	install -m 644 doc/*.html $(DESTDIR)/usr/share/doc/netplan/
-	install -m 644 doc/*.5 $(DESTDIR)/usr/share/man/man5/
-	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/`pkg-config --variable=systemdsystemunitdir systemd`/netplan-wpa@.service
-	install -T -D -m 644 netplan.completions $(DESTDIR)/usr/share/bash-completions/completions/netplan
+	mkdir -p $(DESTDIR)/$(SBINDIR) $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
+	mkdir -p $(DESTDIR)/$(MANDIR)/man5 $(DESTDIR)/$(DOCDIR)/netplan
+	mkdir -p $(DESTDIR)/$(DATADIR)/netplan/netplan
+	install -m 755 generate $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
+	find netplan/ -name '*.py' -exec install -Dm 644 "{}" "$(DESTDIR)/$(DATADIR)/netplan/{}" \;
+	install -m 755 src/netplan.script $(DESTDIR)/$(DATADIR)/netplan/
+	ln -sr $(DESTDIR)/$(DATADIR)/netplan/netplan.script $(DESTDIR)/$(SBINDIR)/netplan
+	ln -sr $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
+	install -m 644 doc/*.html $(DESTDIR)/$(DOCDIR)/netplan/
+	install -m 644 doc/*.5 $(DESTDIR)/$(MANDIR)/man5/
+	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/netplan-wpa@.service
+	install -T -D -m 644 netplan.completions $(DESTDIR)/$(BASH_COMPLETIONS_DIR)/netplan
 
 %.html: %.md
 	pandoc -s --toc -o $@ $<
