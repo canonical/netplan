@@ -1,4 +1,4 @@
-netplan.io (0.34) UNRELEASED; urgency=medium
+netplan.io (0.34) bionic; urgency=medium
 
   * New release 0.34 (LP: #1754019):
     * Implement "optional: true" to correctly write systemd network definitions
@@ -29,7 +29,7 @@ netplan.io (0.34) UNRELEASED; urgency=medium
   * debian/netplan.io.install: obligatory file to install files.
   * debian/source/format: now we're 3.0 native, for reals.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 25 Jan 2018 19:01:33 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 07 Mar 2018 15:29:45 +0100
 
 nplan (0.33) bionic; urgency=medium
 
