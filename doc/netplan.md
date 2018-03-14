@@ -159,7 +159,19 @@ Common properties for all device types
 
 ``dhcp6`` (bool)
 
-:   Enable DHCP for IPv6. Off by default.
+:   Enable DHCP for IPv6. Off by default. This covers both stateless DHCP -
+    where the DHCP server supplies information like DNS nameservers but not the
+    IP address - and stateful DHCP, where the server provides both the address
+    and the other information.
+
+    If you are in an IPv6-only environment with completely stateless
+    autoconfiguration (SLAAC with RDNSS), this option can be set to cause the
+    interface to be brought up. (Setting accept-ra alone is not sufficient.)
+    Autoconfiguration will still honour the contents of the router advertisment
+    and only use DHCP if requested in the RA.
+
+    Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
+    software is required for NetworkManager.
 
 ``accept-ra`` (bool)
 
