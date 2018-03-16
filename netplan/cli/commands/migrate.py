@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''netplan ifupdown-migrate command line'''
+'''netplan migrate command line'''
 
 import logging
 import os
@@ -32,7 +32,7 @@ import netplan.cli.utils as utils
 class NetplanMigrate(utils.NetplanCommand):
 
     def __init__(self):
-        super().__init__(command_id='ifupdown-migrate',
+        super().__init__(command_id='migrate',
                          description='Migration of /etc/network/interfaces to netplan',
                          leaf=True,
                          testing=True)
