@@ -138,7 +138,7 @@ class TestIfupdownMigrate(unittest.TestCase):
 
     def test_system(self):
         os.environ.update({"ENABLE_TEST_COMMANDS": "1"})
-        rc = subprocess.call(exe_cli + ['ifupdown-migrate', '--dry-run'],
+        rc = subprocess.call(exe_cli + ['migrate', '--dry-run'],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # may succeed or fail, but should not crash
         self.assertIn(rc, [0, 2])
@@ -156,7 +156,7 @@ class TestIfupdownMigrate(unittest.TestCase):
                 with open(path, 'w') as f:
                     f.write(contents)
 
-        argv = exe_cli + ['--debug', 'ifupdown-migrate', '--root-dir', self.workdir.name]
+        argv = exe_cli + ['--debug', 'migrate', '--root-dir', self.workdir.name]
         if dry_run:
             argv.append('--dry-run')
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
