@@ -1,13 +1,4 @@
----
-title: netplan
-section: 5
-author:
-- Mathieu Trudel-Lapierre (<cyphermox@ubuntu.com>)
-- Martin Pitt (<martin.pitt@ubuntu.com>)
-...
-
-Introduction
-============
+## Introduction
 Distribution installers, cloud instantiation, image builds for particular
 devices, or any other way to deploy an operating system put its desired
 network configuration into YAML configuration file(s). During
@@ -26,8 +17,7 @@ off control of devices to the specified networking daemon.
  - Retains the flexibility to change backends/policy later or adjust to
    removing NetworkManager, as generated configuration is ephemeral.
 
-General structure
-=================
+## General structure
 netplan's configuration files use the
 [YAML](<http://yaml.org/spec/1.1/current.html>) format. All
 ``/{lib,etc,run}/netplan/*.yaml`` are considered. Lexicographically later files
@@ -46,9 +36,7 @@ renderer can understand and are supported by our backends.
 Each type block contains device definitions as a map where the keys (called
 "configuration IDs") are defined as below.
 
-Device configuration IDs
-========================
-
+## Device configuration IDs
 The key names below the per-device-type definition maps (like ``ethernets:``)
 are called "ID"s. They must be unique throughout the entire set of
 configuration files. Their primary purpose is to serve as anchor names for
@@ -85,8 +73,7 @@ Virtual devices
    instead of matched. Thus ``match:`` and ``set-name:`` are not applicable for
    these, and the ID field is the name of the created virtual device.
 
-Common properties for physical device types
-===========================================
+## Common properties for physical device types
 
 ``match`` (mapping)
 
@@ -143,8 +130,7 @@ Common properties for physical device types
 :    Enable wake on LAN. Off by default.
 
 
-Common properties for all device types
-======================================
+## Common properties for all device types
 
 ``renderer`` (scalar)
 
@@ -237,8 +223,7 @@ default is false.
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
 
-Routing
-=======
+## Routing
 Complex routing is possible with netplan. Standard static routes as well
 as policy routing using routing tables are supported via the ``networkd``
 backend.
@@ -322,13 +307,11 @@ These options are available for all types of interfaces.
      :    Match this policy rule based on the type of service number applied to
           the traffic.
 
-Properties for device type ``ethernets:``
-=========================================
+## Properties for device type ``ethernets:``
 Ethernet device definitions do not support any specific properties beyond the
 common ones described above.
 
-Properties for device type ``wifis:``
-=====================================
+## Properties for device type ``wifis:``
 Note that ``systemd-networkd`` does not natively support wifi, so you need
 wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
@@ -350,8 +333,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
-Properties for device type ``bridges:``
-=======================================
+## Properties for device type ``bridges:``
 
 ``interfaces`` (sequence of scalars)
 
@@ -416,8 +398,7 @@ Properties for device type ``bridges:``
           used.
 
 
-Properties for device type ``bonds:``
-=======================================
+## Properties for device type ``bonds:``
 
 ``interfaces`` (sequence of scalars)
 
@@ -557,8 +538,7 @@ Properties for device type ``bonds:``
           ``active-backup``, ``balance-alb``, and ``balance-tlb`` modes.
 
 
-Properties for device type ``vlans:``
-=======================================
+## Properties for device type ``vlans:``
 
 ``id`` (scalar)
 
@@ -584,8 +564,7 @@ Example:
         address: ...
 
 
-Examples
-========
+## Examples
 Configure an ethernet device with networkd, identified by its name, and enable
 DHCP:
 
