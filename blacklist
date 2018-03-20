@@ -1,0 +1,22 @@
+# devices that are blacklisted for replug - user additions
+#
+# Each entry in the list can specify a driver, a subsystem, and a
+# reason. All are optional. Globbing is supported for driver and
+# subsystem.
+#
+# A device will be blacklisted if the driver (if supplied) matches and
+# the subsystem (if supplied) matches. The reason will be printed when
+# blacklisting a device, if supplied.
+#
+# This file is added to '/usr/lib/netplan/blacklist.yaml'
+
+# for example:
+# to disable all replug, uncomment the following:
+#blacklist:
+#  - driver: '*'
+
+# to disable a particular driver in a subsystem:
+#blacklist:
+#  - driver: 'brokendriver'
+#  - subsystem: 'weirdsystem'
+#  - reason: 'sets fire to your system on replug'

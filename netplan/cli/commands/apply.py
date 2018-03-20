@@ -22,6 +22,8 @@ import os
 import sys
 import glob
 import subprocess
+import yaml
+import fnmatch
 
 import netplan.cli.utils as utils
 
@@ -37,6 +39,26 @@ class NetplanApply(utils.NetplanCommand):
         self.func = self.command_apply
 
         self.parse_args()
+
+        try:
+            datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   '..', '..', '..')
+
+            with open(os.path.join(datadir, 'blacklist.yaml')) as blacklist_file:
+                self.blacklist = yaml.load(blacklist_file.read())['blacklist']
+        except Exception as e:
+            logging.exception('Error while loading system blacklist file, aborting.')
+
+        etcdir = '/etc/netplan'
+        etcfile = os.path.join(etcdir, 'blacklist')
+        if os.path.isfile(etcfile):
+            try:
+                with open(etcfile) as blacklist_file:
+                    etc_blacklist = yaml.load(blacklist_file.read())['blacklist']
+            except Exception as e:
+                logging.exception('Error while loading /etc blacklist file, aborting.')
+            self.blacklist.update(etc_blacklist)
+
         self.run_command()
 
     def command_apply(self):  # pragma: nocover (covered in autopkgtest)
@@ -124,30 +146,27 @@ class NetplanApply(utils.NetplanCommand):
             subsystem_name = os.path.basename(subsystem)
             driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
             driver_name = os.path.basename(driver)
-            if driver_name == 'mac80211_hwsim':
-                logging.debug('replug %s: mac80211_hwsim does not support rebinding, ignoring', device)
+
+            for entry in self.blacklist:
+                # if a device matches all the criteria in a blacklist entry,
+                # then do not replug it
+                # note that an empty blacklist entry will match everything!
+
+                if 'driver' in entry:
+                    if not fnmatch.fnmatchcase(driver_name, entry['driver']):
+                        continue
+
+                if 'subsystem' in entry:
+                    if not fnmatch.fnmatchcase(subsystem_name, entry['subsystem']):
+                        continue
+
+                logging.debug('replug %s: %s:%s is blacklisted from rebinding: %s',
+                              device,
+                              (entry['subsystem'] if 'subsystem' in entry else '*'),
+                              (entry['driver'] if 'driver' in entry else '*'),
+                              (entry['reason'] if 'reason' in entry else 'unsupported'))
                 return False
-            # workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1630285
-            if driver_name == 'mwifiex_pcie':
-                logging.debug('replug %s: mwifiex_pcie crashes on rebinding, ignoring', device)
-                return False
-            # workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1729573
-            if subsystem_name == 'xen' and driver_name == 'vif':
-                logging.debug('replug %s: xen:vif fails on rebinding, ignoring', device)
-                return False
-            # workaround for problem with ath9k_htc module: this driver is async and does not support
-            # sequential unbind / rebind, one soon after the other
-            if driver_name == 'ath9k_htc':
-                logging.debug('replug %s: ath9k_htc does not support rebinding, ignoring', device)
-                return False
-            # workaround for ath6kl_sdio, interface does not work after unbinding
-            if 'ath6kl_sdio' in driver_name:
-                logging.debug('replug %s: ath6kl_sdio driver does not support rebinding, ignoring', device)
-                return False
-            # workaround for brcmfmac, interface will be gone after unbind
-            if 'brcmfmac' in driver_name:
-                logging.debug('replug %s: brcmfmac drivers do not support rebinding, ignoring', device)
-                return False
+
             logging.debug('replug %s: unbinding %s from %s', device, devname, driver)
             with open(os.path.join(driver, 'unbind'), 'w') as f:
                 f.write(devname)
