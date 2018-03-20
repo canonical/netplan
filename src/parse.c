@@ -74,6 +74,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
     FILE* fyaml = NULL;
     yaml_parser_t parser;
     gboolean ret = TRUE;
+    char c;
 
     current_file = yaml;
 
@@ -82,6 +83,20 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
         g_set_error(error, G_FILE_ERROR, errno, "Cannot open %s: %s", yaml, g_strerror(errno));
         return FALSE;
     }
+
+    /* first, check if there are any tabs as the error message
+     * from libyaml is not particularly helpful */
+    c = fgetc(fyaml);
+    while (c != EOF) {
+        if (c == '\t') {
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                        "%s: tabs are not permitted in YAML documents.", yaml);
+            fclose(fyaml);
+            return FALSE;
+        }
+        c = fgetc(fyaml);
+    }
+    fseek(fyaml, 0, 0);
 
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_file(&parser, fyaml);
