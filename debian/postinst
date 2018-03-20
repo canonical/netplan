@@ -10,7 +10,10 @@ case "$1" in
 	    # already exist
 	    if [ ! -f /etc/network/interfaces ]; then
 		cat <<EOF >/etc/network/interfaces
-# ifupdown has been replaced by netplan(5) on this system.  Do not edit.
+# ifupdown has been replaced by netplan(5) on this system.  See
+# /etc/netplan for current configuration.
+# To re-enable ifupdown on this system, you can run:
+#    sudo apt install ifupdown
 EOF
 	   fi
 	fi
