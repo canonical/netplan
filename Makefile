@@ -70,6 +70,7 @@ install: default
 	install -m 755 generate $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
 	find netplan/ -name '*.py' -exec install -Dm 644 "{}" "$(DESTDIR)/$(DATADIR)/netplan/{}" \;
 	install -m 755 src/netplan.script $(DESTDIR)/$(DATADIR)/netplan/
+	install -m 644 blacklist.yaml $(DESTDIR)/$(DATADIR)/netplan/
 	ln -sr $(DESTDIR)/$(DATADIR)/netplan/netplan.script $(DESTDIR)/$(SBINDIR)/netplan
 	ln -sr $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
 	install -m 644 doc/*.html $(DESTDIR)/$(DOCDIR)/netplan/
