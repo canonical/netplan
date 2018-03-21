@@ -157,6 +157,11 @@ def replug(device):  # pragma: nocover (covered in autopkgtest)
         if 'ath6kl_sdio' in driver_name:
             logging.debug('replug %s: ath6kl_sdio driver does not support rebinding, ignoring', device)
             return False
+        # workaround for qeth: driver does not recognize unbind command
+        # https://bugs.launchpad.net/ubuntu/+source/netplan.io/+bug/1756322
+        if driver_name == 'qeth':
+            logging.debug('replug %s: qeth driver do not support rebinding, ignoring (LP: #1756322)', device)
+            return False
         logging.debug('replug %s: unbinding %s from %s', device, devname, driver)
         with open(os.path.join(driver, 'unbind'), 'w') as f:
             f.write(devname)
