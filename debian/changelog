@@ -4,6 +4,9 @@ nplan (0.32~17.10.4) UNRELEASED; urgency=medium
     "mii-monitor-interval" can support milliseconds. (LP: #1745597)
   * debian/postinst: Write breadcrumbs on disk in /etc/network/interfaces to
     denote the migration to using netplan. (LP: #1756742)
+  * DHCPv4: add a "dhcp-identifier: mac" field that can be set to fix interop
+    with Windows Server-based DHCP servers which don't support RFC 4361.
+    (LP: #1738998)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 11:17:54 -0400
 

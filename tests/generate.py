@@ -639,6 +639,48 @@ UseMTU=true
 RouteMetric=100
 '''})
 
+    def test_dhcp_identifier_mac(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-identifier: mac
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+ClientIdentifier=mac
+'''})
+
+    def test_dhcp_identifier_duid(self):
+        # This option should be silently ignored, since it's the default
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-identifier: duid
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
     def test_route_v4_single(self):
         self.generate('''network:
   version: 2
@@ -3590,6 +3632,14 @@ class TestConfigErrors(TestBase):
         primary: eno1
         primary: eno2
       dhcp4: true''', expect_fail=True)
+
+    def test_invalid_dhcp_identifier(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-identifier: invalid''', expect_fail=True)
 
 
 class TestForwardDeclaration(TestBase):
