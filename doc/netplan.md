@@ -159,6 +159,12 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``dhcp-identifier`` (scalar)
+
+:   When set to 'mac'; pass that setting over to systemd-networkd to use the
+    device's MAC address as a unique identifier rather than a RFC4361-compliant
+    Client ID. This has no effect when NetworkManager is used as a renderer.
+
 ``accept-ra`` (bool)
 
 :   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
