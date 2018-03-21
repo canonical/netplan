@@ -3,6 +3,7 @@ netplan.io (0.34.1) UNRELEASED; urgency=medium
   * Makefile: be more distro-agnostic, support different paths for pyflakes,
     pycodestyle, etc.
   * Makefile: allow varying install destinations.
+  * Do not attempt to rebind driver 'qeth'. (LP: #1756322)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 13 Mar 2018 12:01:30 -0400
 
