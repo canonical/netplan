@@ -5,6 +5,13 @@ netplan.io (0.34.1) UNRELEASED; urgency=medium
   * Makefile: allow varying install destinations.
   * Do not attempt to rebind driver 'qeth'. (LP: #1756322)
   * docs/netplan.md: clarify the behavior of 'dhcp6: yes'.
+  * docs/netplan.md, docs/manpage.md: rework documentation files to generate
+    the manpage with its own headers and other things that don't apply to other
+    doc formats such as HTML.
+  * migrate: command renamed from ifupdown-migrate, although still disabled.
+  * tests: re-instate bridge-priority integration test.
+  * Added .spec build rules file for building RPM packages.
+  * debian/postinst: reworded "breadcrumbs" written to /etc/network/interfaces.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 22 Mar 2018 14:58:10 -0400
 
