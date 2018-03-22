@@ -1,4 +1,4 @@
-netplan.io (0.34.1) UNRELEASED; urgency=medium
+netplan.io (0.34.1) bionic; urgency=medium
 
   * Makefile: be more distro-agnostic, support different paths for pyflakes,
     pycodestyle, etc.
@@ -13,7 +13,7 @@ netplan.io (0.34.1) UNRELEASED; urgency=medium
   * Added .spec build rules file for building RPM packages.
   * debian/postinst: reworded "breadcrumbs" written to /etc/network/interfaces.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 22 Mar 2018 14:58:10 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 22 Mar 2018 15:09:12 -0400
 
 netplan.io (0.34) bionic; urgency=medium
 
