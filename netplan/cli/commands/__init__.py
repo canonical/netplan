@@ -19,10 +19,12 @@ from netplan.cli.commands.apply import NetplanApply
 from netplan.cli.commands.generate import NetplanGenerate
 from netplan.cli.commands.ip import NetplanIp
 from netplan.cli.commands.migrate import NetplanMigrate
+from netplan.cli.commands.try_command import NetplanTry
 
 __all__ = [
     'NetplanApply',
     'NetplanGenerate',
     'NetplanIp',
     'NetplanMigrate',
+    'NetplanTry',
 ]

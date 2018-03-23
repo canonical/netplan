@@ -34,13 +34,14 @@ class NetplanApply(utils.NetplanCommand):
                          leaf=True)
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
-        self.func = self.command_apply
+        self.func = NetplanApply.command_apply
 
         self.parse_args()
         self.run_command()
 
-    def command_apply(self):  # pragma: nocover (covered in autopkgtest)
-        if subprocess.call([utils.get_generator_path()]) != 0:
+    @staticmethod
+    def command_apply(run_generate=True):  # pragma: nocover (covered in autopkgtest)
+        if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
             sys.exit(1)
 
         devices = os.listdir('/sys/class/net')
@@ -75,7 +76,7 @@ class NetplanApply(utils.NetplanCommand):
         for device in devices:
             if not os.path.islink('/sys/class/net/' + device):
                 continue
-            if self.replug(device):
+            if NetplanApply.replug(device):
                 any_replug = True
             else:
                 # if the interface is up, we can still apply .link file changes
@@ -95,7 +96,8 @@ class NetplanApply(utils.NetplanCommand):
         if restart_nm:
             utils.systemctl_network_manager('start')
 
-    def replug(self, device):  # pragma: nocover (covered in autopkgtest)
+    @staticmethod
+    def replug(device):  # pragma: nocover (covered in autopkgtest)
         '''Unbind and rebind device if it is down'''
 
         devdir = os.path.join('/sys/class/net', device)
