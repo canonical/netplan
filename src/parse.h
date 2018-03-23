@@ -70,6 +70,7 @@ typedef struct net_definition {
     /* addresses */
     gboolean dhcp4;
     gboolean dhcp6;
+    char* dhcp_identifier;
     gboolean accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
