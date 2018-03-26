@@ -17,15 +17,17 @@
 
 '''netplan configuration manager'''
 
-import glob
+import logging
 import os
 import shutil
+import sys
 import tempfile
 
 
 class ConfigManager(object):
 
-    def __init__(self):
+    def __init__(self, prefix="/"):
+        self.prefix = prefix
         self.tempdir = tempfile.mkdtemp(prefix='netplan_')
         self.temp_etc = os.path.join(self.tempdir, "etc")
         self.temp_run = os.path.join(self.tempdir, "run")
@@ -38,12 +40,12 @@ class ConfigManager(object):
 
     def backup(self, with_config_file=False):
         if with_config_file:
-            self._copy_tree("/etc/netplan",
+            self._copy_tree(os.path.join(self.prefix, "etc/netplan"),
                             os.path.join(self.temp_etc, "netplan"))
-        self._copy_tree("/run/NetworkManager/system-connections",
+        self._copy_tree(os.path.join(self.prefix, "run/NetworkManager/system-connections"),
                         os.path.join(self.temp_run, "NetworkManager", "system-connections"),
                         missing_ok=True)
-        self._copy_tree("/run/systemd/network",
+        self._copy_tree(os.path.join(self.prefix, "run/systemd/network"),
                         os.path.join(self.temp_run, "systemd", "network"),
                         missing_ok=True)
 
@@ -54,11 +56,13 @@ class ConfigManager(object):
             temp_nm_path = "{}/NetworkManager/system-connections".format(self.temp_run)
             temp_networkd_path = "{}/systemd/network".format(self.temp_run)
             if os.path.exists(temp_nm_path):
-                shutil.rmtree("/run/NetworkManager/system-connections")
-                self._copy_tree(temp_nm_path, "/run/NetworkManager/system-connections")
+                shutil.rmtree(os.path.join(self.prefix, "run/NetworkManager/system-connections"))
+                self._copy_tree(temp_nm_path,
+                                os.path.join(self.prefix, "run/NetworkManager/system-connections"))
             if os.path.exists(temp_networkd_path):
-                shutil.rmtree("/run/systemd/network")
-                self._copy_tree(temp_networkd_path, "/run/systemd/network")
+                shutil.rmtree(os.path.join(self.prefix, "run/systemd/network"))
+                self._copy_tree(temp_networkd_path,
+                                os.path.join(self.prefix, "run/systemd/network"))
         except Exception as e:
             # If we reach here, we're in big trouble. We may have wiped out
             # file NM or networkd are using, and we most likely removed the

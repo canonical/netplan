@@ -23,7 +23,6 @@ import termios
 import time
 import select
 import signal
-import subprocess
 import sys
 
 from netplan.configmanager import ConfigManager
@@ -82,7 +81,7 @@ class NetplanTry(utils.NetplanCommand):
                 print("Network changes will revert in {:>2} seconds".format(timeout_now), end='\r')
                 i, o, err = select.select([sys.stdin], [], [], 1)
                 try:
-                    c = sys.stdin.read()
+                    sys.stdin.read()
                     raise ConfigurationAccepted()
                 except ConfigurationAccepted:
                     raise
@@ -106,10 +105,10 @@ class NetplanTry(utils.NetplanCommand):
             termios.tcsetattr(fd, termios.TCSAFLUSH, old_term)
             fcntl.fcntl(fd, fcntl.F_SETFL, old_flags)
 
-    def backup(self):
+    def backup(self):  # pragma: nocover (requires user input)
         self.config_manager.backup(with_config_file=self.config_file)
 
-    def setup(self):
+    def setup(self):  # pragma: nocover (requires user input)
         if self.config_file:
             dest_dir = os.path.join("/", "etc", "netplan")
             dest_name = os.path.basename(self.config_file).rstrip('.yaml')
@@ -118,14 +117,14 @@ class NetplanTry(utils.NetplanCommand):
             self.config_manager.add({self.config_file: dest_path})
         self.configuration_changed = True
 
-    def revert(self):
+    def revert(self):  # pragma: nocover (requires user input)
         self.config_manager.revert(with_config_file=self.config_file)
         NetplanApply.command_apply(run_generate=False)
 
-    def cleanup(self):
+    def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()
 
-    def _signal_handler(self, signal, frame):
+    def _signal_handler(self, signal, frame):  # pragma: nocover (requires user input)
         if self.configuration_changed:
             raise ConfigurationRejected()
 
