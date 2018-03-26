@@ -14,7 +14,6 @@ Build-Depends: debhelper (>= 11),
  systemd,
  pyflakes3,
  pycodestyle | pep8,
- python3-nose,
  pandoc,
 Vcs-Git: https://github.com/CanonicalLtd/netplan
 Vcs-Browser: https://github.com/CanonicalLtd/netplan
