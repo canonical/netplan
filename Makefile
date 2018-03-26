@@ -36,6 +36,7 @@ clean:
 check: default linting
 	tests/generate.py
 	tests/cli.py
+	nosetests3 -v --with-coverage
 
 linting:
 	$(PYFLAKES3) $(PYCODE)

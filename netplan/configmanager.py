@@ -63,7 +63,7 @@ class ConfigManager(object):
                 shutil.rmtree(os.path.join(self.prefix, "run/systemd/network"))
                 self._copy_tree(temp_networkd_path,
                                 os.path.join(self.prefix, "run/systemd/network"))
-        except Exception as e:
+        except Exception as e:  # pragma: nocover (only relevant to filesystem failures)
             # If we reach here, we're in big trouble. We may have wiped out
             # file NM or networkd are using, and we most likely removed the
             # "new" config -- or at least our copy of it.

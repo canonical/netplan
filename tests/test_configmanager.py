@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -46,6 +47,15 @@ class TestConfigManager(unittest.TestCase):
                       self.configmanager.extra_files)
         self.assertTrue(os.path.exists(os.path.join(self.workdir.name, "etc/netplan/newfile.yaml")))
 
+    def test_backup_missing_dirs(self):
+        backup_dir = self.configmanager.tempdir
+        shutil.rmtree(os.path.join(self.workdir.name, "run/systemd/network"))
+        self.configmanager.backup(with_config_file=False)
+        self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
+        # no source dir means no backup as well
+        self.assertFalse(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
+        self.assertFalse(os.path.exists(os.path.join(backup_dir, "etc/netplan/test.yaml")))
+
     def test_backup_without_config_file(self):
         backup_dir = self.configmanager.tempdir
         self.configmanager.backup(with_config_file=False)
@@ -72,8 +82,29 @@ class TestConfigManager(unittest.TestCase):
             lines = fd.readlines()
             self.assertNotIn("CHANGED\n", lines)
 
+    def test_revert_extra_files(self):
+        self.configmanager.add({os.path.join(self.workdir.name, "newfile.yaml"):
+                                os.path.join(self.workdir.name, "etc/netplan/newfile.yaml")})
+        self.assertIn(os.path.join(self.workdir.name, "newfile.yaml"),
+                      self.configmanager.extra_files)
+        self.assertTrue(os.path.exists(os.path.join(self.workdir.name, "etc/netplan/newfile.yaml")))
+        self.configmanager.revert()
+        self.assertIn(os.path.join(self.workdir.name, "newfile.yaml"),
+                      self.configmanager.extra_files)
+        self.assertFalse(os.path.exists(os.path.join(self.workdir.name, "etc/netplan/newfile.yaml")))
+
     def test_cleanup(self):
         backup_dir = self.configmanager.tempdir
         self.assertTrue(os.path.exists(backup_dir))
         self.configmanager.cleanup()
         self.assertFalse(os.path.exists(backup_dir))
+
+    def test__copy_tree(self):
+        self.configmanager._copy_tree(os.path.join(self.workdir.name, "etc"),
+                                      os.path.join(self.workdir.name, "etc2"))
+        self.assertTrue(os.path.exists(os.path.join(self.workdir.name, "etc2/netplan/test.yaml")))
+
+    @unittest.expectedFailure
+    def test__copy_tree_missing_source(self):
+        self.configmanager._copy_tree(os.path.join(self.workdir.name, "inexistant"),
+                                      os.path.join(self.workdir.name, "inexistant2"), missing_ok=False)
