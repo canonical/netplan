@@ -20,7 +20,6 @@
 
 import os
 import re
-import sys
 import stat
 import tempfile
 import textwrap
@@ -4368,6 +4367,3 @@ unmanaged-devices+=interface-name:engreen,''')
                               'enred.link': '[Match]\nOriginalName=enred\n\n[Link]\nWakeOnLan=magic\n',
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
-
-
-unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

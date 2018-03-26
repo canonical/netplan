@@ -18,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import subprocess
 import unittest
 import tempfile
@@ -143,7 +142,7 @@ class TestIfupdownMigrate(unittest.TestCase):
         # may succeed or fail, but should not crash
         self.assertIn(rc, [0, 2])
 
-    def do_test(self, iface_file, expect_success=True, dry_run=True, dropins=None):
+    def do_test(self, iface_file=None, expect_success=True, dry_run=True, dropins=None):
         os.environ.update({"ENABLE_TEST_COMMANDS": "1"})
         if iface_file is not None:
             os.makedirs(os.path.dirname(self.ifaces_path))
@@ -640,6 +639,3 @@ class TestIp(unittest.TestCase):
         self.assertEqual(out, b'')
         self.assertIn(b'No lease found', err)
         self.assertNotEqual(p.returncode, 0)
-
-
-unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

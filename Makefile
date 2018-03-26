@@ -34,8 +34,7 @@ clean:
 	rm -rf test-coverage .coverage
 
 check: default linting
-	tests/generate.py
-	tests/cli.py
+	nosetests3 -v
 
 linting:
 	$(PYFLAKES3) $(PYCODE)
