@@ -950,6 +950,20 @@ handle_bonding(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** 
     return process_mapping(doc, node, bond_params_handlers, error);
 }
 
+static gboolean
+handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->dhcp_identifier)
+        g_free(cur_netdef->dhcp_identifier);
+    cur_netdef->dhcp_identifier = g_strdup(scalar(node));
+
+    if (g_ascii_strcasecmp(cur_netdef->dhcp_identifier, "duid") == 0 ||
+        g_ascii_strcasecmp(cur_netdef->dhcp_identifier, "mac") == 0)
+        return TRUE;
+
+    return yaml_error(node, error, "invalid DHCP client identifier type '%s'", cur_netdef->dhcp_identifier);
+}
+
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
@@ -964,6 +978,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -984,6 +999,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1003,6 +1019,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1021,6 +1038,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1039,6 +1057,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1151,6 +1170,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
             cur_netdef->accept_ra = TRUE; /* By default, accept RAs */
+            cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 

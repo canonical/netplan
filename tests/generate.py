@@ -639,6 +639,48 @@ UseMTU=true
 RouteMetric=100
 '''})
 
+    def test_dhcp_identifier_mac(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-identifier: mac
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+ClientIdentifier=mac
+'''})
+
+    def test_dhcp_identifier_duid(self):
+        # This option should be silently ignored, since it's the default
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-identifier: duid
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
     def test_route_v4_single(self):
         self.generate('''network:
   version: 2
@@ -3558,6 +3600,149 @@ class TestConfigErrors(TestBase):
         primary: eno1
         primary: eno2
       dhcp4: true''', expect_fail=True)
+
+    def test_bond_multiple_assignments(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      interfaces: [eno1]
+    bond1:
+      interfaces: [eno1]''', expect_fail=True)
+        self.assertIn('bond1: interface eno1 is already assigned to bond bond0\n', err)
+
+    def test_bond_bridge_cross_assignments1(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      interfaces: [eno1]
+  bridges:
+    br1:
+      interfaces: [eno1]''', expect_fail=True)
+        self.assertIn('br1: interface eno1 is already assigned to bond bond0\n', err)
+
+    def test_bond_bridge_cross_assignments2(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [eno1]
+  bonds:
+    bond1:
+      interfaces: [eno1]''', expect_fail=True)
+        self.assertIn('bond1: interface eno1 is already assigned to bridge br0\n', err)
+
+    def test_bond_bridge_nested_assignments(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      interfaces: [eno1]
+  bridges:
+    br1:
+      interfaces: [bond0]''')
+
+    def test_device_ip_rule_mismatched_addresses(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          to: 2000:dead:beef::3/64
+          table: 50
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_missing_address(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - table: 50
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_tos(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          type-of-service: 256
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_prio(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          priority: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_table(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          table: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_fwmark(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          mark: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_ip_rule_invalid_address(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - to: 10.10.10.0/24
+          from: someinvalidaddress
+          mark: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_invalid_dhcp_identifier(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-identifier: invalid''', expect_fail=True)
 
 
 class TestForwardDeclaration(TestBase):
