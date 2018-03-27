@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''terminal / input handling'''
+"""
+Terminal / input handling
+"""
 
 import fcntl
 import os
@@ -25,6 +27,9 @@ import sys
 
 
 class Terminal(object):
+    """
+    Do minimal terminal mangling to prompt users for input
+    """
 
     def __init__(self, fd):
         self.fd = fd
@@ -40,6 +45,13 @@ class Terminal(object):
         fcntl.fcntl(self.fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
 
     def get_confirmation_input(self, timeout=120, message=None):  # pragma: nocover (requires user input)
+        """
+        Get a "confirmation" input from the user, for at most (timeout)
+        seconds. Optionally, customize the message to be displayed.
+
+        timeout -- timeout to wait for input (default 120)
+        message -- optional customized message ("Press ENTER to (message)")
+        """
         print("Do you want to keep these settings?\n\n")
 
         if not message:
@@ -64,13 +76,18 @@ class Terminal(object):
         raise InputRejected()
 
     def reset(self):
+        """
+        Reset the terminal to its original attributes and flags
+        """
         termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.orig_term)
         fcntl.fcntl(self.fd, fcntl.F_SETFL, self.orig_flags)
 
 
 class InputAccepted(Exception):
+    """ Denotes has accepted input"""
     pass
 
 
 class InputRejected(Exception):
+    """ Denotes that the user has rejected input"""
     pass
