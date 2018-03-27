@@ -50,7 +50,7 @@ class TestConfigManager(unittest.TestCase):
     def test_backup_missing_dirs(self):
         backup_dir = self.configmanager.tempdir
         shutil.rmtree(os.path.join(self.workdir.name, "run/systemd/network"))
-        self.configmanager.backup(with_config_file=False)
+        self.configmanager.backup(backup_config_dir=False)
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
         # no source dir means no backup as well
         self.assertFalse(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
@@ -58,20 +58,20 @@ class TestConfigManager(unittest.TestCase):
 
     def test_backup_without_config_file(self):
         backup_dir = self.configmanager.tempdir
-        self.configmanager.backup(with_config_file=False)
+        self.configmanager.backup(backup_config_dir=False)
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
         self.assertFalse(os.path.exists(os.path.join(backup_dir, "etc/netplan/test.yaml")))
 
     def test_backup_with_config_file(self):
         backup_dir = self.configmanager.tempdir
-        self.configmanager.backup(with_config_file=True)
+        self.configmanager.backup(backup_config_dir=True)
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "etc/netplan/test.yaml")))
 
     def test_revert(self):
-        self.configmanager.backup(with_config_file=False)
+        self.configmanager.backup()
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'a+') as fd:
             print("CHANGED", file=fd)
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'r') as fd:

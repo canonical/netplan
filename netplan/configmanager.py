@@ -38,8 +38,8 @@ class ConfigManager(object):
             self._copy_file(config_file, config_dict[config_file])
         self.extra_files.update(config_dict)
 
-    def backup(self, with_config_file=False):
-        if with_config_file:
+    def backup(self, backup_config_dir=True):
+        if backup_config_dir:
             self._copy_tree(os.path.join(self.prefix, "etc/netplan"),
                             os.path.join(self.temp_etc, "netplan"))
         self._copy_tree(os.path.join(self.prefix, "run/NetworkManager/system-connections"),
@@ -49,7 +49,7 @@ class ConfigManager(object):
                         os.path.join(self.temp_run, "systemd", "network"),
                         missing_ok=True)
 
-    def revert(self, with_config_file=False):
+    def revert(self):
         try:
             for extra_file in self.extra_files.values():
                 os.unlink(extra_file)
