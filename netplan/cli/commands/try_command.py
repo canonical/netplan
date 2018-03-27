@@ -29,7 +29,7 @@ import netplan.terminal
 
 # Keep a timeout long enough to allow the network to converge, 60 seconds may
 # be slightly short given some complex configs, i.e. if STP must reconverge.
-INPUT_TIMEOUT = 120
+DEFAULT_INPUT_TIMEOUT = 120
 
 
 class NetplanTry(utils.NetplanCommand):
@@ -45,6 +45,9 @@ class NetplanTry(utils.NetplanCommand):
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
                                  help='Apply the config file in argument on top of current configuration.')
+        self.parser.add_argument('--timeout',
+                                 type=int, default=DEFAULT_INPUT_TIMEOUT,
+                                 help="Maximum number of seconds to wait for the user's confirmation")
 
         self.func = self.command_try
 
@@ -65,7 +68,7 @@ class NetplanTry(utils.NetplanCommand):
 
             NetplanApply.command_apply()
 
-            t.get_confirmation_input(timeout=INPUT_TIMEOUT)
+            t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
             print("\nReverting.")
             self.revert()
