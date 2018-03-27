@@ -57,7 +57,7 @@ class Terminal(object):
         if not message:
             message = "accept the new configuration"
 
-        print("Press ENTER before the timeout to {}\n\n")
+        print("Press ENTER before the timeout to {}\n\n".format(message))
         timeout_now = timeout
         while (timeout_now > 0):
             print("Changes will revert in {:>2} seconds".format(timeout_now), end='\r')
