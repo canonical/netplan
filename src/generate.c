@@ -81,8 +81,10 @@ find_interface(gchar* interface)
                               0, NULL, NULL);
     if (info != NULL) {
 	/* testing for driver matching is done via autopkgtest */
+        /* codecov skip start */
         driver = g_path_get_basename (g_file_info_get_symlink_target (info)); // LCOV_EXCL_LINE
         g_object_unref (info); // LCOV_EXCL_LINE
+        /* codecov skip stop */
     }
     g_object_unref (driver_file);
     g_free (driver_path);
