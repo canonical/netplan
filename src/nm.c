@@ -61,10 +61,8 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
                 break;
             */
 
-            /* LCOV_EXCL_START */
             default:
-                g_assert_not_reached();
-            /* LCOV_EXCL_STOP */
+                g_assert_not_reached(); // LCOV_EXCL_LINE
         }
     }
 }
@@ -86,10 +84,8 @@ type_str(netdef_type type)
             return "bond";
         case ND_VLAN:
             return "vlan";
-        /* LCOV_EXCL_START */
         default:
-            g_assert_not_reached();
-        /* LCOV_EXCL_STOP */
+            g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 }
 
@@ -106,10 +102,8 @@ wifi_mode_str(wifi_mode mode)
             return "adhoc";
         case WIFI_MODE_AP:
             return "ap";
-        /* LCOV_EXCL_START */
         default:
-            g_assert_not_reached();
-        /* LCOV_EXCL_STOP */
+            g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 }
 

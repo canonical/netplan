@@ -135,10 +135,8 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
             yaml_error(node, error, "expected mapping");
             break;
 
-        /* LCOV_EXCL_START */
         default:
-            g_assert_not_reached();
-        /* LCOV_EXCL_STOP */
+            g_assert_not_reached(); // LCOV_EXCL_LINE
     }
     return FALSE;
 }
@@ -1410,7 +1408,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
             case ND_BOND: handlers = bond_def_handlers; break;
             case ND_VLAN: handlers = vlan_def_handlers; break;
-            default: g_assert_not_reached(); /* LCOV_EXCL_LINE */
+            default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
         if (!process_mapping(doc, value, handlers, error))
             return FALSE;
