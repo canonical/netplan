@@ -203,10 +203,10 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "Kind=vlan\n\n[VLAN]\nId=%u\n", def->vlan_id);
             break;
 
-        /* LCOV_EXCL_START */
+        // LCOV_EXCL_START
         default:
             g_assert_not_reached();
-        /* LCOV_EXCL_STOP */
+        // LCOV_EXCL_STOP
     }
 
     g_string_free_to_file(s, rootdir, path, ".netdev");
@@ -425,8 +425,10 @@ write_networkd_conf(net_definition* def, const char* rootdir)
         g_debug("Creating wpa_supplicant service enablement link %s", link);
         safe_mkdir_p_dir(link);
         if (symlink("/lib/systemd/system/netplan-wpa@.service", link) < 0 && errno != EEXIST) {
-            g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
-            exit(1); /* LCOV_EXCL_LINE */
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+            exit(1);
+            // LCOV_EXCL_STOP
         }
 
     }
@@ -458,14 +460,18 @@ enable_networkd(const char* generator_dir)
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
     safe_mkdir_p_dir(link);
     if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
-        g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
-        exit(1); /* LCOV_EXCL_LINE */
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+        exit(1);
+        // LCOV_EXCL_STOP
     }
 
     g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
     safe_mkdir_p_dir(link2);
     if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
-        g_fprintf(stderr, "failed to create enablement symlink: %m\n"); /* LCOV_EXCL_LINE */
-        exit(1); /* LCOV_EXCL_LINE */
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+        exit(1);
+        // LCOV_EXCL_STOP
     }
 }

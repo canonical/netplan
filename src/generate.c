@@ -80,10 +80,11 @@ find_interface(gchar* interface)
                               G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET,
                               0, NULL, NULL);
     if (info != NULL) {
-	/* LCOV_EXCL_START - testing for driver matching is done via autopkgtest */
+        /* testing for driver matching is done via autopkgtest */
+        // LCOV_EXCL_START
         driver = g_path_get_basename (g_file_info_get_symlink_target (info));
         g_object_unref (info);
-	/* LCOV_EXCL_STOP */
+        // LCOV_EXCL_STOP
     }
     g_object_unref (driver_file);
     g_free (driver_path);
@@ -99,18 +100,19 @@ find_interface(gchar* interface)
             g_ptr_array_add (found, (gpointer) nd);
     }
     if (found->len == 0 && driver != NULL) {
-	/* LCOV_EXCL_START - testing for driver matching is done via autopkgtest */
+        /* testing for driver matching is done via autopkgtest */
+        // LCOV_EXCL_START
         g_hash_table_iter_init (&iter, netdefs);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
             net_definition *nd = (net_definition *) value;
             if (!g_strcmp0(nd->match.driver, driver))
                 g_ptr_array_add (found, (gpointer) nd);
         }
-	/* LCOV_EXCL_STOP */
+        // LCOV_EXCL_STOP
     }
 
     if (driver)
-        g_free (driver); /* LCOV_EXCL_LINE */
+        g_free (driver); // LCOV_EXCL_LINE
 
     if (found->len != 1) {
         goto exit_find;
@@ -204,20 +206,26 @@ int main(int argc, char** argv)
 
         rc = glob(glob_lib, 0, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib); /* LCOV_EXCL_LINE */
-            return 1; /* LCOV_EXCL_LINE */
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib);
+            return 1;
+            // LCOV_EXCL_STOP
         }
 
         rc = glob(glob_etc, GLOB_APPEND, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc); /* LCOV_EXCL_LINE */
-            return 1; /* LCOV_EXCL_LINE */
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc);
+            return 1;
+            // LCOV_EXCL_STOP
         }
 
         rc = glob(glob_run, GLOB_APPEND, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run); /* LCOV_EXCL_LINE */
-            return 1; /* LCOV_EXCL_LINE */
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run);
+            return 1;
+            // LCOV_EXCL_STOP
         }
 
         for (size_t i = 0; i < gl.gl_pathc; ++i)
