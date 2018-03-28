@@ -4153,6 +4153,24 @@ class TestConfigErrors(TestBase):
       dhcp4: yes
       dhcp-identifier: invalid''', expect_fail=True)
 
+    def test_invalid_yaml_tabs(self):
+        self.generate('''\t''')
+
+    def test_invalid_yaml_undefined_alias(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    *engreen:
+      dhcp4: yes''')
+
+    def test_invalid_yaml_undefined_alias_at_eof(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: *yes
+''')
+
 
 class TestForwardDeclaration(TestBase):
 

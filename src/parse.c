@@ -63,6 +63,45 @@ int missing_ids_found;
  * Loading and error handling
  ****************************************************/
 
+static char *
+get_error_context(yaml_parser_t parser, GError **error)
+{
+    GString *message = NULL;
+    unsigned char* line = parser.buffer.pointer;
+    unsigned char* current = line;
+    int i;
+
+    message = g_string_sized_new(200);
+
+    while (current > parser.buffer.start) {
+        current--;
+        if (*current == '\n') {
+            line = current + 2;
+            break;
+        }
+    }
+    if (current <= parser.buffer.start)
+        line = parser.buffer.start;
+    current = line + 1;
+    while (current <= parser.buffer.end) {
+        if (*current == '\n') {
+            *current = '\0';
+            break;
+        }
+        current++;
+    }
+
+    g_string_append_printf(message, "%s\n", line);
+
+    for (i = 0;
+         (parser.problem_mark.column > 0 && i < (parser.problem_mark.column - 1));
+         i++)
+        g_string_append_printf(message, " ");
+    g_string_append_printf(message, "^");
+
+    return g_string_free(message, FALSE);
+}
+
 /**
  * Load YAML file name into a yaml_document_t.
  *
@@ -86,10 +125,17 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_file(&parser, fyaml);
     if (!yaml_parser_load(&parser, doc)) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                    "Invalid YAML at %s line %zu column %zu: %s",
-                    yaml, parser.problem_mark.line, parser.problem_mark.column, parser.problem);
+        char *error_context = get_error_context(parser, error);
+        if ((char)*parser.buffer.pointer == '\t')
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                        "Invalid YAML at %s line %zu column %zu: tabs are not allowed for indent:\n%s",
+                        yaml, parser.problem_mark.line, parser.problem_mark.column, error_context);
+        else
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                        "Invalid YAML at %s line %zu column %zu: %s:\n%s",
+                        yaml, parser.problem_mark.line, parser.problem_mark.column, parser.problem, error_context);
         ret = FALSE;
+        g_free(error_context);
     }
 
     fclose(fyaml);
