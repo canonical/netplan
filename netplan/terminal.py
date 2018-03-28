@@ -74,14 +74,13 @@ class Terminal(object):
         while (timeout_now > 0):
             print("Changes will revert in {:>2} seconds".format(timeout_now), end='\r')
 
-            # wait for usable input from stdin; but we don't /really/ care what it is.
+            # wait for usable input from stdin; but we don't /really/ care what it is just yet
             select.select([sys.stdin], [], [], 1)
             try:
                 # retrieve the input from the terminal
-                # sys.stdin.read() will only return successfully once ENTER is hit
-                # otherwise, it raises TypeError, since it's non-blocking here.
-                sys.stdin.read()
-                raise InputAccepted()
+                c = sys.stdin.read()
+                if (c == '\n'):
+                    raise InputAccepted()
             except TypeError:
                 pass
             timeout_now -= 1
