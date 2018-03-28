@@ -72,7 +72,7 @@ class Terminal(object):
         print("Press ENTER before the timeout to {}\n\n".format(message))
         timeout_now = timeout
         while (timeout_now > 0):
-            print("Changes will revert in {:>2} seconds".format(timeout_now), end='\r')
+            print("Changes will revert in {:>{}} seconds".format(timeout_now, len(str(timeout))), end='\r')
 
             # wait for usable input from stdin; but we don't /really/ care what it is just yet
             select.select([sys.stdin], [], [], 1)
