@@ -36,6 +36,18 @@ class Terminal(object):
         self.orig_flags = fcntl.fcntl(fd, fcntl.F_GETFL)
         self.orig_term = termios.tcgetattr(fd)
 
+    def enable_echo(self):
+        attrs = termios.tcgetattr(self.fd)
+        attrs[3] = attrs[3] | termios.ICANON
+        attrs[3] = attrs[3] | termios.ECHO
+        termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+
+    def disable_echo(self):
+        attrs = termios.tcgetattr(self.fd)
+        attrs[3] = attrs[3] & ~termios.ICANON
+        attrs[3] = attrs[3] & ~termios.ECHO
+        termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+
     def enable_nonblocking_io(self):
         flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
         fcntl.fcntl(self.fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)

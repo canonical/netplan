@@ -58,6 +58,7 @@ class NetplanTry(utils.NetplanCommand):
         try:
             fd = sys.stdin.fileno()
             t = netplan.terminal.Terminal(fd)
+            t.disable_echo()
             t.enable_nonblocking_io()
 
             # we really don't want to be interrupted while doing backup/revert operations
