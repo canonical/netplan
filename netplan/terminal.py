@@ -33,8 +33,9 @@ class Terminal(object):
 
     def __init__(self, fd):
         self.fd = fd
-        self.orig_flags = fcntl.fcntl(fd, fcntl.F_GETFL)
-        self.orig_term = termios.tcgetattr(fd)
+        self.orig_flags = None
+        self.orig_term = None
+        self.save()
 
     def enable_echo(self):
         attrs = termios.tcgetattr(self.fd)
@@ -63,8 +64,15 @@ class Terminal(object):
 
         timeout -- timeout to wait for input (default 120)
         message -- optional customized message ("Press ENTER to (message)")
+
+        raises:
+        InputAccepted -- the user confirmed the changes
+        InputRejected -- the user rejected the changes
         """
         print("Do you want to keep these settings?\n\n")
+
+        self.save()
+        self.enable_nonblocking_io()
 
         if not message:
             message = "accept the new configuration"
@@ -74,17 +82,35 @@ class Terminal(object):
         while (timeout_now > 0):
             print("Changes will revert in {:>{}} seconds".format(timeout_now, len(str(timeout))), end='\r')
 
-            # wait for usable input from stdin; but we don't /really/ care what it is just yet
+            # wait at most 1 second for usable input from stdin
             select.select([sys.stdin], [], [], 1)
             try:
-                # retrieve the input from the terminal
+                # retrieve any input from the terminal. select() either has
+                # timed out with no input, or found something we can retrieve.
                 c = sys.stdin.read()
                 if (c == '\n'):
+                    self.reset()
+                    # Yay, user has accepted the changes!
                     raise InputAccepted()
             except TypeError:
+                # read() above is non-blocking, if there is nothing to read it
+                # will return TypeError, which we should ignore -- on to the
+                # next iteration until timeout.
                 pass
             timeout_now -= 1
+
+        # We reached the timeout for our loop, now revert our change for
+        # non-blocking I/O and signal the caller the changes were essentially
+        # rejected.
+        self.reset()
         raise InputRejected()
+
+    def save(self):
+        """
+        Save the terminal's current attributes and flags
+        """
+        self.orig_flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+        self.orig_term = termios.tcgetattr(self.fd)
 
     def reset(self):
         """

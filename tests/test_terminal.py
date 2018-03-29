@@ -52,6 +52,15 @@ class TestTerminal(unittest.TestCase):
         self.assertFalse(flags & os.O_NONBLOCK)
         self.assertEquals(flags, orig_flags)
 
+    def test_save(self):
+        flags = self.terminal.orig_flags
+        attrs = self.terminal.orig_term
+        self.terminal.enable_nonblocking_io()
+        self.save()
+        self.assertNotEquals(flags, self.terminal.orig_flags)
+        self.assertNotEquals(attrs, self.terminal.orig_term)
+        # self.terminal.disable_nonblocking_io()
+
     def test_reset(self):
         self.terminal.enable_nonblocking_io()
         flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
