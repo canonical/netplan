@@ -1,0 +1,40 @@
+# devices that are blacklisted for replug
+#
+# Each entry in the list can specify a driver, a subsystem, and a
+# reason. All are optional. Globbing is supported for driver and
+# subsystem.
+#
+# A device will be blacklisted if the driver (if supplied) matches and
+# the subsystem (if supplied) matches. The reason will be printed when
+# blacklisting a device, if supplied.
+
+replug:
+    blacklist:
+        - driver: 'mac80211_hwsim'
+
+        # mwifiex_pcie: workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1630285
+        - driver: 'mwifiex_pcie'
+          reason: 'crashes on rebind'
+
+        # xen: workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1729573
+        - subsystem: 'xen'
+          driver: 'vif'
+          reason: 'fails on rebind'
+
+        # workaround for problem with ath9k_htc module: this driver is async and does not support
+        # sequential unbind / rebind, one soon after the other
+        - driver: 'ath9k_htc'
+
+        # workaround for ath6kl_sdio, interface does not work after unbinding
+        - driver: 'ath6kl_sdio'
+
+        # workaround for brcmfmac, interface will be gone after unbind
+        - driver: 'brcmfmac*'
+
+        # workaround for qeth: driver does not recognize unbind command
+        # https://bugs.launchpad.net/ubuntu/+source/netplan.io/+bug/1756322
+        - driver: 'qeth'
+          reason: 'qeth driver does not support rebinding (LP: #1756322)'
+
+    # kill switch - this disables all replugging completely.
+    # disable_all_replug: true

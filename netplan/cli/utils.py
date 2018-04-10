@@ -19,6 +19,9 @@ import sys
 import os
 import argparse
 import subprocess
+import glob
+import yaml
+import logging
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
@@ -60,6 +63,40 @@ def systemctl_network_manager(action):  # pragma: nocover (covered in autopkgtes
         service_name = NM_SNAP_SERVICE_NAME
 
     subprocess.check_call(['systemctl', action, '--no-block', service_name])
+
+
+def gather_replug_yaml(root_dir):
+    # create the file list
+    # per generate.c, /run/netplan shadows /etc/netplan/, which shadows /lib/netplan
+
+    names_to_paths = {}
+    for yaml_dir in ['lib', 'etc', 'run']:
+        for yaml_file in glob.glob(os.path.join(root_dir, yaml_dir, 'netplan', '*.yaml')):
+            names_to_paths[os.path.basename(yaml_file)] = yaml_file
+
+    files = [names_to_paths[name] for name in sorted(names_to_paths.keys())]
+
+    # now build the result from each file
+    result = {'disable_all_replug': False, 'blacklist': []}
+    for yaml_file in files:
+        try:
+            with open(yaml_file) as f:
+                yaml_data = yaml.load(f)
+        except (IOError, yaml.YAMLError):
+            logging.error('Error while loading %s, aborting.' % yaml_file)
+            sys.exit(1)
+
+        if 'replug' not in yaml_data:
+            continue
+
+        yaml_data = yaml_data['replug']
+        if 'disable_all_replug' in yaml_data:
+            result['disable_all_replug'] = yaml_data['disable_all_replug']
+
+        if 'blacklist' in yaml_data:
+            result['blacklist'] += yaml_data['blacklist']
+
+    return result
 
 
 class NetplanCommand(argparse.Namespace):
