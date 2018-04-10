@@ -5,6 +5,8 @@ nplan (0.32~16.04.5) UNRELEASED; urgency=medium
   * Do not attempt to rebind driver 'qeth'. (LP: #1756322)
   * Allow setting ClientIdentifier=mac for networkd-renderered devices
     (LP: #1738998)
+  * IPv6: accept-ra should default to being unset, so that the kernel default
+    can be used. (LP: #1732002)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 11:17:54 -0400
 
