@@ -168,7 +168,8 @@ Virtual devices
 ``accept-ra`` (bool)
 
 :   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
-    On by default.
+    When enabled, accept Router Advertisements. When disabled, do not respond to
+    Router Advertisements.  If unset use the host kernel default setting.
 
 ``addresses`` (sequence of scalars)
 

@@ -49,6 +49,12 @@ static const char* const netdef_backend_to_name[_BACKEND_MAX] = {
         [BACKEND_NM] = "NetworkManager",
 };
 
+typedef enum {
+    ACCEPT_RA_KERNEL,
+    ACCEPT_RA_ENABLED,
+    ACCEPT_RA_DISABLED,
+} ra_mode;
+
 typedef struct missing_node {
     char* netdef_id;
     const yaml_node_t* node;
@@ -71,7 +77,7 @@ typedef struct net_definition {
     gboolean dhcp4;
     gboolean dhcp6;
     char* dhcp_identifier;
-    gboolean accept_ra;
+    ra_mode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
     char* gateway4;
