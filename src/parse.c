@@ -458,6 +458,25 @@ handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 }
 
 static gboolean
+handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        cur_netdef->accept_ra = ACCEPT_RA_ENABLED;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        cur_netdef->accept_ra = ACCEPT_RA_DISABLED;
+    else
+        return yaml_error(node, error, "invalid boolean value %s", scalar(node));
+
+    return TRUE;
+}
+
+static gboolean
 handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     cur_netdef->has_match = TRUE;
@@ -979,7 +998,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
@@ -1000,7 +1019,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
@@ -1020,7 +1039,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bridge)},
@@ -1039,7 +1058,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_interfaces, NULL, netdef_offset(bond)},
@@ -1058,7 +1077,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
@@ -1169,7 +1188,6 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-            cur_netdef->accept_ra = TRUE; /* By default, accept RAs */
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }

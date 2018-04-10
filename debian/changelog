@@ -7,6 +7,8 @@ nplan (0.32~17.10.4) UNRELEASED; urgency=medium
   * DHCPv4: add a "dhcp-identifier: mac" field that can be set to fix interop
     with Windows Server-based DHCP servers which don't support RFC 4361.
     (LP: #1738998)
+  * IPv6: accept-ra should default to being unset, so that the kernel default
+    can be used. (LP: #1732002)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 11:17:54 -0400
 
