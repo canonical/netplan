@@ -286,7 +286,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
-    if (!def->accept_ra)
+    if (def->accept_ra == ACCEPT_RA_ENABLED)
+        g_string_append_printf(s, "IPv6AcceptRA=yes\n");
+    else if (def->accept_ra == ACCEPT_RA_DISABLED)
         g_string_append_printf(s, "IPv6AcceptRA=no\n");
     if (def->gateway4)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway4);
@@ -305,8 +307,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(s, "\n");
     }
     if (def->bridge) {
-        g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bridge);
+        g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\n", def->bridge);
 
+        if (def->accept_ra == ACCEPT_RA_ENABLED)
+            g_string_append_printf(s, "IPv6AcceptRA=yes\n");
+        else if (def->accept_ra == ACCEPT_RA_DISABLED)
+            g_string_append_printf(s, "IPv6AcceptRA=no\n");
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
             g_string_append_printf(s, "\n[Bridge]\n");
         if (def->bridge_params.path_cost)
@@ -315,8 +321,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bond);
+        g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\n", def->bond);
 
+        if (def->accept_ra == ACCEPT_RA_ENABLED)
+            g_string_append_printf(s, "IPv6AcceptRA=yes\n");
+        else if (def->accept_ra == ACCEPT_RA_DISABLED)
+            g_string_append_printf(s, "IPv6AcceptRA=no\n");
         if (def->bond_params.primary_slave)
             g_string_append_printf(s, "PrimarySlave=true\n");
     }
