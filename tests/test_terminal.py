@@ -25,6 +25,7 @@ import unittest
 import netplan.terminal
 
 
+@unittest.skipUnless(sys.__stdin__.isatty(), "not supported when run from a script")
 class TestTerminal(unittest.TestCase):
 
     def setUp(self):
@@ -54,12 +55,13 @@ class TestTerminal(unittest.TestCase):
 
     def test_save(self):
         flags = self.terminal.orig_flags
-        attrs = self.terminal.orig_term
         self.terminal.enable_nonblocking_io()
-        self.save()
+        self.terminal.save()
+        self.terminal.disable_nonblocking_io()
         self.assertNotEquals(flags, self.terminal.orig_flags)
-        self.assertNotEquals(attrs, self.terminal.orig_term)
-        # self.terminal.disable_nonblocking_io()
+        self.terminal.reset()
+        flags = self.terminal.orig_flags
+        self.assertEquals(flags, self.terminal.orig_flags)
 
     def test_reset(self):
         self.terminal.enable_nonblocking_io()
