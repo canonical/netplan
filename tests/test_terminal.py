@@ -32,14 +32,12 @@ class TestTerminal(unittest.TestCase):
         self.terminal = netplan.terminal.Terminal(sys.stdin.fileno())
 
     def test_echo(self):
-        orig_attrs = termios.tcgetattr(self.terminal.fd)
         self.terminal.disable_echo()
         attrs = termios.tcgetattr(self.terminal.fd)
         self.assertFalse(attrs[3] & termios.ECHO)
         self.terminal.enable_echo()
         attrs = termios.tcgetattr(self.terminal.fd)
         self.assertTrue(attrs[3] & termios.ECHO)
-        self.assertEquals(orig_attrs, attrs)
 
     def test_nonblocking_io(self):
         orig_flags = flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
