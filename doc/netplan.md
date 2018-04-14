@@ -669,5 +669,72 @@ This is a complex example which shows most available features:
           interfaces: [wlp1s0, switchports]
           dhcp4: true
 
+## Replug behaviour
+
+``netplan apply`` finds devices that are down and unbinds them from their
+driver and rebinds them so that ``udev`` rules can take effect. This works for
+most devices but can cause issues in other devices.
+
+To change netplan's behaviour, a ``replug:`` mapping can be provided at the top
+level of any netplan YAML file.
+
+Two properties are supported in the mapping:
+
+``disable_all_replug`` (scalar)
+:    Disables all replugging if specified and not False or empty.
+
+``blacklist`` (sequence of mappings)
+:    A list of devices that should not be repluged. Each entry describes
+     something that should not be replugged.
+
+     ``driver`` (scalar)
+     :    The name of a driver that should not be replugged. Globbing is
+          supported. Optional - an absent value matches any driver.
+
+     ``subsystem`` (scalar)
+     :    The name of a subsystem containing devices that should not be
+          replugged. Globbing is supported. Optional - an absent value matches
+	  any subsystem. Useful if there are similarly named devices in
+          multiple subsystems.
+
+     ``reason`` (scalar)
+     :    Why should the device not be replugged? Printed in debug output,
+          optional.
+
+If multiple YAML files specify a blacklist, the blacklists are concatenated.
+
+Examples:
+
+This will blacklist all ``qeth`` devices:
+
+    replug:
+      blacklist:
+        - driver: qeth
+
+This will blacklist all devices in the Xen subsystem:
+
+    replug:
+      blacklist:
+        - subsystem: xen
+
+This will blacklist only ``vif`` devices in the Xen subsystem, and it will
+print a reason if debug logging is enabled:
+
+    replug:
+      blacklist:
+        - driver: vif
+          subsystem: xen
+          reason: 'fails on rebind'
+
+A single YAML file can contain both ``replug`` and ``network`` information.
+Note that ``network`` and ``replug`` both sit at the top level.
+
+    network:
+        version: 2
+        ethernets:
+            ens3: ...
+    replug:
+        disable_all_replug: true
+
 <!--- vim: ft=markdown
 -->

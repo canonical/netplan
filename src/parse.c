@@ -1481,8 +1481,15 @@ const mapping_entry_handler network_handlers[] = {
  * Grammar and handlers for root node
  ****************************************************/
 
+/* we don't stress about validating this as it only affects apply */
+static gboolean noop_handler(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return TRUE;
+}
+
 const mapping_entry_handler root_handlers[] = {
     {"network", YAML_MAPPING_NODE, NULL, network_handlers},
+    {"replug", YAML_MAPPING_NODE, noop_handler},
     {NULL}
 };
 
