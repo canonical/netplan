@@ -116,8 +116,8 @@ class TestConfigManager(unittest.TestCase):
     def test_parse_emptydict(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_emptydict.yaml")])
         self.assertIn('br666', self.configmanager.bridges)
-        self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp4'))
-        self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+        self.assertEquals(False, self.configmanager.ethernets['eth0'].get('dhcp4'))
+        self.assertEquals(False, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
 
     def test_parse_extra_config(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile.yaml")])
