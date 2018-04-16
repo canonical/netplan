@@ -124,7 +124,12 @@ class NetplanTry(utils.NetplanCommand):
 
         # Parse; including any new config file passed on the command-line:
         # new config might include things we can't revert.
-        self.config_manager.parse(extra_config=[self.config_file])
+        extra_config = []
+        if self.config_file:
+            extra_config.append(self.config_file)
+        self.config_manager.parse(extra_config=extra_config)
+
+        revert_unsupported = []
 
         # Bridges and bonds are special. They typically include (or could include)
         # more than one device in them, and they can be set with special parameters
@@ -133,11 +138,16 @@ class NetplanTry(utils.NetplanCommand):
         multi_iface = {}
         multi_iface.update(self.config_manager.bridges)
         multi_iface.update(self.config_manager.bonds)
-        for iface in multi_iface:
-            if 'parameters' in iface:
-                print("\n{} uses parameters that can't be reverted, aborting.".format(iface))
-                return False
+        for ifname, settings in multi_iface.items():
+            if settings and 'parameters' in settings:
+                reason = "reverting custom parameters for bridges and bonds is not supported"
+                revert_unsupported.append((ifname, reason))
 
+        if revert_unsupported:
+            for ifname, reason in revert_unsupported:
+                print("{}: {}".format(ifname, reason))
+            print("\nPlease carefully review the configuration and use 'netplan apply' directly.")
+            return False
         return True
 
     def _signal_handler(self, signal, frame):  # pragma: nocover (requires user input)

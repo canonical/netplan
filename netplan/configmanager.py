@@ -122,6 +122,8 @@ class ConfigManager(object):
                 logging.error('Error while loading {}, aborting.'.format(yaml_file))
                 sys.exit(1)
 
+        logging.debug("Merged config:\n{}".format(yaml.dump(self.config, default_flow_style=False)))
+
     def add(self, config_dict):
         for config_file in config_dict:
             self._copy_file(config_file, config_dict[config_file])
@@ -183,6 +185,8 @@ class ConfigManager(object):
         changed_ifaces = list(new.keys())
         for ifname in changed_ifaces:
             iface = new.pop(ifname)
+            if not iface:
+                continue
             if ifname in orig:
                 orig[ifname].update(iface)
             else:
