@@ -67,7 +67,7 @@ class NetplanTry(utils.NetplanCommand):
             self.backup()
             self.setup()
 
-            NetplanApply.command_apply()
+            NetplanApply.command_apply(run_generate=True, sync=True)
 
             t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:

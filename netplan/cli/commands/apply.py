@@ -40,9 +40,13 @@ class NetplanApply(utils.NetplanCommand):
         self.run_command()
 
     @staticmethod
-    def command_apply(run_generate=True):  # pragma: nocover (covered in autopkgtest)
+    def command_apply(run_generate=True, sync=False):  # pragma: nocover (covered in autopkgtest)
         if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
             sys.exit(1)
+
+        systemd_block = ''
+        if not sync:
+            systemd_block = '--no-block'
 
         devices = os.listdir('/sys/class/net')
 
@@ -52,7 +56,7 @@ class NetplanApply(utils.NetplanCommand):
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration exists, restarting networkd')
-            subprocess.check_call(['systemctl', 'stop', '--no-block', 'systemd-networkd.service', 'netplan-wpa@*.service'])
+            subprocess.check_call(['systemctl', 'stop', systemd_block, 'systemd-networkd.service', 'netplan-wpa@*.service'])
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
@@ -67,7 +71,7 @@ class NetplanApply(utils.NetplanCommand):
                     except subprocess.CalledProcessError:
                         pass
 
-                utils.systemctl_network_manager('stop')
+                utils.systemctl_network_manager('stop', sync=sync)
         else:
             logging.debug('no netplan generated NM configuration exists')
 
@@ -91,10 +95,10 @@ class NetplanApply(utils.NetplanCommand):
 
         # (re)start backends
         if restart_networkd:
-            subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'] +
+            subprocess.check_call(['systemctl', 'start', systemd_block, 'systemd-networkd.service'] +
                                   [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
         if restart_nm:
-            utils.systemctl_network_manager('start')
+            utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
     def replug(device):  # pragma: nocover (covered in autopkgtest)
