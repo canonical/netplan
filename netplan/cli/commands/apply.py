@@ -24,6 +24,7 @@ import glob
 import subprocess
 
 import netplan.cli.utils as utils
+from netplan.configmanager import ConfigurationError
 
 
 class NetplanApply(utils.NetplanCommand):
@@ -40,13 +41,12 @@ class NetplanApply(utils.NetplanCommand):
         self.run_command()
 
     @staticmethod
-    def command_apply(run_generate=True, sync=False):  # pragma: nocover (covered in autopkgtest)
+    def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
         if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
-            sys.exit(1)
-
-        systemd_block = ''
-        if not sync:
-            systemd_block = '--no-block'
+            if exit_on_error:
+                sys.exit(os.EX_CONFIG)
+            else:
+                raise ConfigurationError("the configuration could not be generated")
 
         devices = os.listdir('/sys/class/net')
 

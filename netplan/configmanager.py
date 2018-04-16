@@ -187,3 +187,10 @@ class ConfigManager(object):
                 orig[ifname].update(iface)
             else:
                 orig[ifname] = iface
+
+
+class ConfigurationError(Exception):
+    """
+    Configuration could not be parsed or has otherwise failed to apply
+    """
+    pass

@@ -22,7 +22,7 @@ import time
 import signal
 import sys
 
-from netplan.configmanager import ConfigManager
+from netplan.configmanager import ConfigManager, ConfigurationError
 import netplan.cli.utils as utils
 from netplan.cli.commands.apply import NetplanApply
 import netplan.terminal
@@ -56,7 +56,7 @@ class NetplanTry(utils.NetplanCommand):
 
     def command_try(self):  # pragma: nocover (requires user input)
         if not self.is_revertable():
-            sys.exit(1)
+            sys.exit(os.EX_CONFIG)
 
         try:
             fd = sys.stdin.fileno()
@@ -70,7 +70,7 @@ class NetplanTry(utils.NetplanCommand):
             self.backup()
             self.setup()
 
-            NetplanApply.command_apply(run_generate=True, sync=True)
+            NetplanApply.command_apply(run_generate=True, sync=True, exit_on_error=False)
 
             t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
