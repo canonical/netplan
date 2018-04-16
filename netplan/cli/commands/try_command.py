@@ -55,6 +55,9 @@ class NetplanTry(utils.NetplanCommand):
         self.run_command()
 
     def command_try(self):  # pragma: nocover (requires user input)
+        if not self.is_revertable():
+            sys.exit(1)
+
         try:
             fd = sys.stdin.fileno()
             t = netplan.terminal.Terminal(fd)
@@ -104,6 +107,38 @@ class NetplanTry(utils.NetplanCommand):
 
     def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()
+
+    def is_revertable(self):  # pragma: nocover (requires user input)
+        '''
+        Check if the configuration is revertable, if it doesn't contain bits
+        that we know are likely to render the system unstable if we apply it,
+        or if we revert.
+
+        Returns True if the parsed config is "revertable", meaning that we
+        can actually rely on backends to re-apply /all/ of the relevant
+        configuration to interfaces when their config changes.
+
+        Returns False if the parsed config contains options that are known
+        to not cleanly revert via the backend.
+        '''
+
+        # Parse; including any new config file passed on the command-line:
+        # new config might include things we can't revert.
+        self.config_manager.parse(extra_config=[self.config_file])
+
+        # Bridges and bonds are special. They typically include (or could include)
+        # more than one device in them, and they can be set with special parameters
+        # to tweak their behavior, which are really hard to "revert", especially
+        # as systemd-networkd doesn't necessarily touch them when config changes.
+        multi_iface = {}
+        multi_iface.update(self.config_manager.bridges)
+        multi_iface.update(self.config_manager.bonds)
+        for iface in multi_iface:
+            if 'parameters' in iface:
+                print("\n{} uses parameters that can't be reverted, aborting.".format(iface))
+                return False
+
+        return True
 
     def _signal_handler(self, signal, frame):  # pragma: nocover (requires user input)
         if self.configuration_changed:

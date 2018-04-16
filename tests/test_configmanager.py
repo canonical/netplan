@@ -27,18 +27,87 @@ from netplan.configmanager import ConfigManager
 class TestConfigManager(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
-        self.configmanager = ConfigManager(prefix=self.workdir.name)
+        self.configmanager = ConfigManager(prefix=self.workdir.name, extra_files={})
         os.makedirs(os.path.join(self.workdir.name, "etc/netplan"))
         os.makedirs(os.path.join(self.workdir.name, "run/systemd/network"))
         os.makedirs(os.path.join(self.workdir.name, "run/NetworkManager/system-connections"))
         with open(os.path.join(self.workdir.name, "newfile.yaml"), 'w') as fd:
-            print("new yaml", file=fd)
+            print('''network:
+  version: 2
+  ethernets:
+    ethtest:
+      dhcp4: yes
+''', file=fd)
+        with open(os.path.join(self.workdir.name, "newfile_merging.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp6: on
+    ethbr1:
+      dhcp4: on
+''', file=fd)
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
-            print("pretend yaml", file=fd)
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: false
+    ethbr1:
+      dhcp4: false
+    ethbr2:
+      dhcp4: false
+    ethbond1:
+      dhcp4: false
+    ethbond2:
+      dhcp4: false
+  wifis:
+    wlan1:
+      access-points:
+        testAP: {}
+  vlans:
+    vlan2:
+      id: 2
+      link: eth99
+  bridges:
+    br3:
+      interfaces: [ ethbr1 ]
+    br4:
+      interfaces: [ ethbr2 ]
+      parameters:
+        stp: on
+  bonds:
+    bond5:
+      interfaces: [ ethbond1 ]
+    bond6:
+      interfaces: [ ethbond2 ]
+      parameters:
+        mode: 802.3ad
+''', file=fd)
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'w') as fd:
             print("pretend .network", file=fd)
         with open(os.path.join(self.workdir.name, "run/NetworkManager/system-connections/pretend"), 'w') as fd:
             print("pretend NM config", file=fd)
+
+    def test_parse(self):
+        self.configmanager.parse()
+        self.assertIn('eth0', self.configmanager.ethernets)
+        self.assertIn('bond6', self.configmanager.bonds)
+        self.assertNotIn('bond7', self.configmanager.interfaces)
+        self.assertNotIn('parameters', self.configmanager.bonds.get('bond5'))
+        self.assertIn('parameters', self.configmanager.bonds.get('bond6'))
+
+    def test_parse_merging(self):
+        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])
+        self.assertIn('eth0', self.configmanager.ethernets)
+        self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp6'))
+        self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+
+    def test_parse_extra_config(self):
+        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile.yaml")])
+        self.assertIn('ethtest', self.configmanager.ethernets)
+        self.assertIn('bond6', self.configmanager.bonds)
 
     def test_add(self):
         self.configmanager.add({os.path.join(self.workdir.name, "newfile.yaml"):
@@ -89,8 +158,8 @@ class TestConfigManager(unittest.TestCase):
                       self.configmanager.extra_files)
         self.assertTrue(os.path.exists(os.path.join(self.workdir.name, "etc/netplan/newfile.yaml")))
         self.configmanager.revert()
-        self.assertIn(os.path.join(self.workdir.name, "newfile.yaml"),
-                      self.configmanager.extra_files)
+        self.assertNotIn(os.path.join(self.workdir.name, "newfile.yaml"),
+                         self.configmanager.extra_files)
         self.assertFalse(os.path.exists(os.path.join(self.workdir.name, "etc/netplan/newfile.yaml")))
 
     def test_cleanup(self):
