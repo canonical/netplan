@@ -47,6 +47,14 @@ class TestConfigManager(unittest.TestCase):
     ethbr1:
       dhcp4: on
 ''', file=fd)
+        with open(os.path.join(self.workdir.name, "newfile_emptydict.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  ethernets:
+    eth0: {}
+  bridges:
+    br666: {}
+''', file=fd)
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
   version: 2
@@ -101,7 +109,14 @@ class TestConfigManager(unittest.TestCase):
     def test_parse_merging(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])
         self.assertIn('eth0', self.configmanager.ethernets)
+        self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
         self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp6'))
+        self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+
+    def test_parse_emptydict(self):
+        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_emptydict.yaml")])
+        self.assertIn('br666', self.configmanager.bridges)
+        self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp4'))
         self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
 
     def test_parse_extra_config(self):

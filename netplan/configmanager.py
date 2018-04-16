@@ -185,8 +185,6 @@ class ConfigManager(object):
         changed_ifaces = list(new.keys())
         for ifname in changed_ifaces:
             iface = new.pop(ifname)
-            if not iface:
-                continue
             if ifname in orig:
                 orig[ifname].update(iface)
             else:
