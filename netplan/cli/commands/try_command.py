@@ -22,7 +22,7 @@ import time
 import signal
 import sys
 
-from netplan.configmanager import ConfigManager, ConfigurationError
+from netplan.configmanager import ConfigManager
 import netplan.cli.utils as utils
 from netplan.cli.commands.apply import NetplanApply
 import netplan.terminal
