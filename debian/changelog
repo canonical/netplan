@@ -11,6 +11,9 @@ nplan (0.32~16.04.5) UNRELEASED; urgency=medium
     and bridges. (LP: #1756587)
   * critical: provide a way to set "CriticalConnection=true" on a networkd
     connection, especially for remote-fs scenarios. (LP: #1769682)
+  * networkd: don't wipe out /run/netplan on generate: we do want to keep any
+    YAML configurations in that directory, we just need to remove generated
+    wpasupplicant configs. (LP: #1764869)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 11:17:54 -0400
 
