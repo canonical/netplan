@@ -1,3 +1,10 @@
+nplan (0.32~16.04.5) UNRELEASED; urgency=medium
+
+  * bond/bridge: Support suffixes for time-based values so things like
+    "mii-monitor-interval" can support milliseconds. (LP: #1745597)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 11:17:54 -0400
+
 nplan (0.32~16.04.4) xenial; urgency=medium
 
   [ Oliver Grawert ]
