@@ -21,6 +21,8 @@ import os
 import time
 import signal
 import sys
+import logging
+import subprocess
 
 from netplan.configmanager import ConfigManager
 import netplan.cli.utils as utils
@@ -40,11 +42,12 @@ class NetplanTry(utils.NetplanCommand):
                                      'system, with automatic rollback',
                          leaf=True)
         self.configuration_changed = False
+        self.new_interfaces = None
         self.config_manager = ConfigManager()
 
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
-                                 help='Apply the config file in argument on top of current configuration.')
+                                 help='Apply the config file in argument in addition to current configuration.')
         self.parser.add_argument('--timeout',
                                  type=int, default=DEFAULT_INPUT_TIMEOUT,
                                  help="Maximum number of seconds to wait for the user's confirmation")
@@ -103,7 +106,13 @@ class NetplanTry(utils.NetplanCommand):
 
     def revert(self):  # pragma: nocover (requires user input)
         self.config_manager.revert()
-        NetplanApply.command_apply(run_generate=False)
+        NetplanApply.command_apply(run_generate=False, sync=True, exit_on_error=False)
+        for ifname in self.new_interfaces:
+            try:
+                cmd = ['ip', 'link', 'del', ifname]
+                subprocess.check_call(cmd)
+            except subprocess.CalledProcessError:
+                logging.warn("Could not revert (remove) new interface '{}'".format(ifname))
 
     def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()
@@ -128,6 +137,9 @@ class NetplanTry(utils.NetplanCommand):
         if self.config_file:
             extra_config.append(self.config_file)
         self.config_manager.parse(extra_config=extra_config)
+        self.new_interfaces = self.config_manager.new_interfaces
+
+        logging.debug("New interfaces: {}".format(self.new_interfaces))
 
         revert_unsupported = []
 

@@ -35,6 +35,7 @@ class ConfigManager(object):
         self.temp_run = os.path.join(self.tempdir, "run")
         self.extra_files = extra_files
         self.config = {}
+        self.new_interfaces = set()
 
     @property
     def network(self):
@@ -92,9 +93,6 @@ class ConfigManager(object):
 
         files = [names_to_paths[name] for name in sorted(names_to_paths.keys())]
 
-        if extra_config:
-            files.extend(extra_config)
-
         self.config['network'] = {
             'ethernets': {},
             'wifis': {},
@@ -103,24 +101,10 @@ class ConfigManager(object):
             'vlans': {}
         }
         for yaml_file in files:
-            try:
-                with open(yaml_file) as f:
-                    yaml_data = yaml.load(f, Loader=yaml.CSafeLoader)
-                    network = yaml_data.get('network')
-                    if network:
-                        if 'ethernets' in network:
-                            self._merge_config(self.ethernets, network.get('ethernets'))
-                        if 'wifis' in network:
-                            self._merge_config(self.wifis, network.get('wifis'))
-                        if 'bridges' in network:
-                            self._merge_config(self.bridges, network.get('bridges'))
-                        if 'bonds' in network:
-                            self._merge_config(self.bonds, network.get('bonds'))
-                        if 'vlans' in network:
-                            self._merge_config(self.vlans, network.get('vlans'))
-            except (IOError, yaml.YAMLError):  # pragma: nocover (filesystem failures/invalid YAML)
-                logging.error('Error while loading {}, aborting.'.format(yaml_file))
-                sys.exit(1)
+            self._merge_yaml_config(yaml_file)
+
+        for yaml_file in extra_config:
+            self.new_interfaces |= self._merge_yaml_config(yaml_file)
 
         logging.debug("Merged config:\n{}".format(yaml.dump(self.config, default_flow_style=False)))
 
@@ -181,14 +165,49 @@ class ConfigManager(object):
             else:
                 raise
 
-    def _merge_config(self, orig, new):
+    def _merge_interface_config(self, orig, new):
+        new_interfaces = set()
         changed_ifaces = list(new.keys())
+
         for ifname in changed_ifaces:
             iface = new.pop(ifname)
             if ifname in orig:
+                logging.debug("{} exists in {}".format(ifname, orig))
                 orig[ifname].update(iface)
             else:
+                logging.debug("{} not found in {}".format(ifname, orig))
                 orig[ifname] = iface
+                new_interfaces.add(ifname)
+
+        return new_interfaces
+
+    def _merge_yaml_config(self, yaml_file):
+        new_interfaces = set()
+
+        try:
+            with open(yaml_file) as f:
+                yaml_data = yaml.load(f, Loader=yaml.CSafeLoader)
+                network = yaml_data.get('network')
+                if network:
+                    if 'ethernets' in network:
+                        new = self._merge_interface_config(self.ethernets, network.get('ethernets'))
+                        new_interfaces |= new
+                    if 'wifis' in network:
+                        new = self._merge_interface_config(self.wifis, network.get('wifis'))
+                        new_interfaces |= new
+                    if 'bridges' in network:
+                        new = self._merge_interface_config(self.bridges, network.get('bridges'))
+                        new_interfaces |= new
+                    if 'bonds' in network:
+                        new = self._merge_interface_config(self.bonds, network.get('bonds'))
+                        new_interfaces |= new
+                    if 'vlans' in network:
+                        new = self._merge_interface_config(self.vlans, network.get('vlans'))
+                        new_interfaces |= new
+            return new_interfaces
+        except (IOError, yaml.YAMLError):  # pragma: nocover (filesystem failures/invalid YAML)
+            logging.error('Error while loading {}, aborting.'.format(yaml_file))
+            sys.exit(1)
 
 
 class ConfigurationError(Exception):
