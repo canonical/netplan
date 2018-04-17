@@ -64,8 +64,6 @@ class NetplanTry(utils.NetplanCommand):
         try:
             fd = sys.stdin.fileno()
             t = netplan.terminal.Terminal(fd)
-            t.disable_echo()
-            t.enable_nonblocking_io()
 
             # we really don't want to be interrupted while doing backup/revert operations
             signal.signal(signal.SIGINT, self._signal_handler)
@@ -86,7 +84,6 @@ class NetplanTry(utils.NetplanCommand):
             print("\nReverting.")
             self.revert()
         finally:
-            t.reset()
             self.cleanup()
 
     def backup(self):  # pragma: nocover (requires user input)
