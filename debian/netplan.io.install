@@ -1,2 +1,3 @@
-usr
+usr/share/bash-completion
+usr/share/netplan
 lib
