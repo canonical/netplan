@@ -1,6 +1,10 @@
 netplan.io (0.35) UNRELEASED; urgency=medium
 
   * debian/postinst: fix version check for when to write breadcrumbs.
+  * bonds/bridges: Support specifying time-based values with "ms" suffix when
+    the value should be in milliseconds; while keeping support for the previous
+    behavior of handling values are pure seconds when no suffix is present.
+    (LP: #1745597)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 13 Apr 2018 12:13:12 -0400
 

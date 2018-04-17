@@ -119,34 +119,34 @@ typedef struct net_definition {
     struct {
         char* mode;
         char* lacp_rate;
-        guint monitor_interval;
+        char* monitor_interval;
         guint min_links;
         char* transmit_hash_policy;
         char* selection_logic;
         gboolean all_slaves_active;
-        guint arp_interval;
+        char* arp_interval;
         GArray* arp_ip_targets;
         char* arp_validate;
         char* arp_all_targets;
-        guint up_delay;
-        guint down_delay;
+        char* up_delay;
+        char* down_delay;
         char* fail_over_mac_policy;
         guint gratuitious_arp;
         /* TODO: unsolicited_na */
         guint packets_per_slave;
         char* primary_reselect_policy;
         guint resend_igmp;
-        guint learn_interval;
+        char* learn_interval;
         char* primary_slave;
     } bond_params;
 
     struct {
-        guint ageing_time;
+        char* ageing_time;
         guint priority;
         guint port_priority;
-        guint forward_delay;
-        guint hello_time;
-        guint max_age;
+        char* forward_delay;
+        char* hello_time;
+        char* max_age;
         guint path_cost;
         gboolean stp;
     } bridge_params;

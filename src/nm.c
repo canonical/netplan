@@ -156,7 +156,7 @@ write_bond_parameters(const net_definition* def, GString *s)
     if (def->bond_params.lacp_rate)
         g_string_append_printf(params, "\nlacp_rate=%s", def->bond_params.lacp_rate);
     if (def->bond_params.monitor_interval)
-        g_string_append_printf(params, "\nmiimon=%d", def->bond_params.monitor_interval);
+        g_string_append_printf(params, "\nmiimon=%s", def->bond_params.monitor_interval);
     if (def->bond_params.min_links)
         g_string_append_printf(params, "\nmin_links=%d", def->bond_params.min_links);
     if (def->bond_params.transmit_hash_policy)
@@ -166,7 +166,7 @@ write_bond_parameters(const net_definition* def, GString *s)
     if (def->bond_params.all_slaves_active)
         g_string_append_printf(params, "\nall_slaves_active=%d", def->bond_params.all_slaves_active);
     if (def->bond_params.arp_interval)
-        g_string_append_printf(params, "\narp_interval=%d", def->bond_params.arp_interval);
+        g_string_append_printf(params, "\narp_interval=%s", def->bond_params.arp_interval);
     if (def->bond_params.arp_ip_targets) {
         g_string_append_printf(params, "\narp_ip_target=");
         for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
@@ -180,9 +180,9 @@ write_bond_parameters(const net_definition* def, GString *s)
     if (def->bond_params.arp_all_targets)
         g_string_append_printf(params, "\narp_all_targets=%s", def->bond_params.arp_all_targets);
     if (def->bond_params.up_delay)
-        g_string_append_printf(params, "\nupdelay=%d", def->bond_params.up_delay);
+        g_string_append_printf(params, "\nupdelay=%s", def->bond_params.up_delay);
     if (def->bond_params.down_delay)
-        g_string_append_printf(params, "\ndowndelay=%d", def->bond_params.down_delay);
+        g_string_append_printf(params, "\ndowndelay=%s", def->bond_params.down_delay);
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nfail_over_mac=%s", def->bond_params.fail_over_mac_policy);
     if (def->bond_params.gratuitious_arp)
@@ -195,7 +195,7 @@ write_bond_parameters(const net_definition* def, GString *s)
     if (def->bond_params.resend_igmp)
         g_string_append_printf(params, "\nresend_igmp=%d", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
-        g_string_append_printf(params, "\nlp_interval=%d", def->bond_params.learn_interval);
+        g_string_append_printf(params, "\nlp_interval=%s", def->bond_params.learn_interval);
     if (def->bond_params.primary_slave)
         g_string_append_printf(params, "\nprimary=%s", def->bond_params.primary_slave);
 
@@ -214,15 +214,15 @@ write_bridge_params(const net_definition* def, GString *s)
         params = g_string_sized_new(200);
 
         if (def->bridge_params.ageing_time)
-            g_string_append_printf(params, "ageing-time=%u\n", def->bridge_params.ageing_time);
+            g_string_append_printf(params, "ageing-time=%s\n", def->bridge_params.ageing_time);
         if (def->bridge_params.priority)
             g_string_append_printf(params, "priority=%u\n", def->bridge_params.priority);
         if (def->bridge_params.forward_delay)
-            g_string_append_printf(params, "forward-delay=%u\n", def->bridge_params.forward_delay);
+            g_string_append_printf(params, "forward-delay=%s\n", def->bridge_params.forward_delay);
         if (def->bridge_params.hello_time)
-            g_string_append_printf(params, "hello-time=%u\n", def->bridge_params.hello_time);
+            g_string_append_printf(params, "hello-time=%s\n", def->bridge_params.hello_time);
         if (def->bridge_params.max_age)
-            g_string_append_printf(params, "max-age=%u\n", def->bridge_params.max_age);
+            g_string_append_printf(params, "max-age=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "stp=%s\n", def->bridge_params.stp ? "true" : "false");
 
         g_string_append_printf(s, "\n[bridge]\n%s", params->str);

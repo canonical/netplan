@@ -1012,10 +1012,10 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
     return TRUE;
 }
 const mapping_entry_handler bridge_params_handlers[] = {
-    {"ageing-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.ageing_time)},
-    {"forward-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.forward_delay)},
-    {"hello-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.hello_time)},
-    {"max-age", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.max_age)},
+    {"ageing-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.ageing_time)},
+    {"forward-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.forward_delay)},
+    {"hello-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.hello_time)},
+    {"max-age", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.max_age)},
     {"path-cost", YAML_MAPPING_NODE, handle_bridge_path_cost, NULL, netdef_offset(bridge_params.path_cost)},
     {"port-priority", YAML_MAPPING_NODE, handle_bridge_port_priority, NULL, netdef_offset(bridge_params.port_priority)},
     {"priority", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.priority)},
@@ -1180,25 +1180,25 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
 const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
-    {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.monitor_interval)},
+    {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.monitor_interval)},
     {"min-links", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.min_links)},
     {"transmit-hash-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.transmit_hash_policy)},
     {"ad-select", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.selection_logic)},
     {"all-slaves-active", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(bond_params.all_slaves_active)},
-    {"arp-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.arp_interval)},
+    {"arp-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_interval)},
     /* TODO: arp_ip_targets */
     {"arp-ip-targets", YAML_SEQUENCE_NODE, handle_arp_ip_targets},
     {"arp-validate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_validate)},
     {"arp-all-targets", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_all_targets)},
-    {"up-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.up_delay)},
-    {"down-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.down_delay)},
+    {"up-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.up_delay)},
+    {"down-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.down_delay)},
     {"fail-over-mac-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.fail_over_mac_policy)},
     {"gratuitious-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitious_arp)},
     /* TODO: unsolicited_na */
     {"packets-per-slave", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.packets_per_slave)},
     {"primary-reselect-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.primary_reselect_policy)},
     {"resend-igmp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.resend_igmp)},
-    {"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.learn_interval)},
+    {"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.learn_interval)},
     {"primary", YAML_SCALAR_NODE, handle_bond_primary_slave, NULL, netdef_offset(bond_params.primary_slave)},
     {NULL}
 };
