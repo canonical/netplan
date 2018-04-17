@@ -52,14 +52,25 @@ class TestTerminal(unittest.TestCase):
         self.assertEquals(flags, orig_flags)
 
     def test_save(self):
-        flags = self.terminal.orig_flags
         self.terminal.enable_nonblocking_io()
+        flags = self.terminal.orig_flags
         self.terminal.save()
         self.terminal.disable_nonblocking_io()
         self.assertNotEquals(flags, self.terminal.orig_flags)
         self.terminal.reset()
         flags = self.terminal.orig_flags
         self.assertEquals(flags, self.terminal.orig_flags)
+
+    def test_save_and_restore_with_dict(self):
+        self.terminal.enable_nonblocking_io()
+        orig_settings = dict()
+        self.terminal.save(orig_settings)
+        self.terminal.disable_nonblocking_io()
+        flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
+        self.assertNotEquals(flags, orig_settings.get('flags'))
+        self.terminal.reset(orig_settings)
+        flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
+        self.assertEquals(flags, orig_settings.get('flags'))
 
     def test_reset(self):
         self.terminal.enable_nonblocking_io()
