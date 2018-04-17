@@ -16,6 +16,9 @@ netplan.io (0.35) UNRELEASED; urgency=medium
     right locations.
   * netplan try: allow users to preview/test and approve network configuration
     changes, and automatically revert if they are not accepted. (LP: #1764824)
+  * networkd: don't wipe out /run/netplan on generate: we do want to keep any
+    YAML configurations in that directory, we just need to remove generated
+    wpasupplicant configs. (LP: #1764869)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 13 Apr 2018 12:13:12 -0400
 
