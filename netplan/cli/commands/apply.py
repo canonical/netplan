@@ -24,6 +24,7 @@ import glob
 import subprocess
 
 import netplan.cli.utils as utils
+from netplan.configmanager import ConfigurationError
 
 
 class NetplanApply(utils.NetplanCommand):
@@ -34,14 +35,18 @@ class NetplanApply(utils.NetplanCommand):
                          leaf=True)
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
-        self.func = self.command_apply
+        self.func = NetplanApply.command_apply
 
         self.parse_args()
         self.run_command()
 
-    def command_apply(self):  # pragma: nocover (covered in autopkgtest)
-        if subprocess.call([utils.get_generator_path()]) != 0:
-            sys.exit(1)
+    @staticmethod
+    def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
+            if exit_on_error:
+                sys.exit(os.EX_CONFIG)
+            else:
+                raise ConfigurationError("the configuration could not be generated")
 
         devices = os.listdir('/sys/class/net')
 
@@ -51,7 +56,7 @@ class NetplanApply(utils.NetplanCommand):
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration exists, restarting networkd')
-            subprocess.check_call(['systemctl', 'stop', '--no-block', 'systemd-networkd.service', 'netplan-wpa@*.service'])
+            utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
@@ -66,7 +71,7 @@ class NetplanApply(utils.NetplanCommand):
                     except subprocess.CalledProcessError:
                         pass
 
-                utils.systemctl_network_manager('stop')
+                utils.systemctl_network_manager('stop', sync=sync)
         else:
             logging.debug('no netplan generated NM configuration exists')
 
@@ -75,7 +80,7 @@ class NetplanApply(utils.NetplanCommand):
         for device in devices:
             if not os.path.islink('/sys/class/net/' + device):
                 continue
-            if self.replug(device):
+            if NetplanApply.replug(device):
                 any_replug = True
             else:
                 # if the interface is up, we can still apply .link file changes
@@ -90,12 +95,13 @@ class NetplanApply(utils.NetplanCommand):
 
         # (re)start backends
         if restart_networkd:
-            subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'] +
-                                  [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
+            netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')]
+            utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
         if restart_nm:
-            utils.systemctl_network_manager('start')
+            utils.systemctl_network_manager('start', sync=sync)
 
-    def replug(self, device):  # pragma: nocover (covered in autopkgtest)
+    @staticmethod
+    def replug(device):  # pragma: nocover (covered in autopkgtest)
         '''Unbind and rebind device if it is down'''
 
         devdir = os.path.join('/sys/class/net', device)

@@ -14,6 +14,8 @@ netplan.io (0.35) UNRELEASED; urgency=medium
   * docs, examples: reformat comments in examples, add standalone example files
   * debian/docs, debian/netplan.io.install: install doc and examples in the
     right locations.
+  * netplan try: allow users to preview/test and approve network configuration
+    changes, and automatically revert if they are not accepted. (LP: #1764824)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 13 Apr 2018 12:13:12 -0400
 

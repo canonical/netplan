@@ -51,15 +51,35 @@ def nm_running():  # pragma: nocover (covered in autopkgtest)
         return False
 
 
-def systemctl_network_manager(action):  # pragma: nocover (covered in autopkgtest)
+def systemctl_network_manager(action, sync=False):  # pragma: nocover (covered in autopkgtest)
     service_name = NM_SERVICE_NAME
+
+    command = ['systemctl', action]
+    if not sync:
+        command.append('--no-block')
 
     # If the network-manager snap is installed use its service
     # name rather than the one of the deb packaged NetworkManager
     if is_nm_snap_enabled():
         service_name = NM_SNAP_SERVICE_NAME
 
-    subprocess.check_call(['systemctl', action, '--no-block', service_name])
+    command.append(service_name)
+
+    subprocess.check_call(command)
+
+
+def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocover (covered in autopkgtest)
+    command = ['systemctl', action]
+
+    if not sync:
+        command.append('--no-block')
+
+    command.append('systemd-networkd.service')
+
+    for service in extra_services:
+        command.append(service)
+
+    subprocess.check_call(command)
 
 
 class NetplanCommand(argparse.Namespace):
