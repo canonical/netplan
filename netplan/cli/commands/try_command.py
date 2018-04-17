@@ -111,8 +111,8 @@ class NetplanTry(utils.NetplanCommand):
             if ifname not in self.config_manager.bonds and \
                ifname not in self.config_manager.bridges and \
                ifname not in self.config_manager.vlans:
-               logging.debug("{} will not be removed: not a virtual interface".format(ifname))
-               continue
+                logging.debug("{} will not be removed: not a virtual interface".format(ifname))
+                continue
             try:
                 cmd = ['ip', 'link', 'del', ifname]
                 subprocess.check_call(cmd)
