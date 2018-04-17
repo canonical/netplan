@@ -19,6 +19,8 @@ netplan.io (0.35) UNRELEASED; urgency=medium
   * networkd: don't wipe out /run/netplan on generate: we do want to keep any
     YAML configurations in that directory, we just need to remove generated
     wpasupplicant configs. (LP: #1764869)
+  * debian/control: add bash-completion to Build-Depends to make sure we do
+    install completion files in the right location.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 13 Apr 2018 12:13:12 -0400
 

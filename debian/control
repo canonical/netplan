@@ -5,6 +5,7 @@ Priority: important
 Standards-Version: 4.1.3
 Build-Depends: debhelper (>= 11),
  pkg-config,
+ bash-completion,
  libyaml-dev,
  libglib2.0-dev,
  uuid-dev,
