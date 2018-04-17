@@ -73,6 +73,7 @@ class Terminal(object):
 
         settings = dict()
         self.save(settings)
+        self.disable_echo()
         self.enable_nonblocking_io()
 
         if not message:
