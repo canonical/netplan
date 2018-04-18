@@ -1,4 +1,4 @@
-netplan.io (0.35) UNRELEASED; urgency=medium
+netplan.io (0.35) bionic; urgency=medium
 
   * debian/postinst: fix version check for when to write breadcrumbs.
     (LP: #1756742)
@@ -22,7 +22,7 @@ netplan.io (0.35) UNRELEASED; urgency=medium
   * debian/control: add bash-completion to Build-Depends to make sure we do
     install completion files in the right location.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 13 Apr 2018 12:13:12 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 17 Apr 2018 21:49:21 -0400
 
 netplan.io (0.34.1) bionic; urgency=medium
 
