@@ -71,7 +71,9 @@ class Terminal(object):
         """
         print("Do you want to keep these settings?\n\n")
 
-        self.save()
+        settings = dict()
+        self.save(settings)
+        self.disable_echo()
         self.enable_nonblocking_io()
 
         if not message:
@@ -89,7 +91,7 @@ class Terminal(object):
                 # timed out with no input, or found something we can retrieve.
                 c = sys.stdin.read()
                 if (c == '\n'):
-                    self.reset()
+                    self.reset(settings)
                     # Yay, user has accepted the changes!
                     raise InputAccepted()
             except TypeError:
@@ -102,22 +104,42 @@ class Terminal(object):
         # We reached the timeout for our loop, now revert our change for
         # non-blocking I/O and signal the caller the changes were essentially
         # rejected.
-        self.reset()
+        self.reset(settings)
         raise InputRejected()
 
-    def save(self):
+    def save(self, dest=None):
         """
         Save the terminal's current attributes and flags
-        """
-        self.orig_flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
-        self.orig_term = termios.tcgetattr(self.fd)
 
-    def reset(self):
+        Optional argument:
+            - dest: if set, save settings to this dict
+        """
+        orig_flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+        orig_term = termios.tcgetattr(self.fd)
+        if dest is not None:
+            dest.update({'flags': orig_flags,
+                         'term': orig_term})
+        else:
+            self.orig_flags = orig_flags
+            self.orig_term = orig_term
+
+    def reset(self, orig=None):
         """
         Reset the terminal to its original attributes and flags
+
+        Optional argument:
+            - orig: if set, reset to settings from this dict
         """
-        termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.orig_term)
-        fcntl.fcntl(self.fd, fcntl.F_SETFL, self.orig_flags)
+        orig_term = None
+        orig_flags = None
+        if orig is not None:
+            orig_term = orig.get('term')
+            orig_flags = orig.get('flags')
+        else:
+            orig_term = self.orig_term
+            orig_flags = self.orig_flags
+        termios.tcsetattr(self.fd, termios.TCSAFLUSH, orig_term)
+        fcntl.fcntl(self.fd, fcntl.F_SETFL, orig_flags)
 
 
 class InputAccepted(Exception):
