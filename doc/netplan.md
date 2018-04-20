@@ -441,7 +441,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 :    Customization parameters for special bonding options. Using the
      NetworkManager renderer, parameter values for intervals should be
      expressed in milliseconds; for the systemd renderer, they are interpreted
-     to be in seconds unless a time suffix (such as "ms" for milliseconds) is
+     to be in milliseconds unless a time suffix (such as "s" for seconds) is
      specified. Time values are passed directly to the backend.
 
      ``mode`` (scalar)
@@ -553,11 +553,11 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           are sent at 200ms intervals.
 
      ``learn-packet-interval`` (scalar)
-     :    Specify the interval between sending learning packets to each slave.
-          The value range is between ``1`` and ``0x7fffffff``. The default
-          value is ``1``. This option only affects ``balance-tlb`` and
-          ``balance-alb`` modes. Using the networkd renderer, this field maps
-          to the LearnPacketIntervalSec= property.
+     :    Specify the interval (seconds) between sending learning packets to
+          each slave.  The value range is between ``1`` and ``0x7fffffff``.
+          The default value is ``1``. This option only affects ``balance-tlb``
+          and ``balance-alb`` modes. Using the networkd renderer, this field
+          maps to the LearnPacketIntervalSec= property.
 
      ``primary`` (scalar)
      :    Specify a device to be used as a primary slave, or preferred device
