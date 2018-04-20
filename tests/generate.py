@@ -1072,12 +1072,12 @@ unmanaged-devices+=interface-name:bn0,''')
         lacp-rate: 10
         mii-monitor-interval: 10
         min-links: 10
-        up-delay: 20ms
-        down-delay: 30s
+        up-delay: 20
+        down-delay: 30
         all-slaves-active: true
         transmit-hash-policy: none
         ad-select: none
-        arp-interval: 15m
+        arp-interval: 15
         arp-validate: all
         arp-all-targets: all
         fail-over-mac-policy: none
@@ -1101,12 +1101,12 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'TransmitHashPolicy=none\n'
                                             'AdSelect=none\n'
                                             'AllSlavesActive=1\n'
-                                            'ARPIntervalSec=15m\n'
+                                            'ARPIntervalSec=15ms\n'
                                             'ARPIPTargets=10.10.10.10,20.20.20.20\n'
                                             'ARPValidate=all\n'
                                             'ARPAllTargets=all\n'
                                             'UpDelaySec=20ms\n'
-                                            'DownDelaySec=30s\n'
+                                            'DownDelaySec=30ms\n'
                                             'FailOverMACPolicy=none\n'
                                             'GratuitiousARP=10\n'
                                             'PacketsPerSlave=10\n'
@@ -1118,6 +1118,38 @@ unmanaged-devices+=interface-name:bn0,''')
                                               '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nBond=bn0\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n'})
+
+    def test_bond_with_parameters_all_suffix(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      parameters:
+        mode: 802.1ad
+        mii-monitor-interval: 10ms
+        up-delay: 20ms
+        down-delay: 30s
+        arp-interval: 15m
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
+                                            '[Bond]\n'
+                                            'Mode=802.1ad\n'
+                                            'MIIMonitorSec=10ms\n'
+                                            'ARPIntervalSec=15m\n'
+                                            'UpDelaySec=20ms\n'
+                                            'DownDelaySec=30s\n',
+                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\n'})
 
     def test_bond_primary_slave(self):
         self.generate('''network:
