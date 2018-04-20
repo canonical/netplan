@@ -113,6 +113,19 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
     g_string_free_to_file(s, rootdir, path, ".link");
 }
 
+
+static gboolean
+interval_has_suffix(const char* param) {
+    gchar* endptr;
+
+    g_ascii_strtoull(param, &endptr, 10);
+    if (*endptr == '\0')
+        return FALSE;
+
+    return TRUE;
+}
+
+
 static void
 write_bond_parameters(net_definition* def, GString* s)
 {
@@ -124,8 +137,13 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nMode=%s", def->bond_params.mode);
     if (def->bond_params.lacp_rate)
         g_string_append_printf(params, "\nLACPTransmitRate=%s", def->bond_params.lacp_rate);
-    if (def->bond_params.monitor_interval)
-        g_string_append_printf(params, "\nMIIMonitorSec=%s", def->bond_params.monitor_interval);
+    if (def->bond_params.monitor_interval) {
+        g_string_append(params, "\nMIIMonitorSec=");
+        if (interval_has_suffix(def->bond_params.monitor_interval))
+            g_string_append(params, def->bond_params.monitor_interval);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.monitor_interval);
+    }
     if (def->bond_params.min_links)
         g_string_append_printf(params, "\nMinLinks=%d", def->bond_params.min_links);
     if (def->bond_params.transmit_hash_policy)
@@ -134,8 +152,13 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nAdSelect=%s", def->bond_params.selection_logic);
     if (def->bond_params.all_slaves_active)
         g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_slaves_active);
-    if (def->bond_params.arp_interval)
-        g_string_append_printf(params, "\nARPIntervalSec=%s", def->bond_params.arp_interval);
+    if (def->bond_params.arp_interval) {
+        g_string_append(params, "\nARPIntervalSec=");
+        if (interval_has_suffix(def->bond_params.arp_interval))
+            g_string_append(params, def->bond_params.arp_interval);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.arp_interval);
+    }
     if (def->bond_params.arp_ip_targets && def->bond_params.arp_ip_targets->len > 0) {
         g_string_append_printf(params, "\nARPIPTargets=");
         for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
@@ -148,10 +171,20 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nARPValidate=%s", def->bond_params.arp_validate);
     if (def->bond_params.arp_all_targets)
         g_string_append_printf(params, "\nARPAllTargets=%s", def->bond_params.arp_all_targets);
-    if (def->bond_params.up_delay)
-        g_string_append_printf(params, "\nUpDelaySec=%s", def->bond_params.up_delay);
-    if (def->bond_params.down_delay)
-        g_string_append_printf(params, "\nDownDelaySec=%s", def->bond_params.down_delay);
+    if (def->bond_params.up_delay) {
+        g_string_append(params, "\nUpDelaySec=");
+        if (interval_has_suffix(def->bond_params.up_delay))
+            g_string_append(params, def->bond_params.up_delay);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.up_delay);
+    }
+    if (def->bond_params.down_delay) {
+        g_string_append(params, "\nDownDelaySec=");
+        if (interval_has_suffix(def->bond_params.down_delay))
+            g_string_append(params, def->bond_params.down_delay);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.down_delay);
+    }
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nFailOverMACPolicy=%s", def->bond_params.fail_over_mac_policy);
     if (def->bond_params.gratuitious_arp)

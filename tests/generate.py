@@ -1072,12 +1072,12 @@ unmanaged-devices+=interface-name:bn0,''')
         lacp-rate: 10
         mii-monitor-interval: 10
         min-links: 10
-        up-delay: 10
-        down-delay: 10
+        up-delay: 20ms
+        down-delay: 30s
         all-slaves-active: true
         transmit-hash-policy: none
         ad-select: none
-        arp-interval: 10
+        arp-interval: 15m
         arp-validate: all
         arp-all-targets: all
         fail-over-mac-policy: none
@@ -1096,17 +1096,17 @@ unmanaged-devices+=interface-name:bn0,''')
                                             '[Bond]\n'
                                             'Mode=802.1ad\n'
                                             'LACPTransmitRate=10\n'
-                                            'MIIMonitorSec=10\n'
+                                            'MIIMonitorSec=10ms\n'
                                             'MinLinks=10\n'
                                             'TransmitHashPolicy=none\n'
                                             'AdSelect=none\n'
                                             'AllSlavesActive=1\n'
-                                            'ARPIntervalSec=10\n'
+                                            'ARPIntervalSec=15m\n'
                                             'ARPIPTargets=10.10.10.10,20.20.20.20\n'
                                             'ARPValidate=all\n'
                                             'ARPAllTargets=all\n'
-                                            'UpDelaySec=10\n'
-                                            'DownDelaySec=10\n'
+                                            'UpDelaySec=20ms\n'
+                                            'DownDelaySec=30s\n'
                                             'FailOverMACPolicy=none\n'
                                             'GratuitiousARP=10\n'
                                             'PacketsPerSlave=10\n'
