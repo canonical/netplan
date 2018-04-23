@@ -448,6 +448,7 @@ class _CommonTests:
 
     def test_bridge_path_cost(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -513,6 +514,7 @@ class _CommonTests:
 
     def test_bridge_ageing_time(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -545,6 +547,7 @@ class _CommonTests:
 
     def test_bridge_max_age(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -577,6 +580,7 @@ class _CommonTests:
 
     def test_bridge_hello_time(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -609,6 +613,7 @@ class _CommonTests:
 
     def test_bridge_forward_delay(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -641,6 +646,7 @@ class _CommonTests:
 
     def test_bridge_stp_false(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -1481,7 +1487,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: active-backup
         mii-monitor-interval: 5
-        down-delay: 10
+        down-delay: 10s
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1510,7 +1516,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: active-backup
         mii-monitor-interval: 5
-        up-delay: 10
+        up-delay: 10000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1540,7 +1546,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: balance-xor
         arp-ip-targets: [ 192.168.5.1 ]
-        arp-interval: 50
+        arp-interval: 50s
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1569,7 +1575,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       interfaces: [ethbn]
       parameters:
         mode: balance-xor
-        arp-interval: 50
+        arp-interval: 50000
         arp-ip-targets: [ 192.168.5.1 ]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1600,7 +1606,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: balance-xor
         arp-ip-targets: [192.168.5.1]
-        arp-interval: 50
+        arp-interval: 50000
         arp-all-targets: all
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
@@ -1632,7 +1638,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: balance-xor
         arp-ip-targets: [192.168.5.1]
-        arp-interval: 50
+        arp-interval: 50000
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1648,6 +1654,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
 
     def test_bridge_port_priority(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -1927,6 +1934,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
 
     def test_bridge_port_priority(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
