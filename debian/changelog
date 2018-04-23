@@ -1,3 +1,16 @@
+netplan.io (0.36) UNRELEASED; urgency=medium
+
+  * 'netplan try': properly reset terminal flags at the end of the command,
+    so that terminal behaves the same after as before it was run.
+    (LP: #1766283)
+  * Fix default behavior for unspecified time values in bond parameters: if
+    no time-value suffix such as 'ms' is added, consider the value to be in
+    milliseconds for MII monitor interval, up/down delay and ARP interval
+    so users can have the expected additional granularity when setting up
+    these parameters. (LP: #1765833)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 11:35:06 -0400
+
 netplan.io (0.35) bionic; urgency=medium
 
   * debian/postinst: fix version check for when to write breadcrumbs.
