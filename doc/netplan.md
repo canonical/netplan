@@ -601,6 +601,30 @@ DHCP:
       ethernets:
         eno1:
           dhcp4: true
+          
+This is an example of a static-configured interface with multiple IPv4 addresses
+and multiple gateways with networkd, with equal route metric levels, and static 
+DNS nameservers (Google DNS for this example):
+
+    network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        eno1:
+          addresses:
+          - 10.0.0.10/24
+          - 11.0.0.11/24
+          nameservers:
+            addresses:
+              - 8.8.8.8
+              - 8.8.4.4
+          routes:
+          - to: 0.0.0.0/0
+            via: 10.0.0.1
+            metric: 100
+          - to: 0.0.0.0/0
+            via: 11.0.0.1
+            metric: 100 
 
 This is a complex example which shows most available features:
 
