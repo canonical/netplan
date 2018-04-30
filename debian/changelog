@@ -1,4 +1,4 @@
-netplan.io (0.36.1) UNRELEASED; urgency=medium
+netplan.io (0.36.1) bionic; urgency=medium
 
   * tests/integration.py: Do a better cleanup for bridge-based tests; should
     fix instability with test_mix_bridge_on_bond.
@@ -6,7 +6,7 @@ netplan.io (0.36.1) UNRELEASED; urgency=medium
     change for up/down delay, arp interval, mii interval introduced in the
     last upload.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 17:00:44 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 17:03:11 -0400
 
 netplan.io (0.36) bionic; urgency=medium
 
