@@ -370,14 +370,13 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``parameters`` (mapping)
 
-:    Customization parameters for special bridging options. Using the
-     NetworkManager renderer, parameter values for time intervals should be
-     expressed in milliseconds; for the systemd renderer, they are interpreted
-     to be in seconds unless a time suffix (such as "ms" for milliseconds) is
-     specified. Time values are passed directly to the backend.
+:    Customization parameters for special bridging options. Unless otherwise
+     specified, parameter values for time intervals should be expressed in
+     milliseconds, but can also be expressed in seconds using a time suffix
+     (such as "s" for seconds, "ms" for milliseconds).
 
      ``ageing-time`` (scalar)
-     :    Set the period of time to keep a MAC address in the forwarding
+     :    Set the period of time (in seconds) to keep a MAC address in the forwarding
           database after a packet is received. This maps to the AgeingTimeSec=
           property when the networkd renderer is used.
 
@@ -393,18 +392,18 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           designated port and root port selection algorithms.
 
      ``forward-delay`` (scalar)
-     :    Specify the period of time the bridge will remain in Listening and
+     :    Specify the period of time (in seconds) the bridge will remain in Listening and
           Learning states before getting to the Forwarding state. This field
           maps to the ForwardDelaySec= property for the networkd renderer.
 
      ``hello-time`` (scalar)
-     :    Specify the interval between two hello packets being sent out from
+     :    Specify the interval (in seconds) between two hello packets being sent out from
           the root and designated bridges. Hello packets communicate
           information about the network topology. When the networkd renderer
           is used, this maps to the HelloTimeSec= property.
 
      ``max-age`` (scalar)
-     :    Set the maximum age of a hello packet. If the last hello packet is
+     :    Set the maximum age (in seconds) of a hello packet. If the last hello packet is
           older than that value, the bridge will attempt to become the root
           bridge. This maps to the MaxAgeSec= property when the networkd
           renderer is used.
@@ -438,11 +437,10 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``parameters`` (mapping)
 
-:    Customization parameters for special bonding options. Using the
-     NetworkManager renderer, parameter values for intervals should be
-     expressed in milliseconds; for the systemd renderer, they are interpreted
-     to be in milliseconds unless a time suffix (such as "s" for seconds) is
-     specified. Time values are passed directly to the backend.
+:    Customization parameters for special bonding options. Unless otherwise
+     specified, parameter values for time intervals should be expressed in
+     milliseconds, but can also be expressed in seconds using a time suffix
+     (such as "s" for seconds, "ms" for milliseconds).
 
      ``mode`` (scalar)
      :    Set the bonding mode used for the interfaces. The default is
