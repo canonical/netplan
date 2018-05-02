@@ -9,6 +9,8 @@ nplan (0.32~17.10.4) UNRELEASED; urgency=medium
     (LP: #1738998)
   * IPv6: accept-ra should default to being unset, so that the kernel default
     can be used. (LP: #1732002)
+  * doc/netplan.md: Clarify the behavior for time-based values for bonds
+    and bridges. (LP: #1756587)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 19 Apr 2018 11:17:54 -0400
 
