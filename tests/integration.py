@@ -374,8 +374,10 @@ class _CommonTests:
   ethernets:
     %(ec)s:
       dhcp4: yes
+      accept-ra: no
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -455,6 +457,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -488,6 +491,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -520,6 +524,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -552,6 +557,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -584,6 +590,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -616,6 +623,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -648,6 +656,7 @@ class _CommonTests:
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -681,6 +690,7 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -702,8 +712,10 @@ class _CommonTests:
             f.write('''network:
   renderer: %(r)s
   ethernets:
-    %(ec)s: {}
-    %(e2c)s: {}
+    %(ec)s:
+      accept-ra: no
+    %(e2c)s:
+      accept-ra: no
   bonds:
     mybond:
       interfaces: [%(ec)s, %(e2c)s]
@@ -733,7 +745,9 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
+      accept-ra: no
+    %(e2c)s:
+      accept-ra: no
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -760,7 +774,9 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
+      accept-ra: no
+    %(e2c)s:
+      accept-ra: no
   bonds:
     mybond:
       parameters:
@@ -787,7 +803,9 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
+      accept-ra: no
+    %(e2c)s:
+      accept-ra: no
   bonds:
     mybond:
       parameters:
@@ -815,6 +833,7 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -843,6 +862,7 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -873,6 +893,7 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -900,6 +921,7 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -927,6 +949,7 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -957,8 +980,10 @@ class _CommonTests:
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     ethb2:
       match: {name: %(e2c)s}
+      accept-ra: no
   bonds:
     mybond:
       interfaces: [ethbn, ethb2]
@@ -1281,13 +1306,16 @@ wpa_passphrase=12345678
   bonds:
     bond0:
       interfaces: [ethbn, ethb2]
+      accept-ra: no
       parameters:
         mode: balance-rr
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     ethb2:
       match: {name: %(e2c)s}
+      accept-ra: no
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1323,6 +1351,7 @@ wpa_passphrase=12345678
   bridges:
     br0:
       interfaces: ['bond0', 'vlan2']
+      accept-ra: no
       parameters:
         stp: false
         path-cost:
@@ -1331,20 +1360,25 @@ wpa_passphrase=12345678
   bonds:
     bond0:
       interfaces: ['br1']
+      accept-ra: no
       parameters:
         mode: balance-rr
   bridges:
     br1:
       interfaces: ['ethb2']
+      accept-ra: no
   vlans:
     vlan2:
       link: ethbn
       id: 2
+      accept-ra: no
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     ethb2:
       match: {name: %(e2c)s}
+      accept-ra: no
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up('vlan1', ['vlan1@br0'])
@@ -1360,6 +1394,7 @@ wpa_passphrase=12345678
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
 
+    @unittest.skip("networkd in xenial will block waiting for SLAAC")
     def test_eth_dhcp6_off(self):
         self.setup_eth('slaac')
         with open(self.config, 'w') as f:
@@ -1400,6 +1435,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       match:
         name: %(ec)s
         macaddress: %(ec_mac)s
+      accept-ra: no
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -1426,6 +1462,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       match:
         name: %(ec)s
         macaddress: %(ec_mac)s
+      accept-ra: no
   bridges:
     br0:
       interfaces: [ethbr]
@@ -1449,14 +1486,17 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
+      accept-ra: no
+    %(e2c)s:
+      accept-ra: no
   bonds:
     mybond:
       interfaces: [ethbn]
       parameters:
         mode: active-backup
-        mii-monitor-interval: 5
-        down-delay: 10
+        mii-monitor-interval: 5s
+        down-delay: 10s
+      accept-ra: no
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1478,14 +1518,16 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
       parameters:
         mode: active-backup
-        mii-monitor-interval: 5
-        up-delay: 10
+        mii-monitor-interval: 50ms
+        up-delay: 50ms
+      accept-ra: no
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1496,7 +1538,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/updelay') as f:
-            self.assertEqual(f.read().strip(), '10000')
+            self.assertEqual(f.read().strip(), '50')
 
     def test_bond_arp_interval(self):
         self.setup_eth(None)
@@ -1508,6 +1550,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -1515,7 +1558,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: balance-xor
         arp-ip-targets: [ 192.168.5.1 ]
-        arp-interval: 50
+        arp-interval: 50s
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
@@ -1538,13 +1581,14 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
       parameters:
         mode: balance-xor
-        arp-interval: 50
+        arp-interval: 50s
         arp-ip-targets: [ 192.168.5.1 ]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1568,6 +1612,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -1575,7 +1620,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: balance-xor
         arp-ip-targets: [192.168.5.1]
-        arp-interval: 50
+        arp-interval: 50s
         arp-all-targets: all
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
@@ -1600,6 +1645,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
+      accept-ra: no
     %(e2c)s: {}
   bonds:
     mybond:
@@ -1607,7 +1653,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       parameters:
         mode: balance-xor
         arp-ip-targets: [192.168.5.1]
-        arp-interval: 50
+        arp-interval: 50s
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1655,6 +1701,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     ethbr:
       match: {name: %(e2c)s}
+      accept-ra: no
   bridges:
     mybr:
       interfaces: [ethbr]
@@ -1763,7 +1810,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
       interfaces: [ethbn]
       parameters:
         mode: active-backup
-        mii-monitor-interval: 5
+        mii-monitor-interval: 5000
         down-delay: 10000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1792,7 +1839,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
       interfaces: [ethbn]
       parameters:
         mode: active-backup
-        mii-monitor-interval: 5
+        mii-monitor-interval: 5000
         up-delay: 10000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1913,7 +1960,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
     mybond:
       parameters:
         mode: balance-tlb
-        mii-monitor-interval: 5
+        mii-monitor-interval: 5000
         learn-packet-interval: 15
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
