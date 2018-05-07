@@ -72,6 +72,7 @@ typedef struct net_definition {
 
     /* status options */
     gboolean optional;
+    gboolean critical;
 
     /* addresses */
     gboolean dhcp4;

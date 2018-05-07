@@ -1234,11 +1234,12 @@ const mapping_entry_handler nameservers_handlers[] = {
 };
 
 const mapping_entry_handler ethernet_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
@@ -1255,12 +1256,13 @@ const mapping_entry_handler ethernet_def_handlers[] = {
 };
 
 const mapping_entry_handler wifi_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
@@ -1277,11 +1279,12 @@ const mapping_entry_handler wifi_def_handlers[] = {
 };
 
 const mapping_entry_handler bridge_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
@@ -1297,11 +1300,12 @@ const mapping_entry_handler bridge_def_handlers[] = {
 };
 
 const mapping_entry_handler bond_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
@@ -1317,11 +1321,12 @@ const mapping_entry_handler bond_def_handlers[] = {
 };
 
 const mapping_entry_handler vlan_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},

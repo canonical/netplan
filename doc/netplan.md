@@ -159,6 +159,12 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``critical`` (bool)
+
+:   (networkd backend only) Designate the connection as "critical to the
+    system", meaning that special care will be taken by systemd-networkd to
+    not release the IP from DHCP when it the daemon is restarted.
+
 ``dhcp-identifier`` (scalar)
 
 :   When set to 'mac'; pass that setting over to systemd-networkd to use the
