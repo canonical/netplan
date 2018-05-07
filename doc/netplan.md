@@ -326,7 +326,7 @@ These options are available for all types of interfaces.
           in which routing rules are processed. A higher number means lower
           priority: rules are processed in order by increasing priority number.
 
-     ``fwmark`` (scalar)
+     ``mark`` (scalar)
      :    Have this routing policy rule match on traffic that has been marked
           by the iptables firewall with this value. Allowed values are positive
           integers starting from 1.
