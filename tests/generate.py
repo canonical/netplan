@@ -748,6 +748,27 @@ UseMTU=true
 RouteMetric=100
 '''})
 
+    def test_dhcp_critical_true(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      critical: yes
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+CriticalConnection=true
+'''})
+
     def test_dhcp_identifier_mac(self):
         self.generate('''network:
   version: 2

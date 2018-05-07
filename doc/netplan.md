@@ -167,6 +167,12 @@ Common properties for all device types
     device's MAC address as a unique identifier rather than a RFC4361-compliant
     Client ID. This has no effect when NetworkManager is used as a renderer.
 
+``critical`` (bool)
+
+:   (networkd backend only) Designate the connection as "critical to the
+    system", meaning that special care will be taken by systemd-networkd to
+    not release the IP from DHCP when it the daemon is restarted.
+
 ``accept-ra`` (bool)
 
 :   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
