@@ -225,13 +225,12 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
      only, due to interactions with device renaming in udev. Match
      devices by MAC when setting MTU.
 
-``optional`` (boolean)
+``optional`` (bool)
 
-: An optional device is not required for booting. Normally, networkd
-will wait some time for device to become configured before proceeding
-with booting. However, if a device is marked as optional, networkd
-will not wait for it. This is *only* supported by networkd, and the
-default is false.
+:    An optional device is not required for booting. Normally, networkd will
+     wait some time for device to become configured before proceeding with
+     booting. However, if a device is marked as optional, networkd will not wait
+     for it. This is *only* supported by networkd, and the default is false.
 
     Example:
 
