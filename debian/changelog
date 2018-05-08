@@ -2,6 +2,8 @@ netplan.io (0.37) UNRELEASED; urgency=medium
 
   * doc/netplan.md: Clarify the behavior for time-based values for bonds
     and bridges. (LP: #1756587)
+  * critical: provide a way to set "CriticalConnection=true" on a networkd
+    connection, especially for remote-fs scenarios. (LP: #1769682)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 02 May 2018 15:25:49 -0400
 
