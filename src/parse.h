@@ -111,10 +111,37 @@ struct optional_address_option {
 
 extern struct optional_address_option optional_address_options[];
 
+typedef enum {
+    KEYMGMT_NONE,
+    KEYMGMT_WPA_PSK,
+    KEYMGMT_WPA_EAP,
+    KEYMGMT_8021X,
+} auth_keymgmt_type;
+
+typedef enum {
+    EAP_NONE,
+    EAP_TLS,
+    EAP_PEAP,
+    EAP_TTLS,
+} auth_eap_method;
+
 typedef struct missing_node {
     char* netdef_id;
     const yaml_node_t* node;
 } missing_node;
+
+typedef struct authentication_settings {
+    auth_keymgmt_type key_mgmt;
+    char* psk;
+    auth_eap_method eap_method;
+    char* identity;
+    char* anonymous_identity;
+    char* password;
+    char* ca_certificate;
+    char* client_certificate;
+    char* client_key;
+    char* client_key_password;
+} authentication_settings;
 
 /* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
 typedef struct dhcp_overrides {
@@ -236,6 +263,9 @@ typedef struct net_definition {
         char *input_key;
         char *output_key;
     } tunnel;
+
+    authentication_settings auth;
+    gboolean has_auth;
 } net_definition;
 
 typedef enum {
@@ -247,7 +277,9 @@ typedef enum {
 typedef struct {
     wifi_mode mode;
     char* ssid;
-    char* password;
+
+    authentication_settings auth;
+    gboolean has_auth;
 } wifi_access_point;
 
 #define METRIC_UNSPEC G_MAXUINT

@@ -631,33 +631,113 @@ write_rules_file(net_definition* def, const char* rootdir)
 }
 
 static void
+append_wpa_auth_conf(GString* s, const authentication_settings* auth)
+{
+    switch (auth->key_mgmt) {
+        case KEYMGMT_NONE:
+            g_string_append(s, "  key_mgmt=NONE\n");
+            break;
+
+        case KEYMGMT_WPA_PSK:
+            g_string_append(s, "  key_mgmt=WPA-PSK\n");
+            break;
+
+        case KEYMGMT_WPA_EAP:
+            g_string_append(s, "  key_mgmt=WPA-EAP\n");
+            break;
+
+        case KEYMGMT_8021X:
+            g_string_append(s, "  key_mgmt=IEEE8021X\n");
+            break;
+    }
+
+    if (auth->psk) {
+        g_string_append_printf(s, "  psk=\"%s\"\n", auth->psk);
+    }
+
+    switch (auth->eap_method) {
+        case EAP_NONE:
+            break;
+
+        case EAP_TLS:
+            g_string_append(s, "  eap=TLS\n");
+            break;
+
+        case EAP_PEAP:
+            g_string_append(s, "  eap=PEAP\n");
+            break;
+
+        case EAP_TTLS:
+            g_string_append(s, "  eap=TTLS\n");
+            break;
+    }
+
+    if (auth->identity) {
+        g_string_append_printf(s, "  identity=\"%s\"\n", auth->identity);
+    }
+    if (auth->anonymous_identity) {
+        g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", auth->anonymous_identity);
+    }
+    if (auth->password) {
+        g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
+    }
+    if (auth->ca_certificate) {
+        g_string_append_printf(s, "  ca_cert=\"%s\"\n", auth->ca_certificate);
+    }
+    if (auth->client_certificate) {
+        g_string_append_printf(s, "  client_cert=\"%s\"\n", auth->client_certificate);
+    }
+    if (auth->client_key) {
+        g_string_append_printf(s, "  private_key=\"%s\"\n", auth->client_key);
+    }
+    if (auth->client_key_password) {
+        g_string_append_printf(s, "  private_key_passwd=\"%s\"\n", auth->client_key_password);
+    }
+}
+
+static void
 write_wpa_conf(net_definition* def, const char* rootdir)
 {
     GHashTableIter iter;
-    wifi_access_point* ap;
     GString* s = g_string_new("ctrl_interface=/run/wpa_supplicant\n\n");
     g_autofree char* path = g_strjoin(NULL, "run/netplan/wpa-", def->id, ".conf", NULL);
     mode_t orig_umask;
 
     g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
-    g_hash_table_iter_init(&iter, def->access_points);
-    while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
-        g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
-        if (ap->password)
-            g_string_append_printf(s, "  psk=\"%s\"\n", ap->password);
-        else
-            g_string_append(s, "  key_mgmt=NONE\n");
-        switch (ap->mode) {
-            case WIFI_MODE_INFRASTRUCTURE:
-                /* default in wpasupplicant */
-                break;
-            case WIFI_MODE_ADHOC:
-                g_string_append(s, "  mode=1\n");
-                break;
-            case WIFI_MODE_AP:
-                g_fprintf(stderr, "ERROR: %s: networkd does not support wifi in access point mode\n", def->id);
-                exit(1);
+    if (def->type == ND_WIFI) {
+        wifi_access_point* ap;
+        g_hash_table_iter_init(&iter, def->access_points);
+        while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
+            g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
+            switch (ap->mode) {
+                case WIFI_MODE_INFRASTRUCTURE:
+                    /* default in wpasupplicant */
+                    break;
+                case WIFI_MODE_ADHOC:
+                    g_string_append(s, "  mode=1\n");
+                    break;
+                case WIFI_MODE_AP:
+                    g_fprintf(stderr, "ERROR: %s: networkd does not support wifi in access point mode\n", def->id);
+                    exit(1);
+            }
+
+            /* wifi auth trumps netdef auth */
+            if (ap->has_auth) {
+                append_wpa_auth_conf(s, &ap->auth);
+            }
+            else if (def->has_auth) {
+                append_wpa_auth_conf(s, &def->auth);
+            }
+	    else {
+                g_string_append(s, "  key_mgmt=NONE\n");
+	    }
+            g_string_append(s, "}\n");
         }
+    }
+    else {
+        /* wired 802.1x auth or similar */
+        g_string_append(s, "network={\n");
+        append_wpa_auth_conf(s, &def->auth);
         g_string_append(s, "}\n");
     }
 
@@ -689,9 +769,9 @@ write_networkd_conf(net_definition* def, const char* rootdir)
         return FALSE;
     }
 
-    if (def->type == ND_WIFI) {
+    if (def->type == ND_WIFI || def->has_auth) {
         g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/multi-user.target.wants/netplan-wpa@", def->id, ".service", NULL);
-        if (def->has_match) {
+        if (def->type == ND_WIFI && def->has_match) {
             g_fprintf(stderr, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
             exit(1);
         }

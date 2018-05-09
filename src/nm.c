@@ -277,6 +277,80 @@ write_tunnel_params(const net_definition* def, GString *s)
 }
 
 static void
+write_dot1x_auth_parameters(const authentication_settings* auth, GString *s)
+{
+    if (auth->eap_method == EAP_NONE) {
+        return;
+    }
+
+    g_string_append_printf(s, "\n[802-1x]\n");
+
+    switch (auth->eap_method) {
+        case EAP_NONE: break; // LCOV_EXCL_LINE
+        case EAP_TLS:
+            g_string_append(s, "eap=tls\n");
+            break;
+        case EAP_PEAP:
+            g_string_append(s, "eap=peap\n");
+            break;
+        case EAP_TTLS:
+            g_string_append(s, "eap=ttls\n");
+            break;
+    }
+
+    if (auth->identity) {
+        g_string_append_printf(s, "identity=%s\n", auth->identity);
+    }
+    if (auth->anonymous_identity) {
+        g_string_append_printf(s, "anonymous-identity=%s\n", auth->anonymous_identity);
+    }
+    if (auth->password) {
+        g_string_append_printf(s, "password=%s\n", auth->password);
+    }
+    if (auth->ca_certificate) {
+        g_string_append_printf(s, "ca-cert=%s\n", auth->ca_certificate);
+    }
+    if (auth->client_certificate) {
+        g_string_append_printf(s, "client-cert=%s\n", auth->client_certificate);
+    }
+    if (auth->client_key) {
+        g_string_append_printf(s, "private-key=%s\n", auth->client_key);
+    }
+    if (auth->client_key_password) {
+        g_string_append_printf(s, "private-key-password=%s\n", auth->client_key_password);
+    }
+}
+
+static void
+write_wifi_auth_parameters(const authentication_settings* auth, GString *s)
+{
+    if (auth->key_mgmt == KEYMGMT_NONE) {
+        return;
+    }
+
+    g_string_append(s, "\n[wifi-security]\n");
+
+    switch (auth->key_mgmt) {
+        case KEYMGMT_NONE: break; // LCOV_EXCL_LINE
+        case KEYMGMT_WPA_PSK:
+            g_string_append(s, "key-mgmt=wpa-psk\n");
+            break;
+        case KEYMGMT_WPA_EAP:
+            g_string_append(s, "key-mgmt=wpa-eap\n");
+            break;
+        case KEYMGMT_8021X:
+            g_string_append(s, "key-mgmt=ieee8021x\n");
+            break;
+    }
+
+    if (auth->psk) {
+        g_string_append_printf(s, "psk=%s\n", auth->psk);
+    }
+
+    write_dot1x_auth_parameters(auth, s);
+}
+
+static void
 maybe_generate_uuid(net_definition* def)
 {
     if (uuid_is_null(def->uuid))
@@ -510,10 +584,17 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, NULL);
 
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
-        if (ap->password)
-            g_string_append_printf(s, "\n[wifi-security]\nkey-mgmt=wpa-psk\npsk=%s\n", ap->password);
+        if (ap->has_auth) {
+            write_wifi_auth_parameters(&ap->auth, s);
+        }
+        else if (def->has_auth) {
+            write_wifi_auth_parameters(&def->auth, s);
+        }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);
+        if (def->has_auth) {
+            write_dot1x_auth_parameters(&def->auth, s);
+        }
     }
 
     /* NM connection files might contain secrets, and NM insists on tight permissions */
