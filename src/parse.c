@@ -1737,6 +1737,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
+    {"auth", YAML_MAPPING_NODE, handle_auth},
     {NULL}
 };
 
