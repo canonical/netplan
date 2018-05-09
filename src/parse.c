@@ -32,6 +32,7 @@
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
 #define route_offset(field) GUINT_TO_POINTER(offsetof(ip_route, field))
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(ip_rule, field))
+#define auth_offset(field) GUINT_TO_POINTER(offsetof(authentication_settings, field))
 
 /* file that is currently being processed, for useful error messages */
 const char* current_file;
@@ -40,6 +41,9 @@ net_definition* cur_netdef;
 
 /* wifi AP that is currently being processed */
 wifi_access_point* cur_access_point;
+
+/* authentication options that are currently being processed */
+authentication_settings* cur_auth;
 
 ip_route* cur_route;
 ip_rule* cur_ip_rule;
@@ -607,6 +611,67 @@ const mapping_entry_handler match_handlers[] = {
 };
 
 /****************************************************
+ * Grammar and handlers for network config "auth" entry
+ ****************************************************/
+
+static gboolean
+handle_auth_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_auth);
+    guint offset = GPOINTER_TO_UINT(data);
+    char** dest = (char**) ((void*) cur_auth + offset);
+    g_free(*dest);
+    *dest = g_strdup(scalar(node));
+    return TRUE;
+}
+
+static gboolean
+handle_auth_key_mgmt(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_auth);
+    if (strcmp(scalar(node), "none") == 0)
+        cur_auth->key_mgmt = KEYMGMT_NONE;
+    else if (strcmp(scalar(node), "wpa-psk") == 0)
+        cur_auth->key_mgmt = KEYMGMT_WPA_PSK;
+    else if (strcmp(scalar(node), "wpa-eap") == 0)
+        cur_auth->key_mgmt = KEYMGMT_WPA_EAP;
+    else if (strcmp(scalar(node), "8021x") == 0)
+        cur_auth->key_mgmt = KEYMGMT_8021X;
+    else
+        return yaml_error(node, error, "unknown key management type '%s'", scalar(node));
+    return TRUE;
+}
+
+static gboolean
+handle_auth_eap_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_auth);
+    if (strcmp(scalar(node), "tls") == 0)
+        cur_auth->eap_method = EAP_TLS;
+    else if (strcmp(scalar(node), "peap") == 0)
+        cur_auth->eap_method = EAP_PEAP;
+    else if (strcmp(scalar(node), "ttls") == 0)
+        cur_auth->eap_method = EAP_TTLS;
+    else
+        return yaml_error(node, error, "unknown EAP method '%s'", scalar(node));
+    return TRUE;
+}
+
+const mapping_entry_handler auth_handlers[] = {
+    {"key-mgmt", YAML_SCALAR_NODE, handle_auth_key_mgmt},
+    {"psk", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(psk)},
+    {"eap-method", YAML_SCALAR_NODE, handle_auth_eap_method},
+    {"identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(identity)},
+    {"anonymous-identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(anonymous_identity)},
+    {"password", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(password)},
+    {"ca-certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(ca_certificate)},
+    {"client-certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_certificate)},
+    {"client-key", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key)},
+    {"client-key-password", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key_password)},
+    {NULL}
+};
+
+/****************************************************
  * Grammar and handlers for network device definition
  ****************************************************/
 
@@ -625,8 +690,27 @@ static gboolean
 handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_access_point);
-    cur_access_point->password = g_strdup(scalar(node));
+    /* shortcut for WPA-PSK */
+    cur_access_point->has_auth = TRUE;
+    cur_access_point->auth.key_mgmt = KEYMGMT_WPA_PSK;
+    g_free(cur_access_point->auth.psk);
+    cur_access_point->auth.psk = g_strdup(scalar(node));
     return TRUE;
+}
+
+static gboolean
+handle_access_point_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret;
+
+    g_assert(cur_access_point);
+    cur_access_point->has_auth = TRUE;
+
+    cur_auth = &cur_access_point->auth;
+    ret = process_mapping(doc, node, auth_handlers, error);
+    cur_auth = NULL;
+
+    return ret;
 }
 
 static gboolean
@@ -647,6 +731,7 @@ handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _,
 const mapping_entry_handler wifi_access_point_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
+    {"auth", YAML_MAPPING_NODE, handle_access_point_auth},
     {NULL}
 };
 
@@ -695,6 +780,20 @@ handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** er
 {
     cur_netdef->has_match = TRUE;
     return process_mapping(doc, node, match_handlers, error);
+}
+
+static gboolean
+handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret;
+
+    cur_netdef->has_auth = TRUE;
+
+    cur_auth = &cur_netdef->auth;
+    ret = process_mapping(doc, node, auth_handlers, error);
+    cur_auth = NULL;
+
+    return ret;
 }
 
 static gboolean
@@ -1630,7 +1729,8 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
 const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
-    {NULL},
+    {"auth", YAML_MAPPING_NODE, handle_auth},
+    {NULL}
 };
 
 const mapping_entry_handler wifi_def_handlers[] = {

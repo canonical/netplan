@@ -51,16 +51,18 @@ unmanaged-devices+=interface-name:wl0,''')
 
 network={
   ssid="Joe's Home"
+  key_mgmt=WPA-PSK
   psk="s3kr1t"
 }
 network={
   ssid="workplace"
+  key_mgmt=WPA-PSK
   psk="c0mpany"
 }
 network={
   ssid="peer2peer"
-  key_mgmt=NONE
   mode=1
+  key_mgmt=NONE
 }
 ''')
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
