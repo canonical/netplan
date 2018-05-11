@@ -222,6 +222,15 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             [...]
             macaddress: 52:54:00:6b:3c:59
 
+``mtu`` (scalar)
+
+:    Set the Maximum Transmission Unit for the interface. The default is 1500.
+     Valid values depend on your network interface.
+
+     **Note:** This will not work reliably for devices matched by name
+     only, due to interactions with device renaming in udev. Match
+     devices by MAC when setting MTU.
+
 ``optional`` (boolean)
 
 : An optional device is not required for booting. Normally, networkd
