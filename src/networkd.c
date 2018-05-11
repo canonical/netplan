@@ -293,18 +293,18 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
 
-    /* do we need to write a .network file? */
-    if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
-        !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
-        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans)
-        return;
-
     /* build file contents */
     s = g_string_sized_new(200);
     append_match_section(def, s, TRUE);
 
     if (def->optional)
         g_string_append(s, "\n[Link]\nRequiredForOnline=no\n");
+
+    /* do we need to write anything more to the .network file? */
+    if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
+        !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
+        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans)
+        goto network_file_end;
 
     g_string_append(s, "\n[Network]\n");
     if (def->dhcp4 && def->dhcp6)
@@ -391,6 +391,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "CriticalConnection=true\n");
     }
 
+network_file_end:
     g_string_free_to_file(s, rootdir, path, ".network");
 }
 
