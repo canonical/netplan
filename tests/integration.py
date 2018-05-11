@@ -959,6 +959,7 @@ class _CommonTests:
       interfaces: [ethbn, ethb2]
       parameters:
         mode: balance-rr
+        mii-monitor-interval: 5
         resend-igmp: 100
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1151,7 +1152,9 @@ class _CommonTests:
   version: 2
   renderer: %(r)s
   ethernets:
-    %(ec)s: {dhcp6: yes}
+    %(ec)s:
+      dhcp6: yes
+      accept-ra: yes
     %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
@@ -1385,6 +1388,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
   ethernets:
     %(ec)s:
       dhcp6: no
+      accept-ra: yes
       addresses: [ '192.168.1.100/24' ]
     %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
