@@ -1,3 +1,10 @@
+netplan.io (0.38) UNRELEASED; urgency=medium
+
+  * tests/integration.py: fix autopkgtests to be less flaky, especially given
+    changes in systemd-networkd's behavior regarding Router Advertisements.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 11 May 2018 09:42:15 -0400
+
 netplan.io (0.37) cosmic; urgency=medium
 
   * doc/netplan.md: Clarify the behavior for time-based values for bonds
