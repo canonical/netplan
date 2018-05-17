@@ -115,7 +115,7 @@ class TestBase(unittest.TestCase):
             if os.path.exists(con_dir):
                 self.assertEqual(os.listdir(con_dir), [])
 
-    def assert_udev(self, contents):
+    def assert_nm_udev(self, contents):
         rule_path = os.path.join(self.workdir.name, 'run/udev/rules.d/90-netplan.rules')
         if contents is None:
             self.assertFalse(os.path.exists(rule_path))
@@ -130,19 +130,19 @@ class TestConfigArgs(TestBase):
     def test_no_files(self):
         subprocess.check_call([exe_generate, '--root-dir', self.workdir.name])
         self.assertEqual(os.listdir(self.workdir.name), [])
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_no_configs(self):
         self.generate('network:\n  version: 2')
         # should not write any files
         self.assertEqual(os.listdir(self.workdir.name), ['etc'])
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_empty_config(self):
         self.generate('')
         # should not write any files
         self.assertEqual(os.listdir(self.workdir.name), ['etc'])
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_file_args(self):
         conf = os.path.join(self.workdir.name, 'config')
@@ -309,7 +309,7 @@ RouteMetric=100
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
@@ -360,7 +360,7 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
         # NM cannot match by driver, so blacklisting needs to happen via udev
         self.assert_nm(None, None)
-        self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
+        self.assert_nm_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
@@ -375,7 +375,7 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=mac:11:22:33:44:55:66,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
@@ -405,7 +405,7 @@ DHCP=ipv4
 UseMTU=true
 RouteMetric=100
 '''})
-        self.assert_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
+        self.assert_nm_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
 
     def test_eth_match_name(self):
         self.generate('''network:
@@ -420,7 +420,7 @@ RouteMetric=100
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:green,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_set_mac(self):
         self.generate('''network:
@@ -465,7 +465,7 @@ unmanaged-devices+=interface-name:blue,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:*,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_match_all(self):
         self.generate('''network:
@@ -480,7 +480,7 @@ unmanaged-devices+=interface-name:*,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=type:ethernet,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_match_multiple(self):
         self.generate('''network:
@@ -518,7 +518,7 @@ unmanaged-devices+=mac:00:11:22:33:44:55,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
@@ -537,7 +537,7 @@ unmanaged-devices+=interface-name:eth0,''')
 unmanaged-devices+=interface-name:eth0,''')
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_set_mac(self):
         self.generate('''network:
@@ -564,7 +564,7 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:eth0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_dhcp6(self):
         self.generate('''network:
@@ -1195,7 +1195,7 @@ Metric=1024
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:wl0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
@@ -1250,7 +1250,7 @@ RouteMetric=600
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:wl0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_wifi_match(self):
         err = self.generate('''network:
@@ -1289,7 +1289,7 @@ unmanaged-devices+=interface-name:wl0,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_type_renderer(self):
         self.generate('''network:
@@ -1305,7 +1305,7 @@ unmanaged-devices+=interface-name:br0,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_def_renderer(self):
         self.generate('''network:
@@ -1333,7 +1333,7 @@ RouteMetric=100
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_forward_declaration(self):
         self.generate('''network:
@@ -1442,7 +1442,7 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:bn0,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bond_components(self):
         self.generate('''network:
@@ -1679,7 +1679,7 @@ Domains=lab kitchen
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enblue,interface-name:enred,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_ip_rule_table(self):
         self.generate('''network:
@@ -1796,7 +1796,7 @@ method=ignore
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_mtu(self):
         self.generate('''network:
@@ -1966,7 +1966,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
@@ -1993,7 +1993,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
@@ -2072,7 +2072,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_match_name_rename(self):
         self.generate('''network:
@@ -2102,7 +2102,7 @@ method=ignore
 '''})
         # ... while udev renames it
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_match_name_glob(self):
         err = self.generate('''network:
@@ -2169,7 +2169,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_global_renderer(self):
         self.generate('''network:
@@ -2194,7 +2194,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_type_renderer(self):
         self.generate('''network:
@@ -2220,7 +2220,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_def_renderer(self):
         self.generate('''network:
@@ -2246,7 +2246,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_global_renderer_only(self):
         self.generate(None, confs={'01-default-nm.yaml': 'network: {version: 2, renderer: NetworkManager}'})
@@ -2255,7 +2255,7 @@ method=ignore
         # but not configure anything else
         self.assert_nm(None, None)
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_dhcp6(self):
         self.generate('''network:
@@ -2328,7 +2328,7 @@ method=manual
 address1=2001:FFfe::1/64
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_eth_manual_addresses_dhcp(self):
         self.generate('''network:
@@ -2588,7 +2588,7 @@ key-mgmt=wpa-psk
 psk=c0mpany
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_wifi_match_mac(self):
         self.generate('''network:
@@ -2684,7 +2684,7 @@ key-mgmt=wpa-psk
 psk=s3cret
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_wifi_adhoc(self):
         self.generate('''network:
@@ -2735,7 +2735,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_type_renderer(self):
         self.generate('''network:
@@ -2758,7 +2758,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_set_mac(self):
         self.generate('''network:
@@ -2808,7 +2808,7 @@ address1=1.2.3.4/12
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_forward_declaration(self):
         self.generate('''network:
@@ -2869,7 +2869,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_components(self):
         self.generate('''network:
@@ -2929,7 +2929,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bridge_params(self):
         self.generate('''network:
@@ -3012,7 +3012,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bond_empty(self):
         self.generate('''network:
@@ -3092,7 +3092,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bond_empty_params(self):
         self.generate('''network:
@@ -3153,7 +3153,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bond_with_params(self):
         self.generate('''network:
@@ -3256,7 +3256,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_bond_primary_slave(self):
         self.generate('''network:
@@ -3323,7 +3323,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_gateway(self):
         self.generate('''network:
@@ -3464,7 +3464,7 @@ method=link-local
 [ipv6]
 method=auto
 '''})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_vlan_parent_match(self):
         self.generate('''network:
@@ -3517,7 +3517,7 @@ method=auto
 [ipv6]
 method=ignore
 ''' % uuid})
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
 
 class TestConfigErrors(TestBase):
@@ -4440,7 +4440,7 @@ class TestMerging(TestBase):
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_add_def(self):
         self.generate('''network:
@@ -4459,7 +4459,7 @@ unmanaged-devices+=interface-name:engreen,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_change_def(self):
         self.generate('''network:
@@ -4499,7 +4499,7 @@ unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,''')
-        self.assert_udev(None)
+        self.assert_nm_udev(None)
 
     def test_ref(self):
         self.generate('''network:
