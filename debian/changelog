@@ -1,8 +1,18 @@
 nplan (0.32~16.04.6) UNRELEASED; urgency=medium
 
+  [ Mathieu Trudel-Lapierre ]
   * tests/integration.py: Fix autopkgtests involving bonds/bridges to do proper
     cleanup every time, so later tests don't unnecessarily wait for an
     interface not configured to be up. (LP: #1775097)
+
+  [ Daniel Axtens ]
+  * Generate udev rules files to rename devices (LP: #1770082)
+    Due to a systemd issue[1], using link files to rename interfaces
+    doesn't work as expected. Link files will not rename an interface
+    if it was already renamed, and interfaces are renamed in initrd, so
+    set-name will often not work as expected when rebooting. However,
+    rules files will cause a renaming, even if the interface has been
+    renamed in initrd.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Jun 2018 18:54:44 -0400
 
