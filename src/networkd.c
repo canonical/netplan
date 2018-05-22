@@ -529,6 +529,7 @@ cleanup_networkd_conf(const char* rootdir)
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
     unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
     unlink_glob(rootdir, "/run/systemd/system/multi-user.target.wants/netplan-wpa@*.service");
+    unlink_glob(rootdir, "/run/udev/rules.d/70-netplan-*");
 }
 
 /**
