@@ -102,7 +102,9 @@ class TestConfigManager(unittest.TestCase):
         self.configmanager.parse()
         self.assertIn('eth0', self.configmanager.ethernets)
         self.assertIn('bond6', self.configmanager.bonds)
+        self.assertIn('eth0', self.configmanager.physical_interfaces)
         self.assertNotIn('bond7', self.configmanager.interfaces)
+        self.assertNotIn('bond6', self.configmanager.physical_interfaces)
         self.assertNotIn('parameters', self.configmanager.bonds.get('bond5'))
         self.assertIn('parameters', self.configmanager.bonds.get('bond6'))
 
