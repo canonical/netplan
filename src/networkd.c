@@ -398,7 +398,7 @@ static void
 write_rules_file(net_definition* def, const char* rootdir)
 {
     GString* s = NULL;
-    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/70-netplan-", def->id, ".rules", NULL);
+    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
 
     /* do we need to write a .rules file?
      * It's only required for reliably setting the name of a physical device
@@ -529,7 +529,7 @@ cleanup_networkd_conf(const char* rootdir)
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
     unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
     unlink_glob(rootdir, "/run/systemd/system/multi-user.target.wants/netplan-wpa@*.service");
-    unlink_glob(rootdir, "/run/udev/rules.d/70-netplan-*");
+    unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
 }
 
 /**
