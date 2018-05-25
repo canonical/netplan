@@ -222,13 +222,21 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             [...]
             macaddress: 52:54:00:6b:3c:59
 
-``optional`` (boolean)
+``mtu`` (scalar)
 
-: An optional device is not required for booting. Normally, networkd
-will wait some time for device to become configured before proceeding
-with booting. However, if a device is marked as optional, networkd
-will not wait for it. This is *only* supported by networkd, and the
-default is false.
+:    Set the Maximum Transmission Unit for the interface. The default is 1500.
+     Valid values depend on your network interface.
+
+     **Note:** This will not work reliably for devices matched by name
+     only, due to interactions with device renaming in udev. Match
+     devices by MAC when setting MTU.
+
+``optional`` (bool)
+
+:    An optional device is not required for booting. Normally, networkd will
+     wait some time for device to become configured before proceeding with
+     booting. However, if a device is marked as optional, networkd will not wait
+     for it. This is *only* supported by networkd, and the default is false.
 
     Example:
 
@@ -323,7 +331,7 @@ These options are available for all types of interfaces.
           in which routing rules are processed. A higher number means lower
           priority: rules are processed in order by increasing priority number.
 
-     ``fwmark`` (scalar)
+     ``mark`` (scalar)
      :    Have this routing policy rule match on traffic that has been marked
           by the iptables firewall with this value. Allowed values are positive
           integers starting from 1.

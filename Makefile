@@ -37,6 +37,7 @@ check: default linting
 	tests/generate.py
 	tests/cli.py
 	nosetests3 -v --with-coverage
+	tests/validate_docs.sh
 
 linting:
 	$(PYFLAKES3) $(PYCODE)
