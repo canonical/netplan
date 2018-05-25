@@ -101,9 +101,9 @@ class TestBase(unittest.TestCase):
             return
 
         self.assertEqual(set(os.listdir(udev_dir)) - set(['90-netplan.rules']),
-                         {'70-netplan-' + f for f in file_contents_map})
+                         {'99-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
-            with open(os.path.join(udev_dir, '70-netplan-' + fname)) as f:
+            with open(os.path.join(udev_dir, '99-netplan-' + fname)) as f:
                 self.assertEqual(f.read(), contents)
 
     def assert_nm(self, connections_map=None, conf=None):
