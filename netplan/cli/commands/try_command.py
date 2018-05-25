@@ -43,7 +43,13 @@ class NetplanTry(utils.NetplanCommand):
                          leaf=True)
         self.configuration_changed = False
         self.new_interfaces = None
-        self.config_manager = ConfigManager()
+        self._config_manager = None
+
+    @property
+    def config_manager(self):
+        if not self._config_manager:
+            self._config_manager = ConfigManager()
+        return self._config_manager
 
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
