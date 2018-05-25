@@ -1,5 +1,14 @@
 netplan.io (0.38) UNRELEASED; urgency=medium
 
+  * New upstream release:
+    - Write udev .rules files to /run/udev/rules.d to enforce interface
+      renaming. (LP: #1770082)
+    - Don't traceback for 'netplan ip leases' when iface is not managed or
+      doesn't DHCP (LP: #1768823)
+    - Fix duplicate "/" path separator in error messages (LP: #1771440)
+    - Updated doc entries: mtu, fix fwmark->mark, cleanup optional.
+    - Added documentation validation at build.
+    - Added configuration example for multi-ip interfaces.
   * debian/control:
     - Add iproute2 to Depends.
 
