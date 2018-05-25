@@ -39,3 +39,4 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     echo ERROR: The key "$term" is defined in the parser but not documented.
     exit 1
 done
+echo "validate_docs: OK"
