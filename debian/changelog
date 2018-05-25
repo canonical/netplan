@@ -13,6 +13,7 @@ netplan.io (0.38) UNRELEASED; urgency=medium
     - Added configuration example for multi-ip interfaces.
   * debian/control:
     - Add iproute2 to Depends.
+    - Add python3-netifaces to Depends, Build-Depends.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 25 May 2018 13:38:35 -0400
 
