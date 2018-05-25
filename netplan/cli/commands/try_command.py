@@ -46,7 +46,7 @@ class NetplanTry(utils.NetplanCommand):
         self._config_manager = None
 
     @property
-    def config_manager(self):
+    def config_manager(self):  # pragma: nocover (called by later commands)
         if not self._config_manager:
             self._config_manager = ConfigManager()
         return self._config_manager
