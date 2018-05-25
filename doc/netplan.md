@@ -469,6 +469,90 @@ These options are available for all types of interfaces.
      :    Match this policy rule based on the type of service number applied to
           the traffic.
 
+## Authentication
+Netplan supports advanced authentication settings for ethernet and wifi
+interfaces, as well as individual wifi networks, by means of the ``auth`` block.
+
+``auth`` (mapping)
+
+:    Specifies authentication settings for a device of type ``ethernets:`` or
+     ``wifis:``, or a single wifi ``access-points:`` entry. If ``auth`` blocks
+     are specified on both a wifi device and one of its access points, only the
+     settings in the access point's ``auth`` block are taken into account;
+     however, the ``auth`` block of the wifi device, if present, is used for any
+     ``access-points:`` without their own ``auth`` block.
+
+     Example:
+
+          wifis:
+            wlp1s0:
+              auth:
+                key-mgmt: wpa-psk
+                psk: "d3f4ul7"
+              access-points:
+                office:
+                  auth:
+                    # the authentication settings above are ignored for the
+                    # wifi named "office"
+                    key-mgmt: wpa-eap
+                    eap-method: ttls
+                    anonymous-identity: "@internal.example.com"
+                    identity: "joe@internal.example.com"
+                    password: "v4ryS3kr1t"
+                home:
+                  mode: infrastructure
+                  # the authentication settings above are applied to the wifi
+                  # named "home"
+
+      The ``auth`` block supports the following properties:
+
+      ``key-mgmt`` (scalar)
+      :    The supported key management modes are ``none`` (no key management),
+           ``wpa-psk`` (WPA with pre-shared key, common for home wifi),
+           ``wpa-eap`` (WPA with EAP, common for enterprise wifi) and ``8021x``
+           (used primarily for wired Ethernet connections).
+
+      The following properties can be used if ``key-mgmt`` is ``wpa-psk``:
+
+      ``psk`` (scalar)
+      :    The pre-shared key for this connection. Useful only if ``key-mgmt``
+           is ``wpa-psk``.
+
+      ``eap-method`` (scalar)
+      :    The supported EAP methods are ``tls`` (TLS), ``peap`` (Protected EAP)
+           and ``ttls`` (Tunneled TLS). Useful only if ``key-mgmt`` is
+           ``wpa-eap`` or ``8021x``.
+
+      The following properties can be used if ``key-mgmt`` is ``wpa-eap`` or
+      ``8021x``:
+
+      ``identity`` (scalar)
+      :    The identity to use for EAP.
+
+      ``anonymous-identity`` (scalar)
+      :    The identity to pass over the unencrypted channel if the chosen EAP
+           method supports passing a different tunnelled identity.
+
+      ``password`` (scalar)
+      :    The password string for EAP.
+
+      ``ca-certificate`` (scalar)
+      :    Path to a file with one or more trusted certificate authority (CA)
+           certificates.
+
+      ``client-certificate`` (scalar)
+      :    Path to a file containing the certificate to be used by the client
+           during authentication.
+
+      ``client-key`` (scalar)
+      :    Path to a file containing the private key corresponding to
+           ``client-certificate``.
+
+      ``client-key-password`` (scalar)
+      :    Password to use to decrypt the private key specified in
+           ``client-key`` if it is encrypted.
+
+
 ## Properties for device type ``ethernets:``
 Ethernet device definitions do not support any specific properties beyond the
 common ones described above.
@@ -485,9 +569,17 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      supported properties:
 
      ``password`` (scalar)
-     :    Enable WPA2 authentication and set the passphrase for it. If not
-          given, the network is assumed to be open. Other authentication modes
-          are not currently supported.
+     :    Enable WPA2 authentication and set the passphrase for it. If neither
+          this nor an ``auth`` block are given, the network is assumed to be
+          open. The setting
+
+              password: "S3kr1t"
+
+          is equivalent to
+
+              auth:
+                key-mgmt: wpa-psk
+                psk: "S3kr1t"
 
      ``mode`` (scalar)
      :    Possible access point modes are ``infrastructure`` (the default),
