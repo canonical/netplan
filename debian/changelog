@@ -6,6 +6,7 @@ netplan.io (0.38) UNRELEASED; urgency=medium
     - Don't traceback for 'netplan ip leases' when iface is not managed or
       doesn't DHCP (LP: #1768823)
     - Fix duplicate "/" path separator in error messages (LP: #1771440)
+    - Fix incorrect terminal reset in 'netplan try' on Ctrl-C. (LP: #1768798)
     - Updated doc entries: mtu, fix fwmark->mark, cleanup optional.
       (LP: #1768783)
     - Added documentation validation at build.
