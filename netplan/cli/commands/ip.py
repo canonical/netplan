@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 import subprocess
+from subprocess import CalledProcessError
 
 import netplan.cli.utils as utils
 
@@ -139,7 +140,10 @@ class NetplanIpLeases(utils.NetplanCommand):
 
         # Extract out of the generator our mapping in a dict.
         logging.debug('command ip leases: running %s', argv)
-        out = subprocess.check_output(argv, universal_newlines=True)
+        try:
+            out = subprocess.check_output(argv, universal_newlines=True)
+        except CalledProcessError as e:  # pragma: nocover (better be covered in autopkgtest)
+            sys.exit(1)
         mapping = {}
         mapping_s = out.split(',')
         for keyvalue in mapping_s:
