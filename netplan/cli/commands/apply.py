@@ -127,8 +127,13 @@ class NetplanApply(utils.NetplanCommand):
                    'by-mac': {},
                    }
         for phy, settings in phys.items():
-            driver = settings.get('match').get('driver')
-            mac = settings.get('match').get('macaddress')
+            if not settings:
+                continue
+            match = settings.get('match')
+            if not match:
+                continue
+            driver = match.get('driver')
+            mac = match.get('macaddress')
             if driver:
                 matches['by-driver'][driver] = phy
             if mac:
