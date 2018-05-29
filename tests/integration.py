@@ -1042,7 +1042,7 @@ class _CommonTests:
                              ['inet 192.168.5.[0-9]+/24'])  # from DHCP
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'10.10.10.0/24 dev %(ec)s proto static scope link' % { 'ec': self.dev_e_client },
+        self.assertIn(b'10.10.10.0/24 dev %(ec)s proto static scope link' % {'ec': self.dev_e_client},
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'metric 99',  # check metric from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
