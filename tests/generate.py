@@ -965,7 +965,6 @@ Metric=100
       addresses: ["192.168.14.2/24"]
       routes:
         - to: 10.10.10.0/24
-          via: 192.168.14.20
           scope: link
           metric: 100
           ''')
@@ -978,7 +977,6 @@ Address=192.168.14.2/24
 
 [Route]
 Destination=10.10.10.0/24
-Gateway=192.168.14.20
 Scope=link
 Metric=100
 '''})
