@@ -1243,6 +1243,12 @@ UseMTU=true
 
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen',
                               'enred.link': '[Match]\nOriginalName=enred\n\n[Link]\nWakeOnLan=magic\n',
+                              'enred.network': '''[Match]
+Name=enred
+
+[Network]
+LinkLocalAddressing=ipv6
+''',
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
 

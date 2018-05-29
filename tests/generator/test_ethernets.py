@@ -32,7 +32,13 @@ class TestNetworkd(TestBase):
       wakeonlan: true
       dhcp4: n''')
 
-        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
+        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n',
+                              'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev(None)
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -49,7 +55,13 @@ unmanaged-devices+=interface-name:eth0,''')
       mtu: 1280
       dhcp4: n''')
 
-        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n'})
+        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
+                              'eth1.network': '''[Match]
+Name=eth1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev(None)
 
     def test_eth_match_by_driver_rename(self):
@@ -61,7 +73,14 @@ unmanaged-devices+=interface-name:eth0,''')
         driver: ixgbe
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '''[Match]
+Driver=ixgbe
+Name=lom1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('ixgbe', 'lom1'))})
         # NM cannot match by driver, so blacklisting needs to happen via udev
         self.assert_nm(None, None)
@@ -76,7 +95,14 @@ unmanaged-devices+=interface-name:eth0,''')
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '''[Match]
+MACAddress=11:22:33:44:55:66
+Name=lom1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd

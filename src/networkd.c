@@ -421,101 +421,97 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
 static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
+    GString* network = NULL;
+    GString* link = NULL;
     GString* s = NULL;
     mode_t orig_umask;
 
-    /* do we need to write a .network file? */
-    if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
-        !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
-        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans &&
-        def->type < ND_VIRTUAL)
-        return;
+    /* Prepare the [Link] section of the .network file. */
+    link = g_string_sized_new(200);
 
-    /* build file contents */
-    s = g_string_sized_new(200);
-    append_match_section(def, s, TRUE);
+    /* Prepare the [Network] section */
+    network = g_string_sized_new(200);
 
     if (def->optional || def->optional_addresses) {
-        g_string_append(s, "\n[Link]\n");
         if (def->optional) {
-            g_string_append(s, "RequiredForOnline=no\n");
+            g_string_append(link, "RequiredForOnline=no\n");
         }
         for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
             if (def->optional_addresses & optional_address_options[i].flag) {
-            g_string_append_printf(s, "OptionalAddresses=%s\n", optional_address_options[i].name);
+            g_string_append_printf(link, "OptionalAddresses=%s\n", optional_address_options[i].name);
             }
         }
     }
 
-    g_string_append(s, "\n[Network]\n");
+
     if (def->dhcp4 && def->dhcp6)
-        g_string_append(s, "DHCP=yes\n");
+        g_string_append(network, "DHCP=yes\n");
     else if (def->dhcp4)
-        g_string_append(s, "DHCP=ipv4\n");
+        g_string_append(network, "DHCP=ipv4\n");
     else if (def->dhcp6)
-        g_string_append(s, "DHCP=ipv6\n");
+        g_string_append(network, "DHCP=ipv6\n");
 
     /* Set link local addressing -- this does not apply to bond and bridge
      * member interfaces, which always get it disabled.
      */
     if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
         if (def->linklocal.ipv4 && def->linklocal.ipv6)
-            g_string_append(s, "LinkLocalAddressing=yes\n");
+            g_string_append(network, "LinkLocalAddressing=yes\n");
         else if (def->linklocal.ipv4)
-            g_string_append(s, "LinkLocalAddressing=ipv4\n");
+            g_string_append(network, "LinkLocalAddressing=ipv4\n");
         else if (def->linklocal.ipv6)
-            g_string_append(s, "LinkLocalAddressing=ipv6\n");
+            g_string_append(network, "LinkLocalAddressing=ipv6\n");
     } else {
-        g_string_append(s, "LinkLocalAddressing=no\n");
+        g_string_append(network, "LinkLocalAddressing=no\n");
     }
 
     if (def->ip4_addresses)
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
-            g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip4_addresses, char*, i));
+            g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip4_addresses, char*, i));
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
-            g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
+            g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
     if (def->accept_ra == ACCEPT_RA_ENABLED)
-        g_string_append_printf(s, "IPv6AcceptRA=yes\n");
+        g_string_append_printf(network, "IPv6AcceptRA=yes\n");
     else if (def->accept_ra == ACCEPT_RA_DISABLED)
-        g_string_append_printf(s, "IPv6AcceptRA=no\n");
+        g_string_append_printf(network, "IPv6AcceptRA=no\n");
     if (def->ip6_privacy)
-        g_string_append(s, "IPv6PrivacyExtensions=yes\n");
+        g_string_append(network, "IPv6PrivacyExtensions=yes\n");
     if (def->gateway4)
-        g_string_append_printf(s, "Gateway=%s\n", def->gateway4);
+        g_string_append_printf(network, "Gateway=%s\n", def->gateway4);
     if (def->gateway6)
-        g_string_append_printf(s, "Gateway=%s\n", def->gateway6);
+        g_string_append_printf(network, "Gateway=%s\n", def->gateway6);
     if (def->ip4_nameservers)
         for (unsigned i = 0; i < def->ip4_nameservers->len; ++i)
-            g_string_append_printf(s, "DNS=%s\n", g_array_index(def->ip4_nameservers, char*, i));
+            g_string_append_printf(network, "DNS=%s\n", g_array_index(def->ip4_nameservers, char*, i));
     if (def->ip6_nameservers)
         for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
-            g_string_append_printf(s, "DNS=%s\n", g_array_index(def->ip6_nameservers, char*, i));
+            g_string_append_printf(network, "DNS=%s\n", g_array_index(def->ip6_nameservers, char*, i));
     if (def->search_domains) {
-        g_string_append_printf(s, "Domains=%s", g_array_index(def->search_domains, char*, 0));
+        g_string_append_printf(network, "Domains=%s", g_array_index(def->search_domains, char*, 0));
         for (unsigned i = 1; i < def->search_domains->len; ++i)
-            g_string_append_printf(s, " %s", g_array_index(def->search_domains, char*, i));
-        g_string_append(s, "\n");
+            g_string_append_printf(network, " %s", g_array_index(def->search_domains, char*, i));
+        g_string_append(network, "\n");
     }
 
     if (def->type >= ND_VIRTUAL)
-        g_string_append(s, "ConfigureWithoutCarrier=yes\n");
+        g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->bridge) {
-        g_string_append_printf(s, "Bridge=%s\n", def->bridge);
+        g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
-            g_string_append_printf(s, "\n[Bridge]\n");
+            g_string_append_printf(network, "\n[Bridge]\n");
         if (def->bridge_params.path_cost)
-            g_string_append_printf(s, "Cost=%u\n", def->bridge_params.path_cost);
+            g_string_append_printf(network, "Cost=%u\n", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
-            g_string_append_printf(s, "Priority=%u\n", def->bridge_params.port_priority);
+            g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_string_append_printf(s, "Bond=%s\n", def->bond);
+        g_string_append_printf(network, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)
-            g_string_append_printf(s, "PrimarySlave=true\n");
+            g_string_append_printf(network, "PrimarySlave=true\n");
     }
 
     if (def->has_vlans) {
@@ -525,37 +521,38 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_hash_table_iter_init(&i, netdefs);
         while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
             if (nd->vlan_link == def)
-                g_string_append_printf(s, "VLAN=%s\n", nd->id);
+                g_string_append_printf(network, "VLAN=%s\n", nd->id);
     }
 
     if (def->routes != NULL) {
         for (unsigned i = 0; i < def->routes->len; ++i) {
             ip_route* cur_route = g_array_index (def->routes, ip_route*, i);
-            write_route(cur_route, s);
+            write_route(cur_route, network);
         }
     }
     if (def->ip_rules != NULL) {
         for (unsigned i = 0; i < def->ip_rules->len; ++i) {
             ip_rule* cur_rule = g_array_index (def->ip_rules, ip_rule*, i);
-            write_ip_rule(cur_rule, s);
+            write_ip_rule(cur_rule, network);
         }
     }
 
     if (def->dhcp4 || def->dhcp6) {
         /* NetworkManager compatible route metrics */
-        g_string_append(s, "\n[DHCP]\n");
+        g_string_append(network, "\n[DHCP]\n");
+
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
-            g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
+            g_string_append_printf(network, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)
-            g_string_append_printf(s, "CriticalConnection=true\n");
+            g_string_append_printf(network, "CriticalConnection=true\n");
 
         dhcp_overrides combined_dhcp_overrides;
         combine_dhcp_overrides(def, &combined_dhcp_overrides);
 
         if (combined_dhcp_overrides.metric == METRIC_UNSPEC) {
-            g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+            g_string_append_printf(network, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
         } else {
-            g_string_append_printf(s, "RouteMetric=%u\n",
+            g_string_append_printf(network, "RouteMetric=%u\n",
                                    combined_dhcp_overrides.metric);
         }
 
@@ -563,31 +560,44 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         if (!combined_dhcp_overrides.use_mtu) {
             /* isc-dhcp dhclient compatible UseMTU, networkd default is to
              * not accept MTU, which breaks clouds */
-            g_string_append_printf(s, "UseMTU=false\n");
+            g_string_append_printf(network, "UseMTU=false\n");
         } else {
-            g_string_append_printf(s, "UseMTU=true\n");
+            g_string_append_printf(network, "UseMTU=true\n");
         }
 
         /* Only write DHCP options that differ from the networkd default. */
         if (!combined_dhcp_overrides.use_routes)
-            g_string_append_printf(s, "UseRoutes=false\n");
+            g_string_append_printf(network, "UseRoutes=false\n");
         if (!combined_dhcp_overrides.use_dns)
-            g_string_append_printf(s, "UseDNS=false\n");
+            g_string_append_printf(network, "UseDNS=false\n");
         if (!combined_dhcp_overrides.use_ntp)
-            g_string_append_printf(s, "UseNTP=false\n");
+            g_string_append_printf(network, "UseNTP=false\n");
         if (!combined_dhcp_overrides.send_hostname)
-            g_string_append_printf(s, "SendHostname=false\n");
+            g_string_append_printf(network, "SendHostname=false\n");
         if (!combined_dhcp_overrides.use_hostname)
-            g_string_append_printf(s, "UseHostname=false\n");
+            g_string_append_printf(network, "UseHostname=false\n");
         if (combined_dhcp_overrides.hostname)
-            g_string_append_printf(s, "Hostname=%s\n", combined_dhcp_overrides.hostname);
+            g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
     }
 
-    /* these do not contain secrets and need to be readable by
-     * systemd-networkd - LP: #1736965 */
-    orig_umask = umask(022);
-    g_string_free_to_file(s, rootdir, path, ".network");
-    umask(orig_umask);
+    if (network->len > 0 || link->len > 0) {
+        s = g_string_sized_new(200);
+        append_match_section(def, s, TRUE);
+
+        if (link->len > 0)
+            g_string_append_printf(s, "\n[Link]\n%s", link->str);
+        if (network->len > 0)
+            g_string_append_printf(s, "\n[Network]\n%s", network->str);
+
+        g_string_free(link, TRUE);
+        g_string_free(network, TRUE);
+
+        /* these do not contain secrets and need to be readable by
+         * systemd-networkd - LP: #1736965 */
+        orig_umask = umask(022);
+        g_string_free_to_file(s, rootdir, path, ".network");
+        umask(orig_umask);
+    }
 }
 
 static void

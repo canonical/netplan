@@ -26,10 +26,6 @@ def prepare_config_for_mode(renderer, mode, key=None):
   version: 2
   renderer: {}
 """.format(renderer)
-    config += '''
-  ethernets:
-    en1: {}
-'''
 
     if mode == "ip6gre" \
             or mode == "ip6ip6" \
@@ -428,21 +424,7 @@ class TestNetworkManager(TestBase):
         """[NetworkManager] Validate ISATAP tunnel generation"""
         config = prepare_config_for_mode('NetworkManager', 'isatap')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -465,21 +447,7 @@ method=ignore
         """[NetworkManager] Validate generation of SIT tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'sit')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -561,21 +529,7 @@ gateway=2001:dead:beef::1
         """[NetworkManager] Validate generation of VTI tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'vti')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -598,21 +552,7 @@ method=ignore
         """[NetworkManager] Validate generation of VTI6 tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'vti6')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -635,21 +575,7 @@ method=ignore
         """[NetworkManager] Validate generation of IP6IP6 tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'ip6ip6')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -672,21 +598,7 @@ method=ignore
         """[NetworkManager] Validate generation of IPIP tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'ipip')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -709,21 +621,7 @@ method=ignore
         """[NetworkManager] Validate generation of GRE tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'gre')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -746,21 +644,7 @@ method=ignore
         """[NetworkManager] Validate generation of GRE tunnels with keys"""
         config = prepare_config_for_mode('NetworkManager', 'gre', key={'input': 1111, 'output': 5555})
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -785,21 +669,7 @@ method=ignore
         """[NetworkManager] Validate generation of IP6GRE tunnels"""
         config = prepare_config_for_mode('NetworkManager', 'ip6gre')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
@@ -822,21 +692,7 @@ method=ignore
         """[NetworkManager] Validate generation of IP6GRE tunnels with key"""
         config = prepare_config_for_mode('NetworkManager', 'ip6gre', key='9999')
         self.generate(config)
-        self.assert_nm({'en1': '''[connection]
-id=netplan-en1
-type=ethernet
-interface-name=en1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'tun0': '''[connection]
+        self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
 type=ip-tunnel
 interface-name=tun0
