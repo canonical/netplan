@@ -4381,6 +4381,19 @@ class TestConfigErrors(TestBase):
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)
 
+    def test_device_route_scope_link_missing_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          scope: link
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
     def test_device_route_invalid_onlink(self):
         self.generate('''network:
   version: 2
