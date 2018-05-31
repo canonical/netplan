@@ -129,6 +129,8 @@ class NetplanApply(utils.NetplanCommand):
         for phy, settings in phys.items():
             if not settings:
                 continue
+            if phy == 'renderer':
+                continue
             match = settings.get('match')
             if not match:
                 continue
