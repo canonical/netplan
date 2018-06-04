@@ -131,6 +131,9 @@ class NetplanApply(utils.NetplanCommand):
                 continue
             if phy == 'renderer':
                 continue
+            newname = settings.get('set-name')
+            if not newname:
+                continue
             match = settings.get('match')
             if not match:
                 continue
