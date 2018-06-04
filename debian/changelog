@@ -11,6 +11,7 @@ netplan.io (0.38) UNRELEASED; urgency=medium
       (LP: #1768783)
     - Added documentation validation at build.
     - Added configuration example for multi-ip interfaces.
+  * tests/integration.py: fix test_eth_and_bridge autopkg test harder.
   * debian/control:
     - Add iproute2 to Depends.
     - Add python3-netifaces to Depends, Build-Depends.

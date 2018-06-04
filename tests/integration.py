@@ -389,6 +389,7 @@ class _CommonTests:
     def test_eth_and_bridge(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
