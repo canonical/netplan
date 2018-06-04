@@ -368,6 +368,7 @@ class _CommonTests:
     def test_eth_and_bridge(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -451,6 +452,7 @@ class _CommonTests:
     def test_bridge_path_cost(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -485,6 +487,7 @@ class _CommonTests:
     def test_bridge_ageing_time(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -518,6 +521,7 @@ class _CommonTests:
     def test_bridge_max_age(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -551,6 +555,7 @@ class _CommonTests:
     def test_bridge_hello_time(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -584,6 +589,7 @@ class _CommonTests:
     def test_bridge_priority(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -617,6 +623,7 @@ class _CommonTests:
     def test_bridge_forward_delay(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -650,6 +657,7 @@ class _CommonTests:
     def test_bridge_stp_false(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -1695,6 +1703,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
     def test_bridge_port_priority(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -1980,6 +1989,7 @@ class TestNetworkManager(NetworkTestBase, _CommonTests):
     def test_bridge_port_priority(self):
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s

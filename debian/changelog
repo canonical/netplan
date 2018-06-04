@@ -1,3 +1,11 @@
+nplan (0.32~16.04.6) UNRELEASED; urgency=medium
+
+  * tests/integration.py: Fix autopkgtests involving bonds/bridges to do proper
+    cleanup every time, so later tests don't unnecessarily wait for an
+    interface not configured to be up. (LP: #1775097)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Jun 2018 18:54:44 -0400
+
 nplan (0.32~16.04.5) xenial; urgency=medium
 
   * bond/bridge: Support suffixes for time-based values so things like
