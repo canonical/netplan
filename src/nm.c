@@ -360,18 +360,21 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     }
 
     if (def->type == ND_VLAN) {
+        net_definition *vlan_link;
         g_assert(def->vlan_id < G_MAXUINT);
-        g_assert(def->vlan_link != NULL);
+        g_assert(def->vlan_link_id != NULL);
+        vlan_link = g_hash_table_lookup(netdefs, def->vlan_link_id);
+        g_assert(vlan_link != NULL);
         g_string_append_printf(s, "\n[vlan]\nid=%u\nparent=", def->vlan_id);
-        if (def->vlan_link->has_match) {
+        if (vlan_link->has_match) {
             /* we need to refer to the parent's UUID as we don't have an
              * interface name with match: */
-            maybe_generate_uuid(def->vlan_link);
-            uuid_unparse(def->vlan_link->uuid, uuidstr);
+            maybe_generate_uuid(vlan_link);
+            uuid_unparse(vlan_link->uuid, uuidstr);
             g_string_append_printf(s, "%s\n", uuidstr);
         } else {
             /* if we have an interface name, use that as parent */
-            g_string_append_printf(s, "%s\n", def->vlan_link->id);
+            g_string_append_printf(s, "%s\n", vlan_link->id);
         }
     }
 

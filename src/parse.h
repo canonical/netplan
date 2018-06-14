@@ -95,7 +95,7 @@ typedef struct net_definition {
 
     /* vlan */
     guint vlan_id;
-    struct net_definition* vlan_link;
+    char* vlan_link_id;
     gboolean has_vlans;
 
     /* Configured custom MAC address */
@@ -212,6 +212,7 @@ extern GHashTable* netdefs;
  * Functions
  ****************************************************/
 
+GHashTable* duplicate_netdefs();
 gboolean parse_yaml(const char* filename, GError** error);
 gboolean finish_parse(GError** error);
 netdef_backend get_global_backend();
