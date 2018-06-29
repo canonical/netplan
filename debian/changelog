@@ -1,4 +1,4 @@
-nplan (0.32~16.04.6) UNRELEASED; urgency=medium
+nplan (0.32~16.04.6) xenial; urgency=medium
 
   [ Mathieu Trudel-Lapierre ]
   * tests/integration.py: Fix autopkgtests involving bonds/bridges to do proper
@@ -14,7 +14,7 @@ nplan (0.32~16.04.6) UNRELEASED; urgency=medium
     rules files will cause a renaming, even if the interface has been
     renamed in initrd.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Jun 2018 18:54:44 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 03 Jul 2018 12:55:11 -0400
 
 nplan (0.32~16.04.5) xenial; urgency=medium
 
