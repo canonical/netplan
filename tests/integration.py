@@ -1292,6 +1292,7 @@ wpa_passphrase=12345678
 
     def test_mix_bridge_on_bond(self):
         self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br1'], stderr=subprocess.DEVNULL)
@@ -1307,6 +1308,7 @@ wpa_passphrase=12345678
       interfaces: [ethb2]
       parameters:
         mode: balance-rr
+        mii-monitor-interval: 5
   ethernets:
     ethbn:
       match: {name: %(ec)s}
