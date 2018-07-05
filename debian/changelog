@@ -1,4 +1,4 @@
-netplan.io (0.36.3) UNRELEASED; urgency=medium
+netplan.io (0.36.3) bionic; urgency=medium
 
   * Generate udev rules files to rename devices (LP: #1770082)
     Due to a systemd issue[1], using link files to rename interfaces
@@ -10,7 +10,7 @@ netplan.io (0.36.3) UNRELEASED; urgency=medium
   * tests/integration.py: fix test_eth_and_bridge autopkg test harder.
   * tests/integration.py: fix test_mix_bridge_on_bond autopkgtest too.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Jun 2018 18:54:44 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 05 Jul 2018 16:54:52 -0400
 
 netplan.io (0.36.2) bionic; urgency=medium
 
