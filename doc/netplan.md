@@ -159,6 +159,25 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``link-local`` (sequence of scalars)
+
+:   Configure the link-local addresses to bring up. Valid options are 'ipv4'
+    and 'ipv6', which respectively allow enabling IPv4 and IPv6 link local
+    addressing. If this field is not defined, the default is to enable only
+    IPv6 link-local addresses. If the field is defined but configured as an
+    empty set, IPv6 link-local addresses are disabled as well as IPv4 link-
+    local addresses.
+
+    This feature enables or disables link-local addresses for a protocol, but
+    the actual implementation differs per backend. On networkd, this directly
+    changes the behavior and may add an extra address on an interface. When
+    using the NetworkManager backend, enabling link-local has no effect if the
+    interface also has DHCP enabled.
+
+    Example to enable only IPv4 link-local: ``link-local: [ ipv4 ]``
+    Example to enable all link-local addresses: ``link-local: [ ipv4, ipv6 ]``
+    Example to disable all link-local addresses: ``link-local: [ ]``
+
 ``critical`` (bool)
 
 :   (networkd backend only) Designate the connection as "critical to the

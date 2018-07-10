@@ -88,6 +88,10 @@ typedef struct net_definition {
     GArray* search_domains;
     GArray* routes;
     GArray* ip_rules;
+    struct {
+        gboolean ipv4;
+        gboolean ipv6;
+    } linklocal;
 
     /* master ID for slave devices */
     char* bridge;

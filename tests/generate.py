@@ -34,10 +34,10 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
 # common patterns for expected output
-ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
-ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\n\n[DHCP]\nUseMTU=true\nRouteMetric=600\n'
-ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
-ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
+ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
+ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=600\n'
+ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
+ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
 
@@ -307,6 +307,7 @@ RequiredForOnline=no
 
 [Network]
 DHCP=ipv6
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -362,9 +363,9 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_networkd({
             'bond0.108.netdev': '[NetDev]\nName=bond0.108\nKind=vlan\n\n[VLAN]\nId=108\n',
             'bond0.netdev': '[NetDev]\nName=bond0\nMTUBytes=9000\nKind=bond\n',
-            'bond0.network': '[Match]\nName=bond0\n\n[Network]\nVLAN=bond0.108\n',
+            'bond0.network': '[Match]\nName=bond0\n\n[Network]\nLinkLocalAddressing=ipv6\nVLAN=bond0.108\n',
             'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
-            'eth1.network': '[Match]\nName=eth1\n\n[Network]\nBond=bond0\nLinkLocalAddressing=no\n'
+            'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'
         })
         self.assert_networkd_udev(None)
 
@@ -423,6 +424,7 @@ Driver=ixgbe
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -506,7 +508,7 @@ unmanaged-devices+=interface-name:*,''')
       match: {}
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\n\n'
+        self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n'
                                               '[DHCP]\nUseMTU=true\nRouteMetric=100\n'})
         self.assert_networkd_udev(None)
         self.assert_nm(None, '''[keyfile]
@@ -529,6 +531,7 @@ Name=en1s*
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -618,6 +621,7 @@ Name=eth0
 
 [Network]
 DHCP=ipv6
+LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
 
 [DHCP]
@@ -643,6 +647,7 @@ Name=br0
 
 [Network]
 DHCP=ipv6
+LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
 
 [DHCP]
@@ -657,9 +662,9 @@ Kind=bridge
 Name=engreen
 
 [Network]
+LinkLocalAddressing=no
 IPv6AcceptRA=no
 Bridge=br0
-LinkLocalAddressing=no
 '''})
 
     def test_bond_dhcp6_no_accept_ra(self):
@@ -679,6 +684,7 @@ Name=bond0
 
 [Network]
 DHCP=ipv6
+LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
 
 [DHCP]
@@ -693,9 +699,9 @@ Kind=bond
 Name=engreen
 
 [Network]
+LinkLocalAddressing=no
 IPv6AcceptRA=no
 Bond=bond0
-LinkLocalAddressing=no
 '''})
 
     def test_eth_dhcp6_accept_ra(self):
@@ -710,6 +716,7 @@ Name=eth0
 
 [Network]
 DHCP=ipv6
+LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
 
 [DHCP]
@@ -728,6 +735,7 @@ Name=eth0
 
 [Network]
 DHCP=ipv6
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -754,6 +762,7 @@ RouteMetric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 '''})
@@ -773,6 +782,7 @@ Name=engreen
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 
@@ -795,6 +805,7 @@ Name=engreen
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -816,6 +827,7 @@ Name=engreen
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -838,6 +850,7 @@ Name=engreen
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 
 [DHCP]
 UseMTU=true
@@ -860,6 +873,7 @@ RouteMetric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -889,6 +903,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -923,6 +938,7 @@ Metric=9999
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -949,6 +965,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -974,6 +991,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1001,6 +1019,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1027,6 +1046,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1054,6 +1074,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1079,6 +1100,7 @@ Metric=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1105,6 +1127,7 @@ Table=201
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1128,6 +1151,7 @@ Metric=100
 Name=enblue
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.1.3/24
 
 [Route]
@@ -1150,6 +1174,7 @@ Gateway=2001:beef:beef::1
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1173,6 +1198,7 @@ Type=prohibit
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [Route]
@@ -1198,6 +1224,7 @@ Scope=host
 Name=enblue
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.1.3/24
 
 [Route]
@@ -1270,6 +1297,7 @@ Name=wl0
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 
 [Route]
 Destination=10.10.10.0/24
@@ -1357,6 +1385,7 @@ Name=br0
 
 [Network]
 DHCP=ipv4
+LinkLocalAddressing=ipv6
 Address=1.2.3.4/12
 
 [DHCP]
@@ -1385,9 +1414,9 @@ unmanaged-devices+=interface-name:br0,''')
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
     def test_eth_bridge_nm_blacklist(self):
         self.generate('''network:
@@ -1421,9 +1450,9 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
     def test_bridge_params(self):
         self.generate('''network:
@@ -1458,10 +1487,10 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
                                             'STP=true\n',
                               'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\n\n'
+                                              '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
                                               '[Bridge]\nCost=70\nPriority=14\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
     def test_bond_empty(self):
         self.generate('''network:
@@ -1493,9 +1522,9 @@ unmanaged-devices+=interface-name:bn0,''')
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
                               'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
     def test_bond_empty_parameters(self):
         self.generate('''network:
@@ -1514,9 +1543,9 @@ unmanaged-devices+=interface-name:bn0,''')
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
                               'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
     def test_bond_with_parameters(self):
         self.generate('''network:
@@ -1576,9 +1605,9 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'LearnPacketIntervalSec=10\n',
                               'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
     def test_bond_with_parameters_all_suffix(self):
         self.generate('''network:
@@ -1608,9 +1637,9 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'DownDelaySec=30s\n',
                               'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
     def test_bond_primary_slave(self):
         self.generate('''network:
@@ -1633,9 +1662,9 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'Mode=active-backup\n',
                               'bn0.network': ND_DHCP4 % 'bn0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBond=bn0\nLinkLocalAddressing=no\nPrimarySlave=true\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\nPrimarySlave=true\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBond=bn0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
     def test_gateway(self):
         self.generate('''network:
@@ -1650,6 +1679,7 @@ unmanaged-devices+=interface-name:bn0,''')
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 Gateway=192.168.14.1
@@ -1674,6 +1704,7 @@ Gateway=2001:FFfe::2
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 DNS=1.2.3.4
 DNS=1234::FFFF
@@ -1682,6 +1713,7 @@ DNS=1234::FFFF
 Name=enblue
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.1.3/24
 DNS=8.8.8.8
 Domains=lab kitchen
@@ -1703,11 +1735,44 @@ Domains=lab kitchen
       macaddress: aa:bb:cc:dd:ee:11
     engreen: {id: 2, link: en1, dhcp6: true}''')
 
-        self.assert_networkd({'en1.network': '[Match]\nName=en1\n\n[Network]\nVLAN=engreen\nVLAN=enblue\nVLAN=enred\n',
-                              'enblue.netdev': '[NetDev]\nName=enblue\nKind=vlan\n\n[VLAN]\nId=1\n',
-                              'engreen.netdev': '[NetDev]\nName=engreen\nKind=vlan\n\n[VLAN]\nId=2\n',
-                              'enred.netdev': '[NetDev]\nName=enred\nMACAddress=aa:bb:cc:dd:ee:11\nKind=vlan\n\n[VLAN]\nId=3\n',
-                              'enblue.network': '[Match]\nName=enblue\n\n[Network]\nAddress=1.2.3.4/24\n',
+        self.assert_networkd({'en1.network': '''[Match]
+Name=en1
+
+[Network]
+LinkLocalAddressing=ipv6
+VLAN=engreen
+VLAN=enblue
+VLAN=enred
+''',
+                              'enblue.netdev': '''[NetDev]
+Name=enblue
+Kind=vlan
+
+[VLAN]
+Id=1
+''',
+                              'engreen.netdev': '''[NetDev]
+Name=engreen
+Kind=vlan
+
+[VLAN]
+Id=2
+''',
+                              'enred.netdev': '''[NetDev]
+Name=enred
+MACAddress=aa:bb:cc:dd:ee:11
+Kind=vlan
+
+[VLAN]
+Id=3
+''',
+                              'enblue.network': '''[Match]
+Name=enblue
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=1.2.3.4/24
+''',
                               'engreen.network': ND_DHCP6 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -1729,6 +1794,7 @@ unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enbl
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [RoutingPolicyRule]
@@ -1751,6 +1817,7 @@ Table=100
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [RoutingPolicyRule]
@@ -1773,6 +1840,7 @@ Priority=99
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [RoutingPolicyRule]
@@ -1795,11 +1863,100 @@ FirewallMark=50
 Name=engreen
 
 [Network]
+LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 
 [RoutingPolicyRule]
 To=10.10.10.0/24
 TypeOfService=250
+'''})
+
+    def test_link_local_all(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      link-local: [ ipv4, ipv6 ]
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
+    def test_link_local_ipv4(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      link-local: [ ipv4 ]
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv4
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
+    def test_link_local_ipv6(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      link-local: [ ipv6 ]
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
+    def test_link_local_disabled(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      link-local: [ ]
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=no
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
 '''})
 
 
@@ -4361,6 +4518,24 @@ class TestConfigErrors(TestBase):
       accept-ra: j''', expect_fail=True)
         self.assertIn('invalid boolean', err)
 
+    def test_invalid_link_local_set(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      link-local: invalid''', expect_fail=True)
+
+    def test_invalid_link_local_value(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      link-local: [ invalid, ]''', expect_fail=True)
+
 
 class TestForwardDeclaration(TestBase):
 
@@ -4389,15 +4564,15 @@ class TestForwardDeclaration(TestBase):
                               'br0.network': ND_DHCP4 % 'br0',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
                               'bond0.network': '[Match]\nName=bond0\n\n'
-                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\n',
+                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
                                            '[Link]\nName=eth0\nWakeOnLan=off\n',
                               'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
-                                              '[Network]\nBond=bond0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth1.link': '[Match]\nMACAddress=02:01:02:03:04:05\n\n'
                                            '[Link]\nName=eth1\nWakeOnLan=off\n',
                               'eth1.network': '[Match]\nMACAddress=02:01:02:03:04:05\nName=eth1\n\n'
-                                              '[Network]\nBond=bond0\nLinkLocalAddressing=no\n'})
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
 
     def test_fwdecl_feature_blend(self):
         self.generate('''network:
@@ -4441,25 +4616,25 @@ class TestForwardDeclaration(TestBase):
                               'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
                                             '[Bridge]\nSTP=true\n',
                               'br0.network': '[Match]\nName=br0\n\n'
-                                             '[Network]\nVLAN=vlan1\n',
+                                             '[Network]\nLinkLocalAddressing=ipv6\nVLAN=vlan1\n',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
                               'bond0.network': '[Match]\nName=bond0\n\n'
-                                               '[Network]\nBridge=br0\nLinkLocalAddressing=no\n\n'
+                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
                                                '[Bridge]\nCost=8888\n',
                               'eth2.network': '[Match]\nName=eth2\n\n'
-                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\n\n'
+                                              '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
                                               '[Bridge]\nCost=1000\n',
                               'br1.netdev': '[NetDev]\nName=br1\nKind=bridge\n',
                               'br1.network': '[Match]\nName=br1\n\n'
-                                             '[Network]\nBond=bond0\nLinkLocalAddressing=no\n',
+                                             '[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
                                            '[Link]\nName=eth0\nWakeOnLan=off\n',
                               'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
-                                              '[Network]\nBond=bond0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth1.link': '[Match]\nMACAddress=02:01:02:03:04:05\n\n'
                                            '[Link]\nName=eth1\nWakeOnLan=off\n',
                               'eth1.network': '[Match]\nMACAddress=02:01:02:03:04:05\nName=eth1\n\n'
-                                              '[Network]\nBridge=br1\nLinkLocalAddressing=no\n'})
+                                              '[Network]\nLinkLocalAddressing=no\nBridge=br1\n'})
 
 
 class TestMerging(TestBase):
@@ -4557,9 +4732,9 @@ unmanaged-devices+=interface-name:engreen,''')
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': ND_DHCP4 % 'br0',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nBridge=br0\nLinkLocalAddressing=no\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
-                                                     '[Network]\nBridge=br0\nLinkLocalAddressing=no\n'})
+                                                     '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
     def test_def_in_run(self):
         rundir = os.path.join(self.workdir.name, 'run', 'netplan')

@@ -313,6 +313,21 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(s, "DHCP=ipv4\n");
     else if (def->dhcp6)
         g_string_append(s, "DHCP=ipv6\n");
+
+    /* Set link local addressing -- this does not apply to bond and bridge
+     * member interfaces, which always get it disabled.
+     */
+    if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
+        if (def->linklocal.ipv4 && def->linklocal.ipv6)
+            g_string_append(s, "LinkLocalAddressing=yes\n");
+        else if (def->linklocal.ipv4)
+            g_string_append(s, "LinkLocalAddressing=ipv4\n");
+        else if (def->linklocal.ipv6)
+            g_string_append(s, "LinkLocalAddressing=ipv6\n");
+    } else {
+        g_string_append(s, "LinkLocalAddressing=no\n");
+    }
+
     if (def->ip4_addresses)
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
             g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip4_addresses, char*, i));
@@ -340,7 +355,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(s, "\n");
     }
     if (def->bridge) {
-        g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\n", def->bridge);
+        g_string_append_printf(s, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
             g_string_append_printf(s, "\n[Bridge]\n");
@@ -350,7 +365,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\n", def->bond);
+        g_string_append_printf(s, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)
             g_string_append_printf(s, "PrimarySlave=true\n");

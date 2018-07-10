@@ -718,6 +718,30 @@ handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void
     return TRUE;
 }
 
+static gboolean
+handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ipv4 = FALSE;
+    gboolean ipv6 = FALSE;
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        if (g_ascii_strcasecmp(scalar(entry), "ipv4") == 0)
+            ipv4 = TRUE;
+        else if (g_ascii_strcasecmp(scalar(entry), "ipv6") == 0)
+            ipv6 = TRUE;
+        else
+            return yaml_error(node, error, "invalid value for link-local: %s", scalar(entry));
+    }
+
+    cur_netdef->linklocal.ipv4 = ipv4;
+    cur_netdef->linklocal.ipv6 = ipv6;
+
+    return TRUE;
+}
 
 static int
 get_ip_family(const char* address)
@@ -1242,6 +1266,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"match", YAML_MAPPING_NODE, handle_match},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1265,6 +1290,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"match", YAML_MAPPING_NODE, handle_match},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1288,6 +1314,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
@@ -1309,6 +1336,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
@@ -1331,6 +1359,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1439,6 +1468,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
+            /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
+            cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 
