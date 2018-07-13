@@ -1644,6 +1644,34 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
             self.assertEqual(f.read().strip(), 'all 3')
 
+    def test_bridge_anonymous(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: [ethbr]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'],
+                             ['master'])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['master mybr'],
+                             ['inet '])
+        self.assert_iface_up('mybr',
+                             [],
+                             ['inet 192.168.6.[0-9]+/24'])
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        universal_newlines=True).splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn(self.dev_e2_client, lines[0])
+
     def test_bridge_port_priority(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
