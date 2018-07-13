@@ -296,7 +296,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
         !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
-        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans)
+        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans &&
+        def->type < ND_VIRTUAL)
         return;
 
     /* build file contents */
@@ -354,6 +355,10 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, " %s", g_array_index(def->search_domains, char*, i));
         g_string_append(s, "\n");
     }
+
+    if (def->type >= ND_VIRTUAL)
+        g_string_append(s, "ConfigureWithoutCarrier=yes\n");
+
     if (def->bridge) {
         g_string_append_printf(s, "Bridge=%s\n", def->bridge);
 

@@ -362,8 +362,22 @@ unmanaged-devices+=interface-name:eth0,''')
                   id: 108"""))
         self.assert_networkd({
             'bond0.108.netdev': '[NetDev]\nName=bond0.108\nKind=vlan\n\n[VLAN]\nId=108\n',
+            'bond0.108.network': '''[Match]
+Name=bond0.108
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
             'bond0.netdev': '[NetDev]\nName=bond0\nMTUBytes=9000\nKind=bond\n',
-            'bond0.network': '[Match]\nName=bond0\n\n[Network]\nLinkLocalAddressing=ipv6\nVLAN=bond0.108\n',
+            'bond0.network': '''[Match]
+Name=bond0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+VLAN=bond0.108
+''',
             'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
             'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'
         })
@@ -582,7 +596,18 @@ unmanaged-devices+=interface-name:eth0,''')
       macaddress: 00:01:02:03:04:05
       dhcp4: true''')
 
-        self.assert_networkd({'br0.network': ND_DHCP4 % 'br0',
+        self.assert_networkd({'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'br0.netdev': '[NetDev]\nName=br0\nMACAddress=00:01:02:03:04:05\nKind=bridge\n'})
 
     def test_eth_def_renderer(self):
@@ -649,6 +674,7 @@ Name=br0
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
+ConfigureWithoutCarrier=yes
 
 [DHCP]
 UseMTU=true
@@ -686,6 +712,7 @@ Name=bond0
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
+ConfigureWithoutCarrier=yes
 
 [DHCP]
 UseMTU=true
@@ -1346,7 +1373,18 @@ unmanaged-devices+=interface-name:wl0,''')
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0'})
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
@@ -1362,7 +1400,18 @@ unmanaged-devices+=interface-name:br0,''')
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0'})
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:br0,''')
@@ -1387,6 +1436,7 @@ Name=br0
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 Address=1.2.3.4/12
+ConfigureWithoutCarrier=yes
 
 [DHCP]
 UseMTU=true
@@ -1412,7 +1462,18 @@ unmanaged-devices+=interface-name:br0,''')
 ''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1448,7 +1509,18 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
       dhcp4: true''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1485,7 +1557,18 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
                                             'HelloTimeSec=6\n'
                                             'MaxAgeSec=24\n'
                                             'STP=true\n',
-                              'br0.network': ND_DHCP4 % 'br0',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
                                               '[Bridge]\nCost=70\nPriority=14\n',
@@ -1500,7 +1583,18 @@ unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr
       dhcp4: true''')
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
-                              'bn0.network': ND_DHCP4 % 'bn0'})
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:bn0,''')
@@ -1520,7 +1614,18 @@ unmanaged-devices+=interface-name:bn0,''')
       dhcp4: true''')
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
-                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1541,7 +1646,18 @@ unmanaged-devices+=interface-name:bn0,''')
       dhcp4: true''')
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n',
-                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1603,7 +1719,18 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'PrimaryReselectPolicy=none\n'
                                             'ResendIGMP=10\n'
                                             'LearnPacketIntervalSec=10\n',
-                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1635,7 +1762,18 @@ unmanaged-devices+=interface-name:bn0,''')
                                             'ARPIntervalSec=15m\n'
                                             'UpDelaySec=20ms\n'
                                             'DownDelaySec=30s\n',
-                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1660,7 +1798,18 @@ unmanaged-devices+=interface-name:bn0,''')
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
                                             'Mode=active-backup\n',
-                              'bn0.network': ND_DHCP4 % 'bn0',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\nPrimarySlave=true\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
@@ -1772,8 +1921,27 @@ Name=enblue
 [Network]
 LinkLocalAddressing=ipv6
 Address=1.2.3.4/24
+ConfigureWithoutCarrier=yes
 ''',
-                              'engreen.network': ND_DHCP6 % 'engreen'})
+                              'enred.network': '''[Match]
+Name=enred
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enblue,interface-name:enred,''')
@@ -4561,10 +4729,27 @@ class TestForwardDeclaration(TestBase):
 ''')
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
-                              'bond0.network': '[Match]\nName=bond0\n\n'
-                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'bond0.network': '''[Match]
+Name=bond0
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+Bridge=br0
+''',
                               'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
                                            '[Link]\nName=eth0\nWakeOnLan=off\n',
                               'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
@@ -4612,21 +4797,52 @@ class TestForwardDeclaration(TestBase):
 
         self.assert_networkd({'vlan1.netdev': '[NetDev]\nName=vlan1\nKind=vlan\n\n'
                                               '[VLAN]\nId=1\n',
-                              'vlan1.network': ND_DHCP4 % 'vlan1',
+                              'vlan1.network': '''[Match]
+Name=vlan1
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
                                             '[Bridge]\nSTP=true\n',
-                              'br0.network': '[Match]\nName=br0\n\n'
-                                             '[Network]\nLinkLocalAddressing=ipv6\nVLAN=vlan1\n',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+VLAN=vlan1
+''',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
-                              'bond0.network': '[Match]\nName=bond0\n\n'
-                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
-                                               '[Bridge]\nCost=8888\n',
+                              'bond0.network': '''[Match]
+Name=bond0
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+Bridge=br0
+
+[Bridge]
+Cost=8888
+''',
                               'eth2.network': '[Match]\nName=eth2\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
                                               '[Bridge]\nCost=1000\n',
                               'br1.netdev': '[NetDev]\nName=br1\nKind=bridge\n',
-                              'br1.network': '[Match]\nName=br1\n\n'
-                                             '[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'br1.network': '''[Match]
+Name=br1
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+Bond=bond0
+''',
                               'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
                                            '[Link]\nName=eth0\nWakeOnLan=off\n',
                               'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
@@ -4730,7 +4946,18 @@ unmanaged-devices+=interface-name:engreen,''')
       dhcp4: true'''})
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': ND_DHCP4 % 'br0',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
