@@ -1,3 +1,11 @@
+netplan.io (0.39) UNRELEASED; urgency=medium
+
+  * New upstream release:
+    - Allow link-local addresses to be configured. (LP: #1771704)
+    - Forces bridges with no addresses to be brought online. (LP: #1736975)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 16 Jul 2018 08:06:23 -0400
+
 netplan.io (0.38) cosmic; urgency=medium
 
   * New upstream release:
