@@ -203,6 +203,10 @@ Virtual devices
     form ``addr/prefixlen``. ``addr`` is an IPv4 or IPv6 address as recognized
     by **``inet_pton``**(3) and ``prefixlen`` the number of bits of the subnet.
 
+    For virtual devices (bridges, bonds, vlan) if there is no address
+    configured and DHCP is disabled, the interface may still be brought online,
+    but will not be addressable from the network.
+
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
 ``gateway4``, ``gateway6`` (scalar)
@@ -389,7 +393,9 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``interfaces`` (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bridge.
+:    All devices matching this ID list will be added to the bridge. This may
+     be an empty list, in which case the bridge will be brought online with
+     no member interfaces.
 
      Example:
 
