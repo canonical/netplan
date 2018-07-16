@@ -1670,6 +1670,26 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
         self.assertEqual(len(lines), 1, lines)
         self.assertIn(self.dev_e2_client, lines[0])
 
+    def test_bridge_isolated(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr:
+      match: {name: %(e2c)s}
+  bridges:
+    mybr:
+      interfaces: []
+      addresses: [10.10.10.10/24]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        subprocess.check_call(['netplan', 'apply'])
+        time.sleep(1)
+        out = subprocess.check_output(['ip', 'a', 'show', 'dev', 'mybr'],
+                                      universal_newlines=True)
+        self.assertIn('inet 10.10.10.10/24', out)
+
     def test_bridge_port_priority(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
