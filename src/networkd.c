@@ -86,6 +86,7 @@ static void
 write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* Don't write .link files for virtual devices; they use .netdev instead */
     if (def->type >= ND_VIRTUAL)
@@ -110,7 +111,9 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
 
 
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".link");
+    umask(orig_umask);
 }
 
 
@@ -209,6 +212,7 @@ static void
 write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     g_assert(def->type >= ND_VIRTUAL);
 
@@ -242,7 +246,11 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
         // LCOV_EXCL_STOP
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".netdev");
+    umask(orig_umask);
 }
 
 static void
@@ -292,6 +300,7 @@ static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
@@ -411,7 +420,11 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "CriticalConnection=true\n");
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".network");
+    umask(orig_umask);
 }
 
 static void
@@ -419,6 +432,7 @@ write_rules_file(net_definition* def, const char* rootdir)
 {
     GString* s = NULL;
     g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
+    mode_t orig_umask;
 
     /* do we need to write a .rules file?
      * It's only required for reliably setting the name of a physical device
@@ -452,7 +466,9 @@ write_rules_file(net_definition* def, const char* rootdir)
 
     g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
 
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
 }
 
 static void
