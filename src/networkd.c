@@ -209,6 +209,7 @@ static void
 write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     g_assert(def->type >= ND_VIRTUAL);
 
@@ -242,7 +243,11 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
         // LCOV_EXCL_STOP
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".netdev");
+    umask(orig_umask);
 }
 
 static void
@@ -292,6 +297,7 @@ static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
@@ -411,7 +417,11 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "CriticalConnection=true\n");
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".network");
+    umask(orig_umask);
 }
 
 static void
