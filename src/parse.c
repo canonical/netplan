@@ -420,6 +420,22 @@ handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void
 }
 
 static gboolean
+handle_access_point_identity(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_access_point);
+    cur_access_point->identity = g_strdup(scalar(node));
+    return TRUE;
+}
+
+static gboolean
+handle_access_point_key_mgmt(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_access_point);
+    cur_access_point->key_mgmt = g_strdup(scalar(node));
+    return TRUE;
+}
+
+static gboolean
 handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_access_point);
@@ -437,6 +453,8 @@ handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _,
 const mapping_entry_handler wifi_access_point_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
+    {"identity", YAML_SCALAR_NODE, handle_access_point_identity},
+    {"key_mgmt", YAML_SCALAR_NODE, handle_access_point_key_mgmt},
     {NULL}
 };
 
@@ -592,11 +610,11 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
             ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
             cur_access_point = NULL;
             return ret;
-	}
+        }
 
         if (!process_mapping(doc, value, wifi_access_point_handlers, error)) {
-	    cur_access_point = NULL;
-	    return FALSE;
+            cur_access_point = NULL;
+            return FALSE;
         }
 
         cur_access_point = NULL;

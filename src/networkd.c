@@ -468,10 +468,16 @@ write_wpa_conf(net_definition* def, const char* rootdir)
     g_hash_table_iter_init(&iter, def->access_points);
     while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
         g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
-        if (ap->password)
+        if (ap->identity)
+            g_string_append_printf(s, "  identity=\"%s\"\n", ap->identity);
+        if (!ap->key_mgmt && ap->password)
             g_string_append_printf(s, "  psk=\"%s\"\n", ap->password);
-        else
-            g_string_append(s, "  key_mgmt=NONE\n");
+        else if (ap->password)
+            g_string_append_printf(s, "  password=%s\n", ap->password);
+        if (!ap->key_mgmt && !ap->password)
+            ap->key_mgmt = "NONE";
+        if (ap->key_mgmt)
+            g_string_append_printf(s, "  key_mgmt=%s\n", ap->key_mgmt);
         switch (ap->mode) {
             case WIFI_MODE_INFRASTRUCTURE:
                 /* default in wpasupplicant */

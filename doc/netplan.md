@@ -379,15 +379,25 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      supported properties:
 
      ``password`` (scalar)
-     :    Enable WPA2 authentication and set the passphrase for it. If not
-          given, the network is assumed to be open. Other authentication modes
-          are not currently supported.
+     :    Sets the passphrase for WPA2 Personal and Enterprise networks. If not
+          given, the network is assumed to be open.
 
      ``mode`` (scalar)
      :    Possible access point modes are ``infrastructure`` (the default),
           ``ap`` (create an access point to which other devices can connect),
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
+
+     ``key_mgmt`` (scalar)
+     :    Set this to WPA-EAP to connect to WPA2 Enterprise WiFi
+          networks. Optional for WPA2 Personal (WPA-PSK).  Possible key_mgmt
+          values are WPA-PSK and WPA-EAP. Defaults to WPA-PSK if password is
+          provided.
+
+     ``identity`` (scalar)
+     :    Provides the identity for authenticating with WPA2 Enterprise
+          (WPA-EAP). Not needed for WPA2 Personal.
+
 
 ## Properties for device type ``bridges:``
 

@@ -3049,6 +3049,34 @@ psk=s3cret
         self.assert_networkd({})
         self.assert_nm_udev(None)
 
+    def test_wifi_ap_8021x(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  wifis:
+    wl0:
+      access-points:
+        worknet:
+          key_mgmt: WPA-EAP
+          identity: foo@example.com
+          password: hash:s3cret''')
+
+        #self.assert_nm({})
+        self.assert_networkd({})
+        self.assert_nm_udev(None)
+
+        # generates wpa config and enables wpasupplicant unit
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
+            self.assertEqual(f.read(), '''ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="worknet"
+  identity="foo@example.com"
+  password=hash:s3cret
+  key_mgmt=WPA-EAP
+}
+''')
+
     def test_wifi_adhoc(self):
         self.generate('''network:
   version: 2

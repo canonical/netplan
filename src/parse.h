@@ -169,6 +169,8 @@ typedef struct {
     wifi_mode mode;
     char* ssid;
     char* password;
+    char* identity;
+    char* key_mgmt;
 } wifi_access_point;
 
 #define METRIC_UNSPEC G_MAXUINT
