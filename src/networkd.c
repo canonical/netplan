@@ -187,8 +187,8 @@ write_bond_parameters(net_definition* def, GString* s)
     }
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nFailOverMACPolicy=%s", def->bond_params.fail_over_mac_policy);
-    if (def->bond_params.gratuitious_arp)
-        g_string_append_printf(params, "\nGratuitiousARP=%d", def->bond_params.gratuitious_arp);
+    if (def->bond_params.gratuitous_arp)
+        g_string_append_printf(params, "\nGratuitousARP=%d", def->bond_params.gratuitous_arp);
     /* TODO: add unsolicited_na, not documented as supported by NM. */
     if (def->bond_params.packets_per_slave)
         g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_slave);

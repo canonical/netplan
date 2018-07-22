@@ -558,12 +558,15 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           them to the bond, or how else the system should handle MAC addresses.
           The possible values are ``none``, ``active``, and ``follow``.
 
-     ``gratuitious-arp`` (scalar)
+     ``gratuitous-arp`` (scalar)
      :    Specify how many ARP packets to send after failover. Once a link is
           up on a new slave, a notification is sent and possibly repeated if
           this value is set to a number greater than ``1``. The default value
           is ``1`` and valid values are between ``1`` and ``255``. This only
           affects ``active-backup`` mode.
+
+          For historical reasons, the misspelling ``gratuitious-arp`` is also
+          accepted and has the same function.
 
      ``packets-per-slave`` (scalar)
      :    In ``balance-rr`` mode, specifies the number of packets to transmit

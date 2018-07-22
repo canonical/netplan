@@ -185,9 +185,12 @@ write_bond_parameters(const net_definition* def, GString *s)
         g_string_append_printf(params, "\ndowndelay=%s", def->bond_params.down_delay);
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nfail_over_mac=%s", def->bond_params.fail_over_mac_policy);
-    if (def->bond_params.gratuitious_arp)
-        g_string_append_printf(params, "\nnum_grat_arp=%d", def->bond_params.gratuitious_arp);
-    /* TODO: add unsolicited_na, not documented as supported by NM. */
+    if (def->bond_params.gratuitous_arp) {
+        g_string_append_printf(params, "\nnum_grat_arp=%d", def->bond_params.gratuitous_arp);
+        /* Work around issue in NM where unset unsolicited_na will overwrite num_grat_arp:
+	 * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
+        g_string_append_printf(params, "\nnum_unsol_na=%d", def->bond_params.gratuitous_arp);
+    }
     if (def->bond_params.packets_per_slave)
         g_string_append_printf(params, "\npackets_per_slave=%d", def->bond_params.packets_per_slave);
     if (def->bond_params.primary_reselect_policy)

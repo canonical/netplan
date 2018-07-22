@@ -1714,7 +1714,7 @@ RouteMetric=100
                                             'UpDelaySec=20ms\n'
                                             'DownDelaySec=30ms\n'
                                             'FailOverMACPolicy=none\n'
-                                            'GratuitiousARP=10\n'
+                                            'GratuitousARP=10\n'
                                             'PacketsPerSlave=10\n'
                                             'PrimaryReselectPolicy=none\n'
                                             'ResendIGMP=10\n'
@@ -1812,6 +1812,44 @@ RouteMetric=100
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\nPrimarySlave=true\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
+
+    def test_bond_with_gratuitous_spelling(self):
+        """Validate that the correct spelling of gratuitous also works"""
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      parameters:
+        mode: active-backup
+        gratuitous-arp: 10
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
+                                            '[Bond]\n'
+                                            'Mode=active-backup\n'
+                                            'GratuitousARP=10\n',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+''',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
@@ -3607,6 +3645,7 @@ updelay=10
 downdelay=10
 fail_over_mac=none
 num_grat_arp=10
+num_unsol_na=10
 packets_per_slave=10
 primary_reselect=none
 resend_igmp=10

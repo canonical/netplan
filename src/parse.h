@@ -136,7 +136,7 @@ typedef struct net_definition {
         char* up_delay;
         char* down_delay;
         char* fail_over_mac_policy;
-        guint gratuitious_arp;
+        guint gratuitous_arp;
         /* TODO: unsolicited_na */
         guint packets_per_slave;
         char* primary_reselect_policy;
