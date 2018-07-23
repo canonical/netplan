@@ -588,6 +588,28 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_nm_udev(None)
 
+    def test_eth_metric(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      dhcp4: true
+      metric: 123''')
+
+        self.assert_networkd({'def1.network': '''[Match]
+Name=def1
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[DHCP]
+UseMTU=true
+RouteMetric=123
+'''})
+        self.assert_networkd_udev(None)
+        self.assert_nm_udev(None)
+
     def test_bridge_set_mac(self):
         self.generate('''network:
   version: 2
@@ -2252,6 +2274,36 @@ method=link-local
 method=ignore
 ''',
         })
+
+    def test_eth_metric(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: true
+      metric: 123''')
+
+        self.assert_networkd({})
+        self.assert_networkd_udev(None)
+        self.assert_nm_udev(None)
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+route-metric=123
+
+[ipv6]
+method=auto
+route-metric=123
+'''})
 
     def test_eth_set_mac(self):
         self.generate('''network:

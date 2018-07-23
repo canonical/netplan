@@ -1080,7 +1080,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route = g_new0(ip_route, 1);
         cur_route->type = g_strdup("unicast");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_route->metric = G_MAXUINT; /* 0 is a valid metric */
+        cur_route->metric = METRIC_UNSPEC; /* 0 is a valid metric */
 
         if (process_mapping(doc, entry, routes_handlers, error)) {
             if (!cur_netdef->routes) {
@@ -1269,6 +1269,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"match", YAML_MAPPING_NODE, handle_match},
+    {"metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
@@ -1293,6 +1294,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"match", YAML_MAPPING_NODE, handle_match},
+    {"metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
@@ -1316,6 +1318,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
+    {"metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
@@ -1338,6 +1341,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
+    {"metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
@@ -1362,6 +1366,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
+    {"metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
     {"routes", YAML_SEQUENCE_NODE, handle_routes},
@@ -1467,6 +1472,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
+            cur_netdef->metric = METRIC_UNSPEC; /* 0 is a valid metric */
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
             /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
             cur_netdef->linklocal.ipv6 = TRUE;

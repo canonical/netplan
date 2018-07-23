@@ -404,7 +404,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
          * not accept MTU, which breaks clouds */
         g_string_append_printf(s, "\n[DHCP]\nUseMTU=true\n");
         /* NetworkManager compatible route metrics */
-        g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+	if (def->metric == METRIC_UNSPEC)
+            def->metric = (def->type == ND_WIFI ? 600: 100);
+        g_string_append_printf(s, "RouteMetric=%i\n", def->metric);
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)

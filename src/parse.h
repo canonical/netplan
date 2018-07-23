@@ -92,6 +92,7 @@ typedef struct net_definition {
         gboolean ipv4;
         gboolean ipv6;
     } linklocal;
+    guint metric;
 
     /* master ID for slave devices */
     char* bridge;

@@ -402,6 +402,8 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "%s;", g_array_index(def->ip4_nameservers, char*, i));
         g_string_append(s, "\n");
     }
+    if (def->metric != METRIC_UNSPEC)
+        g_string_append_printf(s, "route-metric=%u\n", def->metric);
     write_search_domains(def, s);
     write_routes(def, s, AF_INET);
 
@@ -419,6 +421,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
                 g_string_append_printf(s, "%s;", g_array_index(def->ip6_nameservers, char*, i));
             g_string_append(s, "\n");
         }
+        if (def->metric != METRIC_UNSPEC)
+            g_string_append_printf(s, "route-metric=%u\n", def->metric);
+
         /* nm-settings(5) specifies search-domain for both [ipv4] and [ipv6] --
          * do we really need to repeat it here? */
         write_search_domains(def, s);
