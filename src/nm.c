@@ -455,12 +455,12 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
-void
+gboolean
 write_nm_conf(net_definition* def, const char* rootdir)
 {
     if (def->backend != BACKEND_NM) {
         g_debug("NetworkManager: definition %s is not for us (backend %i)", def->id, def->backend);
-        return;
+        return FALSE;
     }
 
     if (def->match.driver && !def->set_name) {
@@ -481,6 +481,8 @@ write_nm_conf(net_definition* def, const char* rootdir)
         g_assert(def->access_points == NULL);
         write_nm_conf_access_point(def, rootdir, NULL);
     }
+
+    return TRUE;
 }
 
 static void

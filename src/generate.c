@@ -34,6 +34,7 @@
 static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd;
+static gboolean any_nm;
 static gchar* mapping_iface;
 
 static GOptionEntry options[] = {
@@ -55,7 +56,8 @@ nd_iterator(gpointer key, gpointer value, gpointer user_data)
 {
     if (write_networkd_conf((net_definition*) value, (const char*) user_data))
         any_networkd = TRUE;
-    write_nm_conf((net_definition*) value, (const char*) user_data);
+    if (write_nm_conf((net_definition*) value, (const char*) user_data))
+        any_nm = TRUE;
 }
 
 
@@ -262,8 +264,8 @@ int main(int argc, char** argv)
     }
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
-     * (which restricts NM to wifi and wwan) if global renderer is NM */
-    if (get_global_backend() == BACKEND_NM)
+     * (which restricts NM to wifi and wwan) if NM is used as a renderer */
+    if (get_global_backend() == BACKEND_NM || any_nm)
         g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
     if (called_as_generator) {
