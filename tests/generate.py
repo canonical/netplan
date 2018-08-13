@@ -1144,7 +1144,7 @@ Table=201
       routes:
         - to: 10.10.10.0/24
           via: 192.168.14.20
-          from: 192.168.14.2/32
+          from: 192.168.14.2
           metric: 100
           ''')
 
@@ -1158,7 +1158,7 @@ Address=192.168.14.2/24
 [Route]
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
-From=192.168.14.2/32
+PreferredSource=192.168.14.2
 Metric=100
 '''})
 
