@@ -402,8 +402,12 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "%s;", g_array_index(def->ip4_nameservers, char*, i));
         g_string_append(s, "\n");
     }
-    write_search_domains(def, s);
-    write_routes(def, s, AF_INET);
+
+    /* We can only write search domains and routes if we have an address */
+    if (def->ip4_addresses || def->dhcp4) {
+        write_search_domains(def, s);
+        write_routes(def, s, AF_INET);
+    }
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
         g_string_append(s, "\n[ipv6]\n");
@@ -420,7 +424,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append(s, "\n");
         }
         /* nm-settings(5) specifies search-domain for both [ipv4] and [ipv6] --
-         * do we really need to repeat it here? */
+         * We need to specify it here for the IPv6-only case - see LP: #1786726 */
         write_search_domains(def, s);
 
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
