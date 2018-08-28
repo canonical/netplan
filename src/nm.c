@@ -134,6 +134,31 @@ write_routes(const net_definition* def, GString *s, int family)
             if (cur_route->family != family)
                 continue;
 
+            if (cur_route->type && g_ascii_strcasecmp(cur_route->type, "unicast") != 0) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager only supports unicast routes\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->scope && g_ascii_strcasecmp(cur_route->scope, "global") != 0) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager only supports global scoped routes\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->table != ROUTE_TABLE_UNSPEC) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support non-default routing tables\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->from) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support routes with 'from'\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->onlink) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support onlink routes\n", def->id);
+                exit(1);
+            }
+
             g_string_append_printf(s, "route%d=%s,%s",
                                    j, cur_route->to, cur_route->via);
             if (cur_route->metric != METRIC_UNSPEC)
