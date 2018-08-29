@@ -76,7 +76,7 @@ get_error_context(yaml_parser_t parser, GError **error)
     while (current > parser.buffer.start) {
         current--;
         if (*current == '\n') {
-            line = current + 2;
+            line = current + 1;
             break;
         }
     }
