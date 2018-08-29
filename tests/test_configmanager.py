@@ -192,5 +192,5 @@ class TestConfigManager(unittest.TestCase):
 
     @unittest.expectedFailure
     def test__copy_tree_missing_source(self):
-        self.configmanager._copy_tree(os.path.join(self.workdir.name, "inexistant"),
-                                      os.path.join(self.workdir.name, "inexistant2"), missing_ok=False)
+        self.configmanager._copy_tree(os.path.join(self.workdir.name, "nonexistent"),
+                                      os.path.join(self.workdir.name, "nonexistent2"), missing_ok=False)

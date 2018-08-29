@@ -90,11 +90,11 @@ class TestGenerate(unittest.TestCase):
   ethernets:
     enlol: {dhcp4: yes}''')
         p = subprocess.Popen(exe_cli +
-                             ['generate', '--root-dir', self.workdir.name, '--mapping', 'inexistant'],
+                             ['generate', '--root-dir', self.workdir.name, '--mapping', 'nonexistent'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertNotEqual(p.returncode, 0)
-        self.assertNotIn(b'inexistant', out)
+        self.assertNotIn(b'nonexistent', out)
 
     def test_mapping_for_interface(self):
         os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
