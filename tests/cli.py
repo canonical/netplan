@@ -566,7 +566,7 @@ class TestIp(unittest.TestCase):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to succesfully get a predictable
+            # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
   version: 2
@@ -597,7 +597,7 @@ class TestIp(unittest.TestCase):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to succesfully get a predictable
+            # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
   version: 2
@@ -621,7 +621,7 @@ class TestIp(unittest.TestCase):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to succesfully get a predictable
+            # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
   version: 2
