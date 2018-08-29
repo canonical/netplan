@@ -294,7 +294,7 @@ handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 }
 
 /**
- * Generic handler for setting a cur_netdef ID/iface name field refering to an
+ * Generic handler for setting a cur_netdef ID/iface name field referring to an
  * existing ID from a scalar node
  * @data: offset into net_definition where the net_definition* field to write is
  *        located
