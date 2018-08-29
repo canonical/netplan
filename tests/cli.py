@@ -541,7 +541,7 @@ iface en1 inet6 static
         self.assertEqual(out, b'')
         self.assertIn(b'Expected 3 fields for stanza type iface but got 4', err)
 
-    def test_write_file_notsupported(self):
+    def test_write_file_unsupported(self):
         (out, err) = self.do_test('iface en1 inet dhcp', expect_success=False)
         self.assertEqual(out, b'')
         self.assertIn(b'non-automatic interfaces are not supported', err)
