@@ -45,9 +45,7 @@ network configuration error.
 # KNOWN ISSUES
 
 **netplan try** uses similar procedures to **netplan apply**, so some
-of the same caveats apply. In particular, the unbinding and rebinding
-procedures may cause some network devices to be unexpectedly renamed,
-or to disappear entirely.
+of the same caveats apply around virtual devices.
 
 There are also some known bugs: if **netplan try** times out or is
 cancelled, make sure to verify if the network configuration has in

@@ -47,17 +47,14 @@ see **netplan**(5).
 
 # KNOWN ISSUES
 
-**netplan apply** looks for interfaces that are down after the first
-pass and may unbind these interfaces from the drivers and rebind
-them. While helpful for matches by name, this process is not always
-robust and may lead to devices disappearing or being unexpectedly
-renamed.
-
-**netplan apply** will also not remove virtual devices such as bridges
+**netplan apply** will not remove virtual devices such as bridges
 and bonds that have been created, even if they are no longer described
 in the netplan configuration.
 
-In both of these cases the problems can be avoided or resolved by rebooting.
+This can be resolved by manually removing the virtual device (for
+example ``ip link delete dev bond0``) and then running **netplan
+apply**, or by rebooting.
+
 
 # SEE ALSO
 
