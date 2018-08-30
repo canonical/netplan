@@ -153,7 +153,7 @@ Virtual devices
     If you are in an IPv6-only environment with completely stateless
     autoconfiguration (SLAAC with RDNSS), this option can be set to cause the
     interface to be brought up. (Setting accept-ra alone is not sufficient.)
-    Autoconfiguration will still honour the contents of the router advertisment
+    Autoconfiguration will still honour the contents of the router advertisement
     and only use DHCP if requested in the RA.
 
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
