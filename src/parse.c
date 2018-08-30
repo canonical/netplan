@@ -64,7 +64,7 @@ int missing_ids_found;
  ****************************************************/
 
 static char *
-get_error_context(yaml_parser_t parser, GError **error)
+get_error_context(yaml_parser_t *parser, GError **error)
 {
     GString *message = NULL;
     unsigned char* line = parser.buffer.pointer;
@@ -125,7 +125,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_file(&parser, fyaml);
     if (!yaml_parser_load(&parser, doc)) {
-        char *error_context = get_error_context(parser, error);
+        char *error_context = get_error_context(&parser, error);
         if ((char)*parser.buffer.pointer == '\t')
             g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
                         "Invalid YAML at %s line %zu column %zu: tabs are not allowed for indent:\n%s",
