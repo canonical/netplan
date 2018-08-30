@@ -508,6 +508,25 @@ handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 }
 
 static gboolean
+handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        cur_netdef->accept_ra = ACCEPT_RA_ENABLED;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        cur_netdef->accept_ra = ACCEPT_RA_DISABLED;
+    else
+        return yaml_error(node, error, "invalid boolean value %s", scalar(node));
+
+    return TRUE;
+}
+
+static gboolean
 handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     cur_netdef->has_match = TRUE;
@@ -745,6 +764,30 @@ handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void
     return TRUE;
 }
 
+static gboolean
+handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ipv4 = FALSE;
+    gboolean ipv6 = FALSE;
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        if (g_ascii_strcasecmp(scalar(entry), "ipv4") == 0)
+            ipv4 = TRUE;
+        else if (g_ascii_strcasecmp(scalar(entry), "ipv6") == 0)
+            ipv6 = TRUE;
+        else
+            return yaml_error(node, error, "invalid value for link-local: %s", scalar(entry));
+    }
+
+    cur_netdef->linklocal.ipv4 = ipv4;
+    cur_netdef->linklocal.ipv6 = ipv6;
+
+    return TRUE;
+}
 
 static int
 get_ip_family(const char* address)
@@ -1039,10 +1082,10 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
     return TRUE;
 }
 const mapping_entry_handler bridge_params_handlers[] = {
-    {"ageing-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.ageing_time)},
-    {"forward-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.forward_delay)},
-    {"hello-time", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.hello_time)},
-    {"max-age", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.max_age)},
+    {"ageing-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.ageing_time)},
+    {"forward-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.forward_delay)},
+    {"hello-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.hello_time)},
+    {"max-age", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.max_age)},
     {"path-cost", YAML_MAPPING_NODE, handle_bridge_path_cost, NULL, netdef_offset(bridge_params.path_cost)},
     {"port-priority", YAML_MAPPING_NODE, handle_bridge_port_priority, NULL, netdef_offset(bridge_params.port_priority)},
     {"priority", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bridge_params.priority)},
@@ -1207,25 +1250,25 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
 const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
-    {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.monitor_interval)},
+    {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.monitor_interval)},
     {"min-links", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.min_links)},
     {"transmit-hash-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.transmit_hash_policy)},
     {"ad-select", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.selection_logic)},
     {"all-slaves-active", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(bond_params.all_slaves_active)},
-    {"arp-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.arp_interval)},
+    {"arp-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_interval)},
     /* TODO: arp_ip_targets */
     {"arp-ip-targets", YAML_SEQUENCE_NODE, handle_arp_ip_targets},
     {"arp-validate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_validate)},
     {"arp-all-targets", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.arp_all_targets)},
-    {"up-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.up_delay)},
-    {"down-delay", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.down_delay)},
+    {"up-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.up_delay)},
+    {"down-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.down_delay)},
     {"fail-over-mac-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.fail_over_mac_policy)},
     {"gratuitious-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitious_arp)},
     /* TODO: unsolicited_na */
     {"packets-per-slave", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.packets_per_slave)},
     {"primary-reselect-policy", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.primary_reselect_policy)},
     {"resend-igmp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.resend_igmp)},
-    {"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.learn_interval)},
+    {"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.learn_interval)},
     {"primary", YAML_SCALAR_NODE, handle_bond_primary_slave, NULL, netdef_offset(bond_params.primary_slave)},
     {NULL}
 };
@@ -1261,13 +1304,15 @@ const mapping_entry_handler nameservers_handlers[] = {
 };
 
 const mapping_entry_handler ethernet_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"match", YAML_MAPPING_NODE, handle_match},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1282,14 +1327,16 @@ const mapping_entry_handler ethernet_def_handlers[] = {
 };
 
 const mapping_entry_handler wifi_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"match", YAML_MAPPING_NODE, handle_match},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1304,14 +1351,16 @@ const mapping_entry_handler wifi_def_handlers[] = {
 };
 
 const mapping_entry_handler bridge_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
@@ -1324,14 +1373,16 @@ const mapping_entry_handler bridge_def_handlers[] = {
 };
 
 const mapping_entry_handler bond_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
@@ -1344,15 +1395,17 @@ const mapping_entry_handler bond_def_handlers[] = {
 };
 
 const mapping_entry_handler vlan_def_handlers[] = {
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"accept-ra", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(accept_ra)},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
@@ -1460,8 +1513,9 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-            cur_netdef->accept_ra = TRUE; /* By default, accept RAs */
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
+            /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
+            cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 

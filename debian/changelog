@@ -1,3 +1,96 @@
+netplan.io (0.39) cosmic; urgency=medium
+
+  * New upstream release:
+    - Allow link-local addresses to be configured. (LP: #1771704)
+    - Forces bridges with no addresses to be brought online. (LP: #1736975)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 16 Jul 2018 08:15:05 -0400
+
+netplan.io (0.38) cosmic; urgency=medium
+
+  * New upstream release:
+    - Write udev .rules files to /run/udev/rules.d to enforce interface
+      renaming. (LP: #1770082)
+    - Don't traceback for 'netplan ip leases' when iface is not managed or
+      doesn't DHCP (LP: #1768823)
+    - Fix duplicate "/" path separator in error messages (LP: #1771440)
+    - Fix incorrect terminal reset in 'netplan try' on Ctrl-C. (LP: #1768798)
+    - Updated doc entries: mtu, fix fwmark->mark, cleanup optional.
+      (LP: #1768783)
+    - Added documentation validation at build.
+    - Added configuration example for multi-ip interfaces.
+  * tests/integration.py: fix test_eth_and_bridge autopkg test harder.
+  * debian/control:
+    - Add iproute2 to Depends.
+    - Add python3-netifaces to Depends, Build-Depends.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Jun 2018 14:45:26 -0400
+
+netplan.io (0.37.1) cosmic; urgency=medium
+
+  * tests/integration.py: fix autopkgtests to be less flaky, especially given
+    changes in systemd-networkd's behavior regarding Router Advertisements.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 11 May 2018 09:58:19 -0400
+
+netplan.io (0.37) cosmic; urgency=medium
+
+  * doc/netplan.md: Clarify the behavior for time-based values for bonds
+    and bridges. (LP: #1756587)
+  * critical: provide a way to set "CriticalConnection=true" on a networkd
+    connection, especially for remote-fs scenarios. (LP: #1769682)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 08 May 2018 17:02:26 -0400
+
+netplan.io (0.36.1) bionic; urgency=medium
+
+  * tests/integration.py: Do a better cleanup for bridge-based tests; should
+    fix instability with test_mix_bridge_on_bond.
+  * tests/integration.py: Adjust autopkgtests to account for default behavior
+    change for up/down delay, arp interval, mii interval introduced in the
+    last upload.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 17:03:11 -0400
+
+netplan.io (0.36) bionic; urgency=medium
+
+  * 'netplan try': properly reset terminal flags at the end of the command,
+    so that terminal behaves the same after as before it was run.
+    (LP: #1766283)
+  * Fix default behavior for unspecified time values in bond parameters: if
+    no time-value suffix such as 'ms' is added, consider the value to be in
+    milliseconds for MII monitor interval, up/down delay and ARP interval
+    so users can have the expected additional granularity when setting up
+    these parameters. (LP: #1765833)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 23 Apr 2018 11:38:56 -0400
+
+netplan.io (0.35) bionic; urgency=medium
+
+  * debian/postinst: fix version check for when to write breadcrumbs.
+    (LP: #1756742)
+  * bonds/bridges: Support specifying time-based values with "ms" suffix when
+    the value should be in milliseconds; while keeping support for the previous
+    behavior of handling values are pure seconds when no suffix is present.
+    (LP: #1745597)
+  * IPv6: accept-ra should default to being unset, so that the kernel default
+    can be used. (LP: #1732002)
+  * DHCPv4: add a "dhcp-identifier: mac" field that can be set to fix interop
+    with Windows Server-based DHCP servers which don't support RFC 4361.
+    (LP: #1738998)
+  * docs, examples: reformat comments in examples, add standalone example files
+  * debian/docs, debian/netplan.io.install: install doc and examples in the
+    right locations.
+  * netplan try: allow users to preview/test and approve network configuration
+    changes, and automatically revert if they are not accepted. (LP: #1764824)
+  * networkd: don't wipe out /run/netplan on generate: we do want to keep any
+    YAML configurations in that directory, we just need to remove generated
+    wpasupplicant configs. (LP: #1764869)
+  * debian/control: add bash-completion to Build-Depends to make sure we do
+    install completion files in the right location.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 17 Apr 2018 21:49:21 -0400
+
 netplan.io (0.34.1) bionic; urgency=medium
 
   * Makefile: be more distro-agnostic, support different paths for pyflakes,

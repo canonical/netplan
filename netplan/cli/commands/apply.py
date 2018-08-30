@@ -24,6 +24,9 @@ import glob
 import subprocess
 
 import netplan.cli.utils as utils
+from netplan.configmanager import ConfigManager, ConfigurationError
+
+import netifaces
 
 
 class NetplanApply(utils.NetplanCommand):
@@ -34,16 +37,21 @@ class NetplanApply(utils.NetplanCommand):
                          leaf=True)
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
-        self.func = self.command_apply
+        self.func = NetplanApply.command_apply
 
         self.parse_args()
         self.run_command()
 
-    def command_apply(self):  # pragma: nocover (covered in autopkgtest)
-        if subprocess.call([utils.get_generator_path()]) != 0:
-            sys.exit(1)
+    @staticmethod
+    def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
+            if exit_on_error:
+                sys.exit(os.EX_CONFIG)
+            else:
+                raise ConfigurationError("the configuration could not be generated")
 
-        devices = os.listdir('/sys/class/net')
+        config_manager = ConfigManager()
+        devices = netifaces.interfaces()
 
         restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         restart_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
@@ -51,7 +59,7 @@ class NetplanApply(utils.NetplanCommand):
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration exists, restarting networkd')
-            subprocess.check_call(['systemctl', 'stop', '--no-block', 'systemd-networkd.service', 'netplan-wpa@*.service'])
+            utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
@@ -66,101 +74,111 @@ class NetplanApply(utils.NetplanCommand):
                     except subprocess.CalledProcessError:
                         pass
 
-                utils.systemctl_network_manager('stop')
+                utils.systemctl_network_manager('stop', sync=sync)
         else:
             logging.debug('no netplan generated NM configuration exists')
 
-        # force-hotplug all "down" network interfaces to apply renames
-        any_replug = False
+        # evaluate config for extra steps we need to take (like renaming)
+        # for now, only applies to non-virtual (real) devices.
+        config_manager.parse()
+        changes = NetplanApply.process_link_changes(devices, config_manager)
+
+        # if the interface is up, we can still apply some .link file changes
         for device in devices:
-            if not os.path.islink('/sys/class/net/' + device):
-                continue
-            if self.replug(device):
-                any_replug = True
-            else:
-                # if the interface is up, we can still apply .link file changes
-                logging.debug('netplan triggering .link rules for %s', device)
-                with open(os.devnull, 'w') as fd:
-                    subprocess.check_call(['udevadm', 'test-builtin',
-                                           'net_setup_link',
-                                           '/sys/class/net/' + device],
-                                          stdout=fd, stderr=fd)
-        if any_replug:
-            subprocess.check_call(['udevadm', 'settle'])
+            logging.debug('netplan triggering .link rules for %s', device)
+            subprocess.check_call(['udevadm', 'test-builtin',
+                                   'net_setup_link',
+                                   '/sys/class/net/' + device],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL)
+
+        # apply renames to "down" devices
+        for iface, settings in changes.items():
+            if settings.get('name'):
+                subprocess.check_call(['ip', 'link', 'set',
+                                       'dev', iface,
+                                       'name', settings.get('name')],
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
+
+        subprocess.check_call(['udevadm', 'settle'])
 
         # (re)start backends
         if restart_networkd:
-            subprocess.check_call(['systemctl', 'start', '--no-block', 'systemd-networkd.service'] +
-                                  [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')])
+            netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')]
+            utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
         if restart_nm:
-            utils.systemctl_network_manager('start')
+            utils.systemctl_network_manager('start', sync=sync)
 
-    def replug(self, device):  # pragma: nocover (covered in autopkgtest)
-        '''Unbind and rebind device if it is down'''
+    @staticmethod
+    def process_link_changes(interfaces, config_manager):  # pragma: nocover (covered in autopkgtest)
+        """
+        Go through the pending changes and pick what needs special
+        handling. Only applies to "down" interfaces which can be safely
+        updated.
+        """
 
-        devdir = os.path.join('/sys/class/net', device)
+        changes = {}
+        phys = dict(config_manager.physical_interfaces)
 
-        try:
-            with open(os.path.join(devdir, 'operstate')) as f:
-                state = f.read().strip()
-                if state != 'down':
-                    logging.debug('device %s operstate is %s, not replugging', device, state)
-                    return False
-        except IOError as e:
-            logging.error('Cannot determine operstate of %s: %s', device, str(e))
-            return False
+        # TODO (cyphermox): factor out some of this matching code (and make it
+        # pretty) in its own module.
+        matches = {'by-driver': {},
+                   'by-mac': {},
+                   }
+        for phy, settings in phys.items():
+            if not settings:
+                continue
+            if phy == 'renderer':
+                continue
+            newname = settings.get('set-name')
+            if not newname:
+                continue
+            match = settings.get('match')
+            if not match:
+                continue
+            driver = match.get('driver')
+            mac = match.get('macaddress')
+            if driver:
+                matches['by-driver'][driver] = phy
+            if mac:
+                matches['by-mac'][mac] = phy
 
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
-        try:
-            devname = os.path.basename(os.readlink(os.path.join(devdir, 'device')))
-        except IOError as e:
-            logging.debug('Cannot replug %s: cannot read link %s/device: %s', device, devdir, str(e))
-            return False
+        for interface in interfaces:
+            # try to get the device's driver for matching.
+            devdir = os.path.join('/sys/class/net', interface)
+            try:
+                with open(os.path.join(devdir, 'operstate')) as f:
+                    state = f.read().strip()
+                    if state != 'down':
+                        logging.debug('device %s operstate is %s, not changing', interface, state)
+                        continue
+            except IOError as e:
+                logging.error('Cannot determine operstate of %s: %s', interface, str(e))
+                continue
 
-        try:
-            # we must resolve symlinks here as the device dir will be gone after unbind
-            subsystem = os.path.realpath(os.path.join(devdir, 'device', 'subsystem'))
-            subsystem_name = os.path.basename(subsystem)
-            driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
-            driver_name = os.path.basename(driver)
-            if driver_name == 'mac80211_hwsim':
-                logging.debug('replug %s: mac80211_hwsim does not support rebinding, ignoring', device)
-                return False
-            # workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1630285
-            if driver_name == 'mwifiex_pcie':
-                logging.debug('replug %s: mwifiex_pcie crashes on rebinding, ignoring', device)
-                return False
-            # workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1729573
-            if subsystem_name == 'xen' and driver_name == 'vif':
-                logging.debug('replug %s: xen:vif fails on rebinding, ignoring', device)
-                return False
-            # workaround for problem with ath9k_htc module: this driver is async and does not support
-            # sequential unbind / rebind, one soon after the other
-            if driver_name == 'ath9k_htc':
-                logging.debug('replug %s: ath9k_htc does not support rebinding, ignoring', device)
-                return False
-            # workaround for ath6kl_sdio, interface does not work after unbinding
-            if 'ath6kl_sdio' in driver_name:
-                logging.debug('replug %s: ath6kl_sdio driver does not support rebinding, ignoring', device)
-                return False
-            # workaround for brcmfmac, interface will be gone after unbind
-            if 'brcmfmac' in driver_name:
-                logging.debug('replug %s: brcmfmac drivers do not support rebinding, ignoring', device)
-                return False
-            # workaround for qeth: driver does not recognize unbind command
-            # https://bugs.launchpad.net/ubuntu/+source/netplan.io/+bug/1756322
-            if driver_name == 'qeth':
-                logging.debug('replug %s: qeth driver do not support rebinding, ignoring (LP: #1756322)', device)
-                return False
-            logging.debug('replug %s: unbinding %s from %s', device, devname, driver)
-            with open(os.path.join(driver, 'unbind'), 'w') as f:
-                f.write(devname)
-            logging.debug('replug %s: rebinding %s to %s', device, devname, driver)
-            with open(os.path.join(driver, 'bind'), 'w') as f:
-                f.write(devname)
-        except IOError as e:
-            logging.error('Cannot replug %s: %s', device, str(e))
-            return False
+            try:
+                driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
+                driver_name = os.path.basename(driver)
+            except IOError as e:
+                logging.debug('Cannot replug %s: cannot read link %s/device: %s', interface, devdir, str(e))
+                driver_name = None
+                pass
 
-        return True
+            link = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]
+            macaddress = link.get('addr')
+            if driver_name in matches['by-driver']:
+                new_name = matches['by-driver'][driver_name]
+                logging.debug(new_name)
+                logging.debug(interface)
+                if new_name != interface:
+                    changes.update({interface: {'name': new_name}})
+            if macaddress in matches['by-mac']:
+                new_name = matches['by-mac'][macaddress]
+                if new_name != interface:
+                    changes.update({interface: {'name': new_name}})
+
+        logging.debug(changes)
+        return changes

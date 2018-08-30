@@ -159,6 +159,31 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``link-local`` (sequence of scalars)
+
+:   Configure the link-local addresses to bring up. Valid options are 'ipv4'
+    and 'ipv6', which respectively allow enabling IPv4 and IPv6 link local
+    addressing. If this field is not defined, the default is to enable only
+    IPv6 link-local addresses. If the field is defined but configured as an
+    empty set, IPv6 link-local addresses are disabled as well as IPv4 link-
+    local addresses.
+
+    This feature enables or disables link-local addresses for a protocol, but
+    the actual implementation differs per backend. On networkd, this directly
+    changes the behavior and may add an extra address on an interface. When
+    using the NetworkManager backend, enabling link-local has no effect if the
+    interface also has DHCP enabled.
+
+    Example to enable only IPv4 link-local: ``link-local: [ ipv4 ]``
+    Example to enable all link-local addresses: ``link-local: [ ipv4, ipv6 ]``
+    Example to disable all link-local addresses: ``link-local: [ ]``
+
+``critical`` (bool)
+
+:   (networkd backend only) Designate the connection as "critical to the
+    system", meaning that special care will be taken by systemd-networkd to
+    not release the IP from DHCP when it the daemon is restarted.
+
 ``dhcp-identifier`` (scalar)
 
 :   When set to 'mac'; pass that setting over to systemd-networkd to use the
@@ -168,7 +193,8 @@ Virtual devices
 ``accept-ra`` (bool)
 
 :   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
-    On by default.
+    When enabled, accept Router Advertisements. When disabled, do not respond to
+    Router Advertisements.  If unset use the host kernel default setting.
 
 ``addresses`` (sequence of scalars)
 
@@ -176,6 +202,10 @@ Virtual devices
     through DHCP or RA. Each sequence entry is in CIDR notation, i. e. of the
     form ``addr/prefixlen``. ``addr`` is an IPv4 or IPv6 address as recognized
     by **``inet_pton``**(3) and ``prefixlen`` the number of bits of the subnet.
+
+    For virtual devices (bridges, bonds, vlan) if there is no address
+    configured and DHCP is disabled, the interface may still be brought online,
+    but will not be addressable from the network.
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
@@ -185,7 +215,7 @@ Virtual devices
     requires setting ``addresses`` too. Gateway IPs must be in a form
     recognized by **``inet_pton``**(3).
 
-    Example for IPv4: ``gateway4: 172.16.0.1``  
+    Example for IPv4: ``gateway4: 172.16.0.1``
     Example for IPv6: ``gateway6: "2001:4::1"``
 
 ``nameservers`` (mapping)
@@ -215,13 +245,21 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             [...]
             macaddress: 52:54:00:6b:3c:59
 
-``optional`` (boolean)
+``mtu`` (scalar)
 
-: An optional device is not required for booting. Normally, networkd
-will wait some time for device to become configured before proceeding
-with booting. However, if a device is marked as optional, networkd
-will not wait for it. This is *only* supported by networkd, and the
-default is false.
+:    Set the Maximum Transmission Unit for the interface. The default is 1500.
+     Valid values depend on your network interface.
+
+     **Note:** This will not work reliably for devices matched by name
+     only, due to interactions with device renaming in udev. Match
+     devices by MAC when setting MTU.
+
+``optional`` (bool)
+
+:    An optional device is not required for booting. Normally, networkd will
+     wait some time for device to become configured before proceeding with
+     booting. However, if a device is marked as optional, networkd will not wait
+     for it. This is *only* supported by networkd, and the default is false.
 
     Example:
 
@@ -316,7 +354,7 @@ These options are available for all types of interfaces.
           in which routing rules are processed. A higher number means lower
           priority: rules are processed in order by increasing priority number.
 
-     ``fwmark`` (scalar)
+     ``mark`` (scalar)
      :    Have this routing policy rule match on traffic that has been marked
           by the iptables firewall with this value. Allowed values are positive
           integers starting from 1.
@@ -355,7 +393,9 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``interfaces`` (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bridge.
+:    All devices matching this ID list will be added to the bridge. This may
+     be an empty list, in which case the bridge will be brought online with
+     no member interfaces.
 
      Example:
 
@@ -369,14 +409,15 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``parameters`` (mapping)
 
-:    Customization parameters for special bridging options. Using the
-     NetworkManager renderer, parameter values for time intervals should be
-     expressed in milliseconds; for the systemd renderer, they should be in
-     seconds unless otherwise specified.
+:    Customization parameters for special bridging options. Unless otherwise
+     specified, parameter values for time intervals should be expressed in
+     milliseconds, but can also be expressed in seconds using a time suffix
+     (such as "s" for seconds, "ms" for milliseconds).
 
      ``ageing-time`` (scalar)
-     :    Set the period of time to keep a MAC address in the forwarding
-          database after a packet is received.
+     :    Set the period of time (in seconds) to keep a MAC address in the forwarding
+          database after a packet is received. This maps to the AgeingTimeSec=
+          property when the networkd renderer is used.
 
      ``priority`` (scalar)
      :    Set the priority value for the bridge. This value should be a
@@ -390,20 +431,21 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           designated port and root port selection algorithms.
 
      ``forward-delay`` (scalar)
-     :    Specify the period of time the bridge will remain in Listening and
-          Learning states before getting to the Forwarding state. This value
-          should be set in seconds for the systemd backend, and in milliseconds
-          for the NetworkManager backend.
+     :    Specify the period of time (in seconds) the bridge will remain in Listening and
+          Learning states before getting to the Forwarding state. This field
+          maps to the ForwardDelaySec= property for the networkd renderer.
 
      ``hello-time`` (scalar)
-     :    Specify the interval between two hello packets being sent out from
+     :    Specify the interval (in seconds) between two hello packets being sent out from
           the root and designated bridges. Hello packets communicate
-          information about the network topology.
+          information about the network topology. When the networkd renderer
+          is used, this maps to the HelloTimeSec= property.
 
      ``max-age`` (scalar)
-     :    Set the maximum age of a hello packet. If the last hello packet is
+     :    Set the maximum age (in seconds) of a hello packet. If the last hello packet is
           older than that value, the bridge will attempt to become the root
-          bridge.
+          bridge. This maps to the MaxAgeSec= property when the networkd
+          renderer is used.
 
      ``path-cost`` (scalar)
      :    Set the cost of a path on the bridge. Faster interfaces should have
@@ -434,10 +476,10 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``parameters`` (mapping)
 
-:    Customization parameters for special bonding options. Using the
-     NetworkManager renderer, parameter values for intervals should be
-     expressed in milliseconds; for the systemd renderer, they should be in
-     seconds unless otherwise specified.
+:    Customization parameters for special bonding options. Unless otherwise
+     specified, parameter values for time intervals should be expressed in
+     milliseconds, but can also be expressed in seconds using a time suffix
+     (such as "s" for seconds, "ms" for milliseconds).
 
      ``mode`` (scalar)
      :    Set the bonding mode used for the interfaces. The default is
@@ -453,7 +495,8 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      ``mii-monitor-interval`` (scalar)
      :    Specifies the interval for MII monitoring (verifying if an interface
           of the bond has carrier). The default is ``0``; which disables MII
-          monitoring.
+          monitoring. This is equivalent to the MIIMonitorSec= field for the
+          networkd backend.
 
      ``min-links`` (scalar)
      :    The minimum number of links up in a bond to consider the bond
@@ -479,6 +522,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      ``arp-interval`` (scalar)
      :    Set the interval value for how frequently ARP link monitoring should
           happen. The default value is ``0``, which disables ARP monitoring.
+          For the networkd backend, this maps to the ARPIntervalSec= property.
 
      ``arp-ip-targets`` (sequence of scalars)
      :    IPs of other hosts on the link which should be sent ARP requests in
@@ -501,11 +545,13 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
      ``up-delay`` (scalar)
      :    Specify the delay before enabling a link once the link is physically
-          up. The default value is ``0``.
+          up. The default value is ``0``. This maps to the UpDelaySec= property
+          for the networkd renderer.
 
      ``down-delay`` (scalar)
      :    Specify the delay before disabling a link once the link has been
-          lost. The default value is ``0``.
+          lost. The default value is ``0``. This maps to the DownDelaySec=
+          property for the networkd renderer.
 
      ``fail-over-mac-policy`` (scalar)
      :    Set whether to set all slaves to the same MAC address when adding
@@ -544,10 +590,11 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           are sent at 200ms intervals.
 
      ``learn-packet-interval`` (scalar)
-     :    Specify the interval between sending learning packets to each slave.
-          The value range is between ``1`` and ``0x7fffffff``. The default
-          value is ``1``. This option only affects ``balance-tlb`` and
-          ``balance-alb`` modes.
+     :    Specify the interval (seconds) between sending learning packets to
+          each slave.  The value range is between ``1`` and ``0x7fffffff``.
+          The default value is ``1``. This option only affects ``balance-tlb``
+          and ``balance-alb`` modes. Using the networkd renderer, this field
+          maps to the LearnPacketIntervalSec= property.
 
      ``primary`` (scalar)
      :    Specify a device to be used as a primary slave, or preferred device
@@ -591,6 +638,30 @@ DHCP:
       ethernets:
         eno1:
           dhcp4: true
+          
+This is an example of a static-configured interface with multiple IPv4 addresses
+and multiple gateways with networkd, with equal route metric levels, and static 
+DNS nameservers (Google DNS for this example):
+
+    network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        eno1:
+          addresses:
+          - 10.0.0.10/24
+          - 11.0.0.11/24
+          nameservers:
+            addresses:
+              - 8.8.8.8
+              - 8.8.4.4
+          routes:
+          - to: 0.0.0.0/0
+            via: 10.0.0.1
+            metric: 100
+          - to: 0.0.0.0/0
+            via: 11.0.0.1
+            metric: 100 
 
 This is a complex example which shows most available features:
 
@@ -638,29 +709,31 @@ This is a complex example which shows most available features:
           set-name: lom1
           dhcp6: true
         switchports:
-          # all cards on second PCI bus; unconfigured by themselves, will be added
-          # to br0 below (note: globbing is not supported by NetworkManager)
+          # all cards on second PCI bus unconfigured by
+          # themselves, will be added to br0 below
+          # note: globbing is not supported by NetworkManager
           match:
             name: enp2*
           mtu: 1280
       wifis:
         all-wlans:
-          # useful on a system where you know there is only ever going to be one device
+          # useful on a system where you know there is
+          # only ever going to be one device
           match: {}
           access-points:
             "Joe's home":
               # mode defaults to "infrastructure" (client)
               password: "s3kr1t"
-        # this creates an AP on wlp1s0 using hostapd; no match rules, thus ID is
-        # the interface name
+        # this creates an AP on wlp1s0 using hostapd
+        # no match rules, thus the ID is the interface name
         wlp1s0:
           access-points:
             "guest":
                mode: ap
                # no WPA config implies default of open
       bridges:
-        # the key name is the name for virtual (created) interfaces; no match: and
-        # set-name: allowed
+        # the key name is the name for virtual (created) interfaces
+        # no match: and set-name: allowed
         br0:
           # IDs of the components; switchports expands into multiple interfaces
           interfaces: [wlp1s0, switchports]

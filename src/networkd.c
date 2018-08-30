@@ -65,15 +65,15 @@ write_bridge_params(GString* s, net_definition* def)
         params = g_string_sized_new(200);
 
         if (def->bridge_params.ageing_time)
-            g_string_append_printf(params, "AgeingTimeSec=%u\n", def->bridge_params.ageing_time);
+            g_string_append_printf(params, "AgeingTimeSec=%s\n", def->bridge_params.ageing_time);
         if (def->bridge_params.priority)
             g_string_append_printf(params, "Priority=%u\n", def->bridge_params.priority);
         if (def->bridge_params.forward_delay)
-            g_string_append_printf(params, "ForwardDelaySec=%u\n", def->bridge_params.forward_delay);
+            g_string_append_printf(params, "ForwardDelaySec=%s\n", def->bridge_params.forward_delay);
         if (def->bridge_params.hello_time)
-            g_string_append_printf(params, "HelloTimeSec=%u\n", def->bridge_params.hello_time);
+            g_string_append_printf(params, "HelloTimeSec=%s\n", def->bridge_params.hello_time);
         if (def->bridge_params.max_age)
-            g_string_append_printf(params, "MaxAgeSec=%u\n", def->bridge_params.max_age);
+            g_string_append_printf(params, "MaxAgeSec=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "STP=%s\n", def->bridge_params.stp ? "true" : "false");
 
         g_string_append_printf(s, "\n[Bridge]\n%s", params->str);
@@ -113,6 +113,19 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
     g_string_free_to_file(s, rootdir, path, ".link");
 }
 
+
+static gboolean
+interval_has_suffix(const char* param) {
+    gchar* endptr;
+
+    g_ascii_strtoull(param, &endptr, 10);
+    if (*endptr == '\0')
+        return FALSE;
+
+    return TRUE;
+}
+
+
 static void
 write_bond_parameters(net_definition* def, GString* s)
 {
@@ -124,8 +137,13 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nMode=%s", def->bond_params.mode);
     if (def->bond_params.lacp_rate)
         g_string_append_printf(params, "\nLACPTransmitRate=%s", def->bond_params.lacp_rate);
-    if (def->bond_params.monitor_interval)
-        g_string_append_printf(params, "\nMIIMonitorSec=%d", def->bond_params.monitor_interval);
+    if (def->bond_params.monitor_interval) {
+        g_string_append(params, "\nMIIMonitorSec=");
+        if (interval_has_suffix(def->bond_params.monitor_interval))
+            g_string_append(params, def->bond_params.monitor_interval);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.monitor_interval);
+    }
     if (def->bond_params.min_links)
         g_string_append_printf(params, "\nMinLinks=%d", def->bond_params.min_links);
     if (def->bond_params.transmit_hash_policy)
@@ -134,8 +152,13 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nAdSelect=%s", def->bond_params.selection_logic);
     if (def->bond_params.all_slaves_active)
         g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_slaves_active);
-    if (def->bond_params.arp_interval)
-        g_string_append_printf(params, "\nARPIntervalSec=%d", def->bond_params.arp_interval);
+    if (def->bond_params.arp_interval) {
+        g_string_append(params, "\nARPIntervalSec=");
+        if (interval_has_suffix(def->bond_params.arp_interval))
+            g_string_append(params, def->bond_params.arp_interval);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.arp_interval);
+    }
     if (def->bond_params.arp_ip_targets && def->bond_params.arp_ip_targets->len > 0) {
         g_string_append_printf(params, "\nARPIPTargets=");
         for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
@@ -148,10 +171,20 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nARPValidate=%s", def->bond_params.arp_validate);
     if (def->bond_params.arp_all_targets)
         g_string_append_printf(params, "\nARPAllTargets=%s", def->bond_params.arp_all_targets);
-    if (def->bond_params.up_delay)
-        g_string_append_printf(params, "\nUpDelaySec=%d", def->bond_params.up_delay);
-    if (def->bond_params.down_delay)
-        g_string_append_printf(params, "\nDownDelaySec=%d", def->bond_params.down_delay);
+    if (def->bond_params.up_delay) {
+        g_string_append(params, "\nUpDelaySec=");
+        if (interval_has_suffix(def->bond_params.up_delay))
+            g_string_append(params, def->bond_params.up_delay);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.up_delay);
+    }
+    if (def->bond_params.down_delay) {
+        g_string_append(params, "\nDownDelaySec=");
+        if (interval_has_suffix(def->bond_params.down_delay))
+            g_string_append(params, def->bond_params.down_delay);
+        else
+            g_string_append_printf(params, "%sms", def->bond_params.down_delay);
+    }
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nFailOverMACPolicy=%s", def->bond_params.fail_over_mac_policy);
     if (def->bond_params.gratuitious_arp)
@@ -164,7 +197,7 @@ write_bond_parameters(net_definition* def, GString* s)
     if (def->bond_params.resend_igmp)
         g_string_append_printf(params, "\nResendIGMP=%d", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
-        g_string_append_printf(params, "\nLearnPacketIntervalSec=%d", def->bond_params.learn_interval);
+        g_string_append_printf(params, "\nLearnPacketIntervalSec=%s", def->bond_params.learn_interval);
 
     if (params->len)
         g_string_append_printf(s, "\n[Bond]%s\n", params->str);
@@ -263,7 +296,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
         !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
-        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans)
+        !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans &&
+        def->type < ND_VIRTUAL)
         return;
 
     /* build file contents */
@@ -280,13 +314,30 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(s, "DHCP=ipv4\n");
     else if (def->dhcp6)
         g_string_append(s, "DHCP=ipv6\n");
+
+    /* Set link local addressing -- this does not apply to bond and bridge
+     * member interfaces, which always get it disabled.
+     */
+    if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
+        if (def->linklocal.ipv4 && def->linklocal.ipv6)
+            g_string_append(s, "LinkLocalAddressing=yes\n");
+        else if (def->linklocal.ipv4)
+            g_string_append(s, "LinkLocalAddressing=ipv4\n");
+        else if (def->linklocal.ipv6)
+            g_string_append(s, "LinkLocalAddressing=ipv6\n");
+    } else {
+        g_string_append(s, "LinkLocalAddressing=no\n");
+    }
+
     if (def->ip4_addresses)
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
             g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip4_addresses, char*, i));
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
-    if (!def->accept_ra)
+    if (def->accept_ra == ACCEPT_RA_ENABLED)
+        g_string_append_printf(s, "IPv6AcceptRA=yes\n");
+    else if (def->accept_ra == ACCEPT_RA_DISABLED)
         g_string_append_printf(s, "IPv6AcceptRA=no\n");
     if (def->gateway4)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway4);
@@ -304,8 +355,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, " %s", g_array_index(def->search_domains, char*, i));
         g_string_append(s, "\n");
     }
+
+    if (def->type >= ND_VIRTUAL)
+        g_string_append(s, "ConfigureWithoutCarrier=yes\n");
+
     if (def->bridge) {
-        g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bridge);
+        g_string_append_printf(s, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
             g_string_append_printf(s, "\n[Bridge]\n");
@@ -315,7 +370,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\nIPv6AcceptRA=no\n", def->bond);
+        g_string_append_printf(s, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)
             g_string_append_printf(s, "PrimarySlave=true\n");
@@ -352,9 +407,52 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
+        if (def->critical)
+            g_string_append_printf(s, "CriticalConnection=true\n");
     }
 
     g_string_free_to_file(s, rootdir, path, ".network");
+}
+
+static void
+write_rules_file(net_definition* def, const char* rootdir)
+{
+    GString* s = NULL;
+    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
+
+    /* do we need to write a .rules file?
+     * It's only required for reliably setting the name of a physical device
+     * until systemd issue #9006 is resolved. */
+    if (def->type >= ND_VIRTUAL)
+        return;
+
+    /* Matching by name does not work.
+     *
+     * As far as I can tell, if you match by the name coming out of
+     * initrd, systemd complains that a link file is matching on a
+     * renamed name. If you match by the unstable kernel name, the
+     * device no longer has that name when udevd reads the file, so
+     * the rule doesn't fire. So only support mac and driver. */
+    if (!def->set_name || (!def->match.mac && !def->match.driver))
+        return;
+
+    /* build file contents */
+    s = g_string_sized_new(200);
+
+    g_string_append(s, "SUBSYSTEM==\"net\", ACTION==\"add\", ");
+
+    if (def->match.driver) {
+        g_string_append_printf(s,"DRIVERS==\"%s\", ", def->match.driver);
+    } else {
+        g_string_append(s, "DRIVERS==\"?*\", ");
+    }
+
+    if (def->match.mac)
+        g_string_append_printf(s, "ATTR{address}==\"%s\", ", def->match.mac);
+
+    g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
+
+    g_string_free_to_file(s, rootdir, path, NULL);
 }
 
 static void
@@ -406,9 +504,10 @@ write_networkd_conf(net_definition* def, const char* rootdir)
 {
     g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
 
-    /* We want this for all backends when renaming, as *.link files are
+    /* We want this for all backends when renaming, as *.link and *.rules files are
      * evaluated by udev, not networkd itself or NetworkManager. */
     write_link_file(def, rootdir, path_base);
+    write_rules_file(def, rootdir);
 
     if (def->backend != BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
@@ -448,8 +547,9 @@ void
 cleanup_networkd_conf(const char* rootdir)
 {
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
-    unlink_glob(rootdir, "/run/netplan/*");
+    unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
     unlink_glob(rootdir, "/run/systemd/system/multi-user.target.wants/netplan-wpa@*.service");
+    unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
 }
 
 /**

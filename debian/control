@@ -5,15 +5,18 @@ Priority: important
 Standards-Version: 4.1.3
 Build-Depends: debhelper (>= 11),
  pkg-config,
+ bash-completion,
  libyaml-dev,
  libglib2.0-dev,
  uuid-dev,
  python3 (>= 3.1),
  python3-coverage,
  python3-yaml,
+ python3-netifaces,
  systemd,
  pyflakes3,
  pycodestyle | pep8,
+ python3-nose,
  pandoc,
 Vcs-Git: https://github.com/CanonicalLtd/netplan
 Vcs-Browser: https://github.com/CanonicalLtd/netplan
@@ -23,8 +26,10 @@ Architecture: any
 Multi-Arch: foreign
 Depends: ${shlibs:Depends},
  ${misc:Depends},
+ iproute2,
  python3,
  python3-yaml,
+ python3-netifaces,
  systemd (>= 235-3ubuntu3),
 Suggests: network-manager | wpasupplicant
 Conflicts: netplan
