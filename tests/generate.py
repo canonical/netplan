@@ -1146,7 +1146,7 @@ Table=201
       routes:
         - to: 10.10.10.0/24
           via: 192.168.14.20
-          from: 192.168.14.2/32
+          from: 192.168.14.2
           metric: 100
           ''')
 
@@ -1160,7 +1160,7 @@ Address=192.168.14.2/24
 [Route]
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
-From=192.168.14.2/32
+PreferredSource=192.168.14.2
 Metric=100
 '''})
 
@@ -2930,6 +2930,91 @@ address1=2001:f00f::2/128
 route1=2001:dead:beef::2/64,2001:beef:beef::1,997
 route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 '''})
+
+    def test_route_reject_from(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          from: 192.168.14.2
+          ''', expect_fail=True)
+        self.assertIn("NetworkManager does not support routes with 'from'", err)
+
+        self.assert_nm({})
+        self.assert_networkd({})
+
+    def test_route_reject_onlink(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          on-link: true
+          ''', expect_fail=True)
+        self.assertIn('NetworkManager does not support onlink routes', err)
+
+        self.assert_nm({})
+        self.assert_networkd({})
+
+    def test_route_reject_table(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          table: 31337
+          ''', expect_fail=True)
+        self.assertIn('NetworkManager does not support non-default routing tables', err)
+
+        self.assert_nm({})
+        self.assert_networkd({})
+
+    def test_route_reject_scope(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          scope: host
+          ''', expect_fail=True)
+        self.assertIn('NetworkManager only supports global scoped routes', err)
+
+        self.assert_nm({})
+        self.assert_networkd({})
+
+    def test_route_reject_type(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          type: blackhole
+          ''', expect_fail=True)
+        self.assertIn('NetworkManager only supports unicast routes', err)
+
+        self.assert_nm({})
+        self.assert_networkd({})
 
     def test_wifi_default(self):
         self.generate('''network:

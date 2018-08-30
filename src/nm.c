@@ -134,6 +134,31 @@ write_routes(const net_definition* def, GString *s, int family)
             if (cur_route->family != family)
                 continue;
 
+            if (cur_route->type && g_ascii_strcasecmp(cur_route->type, "unicast") != 0) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager only supports unicast routes\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->scope && g_ascii_strcasecmp(cur_route->scope, "global") != 0) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager only supports global scoped routes\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->table != ROUTE_TABLE_UNSPEC) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support non-default routing tables\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->from) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support routes with 'from'\n", def->id);
+                exit(1);
+            }
+
+            if (cur_route->onlink) {
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support onlink routes\n", def->id);
+                exit(1);
+            }
+
             g_string_append_printf(s, "route%d=%s,%s",
                                    j, cur_route->to, cur_route->via);
             if (cur_route->metric != METRIC_UNSPEC)
@@ -405,8 +430,12 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "%s;", g_array_index(def->ip4_nameservers, char*, i));
         g_string_append(s, "\n");
     }
-    write_search_domains(def, s);
-    write_routes(def, s, AF_INET);
+
+    /* We can only write search domains and routes if we have an address */
+    if (def->ip4_addresses || def->dhcp4) {
+        write_search_domains(def, s);
+        write_routes(def, s, AF_INET);
+    }
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
         g_string_append(s, "\n[ipv6]\n");
@@ -423,7 +452,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append(s, "\n");
         }
         /* nm-settings(5) specifies search-domain for both [ipv4] and [ipv6] --
-         * do we really need to repeat it here? */
+         * We need to specify it here for the IPv6-only case - see LP: #1786726 */
         write_search_domains(def, s);
 
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */

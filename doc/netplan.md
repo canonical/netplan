@@ -312,7 +312,7 @@ These options are available for all types of interfaces.
 
      ``type`` (scalar)
      :    The type of route. Valid options are "unicast" (default),
-          "unreachable", "blackhole" or "prohibited".
+          "unreachable", "blackhole" or "prohibit".
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
