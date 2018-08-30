@@ -35,7 +35,12 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     if [[ $term = "search" ]]; then
 	continue
     fi
-    
+
+    # 5. gratuit_i_ous arp gets a special note
+    if [[ $term = "gratuitious-arp" ]]; then
+	continue
+    fi
+
     echo ERROR: The key "$term" is defined in the parser but not documented.
     exit 1
 done
