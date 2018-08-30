@@ -2958,7 +2958,7 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
           via: 192.168.1.20
           on-link: true
           ''', expect_fail=True)
-        self.assertIn('NetworkManager does not support onlink routes', err)
+        self.assertIn('NetworkManager does not support on-link routes', err)
 
         self.assert_nm({})
         self.assert_networkd({})
