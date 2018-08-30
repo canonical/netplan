@@ -1079,6 +1079,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 
         cur_route = g_new0(ip_route, 1);
         cur_route->type = g_strdup("unicast");
+        cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = G_MAXUINT; /* 0 is a valid metric */
 
@@ -1090,8 +1091,13 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
             g_array_append_val(cur_netdef->routes, cur_route);
         }
 
-        if (g_ascii_strcasecmp(cur_route->type, "unicast") == 0 &&
-            (!cur_route->to || !cur_route->via))
+        if (       (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
+                    || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
+                && !cur_route->to)
+            return yaml_error(node, error, "link and host routes must specify a 'to' IP");
+        else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
+                && g_ascii_strcasecmp(cur_route->scope, "global") == 0
+                && (!cur_route->to || !cur_route->via))
             return yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
         else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to)
             return yaml_error(node, error, "non-unicast routes must specify a 'to' IP");

@@ -250,13 +250,13 @@ write_route(ip_route* r, GString* s)
 {
     g_string_append_printf(s, "\n[Route]\n");
 
-    g_string_append_printf(s, "Destination=%s\nGateway=%s\n",
-                           r->to, r->via);
+    g_string_append_printf(s, "Destination=%s\n", r->to);
 
+    if (r->via)
+        g_string_append_printf(s, "Gateway=%s\n", r->via);
     if (r->from)
         g_string_append_printf(s, "From=%s\n", r->from);
-
-    if (r->scope)
+    if (g_strcmp0(r->scope, "global") != 0)
         g_string_append_printf(s, "Scope=%s\n", r->scope);
     if (g_strcmp0(r->type, "unicast") != 0)
         g_string_append_printf(s, "Type=%s\n", r->type);

@@ -1009,7 +1009,6 @@ Metric=100
       addresses: ["192.168.14.2/24"]
       routes:
         - to: 10.10.10.0/24
-          via: 192.168.14.20
           scope: link
           metric: 100
           ''')
@@ -1023,7 +1022,6 @@ Address=192.168.14.2/24
 
 [Route]
 Destination=10.10.10.0/24
-Gateway=192.168.14.20
 Scope=link
 Metric=100
 '''})
@@ -4378,6 +4376,19 @@ class TestConfigErrors(TestBase):
       routes:
         - via: 2001:dead:beef::2
           type: prohibit
+          metric: 1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_route_scope_link_missing_to(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - via: 2001:dead:beef::2
+          scope: link
           metric: 1
       addresses:
         - 192.168.14.2/24
