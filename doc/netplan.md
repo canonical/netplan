@@ -254,6 +254,15 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
      only, due to interactions with device renaming in udev. Match
      devices by MAC when setting MTU.
 
+``metric`` (scalar)
+
+:    Set the relative priority of routes on this interface. Must be a
+     positive integer value. The default value is 600 for wifi interfaces, and
+     100 for all other interfaces. The same value is used for both IPv4 and IPv6.
+
+     (See also the `metric` key for static routes. Metrics for static routes
+     will take precedence over this metric.)
+
 ``optional`` (bool)
 
 :    An optional device is not required for booting. Normally, networkd will
