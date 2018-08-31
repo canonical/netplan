@@ -410,9 +410,17 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     }
 
     if (def->dhcp4 || def->dhcp6) {
+        g_string_append_printf(s, "\n[DHCP]\n");
+        if (def->use_dns4 != def->use_dns6) {
+            /* networkd does not support disabling dhcp dns for only one of dhcp4/dhcp6 */
+            g_fprintf(stderr, "ERROR: %s: networkd backend does not support disabling dhcp for only one of dhcp4/dhcp6\n", def->id);
+            exit(1);
+        }
+        if (!def->use_dns4 || !def->use_dns6)
+            g_string_append(s, "UseDNS=false\n");
         /* isc-dhcp dhclient compatible UseMTU, networkd default is to
          * not accept MTU, which breaks clouds */
-        g_string_append_printf(s, "\n[DHCP]\nUseMTU=true\n");
+        g_string_append_printf(s, "UseMTU=true\n");
         /* NetworkManager compatible route metrics */
         g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)

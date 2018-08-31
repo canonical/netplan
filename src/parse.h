@@ -77,6 +77,9 @@ typedef struct net_definition {
     /* addresses */
     gboolean dhcp4;
     gboolean dhcp6;
+    gboolean use_dns4;
+    gboolean use_dns6;
+
     char* dhcp_identifier;
     ra_mode accept_ra;
     GArray* ip4_addresses;

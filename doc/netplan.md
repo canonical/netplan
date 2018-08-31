@@ -159,6 +159,27 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``dhcp4-overrides`` (mapping)
+
+:   Control additional DHCP properties.
+    These are the supported fields:
+    * `use-dns`
+
+``dhcp6-overrides`` (mapping)
+
+:   Control additional DHCP properties.
+    These are the supported fields:
+    * `use-dns`
+
+``use-dns`` (bool)
+
+:   Enable DHCP4/DHCP6 to provide dns servers. On by default.
+
+    If you are planning to override your DHCP server provided DNS server,
+    set this to `no`.
+    
+    **Note:** networkd does not support disabling dhcp for only one of dhcp4/dhcp6, you will need to disable it for both.
+
 ``link-local`` (sequence of scalars)
 
 :   Configure the link-local addresses to bring up. Valid options are 'ipv4'
