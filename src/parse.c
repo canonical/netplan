@@ -1296,6 +1296,15 @@ const mapping_entry_handler nameservers_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler dhcp_options_handlers[] = {
+    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.use_dns)},
+    {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.use_ntp)},
+    {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.send_hostname)},
+    {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.use_hostname)},
+    {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(dhcp_options.hostname)},
+    {NULL}
+};
+
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS                                                             \
     {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},                                   \
@@ -1304,6 +1313,7 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},         \
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},         \
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},                       \
+    {"dhcp-options", YAML_MAPPING_NODE, NULL, dhcp_options_handlers},                    \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                     \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                     \
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                               \
@@ -1457,6 +1467,12 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
             cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+
+            /* Default DHCP options. */
+            cur_netdef->dhcp_options.use_dns = TRUE;
+            cur_netdef->dhcp_options.use_ntp = TRUE;
+            cur_netdef->dhcp_options.send_hostname = TRUE;
+            cur_netdef->dhcp_options.use_hostname = TRUE;
         }
 
         // XXX: breaks multi-pass parsing.

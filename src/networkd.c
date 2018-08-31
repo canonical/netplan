@@ -428,6 +428,18 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)
             g_string_append_printf(s, "CriticalConnection=true\n");
+
+        /* Only write DHCP options that differ from the networkd default. */
+        if (!def->dhcp_options.use_dns)
+            g_string_append_printf(s, "UseDNS=false\n");
+        if (!def->dhcp_options.use_ntp)
+            g_string_append_printf(s, "UseNTP=false\n");
+        if (!def->dhcp_options.send_hostname)
+            g_string_append_printf(s, "SendHostname=false\n");
+        if (!def->dhcp_options.use_hostname)
+            g_string_append_printf(s, "UseHostname=false\n");
+        if (def->dhcp_options.hostname)
+            g_string_append_printf(s, "Hostname=%s\n", def->dhcp_options.hostname);
     }
 
     /* these do not contain secrets and need to be readable by

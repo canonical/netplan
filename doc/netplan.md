@@ -190,6 +190,11 @@ Virtual devices
     device's MAC address as a unique identifier rather than a RFC4361-compliant
     Client ID. This has no effect when NetworkManager is used as a renderer.
 
+ ``dhcp-options`` (mapping)
+
+ :  (networkd backend only) Additional DHCP options; see the
+    ``DHCP Options`` section below.
+
 ``accept-ra`` (bool)
 
 :   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
@@ -294,6 +299,37 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
+## DHCP Options
+Several DHCP configuration options are supported via the ``networkd`` backend.
+
+These only have an effect if ``dhcp4`` or ``dhcp6`` is set to ``true``.
+
+``dhcp-options`` (mapping)
+
+:    The ``dhcp-options`` block defines additional DHCP configuration for the
+     ``networkd`` backend.
+
+     ``use-dns`` (bool)
+     :    Default: ``true``. When ``true``, the DNS servers received from the
+          DHCP server will be used and take precedence over any statically
+          configured ones.
+
+     ``use-ntp`` (bool)
+     :    Default: ``true``. When ``true``, the NTP servers received from the
+          DHCP server will be used by systemd-timesyncd and take precedence
+          over any statically configured ones.
+
+     ``send-hostname`` (bool)
+     :    Default: ``true``. When ``true``, the machine's hostname will be sent
+          to the DHCP server.
+
+     ``use-hostname`` (bool)
+     :    Default: ``true``. When ``true``, the hostname received from the DHCP
+          server will be set as the transient hostname of the system.
+
+     ``hostname`` (scalar)
+     :    Use this value for the hostname which is sent to the DHCP server,
+          instead of machine's hostname.
 
 ## Routing
 Complex routing is possible with netplan. Standard static routes as well

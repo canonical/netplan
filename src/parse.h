@@ -94,6 +94,13 @@ typedef struct net_definition {
     gboolean dhcp4;
     gboolean dhcp6;
     char* dhcp_identifier;
+    struct {
+        gboolean use_dns;
+        gboolean use_ntp;
+        gboolean send_hostname;
+        gboolean use_hostname;
+        char* hostname;
+    } dhcp_options;
     ra_mode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;

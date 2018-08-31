@@ -933,6 +933,118 @@ UseMTU=true
 RouteMetric=100
 '''})
 
+    def test_dhcp_options_use_dns(self):
+        # This option should be silently ignored, since it's the default
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        use-dns: yes
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+    def test_dhcp_options_no_use_dns(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        use-dns: no
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "UseDNS=false\n"})
+
+    def test_dhcp_options_use_ntp(self):
+        # This option should be silently ignored, since it's the default
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        use-ntp: yes
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+    def test_dhcp_options_no_use_ntp(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        use-ntp: no
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "UseNTP=false\n"})
+
+    def test_dhcp_options_send_hostname(self):
+        # This option should be silently ignored, since it's the default
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        send-hostname: yes
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+    def test_dhcp_options_no_send_hostname(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        send-hostname: no
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "SendHostname=false\n"})
+
+    def test_dhcp_options_use_hostname(self):
+        # This option should be silently ignored, since it's the default
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        use-hostname: yes
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+    def test_dhcp_options_no_use_hostname(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        use-hostname: no
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "UseHostname=false\n"})
+
+    def test_dhcp_options_hostname(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp-options:
+        hostname: my-host
+''')
+
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "Hostname=my-host\n"})
+
     def test_route_v4_single(self):
         self.generate('''network:
   version: 2
