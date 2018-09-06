@@ -818,6 +818,90 @@ UseMTU=true
 RouteMetric=100
 '''})
 
+    def test_eth_use_dns_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4-overrides:
+        use-dns: no''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+ignore-auto-dns=true
+
+[ipv6]
+method=ignore
+'''})
+
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp6: true
+      dhcp6-overrides:
+        use-dns: no''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+ignore-auto-dns=true
+'''})
+
+    def test_eth_use_dns_networkd(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        use-dns: no
+      dhcp6-overrides:
+        use-dns: no''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[DHCP]
+UseDNS=false
+UseMTU=true
+RouteMetric=100
+'''})
+
+    def test_eth_use_dns_networkd_err(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        use-dns: no''', expect_fail=True)
+        self.assertIn('networkd backend does not support disabling dhcp for only one', err)
+
     def test_dhcp_critical_true(self):
         self.generate('''network:
   version: 2

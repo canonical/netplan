@@ -1265,12 +1265,24 @@ const mapping_entry_handler nameservers_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler dhcp4_overrides_handlers[] = {
+    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(use_dns4)},
+    {NULL}
+};
+
+const mapping_entry_handler dhcp6_overrides_handlers[] = {
+    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(use_dns6)},
+    {NULL}
+};
+
 const mapping_entry_handler ethernet_def_handlers[] = {
     {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp4-overrides", YAML_MAPPING_NODE, NULL, dhcp4_overrides_handlers},
+    {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1295,6 +1307,8 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp4-overrides", YAML_MAPPING_NODE, NULL, dhcp4_overrides_handlers},
+    {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1318,6 +1332,8 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp4-overrides", YAML_MAPPING_NODE, NULL, dhcp4_overrides_handlers},
+    {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1340,6 +1356,8 @@ const mapping_entry_handler bond_def_handlers[] = {
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp4-overrides", YAML_MAPPING_NODE, NULL, dhcp4_overrides_handlers},
+    {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1362,6 +1380,8 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
+    {"dhcp4-overrides", YAML_MAPPING_NODE, NULL, dhcp4_overrides_handlers},
+    {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
@@ -1478,6 +1498,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
             /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
             cur_netdef->linklocal.ipv6 = TRUE;
+            cur_netdef->use_dns4 = TRUE;
+            cur_netdef->use_dns6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 

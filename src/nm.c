@@ -424,6 +424,8 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip4_addresses, char*, i));
     if (def->gateway4)
         g_string_append_printf(s, "gateway=%s\n", def->gateway4);
+    if (!def->use_dns4)
+        g_string_append(s, "ignore-auto-dns=true\n");
     if (def->ip4_nameservers) {
         g_string_append(s, "dns=");
         for (unsigned i = 0; i < def->ip4_nameservers->len; ++i)
@@ -445,6 +447,8 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
         if (def->gateway6)
             g_string_append_printf(s, "gateway=%s\n", def->gateway6);
+        if (!def->use_dns6)
+            g_string_append(s, "ignore-auto-dns=true\n");
         if (def->ip6_nameservers) {
             g_string_append(s, "dns=");
             for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
