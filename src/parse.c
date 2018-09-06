@@ -1265,116 +1265,62 @@ const mapping_entry_handler nameservers_handlers[] = {
     {NULL}
 };
 
+/* Handlers shared by all link types */
+#define COMMON_LINK_HANDLERS                                                             \
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},                                   \
+    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},                                 \
+    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},   \
+    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},         \
+    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},         \
+    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},                       \
+    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                     \
+    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                     \
+    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                               \
+    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},   \
+    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},       \
+    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},                      \
+    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},   \
+    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},                              \
+    {"routes", YAML_SEQUENCE_NODE, handle_routes},                                       \
+    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
+
+/* Handlers for physical links */
+#define PHYSICAL_LINK_HANDLERS                                                           \
+    {"match", YAML_MAPPING_NODE, handle_match},						 \
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},	 \
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}
+
 const mapping_entry_handler ethernet_def_handlers[] = {
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
-    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
-    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
-    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
-    {"match", YAML_MAPPING_NODE, handle_match},
-    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"routes", YAML_SEQUENCE_NODE, handle_routes},
-    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
-    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
-    {NULL}
+    COMMON_LINK_HANDLERS,
+    PHYSICAL_LINK_HANDLERS,
+    {NULL},
 };
 
 const mapping_entry_handler wifi_def_handlers[] = {
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
+    COMMON_LINK_HANDLERS,
+    PHYSICAL_LINK_HANDLERS,
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
-    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
-    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
-    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
-    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
-    {"match", YAML_MAPPING_NODE, handle_match},
-    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"routes", YAML_SEQUENCE_NODE, handle_routes},
-    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},
-    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
 const mapping_entry_handler bridge_def_handlers[] = {
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
-    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
-    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
-    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    COMMON_LINK_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
-    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
-    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"routes", YAML_SEQUENCE_NODE, handle_routes},
-    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
-    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
 const mapping_entry_handler bond_def_handlers[] = {
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
-    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
-    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
-    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    COMMON_LINK_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
-    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
-    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"routes", YAML_SEQUENCE_NODE, handle_routes},
-    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
-    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
 const mapping_entry_handler vlan_def_handlers[] = {
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},
-    {"addresses", YAML_SEQUENCE_NODE, handle_addresses},
-    {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},
-    {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},
-    {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},
-    {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},
-    {"gateway4", YAML_SCALAR_NODE, handle_gateway4},
-    {"gateway6", YAML_SCALAR_NODE, handle_gateway6},
+    COMMON_LINK_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
-    {"link-local", YAML_SEQUENCE_NODE, handle_link_local},
-    {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},
-    {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},
-    {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},
-    {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},
-    {"routes", YAML_SEQUENCE_NODE, handle_routes},
-    {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules},
-    {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},
     {NULL}
 };
 
