@@ -743,6 +743,37 @@ handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError
     return TRUE;
 }
 
+struct optional_address_option optional_address_options[] = {
+    {"ipv4-ll", OPTIONAL_IPV4_LL},
+    {"ipv6-ra", OPTIONAL_IPV6_RA},
+    {"dhcp4",   OPTIONAL_DHCP4},
+    {"dhcp6",   OPTIONAL_DHCP6},
+    {"static",  OPTIONAL_STATIC},
+    {NULL},
+};
+
+static gboolean
+handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+	int found = FALSE;
+
+	for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
+	    if (g_ascii_strcasecmp(scalar(entry), optional_address_options[i].name) == 0) {
+		cur_netdef->optional_addresses |= optional_address_options[i].flag;
+		found = TRUE;
+		break;
+	    }
+	}
+	if (!found) {
+            return yaml_error(node, error, "invalid value for optional-addresses: %s", scalar(entry));
+	}
+    }
+    return TRUE;
+}
+
 static int
 get_ip_family(const char* address)
 {
@@ -1280,6 +1311,7 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},       \
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},                      \
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},   \
+    {"optional-addresses", YAML_SEQUENCE_NODE, handle_optional_addresses},               \
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},                              \
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                       \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}

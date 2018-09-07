@@ -19,9 +19,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import random
 import re
 import sys
 import stat
+import string
 import tempfile
 import textwrap
 import subprocess
@@ -79,6 +81,14 @@ class TestBase(unittest.TestCase):
         self.assertEqual(out, '')
         return err
 
+    def eth_name(self):
+        """Return a link name.
+
+        Use when you need a link name for a test but don't want to
+        encode a made up name in the test.
+        """
+        return 'eth' + ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+
     def assert_networkd(self, file_contents_map):
         networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
         if not file_contents_map:
@@ -105,6 +115,12 @@ class TestBase(unittest.TestCase):
         for fname, contents in file_contents_map.items():
             with open(os.path.join(udev_dir, '99-netplan-' + fname)) as f:
                 self.assertEqual(f.read(), contents)
+
+    def get_network_config_for_link(self, link_name):
+        """Return the content of the .network file for `link_name`."""
+        networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
+        with open(os.path.join(networkd_dir, '10-netplan-{}.network'.format(link_name))) as f:
+            return f.read()
 
     def assert_nm(self, connections_map=None, conf=None):
         # check config
@@ -314,6 +330,39 @@ UseMTU=true
 RouteMetric=100
 '''})
         self.assert_networkd_udev(None)
+
+    def config_with_optional_addresses(self, eth_name, optional_addresses):
+        return '''network:
+  version: 2
+  ethernets:
+    {}:
+      dhcp6: true
+      optional-addresses: {}'''.format(eth_name, optional_addresses)
+
+    def get_optional_addresses(self, eth_name):
+        config = self.get_network_config_for_link(eth_name)
+        r = set()
+        prefix = "OptionalAddresses="
+        for line in config.splitlines():
+            if line.startswith(prefix):
+                r.add(line[len(prefix):])
+        return r
+
+    def test_eth_optional_addresses(self):
+        eth_name = self.eth_name()
+        self.generate(self.config_with_optional_addresses(eth_name, '["dhcp4"]'))
+        self.assertEqual(self.get_optional_addresses(eth_name), set(["dhcp4"]))
+
+    def test_eth_optional_addresses_multiple(self):
+        eth_name = self.eth_name()
+        self.generate(self.config_with_optional_addresses(eth_name, '[dhcp4, ipv4-ll, ipv6-ra, dhcp6, dhcp4, static]'))
+        self.assertEqual(
+            self.get_optional_addresses(eth_name),
+            set(["ipv4-ll", "ipv6-ra", "dhcp4", "dhcp6", "static"]))
+
+    def test_eth_optional_addresses_invalid(self):
+        eth_name = self.eth_name()
+        self.generate(self.config_with_optional_addresses(eth_name, '["invalid"]'), expect_fail=True)
 
     def test_eth_wol(self):
         self.generate('''network:

@@ -55,6 +55,21 @@ typedef enum {
     ACCEPT_RA_DISABLED,
 } ra_mode;
 
+typedef enum {
+    OPTIONAL_IPV4_LL = 1<<0,
+    OPTIONAL_IPV6_RA = 1<<1,
+    OPTIONAL_DHCP4   = 1<<2,
+    OPTIONAL_DHCP6   = 1<<3,
+    OPTIONAL_STATIC  = 1<<4,
+} optional_addr;
+
+struct optional_address_option {
+    char* name;
+    optional_addr flag;
+};
+
+extern struct optional_address_option optional_address_options[];
+
 typedef struct missing_node {
     char* netdef_id;
     const yaml_node_t* node;
@@ -72,6 +87,7 @@ typedef struct net_definition {
 
     /* status options */
     gboolean optional;
+    optional_addr optional_addresses;
     gboolean critical;
 
     /* addresses */
