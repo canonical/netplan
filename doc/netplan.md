@@ -246,12 +246,18 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 ``macaddress`` (scalar)
 
 :   Set the device's MAC address. The MAC address must be in the form
-"XX:XX:XX:XX:XX:XX".
+    "XX:XX:XX:XX:XX:XX".
+
+    **Note:** This will not work reliably for devices matched by name
+    only and rendered by networkd, due to interactions with device
+    renaming in udev. Match devices by MAC when setting MAC addresses.
 
     Example:
 
         ethernets:
           id0:
+            match:
+              macaddress: 52:54:00:6b:3c:58
             [...]
             macaddress: 52:54:00:6b:3c:59
 
@@ -261,8 +267,8 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
      Valid values depend on your network interface.
 
      **Note:** This will not work reliably for devices matched by name
-     only, due to interactions with device renaming in udev. Match
-     devices by MAC when setting MTU.
+     only and rendered by networkd, due to interactions with device
+     renaming in udev. Match devices by MAC when setting MTU.
 
 ``optional`` (bool)
 
