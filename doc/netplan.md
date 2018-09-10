@@ -770,6 +770,8 @@ This is a complex example which shows most available features:
               from: 192.168.14.3/24
               table: 70
               priority: 50
+          # only networkd can render on-link routes and routing policies
+          renderer: networkd
         lom:
           match:
             driver: ixgbe
