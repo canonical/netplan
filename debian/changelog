@@ -16,6 +16,8 @@ netplan.io (0.40) UNRELEASED; urgency=medium
       - iproute2 output changes for link-scope routes
       - fix stability of networkd igmp-resend test
       - fix manual_addresses test now that networkd lists ~. domain
+    - Deduplicate code for parsing interface options
+    - Add support for optional-addresses.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 05 Sep 2018 16:32:43 -0400
 
