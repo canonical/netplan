@@ -960,7 +960,7 @@ class _CommonTests:
       interfaces: [ethbn, ethb2]
       parameters:
         mode: balance-rr
-        mii-monitor-interval: 5
+        mii-monitor-interval: 50s
         resend-igmp: 100
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1019,30 +1019,6 @@ class _CommonTests:
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'10.10.10.0/24 via 192.168.5.254',  # from DHCP
-                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'metric 99',  # check metric from static route
-                      subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
-
-    def test_link_route_v4(self):
-        self.setup_eth(None)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  renderer: %(r)s
-  ethernets:
-    %(ec)s:
-      addresses:
-          - 192.168.5.99/24
-      gateway4: 192.168.5.1
-      routes:
-          - to: 10.10.10.0/24
-            scope: link
-            metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet 192.168.5.[0-9]+/24'])  # from DHCP
-        self.assertIn(b'default via 192.168.5.1',  # from DHCP
-                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-        self.assertIn(b'10.10.10.0/24 dev %(ec)s proto static scope link' % {'ec': self.dev_e_client},
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'metric 99',  # check metric from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
@@ -1127,7 +1103,7 @@ class _CommonTests:
             sys.stdout.flush()
             out = subprocess.check_output(['systemd-resolve', '--status'], universal_newlines=True)
             self.assertIn('DNS Servers: 172.1.2.3', out)
-            self.assertIn('DNS Domain: fakesuffix', out)
+            self.assertIn('fakesuffix', out)
         else:
             sys.stdout.write('[/etc/resolv.conf] ')
             sys.stdout.flush()
@@ -1403,6 +1379,30 @@ wpa_passphrase=12345678
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
+
+    def test_link_route_v4(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+          - 192.168.5.99/24
+      gateway4: 192.168.5.1
+      routes:
+          - to: 10.10.10.0/24
+            scope: link
+            metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'])  # from DHCP
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'10.10.10.0/24 proto static scope link',
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'metric 99',  # check metric from static route
+                      subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
     def test_eth_dhcp6_off(self):
         self.setup_eth('slaac')

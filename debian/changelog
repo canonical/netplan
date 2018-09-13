@@ -12,6 +12,10 @@ netplan.io (0.40) UNRELEASED; urgency=medium
     - Spell Gratuitous ARP correctly and make it work. (LP: #1756701)
     - Many typo fixes for documentation. (LP: #1783940)
     - Various build system fixes.
+    - Fix integration tests:
+      - iproute2 output changes for link-scope routes
+      - fix stability of networkd igmp-resend test
+      - fix manual_addresses test now that networkd lists ~. domain
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 05 Sep 2018 16:32:43 -0400
 
