@@ -270,6 +270,22 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             dhcp4: true
             optional: true
 
+``optional-addresses`` (sequence of scalars)
+
+:    Specify types of addresses that are not required for a device to be
+     considered online. This changes the behavior of backends at boot time to
+     avoid waiting for addresses that are marked optional, and thus consider
+     the interface as "usable" sooner. This does not disable these addresses,
+     which will be brought up anyway.
+
+    Example:
+
+        ethernets:
+          eth7:
+            dhcp4: true
+            dhcp6: true
+            optional-addresses: [ ipv4-ll, dhcp6 ]
+
 ``routes`` (mapping)
 
 :   Configure static routing for the device; see the ``Routing`` section below.
