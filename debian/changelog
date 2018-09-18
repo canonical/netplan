@@ -1,4 +1,4 @@
-netplan.io (0.40) UNRELEASED; urgency=medium
+netplan.io (0.40) cosmic; urgency=medium
 
   * New upstream release:
     - networkd: route source is PreferredSource= not From=
@@ -19,7 +19,7 @@ netplan.io (0.40) UNRELEASED; urgency=medium
     - Deduplicate code for parsing interface options
     - Add support for optional-addresses.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 05 Sep 2018 16:32:43 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 13 Sep 2018 17:29:41 -0400
 
 netplan.io (0.39) cosmic; urgency=medium
 
