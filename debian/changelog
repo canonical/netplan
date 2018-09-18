@@ -1,3 +1,10 @@
+netplan.io (0.40ubuntu1) UNRELEASED; urgency=medium
+
+  * tests/generate.py: use random.sample() instead of random.choices() to
+    better support older pythons.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 18 Sep 2018 05:48:02 -0400
+
 netplan.io (0.40) cosmic; urgency=medium
 
   * New upstream release:

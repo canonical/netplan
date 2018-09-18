@@ -87,7 +87,7 @@ class TestBase(unittest.TestCase):
         Use when you need a link name for a test but don't want to
         encode a made up name in the test.
         """
-        return 'eth' + ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+        return 'eth' + ''.join(random.sample(string.ascii_letters + string.digits, k=4))
 
     def assert_networkd(self, file_contents_map):
         networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
