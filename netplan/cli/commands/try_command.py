@@ -43,7 +43,14 @@ class NetplanTry(utils.NetplanCommand):
                          leaf=True)
         self.configuration_changed = False
         self.new_interfaces = None
-        self.config_manager = ConfigManager()
+        self._config_manager = None
+        self.t_settings = None
+
+    @property
+    def config_manager(self):  # pragma: nocover (called by later commands)
+        if not self._config_manager:
+            self._config_manager = ConfigManager()
+        return self._config_manager
 
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
@@ -63,7 +70,8 @@ class NetplanTry(utils.NetplanCommand):
 
         try:
             fd = sys.stdin.fileno()
-            t = netplan.terminal.Terminal(fd)
+            self.t = netplan.terminal.Terminal(fd)
+            self.t.save(self.t_settings)
 
             # we really don't want to be interrupted while doing backup/revert operations
             signal.signal(signal.SIGINT, self._signal_handler)
@@ -73,17 +81,18 @@ class NetplanTry(utils.NetplanCommand):
 
             NetplanApply.command_apply(run_generate=True, sync=True, exit_on_error=False)
 
-            t.get_confirmation_input(timeout=self.timeout)
+            self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
             print("\nReverting.")
             self.revert()
         except netplan.terminal.InputAccepted:
             print("\nConfiguration accepted.")
         except Exception as e:
-            print("\nAn error occured: %s" % e)
+            print("\nAn error occurred: %s" % e)
             print("\nReverting.")
             self.revert()
         finally:
+            self.t.reset(self.t_settings)
             self.cleanup()
 
     def backup(self):  # pragma: nocover (requires user input)

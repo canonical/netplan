@@ -52,6 +52,13 @@ class ConfigManager(object):
         return interfaces
 
     @property
+    def physical_interfaces(self):
+        interfaces = {}
+        interfaces.update(self.ethernets)
+        interfaces.update(self.wifis)
+        return interfaces
+
+    @property
     def ethernets(self):
         return self.network['ethernets']
 

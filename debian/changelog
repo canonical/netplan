@@ -1,25 +1,77 @@
-netplan.io (0.36.3) bionic; urgency=medium
+netplan.io (0.40~18.04.1) UNRELEASED; urgency=medium
 
-  * Generate udev rules files to rename devices (LP: #1770082)
-    Due to a systemd issue[1], using link files to rename interfaces
-    doesn't work as expected. Link files will not rename an interface
-    if it was already renamed, and interfaces are renamed in initrd, so
-    set-name will often not work as expected when rebooting. However,
-    rules files will cause a renaming, even if the interface has been
-    renamed in initrd.
+  * Backport netplan 0.40 to 18.04. (LP: #1793309)
+  * tests/generate.py: use random.sample() instead of random.choices() to
+    better support older pythons.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 19 Sep 2018 15:09:57 +0200
+
+netplan.io (0.40) cosmic; urgency=medium
+
+  * New upstream release:
+    - networkd: route source is PreferredSource= not From=
+    - Improve NetworkManager error reporting on unrenderable routes.
+    - Don't render ipv4 dns-search unless we have an ipv4 address.
+      (LP: #1786726)
+    - Set permissive umask on networkd .network, .link and .netdev files
+      (LP: #1736965, LP: #1768560)
+    - Fix support for link-scope routes. (LP: #1747455)
+    - Update man pages for deletion of replug code.
+    - Spell Gratuitous ARP correctly and make it work. (LP: #1756701)
+    - Many typo fixes for documentation. (LP: #1783940)
+    - Various build system fixes.
+    - Fix integration tests:
+      - iproute2 output changes for link-scope routes
+      - fix stability of networkd igmp-resend test
+      - fix manual_addresses test now that networkd lists ~. domain
+    - Deduplicate code for parsing interface options
+    - Add support for optional-addresses.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 13 Sep 2018 17:29:41 -0400
+
+netplan.io (0.39) cosmic; urgency=medium
+
+  * New upstream release:
+    - Allow link-local addresses to be configured. (LP: #1771704)
+    - Forces bridges with no addresses to be brought online. (LP: #1736975)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 16 Jul 2018 08:15:05 -0400
+
+netplan.io (0.38) cosmic; urgency=medium
+
+  * New upstream release:
+    - Write udev .rules files to /run/udev/rules.d to enforce interface
+      renaming. (LP: #1770082)
+    - Don't traceback for 'netplan ip leases' when iface is not managed or
+      doesn't DHCP (LP: #1768823)
+    - Fix duplicate "/" path separator in error messages (LP: #1771440)
+    - Fix incorrect terminal reset in 'netplan try' on Ctrl-C. (LP: #1768798)
+    - Updated doc entries: mtu, fix fwmark->mark, cleanup optional.
+      (LP: #1768783)
+    - Added documentation validation at build.
+    - Added configuration example for multi-ip interfaces.
   * tests/integration.py: fix test_eth_and_bridge autopkg test harder.
-  * tests/integration.py: fix test_mix_bridge_on_bond autopkgtest too.
+  * debian/control:
+    - Add iproute2 to Depends.
+    - Add python3-netifaces to Depends, Build-Depends.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 05 Jul 2018 16:54:52 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 04 Jun 2018 14:45:26 -0400
 
-netplan.io (0.36.2) bionic; urgency=medium
+netplan.io (0.37.1) cosmic; urgency=medium
+
+  * tests/integration.py: fix autopkgtests to be less flaky, especially given
+    changes in systemd-networkd's behavior regarding Router Advertisements.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 11 May 2018 09:58:19 -0400
+
+netplan.io (0.37) cosmic; urgency=medium
 
   * doc/netplan.md: Clarify the behavior for time-based values for bonds
     and bridges. (LP: #1756587)
   * critical: provide a way to set "CriticalConnection=true" on a networkd
     connection, especially for remote-fs scenarios. (LP: #1769682)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 08 May 2018 15:33:48 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 08 May 2018 17:02:26 -0400
 
 netplan.io (0.36.1) bionic; urgency=medium
 

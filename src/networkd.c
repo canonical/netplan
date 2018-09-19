@@ -86,6 +86,7 @@ static void
 write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* Don't write .link files for virtual devices; they use .netdev instead */
     if (def->type >= ND_VIRTUAL)
@@ -110,7 +111,9 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
 
 
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".link");
+    umask(orig_umask);
 }
 
 
@@ -187,8 +190,8 @@ write_bond_parameters(net_definition* def, GString* s)
     }
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nFailOverMACPolicy=%s", def->bond_params.fail_over_mac_policy);
-    if (def->bond_params.gratuitious_arp)
-        g_string_append_printf(params, "\nGratuitiousARP=%d", def->bond_params.gratuitious_arp);
+    if (def->bond_params.gratuitous_arp)
+        g_string_append_printf(params, "\nGratuitousARP=%d", def->bond_params.gratuitous_arp);
     /* TODO: add unsolicited_na, not documented as supported by NM. */
     if (def->bond_params.packets_per_slave)
         g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_slave);
@@ -209,6 +212,7 @@ static void
 write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     g_assert(def->type >= ND_VIRTUAL);
 
@@ -242,7 +246,11 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
         // LCOV_EXCL_STOP
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".netdev");
+    umask(orig_umask);
 }
 
 static void
@@ -250,13 +258,14 @@ write_route(ip_route* r, GString* s)
 {
     g_string_append_printf(s, "\n[Route]\n");
 
-    g_string_append_printf(s, "Destination=%s\nGateway=%s\n",
-                           r->to, r->via);
+    g_string_append_printf(s, "Destination=%s\n", r->to);
 
+    if (r->via)
+        g_string_append_printf(s, "Gateway=%s\n", r->via);
     if (r->from)
-        g_string_append_printf(s, "From=%s\n", r->from);
+        g_string_append_printf(s, "PreferredSource=%s\n", r->from);
 
-    if (r->scope)
+    if (g_strcmp0(r->scope, "global") != 0)
         g_string_append_printf(s, "Scope=%s\n", r->scope);
     if (g_strcmp0(r->type, "unicast") != 0)
         g_string_append_printf(s, "Type=%s\n", r->type);
@@ -292,6 +301,7 @@ static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
@@ -304,8 +314,17 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     s = g_string_sized_new(200);
     append_match_section(def, s, TRUE);
 
-    if (def->optional)
-        g_string_append(s, "\n[Link]\nRequiredForOnline=no\n");
+    if (def->optional || def->optional_addresses) {
+        g_string_append(s, "\n[Link]\n");
+	if (def->optional) {
+	    g_string_append(s, "RequiredForOnline=no\n");
+	}
+	for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
+	    if (def->optional_addresses & optional_address_options[i].flag) {
+		g_string_append_printf(s, "OptionalAddresses=%s\n", optional_address_options[i].name);
+	    }
+	}
+    }
 
     g_string_append(s, "\n[Network]\n");
     if (def->dhcp4 && def->dhcp6)
@@ -314,6 +333,21 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(s, "DHCP=ipv4\n");
     else if (def->dhcp6)
         g_string_append(s, "DHCP=ipv6\n");
+
+    /* Set link local addressing -- this does not apply to bond and bridge
+     * member interfaces, which always get it disabled.
+     */
+    if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
+        if (def->linklocal.ipv4 && def->linklocal.ipv6)
+            g_string_append(s, "LinkLocalAddressing=yes\n");
+        else if (def->linklocal.ipv4)
+            g_string_append(s, "LinkLocalAddressing=ipv4\n");
+        else if (def->linklocal.ipv6)
+            g_string_append(s, "LinkLocalAddressing=ipv6\n");
+    } else {
+        g_string_append(s, "LinkLocalAddressing=no\n");
+    }
+
     if (def->ip4_addresses)
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
             g_string_append_printf(s, "Address=%s\n", g_array_index(def->ip4_addresses, char*, i));
@@ -345,7 +379,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(s, "ConfigureWithoutCarrier=yes\n");
 
     if (def->bridge) {
-        g_string_append_printf(s, "Bridge=%s\nLinkLocalAddressing=no\n", def->bridge);
+        g_string_append_printf(s, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
             g_string_append_printf(s, "\n[Bridge]\n");
@@ -355,7 +389,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_string_append_printf(s, "Bond=%s\nLinkLocalAddressing=no\n", def->bond);
+        g_string_append_printf(s, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)
             g_string_append_printf(s, "PrimarySlave=true\n");
@@ -396,7 +430,55 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "CriticalConnection=true\n");
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".network");
+    umask(orig_umask);
+}
+
+static void
+write_rules_file(net_definition* def, const char* rootdir)
+{
+    GString* s = NULL;
+    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
+    mode_t orig_umask;
+
+    /* do we need to write a .rules file?
+     * It's only required for reliably setting the name of a physical device
+     * until systemd issue #9006 is resolved. */
+    if (def->type >= ND_VIRTUAL)
+        return;
+
+    /* Matching by name does not work.
+     *
+     * As far as I can tell, if you match by the name coming out of
+     * initrd, systemd complains that a link file is matching on a
+     * renamed name. If you match by the unstable kernel name, the
+     * device no longer has that name when udevd reads the file, so
+     * the rule doesn't fire. So only support mac and driver. */
+    if (!def->set_name || (!def->match.mac && !def->match.driver))
+        return;
+
+    /* build file contents */
+    s = g_string_sized_new(200);
+
+    g_string_append(s, "SUBSYSTEM==\"net\", ACTION==\"add\", ");
+
+    if (def->match.driver) {
+        g_string_append_printf(s,"DRIVERS==\"%s\", ", def->match.driver);
+    } else {
+        g_string_append(s, "DRIVERS==\"?*\", ");
+    }
+
+    if (def->match.mac)
+        g_string_append_printf(s, "ATTR{address}==\"%s\", ", def->match.mac);
+
+    g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
+
+    orig_umask = umask(022);
+    g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
 }
 
 static void

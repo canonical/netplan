@@ -12,6 +12,7 @@ Build-Depends: debhelper (>= 11),
  python3 (>= 3.1),
  python3-coverage,
  python3-yaml,
+ python3-netifaces,
  systemd,
  pyflakes3,
  pycodestyle | pep8,
@@ -25,8 +26,10 @@ Architecture: any
 Multi-Arch: foreign
 Depends: ${shlibs:Depends},
  ${misc:Depends},
+ iproute2,
  python3,
  python3-yaml,
+ python3-netifaces,
  systemd (>= 235-3ubuntu3),
 Suggests: network-manager | wpasupplicant
 Conflicts: netplan

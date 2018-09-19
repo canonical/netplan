@@ -153,11 +153,30 @@ Virtual devices
     If you are in an IPv6-only environment with completely stateless
     autoconfiguration (SLAAC with RDNSS), this option can be set to cause the
     interface to be brought up. (Setting accept-ra alone is not sufficient.)
-    Autoconfiguration will still honour the contents of the router advertisment
+    Autoconfiguration will still honour the contents of the router advertisement
     and only use DHCP if requested in the RA.
 
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
+
+``link-local`` (sequence of scalars)
+
+:   Configure the link-local addresses to bring up. Valid options are 'ipv4'
+    and 'ipv6', which respectively allow enabling IPv4 and IPv6 link local
+    addressing. If this field is not defined, the default is to enable only
+    IPv6 link-local addresses. If the field is defined but configured as an
+    empty set, IPv6 link-local addresses are disabled as well as IPv4 link-
+    local addresses.
+
+    This feature enables or disables link-local addresses for a protocol, but
+    the actual implementation differs per backend. On networkd, this directly
+    changes the behavior and may add an extra address on an interface. When
+    using the NetworkManager backend, enabling link-local has no effect if the
+    interface also has DHCP enabled.
+
+    Example to enable only IPv4 link-local: ``link-local: [ ipv4 ]``
+    Example to enable all link-local addresses: ``link-local: [ ipv4, ipv6 ]``
+    Example to disable all link-local addresses: ``link-local: [ ]``
 
 ``critical`` (bool)
 
@@ -183,6 +202,10 @@ Virtual devices
     through DHCP or RA. Each sequence entry is in CIDR notation, i. e. of the
     form ``addr/prefixlen``. ``addr`` is an IPv4 or IPv6 address as recognized
     by **``inet_pton``**(3) and ``prefixlen`` the number of bits of the subnet.
+
+    For virtual devices (bridges, bonds, vlan) if there is no address
+    configured and DHCP is disabled, the interface may still be brought online,
+    but will not be addressable from the network.
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
@@ -222,13 +245,21 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             [...]
             macaddress: 52:54:00:6b:3c:59
 
-``optional`` (boolean)
+``mtu`` (scalar)
 
-: An optional device is not required for booting. Normally, networkd
-will wait some time for device to become configured before proceeding
-with booting. However, if a device is marked as optional, networkd
-will not wait for it. This is *only* supported by networkd, and the
-default is false.
+:    Set the Maximum Transmission Unit for the interface. The default is 1500.
+     Valid values depend on your network interface.
+
+     **Note:** This will not work reliably for devices matched by name
+     only, due to interactions with device renaming in udev. Match
+     devices by MAC when setting MTU.
+
+``optional`` (bool)
+
+:    An optional device is not required for booting. Normally, networkd will
+     wait some time for device to become configured before proceeding with
+     booting. However, if a device is marked as optional, networkd will not wait
+     for it. This is *only* supported by networkd, and the default is false.
 
     Example:
 
@@ -238,6 +269,22 @@ default is false.
             # down - don't wait for it to come up during boot.
             dhcp4: true
             optional: true
+
+``optional-addresses`` (sequence of scalars)
+
+:    Specify types of addresses that are not required for a device to be
+     considered online. This changes the behavior of backends at boot time to
+     avoid waiting for addresses that are marked optional, and thus consider
+     the interface as "usable" sooner. This does not disable these addresses,
+     which will be brought up anyway.
+
+    Example:
+
+        ethernets:
+          eth7:
+            dhcp4: true
+            dhcp6: true
+            optional-addresses: [ ipv4-ll, dhcp6 ]
 
 ``routes`` (mapping)
 
@@ -281,7 +328,7 @@ These options are available for all types of interfaces.
 
      ``type`` (scalar)
      :    The type of route. Valid options are "unicast" (default),
-          "unreachable", "blackhole" or "prohibited".
+          "unreachable", "blackhole" or "prohibit".
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
@@ -323,7 +370,7 @@ These options are available for all types of interfaces.
           in which routing rules are processed. A higher number means lower
           priority: rules are processed in order by increasing priority number.
 
-     ``fwmark`` (scalar)
+     ``mark`` (scalar)
      :    Have this routing policy rule match on traffic that has been marked
           by the iptables firewall with this value. Allowed values are positive
           integers starting from 1.
@@ -362,7 +409,9 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``interfaces`` (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bridge.
+:    All devices matching this ID list will be added to the bridge. This may
+     be an empty list, in which case the bridge will be brought online with
+     no member interfaces.
 
      Example:
 
@@ -525,12 +574,15 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           them to the bond, or how else the system should handle MAC addresses.
           The possible values are ``none``, ``active``, and ``follow``.
 
-     ``gratuitious-arp`` (scalar)
+     ``gratuitous-arp`` (scalar)
      :    Specify how many ARP packets to send after failover. Once a link is
           up on a new slave, a notification is sent and possibly repeated if
           this value is set to a number greater than ``1``. The default value
           is ``1`` and valid values are between ``1`` and ``255``. This only
           affects ``active-backup`` mode.
+
+          For historical reasons, the misspelling ``gratuitious-arp`` is also
+          accepted and has the same function.
 
      ``packets-per-slave`` (scalar)
      :    In ``balance-rr`` mode, specifies the number of packets to transmit
@@ -605,6 +657,30 @@ DHCP:
       ethernets:
         eno1:
           dhcp4: true
+          
+This is an example of a static-configured interface with multiple IPv4 addresses
+and multiple gateways with networkd, with equal route metric levels, and static 
+DNS nameservers (Google DNS for this example):
+
+    network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        eno1:
+          addresses:
+          - 10.0.0.10/24
+          - 11.0.0.11/24
+          nameservers:
+            addresses:
+              - 8.8.8.8
+              - 8.8.4.4
+          routes:
+          - to: 0.0.0.0/0
+            via: 10.0.0.1
+            metric: 100
+          - to: 0.0.0.0/0
+            via: 11.0.0.1
+            metric: 100 
 
 This is a complex example which shows most available features:
 

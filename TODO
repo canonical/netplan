@@ -1,0 +1,39 @@
+- support for IPv4 link-local addressing
+
+- improve IPv6 RA handling
+
+- support tunnel device types
+
+- support ethtool/sysctl knobs (TSO, LRO, txqueuelen)
+
+- inspecting current network config via "netplan show $interface" for a
+  collated view of each interface's yaml.
+
+- debugging config generation via "netplan diff [backend|system]":
+  - netplan diff system: compare generated config with current ip addr output
+  - netplan diff backend: compare generated config with current config for backend
+
+- support other devices types from networkd/NetworkManager:
+  - infiniband
+  - veth
+
+- better handle VLAN Q-in-Q (mostly generation tweaks + patching backends)
+
+- support device aliases (eth0 + eth0.1; add eth0 to multiple bridges)
+  - workaround for two bridges is to use eth0 and vlan1
+
+- make errors translatable
+
+- "netplan save" to capture kernel state into netplan YAML.
+
+- better parsing/validation for time-based values (ie. bond, bridge params)
+
+- openvswitch integration
+
+- wpa enterprise support
+
+- better parsing/validation for all schema
+
+- improve exit codes / behavior on error
+
+- integrate 'netplan try' in tmux/screen
