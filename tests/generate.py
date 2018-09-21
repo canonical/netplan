@@ -5136,7 +5136,7 @@ Name=br0
 [Network]
 DHCP=ipv4
 LinkLocalAddressing=ipv6
-			ConfigureWithoutCarrier=yes
+ConfigureWithoutCarrier=yes
 
 [DHCP]
 UseMTU=true
