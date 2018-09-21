@@ -482,47 +482,6 @@ write_rules_file(net_definition* def, const char* rootdir)
 }
 
 static void
-write_rules_file(net_definition* def, const char* rootdir)
-{
-    GString* s = NULL;
-    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
-
-    /* do we need to write a .rules file?
-     * It's only required for reliably setting the name of a physical device
-     * until systemd issue #9006 is resolved. */
-    if (def->type >= ND_VIRTUAL)
-        return;
-
-    /* Matching by name does not work.
-     *
-     * As far as I can tell, if you match by the name coming out of
-     * initrd, systemd complains that a link file is matching on a
-     * renamed name. If you match by the unstable kernel name, the
-     * device no longer has that name when udevd reads the file, so
-     * the rule doesn't fire. So only support mac and driver. */
-    if (!def->set_name || (!def->match.mac && !def->match.driver))
-        return;
-
-    /* build file contents */
-    s = g_string_sized_new(200);
-
-    g_string_append(s, "SUBSYSTEM==\"net\", ACTION==\"add\", ");
-
-    if (def->match.driver) {
-        g_string_append_printf(s,"DRIVERS==\"%s\", ", def->match.driver);
-    } else {
-        g_string_append(s, "DRIVERS==\"?*\", ");
-    }
-
-    if (def->match.mac)
-        g_string_append_printf(s, "ATTR{address}==\"%s\", ", def->match.mac);
-
-    g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
-
-    g_string_free_to_file(s, rootdir, path, NULL);
-}
-
-static void
 write_wpa_conf(net_definition* def, const char* rootdir)
 {
     GHashTableIter iter;
