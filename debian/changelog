@@ -1,10 +1,10 @@
-netplan.io (0.40~18.04.1) UNRELEASED; urgency=medium
+netplan.io (0.40~18.04.1) bionic; urgency=medium
 
   * Backport netplan 0.40 to 18.04. (LP: #1793309)
   * tests/generate.py: use random.sample() instead of random.choices() to
     better support older pythons.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 19 Sep 2018 15:09:57 +0200
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 21 Sep 2018 15:12:04 +0200
 
 netplan.io (0.40) cosmic; urgency=medium
 
