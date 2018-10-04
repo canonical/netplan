@@ -64,7 +64,7 @@ class NetworkTestBase(unittest.TestCase):
 
         # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
         out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
-        m = re.match('^(?:global\n)?country (\S+):', out)
+        m = re.match(r'^(?:global\n)?country (\S+):', out)
         assert m
         klass.orig_country = m.group(1)
         subprocess.check_call(['iw', 'reg', 'set', 'EU'])
@@ -425,7 +425,7 @@ class _CommonTests:
         expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
-            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+            self.assertRegex(out, r'%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
     def test_eth_mtu(self):
         self.setup_eth(None)
@@ -1090,7 +1090,7 @@ class _CommonTests:
         expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client]:
-            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+            self.assertRegex(out, r'%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
         with open('/etc/resolv.conf') as f:
                 resolv_conf = f.read()
