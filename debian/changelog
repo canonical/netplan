@@ -1,10 +1,10 @@
-netplan.io (0.40.1) UNRELEASED; urgency=medium
+netplan.io (0.40.1) cosmic; urgency=medium
 
   * tests/generate.py: use random.sample() instead of random.choices() to
     better support older pythons.
   * Deal gracefully with empty files on 'netplan apply' (LP: #1795343)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 04 Oct 2018 12:01:11 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 04 Oct 2018 12:05:49 -0400
 
 netplan.io (0.40) cosmic; urgency=medium
 
