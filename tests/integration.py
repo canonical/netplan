@@ -365,6 +365,11 @@ class NetworkTestBase(unittest.TestCase):
 
 class _CommonTests:
 
+    def test_empty_yaml_lp1795343(self):
+        with open(self.config, 'w') as f:
+            f.write('''''')
+        self.generate_and_settle()
+
     @unittest.skip("Unsupported matching by driver / wifi matching makes this untestable for now")
     def test_mapping_for_driver(self):
         self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
