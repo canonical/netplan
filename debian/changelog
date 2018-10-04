@@ -1,10 +1,16 @@
-netplan.io (0.40~18.04.1) bionic; urgency=medium
+netplan.io (0.40.1~18.04.1) UNRELEASED; urgency=medium
 
-  * Backport netplan 0.40 to 18.04. (LP: #1793309)
+  * Backport netplan 0.40.1 to 18.04. (LP: #1793309)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 04 Oct 2018 13:58:24 -0400
+
+netplan.io (0.40.1) cosmic; urgency=medium
+
   * tests/generate.py: use random.sample() instead of random.choices() to
     better support older pythons.
+  * Deal gracefully with empty files on 'netplan apply' (LP: #1795343)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 21 Sep 2018 15:12:04 +0200
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 04 Oct 2018 12:05:49 -0400
 
 netplan.io (0.40) cosmic; urgency=medium
 

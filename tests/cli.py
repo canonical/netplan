@@ -67,6 +67,20 @@ class TestGenerate(unittest.TestCase):
         self.assertEqual(out, b'')
         self.assertEqual(os.listdir(self.workdir.name), [])
 
+    def test_with_empty_config(self):
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        open(os.path.join(c, 'a.yaml'), 'w').close()
+        with open(os.path.join(c, 'b.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    enlol: {dhcp4: yes}''')
+        out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name], stderr=subprocess.STDOUT)
+        self.assertEqual(out, b'')
+        self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
+                         ['10-netplan-enlol.network'])
+
     def test_with_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
