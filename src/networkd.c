@@ -297,6 +297,47 @@ write_ip_rule(ip_rule* r, GString* s)
         g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
 }
 
+#define DHCP_OVERRIDES_ERROR                                            \
+    "ERROR: %s: networkd requires that %s has the same value in both "  \
+    "dhcp4_overrides and dhcp6_overrides\n"
+
+static void
+combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overrides)
+{
+    /* if only one of dhcp4 or dhcp6 is enabled, those overrides are used */
+    if (def->dhcp4 && !def->dhcp6) {
+        *combined_dhcp_overrides = def->dhcp4_overrides;
+    } else if (!def->dhcp4 && def->dhcp6) {
+        *combined_dhcp_overrides = def->dhcp6_overrides;
+    } else {
+        /* networkd doesn't support separately configuring dhcp4 and dhcp6, so
+         * we enforce that they are the same.
+         */
+        if (def->dhcp4_overrides.use_dns != def->dhcp6_overrides.use_dns) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
+            exit(1);
+        }
+        if (def->dhcp4_overrides.use_ntp != def->dhcp6_overrides.use_ntp) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-ntp");
+            exit(1);
+        }
+        if (def->dhcp4_overrides.send_hostname != def->dhcp6_overrides.send_hostname) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "send-hostname");
+            exit(1);
+        }
+        if (def->dhcp4_overrides.use_hostname != def->dhcp6_overrides.use_hostname) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
+            exit(1);
+        }
+        if (g_strcmp0(def->dhcp4_overrides.hostname, def->dhcp6_overrides.hostname) != 0) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "hostname");
+            exit(1);
+        }
+        /* Just use dhcp4_overrides now, since we know they are the same. */
+        *combined_dhcp_overrides = def->dhcp4_overrides;
+    }
+}
+
 static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
@@ -429,17 +470,20 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         if (def->critical)
             g_string_append_printf(s, "CriticalConnection=true\n");
 
+        dhcp_overrides combined_dhcp_overrides;
+        combine_dhcp_overrides(def, &combined_dhcp_overrides);
+
         /* Only write DHCP options that differ from the networkd default. */
-        if (!def->dhcp_options.use_dns)
+        if (!combined_dhcp_overrides.use_dns)
             g_string_append_printf(s, "UseDNS=false\n");
-        if (!def->dhcp_options.use_ntp)
+        if (!combined_dhcp_overrides.use_ntp)
             g_string_append_printf(s, "UseNTP=false\n");
-        if (!def->dhcp_options.send_hostname)
+        if (!combined_dhcp_overrides.send_hostname)
             g_string_append_printf(s, "SendHostname=false\n");
-        if (!def->dhcp_options.use_hostname)
+        if (!combined_dhcp_overrides.use_hostname)
             g_string_append_printf(s, "UseHostname=false\n");
-        if (def->dhcp_options.hostname)
-            g_string_append_printf(s, "Hostname=%s\n", def->dhcp_options.hostname);
+        if (combined_dhcp_overrides.hostname)
+            g_string_append_printf(s, "Hostname=%s\n", combined_dhcp_overrides.hostname);
     }
 
     /* these do not contain secrets and need to be readable by
