@@ -1296,13 +1296,22 @@ const mapping_entry_handler nameservers_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler dhcp_options_handlers[] = {
-    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.use_dns)},
-    {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.use_ntp)},
-    {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.send_hostname)},
-    {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp_options.use_hostname)},
-    {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(dhcp_options.hostname)},
-    {NULL}
+/* Handlers for DHCP overrides. */
+#define COMMON_DHCP_OVERRIDES_HANDLERS(overrides)                                                           \
+    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
+    {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
+    {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
+    {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
+    {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.hostname)}
+
+const mapping_entry_handler dhcp4_overrides_handlers[] = {
+    COMMON_DHCP_OVERRIDES_HANDLERS(dhcp4_overrides),
+    {NULL},
+};
+
+const mapping_entry_handler dhcp6_overrides_handlers[] = {
+    COMMON_DHCP_OVERRIDES_HANDLERS(dhcp6_overrides),
+    {NULL},
 };
 
 /* Handlers shared by all link types */
@@ -1313,7 +1322,8 @@ const mapping_entry_handler dhcp_options_handlers[] = {
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},         \
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},         \
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},                       \
-    {"dhcp-options", YAML_MAPPING_NODE, NULL, dhcp_options_handlers},                    \
+    {"dhcp4-overrides", YAML_MAPPING_NODE, NULL, dhcp4_overrides_handlers},              \
+    {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},              \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                     \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                     \
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                               \
@@ -1416,6 +1426,16 @@ validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
     return TRUE;
 }
 
+static void
+initialize_dhcp_overrides(dhcp_overrides* overrides)
+{
+    overrides->use_dns = TRUE;
+    overrides->use_ntp = TRUE;
+    overrides->send_hostname = TRUE;
+    overrides->use_hostname = TRUE;
+    overrides->hostname = NULL;
+}
+
 /**
  * Callback for a net device type entry like "ethernets:" in "networks:"
  * @data: netdef_type (as pointer)
@@ -1468,11 +1488,9 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
 
-            /* Default DHCP options. */
-            cur_netdef->dhcp_options.use_dns = TRUE;
-            cur_netdef->dhcp_options.use_ntp = TRUE;
-            cur_netdef->dhcp_options.send_hostname = TRUE;
-            cur_netdef->dhcp_options.use_hostname = TRUE;
+            /* DHCP override defaults */
+            initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
+            initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
         }
 
         // XXX: breaks multi-pass parsing.
