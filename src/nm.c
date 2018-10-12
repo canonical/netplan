@@ -443,6 +443,8 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         if (def->ip6_addresses)
             for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
+        if (def->ip6_privacy)
+            g_string_append(s, "ip6-privacy=2\n");
         if (def->gateway6)
             g_string_append_printf(s, "gateway=%s\n", def->gateway6);
         if (def->ip6_nameservers) {

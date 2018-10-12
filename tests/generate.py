@@ -1472,6 +1472,26 @@ Gateway=2001:beef:feed::1
 Metric=1024
 '''})
 
+    def test_eth_ipv6_privacy(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp6: true
+      ipv6-privacy: true''')
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+IPv6PrivacyExtensions=yes
+
+[DHCP]
+UseMTU=true
+RouteMetric=100
+'''})
+
     def test_wifi(self):
         self.generate('''network:
   version: 2
@@ -2965,6 +2985,28 @@ address1=192.168.14.2/24
 [ipv6]
 method=manual
 address1=2001:FFfe::1/64
+'''})
+
+    def test_eth_ipv6_privacy(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0: {dhcp6: true, ipv6-privacy: true}''')
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+ip6-privacy=2
 '''})
 
     def test_route_v4_single(self):
