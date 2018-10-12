@@ -933,117 +933,163 @@ UseMTU=true
 RouteMetric=100
 '''})
 
-    def test_dhcp_options_use_dns(self):
-        # This option should be silently ignored, since it's the default
+    # Common tests for dhcp override booleans
+    def run_dhcp_overrides_bool_tests(self, override_name, networkd_name):
+        # dhcp4 yes
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        use-dns: yes
-''')
-
+      dhcp4-overrides:
+        %s: yes
+''' % override_name)
+        # silently ignored since yes is the default
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
 
-    def test_dhcp_options_no_use_dns(self):
+        # dhcp6 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % override_name)
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen'})
+
+        # dhcp4 and dhcp6 both yes
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        use-dns: no
-''')
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % (override_name, override_name))
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen'})
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "UseDNS=false\n"})
-
-    def test_dhcp_options_use_ntp(self):
-        # This option should be silently ignored, since it's the default
+        # dhcp4 no
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        use-ntp: yes
-''')
+      dhcp4-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + '%s=false\n' % networkd_name})
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+        # dhcp6 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen' + '%s=false\n' % networkd_name})
 
-    def test_dhcp_options_no_use_ntp(self):
+        # dhcp4 and dhcp6 both no
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        use-ntp: no
-''')
+      dhcp4-overrides:
+        %s: no
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen' + '%s=false\n' % networkd_name})
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "UseNTP=false\n"})
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that %s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
 
-    def test_dhcp_options_send_hostname(self):
-        # This option should be silently ignored, since it's the default
+    # Common tests for dhcp override strings
+    def run_dhcp_overrides_string_tests(self, override_name, networkd_name):
+        # dhcp4 only
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        send-hostname: yes
-''')
+      dhcp4-overrides:
+        %s: foo
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + '%s=foo\n' % networkd_name})
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+        # dhcp6 only
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: foo
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen' + '%s=foo\n' % networkd_name})
 
-    def test_dhcp_options_no_send_hostname(self):
+        # dhcp4 and dhcp6
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        send-hostname: no
-''')
+      dhcp4-overrides:
+        %s: foo
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: foo
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen' + '%s=foo\n' % networkd_name})
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "SendHostname=false\n"})
-
-    def test_dhcp_options_use_hostname(self):
-        # This option should be silently ignored, since it's the default
-        self.generate('''network:
+        # mismatched values
+        err = self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: yes
-      dhcp-options:
-        use-hostname: yes
-''')
+      dhcp4-overrides:
+        %s: foo
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: bar
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that %s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+    def test_dhcp_overrides_use_dns(self):
+      self.run_dhcp_overrides_bool_tests('use-dns', 'UseDNS')
 
-    def test_dhcp_options_no_use_hostname(self):
-        self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      dhcp4: yes
-      dhcp-options:
-        use-hostname: no
-''')
+    def test_dhcp_overrides_use_ntp(self):
+      self.run_dhcp_overrides_bool_tests('use-ntp', 'UseNTP')
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "UseHostname=false\n"})
+    def test_dhcp_overrides_send_hostname(self):
+      self.run_dhcp_overrides_bool_tests('send-hostname', 'SendHostname')
 
-    def test_dhcp_options_hostname(self):
-        self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      dhcp4: yes
-      dhcp-options:
-        hostname: my-host
-''')
+    def test_dhcp_overrides_use_hostname(self):
+      self.run_dhcp_overrides_bool_tests('use-hostname', 'UseHostname')
 
-        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + "Hostname=my-host\n"})
+    def test_dhcp_overrides_hostname(self):
+      self.run_dhcp_overrides_string_tests('hostname', 'Hostname')
 
     def test_route_v4_single(self):
         self.generate('''network:
