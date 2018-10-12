@@ -159,6 +159,12 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``ipv6-privacy`` (bool)
+
+:   Enable IPv6 Privacy Extensions (RFC 4941) for the specified interface, and
+    prefer temporary addresses. Defaults to false - no privacy extensions. There
+    is currently no way to have a private address but prefer the public address.
+
 ``link-local`` (sequence of scalars)
 
 :   Configure the link-local addresses to bring up. Valid options are 'ipv4'

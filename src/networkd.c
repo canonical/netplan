@@ -358,6 +358,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "IPv6AcceptRA=yes\n");
     else if (def->accept_ra == ACCEPT_RA_DISABLED)
         g_string_append_printf(s, "IPv6AcceptRA=no\n");
+    if (def->ip6_privacy)
+        g_string_append(s, "IPv6PrivacyExtensions=yes\n");
     if (def->gateway4)
         g_string_append_printf(s, "Gateway=%s\n", def->gateway4);
     if (def->gateway6)

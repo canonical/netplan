@@ -97,6 +97,7 @@ typedef struct net_definition {
     ra_mode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
+    gboolean ip6_privacy;
     char* gateway4;
     char* gateway6;
     GArray* ip4_nameservers;
