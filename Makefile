@@ -22,6 +22,7 @@ PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
 PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
+NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
 
 default: generate doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
 
@@ -36,7 +37,7 @@ clean:
 check: default linting
 	tests/generate.py
 	tests/cli.py
-	nosetests3 -v --with-coverage
+	$(NOSETESTS3) -v --with-coverage
 	tests/validate_docs.sh
 
 linting:
