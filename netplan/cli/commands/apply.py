@@ -140,9 +140,9 @@ class NetplanApply(utils.NetplanCommand):
             driver = match.get('driver')
             mac = match.get('macaddress')
             if driver:
-                matches['by-driver'][driver] = phy
+                matches['by-driver'][driver] = newname
             if mac:
-                matches['by-mac'][mac] = phy
+                matches['by-mac'][mac] = newname
 
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
