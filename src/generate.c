@@ -252,13 +252,13 @@ int main(int argc, char** argv)
         g_debug("Generating output files..");
         g_hash_table_foreach(netdefs, nd_iterator, rootdir);
         write_nm_conf_finish(rootdir);
-	/* We may have written .rules & .link files, thus we must
-	 * invalidate udevd cache of its config as by default it only
-	 * invalidates cache at most every 3 seconds. Not sure if this
-	 * should live in `generate' or `apply', but it is confusing
-	 * when udevd ignores just-in-time created rules files.
-	 */
-	reload_udevd();
+        /* We may have written .rules & .link files, thus we must
+         * invalidate udevd cache of its config as by default it only
+         * invalidates cache at most every 3 seconds. Not sure if this
+         * should live in `generate' or `apply', but it is confusing
+         * when udevd ignores just-in-time created rules files.
+         */
+        reload_udevd();
     }
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf

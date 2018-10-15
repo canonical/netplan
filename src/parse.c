@@ -592,11 +592,11 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
             ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
             cur_access_point = NULL;
             return ret;
-	}
+        }
 
         if (!process_mapping(doc, value, wifi_access_point_handlers, error)) {
-	    cur_access_point = NULL;
-	    return FALSE;
+            cur_access_point = NULL;
+            return FALSE;
         }
 
         cur_access_point = NULL;
@@ -758,18 +758,18 @@ handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
-	int found = FALSE;
+        int found = FALSE;
 
-	for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
-	    if (g_ascii_strcasecmp(scalar(entry), optional_address_options[i].name) == 0) {
-		cur_netdef->optional_addresses |= optional_address_options[i].flag;
-		found = TRUE;
-		break;
-	    }
-	}
-	if (!found) {
+        for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
+            if (g_ascii_strcasecmp(scalar(entry), optional_address_options[i].name) == 0) {
+                cur_netdef->optional_addresses |= optional_address_options[i].flag;
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
             return yaml_error(node, error, "invalid value for optional-addresses: %s", scalar(entry));
-	}
+        }
     }
     return TRUE;
 }
@@ -1338,8 +1338,8 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
 
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS                                                           \
-    {"match", YAML_MAPPING_NODE, handle_match},						 \
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},	 \
+    {"match", YAML_MAPPING_NODE, handle_match},                                          \
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}
 
 const mapping_entry_handler ethernet_def_handlers[] = {

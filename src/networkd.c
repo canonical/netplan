@@ -357,14 +357,14 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
     if (def->optional || def->optional_addresses) {
         g_string_append(s, "\n[Link]\n");
-	if (def->optional) {
-	    g_string_append(s, "RequiredForOnline=no\n");
-	}
-	for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
-	    if (def->optional_addresses & optional_address_options[i].flag) {
-		g_string_append_printf(s, "OptionalAddresses=%s\n", optional_address_options[i].name);
-	    }
-	}
+        if (def->optional) {
+            g_string_append(s, "RequiredForOnline=no\n");
+        }
+        for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
+            if (def->optional_addresses & optional_address_options[i].flag) {
+            g_string_append_printf(s, "OptionalAddresses=%s\n", optional_address_options[i].name);
+            }
+        }
     }
 
     g_string_append(s, "\n[Network]\n");

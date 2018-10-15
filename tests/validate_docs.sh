@@ -18,27 +18,27 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     # it can be documented in the following ways.
     # 1. "Properties for device type ``blah:``
     if egrep "## Properties for device type \`\`$term:\`\`" doc/netplan.md > /dev/null; then
-	continue
+        continue
     fi
 
     # 2. "[blah, ]``blah``[, ``blah2``]: (scalar|bool|...)
     if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars)\)" doc/netplan.md > /dev/null; then
-	continue
+        continue
     fi
 
     # 3. we give a pass to network and version
     if [[ $term = "network" ]] || [[ $term = "version" ]]; then
-	continue
+        continue
     fi
 
     # 4. search doesn't get a full description but it's good enough
     if [[ $term = "search" ]]; then
-	continue
+        continue
     fi
 
     # 5. gratuit_i_ous arp gets a special note
     if [[ $term = "gratuitious-arp" ]]; then
-	continue
+        continue
     fi
 
     echo ERROR: The key "$term" is defined in the parser but not documented.
