@@ -1,3 +1,9 @@
+netplan.io (0.40.2.1) UNRELEASED; urgency=medium
+
+  * Fix typo breaking rename on 'netplan apply'. (LP: #1770082)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 22 Oct 2018 14:57:35 -0400
+
 netplan.io (0.40.2) cosmic; urgency=medium
 
   * tests/integration.py: Mark regexes with r to pacify pycodestyle's W605.
