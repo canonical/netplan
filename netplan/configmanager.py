@@ -194,7 +194,9 @@ class ConfigManager(object):
         try:
             with open(yaml_file) as f:
                 yaml_data = yaml.load(f, Loader=yaml.CSafeLoader)
-                network = yaml_data.get('network')
+                network = None
+                if yaml_data is not None:
+                    network = yaml_data.get('network')
                 if network:
                     if 'ethernets' in network:
                         new = self._merge_interface_config(self.ethernets, network.get('ethernets'))

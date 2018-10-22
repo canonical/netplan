@@ -67,6 +67,20 @@ class TestGenerate(unittest.TestCase):
         self.assertEqual(out, b'')
         self.assertEqual(os.listdir(self.workdir.name), [])
 
+    def test_with_empty_config(self):
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        open(os.path.join(c, 'a.yaml'), 'w').close()
+        with open(os.path.join(c, 'b.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    enlol: {dhcp4: yes}''')
+        out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name], stderr=subprocess.STDOUT)
+        self.assertEqual(out, b'')
+        self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
+                         ['10-netplan-enlol.network'])
+
     def test_with_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
@@ -90,11 +104,11 @@ class TestGenerate(unittest.TestCase):
   ethernets:
     enlol: {dhcp4: yes}''')
         p = subprocess.Popen(exe_cli +
-                             ['generate', '--root-dir', self.workdir.name, '--mapping', 'inexistant'],
+                             ['generate', '--root-dir', self.workdir.name, '--mapping', 'nonexistent'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertNotEqual(p.returncode, 0)
-        self.assertNotIn(b'inexistant', out)
+        self.assertNotIn(b'nonexistent', out)
 
     def test_mapping_for_interface(self):
         os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
@@ -541,7 +555,7 @@ iface en1 inet6 static
         self.assertEqual(out, b'')
         self.assertIn(b'Expected 3 fields for stanza type iface but got 4', err)
 
-    def test_write_file_notsupported(self):
+    def test_write_file_unsupported(self):
         (out, err) = self.do_test('iface en1 inet dhcp', expect_success=False)
         self.assertEqual(out, b'')
         self.assertIn(b'non-automatic interfaces are not supported', err)
@@ -566,7 +580,7 @@ class TestIp(unittest.TestCase):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to succesfully get a predictable
+            # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
   version: 2
@@ -597,7 +611,7 @@ class TestIp(unittest.TestCase):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to succesfully get a predictable
+            # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
   version: 2
@@ -621,7 +635,7 @@ class TestIp(unittest.TestCase):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to succesfully get a predictable
+            # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
   version: 2

@@ -55,10 +55,34 @@ typedef enum {
     ACCEPT_RA_DISABLED,
 } ra_mode;
 
+typedef enum {
+    OPTIONAL_IPV4_LL = 1<<0,
+    OPTIONAL_IPV6_RA = 1<<1,
+    OPTIONAL_DHCP4   = 1<<2,
+    OPTIONAL_DHCP6   = 1<<3,
+    OPTIONAL_STATIC  = 1<<4,
+} optional_addr;
+
+struct optional_address_option {
+    char* name;
+    optional_addr flag;
+};
+
+extern struct optional_address_option optional_address_options[];
+
 typedef struct missing_node {
     char* netdef_id;
     const yaml_node_t* node;
 } missing_node;
+
+/* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
+typedef struct dhcp_overrides {
+    gboolean use_dns;
+    gboolean use_ntp;
+    gboolean send_hostname;
+    gboolean use_hostname;
+    char* hostname;
+} dhcp_overrides;
 
 /**
  * Represent a configuration stanza
@@ -72,12 +96,15 @@ typedef struct net_definition {
 
     /* status options */
     gboolean optional;
+    optional_addr optional_addresses;
     gboolean critical;
 
     /* addresses */
     gboolean dhcp4;
     gboolean dhcp6;
     char* dhcp_identifier;
+    dhcp_overrides dhcp4_overrides;
+    dhcp_overrides dhcp6_overrides;
     ra_mode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
@@ -136,7 +163,7 @@ typedef struct net_definition {
         char* up_delay;
         char* down_delay;
         char* fail_over_mac_policy;
-        guint gratuitious_arp;
+        guint gratuitous_arp;
         /* TODO: unsolicited_na */
         guint packets_per_slave;
         char* primary_reselect_policy;

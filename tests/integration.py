@@ -64,7 +64,7 @@ class NetworkTestBase(unittest.TestCase):
 
         # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
         out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
-        m = re.match('^(?:global\n)?country (\S+):', out)
+        m = re.match(r'^(?:global\n)?country (\S+):', out)
         assert m
         klass.orig_country = m.group(1)
         subprocess.check_call(['iw', 'reg', 'set', 'EU'])
@@ -365,6 +365,11 @@ class NetworkTestBase(unittest.TestCase):
 
 class _CommonTests:
 
+    def test_empty_yaml_lp1795343(self):
+        with open(self.config, 'w') as f:
+            f.write('''''')
+        self.generate_and_settle()
+
     @unittest.skip("Unsupported matching by driver / wifi matching makes this untestable for now")
     def test_mapping_for_driver(self):
         self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
@@ -420,7 +425,7 @@ class _CommonTests:
         expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client, 'mybr']:
-            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+            self.assertRegex(out, r'%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
     def test_eth_mtu(self):
         self.setup_eth(None)
@@ -960,7 +965,7 @@ class _CommonTests:
       interfaces: [ethbn, ethb2]
       parameters:
         mode: balance-rr
-        mii-monitor-interval: 5
+        mii-monitor-interval: 50s
         resend-igmp: 100
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
@@ -1085,7 +1090,7 @@ class _CommonTests:
         expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
         out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
         for i in [self.dev_e_client, self.dev_e2_client]:
-            self.assertRegex(out, '%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
+            self.assertRegex(out, r'%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
         with open('/etc/resolv.conf') as f:
                 resolv_conf = f.read()
@@ -1103,7 +1108,7 @@ class _CommonTests:
             sys.stdout.flush()
             out = subprocess.check_output(['systemd-resolve', '--status'], universal_newlines=True)
             self.assertIn('DNS Servers: 172.1.2.3', out)
-            self.assertIn('DNS Domain: fakesuffix', out)
+            self.assertIn('fakesuffix', out)
         else:
             sys.stdout.write('[/etc/resolv.conf] ')
             sys.stdout.flush()
@@ -1379,6 +1384,30 @@ wpa_passphrase=12345678
 
 class TestNetworkd(NetworkTestBase, _CommonTests):
     backend = 'networkd'
+
+    def test_link_route_v4(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+          - 192.168.5.99/24
+      gateway4: 192.168.5.1
+      routes:
+          - to: 10.10.10.0/24
+            scope: link
+            metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client,
+                             ['inet 192.168.5.[0-9]+/24'])  # from DHCP
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'10.10.10.0/24 proto static scope link',
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'metric 99',  # check metric from static route
+                      subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
     def test_eth_dhcp6_off(self):
         self.setup_eth('slaac')

@@ -88,7 +88,7 @@ class NetplanTry(utils.NetplanCommand):
         except netplan.terminal.InputAccepted:
             print("\nConfiguration accepted.")
         except Exception as e:
-            print("\nAn error occured: %s" % e)
+            print("\nAn error occurred: %s" % e)
             print("\nReverting.")
             self.revert()
         finally:

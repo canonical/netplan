@@ -1,3 +1,40 @@
+netplan.io (0.40.2) cosmic; urgency=medium
+
+  * tests/integration.py: Mark regexes with r to pacify pycodestyle's W605.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 04 Oct 2018 16:02:53 -0400
+
+netplan.io (0.40.1) cosmic; urgency=medium
+
+  * tests/generate.py: use random.sample() instead of random.choices() to
+    better support older pythons.
+  * Deal gracefully with empty files on 'netplan apply' (LP: #1795343)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 04 Oct 2018 12:05:49 -0400
+
+netplan.io (0.40) cosmic; urgency=medium
+
+  * New upstream release:
+    - networkd: route source is PreferredSource= not From=
+    - Improve NetworkManager error reporting on unrenderable routes.
+    - Don't render ipv4 dns-search unless we have an ipv4 address.
+      (LP: #1786726)
+    - Set permissive umask on networkd .network, .link and .netdev files
+      (LP: #1736965, LP: #1768560)
+    - Fix support for link-scope routes. (LP: #1747455)
+    - Update man pages for deletion of replug code.
+    - Spell Gratuitous ARP correctly and make it work. (LP: #1756701)
+    - Many typo fixes for documentation. (LP: #1783940)
+    - Various build system fixes.
+    - Fix integration tests:
+      - iproute2 output changes for link-scope routes
+      - fix stability of networkd igmp-resend test
+      - fix manual_addresses test now that networkd lists ~. domain
+    - Deduplicate code for parsing interface options
+    - Add support for optional-addresses.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Thu, 13 Sep 2018 17:29:41 -0400
+
 netplan.io (0.39) cosmic; urgency=medium
 
   * New upstream release:

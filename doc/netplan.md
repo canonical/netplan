@@ -153,7 +153,7 @@ Virtual devices
     If you are in an IPv6-only environment with completely stateless
     autoconfiguration (SLAAC with RDNSS), this option can be set to cause the
     interface to be brought up. (Setting accept-ra alone is not sufficient.)
-    Autoconfiguration will still honour the contents of the router advertisment
+    Autoconfiguration will still honour the contents of the router advertisement
     and only use DHCP if requested in the RA.
 
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
@@ -189,6 +189,16 @@ Virtual devices
 :   When set to 'mac'; pass that setting over to systemd-networkd to use the
     device's MAC address as a unique identifier rather than a RFC4361-compliant
     Client ID. This has no effect when NetworkManager is used as a renderer.
+
+ ``dhcp4-overrides`` (mapping)
+
+ :  (networkd backend only) Overrides default DHCP behavior; see the
+    ``DHCP Overrides`` section below.
+
+ ``dhcp6-overrides`` (mapping)
+
+ :  (networkd backend only) Overrides default DHCP behavior; see the
+    ``DHCP Overrides`` section below.
 
 ``accept-ra`` (bool)
 
@@ -236,12 +246,18 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 ``macaddress`` (scalar)
 
 :   Set the device's MAC address. The MAC address must be in the form
-"XX:XX:XX:XX:XX:XX".
+    "XX:XX:XX:XX:XX:XX".
+
+    **Note:** This will not work reliably for devices matched by name
+    only and rendered by networkd, due to interactions with device
+    renaming in udev. Match devices by MAC when setting MAC addresses.
 
     Example:
 
         ethernets:
           id0:
+            match:
+              macaddress: 52:54:00:6b:3c:58
             [...]
             macaddress: 52:54:00:6b:3c:59
 
@@ -251,8 +267,8 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
      Valid values depend on your network interface.
 
      **Note:** This will not work reliably for devices matched by name
-     only, due to interactions with device renaming in udev. Match
-     devices by MAC when setting MTU.
+     only and rendered by networkd, due to interactions with device
+     renaming in udev. Match devices by MAC when setting MTU.
 
 ``optional`` (bool)
 
@@ -270,6 +286,22 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             dhcp4: true
             optional: true
 
+``optional-addresses`` (sequence of scalars)
+
+:    Specify types of addresses that are not required for a device to be
+     considered online. This changes the behavior of backends at boot time to
+     avoid waiting for addresses that are marked optional, and thus consider
+     the interface as "usable" sooner. This does not disable these addresses,
+     which will be brought up anyway.
+
+    Example:
+
+        ethernets:
+          eth7:
+            dhcp4: true
+            dhcp6: true
+            optional-addresses: [ ipv4-ll, dhcp6 ]
+
 ``routes`` (mapping)
 
 :   Configure static routing for the device; see the ``Routing`` section below.
@@ -278,6 +310,40 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
+## DHCP Overrides
+Several DHCP behavior overrides are available. Currently this is only supported
+via the ``networkd`` backend.
+
+Overrides only have an effect if the corresponding ``dhcp4`` or ``dhcp6`` is
+set to ``true``.
+
+If both ``dhcp4`` and ``dhcp6`` are ``true``, the ``networkd`` backend requires
+that ``dhcp4-overrides`` and ``dhcp6-overrides`` contain the same keys and values.
+
+:    The ``dhcp4-overrides`` and ``dhcp6-overrides`` mappings override the
+     default DHCP behavior.
+
+     ``use-dns`` (bool)
+     :    Default: ``true``. When ``true``, the DNS servers received from the
+          DHCP server will be used and take precedence over any statically
+          configured ones.
+
+     ``use-ntp`` (bool)
+     :    Default: ``true``. When ``true``, the NTP servers received from the
+          DHCP server will be used by systemd-timesyncd and take precedence
+          over any statically configured ones.
+
+     ``send-hostname`` (bool)
+     :    Default: ``true``. When ``true``, the machine's hostname will be sent
+          to the DHCP server.
+
+     ``use-hostname`` (bool)
+     :    Default: ``true``. When ``true``, the hostname received from the DHCP
+          server will be set as the transient hostname of the system.
+
+     ``hostname`` (scalar)
+     :    Use this value for the hostname which is sent to the DHCP server,
+          instead of machine's hostname.
 
 ## Routing
 Complex routing is possible with netplan. Standard static routes as well
@@ -312,7 +378,7 @@ These options are available for all types of interfaces.
 
      ``type`` (scalar)
      :    The type of route. Valid options are "unicast" (default),
-          "unreachable", "blackhole" or "prohibited".
+          "unreachable", "blackhole" or "prohibit".
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
@@ -558,12 +624,15 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           them to the bond, or how else the system should handle MAC addresses.
           The possible values are ``none``, ``active``, and ``follow``.
 
-     ``gratuitious-arp`` (scalar)
+     ``gratuitous-arp`` (scalar)
      :    Specify how many ARP packets to send after failover. Once a link is
           up on a new slave, a notification is sent and possibly repeated if
           this value is set to a number greater than ``1``. The default value
           is ``1`` and valid values are between ``1`` and ``255``. This only
           affects ``active-backup`` mode.
+
+          For historical reasons, the misspelling ``gratuitious-arp`` is also
+          accepted and has the same function.
 
      ``packets-per-slave`` (scalar)
      :    In ``balance-rr`` mode, specifies the number of packets to transmit
@@ -701,6 +770,8 @@ This is a complex example which shows most available features:
               from: 192.168.14.3/24
               table: 70
               priority: 50
+          # only networkd can render on-link routes and routing policies
+          renderer: networkd
         lom:
           match:
             driver: ixgbe

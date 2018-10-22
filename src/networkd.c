@@ -86,6 +86,7 @@ static void
 write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* Don't write .link files for virtual devices; they use .netdev instead */
     if (def->type >= ND_VIRTUAL)
@@ -110,7 +111,9 @@ write_link_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
 
 
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".link");
+    umask(orig_umask);
 }
 
 
@@ -187,8 +190,8 @@ write_bond_parameters(net_definition* def, GString* s)
     }
     if (def->bond_params.fail_over_mac_policy)
         g_string_append_printf(params, "\nFailOverMACPolicy=%s", def->bond_params.fail_over_mac_policy);
-    if (def->bond_params.gratuitious_arp)
-        g_string_append_printf(params, "\nGratuitiousARP=%d", def->bond_params.gratuitious_arp);
+    if (def->bond_params.gratuitous_arp)
+        g_string_append_printf(params, "\nGratuitousARP=%d", def->bond_params.gratuitous_arp);
     /* TODO: add unsolicited_na, not documented as supported by NM. */
     if (def->bond_params.packets_per_slave)
         g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_slave);
@@ -209,6 +212,7 @@ static void
 write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     g_assert(def->type >= ND_VIRTUAL);
 
@@ -242,7 +246,11 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
         // LCOV_EXCL_STOP
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".netdev");
+    umask(orig_umask);
 }
 
 static void
@@ -250,13 +258,14 @@ write_route(ip_route* r, GString* s)
 {
     g_string_append_printf(s, "\n[Route]\n");
 
-    g_string_append_printf(s, "Destination=%s\nGateway=%s\n",
-                           r->to, r->via);
+    g_string_append_printf(s, "Destination=%s\n", r->to);
 
+    if (r->via)
+        g_string_append_printf(s, "Gateway=%s\n", r->via);
     if (r->from)
-        g_string_append_printf(s, "From=%s\n", r->from);
+        g_string_append_printf(s, "PreferredSource=%s\n", r->from);
 
-    if (r->scope)
+    if (g_strcmp0(r->scope, "global") != 0)
         g_string_append_printf(s, "Scope=%s\n", r->scope);
     if (g_strcmp0(r->type, "unicast") != 0)
         g_string_append_printf(s, "Type=%s\n", r->type);
@@ -288,10 +297,52 @@ write_ip_rule(ip_rule* r, GString* s)
         g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
 }
 
+#define DHCP_OVERRIDES_ERROR                                            \
+    "ERROR: %s: networkd requires that %s has the same value in both "  \
+    "dhcp4_overrides and dhcp6_overrides\n"
+
+static void
+combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overrides)
+{
+    /* if only one of dhcp4 or dhcp6 is enabled, those overrides are used */
+    if (def->dhcp4 && !def->dhcp6) {
+        *combined_dhcp_overrides = def->dhcp4_overrides;
+    } else if (!def->dhcp4 && def->dhcp6) {
+        *combined_dhcp_overrides = def->dhcp6_overrides;
+    } else {
+        /* networkd doesn't support separately configuring dhcp4 and dhcp6, so
+         * we enforce that they are the same.
+         */
+        if (def->dhcp4_overrides.use_dns != def->dhcp6_overrides.use_dns) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
+            exit(1);
+        }
+        if (def->dhcp4_overrides.use_ntp != def->dhcp6_overrides.use_ntp) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-ntp");
+            exit(1);
+        }
+        if (def->dhcp4_overrides.send_hostname != def->dhcp6_overrides.send_hostname) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "send-hostname");
+            exit(1);
+        }
+        if (def->dhcp4_overrides.use_hostname != def->dhcp6_overrides.use_hostname) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
+            exit(1);
+        }
+        if (g_strcmp0(def->dhcp4_overrides.hostname, def->dhcp6_overrides.hostname) != 0) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "hostname");
+            exit(1);
+        }
+        /* Just use dhcp4_overrides now, since we know they are the same. */
+        *combined_dhcp_overrides = def->dhcp4_overrides;
+    }
+}
+
 static void
 write_network_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
+    mode_t orig_umask;
 
     /* do we need to write a .network file? */
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
@@ -304,8 +355,17 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     s = g_string_sized_new(200);
     append_match_section(def, s, TRUE);
 
-    if (def->optional)
-        g_string_append(s, "\n[Link]\nRequiredForOnline=no\n");
+    if (def->optional || def->optional_addresses) {
+        g_string_append(s, "\n[Link]\n");
+	if (def->optional) {
+	    g_string_append(s, "RequiredForOnline=no\n");
+	}
+	for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
+	    if (def->optional_addresses & optional_address_options[i].flag) {
+		g_string_append_printf(s, "OptionalAddresses=%s\n", optional_address_options[i].name);
+	    }
+	}
+    }
 
     g_string_append(s, "\n[Network]\n");
     if (def->dhcp4 && def->dhcp6)
@@ -409,9 +469,28 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)
             g_string_append_printf(s, "CriticalConnection=true\n");
+
+        dhcp_overrides combined_dhcp_overrides;
+        combine_dhcp_overrides(def, &combined_dhcp_overrides);
+
+        /* Only write DHCP options that differ from the networkd default. */
+        if (!combined_dhcp_overrides.use_dns)
+            g_string_append_printf(s, "UseDNS=false\n");
+        if (!combined_dhcp_overrides.use_ntp)
+            g_string_append_printf(s, "UseNTP=false\n");
+        if (!combined_dhcp_overrides.send_hostname)
+            g_string_append_printf(s, "SendHostname=false\n");
+        if (!combined_dhcp_overrides.use_hostname)
+            g_string_append_printf(s, "UseHostname=false\n");
+        if (combined_dhcp_overrides.hostname)
+            g_string_append_printf(s, "Hostname=%s\n", combined_dhcp_overrides.hostname);
     }
 
+    /* these do not contain secrets and need to be readable by
+     * systemd-networkd - LP: #1736965 */
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".network");
+    umask(orig_umask);
 }
 
 static void
@@ -419,6 +498,7 @@ write_rules_file(net_definition* def, const char* rootdir)
 {
     GString* s = NULL;
     g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
+    mode_t orig_umask;
 
     /* do we need to write a .rules file?
      * It's only required for reliably setting the name of a physical device
@@ -452,7 +532,9 @@ write_rules_file(net_definition* def, const char* rootdir)
 
     g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
 
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
 }
 
 static void
