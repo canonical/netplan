@@ -1,8 +1,8 @@
-netplan.io (0.40.2.1) UNRELEASED; urgency=medium
+netplan.io (0.40.2.1) cosmic; urgency=medium
 
   * Fix typo breaking rename on 'netplan apply'. (LP: #1770082)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 22 Oct 2018 14:57:35 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 22 Oct 2018 14:58:40 -0400
 
 netplan.io (0.40.2) cosmic; urgency=medium
 
