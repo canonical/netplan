@@ -67,23 +67,23 @@ static char *
 get_error_context(yaml_parser_t *parser, GError **error)
 {
     GString *message = NULL;
-    unsigned char* line = parser.buffer.pointer;
+    unsigned char* line = parser->buffer.pointer;
     unsigned char* current = line;
     int i;
 
     message = g_string_sized_new(200);
 
-    while (current > parser.buffer.start) {
+    while (current > parser->buffer.start) {
         current--;
         if (*current == '\n') {
             line = current + 1;
             break;
         }
     }
-    if (current <= parser.buffer.start)
-        line = parser.buffer.start;
+    if (current <= parser->buffer.start)
+        line = parser->buffer.start;
     current = line + 1;
-    while (current <= parser.buffer.last) {
+    while (current <= parser->buffer.last) {
         if (*current == '\n') {
             *current = '\0';
             break;
@@ -94,7 +94,7 @@ get_error_context(yaml_parser_t *parser, GError **error)
     g_string_append_printf(message, "%s\n", line);
 
     for (i = 0;
-         (parser.problem_mark.column > 0 && i < (parser.problem_mark.column - 1));
+         (parser->problem_mark.column > 0 && i < (parser->problem_mark.column - 1));
          i++)
         g_string_append_printf(message, " ");
     g_string_append_printf(message, "^");
