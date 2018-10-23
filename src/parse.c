@@ -659,7 +659,6 @@ handle_auth_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
 
 const mapping_entry_handler auth_handlers[] = {
     {"key-management", YAML_SCALAR_NODE, handle_auth_key_management},
-    {"psk", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(psk)},
     {"method", YAML_SCALAR_NODE, handle_auth_method},
     {"identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(identity)},
     {"anonymous-identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(anonymous_identity)},
@@ -693,8 +692,8 @@ handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void
     /* shortcut for WPA-PSK */
     cur_access_point->has_auth = TRUE;
     cur_access_point->auth.key_management = KEY_MANAGEMENT_WPA_PSK;
-    g_free(cur_access_point->auth.psk);
-    cur_access_point->auth.psk = g_strdup(scalar(node));
+    g_free(cur_access_point->auth.password);
+    cur_access_point->auth.password = g_strdup(scalar(node));
     return TRUE;
 }
 

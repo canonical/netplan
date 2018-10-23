@@ -651,10 +651,6 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
             break;
     }
 
-    if (auth->psk) {
-        g_string_append_printf(s, "  psk=\"%s\"\n", auth->psk);
-    }
-
     switch (auth->eap_method) {
         case EAP_NONE:
             break;
@@ -679,7 +675,11 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
         g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", auth->anonymous_identity);
     }
     if (auth->password) {
-        g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
+        if (auth->key_management == KEY_MANAGEMENT_WPA_PSK) {
+            g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
+        } else {
+            g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
+        }
     }
     if (auth->ca_certificate) {
         g_string_append_printf(s, "  ca_cert=\"%s\"\n", auth->ca_certificate);

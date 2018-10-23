@@ -304,7 +304,7 @@ write_dot1x_auth_parameters(const authentication_settings* auth, GString *s)
     if (auth->anonymous_identity) {
         g_string_append_printf(s, "anonymous-identity=%s\n", auth->anonymous_identity);
     }
-    if (auth->password) {
+    if (auth->password && auth->key_management != KEY_MANAGEMENT_WPA_PSK) {
         g_string_append_printf(s, "password=%s\n", auth->password);
     }
     if (auth->ca_certificate) {
@@ -334,6 +334,9 @@ write_wifi_auth_parameters(const authentication_settings* auth, GString *s)
         case KEY_MANAGEMENT_NONE: break; // LCOV_EXCL_LINE
         case KEY_MANAGEMENT_WPA_PSK:
             g_string_append(s, "key-mgmt=wpa-psk\n");
+            if (auth->password) {
+                g_string_append_printf(s, "psk=%s\n", auth->password);
+            }
             break;
         case KEY_MANAGEMENT_WPA_EAP:
             g_string_append(s, "key-mgmt=wpa-eap\n");
@@ -341,10 +344,6 @@ write_wifi_auth_parameters(const authentication_settings* auth, GString *s)
         case KEY_MANAGEMENT_8021X:
             g_string_append(s, "key-mgmt=ieee8021x\n");
             break;
-    }
-
-    if (auth->psk) {
-        g_string_append_printf(s, "psk=%s\n", auth->psk);
     }
 
     write_dot1x_auth_parameters(auth, s);
