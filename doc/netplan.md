@@ -475,82 +475,54 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
 
 ``auth`` (mapping)
 
-:    Specifies authentication settings for a device of type ``ethernets:`` or
-     ``wifis:``, or a single wifi ``access-points:`` entry. If ``auth`` blocks
-     are specified on both a wifi device and one of its access points, only the
-     settings in the access point's ``auth`` block are taken into account;
-     however, the ``auth`` block of the wifi device, if present, is used for any
-     ``access-points:`` without their own ``auth`` block.
+:    Specifies authentication settings for a device of type ``ethernets:``, or
+     an ``access-points:`` entry on a ``wifis:`` device.
 
-     Example:
+     The ``auth`` block supports the following properties:
 
-          wifis:
-            wlp1s0:
-              auth:
-                key-mgmt: wpa-psk
-                psk: "d3f4ul7"
-              access-points:
-                office:
-                  auth:
-                    # the authentication settings above are ignored for the
-                    # wifi named "office"
-                    key-mgmt: wpa-eap
-                    eap-method: ttls
-                    anonymous-identity: "@internal.example.com"
-                    identity: "joe@internal.example.com"
-                    password: "v4ryS3kr1t"
-                home:
-                  mode: infrastructure
-                  # the authentication settings above are applied to the wifi
-                  # named "home"
+     ``key-management`` (scalar)
+     :    The supported key management modes are ``none`` (no key management);
+          ``wpa-psk`` (WPA with pre-shared key, common for home wifi);
+          ``wpa-eap`` (WPA with EAP, common for enterprise wifi); and ``802.1x``
+          (used primarily for wired Ethernet connections).
 
-      The ``auth`` block supports the following properties:
+     The following properties can be used if ``key-management`` is ``wpa-psk``:
 
-      ``key-mgmt`` (scalar)
-      :    The supported key management modes are ``none`` (no key management),
-           ``wpa-psk`` (WPA with pre-shared key, common for home wifi),
-           ``wpa-eap`` (WPA with EAP, common for enterprise wifi) and ``8021x``
-           (used primarily for wired Ethernet connections).
+     ``psk`` (scalar)
+     :    The pre-shared key for this connection.
 
-      The following properties can be used if ``key-mgmt`` is ``wpa-psk``:
+     The following properties can be used if ``key-management`` is ``wpa-eap``
+     or ``802.1x``:
 
-      ``psk`` (scalar)
-      :    The pre-shared key for this connection. Useful only if ``key-mgmt``
-           is ``wpa-psk``.
+     ``eap-method`` (scalar)
+     :    The supported EAP methods are ``tls`` (TLS), ``peap`` (Protected EAP),
+          and ``ttls`` (Tunneled TLS).
 
-      ``eap-method`` (scalar)
-      :    The supported EAP methods are ``tls`` (TLS), ``peap`` (Protected EAP)
-           and ``ttls`` (Tunneled TLS). Useful only if ``key-mgmt`` is
-           ``wpa-eap`` or ``8021x``.
+     ``identity`` (scalar)
+     :    The identity to use for EAP.
 
-      The following properties can be used if ``key-mgmt`` is ``wpa-eap`` or
-      ``8021x``:
+     ``anonymous-identity`` (scalar)
+     :    The identity to pass over the unencrypted channel if the chosen EAP
+          method supports passing a different tunnelled identity.
 
-      ``identity`` (scalar)
-      :    The identity to use for EAP.
+     ``password`` (scalar)
+     :    The password string for EAP.
 
-      ``anonymous-identity`` (scalar)
-      :    The identity to pass over the unencrypted channel if the chosen EAP
-           method supports passing a different tunnelled identity.
+     ``ca-certificate`` (scalar)
+     :    Path to a file with one or more trusted certificate authority (CA)
+          certificates.
 
-      ``password`` (scalar)
-      :    The password string for EAP.
+     ``client-certificate`` (scalar)
+     :    Path to a file containing the certificate to be used by the client
+          during authentication.
 
-      ``ca-certificate`` (scalar)
-      :    Path to a file with one or more trusted certificate authority (CA)
-           certificates.
+     ``client-key`` (scalar)
+     :    Path to a file containing the private key corresponding to
+          ``client-certificate``.
 
-      ``client-certificate`` (scalar)
-      :    Path to a file containing the certificate to be used by the client
-           during authentication.
-
-      ``client-key`` (scalar)
-      :    Path to a file containing the private key corresponding to
-           ``client-certificate``.
-
-      ``client-key-password`` (scalar)
-      :    Password to use to decrypt the private key specified in
-           ``client-key`` if it is encrypted.
+     ``client-key-password`` (scalar)
+     :    Password to use to decrypt the private key specified in
+          ``client-key`` if it is encrypted.
 
 
 ## Properties for device type ``ethernets:``
@@ -578,7 +550,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           is equivalent to
 
               auth:
-                key-mgmt: wpa-psk
+                key-management: wpa-psk
                 psk: "S3kr1t"
 
      ``mode`` (scalar)

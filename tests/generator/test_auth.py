@@ -30,33 +30,30 @@ class TestNetworkd(TestBase):
   version: 2
   wifis:
     wl0:
-      auth:
-        key-mgmt: wpa-psk
-        psk: "d3f4ul7"
       access-points:
         "Joe's Home":
           password: "s3kr1t"
         "Luke's Home":
           auth:
-            key-mgmt: wpa-psk
+            key-management: wpa-psk
             psk: "4lsos3kr1t"
         workplace:
           auth:
-            key-mgmt: wpa-eap
+            key-management: wpa-eap
             eap-method: ttls
             anonymous-identity: "@internal.example.com"
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
         workplace2:
           auth:
-            key-mgmt: wpa-eap
+            key-management: wpa-eap
             eap-method: peap
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
         customernet:
           auth:
-            key-mgmt: wpa-eap
+            key-management: wpa-eap
             eap-method: tls
             anonymous-identity: "@cust.example.com"
             identity: "cert-joe@cust.example.com"
@@ -66,12 +63,10 @@ class TestNetworkd(TestBase):
             client-key-password: "d3cryptPr1v4t3K3y"
         opennet:
           auth:
-            key-mgmt: none
+            key-management: none
         peer2peer:
           mode: adhoc
           auth: {}
-        inheritplace: {}
-        inherit2place: {}
       dhcp4: yes
       ''')
 
@@ -86,8 +81,9 @@ unmanaged-devices+=interface-name:wl0,''')
             self.assertEqual(f.read(), '''ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="opennet"
-  key_mgmt=NONE
+  ssid="Joe's Home"
+  key_mgmt=WPA-PSK
+  psk="s3kr1t"
 }
 network={
   ssid="Luke's Home"
@@ -95,9 +91,16 @@ network={
   psk="4lsos3kr1t"
 }
 network={
-  ssid="peer2peer"
-  mode=1
+  ssid="opennet"
   key_mgmt=NONE
+}
+network={
+  ssid="workplace"
+  key_mgmt=WPA-EAP
+  eap=TTLS
+  identity="joe@internal.example.com"
+  anonymous_identity="@internal.example.com"
+  password="v3ryS3kr1t"
 }
 network={
   ssid="customernet"
@@ -111,11 +114,6 @@ network={
   private_key_passwd="d3cryptPr1v4t3K3y"
 }
 network={
-  ssid="Joe's Home"
-  key_mgmt=WPA-PSK
-  psk="s3kr1t"
-}
-network={
   ssid="workplace2"
   key_mgmt=WPA-EAP
   eap=PEAP
@@ -124,22 +122,9 @@ network={
   ca_cert="/etc/ssl/work2-cacrt.pem"
 }
 network={
-  ssid="inherit2place"
-  key_mgmt=WPA-PSK
-  psk="d3f4ul7"
-}
-network={
-  ssid="workplace"
-  key_mgmt=WPA-EAP
-  eap=TTLS
-  identity="joe@internal.example.com"
-  anonymous_identity="@internal.example.com"
-  password="v3ryS3kr1t"
-}
-network={
-  ssid="inheritplace"
-  key_mgmt=WPA-PSK
-  psk="d3f4ul7"
+  ssid="peer2peer"
+  mode=1
+  key_mgmt=NONE
 }
 ''')
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
@@ -152,7 +137,7 @@ network={
   ethernets:
     eth0:
       auth:
-        key-mgmt: 8021x
+        key-management: 802.1x
         eap-method: tls
         anonymous-identity: "@cust.example.com"
         identity: "cert-joe@cust.example.com"
@@ -197,33 +182,30 @@ class TestNetworkManager(TestBase):
   renderer: NetworkManager
   wifis:
     wl0:
-      auth:
-        key-mgmt: wpa-psk
-        psk: "d3f4ul7"
       access-points:
         "Joe's Home":
           password: "s3kr1t"
         "Luke's Home":
           auth:
-            key-mgmt: wpa-psk
+            key-management: wpa-psk
             psk: "4lsos3kr1t"
         workplace:
           auth:
-            key-mgmt: wpa-eap
+            key-management: wpa-eap
             eap-method: ttls
             anonymous-identity: "@internal.example.com"
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
         workplace2:
           auth:
-            key-mgmt: wpa-eap
+            key-management: wpa-eap
             eap-method: peap
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
         customernet:
           auth:
-            key-mgmt: 8021x
+            key-management: 802.1x
             eap-method: tls
             anonymous-identity: "@cust.example.com"
             identity: "cert-joe@cust.example.com"
@@ -233,12 +215,10 @@ class TestNetworkManager(TestBase):
             client-key-password: "d3cryptPr1v4t3K3y"
         opennet:
           auth:
-            key-mgmt: none
+            key-management: none
         peer2peer:
           mode: adhoc
           auth: {}
-        inheritplace: {}
-        inherit2place: {}
       dhcp4: yes
       ''')
 
@@ -406,50 +386,6 @@ method=ignore
 [wifi]
 ssid=peer2peer
 mode=adhoc
-''',
-                        'wl0-inheritplace': '''[connection]
-id=netplan-wl0-inheritplace
-type=wifi
-interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=auto
-
-[ipv6]
-method=ignore
-
-[wifi]
-ssid=inheritplace
-mode=infrastructure
-
-[wifi-security]
-key-mgmt=wpa-psk
-psk=d3f4ul7
-''',
-                        'wl0-inherit2place': '''[connection]
-id=netplan-wl0-inherit2place
-type=wifi
-interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=auto
-
-[ipv6]
-method=ignore
-
-[wifi]
-ssid=inherit2place
-mode=infrastructure
-
-[wifi-security]
-key-mgmt=wpa-psk
-psk=d3f4ul7
 '''})
         self.assert_nm_udev(None)
 
@@ -461,7 +397,7 @@ psk=d3f4ul7
   ethernets:
     eth0:
       auth:
-        key-mgmt: 8021x
+        key-management: 802.1x
         eap-method: tls
         anonymous-identity: "@cust.example.com"
         identity: "cert-joe@cust.example.com"
@@ -507,7 +443,7 @@ class TestConfigErrors(TestBase):
   ethernets:
     eth0:
       auth:
-        key-mgmt: wpa-bogus''', expect_fail=True)
+        key-management: wpa-bogus''', expect_fail=True)
         self.assertIn("unknown key management type 'wpa-bogus'", err)
 
     def test_auth_invalid_eap_method(self):

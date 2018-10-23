@@ -324,21 +324,21 @@ write_dot1x_auth_parameters(const authentication_settings* auth, GString *s)
 static void
 write_wifi_auth_parameters(const authentication_settings* auth, GString *s)
 {
-    if (auth->key_mgmt == KEYMGMT_NONE) {
+    if (auth->key_management == KEY_MANAGEMENT_NONE) {
         return;
     }
 
     g_string_append(s, "\n[wifi-security]\n");
 
-    switch (auth->key_mgmt) {
-        case KEYMGMT_NONE: break; // LCOV_EXCL_LINE
-        case KEYMGMT_WPA_PSK:
+    switch (auth->key_management) {
+        case KEY_MANAGEMENT_NONE: break; // LCOV_EXCL_LINE
+        case KEY_MANAGEMENT_WPA_PSK:
             g_string_append(s, "key-mgmt=wpa-psk\n");
             break;
-        case KEYMGMT_WPA_EAP:
+        case KEY_MANAGEMENT_WPA_EAP:
             g_string_append(s, "key-mgmt=wpa-eap\n");
             break;
-        case KEYMGMT_8021X:
+        case KEY_MANAGEMENT_8021X:
             g_string_append(s, "key-mgmt=ieee8021x\n");
             break;
     }
@@ -586,9 +586,6 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, s);
-        }
-        else if (def->has_auth) {
-            write_wifi_auth_parameters(&def->auth, s);
         }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);

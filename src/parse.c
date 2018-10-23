@@ -626,17 +626,17 @@ handle_auth_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GErro
 }
 
 static gboolean
-handle_auth_key_mgmt(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_auth);
     if (strcmp(scalar(node), "none") == 0)
-        cur_auth->key_mgmt = KEYMGMT_NONE;
+        cur_auth->key_management = KEY_MANAGEMENT_NONE;
     else if (strcmp(scalar(node), "wpa-psk") == 0)
-        cur_auth->key_mgmt = KEYMGMT_WPA_PSK;
+        cur_auth->key_management = KEY_MANAGEMENT_WPA_PSK;
     else if (strcmp(scalar(node), "wpa-eap") == 0)
-        cur_auth->key_mgmt = KEYMGMT_WPA_EAP;
-    else if (strcmp(scalar(node), "8021x") == 0)
-        cur_auth->key_mgmt = KEYMGMT_8021X;
+        cur_auth->key_management = KEY_MANAGEMENT_WPA_EAP;
+    else if (strcmp(scalar(node), "802.1x") == 0)
+        cur_auth->key_management = KEY_MANAGEMENT_8021X;
     else
         return yaml_error(node, error, "unknown key management type '%s'", scalar(node));
     return TRUE;
@@ -658,7 +658,7 @@ handle_auth_eap_method(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 }
 
 const mapping_entry_handler auth_handlers[] = {
-    {"key-mgmt", YAML_SCALAR_NODE, handle_auth_key_mgmt},
+    {"key-management", YAML_SCALAR_NODE, handle_auth_key_management},
     {"psk", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(psk)},
     {"eap-method", YAML_SCALAR_NODE, handle_auth_eap_method},
     {"identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(identity)},
@@ -692,7 +692,7 @@ handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void
     g_assert(cur_access_point);
     /* shortcut for WPA-PSK */
     cur_access_point->has_auth = TRUE;
-    cur_access_point->auth.key_mgmt = KEYMGMT_WPA_PSK;
+    cur_access_point->auth.key_management = KEY_MANAGEMENT_WPA_PSK;
     g_free(cur_access_point->auth.psk);
     cur_access_point->auth.psk = g_strdup(scalar(node));
     return TRUE;
