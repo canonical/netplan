@@ -551,7 +551,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
               auth:
                 key-management: psk
-                psk: "S3kr1t"
+                password: "S3kr1t"
 
      ``mode`` (scalar)
      :    Possible access point modes are ``infrastructure`` (the default),
