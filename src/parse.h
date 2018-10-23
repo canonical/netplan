@@ -112,11 +112,11 @@ struct optional_address_option {
 extern struct optional_address_option optional_address_options[];
 
 typedef enum {
-    KEYMGMT_NONE,
-    KEYMGMT_WPA_PSK,
-    KEYMGMT_WPA_EAP,
-    KEYMGMT_8021X,
-} auth_keymgmt_type;
+    KEY_MANAGEMENT_NONE,
+    KEY_MANAGEMENT_WPA_PSK,
+    KEY_MANAGEMENT_WPA_EAP,
+    KEY_MANAGEMENT_8021X,
+} auth_key_management_type;
 
 typedef enum {
     EAP_NONE,
@@ -131,7 +131,7 @@ typedef struct missing_node {
 } missing_node;
 
 typedef struct authentication_settings {
-    auth_keymgmt_type key_mgmt;
+    auth_key_management_type key_management;
     char* psk;
     auth_eap_method eap_method;
     char* identity;

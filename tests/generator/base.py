@@ -53,6 +53,7 @@ class TestBase(unittest.TestCase):
         self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
         self.nm_enable_all_conf = os.path.join(
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
+        self.maxDiff = None
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration

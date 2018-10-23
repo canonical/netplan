@@ -633,20 +633,20 @@ write_rules_file(net_definition* def, const char* rootdir)
 static void
 append_wpa_auth_conf(GString* s, const authentication_settings* auth)
 {
-    switch (auth->key_mgmt) {
-        case KEYMGMT_NONE:
+    switch (auth->key_management) {
+        case KEY_MANAGEMENT_NONE:
             g_string_append(s, "  key_mgmt=NONE\n");
             break;
 
-        case KEYMGMT_WPA_PSK:
+        case KEY_MANAGEMENT_WPA_PSK:
             g_string_append(s, "  key_mgmt=WPA-PSK\n");
             break;
 
-        case KEYMGMT_WPA_EAP:
+        case KEY_MANAGEMENT_WPA_EAP:
             g_string_append(s, "  key_mgmt=WPA-EAP\n");
             break;
 
-        case KEYMGMT_8021X:
+        case KEY_MANAGEMENT_8021X:
             g_string_append(s, "  key_mgmt=IEEE8021X\n");
             break;
     }
@@ -724,9 +724,6 @@ write_wpa_conf(net_definition* def, const char* rootdir)
             /* wifi auth trumps netdef auth */
             if (ap->has_auth) {
                 append_wpa_auth_conf(s, &ap->auth);
-            }
-            else if (def->has_auth) {
-                append_wpa_auth_conf(s, &def->auth);
             }
 	    else {
                 g_string_append(s, "  key_mgmt=NONE\n");
