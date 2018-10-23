@@ -132,7 +132,6 @@ typedef struct missing_node {
 
 typedef struct authentication_settings {
     auth_key_management_type key_management;
-    char* psk;
     auth_eap_method eap_method;
     char* identity;
     char* anonymous_identity;

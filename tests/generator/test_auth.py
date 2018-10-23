@@ -36,7 +36,7 @@ class TestNetworkd(TestBase):
         "Luke's Home":
           auth:
             key-management: psk
-            psk: "4lsos3kr1t"
+            password: "4lsos3kr1t"
         workplace:
           auth:
             key-management: eap
@@ -188,7 +188,7 @@ class TestNetworkManager(TestBase):
         "Luke's Home":
           auth:
             key-management: psk
-            psk: "4lsos3kr1t"
+            password: "4lsos3kr1t"
         workplace:
           auth:
             key-management: eap
