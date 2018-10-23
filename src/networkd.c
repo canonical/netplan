@@ -725,9 +725,9 @@ write_wpa_conf(net_definition* def, const char* rootdir)
             if (ap->has_auth) {
                 append_wpa_auth_conf(s, &ap->auth);
             }
-	    else {
+            else {
                 g_string_append(s, "  key_mgmt=NONE\n");
-	    }
+            }
             g_string_append(s, "}\n");
         }
     }
