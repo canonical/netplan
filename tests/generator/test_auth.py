@@ -35,25 +35,25 @@ class TestNetworkd(TestBase):
           password: "s3kr1t"
         "Luke's Home":
           auth:
-            key-management: wpa-psk
+            key-management: psk
             psk: "4lsos3kr1t"
         workplace:
           auth:
-            key-management: wpa-eap
+            key-management: eap
             method: ttls
             anonymous-identity: "@internal.example.com"
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
         workplace2:
           auth:
-            key-management: wpa-eap
+            key-management: eap
             method: peap
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
         customernet:
           auth:
-            key-management: wpa-eap
+            key-management: eap
             method: tls
             anonymous-identity: "@cust.example.com"
             identity: "cert-joe@cust.example.com"
@@ -187,18 +187,18 @@ class TestNetworkManager(TestBase):
           password: "s3kr1t"
         "Luke's Home":
           auth:
-            key-management: wpa-psk
+            key-management: psk
             psk: "4lsos3kr1t"
         workplace:
           auth:
-            key-management: wpa-eap
+            key-management: eap
             method: ttls
             anonymous-identity: "@internal.example.com"
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
         workplace2:
           auth:
-            key-management: wpa-eap
+            key-management: eap
             method: peap
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
@@ -443,8 +443,8 @@ class TestConfigErrors(TestBase):
   ethernets:
     eth0:
       auth:
-        key-management: wpa-bogus''', expect_fail=True)
-        self.assertIn("unknown key management type 'wpa-bogus'", err)
+        key-management: bogus''', expect_fail=True)
+        self.assertIn("unknown key management type 'bogus'", err)
 
     def test_auth_invalid_eap_method(self):
         err = self.generate('''network:

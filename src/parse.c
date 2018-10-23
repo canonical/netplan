@@ -631,9 +631,9 @@ handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* 
     g_assert(cur_auth);
     if (strcmp(scalar(node), "none") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_NONE;
-    else if (strcmp(scalar(node), "wpa-psk") == 0)
+    else if (strcmp(scalar(node), "psk") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_WPA_PSK;
-    else if (strcmp(scalar(node), "wpa-eap") == 0)
+    else if (strcmp(scalar(node), "eap") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_WPA_EAP;
     else if (strcmp(scalar(node), "802.1x") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_8021X;

@@ -482,9 +482,9 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
 
      ``key-management`` (scalar)
      :    The supported key management modes are ``none`` (no key management);
-          ``wpa-psk`` (WPA with pre-shared key, common for home wifi);
-          ``wpa-eap`` (WPA with EAP, common for enterprise wifi); and ``802.1x``
-          (used primarily for wired Ethernet connections).
+          ``psk`` (WPA with pre-shared key, common for home wifi); ``eap`` (WPA
+          with EAP, common for enterprise wifi); and ``802.1x`` (used primarily
+          for wired Ethernet connections).
 
      The following properties can be used if ``key-management`` is ``wpa-psk``:
 
@@ -550,7 +550,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           is equivalent to
 
               auth:
-                key-management: wpa-psk
+                key-management: psk
                 psk: "S3kr1t"
 
      ``mode`` (scalar)
