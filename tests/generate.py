@@ -362,7 +362,8 @@ RouteMetric=100
 
     def test_eth_optional_addresses_invalid(self):
         eth_name = self.eth_name()
-        self.generate(self.config_with_optional_addresses(eth_name, '["invalid"]'), expect_fail=True)
+        err = self.generate(self.config_with_optional_addresses(eth_name, '["invalid"]'), expect_fail=True)
+        self.assertIn('invalid value for optional-addresses', err)
 
     def test_eth_wol(self):
         self.generate('''network:
@@ -4218,7 +4219,7 @@ class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
         err = self.generate('network:\n  version: 2\n foo: *', expect_fail=True)
         self.assertIn('Invalid YAML', err)
-        self.assertIn('/a.yaml line 2 column 1: did not find expected key', err)
+        self.assertIn('did not find expected key', err)
 
     def test_yaml_expected_scalar(self):
         err = self.generate('network:\n  version: {}', expect_fail=True)
@@ -4234,7 +4235,7 @@ class TestConfigErrors(TestBase):
 
     def test_yaml_expected_mapping(self):
         err = self.generate('network:\n  version', expect_fail=True)
-        self.assertIn('/a.yaml line 1 column 2: expected mapping', err)
+        self.assertIn('expected mapping', err)
 
     def test_invalid_bool(self):
         err = self.generate('''network:
@@ -4243,11 +4244,11 @@ class TestConfigErrors(TestBase):
     id0:
       wakeonlan: wut
 ''', expect_fail=True)
-        self.assertIn('invalid boolean value wut', err)
+        self.assertIn("invalid boolean value 'wut'", err)
 
     def test_invalid_version(self):
         err = self.generate('network:\n  version: 1', expect_fail=True)
-        self.assertIn('/a.yaml line 1 column 11: Only version 2 is supported', err)
+        self.assertIn('Only version 2 is supported', err)
 
     def test_id_redef_type_mismatch(self):
         err = self.generate('''network:
@@ -4260,7 +4261,7 @@ class TestConfigErrors(TestBase):
   bridges:
     id0:
       wakeonlan: true'''}, expect_fail=True)
-        self.assertIn("redef.yaml line 3 column 4: Updated definition 'id0' changes device type", err)
+        self.assertIn("Updated definition 'id0' changes device type", err)
 
     def test_set_name_without_match(self):
         err = self.generate('''network:
@@ -4269,7 +4270,7 @@ class TestConfigErrors(TestBase):
     def1:
       set-name: lom1
 ''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 6: def1: set-name: requires match: properties', err)
+        self.assertIn("def1: 'set-name:' requires 'match:' properties", err)
 
     def test_virtual_set_name(self):
         err = self.generate('''network:
@@ -4277,7 +4278,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       set_name: br1''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 6: unknown key set_name\n', err)
+        self.assertIn("unknown key 'set_name'", err)
 
     def test_virtual_match(self):
         err = self.generate('''network:
@@ -4286,7 +4287,7 @@ class TestConfigErrors(TestBase):
     br0:
       match:
         driver: foo''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 6: unknown key match\n', err)
+        self.assertIn("unknown key 'match'", err)
 
     def test_virtual_wol(self):
         err = self.generate('''network:
@@ -4294,7 +4295,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       wakeonlan: true''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 6: unknown key wakeonlan\n', err)
+        self.assertIn("unknown key 'wakeonlan'", err)
 
     def test_bridge_unknown_iface(self):
         err = self.generate('''network:
@@ -4302,7 +4303,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br0:
       interfaces: ['foo']''', expect_fail=True)
-        self.assertIn('/a.yaml line 4 column 19: br0: interface foo is not defined\n', err)
+        self.assertIn("br0: interface 'foo' is not defined", err)
 
     def test_bridge_multiple_assignments(self):
         err = self.generate('''network:
@@ -4314,7 +4315,7 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]
     br1:
       interfaces: [eno1]''', expect_fail=True)
-        self.assertIn('br1: interface eno1 is already assigned to bridge br0\n', err)
+        self.assertIn("br1: interface 'eno1' is already assigned to bridge br0", err)
 
     def test_unknown_global_renderer(self):
         err = self.generate('''network:
@@ -4408,7 +4409,7 @@ class TestConfigErrors(TestBase):
         workplace:
           something: false
       dhcp4: yes''', expect_fail=True)
-        self.assertIn('/etc/netplan/a.yaml line 6 column 10: unknown key something', err)
+        self.assertIn("unknown key 'something'", err)
 
     def test_wifi_ap_unknown_mode(self):
         err = self.generate('''network:
@@ -4542,7 +4543,7 @@ class TestConfigErrors(TestBase):
   ethernets: {en1: {}}
   vlans:
     ena: {link: en1}''', expect_fail=True)
-        self.assertIn('missing id property', err)
+        self.assertIn("missing 'id' property", err)
 
     def test_vlan_invalid_id(self):
         err = self.generate('''network:
@@ -4550,28 +4551,28 @@ class TestConfigErrors(TestBase):
   ethernets: {en1: {}}
   vlans:
     ena: {id: a, link: en1}''', expect_fail=True)
-        self.assertIn('invalid unsigned int value a', err)
+        self.assertIn("invalid unsigned int value 'a'", err)
 
         err = self.generate('''network:
   version: 2
   ethernets: {en1: {}}
   vlans:
     ena: {id: 4095, link: en1}''', expect_fail=True)
-        self.assertIn('invalid id 4095', err)
+        self.assertIn("invalid id '4095'", err)
 
     def test_vlan_missing_link(self):
         err = self.generate('''network:
   version: 2
   vlans:
     ena: {id: 1}''', expect_fail=True)
-        self.assertIn('ena: missing link property', err)
+        self.assertIn("ena: missing 'link' property", err)
 
     def test_vlan_unknown_link(self):
         err = self.generate('''network:
   version: 2
   vlans:
     ena: {id: 1, link: en1}''', expect_fail=True)
-        self.assertIn('ena: interface en1 is not defined\n', err)
+        self.assertIn("ena: interface 'en1' is not defined", err)
 
     def test_device_bad_route_to(self):
         self.generate('''network:
@@ -4889,7 +4890,7 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]
     bond1:
       interfaces: [eno1]''', expect_fail=True)
-        self.assertIn('bond1: interface eno1 is already assigned to bond bond0\n', err)
+        self.assertIn("bond1: interface 'eno1' is already assigned to bond bond0", err)
 
     def test_bond_bridge_cross_assignments1(self):
         err = self.generate('''network:
@@ -4902,7 +4903,7 @@ class TestConfigErrors(TestBase):
   bridges:
     br1:
       interfaces: [eno1]''', expect_fail=True)
-        self.assertIn('br1: interface eno1 is already assigned to bond bond0\n', err)
+        self.assertIn("br1: interface 'eno1' is already assigned to bond bond0", err)
 
     def test_bond_bridge_cross_assignments2(self):
         err = self.generate('''network:
@@ -4915,7 +4916,7 @@ class TestConfigErrors(TestBase):
   bonds:
     bond1:
       interfaces: [eno1]''', expect_fail=True)
-        self.assertIn('bond1: interface eno1 is already assigned to bridge br0\n', err)
+        self.assertIn("bond1: interface 'eno1' is already assigned to bridge br0", err)
 
     def test_bond_bridge_nested_assignments(self):
         self.generate('''network:
@@ -5049,21 +5050,24 @@ class TestConfigErrors(TestBase):
       link-local: [ invalid, ]''', expect_fail=True)
 
     def test_invalid_yaml_tabs(self):
-        self.generate('''\t''', expect_fail=True)
+        err = self.generate('''\t''', expect_fail=True)
+        self.assertIn("tabs are not allowed for indent", err)
 
     def test_invalid_yaml_undefined_alias(self):
-        self.generate('''network:
+        err = self.generate('''network:
   version: 2
   ethernets:
     *engreen:
       dhcp4: yes''', expect_fail=True)
+        self.assertIn("found undefined alias", err)
 
     def test_invalid_yaml_undefined_alias_at_eof(self):
-        self.generate('''network:
+        err = self.generate('''network:
   version: 2
   ethernets:
     engreen:
       dhcp4: *yes''', expect_fail=True)
+        self.assertIn('found undefined alias', err)
 
 
 class TestForwardDeclaration(TestBase):
