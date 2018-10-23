@@ -643,7 +643,7 @@ handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* 
 }
 
 static gboolean
-handle_auth_eap_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_auth_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_auth);
     if (strcmp(scalar(node), "tls") == 0)
@@ -660,7 +660,7 @@ handle_auth_eap_method(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 const mapping_entry_handler auth_handlers[] = {
     {"key-management", YAML_SCALAR_NODE, handle_auth_key_management},
     {"psk", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(psk)},
-    {"eap-method", YAML_SCALAR_NODE, handle_auth_eap_method},
+    {"method", YAML_SCALAR_NODE, handle_auth_method},
     {"identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(identity)},
     {"anonymous-identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(anonymous_identity)},
     {"password", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(password)},

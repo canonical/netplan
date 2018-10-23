@@ -40,21 +40,21 @@ class TestNetworkd(TestBase):
         workplace:
           auth:
             key-management: wpa-eap
-            eap-method: ttls
+            method: ttls
             anonymous-identity: "@internal.example.com"
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
         workplace2:
           auth:
             key-management: wpa-eap
-            eap-method: peap
+            method: peap
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
         customernet:
           auth:
             key-management: wpa-eap
-            eap-method: tls
+            method: tls
             anonymous-identity: "@cust.example.com"
             identity: "cert-joe@cust.example.com"
             ca-certificate: /etc/ssl/cust-cacrt.pem
@@ -138,7 +138,7 @@ network={
     eth0:
       auth:
         key-management: 802.1x
-        eap-method: tls
+        method: tls
         anonymous-identity: "@cust.example.com"
         identity: "cert-joe@cust.example.com"
         ca-certificate: /etc/ssl/cust-cacrt.pem
@@ -192,21 +192,21 @@ class TestNetworkManager(TestBase):
         workplace:
           auth:
             key-management: wpa-eap
-            eap-method: ttls
+            method: ttls
             anonymous-identity: "@internal.example.com"
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
         workplace2:
           auth:
             key-management: wpa-eap
-            eap-method: peap
+            method: peap
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
         customernet:
           auth:
             key-management: 802.1x
-            eap-method: tls
+            method: tls
             anonymous-identity: "@cust.example.com"
             identity: "cert-joe@cust.example.com"
             ca-certificate: /etc/ssl/cust-cacrt.pem
@@ -398,7 +398,7 @@ mode=adhoc
     eth0:
       auth:
         key-management: 802.1x
-        eap-method: tls
+        method: tls
         anonymous-identity: "@cust.example.com"
         identity: "cert-joe@cust.example.com"
         ca-certificate: /etc/ssl/cust-cacrt.pem
@@ -452,5 +452,5 @@ class TestConfigErrors(TestBase):
   ethernets:
     eth0:
       auth:
-        eap-method: bogus''', expect_fail=True)
+        method: bogus''', expect_fail=True)
         self.assertIn("unknown EAP method 'bogus'", err)
