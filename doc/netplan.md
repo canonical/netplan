@@ -494,9 +494,9 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      The following properties can be used if ``key-management`` is ``wpa-eap``
      or ``802.1x``:
 
-     ``eap-method`` (scalar)
-     :    The supported EAP methods are ``tls`` (TLS), ``peap`` (Protected EAP),
-          and ``ttls`` (Tunneled TLS).
+     ``method`` (scalar)
+     :    The EAP method to use. The supported EAP methods are ``tls`` (TLS),
+          ``peap`` (Protected EAP), and ``ttls`` (Tunneled TLS).
 
      ``identity`` (scalar)
      :    The identity to use for EAP.
