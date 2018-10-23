@@ -1022,7 +1022,8 @@ RouteMetric=100
       dhcp6-overrides:
         %s: no
 ''' % (override_name, override_name), expect_fail=True)
-        self.assertEqual(err, 'ERROR: engreen: networkd requires that %s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that '
+                              '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
 
     # Common tests for dhcp override strings
     def run_dhcp_overrides_string_tests(self, override_name, networkd_name):
@@ -1074,22 +1075,23 @@ RouteMetric=100
       dhcp6-overrides:
         %s: bar
 ''' % (override_name, override_name), expect_fail=True)
-        self.assertEqual(err, 'ERROR: engreen: networkd requires that %s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that '
+                              '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
 
     def test_dhcp_overrides_use_dns(self):
-      self.run_dhcp_overrides_bool_tests('use-dns', 'UseDNS')
+        self.run_dhcp_overrides_bool_tests('use-dns', 'UseDNS')
 
     def test_dhcp_overrides_use_ntp(self):
-      self.run_dhcp_overrides_bool_tests('use-ntp', 'UseNTP')
+        self.run_dhcp_overrides_bool_tests('use-ntp', 'UseNTP')
 
     def test_dhcp_overrides_send_hostname(self):
-      self.run_dhcp_overrides_bool_tests('send-hostname', 'SendHostname')
+        self.run_dhcp_overrides_bool_tests('send-hostname', 'SendHostname')
 
     def test_dhcp_overrides_use_hostname(self):
-      self.run_dhcp_overrides_bool_tests('use-hostname', 'UseHostname')
+        self.run_dhcp_overrides_bool_tests('use-hostname', 'UseHostname')
 
     def test_dhcp_overrides_hostname(self):
-      self.run_dhcp_overrides_string_tests('hostname', 'Hostname')
+        self.run_dhcp_overrides_string_tests('hostname', 'Hostname')
 
     def test_route_v4_single(self):
         self.generate('''network:
