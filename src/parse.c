@@ -169,6 +169,21 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
                         parser.problem_mark.line + 1,
                         parser.problem_mark.column + 1,
                         error_context);
+        else if (((char)*parser.buffer.pointer == ' ' || (char)*parser.buffer.pointer == '\0')
+                 && !parser.token_available)
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                        "%s:%zu:%zu: Invalid YAML: aliases are not supported:\n%s",
+                        yaml,
+                        parser.problem_mark.line + 1,
+                        parser.problem_mark.column + 1,
+                        error_context);
+        else if (parser.state == YAML_PARSE_BLOCK_MAPPING_KEY_STATE)
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                        "%s:%zu:%zu: Invalid YAML: inconsistent indentation:\n%s",
+                        yaml,
+                        parser.problem_mark.line + 1,
+                        parser.problem_mark.column + 1,
+                        error_context);
         else {
             g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
                         "%s:%zu:%zu: Invalid YAML: %s:\n%s",
@@ -228,7 +243,7 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
             yaml_error(node, error, "expected sequence");
             break;
         case YAML_MAPPING_NODE:
-            yaml_error(node, error, "expected mapping");
+            yaml_error(node, error, "expected mapping (check indentation)");
             break;
 
         // LCOV_EXCL_START

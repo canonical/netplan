@@ -4217,9 +4217,14 @@ method=ignore
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
+        err = self.generate('network:\n  version: %&', expect_fail=True)
+        self.assertIn('Invalid YAML', err)
+        self.assertIn('found character that cannot start any token', err)
+
+    def test_wrong_indent(self):
         err = self.generate('network:\n  version: 2\n foo: *', expect_fail=True)
         self.assertIn('Invalid YAML', err)
-        self.assertIn('did not find expected key', err)
+        self.assertIn('inconsistent indentation', err)
 
     def test_yaml_expected_scalar(self):
         err = self.generate('network:\n  version: {}', expect_fail=True)
@@ -5059,7 +5064,7 @@ class TestConfigErrors(TestBase):
   ethernets:
     *engreen:
       dhcp4: yes''', expect_fail=True)
-        self.assertIn("found undefined alias", err)
+        self.assertIn("aliases are not supported", err)
 
     def test_invalid_yaml_undefined_alias_at_eof(self):
         err = self.generate('''network:
@@ -5067,7 +5072,7 @@ class TestConfigErrors(TestBase):
   ethernets:
     engreen:
       dhcp4: *yes''', expect_fail=True)
-        self.assertIn('found undefined alias', err)
+        self.assertIn("aliases are not supported", err)
 
 
 class TestForwardDeclaration(TestBase):
