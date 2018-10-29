@@ -34,6 +34,7 @@ typedef enum {
     ND_BRIDGE = ND_VIRTUAL,
     ND_BOND,
     ND_VLAN,
+    ND_TUNNEL,
 } netdef_type;
 
 typedef enum {
@@ -62,6 +63,46 @@ typedef enum {
     OPTIONAL_DHCP6   = 1<<3,
     OPTIONAL_STATIC  = 1<<4,
 } optional_addr;
+
+/* Tunnel mode enum; sync with NetworkManager's DBUS API */
+/* TODO: figure out whether networkd's GRETAP and NM's ISATAP
+ *       are the same thing.
+ */
+typedef enum {
+    TUNNEL_MODE_UNKNOWN     = 0,
+    TUNNEL_MODE_IPIP        = 1,
+    TUNNEL_MODE_GRE         = 2,
+    TUNNEL_MODE_SIT         = 3,
+    TUNNEL_MODE_ISATAP      = 4,  // NM only.
+    TUNNEL_MODE_VTI         = 5,
+    TUNNEL_MODE_IP6IP6      = 6,
+    TUNNEL_MODE_IPIP6       = 7,
+    TUNNEL_MODE_IP6GRE      = 8,
+    TUNNEL_MODE_VTI6        = 9,
+
+    /* systemd-only, apparently? */
+    TUNNEL_MODE_GRETAP      = 101,
+    TUNNEL_MODE_IP6GRETAP   = 102,
+
+    _TUNNEL_MODE_MAX,
+} tunnel_mode;
+
+static const char* const
+tunnel_mode_table[_TUNNEL_MODE_MAX] = {
+    [TUNNEL_MODE_UNKNOWN] = "unknown",
+    [TUNNEL_MODE_IPIP] = "ipip",
+    [TUNNEL_MODE_GRE] = "gre",
+    [TUNNEL_MODE_SIT] = "sit",
+    [TUNNEL_MODE_ISATAP] = "isatap",
+    [TUNNEL_MODE_VTI] = "vti",
+    [TUNNEL_MODE_IP6IP6] = "ip6ip6",
+    [TUNNEL_MODE_IPIP6] = "ipip6",
+    [TUNNEL_MODE_IP6GRE] = "ip6gre",
+    [TUNNEL_MODE_VTI6] = "vti6",
+
+    [TUNNEL_MODE_GRETAP] = "gretap",
+    [TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+};
 
 struct optional_address_option {
     char* name;
@@ -185,6 +226,15 @@ typedef struct net_definition {
     } bridge_params;
     gboolean custom_bridging;
 
+    struct {
+        struct net_definition* parent;
+        tunnel_mode mode;
+        char *local_ip;
+        char *remote_ip;
+        char *input_key;
+        char *output_key;
+    } tunnel;
+    gboolean has_tunnels;
 } net_definition;
 
 typedef enum {
@@ -248,3 +298,4 @@ extern GList* netdefs_ordered;
 gboolean parse_yaml(const char* filename, GError** error);
 gboolean finish_parse(GError** error);
 netdef_backend get_global_backend();
+const char* tunnel_mode_to_string(tunnel_mode mode);

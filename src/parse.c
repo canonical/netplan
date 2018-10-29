@@ -500,6 +500,37 @@ handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     return TRUE;
 }
 
+static gboolean
+handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    char** dest = (char**) ((void*) cur_netdef + offset);
+    g_autofree char* addr = NULL;
+    char* prefix_len;
+    struct in_addr a4;
+    int ret;
+
+    /* these addresses can't have /prefix_len */
+    addr = g_strdup(scalar(node));
+    prefix_len = strrchr(addr, '/');
+    if (prefix_len)
+        return yaml_error(node, error,
+                          "invalid address: a single IPv4 address (without /prefixlength) is required");
+
+    /* is it an IPv4 address? */
+    ret = inet_pton(AF_INET, addr, &a4);
+    g_assert(ret >= 0);
+    if (ret <= 0)
+        return yaml_error(node, error,
+                          "invalid IPv4 address: %s", scalar(node));
+
+    g_free(*dest);
+    *dest = g_strdup(scalar(node));
+
+    return TRUE;
+}
+
+
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -1402,6 +1433,58 @@ handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data
 }
 
 /****************************************************
+ * Grammar and handlers for tunnels
+ ****************************************************/
+
+const char*
+tunnel_mode_to_string(tunnel_mode mode)
+{
+    return tunnel_mode_table[mode];
+}
+
+static gboolean
+handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    const char *key = scalar(node);
+    tunnel_mode i;
+
+    // Skip over unknown (0) tunnel mode.
+    for (i = 1; i < _TUNNEL_MODE_MAX; ++i) {
+        if (g_strcmp0(tunnel_mode_table[i], key)) {
+            cur_netdef->tunnel.mode = i;
+            return TRUE;
+        }
+    }
+
+    return yaml_error(node, error, "%s: tunnel mode '%s' is not supported", cur_netdef->id, key);
+}
+
+static gboolean
+handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    /* Tunnel key should be a number or dotted quad. */
+    guint offset = GPOINTER_TO_UINT(data);
+    char** dest = (char**) ((void*) cur_netdef + offset);
+    guint64 v;
+    gchar* endptr;
+    struct in_addr a4;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT) {
+        /* Not a simple uint, try for a dotted quad */
+        int ret = inet_pton(AF_INET, scalar(node), &a4);
+        g_assert(ret >= 0);
+        if (ret == 0)
+            return yaml_error(node, error, "invalid tunnel key '%s'", scalar(node));
+    }
+
+    g_free(*dest);
+    *dest = g_strdup(scalar(node));
+
+    return TRUE;
+}
+
+/****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
 
@@ -1492,6 +1575,17 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler tunnel_def_handlers[] = {
+    COMMON_LINK_HANDLERS,
+    {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
+    {"parent", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(tunnel.parent)},
+    {"local", YAML_SCALAR_NODE, handle_netdef_ip4, NULL, netdef_offset(tunnel.local_ip)},
+    {"remote", YAML_SCALAR_NODE, handle_netdef_ip4, NULL, netdef_offset(tunnel.remote_ip)},
+    {"input-key", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
+    {"output-key", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
+    {NULL}
+};
+
 /****************************************************
  * Grammar and handlers for network node
  ****************************************************/
@@ -1511,9 +1605,74 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
 }
 
 static gboolean
+validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
+{
+    /* Check that the tunnel mode id supported by the selected backend. */
+    switch(nd->tunnel.mode) {
+        case TUNNEL_MODE_UNKNOWN:
+            return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
+            break;
+
+        case TUNNEL_MODE_ISATAP:
+            if (nd->backend == BACKEND_NETWORKD)
+                return yaml_error(node, error,
+                                  "%s: %s tunnel mode is not supported by networkd",
+                                  nd->id,
+                                  g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+
+            break;
+
+        case TUNNEL_MODE_GRETAP:
+        case TUNNEL_MODE_IP6GRETAP:
+            if (nd->backend == BACKEND_NM)
+                return yaml_error(node, error,
+                                  "%s: %s tunnel mode is not supported by NetworkManager",
+                                  nd->id,
+                                  g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+            break;
+
+        // LCOV_EXCL_START
+        default:
+            break;
+        // LCOV_EXCL_STOP
+    }
+
+    if (nd->tunnel.parent)
+        nd->tunnel.parent->has_tunnels = TRUE;
+    if (!nd->tunnel.local_ip)
+        return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
+    if (!nd->tunnel.remote_ip)
+        return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
+
+    if (nd->tunnel.input_key) {
+        if (nd->tunnel.mode != TUNNEL_MODE_GRE
+                && nd->tunnel.mode != TUNNEL_MODE_IP6GRE)
+            return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
+    } else {
+        if (nd->tunnel.mode == TUNNEL_MODE_GRE
+                || nd->tunnel.mode == TUNNEL_MODE_IP6GRE)
+            return yaml_error(node, error, "%s: 'input-key' is required for this tunnel type", nd->id);
+    }
+
+    if (nd->tunnel.output_key) {
+        if (nd->tunnel.mode != TUNNEL_MODE_GRE
+                && nd->tunnel.mode != TUNNEL_MODE_IP6GRE)
+            return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+    } else {
+        if (nd->tunnel.mode == TUNNEL_MODE_GRE
+                || nd->tunnel.mode == TUNNEL_MODE_IP6GRE)
+            return yaml_error(node, error, "%s: 'output-key' is required for this tunnel type", nd->id);
+    }
+
+    return TRUE;
+}
+
+static gboolean
 validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
 {
     int missing_id_count = g_hash_table_size(missing_id);
+    gboolean valid = FALSE;
+
     g_assert(nd->type != ND_NONE);
 
     /* Skip all validation if we're missing some definition IDs (devices).
@@ -1539,7 +1698,16 @@ validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
             return yaml_error(node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
     }
 
-    return TRUE;
+    if (nd->type == ND_TUNNEL) {
+        valid = validate_tunnel(nd, node, error);
+        if (!valid)
+            goto validation_error;
+    }
+
+    valid = TRUE;
+
+validation_error:
+    return valid;
 }
 
 static void
@@ -1598,7 +1766,10 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->type = GPOINTER_TO_UINT(data);
             cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
+
+            /* Set some default values */
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
+            cur_netdef->tunnel.mode = TUNNEL_MODE_UNKNOWN;
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
             /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
             cur_netdef->linklocal.ipv6 = TRUE;
@@ -1608,6 +1779,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
             initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
+
+            g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }
 
         // XXX: breaks multi-pass parsing.
@@ -1616,11 +1789,12 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         /* and fill it with definitions */
         switch (cur_netdef->type) {
-            case ND_ETHERNET: handlers = ethernet_def_handlers; break;
-            case ND_WIFI: handlers = wifi_def_handlers; break;
-            case ND_BRIDGE: handlers = bridge_def_handlers; break;
             case ND_BOND: handlers = bond_def_handlers; break;
+            case ND_BRIDGE: handlers = bridge_def_handlers; break;
+            case ND_ETHERNET: handlers = ethernet_def_handlers; break;
+            case ND_TUNNEL: handlers = tunnel_def_handlers; break;
             case ND_VLAN: handlers = vlan_def_handlers; break;
+            case ND_WIFI: handlers = wifi_def_handlers; break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
         if (!process_mapping(doc, value, handlers, error))
@@ -1640,13 +1814,14 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 }
 
 const mapping_entry_handler network_handlers[] = {
-    {"version", YAML_SCALAR_NODE, handle_network_version},
-    {"renderer", YAML_SCALAR_NODE, handle_network_renderer},
-    {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
-    {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
-    {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
     {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BOND)},
+    {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
+    {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
+    {"renderer", YAML_SCALAR_NODE, handle_network_renderer},
+    {"tunnels", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_TUNNEL)},
+    {"version", YAML_SCALAR_NODE, handle_network_version},
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_VLAN)},
+    {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
     {NULL}
 };
 
