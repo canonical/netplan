@@ -101,6 +101,26 @@ write_bridge_params(GString* s, net_definition* def)
 }
 
 static void
+write_tunnel_params(GString* s, net_definition* def)
+{
+    GString *params = NULL;
+
+    params = g_string_sized_new(200);
+
+    if (def->tunnel.mode == TUNNEL_MODE_IPIP6 || def->tunnel.mode == TUNNEL_MODE_IP6IP6)
+        g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
+    g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
+    g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
+    if (def->tunnel.input_key)
+        g_string_append_printf(params, "InputKey=%s\n", def->tunnel.input_key);
+    if (def->tunnel.output_key)
+        g_string_append_printf(params, "OutputKey=%s\n", def->tunnel.output_key);
+
+    g_string_append_printf(s, "\n[Tunnel]\n%s", params->str);
+    g_string_free(params, TRUE);
+}
+
+static void
 write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -256,6 +276,47 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 
         case ND_VLAN:
             g_string_append_printf(s, "Kind=vlan\n\n[VLAN]\nId=%u\n", def->vlan_id);
+            break;
+
+        case ND_TUNNEL:
+            switch(def->tunnel.mode) {
+                case TUNNEL_MODE_GRE:
+                    g_string_append(s, "Kind=gre\n");
+                    break;
+                case TUNNEL_MODE_GRETAP:
+                    g_string_append(s, "Kind=gretap\n");
+                    break;
+                case TUNNEL_MODE_IPIP:
+                    g_string_append(s, "Kind=ipip\n");
+                    break;
+                case TUNNEL_MODE_IP6GRE:
+                    g_string_append(s, "Kind=ip6gre\n");
+                    break;
+                case TUNNEL_MODE_IP6GRETAP:
+                    g_string_append(s, "Kind=ip6gretap\n");
+                    break;
+                case TUNNEL_MODE_SIT:
+                    g_string_append(s, "Kind=sit\n");
+                    break;
+                case TUNNEL_MODE_VTI:
+                    g_string_append(s, "Kind=vti\n");
+                    break;
+                case TUNNEL_MODE_VTI6:
+                    g_string_append(s, "Kind=vti6\n");
+                    break;
+
+                case TUNNEL_MODE_IP6IP6:
+                case TUNNEL_MODE_IPIP6:
+                    g_string_append(s, "Kind=ip6tnl\n");
+                    break;
+
+                // LCOV_EXCL_START
+                default:
+                    g_assert_not_reached();
+                // LCOV_EXCL_STOP
+            }
+
+            write_tunnel_params(s, def);
             break;
 
         // LCOV_EXCL_START
@@ -468,6 +529,16 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
             if (nd->vlan_link == def)
                 g_string_append_printf(s, "VLAN=%s\n", nd->id);
+    }
+
+    if (def->has_tunnels) {
+        /* iterate over all netdefs to find child tunnels */
+        GHashTableIter i;
+        net_definition* nd;
+        g_hash_table_iter_init(&i, netdefs);
+        while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
+            if (nd->tunnel.parent == def)
+                g_string_append_printf(s, "Tunnel=%s\n", nd->id);
     }
 
     if (def->routes != NULL) {
