@@ -196,6 +196,16 @@ Virtual devices
     device's MAC address as a unique identifier rather than a RFC4361-compliant
     Client ID. This has no effect when NetworkManager is used as a renderer.
 
+ ``dhcp4-overrides`` (mapping)
+
+ :  (networkd backend only) Overrides default DHCP behavior; see the
+    ``DHCP Overrides`` section below.
+
+ ``dhcp6-overrides`` (mapping)
+
+ :  (networkd backend only) Overrides default DHCP behavior; see the
+    ``DHCP Overrides`` section below.
+
 ``accept-ra`` (bool)
 
 :   Accept Router Advertisement that would have the kernel configure IPv6 by itself.
@@ -242,12 +252,18 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 ``macaddress`` (scalar)
 
 :   Set the device's MAC address. The MAC address must be in the form
-"XX:XX:XX:XX:XX:XX".
+    "XX:XX:XX:XX:XX:XX".
+
+    **Note:** This will not work reliably for devices matched by name
+    only and rendered by networkd, due to interactions with device
+    renaming in udev. Match devices by MAC when setting MAC addresses.
 
     Example:
 
         ethernets:
           id0:
+            match:
+              macaddress: 52:54:00:6b:3c:58
             [...]
             macaddress: 52:54:00:6b:3c:59
 
@@ -257,8 +273,8 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
      Valid values depend on your network interface.
 
      **Note:** This will not work reliably for devices matched by name
-     only, due to interactions with device renaming in udev. Match
-     devices by MAC when setting MTU.
+     only and rendered by networkd, due to interactions with device
+     renaming in udev. Match devices by MAC when setting MTU.
 
 ``optional`` (bool)
 
@@ -300,6 +316,40 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
+## DHCP Overrides
+Several DHCP behavior overrides are available. Currently this is only supported
+via the ``networkd`` backend.
+
+Overrides only have an effect if the corresponding ``dhcp4`` or ``dhcp6`` is
+set to ``true``.
+
+If both ``dhcp4`` and ``dhcp6`` are ``true``, the ``networkd`` backend requires
+that ``dhcp4-overrides`` and ``dhcp6-overrides`` contain the same keys and values.
+
+:    The ``dhcp4-overrides`` and ``dhcp6-overrides`` mappings override the
+     default DHCP behavior.
+
+     ``use-dns`` (bool)
+     :    Default: ``true``. When ``true``, the DNS servers received from the
+          DHCP server will be used and take precedence over any statically
+          configured ones.
+
+     ``use-ntp`` (bool)
+     :    Default: ``true``. When ``true``, the NTP servers received from the
+          DHCP server will be used by systemd-timesyncd and take precedence
+          over any statically configured ones.
+
+     ``send-hostname`` (bool)
+     :    Default: ``true``. When ``true``, the machine's hostname will be sent
+          to the DHCP server.
+
+     ``use-hostname`` (bool)
+     :    Default: ``true``. When ``true``, the hostname received from the DHCP
+          server will be set as the transient hostname of the system.
+
+     ``hostname`` (scalar)
+     :    Use this value for the hostname which is sent to the DHCP server,
+          instead of machine's hostname.
 
 ## Routing
 Complex routing is possible with netplan. Standard static routes as well
@@ -726,6 +776,8 @@ This is a complex example which shows most available features:
               from: 192.168.14.3/24
               table: 70
               priority: 50
+          # only networkd can render on-link routes and routing policies
+          renderer: networkd
         lom:
           match:
             driver: ixgbe

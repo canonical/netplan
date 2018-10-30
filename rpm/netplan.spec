@@ -15,7 +15,7 @@
 
 
 Name:           netplan
-Version:        0.34.1
+Version:        0.40.3
 Release:        0%{?dist}
 Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
@@ -33,13 +33,19 @@ BuildRequires:  pkgconfig(uuid)
 BuildRequires:  %{_bindir}/pandoc
 BuildRequires:  python%{python3_pkgversion}-devel
 # For tests
+BuildRequires:  %{_sbindir}/ip
 BuildRequires:  python%{python3_pkgversion}-coverage
-BuildRequires:  python%{python3_pkgversion}-PyYAML
+BuildRequires:  python%{python3_pkgversion}-netifaces
+BuildRequires:  python%{python3_pkgversion}-nose
 BuildRequires:  python%{python3_pkgversion}-pycodestyle
 BuildRequires:  python%{python3_pkgversion}-pyflakes
+BuildRequires:  python%{python3_pkgversion}-PyYAML
 
-# /usr/sbin/netplan is a Python 3 script that requires PyYAML
+# /usr/sbin/netplan is a Python 3 script that requires netifaces and PyYAML
+Requires:       python%{python3_pkgversion}-netifaces
 Requires:       python%{python3_pkgversion}-PyYAML
+# 'ip' command is used in netplan apply subcommand
+Requires:       %{_sbindir}/ip
 
 # netplan supports either systemd or NetworkManager as backends to configure the network
 Requires:       systemd
@@ -59,7 +65,7 @@ Provides:       %{ubuntu_name} = %{version}-%{release}
 Provides:       %{ubuntu_name}%{?_isa} = %{version}-%{release}
 
 %description
-netplan reads network configuration from /etc/nplan/*.yaml which are written by administrators,
+netplan reads network configuration from /etc/netplan/*.yaml which are written by administrators,
 installers, cloud image instantiations, or other OS deployments. During early boot, it generates
 backend specific configuration files in /run to hand off control of devices to a particular
 networking daemon.
@@ -99,12 +105,16 @@ make check
 %{_unitdir}/%{name}*.service
 %{_systemdgeneratordir}/%{name}
 %{_mandir}/man5/%{name}.5*
+%{_mandir}/man8/%{name}*.8*
 %dir %{_sysconfdir}/%{name}
 %{_prefix}/lib/%{name}/
 %{_datadir}/bash-completion/completions/%{name}
 
 
 %changelog
+* Sat Oct 13 2018 Neal Gompa <ngompa13@gmail.com> - 0.40.3-0
+- Rebase to 0.40.3
+
 * Tue Mar 13 2018 Neal Gompa <ngompa13@gmail.com> - 0.34-0.1
 - Update to 0.34
 

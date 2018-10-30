@@ -213,7 +213,7 @@ write_bond_parameters(const net_definition* def, GString *s)
     if (def->bond_params.gratuitous_arp) {
         g_string_append_printf(params, "\nnum_grat_arp=%d", def->bond_params.gratuitous_arp);
         /* Work around issue in NM where unset unsolicited_na will overwrite num_grat_arp:
-	 * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
+         * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
         g_string_append_printf(params, "\nnum_unsol_na=%d", def->bond_params.gratuitous_arp);
     }
     if (def->bond_params.packets_per_slave)
