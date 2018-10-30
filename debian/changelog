@@ -1,3 +1,19 @@
+netplan.io (0.90) UNRELEASED; urgency=medium
+
+  * New upstream release:
+    - build: fixes for building on RPM-based distros
+    - build: code prettiness changes (make indentation consistent)
+    - Fix device name-changes detection (LP: #1770082)
+    - Add support for IPv6 Privacy Extensions (LP: #1750392)
+    - Add dhcp{4,6}-overrides to control DNS, NTP, hostname updates via DHCP
+      (LP: #1759014)
+    - Clarify MAC and MTU setting requirements (LP: #1800668)
+    - Various documentation fixes (LP: #1800669)
+    - Improve error reporting to give clearer messages and context
+      (LP: #1800670)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 30 Oct 2018 10:36:38 -0400
+
 netplan.io (0.40.2) cosmic; urgency=medium
 
   * tests/integration.py: Mark regexes with r to pacify pycodestyle's W605.
