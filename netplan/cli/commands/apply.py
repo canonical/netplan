@@ -111,6 +111,21 @@ class NetplanApply(utils.NetplanCommand):
             utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
+    def is_composite_member(composites, phy):  # pragma: nocover (covered in autopkgtest)
+        """
+        Is this physical interface a member of a 'composite' virtual
+        interface? (bond, bridge)
+        """
+        for composite in composites:
+            for id, settings in composite.items():
+                members = settings.get('interfaces', [])
+                for iface in members:
+                    if iface == phy:
+                        return True
+
+        return False
+
+    @staticmethod
     def process_link_changes(interfaces, config_manager):  # pragma: nocover (covered in autopkgtest)
         """
         Go through the pending changes and pick what needs special
@@ -120,6 +135,7 @@ class NetplanApply(utils.NetplanCommand):
 
         changes = {}
         phys = dict(config_manager.physical_interfaces)
+        composite_interfaces = [config_manager.bridges, config_manager.bonds]
 
         # TODO (cyphermox): factor out some of this matching code (and make it
         # pretty) in its own module.
@@ -147,6 +163,15 @@ class NetplanApply(utils.NetplanCommand):
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
         for interface in interfaces:
+            if interface not in phys:
+                # do not rename  virtual devices
+                logging.debug('Skipping non-physical interface: %s', interface)
+                continue
+            if NetplanApply.is_composite_member(composite_interfaces, interface):
+                logging.debug('Skipping composite member %s', interface)
+                # do not rename members of virtual devices. MAC addresses
+                # may be the same for all interface members.
+                continue
             # try to get the device's driver for matching.
             devdir = os.path.join('/sys/class/net', interface)
             try:
