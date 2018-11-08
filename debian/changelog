@@ -1,3 +1,11 @@
+netplan.io (0.40.2.2) UNRELEASED; urgency=medium
+
+  * Fix idempotency in renaming: bond members should be exempt from rename, as
+    they may all share a single MAC for the bond device. (LP: #1802322)
+  * tests/integration.py: add test designed to catch the above regression.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 21 Nov 2018 14:19:19 -0500
+
 netplan.io (0.40.2.1) cosmic; urgency=medium
 
   * Fix typo breaking rename on 'netplan apply'. (LP: #1770082)
