@@ -111,6 +111,20 @@ class NetplanApply(utils.NetplanCommand):
             utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
+    def is_composite_member(composites, phy):  # pragma: nocover (covered in autopkgtest)
+        """
+        Is this physical interface a member of a 'composite' virtual
+        interface? (bond, bridge)
+        """
+        for id, settings in composites.items():
+            members = settings.get('interfaces', [])
+            for iface in members:
+                if iface == phy:
+                    return True
+
+        return False
+
+    @staticmethod
     def process_link_changes(interfaces, config_manager):  # pragma: nocover (covered in autopkgtest)
         """
         Go through the pending changes and pick what needs special
@@ -120,6 +134,8 @@ class NetplanApply(utils.NetplanCommand):
 
         changes = {}
         phys = dict(config_manager.physical_interfaces)
+        composite_interfaces = dict(config_manager.bridges
+                                    + config_manager.bonds)
 
         # TODO (cyphermox): factor out some of this matching code (and make it
         # pretty) in its own module.
@@ -130,6 +146,10 @@ class NetplanApply(utils.NetplanCommand):
             if not settings:
                 continue
             if phy == 'renderer':
+                continue
+            if NetplanApply.is_composite_member(composite_interfaces, phy):
+                # do not rename members of virtual devices. MAC addresses
+                # may be the same for all interface members.
                 continue
             newname = settings.get('set-name')
             if not newname:
