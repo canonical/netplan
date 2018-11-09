@@ -163,7 +163,7 @@ class NetplanApply(utils.NetplanCommand):
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
         for interface in interfaces:
-            if interface not in phy:
+            if interface not in phys:
                 # do not rename  virtual devices
                 logging.debug('Skipping non-physical interface: %s', interface)
                 continue
