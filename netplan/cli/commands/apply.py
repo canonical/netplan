@@ -163,11 +163,11 @@ class NetplanApply(utils.NetplanCommand):
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
         for interface in interfaces:
-            if interface not in phy:
+            if interface not in phys:
                 # do not rename  virtual devices
                 logging.debug('Skipping non-physical interface: %s', interface)
                 continue
-            if NetplanApply.is_composite_member(composite_interfaces, phy):
+            if NetplanApply.is_composite_member(composite_interfaces, interface):
                 logging.debug('Skipping composite member %s', interface)
                 # do not rename members of virtual devices. MAC addresses
                 # may be the same for all interface members.
