@@ -48,6 +48,10 @@ netdef_backend backend_global, backend_cur_type;
 
 /* Global ID → net_definition* map for all parsed config files */
 GHashTable* netdefs;
+
+/* Contains the same objects as 'netdefs' but ordered by dependency */
+GList* netdefs_ordered;
+
 /* Set of IDs in currently parsed YAML file, for being able to detect
  * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
  * existing definition */
@@ -1599,6 +1603,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
             cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+            netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
 
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
