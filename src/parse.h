@@ -239,6 +239,7 @@ typedef struct {
 
 /* Written/updated by parse_yaml(): char* id →  net_definition */
 extern GHashTable* netdefs;
+extern GList* netdefs_ordered;
 
 /****************************************************
  * Functions
