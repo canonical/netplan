@@ -1,0 +1,43 @@
+name: netplan
+version: '0.90'
+summary: Backend-agnostic network configuration in YAML
+description: |
+  Netplan is a utility for easily configuring networking on a linux system.
+  You simply create a YAML description of the required network interfaces and
+  what each should be configured to do. From this description Netplan will
+  generate all the necessary configuration for your chosen renderer tool.
+grade: devel
+confinement: classic
+
+apps:
+  netplan:
+    command: usr/sbin/netplan
+    plugs: [network]
+    environment:
+      PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3/dist-packages
+
+parts:
+  netplan:
+    source: https://github.com/CanonicalLtd/netplan.git
+    plugin: make
+    build-packages:
+      - bash-completion
+      - libglib2.0-dev
+      - libyaml-dev
+      - pandoc
+      - pkg-config
+      - python3
+      - python3-coverage
+      - python3-yaml
+      - python3-netifaces
+      - python3-nose
+      - pyflakes3
+      - pycodestyle
+      #- pep8
+      - systemd
+    stage-packages:
+      - iproute2
+      - python3
+      - python3-netifaces
+      - python3-yaml
+      - systemd
