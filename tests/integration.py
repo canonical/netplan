@@ -1683,7 +1683,7 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
       match: {name: %(ec)s}
       dhcp4: no
     ethbn2:
-      match: {name: $(e2c)s}
+      match: {name: %(e2c)s}
       dhcp4: no
   bonds:
     mybond:
