@@ -2,6 +2,7 @@
 
 [![Build Status](https://semaphoreci.com/api/v1/cyphermox/netplan/branches/master/badge.svg)](https://semaphoreci.com/cyphermox/netplan)
 [![codecov](https://codecov.io/gh/CanonicalLtd/netplan/branch/master/graph/badge.svg)](https://codecov.io/gh/CanonicalLtd/netplan)
+[![Snap Status](https://build.snapcraft.io/badge/cyphermox/netplan.svg)](https://build.snapcraft.io/user/cyphermox/netplan)
 
 
 # Website

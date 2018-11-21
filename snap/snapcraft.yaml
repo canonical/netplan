@@ -1,5 +1,5 @@
 name: netplan
-version: '0.90'
+version: git
 summary: Backend-agnostic network configuration in YAML
 description: |
   Netplan is a utility for easily configuring networking on a linux system.
@@ -24,6 +24,7 @@ parts:
       - bash-completion
       - libglib2.0-dev
       - libyaml-dev
+      - uuid-dev
       - pandoc
       - pkg-config
       - python3
@@ -32,8 +33,7 @@ parts:
       - python3-netifaces
       - python3-nose
       - pyflakes3
-      - pycodestyle
-      #- pep8
+      - pep8
       - systemd
     stage-packages:
       - iproute2
