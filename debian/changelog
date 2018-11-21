@@ -1,4 +1,4 @@
-netplan.io (0.90) UNRELEASED; urgency=medium
+netplan.io (0.90) disco; urgency=medium
 
   * New upstream release:
     - build: fixes for building on RPM-based distros
@@ -13,7 +13,7 @@ netplan.io (0.90) UNRELEASED; urgency=medium
       (LP: #1800670)
     - Skip non-physical/bond interfaces when applying renames (LP: #1802322)
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 30 Oct 2018 10:36:38 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Wed, 21 Nov 2018 14:06:13 -0500
 
 netplan.io (0.40.2) cosmic; urgency=medium
 
