@@ -11,6 +11,7 @@ netplan.io (0.90) UNRELEASED; urgency=medium
     - Various documentation fixes (LP: #1800669)
     - Improve error reporting to give clearer messages and context
       (LP: #1800670)
+    - Skip non-physical/bond interfaces when applying renames (LP: #1802322)
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 30 Oct 2018 10:36:38 -0400
 
