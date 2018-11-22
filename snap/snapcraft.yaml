@@ -12,7 +12,6 @@ confinement: classic
 apps:
   netplan:
     command: usr/sbin/netplan
-    plugs: [network]
     environment:
       PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3/dist-packages
 
