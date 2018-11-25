@@ -9,6 +9,7 @@ case "$1" in
 	    # Create /etc/network/interfaces as breadcrumbs if it doesn't
 	    # already exist
 	    if [ ! -f /etc/network/interfaces ]; then
+		mkdir -p /etc/network
 		cat <<EOF >/etc/network/interfaces
 # ifupdown has been replaced by netplan(5) on this system.  See
 # /etc/netplan for current configuration.
