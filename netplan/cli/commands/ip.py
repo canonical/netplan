@@ -142,7 +142,7 @@ class NetplanIpLeases(utils.NetplanCommand):
         logging.debug('command ip leases: running %s', argv)
         try:
             out = subprocess.check_output(argv, universal_newlines=True)
-        except CalledProcessError as e:  # pragma: nocover (better be covered in autopkgtest)
+        except CalledProcessError:  # pragma: nocover (better be covered in autopkgtest)
             sys.exit(1)
         mapping = {}
         mapping_s = out.split(',')
