@@ -260,6 +260,21 @@ write_bridge_params(const net_definition* def, GString *s)
 }
 
 static void
+write_tunnel_params(const net_definition* def, GString *s)
+{
+    g_string_append(s, "\n[ip-tunnel]\n");
+
+    g_string_append_printf(s, "mode=%d\n", def->tunnel.mode);
+    g_string_append_printf(s, "local=%s\n", def->tunnel.local_ip);
+    g_string_append_printf(s, "remote=%s\n", def->tunnel.remote_ip);
+
+    if (def->tunnel.input_key)
+        g_string_append_printf(s, "input-key=%s", def->tunnel.input_key);
+    if (def->tunnel.output_key)
+        g_string_append_printf(s, "output-key=%s", def->tunnel.output_key);
+}
+
+static void
 maybe_generate_uuid(net_definition* def)
 {
     if (uuid_is_null(def->uuid))
@@ -405,6 +420,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
     if (def->type == ND_BOND)
         write_bond_parameters(def, s);
+
+    if (def->type == ND_TUNNEL)
+        write_tunnel_params(def, s);
 
     g_string_append(s, "\n[ipv4]\n");
 
