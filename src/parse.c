@@ -1450,7 +1450,7 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
 
     // Skip over unknown (0) tunnel mode.
     for (i = 1; i < _TUNNEL_MODE_MAX; ++i) {
-        if (g_strcmp0(tunnel_mode_table[i], key)) {
+        if (g_strcmp0(tunnel_mode_table[i], key) == 0) {
             cur_netdef->tunnel.mode = i;
             return TRUE;
         }
