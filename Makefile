@@ -35,7 +35,6 @@ clean:
 	rm -rf test-coverage .coverage
 
 check: default linting
-	tests/generate.py
 	tests/cli.py
 	$(NOSETESTS3) -v --with-coverage
 	tests/validate_docs.sh
