@@ -1021,11 +1021,10 @@ class TestMerging(TestBase):
     def test_global_backend(self):
         self.generate('''network:
   version: 2
-  renderer: NetworkManager
   ethernets:
     engreen:
       dhcp4: y''',
-                      confs={'backend': 'network:\n  renderer: networkd'})
+                      confs={'backend': 'network:\n  renderer: NetworkManager'})
 
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
