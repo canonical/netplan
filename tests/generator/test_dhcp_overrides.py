@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Tests for DHCP override handling in netplan generator
 #
@@ -20,8 +19,7 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(__file__))
-from generate import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES
+from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES
 
 
 class TestNetworkd(TestBase):

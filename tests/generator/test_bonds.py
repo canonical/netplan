@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Tests for bond devices config generated via netplan
 #
@@ -20,8 +19,7 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(__file__))
-from generate import TestBase
+from .base import TestBase
 
 
 class TestNetworkd(TestBase):

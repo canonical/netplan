@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Command-line arguments handling tests for generator
 #
@@ -21,8 +20,7 @@ import os
 import sys
 import subprocess
 
-sys.path.append(os.path.dirname(__file__))
-from generate import TestBase, exe_generate
+from .base import TestBase, exe_generate
 
 
 class TestConfigArgs(TestBase):
