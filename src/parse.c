@@ -230,6 +230,8 @@ yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
     return FALSE;
 }
 
+#define YAML_VARIABLE_NODE  YAML_NO_NODE
+
 /**
  * Raise a GError about a type mismatch and return FALSE.
  */
@@ -240,6 +242,10 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
         return TRUE;
 
     switch (expected_type) {
+        case YAML_VARIABLE_NODE:
+            /* Special case, defer sanity checking to the next handlers */
+            return TRUE;
+            break;
         case YAML_SCALAR_NODE:
             yaml_error(node, error, "expected scalar");
             break;
@@ -1484,6 +1490,36 @@ handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return TRUE;
 }
 
+const mapping_entry_handler tunnel_keys_handlers[] = {
+    {"input", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
+    {"output", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
+    {NULL}
+};
+
+static gboolean
+handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret = FALSE;
+
+    /* We overload the key 'key' for tunnels; such that it can either be a
+     * single scalar with the same key to use for both input and output keys,
+     * or a mapping where one can specify each.
+     */
+    if (node->type == YAML_SCALAR_NODE) {
+        ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.input_key), error);
+        if (ret)
+            ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.output_key), error);
+    }
+    else if (node->type == YAML_MAPPING_NODE) {
+        ret = process_mapping(doc, node, tunnel_keys_handlers, error);
+    }
+    else {
+        return yaml_error(node, error, "invalid type for '%s': must be a scalar or mapping", scalar(node));
+    }
+
+    return ret;
+}
+
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
@@ -1582,8 +1618,12 @@ const mapping_entry_handler tunnel_def_handlers[] = {
     {"parent", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(tunnel.parent)},
     {"local", YAML_SCALAR_NODE, handle_netdef_ip4, NULL, netdef_offset(tunnel.local_ip)},
     {"remote", YAML_SCALAR_NODE, handle_netdef_ip4, NULL, netdef_offset(tunnel.remote_ip)},
-    {"input-key", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
-    {"output-key", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
+
+    /* Handle key/keys for clarity in config: this can be either a scalar or
+     * mapping of multiple keys (input and output)
+     */
+    {"key", YAML_NO_NODE, handle_tunnel_key_mapping},
+    {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
     {NULL}
 };
 
