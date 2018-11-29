@@ -1,5 +1,3 @@
-- support for IPv4 link-local addressing
-
 - improve IPv6 RA handling
 
 - support tunnel device types
@@ -37,3 +35,5 @@
 - improve exit codes / behavior on error
 
 - integrate 'netplan try' in tmux/screen
+
+- replace nose for python tests with something else, preserving coverage reports
