@@ -409,6 +409,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
         !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
         !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans &&
+        !def->has_tunnels &&
         def->type < ND_VIRTUAL)
         return;
 

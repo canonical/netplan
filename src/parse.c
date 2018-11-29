@@ -1645,23 +1645,23 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
         return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
 
     if (nd->tunnel.input_key) {
-        if (nd->tunnel.mode != TUNNEL_MODE_GRE
-                && nd->tunnel.mode != TUNNEL_MODE_IP6GRE)
+        if ((nd->backend == BACKEND_NM
+                && (nd->tunnel.mode != TUNNEL_MODE_GRE
+                    && nd->tunnel.mode != TUNNEL_MODE_IP6GRE))
+            || (nd->backend == BACKEND_NETWORKD
+                && (nd->tunnel.mode != TUNNEL_MODE_VTI
+                    && nd->tunnel.mode != TUNNEL_MODE_VTI6)))
             return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
-    } else {
-        if (nd->tunnel.mode == TUNNEL_MODE_GRE
-                || nd->tunnel.mode == TUNNEL_MODE_IP6GRE)
-            return yaml_error(node, error, "%s: 'input-key' is required for this tunnel type", nd->id);
     }
 
     if (nd->tunnel.output_key) {
-        if (nd->tunnel.mode != TUNNEL_MODE_GRE
-                && nd->tunnel.mode != TUNNEL_MODE_IP6GRE)
+        if ((nd->backend == BACKEND_NM
+                && (nd->tunnel.mode != TUNNEL_MODE_GRE
+                    && nd->tunnel.mode != TUNNEL_MODE_IP6GRE))
+            || (nd->backend == BACKEND_NETWORKD
+                && (nd->tunnel.mode != TUNNEL_MODE_VTI
+                    && nd->tunnel.mode != TUNNEL_MODE_VTI6)))
             return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
-    } else {
-        if (nd->tunnel.mode == TUNNEL_MODE_GRE
-                || nd->tunnel.mode == TUNNEL_MODE_IP6GRE)
-            return yaml_error(node, error, "%s: 'output-key' is required for this tunnel type", nd->id);
     }
 
     return TRUE;
