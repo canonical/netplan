@@ -678,6 +678,67 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           ``active-backup``, ``balance-alb``, and ``balance-tlb`` modes.
 
 
+## Properties for device type ``tunnels:``
+
+``parent`` (scalar)
+
+:    The parent device for the tunnel (optional).
+
+``mode`` (scalar)
+
+:   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
+    ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
+    the ``networkd`` backend also supports ``gretap`` and ``ip6gretap`` modes.
+    In addition, the ``NetworkManager`` supports ``isatap`` tunnels.
+
+``local`` (scalar)
+
+:   Defines the address of the local endpoint of the tunnel.
+
+``remote`` (scalar)
+
+:   Defines the address of the remote endpoint of the tunnel.
+
+``key``  (scalar) or (mapping)
+:   See ``keys`` below.
+
+``keys`` (scalar) or (mapping)
+
+:   Define keys to use for the tunnel. The key can be a number or a dotted
+    quad (an IPv4 address). It is used for identification of IP transforms.
+    This is only required for ``vti`` and ``vti6`` when using the networkd
+    backend, and for ``gre`` or ``ip6gre`` tunnels when using the
+    NetworkManager backend.
+
+    This field may be used as a scalar (meaning that a single key is
+    specified and to be used for both input and output key), or as a mapping,
+    where you can then further specify ``input`` and ``output``.
+
+    ``input`` (scalar)
+    :    The input key for the tunnel
+
+    ``output`` (scalar)
+    :    The output key for the tunnel
+
+Examples:
+
+    tunnels:
+      tun0:
+        mode: gre
+        local: ...
+        remote: ...
+        keys:
+          input: 1234
+          output: 5678
+
+    tunnels:
+      tun0:
+        mode: vti6
+        local: ...
+        remote: ...
+        key: 59568549
+
+
 ## Properties for device type ``vlans:``
 
 ``id`` (scalar)
