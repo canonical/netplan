@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Tests for VLAN devices config generated via netplan
 #
@@ -21,8 +20,7 @@ import os
 import stat
 import sys
 
-sys.path.append(os.path.dirname(__file__))
-from generate import TestBase, ND_WIFI_DHCP4
+from .base import TestBase, ND_WIFI_DHCP4
 
 
 class TestNetworkd(TestBase):

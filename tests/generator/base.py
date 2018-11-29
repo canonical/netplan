@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#
 # Blackbox tests of netplan generate that verify that the generated
 # configuration files look as expected. These are run during "make check" and
 # don't touch the system configuration at all.
