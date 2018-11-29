@@ -86,6 +86,8 @@ type_str(netdef_type type)
             return "bond";
         case ND_VLAN:
             return "vlan";
+        case ND_TUNNEL:
+            return "tunnel";
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();

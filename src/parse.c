@@ -1648,7 +1648,7 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
         if ((nd->backend == BACKEND_NM
                 && (nd->tunnel.mode != TUNNEL_MODE_GRE
                     && nd->tunnel.mode != TUNNEL_MODE_IP6GRE))
-            || (nd->backend == BACKEND_NETWORKD
+            && (nd->backend != BACKEND_NM
                 && (nd->tunnel.mode != TUNNEL_MODE_VTI
                     && nd->tunnel.mode != TUNNEL_MODE_VTI6)))
             return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
@@ -1658,7 +1658,7 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
         if ((nd->backend == BACKEND_NM
                 && (nd->tunnel.mode != TUNNEL_MODE_GRE
                     && nd->tunnel.mode != TUNNEL_MODE_IP6GRE))
-            || (nd->backend == BACKEND_NETWORKD
+            && (nd->backend == BACKEND_NETWORKD
                 && (nd->tunnel.mode != TUNNEL_MODE_VTI
                     && nd->tunnel.mode != TUNNEL_MODE_VTI6)))
             return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
