@@ -431,7 +431,6 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (!def->dhcp4 && !def->dhcp6 && !def->bridge && !def->bond &&
         !def->ip4_addresses && !def->ip6_addresses && !def->gateway4 && !def->gateway6 &&
         !def->ip4_nameservers && !def->ip6_nameservers && !def->has_vlans &&
-        !def->has_tunnels &&
         def->type < ND_VIRTUAL)
         return;
 
@@ -530,16 +529,6 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
             if (nd->vlan_link == def)
                 g_string_append_printf(s, "VLAN=%s\n", nd->id);
-    }
-
-    if (def->has_tunnels) {
-        /* iterate over all netdefs to find child tunnels */
-        GHashTableIter i;
-        net_definition* nd;
-        g_hash_table_iter_init(&i, netdefs);
-        while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
-            if (nd->tunnel.parent == def)
-                g_string_append_printf(s, "Tunnel=%s\n", nd->id);
     }
 
     if (def->routes != NULL) {

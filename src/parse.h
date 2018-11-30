@@ -228,14 +228,12 @@ typedef struct net_definition {
     gboolean custom_bridging;
 
     struct {
-        struct net_definition* parent;
         tunnel_mode mode;
         char *local_ip;
         char *remote_ip;
         char *input_key;
         char *output_key;
     } tunnel;
-    gboolean has_tunnels;
 } net_definition;
 
 typedef enum {

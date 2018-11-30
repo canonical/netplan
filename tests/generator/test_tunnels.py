@@ -46,7 +46,6 @@ def prepare_config_for_mode(renderer, mode, key=None):
   tunnels:
     tun0:
       mode: {}
-      parent: en1
       local: {}
       remote: {}
       addresses: [ 15.15.15.15/24 ]
@@ -74,14 +73,7 @@ class TestNetworkd(TestBase):
         """[networkd] Validate generation of SIT tunnels"""
         config = prepare_config_for_mode('networkd', 'sit')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=sit
 
@@ -103,14 +95,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of VTI tunnels"""
         config = prepare_config_for_mode('networkd', 'vti')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=vti
 
@@ -132,14 +117,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of VTI tunnels with input/output keys"""
         config = prepare_config_for_mode('networkd', 'vti', key='1.1.1.1')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=vti
 
@@ -163,14 +141,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of VTI tunnels with key dict"""
         config = prepare_config_for_mode('networkd', 'vti', key={'input': 1234, 'output': 5678})
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=vti
 
@@ -200,14 +171,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of VTI6 tunnels"""
         config = prepare_config_for_mode('networkd', 'vti6')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=vti6
 
@@ -229,14 +193,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of VTI6 tunnels with input/output keys"""
         config = prepare_config_for_mode('networkd', 'vti6', key='1.1.1.1')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=vti6
 
@@ -266,14 +223,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of IPIP6 tunnels"""
         config = prepare_config_for_mode('networkd', 'ipip6')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=ip6tnl
 
@@ -296,14 +246,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of IPIP tunnels"""
         config = prepare_config_for_mode('networkd', 'ipip')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=ipip
 
@@ -331,14 +274,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of GRE tunnels"""
         config = prepare_config_for_mode('networkd', 'gre')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=gre
 
@@ -360,14 +296,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of IP6GRE tunnels"""
         config = prepare_config_for_mode('networkd', 'ip6gre')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=ip6gre
 
@@ -389,14 +318,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of GRETAP tunnels"""
         config = prepare_config_for_mode('networkd', 'gretap')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=gretap
 
@@ -418,14 +340,7 @@ ConfigureWithoutCarrier=yes
         """[networkd] Validate generation of IP6GRETAP tunnels"""
         config = prepare_config_for_mode('networkd', 'ip6gretap')
         self.generate(config)
-        self.assert_networkd({'en1.network': '''[Match]
-Name=en1
-
-[Network]
-LinkLocalAddressing=ipv6
-Tunnel=tun0
-''',
-                              'tun0.netdev': '''[NetDev]
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
 Kind=ip6gretap
 

@@ -685,10 +685,6 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ## Properties for device type ``tunnels:``
 
-``parent`` (scalar)
-
-:    The parent device for the tunnel (optional).
-
 ``mode`` (scalar)
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
