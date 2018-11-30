@@ -695,10 +695,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 :   Defines the address of the remote endpoint of the tunnel.
 
-``key``  (scalar) or (mapping)
-:   See ``keys`` below.
-
-``keys`` (scalar) or (mapping)
+``key``  (scalar or mapping)
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted
     quad (an IPv4 address). It is used for identification of IP transforms.
@@ -733,6 +730,10 @@ Examples:
         local: ...
         remote: ...
         key: 59568549
+
+``keys`` (scalar or mapping)
+
+:   Alternate name for the ``key`` field. See above.
 
 
 ## Properties for device type ``vlans:``
