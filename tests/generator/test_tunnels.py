@@ -99,9 +99,9 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_gre(self):
-        """[networkd] Validate generation of GRE tunnels"""
-        config = prepare_config_for_mode('networkd', 'gre')
+    def test_vti(self):
+        """[networkd] Validate generation of VTI tunnels"""
+        config = prepare_config_for_mode('networkd', 'vti')
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -112,7 +112,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=gre
+Kind=vti
 
 [Tunnel]
 Local=10.10.10.10
@@ -128,9 +128,9 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_gre_with_key_str(self):
-        """[networkd] Validate generation of GRE tunnels with input/output keys"""
-        config = prepare_config_for_mode('networkd', 'gre', key='1.1.1.1')
+    def test_vti_with_key_str(self):
+        """[networkd] Validate generation of VTI tunnels with input/output keys"""
+        config = prepare_config_for_mode('networkd', 'vti', key='1.1.1.1')
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -141,7 +141,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=gre
+Kind=vti
 
 [Tunnel]
 Local=10.10.10.10
@@ -159,9 +159,9 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_gre_with_key_dict(self):
-        """[networkd] Validate generation of GRE tunnels with key dict"""
-        config = prepare_config_for_mode('networkd', 'gre', key={'input': 1234, 'output': 5678})
+    def test_vti_with_key_dict(self):
+        """[networkd] Validate generation of VTI tunnels with key dict"""
+        config = prepare_config_for_mode('networkd', 'vti', key={'input': 1234, 'output': 5678})
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -172,7 +172,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=gre
+Kind=vti
 
 [Tunnel]
 Local=10.10.10.10
@@ -190,15 +190,15 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_gre_invalid_key(self):
-        """[networkd] Validate GRE tunnel generation key handling"""
-        config = prepare_config_for_mode('networkd', 'gre', key='invalid')
+    def test_vti_invalid_key(self):
+        """[networkd] Validate VTI tunnel generation key handling"""
+        config = prepare_config_for_mode('networkd', 'vti', key='invalid')
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: invalid tunnel key 'invalid'", out)
 
-    def test_ip6gre(self):
-        """[networkd] Validate generation of IP6GRE tunnels"""
-        config = prepare_config_for_mode('networkd', 'ip6gre')
+    def test_vti6(self):
+        """[networkd] Validate generation of VTI6 tunnels"""
+        config = prepare_config_for_mode('networkd', 'vti6')
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -209,7 +209,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=ip6gre
+Kind=vti6
 
 [Tunnel]
 Local=fe80::dead:beef
@@ -225,9 +225,9 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_ip6gre_with_key(self):
-        """[networkd] Validate generation of IP6GRE tunnels with input/output keys"""
-        config = prepare_config_for_mode('networkd', 'ip6gre', key='1.1.1.1')
+    def test_vti6_with_key(self):
+        """[networkd] Validate generation of VTI6 tunnels with input/output keys"""
+        config = prepare_config_for_mode('networkd', 'vti6', key='1.1.1.1')
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -238,7 +238,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=ip6gre
+Kind=vti6
 
 [Tunnel]
 Local=fe80::dead:beef
@@ -256,9 +256,9 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_ip6gre_invalid_key(self):
-        """[networkd] Validate IP6GRE tunnel generation key handling"""
-        config = prepare_config_for_mode('networkd', 'ip6gre', key='invalid')
+    def test_vti6_invalid_key(self):
+        """[networkd] Validate VTI6 tunnel generation key handling"""
+        config = prepare_config_for_mode('networkd', 'vti6', key='invalid')
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: invalid tunnel key 'invalid'", out)
 
@@ -327,9 +327,9 @@ ConfigureWithoutCarrier=yes
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: ISATAP tunnel mode is not supported", out)
 
-    def test_vti(self):
-        """[networkd] Validate generation of VTI tunnels"""
-        config = prepare_config_for_mode('networkd', 'vti')
+    def test_gre(self):
+        """[networkd] Validate generation of GRE tunnels"""
+        config = prepare_config_for_mode('networkd', 'gre')
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -340,7 +340,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=vti
+Kind=gre
 
 [Tunnel]
 Local=10.10.10.10
@@ -356,9 +356,9 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
-    def test_vti6(self):
-        """[networkd] Validate generation of VTI6 tunnels"""
-        config = prepare_config_for_mode('networkd', 'vti6')
+    def test_ip6gre(self):
+        """[networkd] Validate generation of IP6GRE tunnels"""
+        config = prepare_config_for_mode('networkd', 'ip6gre')
         self.generate(config)
         self.assert_networkd({'en1.network': '''[Match]
 Name=en1
@@ -369,7 +369,7 @@ Tunnel=tun0
 ''',
                               'tun0.netdev': '''[NetDev]
 Name=tun0
-Kind=vti6
+Kind=ip6gre
 
 [Tunnel]
 Local=fe80::dead:beef
@@ -520,9 +520,9 @@ gateway=20.20.20.21
 method=ignore
 '''})
 
-    def test_gre(self):
-        """[NetworkManager] Validate generation of GRE tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'gre')
+    def test_vti(self):
+        """[NetworkManager] Validate generation of VTI tunnels"""
+        config = prepare_config_for_mode('NetworkManager', 'vti')
         self.generate(config)
         self.assert_nm({'en1': '''[connection]
 id=netplan-en1
@@ -544,7 +544,7 @@ type=tunnel
 interface-name=tun0
 
 [ip-tunnel]
-mode=2
+mode=5
 local=10.10.10.10
 remote=20.20.20.20
 
@@ -557,9 +557,9 @@ gateway=20.20.20.21
 method=ignore
 '''})
 
-    def test_ip6gre(self):
-        """[NetworkManager] Validate generation of IP6GRE tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'ip6gre')
+    def test_vti6(self):
+        """[NetworkManager] Validate generation of VTI6 tunnels"""
+        config = prepare_config_for_mode('NetworkManager', 'vti6')
         self.generate(config)
         self.assert_nm({'en1': '''[connection]
 id=netplan-en1
@@ -581,7 +581,7 @@ type=tunnel
 interface-name=tun0
 
 [ip-tunnel]
-mode=8
+mode=9
 local=fe80::dead:beef
 remote=2001:fe:ad:de:ad:be:ef:1
 
@@ -668,9 +668,9 @@ gateway=20.20.20.21
 method=ignore
 '''})
 
-    def test_vti(self):
-        """[NetworkManager] Validate generation of VTI tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'vti')
+    def test_gre(self):
+        """[NetworkManager] Validate generation of GRE tunnels"""
+        config = prepare_config_for_mode('NetworkManager', 'gre')
         self.generate(config)
         self.assert_nm({'en1': '''[connection]
 id=netplan-en1
@@ -692,7 +692,7 @@ type=tunnel
 interface-name=tun0
 
 [ip-tunnel]
-mode=5
+mode=2
 local=10.10.10.10
 remote=20.20.20.20
 
@@ -705,9 +705,9 @@ gateway=20.20.20.21
 method=ignore
 '''})
 
-    def test_vti_with_keys(self):
-        """[NetworkManager] Validate generation of VTI tunnels with keys"""
-        config = prepare_config_for_mode('NetworkManager', 'vti', key={'input': 1111, 'output': 5555})
+    def test_gre_with_keys(self):
+        """[NetworkManager] Validate generation of GRE tunnels with keys"""
+        config = prepare_config_for_mode('NetworkManager', 'gre', key={'input': 1111, 'output': 5555})
         self.generate(config)
         self.assert_nm({'en1': '''[connection]
 id=netplan-en1
@@ -729,7 +729,7 @@ type=tunnel
 interface-name=tun0
 
 [ip-tunnel]
-mode=5
+mode=2
 local=10.10.10.10
 remote=20.20.20.20
 input-key=1111
@@ -744,9 +744,9 @@ gateway=20.20.20.21
 method=ignore
 '''})
 
-    def test_vti6(self):
-        """[NetworkManager] Validate generation of VTI6 tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'vti6')
+    def test_ip6gre(self):
+        """[NetworkManager] Validate generation of IP6GRE tunnels"""
+        config = prepare_config_for_mode('NetworkManager', 'ip6gre')
         self.generate(config)
         self.assert_nm({'en1': '''[connection]
 id=netplan-en1
@@ -768,7 +768,7 @@ type=tunnel
 interface-name=tun0
 
 [ip-tunnel]
-mode=9
+mode=8
 local=fe80::dead:beef
 remote=2001:fe:ad:de:ad:be:ef:1
 
@@ -781,9 +781,9 @@ gateway=20.20.20.21
 method=ignore
 '''})
 
-    def test_vti6_with_key(self):
-        """[NetworkManager] Validate generation of VTI6 tunnels with key"""
-        config = prepare_config_for_mode('NetworkManager', 'vti6', key='9999')
+    def test_ip6gre_with_key(self):
+        """[NetworkManager] Validate generation of IP6GRE tunnels with key"""
+        config = prepare_config_for_mode('NetworkManager', 'ip6gre', key='9999')
         self.generate(config)
         self.assert_nm({'en1': '''[connection]
 id=netplan-en1
@@ -805,7 +805,7 @@ type=tunnel
 interface-name=tun0
 
 [ip-tunnel]
-mode=9
+mode=8
 local=fe80::dead:beef
 remote=2001:fe:ad:de:ad:be:ef:1
 input-key=9999

@@ -1686,28 +1686,54 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
 static gboolean
 validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
 {
-    /* Check that the tunnel mode id supported by the selected backend. */
-    switch(nd->tunnel.mode) {
-        case TUNNEL_MODE_UNKNOWN:
-            return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
+    if (nd->tunnel.mode == TUNNEL_MODE_UNKNOWN)
+        return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
+
+    /* Backend-specific validation rules */
+    switch (nd->backend) {
+        case BACKEND_NETWORKD:
+            switch (nd->tunnel.mode) {
+                case TUNNEL_MODE_VTI:
+                case TUNNEL_MODE_VTI6:
+                    break;
+
+                case TUNNEL_MODE_ISATAP:
+                    return yaml_error(node, error,
+                                    "%s: %s tunnel mode is not supported by networkd",
+                                    nd->id,
+                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                    break;
+
+                default:
+                    if (nd->tunnel.input_key)
+                        return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
+                    if (nd->tunnel.output_key)
+                        return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+                    break;
+            }
             break;
 
-        case TUNNEL_MODE_ISATAP:
-            if (nd->backend == BACKEND_NETWORKD)
-                return yaml_error(node, error,
-                                  "%s: %s tunnel mode is not supported by networkd",
-                                  nd->id,
-                                  g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+        case BACKEND_NM:
+            switch (nd->tunnel.mode) {
+                case TUNNEL_MODE_GRE:
+                case TUNNEL_MODE_IP6GRE:
+                    break;
 
-            break;
+                case TUNNEL_MODE_GRETAP:
+                case TUNNEL_MODE_IP6GRETAP:
+                    return yaml_error(node, error,
+                                    "%s: %s tunnel mode is not supported by NetworkManager",
+                                    nd->id,
+                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                    break;
 
-        case TUNNEL_MODE_GRETAP:
-        case TUNNEL_MODE_IP6GRETAP:
-            if (nd->backend == BACKEND_NM)
-                return yaml_error(node, error,
-                                  "%s: %s tunnel mode is not supported by NetworkManager",
-                                  nd->id,
-                                  g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                default:
+                    if (nd->tunnel.input_key)
+                        return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
+                    if (nd->tunnel.output_key)
+                        return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+                    break;
+            }
             break;
 
         default:
@@ -1741,26 +1767,6 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
             if (!is_ip4_address(nd->tunnel.remote_ip))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
             break;
-    }
-
-    if (nd->tunnel.input_key) {
-        if ((nd->backend == BACKEND_NM
-                && (nd->tunnel.mode != TUNNEL_MODE_GRE
-                    && nd->tunnel.mode != TUNNEL_MODE_IP6GRE))
-            && (nd->backend != BACKEND_NM
-                && (nd->tunnel.mode != TUNNEL_MODE_VTI
-                    && nd->tunnel.mode != TUNNEL_MODE_VTI6)))
-            return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
-    }
-
-    if (nd->tunnel.output_key) {
-        if ((nd->backend == BACKEND_NM
-                && (nd->tunnel.mode != TUNNEL_MODE_GRE
-                    && nd->tunnel.mode != TUNNEL_MODE_IP6GRE))
-            && (nd->backend == BACKEND_NETWORKD
-                && (nd->tunnel.mode != TUNNEL_MODE_VTI
-                    && nd->tunnel.mode != TUNNEL_MODE_VTI6)))
-            return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
     }
 
     return TRUE;
