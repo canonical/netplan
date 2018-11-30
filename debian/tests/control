@@ -7,5 +7,14 @@ Depends: @,
   dnsmasq-base,
 Restrictions: allow-stderr, needs-root, isolation-machine
 
+Tests: tunnels.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
 Tests: autostart
 Restrictions: allow-stderr, needs-root, isolation-container
