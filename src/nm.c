@@ -271,9 +271,9 @@ write_tunnel_params(const net_definition* def, GString *s)
     g_string_append_printf(s, "remote=%s\n", def->tunnel.remote_ip);
 
     if (def->tunnel.input_key)
-        g_string_append_printf(s, "input-key=%s", def->tunnel.input_key);
+        g_string_append_printf(s, "input-key=%s\n", def->tunnel.input_key);
     if (def->tunnel.output_key)
-        g_string_append_printf(s, "output-key=%s", def->tunnel.output_key);
+        g_string_append_printf(s, "output-key=%s\n", def->tunnel.output_key);
 }
 
 static void
