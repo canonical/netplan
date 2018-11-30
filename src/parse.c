@@ -1661,7 +1661,6 @@ const mapping_entry_handler vlan_def_handlers[] = {
 const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
-    {"parent", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(tunnel.parent)},
     {"local", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.local_ip)},
     {"remote", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.remote_ip)},
 
@@ -1749,9 +1748,6 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
             break;
         // LCOV_EXCL_STOP
     }
-
-    if (nd->tunnel.parent)
-        nd->tunnel.parent->has_tunnels = TRUE;
 
     /* Validate local/remote IPs */
     if (!nd->tunnel.local_ip)
