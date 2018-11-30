@@ -507,14 +507,40 @@ handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 }
 
 static gboolean
+is_ip4_address(const char* address)
+{
+    struct in_addr a4;
+    int ret;
+
+    ret = inet_pton(AF_INET, address, &a4);
+    g_assert(ret >= 0);
+    if (ret > 0)
+        return TRUE;
+
+    return FALSE;
+}
+
+static gboolean
+is_ip6_address(const char* address)
+{
+    struct in6_addr a6;
+    int ret;
+
+    ret = inet_pton(AF_INET6, address, &a6);
+    g_assert(ret >= 0);
+    if (ret > 0)
+        return TRUE;
+
+    return FALSE;
+}
+
+static gboolean
 handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     char** dest = (char**) ((void*) cur_netdef + offset);
     g_autofree char* addr = NULL;
     char* prefix_len;
-    struct in_addr a4;
-    int ret;
 
     /* these addresses can't have /prefix_len */
     addr = g_strdup(scalar(node));
@@ -524,11 +550,35 @@ handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
                           "invalid address: a single IPv4 address (without /prefixlength) is required");
 
     /* is it an IPv4 address? */
-    ret = inet_pton(AF_INET, addr, &a4);
-    g_assert(ret >= 0);
-    if (ret <= 0)
+    if (!is_ip4_address(addr))
         return yaml_error(node, error,
                           "invalid IPv4 address: %s", scalar(node));
+
+    g_free(*dest);
+    *dest = g_strdup(scalar(node));
+
+    return TRUE;
+}
+
+static gboolean
+handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    char** dest = (char**) ((void*) cur_netdef + offset);
+    g_autofree char* addr = NULL;
+    char* prefix_len;
+
+    /* these addresses can't have /prefix_len */
+    addr = g_strdup(scalar(node));
+    prefix_len = strrchr(addr, '/');
+    if (prefix_len)
+        return yaml_error(node, error,
+                          "invalid address: a single IPv6 address (without /prefixlength) is required");
+
+    /* is it an IPv6 address? */
+    if (!is_ip6_address(addr))
+        return yaml_error(node, error,
+                          "invalid IPv6 address: %s", scalar(node));
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
@@ -643,9 +693,6 @@ static gboolean
 handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        struct in_addr a4;
-        struct in6_addr a6;
-        int ret;
         g_autofree char* addr = NULL;
         char* prefix_len;
         guint64 prefix_len_num;
@@ -662,9 +709,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
 
         /* is it an IPv4 address? */
-        ret = inet_pton(AF_INET, addr, &a4);
-        g_assert(ret >= 0);
-        if (ret > 0) {
+        if (is_ip4_address(addr)) {
             if (prefix_len_num == 0 || prefix_len_num > 32)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
 
@@ -676,9 +721,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         }
 
         /* is it an IPv6 address? */
-        ret = inet_pton(AF_INET6, addr, &a6);
-        g_assert(ret >= 0);
-        if (ret > 0) {
+        if (is_ip6_address(addr)) {
             if (prefix_len_num == 0 || prefix_len_num > 128)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
             if (!cur_netdef->ip6_addresses)
@@ -697,10 +740,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
 static gboolean
 handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    struct in_addr a4;
-    int ret = inet_pton(AF_INET, scalar(node), &a4);
-    g_assert(ret >= 0);
-    if (ret == 0)
+    if (!is_ip4_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
     cur_netdef->gateway4 = g_strdup(scalar(node));
     return TRUE;
@@ -709,10 +749,7 @@ handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 static gboolean
 handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    struct in6_addr a6;
-    int ret = inet_pton(AF_INET6, scalar(node), &a6);
-    g_assert(ret >= 0);
-    if (ret == 0)
+    if (!is_ip6_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
     cur_netdef->gateway6 = g_strdup(scalar(node));
     return TRUE;
@@ -836,16 +873,11 @@ static gboolean
 handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        struct in_addr a4;
-        struct in6_addr a6;
-        int ret;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
 
         /* is it an IPv4 address? */
-        ret = inet_pton(AF_INET, scalar(entry), &a4);
-        g_assert(ret >= 0);
-        if (ret > 0) {
+        if (is_ip4_address(scalar(entry))) {
             if (!cur_netdef->ip4_nameservers)
                 cur_netdef->ip4_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
@@ -854,9 +886,7 @@ handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void
         }
 
         /* is it an IPv6 address? */
-        ret = inet_pton(AF_INET6, scalar(entry), &a6);
-        g_assert(ret >= 0);
-        if (ret > 0) {
+        if (is_ip6_address(scalar(entry))) {
             if (!cur_netdef->ip6_nameservers)
                 cur_netdef->ip6_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
@@ -929,25 +959,18 @@ handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _
 static int
 get_ip_family(const char* address)
 {
-    struct in_addr a4;
-    struct in6_addr a6;
     g_autofree char *ip_str;
     char *prefix_len;
-    int ret = -1;
 
     ip_str = g_strdup(address);
     prefix_len = strrchr(ip_str, '/');
     if (prefix_len)
         *prefix_len = '\0';
 
-    ret = inet_pton(AF_INET, ip_str, &a4);
-    g_assert(ret >= 0);
-    if (ret > 0)
+    if (is_ip4_address(ip_str))
         return AF_INET;
 
-    ret = inet_pton(AF_INET6, ip_str, &a6);
-    g_assert(ret >= 0);
-    if (ret > 0)
+    if (is_ip6_address(ip_str))
         return AF_INET6;
 
     return -1;
@@ -1343,8 +1366,6 @@ static gboolean
 handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        struct in_addr a4;
-        int ret;
         g_autofree char* addr = NULL;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
@@ -1352,9 +1373,7 @@ handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
         addr = g_strdup(scalar(entry));
 
         /* is it an IPv4 address? */
-        ret = inet_pton(AF_INET, addr, &a4);
-        g_assert(ret >= 0);
-        if (ret > 0) {
+        if (is_ip4_address(addr)) {
             if (!cur_netdef->bond_params.arp_ip_targets)
                 cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
@@ -1449,6 +1468,29 @@ tunnel_mode_to_string(tunnel_mode mode)
 }
 
 static gboolean
+handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_autofree char* addr = NULL;
+    char* prefix_len;
+
+    /* split off /prefix_len */
+    addr = g_strdup(scalar(node));
+    prefix_len = strrchr(addr, '/');
+    if (prefix_len)
+        return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
+
+    /* is it an IPv4 address? */
+    if (is_ip4_address(addr))
+        return handle_netdef_ip4(doc, node, data, error);
+
+    /* is it an IPv6 address? */
+    if (is_ip6_address(addr))
+        return handle_netdef_ip6(doc, node, data, error);
+
+    return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(node));
+}
+
+static gboolean
 handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     const char *key = scalar(node);
@@ -1473,14 +1515,11 @@ handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     char** dest = (char**) ((void*) cur_netdef + offset);
     guint64 v;
     gchar* endptr;
-    struct in_addr a4;
 
     v = g_ascii_strtoull(scalar(node), &endptr, 10);
     if (*endptr != '\0' || v > G_MAXUINT) {
         /* Not a simple uint, try for a dotted quad */
-        int ret = inet_pton(AF_INET, scalar(node), &a4);
-        g_assert(ret >= 0);
-        if (ret == 0)
+        if (!is_ip4_address(scalar(node)))
             return yaml_error(node, error, "invalid tunnel key '%s'", scalar(node));
     }
 
@@ -1615,8 +1654,8 @@ const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
     {"parent", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(tunnel.parent)},
-    {"local", YAML_SCALAR_NODE, handle_netdef_ip4, NULL, netdef_offset(tunnel.local_ip)},
-    {"remote", YAML_SCALAR_NODE, handle_netdef_ip4, NULL, netdef_offset(tunnel.remote_ip)},
+    {"local", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.local_ip)},
+    {"remote", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.remote_ip)},
 
     /* Handle key/keys for clarity in config: this can be either a scalar or
      * mapping of multiple keys (input and output)
@@ -1671,18 +1710,38 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
                                   g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
             break;
 
-        // LCOV_EXCL_START
         default:
             break;
-        // LCOV_EXCL_STOP
     }
 
     if (nd->tunnel.parent)
         nd->tunnel.parent->has_tunnels = TRUE;
+
+    /* Validate local/remote IPs */
     if (!nd->tunnel.local_ip)
         return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
     if (!nd->tunnel.remote_ip)
         return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
+
+    switch(nd->tunnel.mode) {
+        case TUNNEL_MODE_IPIP6:
+        case TUNNEL_MODE_IP6IP6:
+        case TUNNEL_MODE_IP6GRE:
+        case TUNNEL_MODE_IP6GRETAP:
+        case TUNNEL_MODE_VTI6:
+            if (!is_ip6_address(nd->tunnel.local_ip))
+                return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
+            if (!is_ip6_address(nd->tunnel.remote_ip))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
+            break;
+
+        default:
+            if (!is_ip4_address(nd->tunnel.local_ip))
+                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
+            if (!is_ip4_address(nd->tunnel.remote_ip))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
+            break;
+    }
 
     if (nd->tunnel.input_key) {
         if ((nd->backend == BACKEND_NM
