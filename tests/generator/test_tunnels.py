@@ -823,6 +823,18 @@ method=ignore
 
 class TestConfigErrors(TestBase):
 
+    def test_missing_mode(self):
+        """Fail if tunnel mode is missing"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      remote: 20.20.20.20
+      local: 10.10.10.10
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: missing 'mode' property for tunnel", out)
+
     def test_invalid_mode(self):
         """Ensure an invalid tunnel mode shows an error message"""
         config = prepare_config_for_mode('networkd', 'invalid')
@@ -834,6 +846,32 @@ class TestConfigErrors(TestBase):
         config = prepare_config_for_mode('NetworkManager', 'gretap')
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: GRETAP tunnel mode is not supported by NetworkManager", out)
+
+    def test_malformed_tunnel_ip(self):
+        """Fail if local/remote IP for tunnel are malformed"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: gre
+      remote: 20.20.20.20
+      local: 10.10.1invalid
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: malformed address '10.10.1invalid', must be X.X.X.X or X:X:X:X:X:X:X:X", out)
+
+    def test_cidr_tunnel_ip(self):
+        """Fail if local/remote IP for tunnel include /prefix"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: gre
+      remote: 20.20.20.20
+      local: 10.10.10.10/21
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: address '10.10.10.10/21' should not include /prefixlength", out)
 
     def test_missing_local_ip(self):
         """Fail if local IP is missing"""
@@ -911,10 +949,26 @@ class TestConfigErrors(TestBase):
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: 'remote' must be a valid IPv6 address for this tunnel type", out)
 
-    def test_invalid_input_key_use(self):
-        """Show an error if input-key is used for a mode that does not support it"""
+    def test_malformed_keys(self):
+        """Show an error if tunnel keys stanza is malformed"""
         config = '''network:
   version: 2
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 10.10.10.10
+      remote: 20.20.20.20
+      keys:
+        - input: 1234
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: invalid type for 'keys'", out)
+
+    def test_networkd_invalid_input_key_use(self):
+        """[networkd] Show an error if input-key is used for a mode that does not support it"""
+        config = '''network:
+  version: 2
+  renderer: networkd
   tunnels:
     tun0:
       mode: ipip
@@ -926,10 +980,43 @@ class TestConfigErrors(TestBase):
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: 'input-key' is not required for this tunnel type", out)
 
-    def test_invalid_output_key_use(self):
-        """Show an error if output-key is used for a mode that does not support it"""
+    def test_networkd_invalid_output_key_use(self):
+        """[networkd] Show an error if output-key is used for a mode that does not support it"""
         config = '''network:
   version: 2
+  renderer: networkd
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 10.10.10.10
+      remote: 20.20.20.20
+      keys:
+        output: 1234
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'output-key' is not required for this tunnel type", out)
+
+    def test_nm_invalid_input_key_use(self):
+        """[NetworkManager] Show an error if input-key is used for a mode that does not support it"""
+        config = '''network:
+  version: 2
+  renderer: NetworkManager
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 10.10.10.10
+      remote: 20.20.20.20
+      keys:
+        input: 1234
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'input-key' is not required for this tunnel type", out)
+
+    def test_nm_invalid_output_key_use(self):
+        """[NetworkManager] Show an error if output-key is used for a mode that does not support it"""
+        config = '''network:
+  version: 2
+  renderer: NetworkManager
   tunnels:
     tun0:
       mode: ipip
