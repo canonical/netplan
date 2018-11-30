@@ -292,6 +292,35 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
+    def test_ipip(self):
+        """[networkd] Validate generation of IPIP tunnels"""
+        config = prepare_config_for_mode('networkd', 'ipip')
+        self.generate(config)
+        self.assert_networkd({'en1.network': '''[Match]
+Name=en1
+
+[Network]
+LinkLocalAddressing=ipv6
+Tunnel=tun0
+''',
+                              'tun0.netdev': '''[NetDev]
+Name=tun0
+Kind=ipip
+
+[Tunnel]
+Local=10.10.10.10
+Remote=20.20.20.20
+''',
+                              'tun0.network': '''[Match]
+Name=tun0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=15.15.15.15/24
+Gateway=20.20.20.21
+ConfigureWithoutCarrier=yes
+'''})
+
     def test_isatap(self):
         """[networkd] Warning for ISATAP tunnel generation not supported"""
         config = prepare_config_for_mode('networkd', 'isatap')
