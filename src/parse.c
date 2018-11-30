@@ -1553,7 +1553,7 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
         ret = process_mapping(doc, node, tunnel_keys_handlers, error);
     }
     else {
-        return yaml_error(node, error, "invalid type for '%s': must be a scalar or mapping", scalar(node));
+        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
     }
 
     return ret;
