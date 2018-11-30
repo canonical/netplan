@@ -790,3 +790,124 @@ gateway=20.20.20.21
 [ipv6]
 method=ignore
 '''})
+
+
+class TestConfigErrors(TestBase):
+
+    def test_invalid_mode(self):
+        """Ensure an invalid tunnel mode shows an error message"""
+        config = prepare_config_for_mode('networkd', 'invalid')
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: tunnel mode 'invalid' is not supported", out)
+
+    def test_invalid_mode_for_nm(self):
+        """Show an error if a mode is selected that can't be handled by the renderer"""
+        config = prepare_config_for_mode('NetworkManager', 'gretap')
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: GRETAP tunnel mode is not supported by NetworkManager", out)
+
+    def test_missing_local_ip(self):
+        """Fail if local IP is missing"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: gre
+      remote: 20.20.20.20
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: missing 'local' property for tunnel", out)
+
+    def test_missing_remote_ip(self):
+        """Fail if remote IP is missing"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: gre
+      local: 20.20.20.20
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: missing 'remote' property for tunnel", out)
+
+    def test_wrong_local_ip_for_mode_v4(self):
+        """Show an error when an IPv6 local addr is used for an IPv4 tunnel mode"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: gre
+      local: fe80::2
+      remote: 20.20.20.20
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'local' must be a valid IPv4 address for this tunnel type", out)
+
+    def test_wrong_remote_ip_for_mode_v4(self):
+        """Show an error when an IPv6 remote addr is used for an IPv4 tunnel mode"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: gre
+      local: 10.10.10.10
+      remote: 2006::1
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'remote' must be a valid IPv4 address for this tunnel type", out)
+
+    def test_wrong_local_ip_for_mode_v6(self):
+        """Show an error when an IPv4 local addr is used for an IPv6 tunnel mode"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: ip6gre
+      local: 10.10.10.10
+      remote: 2001::3
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'local' must be a valid IPv6 address for this tunnel type", out)
+
+    def test_wrong_remote_ip_for_mode_v6(self):
+        """Show an error when an IPv4 remote addr is used for an IPv6 tunnel mode"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: ip6gre
+      local: 2001::face
+      remote: 20.20.20.20
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'remote' must be a valid IPv6 address for this tunnel type", out)
+
+    def test_invalid_input_key_use(self):
+        """Show an error if input-key is used for a mode that does not support it"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 10.10.10.10
+      remote: 20.20.20.20
+      keys:
+        input: 1234
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'input-key' is not required for this tunnel type", out)
+
+    def test_invalid_output_key_use(self):
+        """Show an error if output-key is used for a mode that does not support it"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 10.10.10.10
+      remote: 20.20.20.20
+      keys:
+        output: 1234
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'output-key' is not required for this tunnel type", out)
