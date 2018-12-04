@@ -1417,6 +1417,7 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
+    {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
     {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.hostname)}
 
 const mapping_entry_handler dhcp4_overrides_handlers[] = {
@@ -1549,6 +1550,7 @@ initialize_dhcp_overrides(dhcp_overrides* overrides)
     overrides->use_ntp = TRUE;
     overrides->send_hostname = TRUE;
     overrides->use_hostname = TRUE;
+    overrides->use_mtu = TRUE;
     overrides->hostname = NULL;
 }
 

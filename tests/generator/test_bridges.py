@@ -41,8 +41,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'br0.netdev': '[NetDev]\nName=br0\nMACAddress=00:01:02:03:04:05\nKind=bridge\n'})
 
@@ -69,8 +69,8 @@ IPv6AcceptRA=no
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'br0.netdev': '''[NetDev]
 Name=br0
@@ -102,8 +102,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -129,8 +129,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -159,8 +159,8 @@ Address=1.2.3.4/12
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -191,8 +191,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
@@ -238,8 +238,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
@@ -286,8 +286,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'

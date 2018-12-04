@@ -19,7 +19,8 @@
 import os
 import sys
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES
+from .base import (TestBase, ND_DHCP4, ND_DHCP4_NOMTU, ND_DHCP6, ND_DHCP6_NOMTU,
+        ND_DHCPYES, ND_DHCPYES_NOMTU)
 
 
 class TestNetworkd(TestBase):
@@ -169,6 +170,97 @@ class TestNetworkd(TestBase):
         self.assertEqual(err, 'ERROR: engreen: networkd requires that '
                               '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
 
+    # Common tests for dhcp override booleans
+    def assert_dhcp_mtu_overrides_bool(self, override_name, networkd_name):
+        # dhcp4 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+        # dhcp6 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % override_name)
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen'})
+
+        # dhcp4 and dhcp6 both yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % (override_name, override_name))
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen'})
+
+        # dhcp4 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4_NOMTU % 'engreen'})
+
+        # dhcp6 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP6_NOMTU % 'engreen'})
+
+        # dhcp4 and dhcp6 both no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: no
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': ND_DHCPYES_NOMTU % 'engreen'})
+
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that '
+                              '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+
     def test_dhcp_overrides_use_dns(self):
         self.assert_dhcp_overrides_bool('use-dns', 'UseDNS')
 
@@ -184,3 +276,5 @@ class TestNetworkd(TestBase):
     def test_dhcp_overrides_hostname(self):
         self.assert_dhcp_overrides_string('hostname', 'Hostname')
 
+    def test_dhcp_overrides_use_mtu(self):
+        self.assert_dhcp_mtu_overrides_bool('use-mtu', 'UseMTU')
