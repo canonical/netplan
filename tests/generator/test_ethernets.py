@@ -110,8 +110,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_networkd_udev(None)
         self.assert_nm_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
@@ -192,7 +192,7 @@ unmanaged-devices+=interface-name:*,''')
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n'
-                                              '[DHCP]\nUseMTU=true\nRouteMetric=100\n'})
+                                              '[DHCP]\nRouteMetric=100\nUseMTU=true\n'})
         self.assert_networkd_udev(None)
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -217,8 +217,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd

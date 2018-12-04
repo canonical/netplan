@@ -347,6 +347,11 @@ that ``dhcp4-overrides`` and ``dhcp6-overrides`` contain the same keys and value
      :    Default: ``true``. When ``true``, the hostname received from the DHCP
           server will be set as the transient hostname of the system.
 
+     ``use-mtu`` (bool)
+     :    Default: ``true``. When ``true``, the MTU received from the DHCP
+          server will be set as the MTU of the network interface. When ``false``,
+          the MTU advertised by the DHCP server will be ignored.
+
      ``hostname`` (scalar)
      :    Use this value for the hostname which is sent to the DHCP server,
           instead of machine's hostname.
@@ -713,9 +718,9 @@ DHCP:
       ethernets:
         eno1:
           dhcp4: true
-          
+
 This is an example of a static-configured interface with multiple IPv4 addresses
-and multiple gateways with networkd, with equal route metric levels, and static 
+and multiple gateways with networkd, with equal route metric levels, and static
 DNS nameservers (Google DNS for this example):
 
     network:
@@ -736,7 +741,7 @@ DNS nameservers (Google DNS for this example):
             metric: 100
           - to: 0.0.0.0/0
             via: 11.0.0.1
-            metric: 100 
+            metric: 100
 
 This is a complex example which shows most available features:
 
