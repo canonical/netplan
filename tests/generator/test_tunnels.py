@@ -78,6 +78,7 @@ Name=tun0
 Kind=sit
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 ''',
@@ -91,6 +92,57 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
+    def test_sit_he(self):
+        """[networkd] Validate generation of SIT tunnels (HE example)"""
+        # Test specifically a config like one that would enable Hurricane
+        # Electric IPv6 tunnels.
+        config = '''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      addresses:
+        - 1.1.1.1/24
+        - "2001:cafe:face::1/64"  # provided by HE as routed /64
+      gateway4: 1.1.1.254
+  tunnels:
+    he-ipv6:
+      mode: sit
+      remote: 2.2.2.2
+      local: 1.1.1.1
+      addresses:
+        - "2001:dead:beef::2/64"
+      gateway6: "2001:dead:beef::1"
+'''
+        self.generate(config)
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=1.1.1.1/24
+Address=2001:cafe:face::1/64
+Gateway=1.1.1.254
+''',
+                              'he-ipv6.netdev': '''[NetDev]
+Name=he-ipv6
+Kind=sit
+
+[Tunnel]
+Independent=true
+Local=1.1.1.1
+Remote=2.2.2.2
+''',
+                              'he-ipv6.network': '''[Match]
+Name=he-ipv6
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:dead:beef::2/64
+Gateway=2001:dead:beef::1
+ConfigureWithoutCarrier=yes
+'''})
+
     def test_vti(self):
         """[networkd] Validate generation of VTI tunnels"""
         config = prepare_config_for_mode('networkd', 'vti')
@@ -100,6 +152,7 @@ Name=tun0
 Kind=vti
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 ''',
@@ -122,6 +175,7 @@ Name=tun0
 Kind=vti
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 InputKey=1.1.1.1
@@ -146,6 +200,7 @@ Name=tun0
 Kind=vti
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 InputKey=1234
@@ -176,6 +231,7 @@ Name=tun0
 Kind=vti6
 
 [Tunnel]
+Independent=true
 Local=fe80::dead:beef
 Remote=2001:fe:ad:de:ad:be:ef:1
 ''',
@@ -198,6 +254,7 @@ Name=tun0
 Kind=vti6
 
 [Tunnel]
+Independent=true
 Local=fe80::dead:beef
 Remote=2001:fe:ad:de:ad:be:ef:1
 InputKey=1.1.1.1
@@ -228,6 +285,7 @@ Name=tun0
 Kind=ip6tnl
 
 [Tunnel]
+Independent=true
 Mode=ipip6
 Local=fe80::dead:beef
 Remote=2001:fe:ad:de:ad:be:ef:1
@@ -251,6 +309,7 @@ Name=tun0
 Kind=ipip
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 ''',
@@ -279,6 +338,7 @@ Name=tun0
 Kind=gre
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 ''',
@@ -301,6 +361,7 @@ Name=tun0
 Kind=ip6gre
 
 [Tunnel]
+Independent=true
 Local=fe80::dead:beef
 Remote=2001:fe:ad:de:ad:be:ef:1
 ''',
@@ -323,6 +384,7 @@ Name=tun0
 Kind=gretap
 
 [Tunnel]
+Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
 ''',
@@ -345,6 +407,7 @@ Name=tun0
 Kind=ip6gretap
 
 [Tunnel]
+Independent=true
 Local=fe80::dead:beef
 Remote=2001:fe:ad:de:ad:be:ef:1
 ''',
@@ -381,7 +444,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -418,7 +481,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -433,6 +496,65 @@ gateway=20.20.20.21
 
 [ipv6]
 method=ignore
+'''})
+
+    def test_sit_he(self):
+        """[NetworkManager] Validate generation of SIT tunnels (HE example)"""
+        # Test specifically a config like one that would enable Hurricane
+        # Electric IPv6 tunnels.
+        config = '''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      addresses:
+        - 1.1.1.1/24
+        - "2001:cafe:face::1/64"  # provided by HE as routed /64
+      gateway4: 1.1.1.254
+  tunnels:
+    he-ipv6:
+      mode: sit
+      remote: 2.2.2.2
+      local: 1.1.1.1
+      addresses:
+        - "2001:dead:beef::2/64"
+      gateway6: "2001:dead:beef::1"
+'''
+        self.generate(config)
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=1.1.1.1/24
+gateway=1.1.1.254
+
+[ipv6]
+method=manual
+address1=2001:cafe:face::1/64
+''',
+                        'he-ipv6': '''[connection]
+id=netplan-he-ipv6
+type=ip-tunnel
+interface-name=he-ipv6
+
+[ip-tunnel]
+mode=3
+local=1.1.1.1
+remote=2.2.2.2
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=manual
+address1=2001:dead:beef::2/64
+gateway=2001:dead:beef::1
 '''})
 
     def test_vti(self):
@@ -455,7 +577,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -492,7 +614,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -529,7 +651,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -566,7 +688,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -603,7 +725,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -640,7 +762,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -679,7 +801,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
@@ -716,7 +838,7 @@ method=ignore
 ''',
                         'tun0': '''[connection]
 id=netplan-tun0
-type=tunnel
+type=ip-tunnel
 interface-name=tun0
 
 [ip-tunnel]
