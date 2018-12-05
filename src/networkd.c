@@ -107,6 +107,7 @@ write_tunnel_params(GString* s, net_definition* def)
 
     params = g_string_sized_new(200);
 
+    g_string_printf(params, "Independent=true\n");
     if (def->tunnel.mode == TUNNEL_MODE_IPIP6 || def->tunnel.mode == TUNNEL_MODE_IP6IP6)
         g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
     g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
