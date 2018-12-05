@@ -87,7 +87,7 @@ type_str(netdef_type type)
         case ND_VLAN:
             return "vlan";
         case ND_TUNNEL:
-            return "tunnel";
+            return "ip-tunnel";
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -435,6 +435,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     else if (def->ip4_addresses)
         /* This requires adding at least one address (done below) */
         g_string_append(s, "method=manual\n");
+    else if (def->type == ND_TUNNEL)
+        /* sit tunnels will not start in link-local apparently */
+        g_string_append(s, "method=disabled\n");
     else
         /* Without any address, this is the only available mode */
         g_string_append(s, "method=link-local\n");
