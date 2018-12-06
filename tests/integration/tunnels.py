@@ -48,7 +48,7 @@ class _CommonTests():
       remote: 99.99.99.99
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
-        self.assert_iface_up('tun0', ['tun0@NONE'])
+        self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
 
 class TestNetworkd(IntegrationTestsBase, _CommonTests):

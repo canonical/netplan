@@ -306,19 +306,26 @@ class IntegrationTestsBase(unittest.TestCase):
         else:
             self.poll_text(self.dnsmasq_log, 'DHCP, IP range')
 
-    def assert_iface_up(self, iface, expected_ip_a=None, unexpected_ip_a=None):
-        '''Assert that client interface is up'''
+    def assert_iface(self, iface, expected_ip_a=None, unexpected_ip_a=None):
+        '''Assert that client interface has been created'''
 
         out = subprocess.check_output(['ip', 'a', 'show', 'dev', iface],
                                       universal_newlines=True)
-        if 'bond' not in iface:
-            self.assertIn('state UP', out)
         if expected_ip_a:
             for r in expected_ip_a:
                 self.assertRegex(out, r, out)
         if unexpected_ip_a:
             for r in unexpected_ip_a:
                 self.assertNotRegex(out, r, out)
+
+        return out
+
+    def assert_iface_up(self, iface, expected_ip_a=None, unexpected_ip_a=None):
+        '''Assert that client interface is up'''
+
+        out = assert_iface(iface, expected_ip_a=None, unexpected_ip_a=None)
+        if 'bond' not in iface:
+            self.assertIn('state UP', out)
 
         if iface == self.dev_w_client:
             out = subprocess.check_output(['iw', 'dev', iface, 'link'],
