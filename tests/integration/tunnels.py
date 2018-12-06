@@ -29,6 +29,27 @@ from base import IntegrationTestsBase
 
 class _CommonTests():
 
+    def test_tunnel_sit(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'sit-tun0'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    sit-tun0:
+      mode: sit
+      local: 192.168.5.1
+      remote: 99.99.99.99
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface('sit-tun0', ['sit-tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
+
     def test_tunnel_ipip(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
@@ -54,17 +75,117 @@ class _CommonTests():
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
-    @unittest.skip("Not implemented yet")
-    def test_tunnel_(self):
-        pass
+    def test_tunnel_gre(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    tun0:
+      mode: gre
+      local: 192.168.5.1
+      remote: 99.99.99.99
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
+
+    def test_tunnel_gre6(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    tun0:
+      mode: ip6gre
+      local: fe80::1
+      remote: 2001:dead:beef::2
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface('tun0', ['tun0@NONE', 'link.* fe80::1 brd 2001:dead:beef::2'])
+
+    def test_tunnel_vti(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    tun0:
+      mode: vti
+      keys: 1234
+      local: 192.168.5.1
+      remote: 99.99.99.99
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
+
+    def test_tunnel_vti6(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    tun0:
+      mode: vti6
+      keys: 1234
+      local: fe80::1
+      remote: 2001:dead:beef::2
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface('tun0', ['tun0@NONE', 'link.* fe80::1 brd 2001:dead:beef::2'])
 
 
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 
-    @unittest.skip("Not implemented yet")
-    def test_tunnel_(self):
-        pass
+    def test_tunnel_gre(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    tun0:
+      mode: gre
+      keys: 1234
+      local: 192.168.5.1
+      remote: 99.99.99.99
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
