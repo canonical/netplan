@@ -1704,6 +1704,10 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
                 case TUNNEL_MODE_VTI6:
                     break;
 
+                /* TODO: Remove this exception and fix ISATAP handling with the
+                 *       networkd backend.
+                 *       systemd-networkd has grown ISATAP support in 918049a.
+                 */
                 case TUNNEL_MODE_ISATAP:
                     return yaml_error(node, error,
                                     "%s: %s tunnel mode is not supported by networkd",
