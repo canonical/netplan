@@ -1,5 +1,50 @@
-Tests: integration.py
-Tests-Directory: tests
+Tests: ethernets.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: bridges.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: bonds.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: routing.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: vlans.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: wifi.py
+Tests-Directory: tests/integration
 Depends: @,
   systemd,
   network-manager,
@@ -8,6 +53,24 @@ Depends: @,
 Restrictions: allow-stderr, needs-root, isolation-machine
 
 Tests: tunnels.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: scenarios.py
+Tests-Directory: tests/integration
+Depends: @,
+  systemd,
+  network-manager,
+  hostapd,
+  dnsmasq-base,
+Restrictions: allow-stderr, needs-root, isolation-machine
+
+Tests: regressions.py
 Tests-Directory: tests/integration
 Depends: @,
   systemd,
