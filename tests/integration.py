@@ -365,11 +365,6 @@ class NetworkTestBase(unittest.TestCase):
 
 class _CommonTests:
 
-    def test_empty_yaml_lp1795343(self):
-        with open(self.config, 'w') as f:
-            f.write('''''')
-        self.generate_and_settle()
-
     @unittest.skip("Unsupported matching by driver / wifi matching makes this untestable for now")
     def test_mapping_for_driver(self):
         self.setup_ap('hw_mode=b\nchannel=1\nssid=fake net', None)
@@ -1670,47 +1665,6 @@ class TestNetworkd(NetworkTestBase, _CommonTests):
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
             self.assertEqual(f.read().strip(), 'all 3')
-
-    def test_bond_mac_rename(self):
-        self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
-        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  renderer: %(r)s
-  ethernets:
-    ethbn1:
-      match: {name: %(ec)s}
-      dhcp4: no
-    ethbn2:
-      match: {name: %(e2c)s}
-      dhcp4: no
-  bonds:
-    mybond:
-      interfaces: [ethbn1, ethbn2]
-      macaddress: 00:0a:f7:72:a7:28
-      mtu: 9000
-      addresses: [ 192.168.5.9/24 ]
-      gateway4: 192.168.5.1
-      parameters:
-        down-delay: 0
-        lacp-rate: fast
-        mii-monitor-interval: 100
-        mode: 802.3ad
-        transmit-hash-policy: layer3+4
-        up-delay: 0
-      ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond', '00:0a:f7:72:a7:28'],
-                             ['inet '])
-        self.assert_iface_up(self.dev_e2_client,
-                             ['master mybond', '00:0a:f7:72:a7:28'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
-            self.assertIn(self.dev_e_client, f.read().strip())
 
     def test_bridge_anonymous(self):
         self.setup_eth(None)
