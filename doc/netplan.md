@@ -685,12 +685,19 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ## Properties for device type ``tunnels:``
 
+Tunnels allow traffic to pass as if it was between systems on the same local
+network, although systems may be far from each other but reachable via the
+Internet. They may be used to support IPv6 traffic on a network where the ISP
+does not provide the service, or to extend and "connect" separate local
+networks. Please see https://en.wikipedia.org/wiki/Tunneling_protocol for
+more general information about tunnels.
+
 ``mode`` (scalar)
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
     ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
     the ``networkd`` backend also supports ``gretap`` and ``ip6gretap`` modes.
-    In addition, the ``NetworkManager`` supports ``isatap`` tunnels.
+    In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
 
 ``local`` (scalar)
 
