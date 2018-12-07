@@ -323,7 +323,7 @@ class IntegrationTestsBase(unittest.TestCase):
     def assert_iface_up(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface is up'''
 
-        out = assert_iface(iface, expected_ip_a=None, unexpected_ip_a=None)
+        out = self.assert_iface(iface, expected_ip_a=None, unexpected_ip_a=None)
         if 'bond' not in iface:
             self.assertIn('state UP', out)
 
