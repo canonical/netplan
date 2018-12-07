@@ -347,6 +347,10 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
             exit(1);
         }
+        if (def->dhcp4_overrides.use_mtu != def->dhcp6_overrides.use_mtu) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-mtu");
+            exit(1);
+        }
         if (g_strcmp0(def->dhcp4_overrides.hostname, def->dhcp6_overrides.hostname) != 0) {
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "hostname");
             exit(1);
@@ -480,11 +484,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     }
 
     if (def->dhcp4 || def->dhcp6) {
-        /* isc-dhcp dhclient compatible UseMTU, networkd default is to
-         * not accept MTU, which breaks clouds */
-        g_string_append_printf(s, "\n[DHCP]\nUseMTU=true\n");
         /* NetworkManager compatible route metrics */
-        g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+        g_string_append_printf(s, "\n[DHCP]\nRouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)
@@ -492,6 +493,15 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
         dhcp_overrides combined_dhcp_overrides;
         combine_dhcp_overrides(def, &combined_dhcp_overrides);
+
+        /* Only set MTU from DHCP if use-mtu dhcp-override is not false. */
+        if (!combined_dhcp_overrides.use_mtu) {
+            /* isc-dhcp dhclient compatible UseMTU, networkd default is to
+             * not accept MTU, which breaks clouds */
+            g_string_append_printf(s, "UseMTU=false\n");
+        } else {
+            g_string_append_printf(s, "UseMTU=true\n");
+        }
 
         /* Only write DHCP options that differ from the networkd default. */
         if (!combined_dhcp_overrides.use_dns)

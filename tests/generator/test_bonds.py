@@ -46,8 +46,8 @@ IPv6AcceptRA=yes
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'bond0.netdev': '''[NetDev]
 Name=bond0
@@ -79,8 +79,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -110,8 +110,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -142,8 +142,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -215,8 +215,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -258,8 +258,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -294,8 +294,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\nPrimarySlave=true\n',
@@ -332,8 +332,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',

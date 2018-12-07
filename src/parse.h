@@ -81,6 +81,7 @@ typedef struct dhcp_overrides {
     gboolean use_ntp;
     gboolean send_hostname;
     gboolean use_hostname;
+    gboolean use_mtu;
     char* hostname;
 } dhcp_overrides;
 
