@@ -92,8 +92,8 @@ Destination=10.10.10.0/24
 Gateway=8.8.8.8
 
 [DHCP]
-UseMTU=true
 RouteMetric=600
+UseMTU=true
 '''})
 
         self.assert_nm(None, '''[keyfile]

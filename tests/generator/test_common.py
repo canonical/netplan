@@ -44,8 +44,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_networkd_udev(None)
 
@@ -187,8 +187,8 @@ LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_eth_dhcp6_accept_ra(self):
@@ -207,8 +207,8 @@ LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_eth_dhcp6_accept_ra_unset(self):
@@ -225,8 +225,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_eth_dhcp4_and_6(self):
@@ -274,8 +274,8 @@ Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_dhcp_critical_true(self):
@@ -295,9 +295,9 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
 CriticalConnection=true
+UseMTU=true
 '''})
 
     def test_dhcp_identifier_mac(self):
@@ -317,9 +317,9 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
 ClientIdentifier=mac
+UseMTU=true
 '''})
 
     def test_dhcp_identifier_duid(self):
@@ -340,8 +340,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_eth_ipv6_privacy(self):
@@ -360,8 +360,8 @@ LinkLocalAddressing=ipv6
 IPv6PrivacyExtensions=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_gateway(self):
@@ -435,8 +435,8 @@ DHCP=yes
 LinkLocalAddressing=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_link_local_ipv4(self):
@@ -457,8 +457,8 @@ DHCP=yes
 LinkLocalAddressing=ipv4
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_link_local_ipv6(self):
@@ -479,8 +479,8 @@ DHCP=yes
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_link_local_disabled(self):
@@ -501,8 +501,8 @@ DHCP=yes
 LinkLocalAddressing=no
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
 
@@ -900,8 +900,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
                               'bond0.network': '''[Match]
@@ -912,14 +912,40 @@ LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 Bridge=br0
 ''',
-                              'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
-                                           '[Link]\nName=eth0\nWakeOnLan=off\n',
-                              'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
-                                              '[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth1.link': '[Match]\nMACAddress=02:01:02:03:04:05\n\n'
-                                           '[Link]\nName=eth1\nWakeOnLan=off\n',
-                              'eth1.network': '[Match]\nMACAddress=02:01:02:03:04:05\nName=eth1\n\n'
-                                              '[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+                              'eth0.link': '''[Match]
+MACAddress=00:01:02:03:04:05
+Type=!vlan bond bridge
+
+[Link]
+Name=eth0
+WakeOnLan=off
+''',
+                              'eth0.network': '''[Match]
+MACAddress=00:01:02:03:04:05
+Name=eth0
+Type=!vlan bond bridge
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+''',
+                              'eth1.link': '''[Match]
+MACAddress=02:01:02:03:04:05
+Type=!vlan bond bridge
+
+[Link]
+Name=eth1
+WakeOnLan=off
+''',
+                              'eth1.network': '''[Match]
+MACAddress=02:01:02:03:04:05
+Name=eth1
+Type=!vlan bond bridge
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+'''})
 
     def test_fwdecl_feature_blend(self):
         self.generate('''network:
@@ -968,8 +994,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
                                             '[Bridge]\nSTP=true\n',
@@ -1005,14 +1031,40 @@ LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 Bond=bond0
 ''',
-                              'eth0.link': '[Match]\nMACAddress=00:01:02:03:04:05\n\n'
-                                           '[Link]\nName=eth0\nWakeOnLan=off\n',
-                              'eth0.network': '[Match]\nMACAddress=00:01:02:03:04:05\nName=eth0\n\n'
-                                              '[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth1.link': '[Match]\nMACAddress=02:01:02:03:04:05\n\n'
-                                           '[Link]\nName=eth1\nWakeOnLan=off\n',
-                              'eth1.network': '[Match]\nMACAddress=02:01:02:03:04:05\nName=eth1\n\n'
-                                              '[Network]\nLinkLocalAddressing=no\nBridge=br1\n'})
+                              'eth0.link': '''[Match]
+MACAddress=00:01:02:03:04:05
+Type=!vlan bond bridge
+
+[Link]
+Name=eth0
+WakeOnLan=off
+''',
+                              'eth0.network': '''[Match]
+MACAddress=00:01:02:03:04:05
+Name=eth0
+Type=!vlan bond bridge
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+''',
+                              'eth1.link': '''[Match]
+MACAddress=02:01:02:03:04:05
+Type=!vlan bond bridge
+
+[Link]
+Name=eth1
+WakeOnLan=off
+''',
+                              'eth1.network': '''[Match]
+MACAddress=02:01:02:03:04:05
+Name=eth1
+Type=!vlan bond bridge
+
+[Network]
+LinkLocalAddressing=no
+Bridge=br1
+'''})
 
 
 class TestMerging(TestBase):
@@ -1116,8 +1168,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',

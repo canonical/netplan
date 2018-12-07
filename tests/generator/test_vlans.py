@@ -96,8 +96,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd

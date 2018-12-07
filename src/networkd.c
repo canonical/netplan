@@ -54,6 +54,24 @@ append_match_section(net_definition* def, GString* s, gboolean match_rename)
         else if (def->match.original_name)
             g_string_append_printf(s, "Name=%s\n", def->match.original_name);
     }
+
+    /* Workaround for bug LP: #1804861: something outputs netplan config
+     * that includes using the MAC of the first phy member of a bond as
+     * default value for the MAC of the bond device itself. This is
+     * evil, it's an optional field and networkd knows what to do if
+     * the MAC isn't specified; but work around this by adding an
+     * arbitrary additional match condition on Path= for the phys.
+     * This way, hopefully setting a MTU on the phy does not bleed over
+     * to bond/bridge and any further virtual devices (VLANs?) on top of
+     * it.
+     * Make sure to add the extra match only if we're matching by MAC
+     * already and dealing with a bond or bridge.
+     */
+    if (def->bond || def->bridge) {
+        /* update if we support new device types */
+        if (def->match.mac)
+            g_string_append(s, "Type=!vlan bond bridge\n");
+    }
 }
 
 static void
@@ -379,6 +397,10 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
             exit(1);
         }
+        if (def->dhcp4_overrides.use_mtu != def->dhcp6_overrides.use_mtu) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-mtu");
+            exit(1);
+        }
         if (g_strcmp0(def->dhcp4_overrides.hostname, def->dhcp6_overrides.hostname) != 0) {
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "hostname");
             exit(1);
@@ -512,11 +534,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     }
 
     if (def->dhcp4 || def->dhcp6) {
-        /* isc-dhcp dhclient compatible UseMTU, networkd default is to
-         * not accept MTU, which breaks clouds */
-        g_string_append_printf(s, "\n[DHCP]\nUseMTU=true\n");
         /* NetworkManager compatible route metrics */
-        g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+        g_string_append_printf(s, "\n[DHCP]\nRouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)
@@ -524,6 +543,15 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
         dhcp_overrides combined_dhcp_overrides;
         combine_dhcp_overrides(def, &combined_dhcp_overrides);
+
+        /* Only set MTU from DHCP if use-mtu dhcp-override is not false. */
+        if (!combined_dhcp_overrides.use_mtu) {
+            /* isc-dhcp dhclient compatible UseMTU, networkd default is to
+             * not accept MTU, which breaks clouds */
+            g_string_append_printf(s, "UseMTU=false\n");
+        } else {
+            g_string_append_printf(s, "UseMTU=true\n");
+        }
 
         /* Only write DHCP options that differ from the networkd default. */
         if (!combined_dhcp_overrides.use_dns)
