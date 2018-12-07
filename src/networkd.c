@@ -282,28 +282,16 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
         case ND_TUNNEL:
             switch(def->tunnel.mode) {
                 case TUNNEL_MODE_GRE:
-                    g_string_append(s, "Kind=gre\n");
-                    break;
                 case TUNNEL_MODE_GRETAP:
-                    g_string_append(s, "Kind=gretap\n");
-                    break;
                 case TUNNEL_MODE_IPIP:
-                    g_string_append(s, "Kind=ipip\n");
-                    break;
                 case TUNNEL_MODE_IP6GRE:
-                    g_string_append(s, "Kind=ip6gre\n");
-                    break;
                 case TUNNEL_MODE_IP6GRETAP:
-                    g_string_append(s, "Kind=ip6gretap\n");
-                    break;
                 case TUNNEL_MODE_SIT:
-                    g_string_append(s, "Kind=sit\n");
-                    break;
                 case TUNNEL_MODE_VTI:
-                    g_string_append(s, "Kind=vti\n");
-                    break;
                 case TUNNEL_MODE_VTI6:
-                    g_string_append(s, "Kind=vti6\n");
+                    g_string_append_printf(s,
+                                          "Kind=%s\n",
+                                          tunnel_mode_to_string(def->tunnel.mode));
                     break;
 
                 case TUNNEL_MODE_IP6IP6:
