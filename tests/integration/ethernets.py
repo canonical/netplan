@@ -25,7 +25,7 @@ import sys
 import subprocess
 import unittest
 
-from base import IntegrationTestsBase
+from base import IntegrationTestsBase, nm_uses_dnsmasq, resolved_in_use
 
 
 class _CommonTests():
