@@ -1579,12 +1579,13 @@ const mapping_entry_handler nameservers_handlers[] = {
 
 /* Handlers for DHCP overrides. */
 #define COMMON_DHCP_OVERRIDES_HANDLERS(overrides)                                                           \
-    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
-    {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
+    {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.hostname)},             \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
+    {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
     {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
-    {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.hostname)}
+    {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
+    {"use-routes", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_routes)}
 
 const mapping_entry_handler dhcp4_overrides_handlers[] = {
     COMMON_DHCP_OVERRIDES_HANDLERS(dhcp4_overrides),
@@ -1834,6 +1835,7 @@ initialize_dhcp_overrides(dhcp_overrides* overrides)
     overrides->send_hostname = TRUE;
     overrides->use_hostname = TRUE;
     overrides->use_mtu = TRUE;
+    overrides->use_routes = TRUE;
     overrides->hostname = NULL;
 }
 
