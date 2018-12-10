@@ -7,6 +7,8 @@ netplan.io (0.95) UNRELEASED; urgency=medium
     - Add support to override networkd UseMTU setting (LP: #1807273)
     - Generate output files in dependency order
     - Refactored unit and integration tests, along with various cleanups.
+    - Add DHCP overrides to control route usage and default metric for DHCP
+      routes.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 10 Dec 2018 11:25:26 -0500
 
