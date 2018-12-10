@@ -1,3 +1,15 @@
+netplan.io (0.95) UNRELEASED; urgency=medium
+
+  * New upstream release:
+    - Added support for setting up IP tunnels; supporting the types: ipip,
+      gretap, VTI, ISATAP (NetworkManager only), sit, gre, ipip6 and ip6ip6.
+      + Fixes sit (ipv6) tunnels using Hurricane Electric (LP: #1799487)
+    - Add support to override networkd UseMTU setting (LP: #1807273)
+    - Generate output files in dependency order
+    - Refactored unit and integration tests, along with various cleanups.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 10 Dec 2018 11:25:26 -0500
+
 netplan.io (0.90.1) disco; urgency=medium
 
   * Do not assume /etc/network exists in postinst, as netbase 5.5 no longer
