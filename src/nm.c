@@ -465,6 +465,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append(s, "never-default=true\n");
     }
 
+    if (def->dhcp4 && def->dhcp4_overrides.metric != METRIC_UNSPEC)
+        g_string_append_printf(s, "route-metric=%u\n", def->dhcp4_overrides.metric);
+
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
         g_string_append(s, "\n[ipv6]\n");
         g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
@@ -492,6 +495,9 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append(s, "ignore-auto-routes=true\n");
             g_string_append(s, "never-default=true\n");
         }
+
+        if (def->dhcp6_overrides.metric != METRIC_UNSPEC)
+            g_string_append_printf(s, "route-metric=%u\n", def->dhcp6_overrides.metric);
     }
     else {
         g_string_append(s, "\n[ipv6]\nmethod=ignore\n");
