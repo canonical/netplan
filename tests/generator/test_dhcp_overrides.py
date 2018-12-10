@@ -362,7 +362,7 @@ UseMTU=true
         self.assert_dhcp_mtu_overrides_bool('use-mtu', 'UseMTU')
 
     def test_dhcp_overrides_default_metric(self):
-        self.assert_dhcp_overrides_guint('default-metric', 'RouteMetric')
+        self.assert_dhcp_overrides_guint('route-metric', 'RouteMetric')
 
 
 class TestNetworkManager(TestBase):
@@ -375,7 +375,7 @@ class TestNetworkManager(TestBase):
     engreen:
       dhcp4: yes
       dhcp4-overrides:
-        default-metric: 3333
+        route-metric: 3333
 ''')
         # silently ignored since yes is the default
         self.assert_nm({'engreen': '''[connection]
@@ -403,7 +403,7 @@ method=ignore
       dhcp4: yes
       dhcp6: yes
       dhcp6-overrides:
-        default-metric: 6666
+        route-metric: 6666
 ''')
         # silently ignored since yes is the default
         self.assert_nm({'engreen': '''[connection]
