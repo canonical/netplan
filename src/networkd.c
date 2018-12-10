@@ -406,7 +406,7 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             exit(1);
         }
         if (def->dhcp4_overrides.metric != def->dhcp6_overrides.metric) {
-            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "default-metric");
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "route-metric");
             exit(1);
         }
         /* Just use dhcp4_overrides now, since we know they are the same. */

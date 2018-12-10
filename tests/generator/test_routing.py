@@ -518,6 +518,46 @@ UseMTU=true
 UseRoutes=false
 '''})
 
+    def test_default_metric(self):
+        """[networkd] Validate config generation when metric DHCP override is used"""
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp4-overrides:
+        route-metric: 3333
+      dhcp6-overrides:
+        route-metric: 3333
+    enred:
+      dhcp4: true
+      dhcp6: true
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=3333
+UseMTU=true
+''',
+                              'enred.network': '''[Match]
+Name=enred
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
 
 class TestNetworkManager(TestBase):
 
@@ -833,4 +873,60 @@ method=auto
 method=auto
 ignore-auto-routes=true
 never-default=true
+'''})
+
+    def test_default_metric_v4(self):
+        """[NetworkManager] Validate config when setting a default metric for DHCPv4"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp4-overrides:
+        route-metric: 4000
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+route-metric=4000
+
+[ipv6]
+method=auto
+'''})
+
+    def test_default_metric_v6(self):
+        """[NetworkManager] Validate config when setting a default metric for DHCPv6"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp6-overrides:
+        route-metric: 5050
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+route-metric=5050
 '''})
