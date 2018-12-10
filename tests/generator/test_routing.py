@@ -494,6 +494,30 @@ To=10.10.10.0/24
 TypeOfService=250
 '''})
 
+    def test_use_routes(self):
+        """[networkd] Validate config generation when use-routes DHCP override is used"""
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp4-overrides:
+        use-routes: false
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+UseRoutes=false
+'''})
+
 
 class TestNetworkManager(TestBase):
 
@@ -753,3 +777,60 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 
         self.assert_nm({})
         self.assert_networkd({})
+
+    def test_use_routes_v4(self):
+        """[NetworkManager] Validate config when use-routes DHCP4 override is used"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp4-overrides:
+        use-routes: false
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+ignore-auto-routes=true
+never-default=true
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_use_routes_v6(self):
+        """[NetworkManager] Validate config when use-routes DHCP6 override is used"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp6-overrides:
+        use-routes: false
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+ignore-auto-routes=true
+never-default=true
+'''})
