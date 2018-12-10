@@ -1295,7 +1295,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->type = g_strdup("unicast");
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_route->metric = G_MAXUINT; /* 0 is a valid metric */
+        cur_route->metric = METRIC_UNSPEC; /* 0 is a valid metric */
 
         if (process_mapping(doc, entry, routes_handlers, error)) {
             if (!cur_netdef->routes) {
@@ -1580,6 +1580,7 @@ const mapping_entry_handler nameservers_handlers[] = {
 /* Handlers for DHCP overrides. */
 #define COMMON_DHCP_OVERRIDES_HANDLERS(overrides)                                                           \
     {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.hostname)},             \
+    {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
@@ -1837,6 +1838,7 @@ initialize_dhcp_overrides(dhcp_overrides* overrides)
     overrides->use_mtu = TRUE;
     overrides->use_routes = TRUE;
     overrides->hostname = NULL;
+    overrides->metric = METRIC_UNSPEC;
 }
 
 /**

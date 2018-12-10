@@ -125,6 +125,7 @@ typedef struct dhcp_overrides {
     gboolean use_mtu;
     gboolean use_routes;
     char* hostname;
+    guint metric;
 } dhcp_overrides;
 
 /**

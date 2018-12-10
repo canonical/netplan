@@ -317,8 +317,9 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
 ## DHCP Overrides
-Several DHCP behavior overrides are available. Most are only available via
-via the ``networkd`` backend, with the notable exception of ``use-routes``.
+Several DHCP behavior overrides are available. Most are only available
+via the ``networkd`` backend, with the notable exception of ``use-routes``
+and ``default-metric``.
 
 Overrides only have an effect if the corresponding ``dhcp4`` or ``dhcp6`` is
 set to ``true``.
@@ -371,6 +372,12 @@ DHCPv4 and DHCPv6.
           correct network operation. This allows users to avoid installing a
           default gateway for interfaces configured via DHCP. Available for
           both the ``networkd`` and ``NetworkManager`` backends.
+
+     ``default-metric`` (scalar)
+     :    Use this value for default metric for automatically-added routes.
+          Use this to prioritize routes for devices by setting a higher metric
+          on a preferred interface. Available for both the ``networkd`` and
+          ``NetworkManager`` backends.
 
 
 ## Routing
