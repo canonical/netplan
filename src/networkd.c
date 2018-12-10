@@ -554,6 +554,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         }
 
         /* Only write DHCP options that differ from the networkd default. */
+        if (!combined_dhcp_overrides.use_routes)
+            g_string_append_printf(s, "UseRoutes=false\n");
         if (!combined_dhcp_overrides.use_dns)
             g_string_append_printf(s, "UseDNS=false\n");
         if (!combined_dhcp_overrides.use_ntp)

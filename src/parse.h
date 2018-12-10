@@ -123,6 +123,7 @@ typedef struct dhcp_overrides {
     gboolean send_hostname;
     gboolean use_hostname;
     gboolean use_mtu;
+    gboolean use_routes;
     char* hostname;
 } dhcp_overrides;
 
