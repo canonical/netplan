@@ -25,7 +25,7 @@ import sys
 import subprocess
 import unittest
 
-from base import IntegrationTestsBase, nm_uses_dnsmasq, resolved_in_use
+from base import IntegrationTestsBase, nm_uses_dnsmasq, resolved_in_use, test_backends
 
 
 class _CommonTests():
@@ -189,6 +189,8 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
 
 
+@unittest.skipIf("networkd" not in test_backends,
+                     "skipping as networkd backend tests are disabled")
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
@@ -223,6 +225,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
 
+@unittest.skipIf("NetworkManager" not in test_backends,
+                     "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 

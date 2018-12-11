@@ -29,6 +29,8 @@ import tempfile
 import unittest
 import shutil
 
+test_backends = "networkd NetworkManager" if "NETPLAN_TEST_BACKENDS" not in os.environ else os.environ["NETPLAN_TEST_BACKENDS"]
+
 for program in ['wpa_supplicant', 'hostapd', 'dnsmasq']:
     if subprocess.call(['which', program], stdout=subprocess.PIPE) != 0:
         sys.stderr.write('%s is required for this test suite, but not available. Skipping\n' % program)
