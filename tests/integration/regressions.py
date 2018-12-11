@@ -24,7 +24,7 @@ import sys
 import subprocess
 import unittest
 
-from base import IntegrationTestsBase
+from base import IntegrationTestsBase, test_backends
 
 
 class _CommonTests():
@@ -35,6 +35,8 @@ class _CommonTests():
         self.generate_and_settle()
 
 
+@unittest.skipIf("networkd" not in test_backends,
+                     "skipping as networkd backend tests are disabled")
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
@@ -80,6 +82,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
             self.assertIn(self.dev_e_client, f.read().strip())
 
 
+@unittest.skipIf("NetworkManager" not in test_backends,
+                     "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 
