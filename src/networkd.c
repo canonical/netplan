@@ -405,6 +405,10 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "hostname");
             exit(1);
         }
+        if (def->dhcp4_overrides.metric != def->dhcp6_overrides.metric) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "route-metric");
+            exit(1);
+        }
         /* Just use dhcp4_overrides now, since we know they are the same. */
         *combined_dhcp_overrides = def->dhcp4_overrides;
     }
@@ -535,7 +539,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
     if (def->dhcp4 || def->dhcp6) {
         /* NetworkManager compatible route metrics */
-        g_string_append_printf(s, "\n[DHCP]\nRouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+        g_string_append(s, "\n[DHCP]\n");
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
             g_string_append_printf(s, "ClientIdentifier=%s\n", def->dhcp_identifier);
         if (def->critical)
@@ -543,6 +547,13 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
         dhcp_overrides combined_dhcp_overrides;
         combine_dhcp_overrides(def, &combined_dhcp_overrides);
+
+        if (combined_dhcp_overrides.metric == METRIC_UNSPEC) {
+            g_string_append_printf(s, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+        } else {
+            g_string_append_printf(s, "RouteMetric=%u\n",
+                                   combined_dhcp_overrides.metric);
+        }
 
         /* Only set MTU from DHCP if use-mtu dhcp-override is not false. */
         if (!combined_dhcp_overrides.use_mtu) {
@@ -554,6 +565,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         }
 
         /* Only write DHCP options that differ from the networkd default. */
+        if (!combined_dhcp_overrides.use_routes)
+            g_string_append_printf(s, "UseRoutes=false\n");
         if (!combined_dhcp_overrides.use_dns)
             g_string_append_printf(s, "UseDNS=false\n");
         if (!combined_dhcp_overrides.use_ntp)

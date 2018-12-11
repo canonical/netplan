@@ -295,8 +295,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-RouteMetric=100
 CriticalConnection=true
+RouteMetric=100
 UseMTU=true
 '''})
 
@@ -317,8 +317,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-RouteMetric=100
 ClientIdentifier=mac
+RouteMetric=100
 UseMTU=true
 '''})
 

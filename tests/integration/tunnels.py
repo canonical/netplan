@@ -24,8 +24,7 @@ import sys
 import subprocess
 import unittest
 
-from base import IntegrationTestsBase
-
+from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
@@ -72,6 +71,8 @@ class _CommonTests():
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
 
+@unittest.skipIf("networkd" not in test_backends,
+                     "skipping as networkd backend tests are disabled")
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
@@ -162,6 +163,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         self.assert_iface('tun0', ['tun0@NONE', 'link.* fe80::1 brd 2001:dead:beef::2'])
 
 
+@unittest.skipIf("NetworkManager" not in test_backends,
+                     "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 
