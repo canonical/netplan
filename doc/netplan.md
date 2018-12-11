@@ -317,18 +317,21 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
 ## DHCP Overrides
-Several DHCP behavior overrides are available. Most are only available
-via the ``networkd`` backend, with the notable exception of ``use-routes``
-and ``default-metric``.
+Several DHCP behavior overrides are available. Most currently only have any
+effect when using the ``networkd`` backend, with the exception of ``use-routes``
+and ``route-metric``.
 
 Overrides only have an effect if the corresponding ``dhcp4`` or ``dhcp6`` is
 set to ``true``.
 
 If both ``dhcp4`` and ``dhcp6`` are ``true``, the ``networkd`` backend requires
-that ``dhcp4-overrides`` and ``dhcp6-overrides`` contain the same keys and values.
+that ``dhcp4-overrides`` and ``dhcp6-overrides`` contain the same keys and
+values. If the values do not match, an error will be shown and the network
+configuration will not be applied.
 
-When using the ``NetworkManager`` backend, overrides may be different between
-DHCPv4 and DHCPv6.
+When using the NetworkManager backend, different values may be specified for
+``dhcp4-overrides`` and ``dhcp6-overrides``, and will be applied to the DHCP
+client processes as specified in the netplan YAML.
 
 :    The ``dhcp4-overrides`` and ``dhcp6-overrides`` mappings override the
      default DHCP behavior.
@@ -336,33 +339,35 @@ DHCPv4 and DHCPv6.
      ``use-dns`` (bool)
      :    Default: ``true``. When ``true``, the DNS servers received from the
           DHCP server will be used and take precedence over any statically
-          configured ones. Only available using the ``networkd`` backend.
+          configured ones. Currently only has an effect on the ``networkd``
+          backend.
 
      ``use-ntp`` (bool)
      :    Default: ``true``. When ``true``, the NTP servers received from the
           DHCP server will be used by systemd-timesyncd and take precedence
-          over any statically configured ones. Only available using the
-          ``networkd`` backend.
+          over any statically configured ones. Currently only has an effect on
+          the ``networkd`` backend.
 
      ``send-hostname`` (bool)
      :    Default: ``true``. When ``true``, the machine's hostname will be sent
-          to the DHCP server. Only available using the ``networkd`` backend.
+          to the DHCP server. Currently only has an effect on the ``networkd``
+          backend.
 
      ``use-hostname`` (bool)
      :    Default: ``true``. When ``true``, the hostname received from the DHCP
-          server will be set as the transient hostname of the system. Only
-          available using the ``networkd`` backend.
+          server will be set as the transient hostname of the system. Currently
+          only has an effect on the ``networkd`` backend.
 
      ``use-mtu`` (bool)
      :    Default: ``true``. When ``true``, the MTU received from the DHCP
           server will be set as the MTU of the network interface. When ``false``,
-          the MTU advertised by the DHCP server will be ignored. Only available
-          using the ``networkd`` backend.
+          the MTU advertised by the DHCP server will be ignored. Currently only
+          has an effect on the ``networkd`` backend.
 
      ``hostname`` (scalar)
      :    Use this value for the hostname which is sent to the DHCP server,
-          instead of machine's hostname. Only available using the ``networkd``
-          backend.
+          instead of machine's hostname. Currently only has an effect on the
+          ``networkd`` backend.
 
      ``use-routes`` (bool)
      :    Default: ``true``. When ``true``, the routes received from the DHCP
@@ -373,7 +378,7 @@ DHCPv4 and DHCPv6.
           default gateway for interfaces configured via DHCP. Available for
           both the ``networkd`` and ``NetworkManager`` backends.
 
-     ``default-metric`` (scalar)
+     ``route-metric`` (scalar)
      :    Use this value for default metric for automatically-added routes.
           Use this to prioritize routes for devices by setting a higher metric
           on a preferred interface. Available for both the ``networkd`` and
