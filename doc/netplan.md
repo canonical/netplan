@@ -486,15 +486,17 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``parameters`` (mapping)
 
-:    Customization parameters for special bridging options. Unless otherwise
-     specified, parameter values for time intervals should be expressed in
-     milliseconds, but can also be expressed in seconds using a time suffix
-     (such as "s" for seconds, "ms" for milliseconds).
+:    Customization parameters for special bridging options. Time intervals
+     may need to be expressed as a number of seconds or milliseconds: the
+     default value type is specified below. If necessary, time intervals can
+     be qualified using a time suffix (such as "s" for seconds, "ms" for
+     milliseconds) to allow for more control over its behavior.
 
      ``ageing-time`` (scalar)
-     :    Set the period of time (in seconds) to keep a MAC address in the forwarding
+     :    Set the period of time to keep a MAC address in the forwarding
           database after a packet is received. This maps to the AgeingTimeSec=
-          property when the networkd renderer is used.
+          property when the networkd renderer is used. If no time suffix is
+          specified, the value will be interpreted as seconds.
 
      ``priority`` (scalar)
      :    Set the priority value for the bridge. This value should be a
@@ -508,21 +510,25 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           designated port and root port selection algorithms.
 
      ``forward-delay`` (scalar)
-     :    Specify the period of time (in seconds) the bridge will remain in Listening and
+     :    Specify the period of time the bridge will remain in Listening and
           Learning states before getting to the Forwarding state. This field
-          maps to the ForwardDelaySec= property for the networkd renderer.
+          maps to the ForwardDelaySec= property for the networkd renderer. 
+          If no time suffix is specified, the value will be interpreted as
+          seconds.
 
      ``hello-time`` (scalar)
-     :    Specify the interval (in seconds) between two hello packets being sent out from
+     :    Specify the interval between two hello packets being sent out from
           the root and designated bridges. Hello packets communicate
           information about the network topology. When the networkd renderer
-          is used, this maps to the HelloTimeSec= property.
+          is used, this maps to the HelloTimeSec= property. If no time suffix
+          is specified, the value will be interpreted as seconds.
 
      ``max-age`` (scalar)
-     :    Set the maximum age (in seconds) of a hello packet. If the last hello packet is
+     :    Set the maximum age of a hello packet. If the last hello packet is
           older than that value, the bridge will attempt to become the root
           bridge. This maps to the MaxAgeSec= property when the networkd
-          renderer is used.
+          renderer is used. If no time suffix is specified, the value will be
+          interpreted as seconds.
 
      ``path-cost`` (scalar)
      :    Set the cost of a path on the bridge. Faster interfaces should have
@@ -553,10 +559,11 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
 ``parameters`` (mapping)
 
-:    Customization parameters for special bonding options. Unless otherwise
-     specified, parameter values for time intervals should be expressed in
-     milliseconds, but can also be expressed in seconds using a time suffix
-     (such as "s" for seconds, "ms" for milliseconds).
+:    Customization parameters for special bonding options. Time intervals
+     may need to be expressed as a number of seconds or milliseconds: the
+     default value type is specified below. If necessary, time intervals can
+     be qualified using a time suffix (such as "s" for seconds, "ms" for
+     milliseconds) to allow for more control over its behavior.
 
      ``mode`` (scalar)
      :    Set the bonding mode used for the interfaces. The default is
@@ -573,7 +580,8 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      :    Specifies the interval for MII monitoring (verifying if an interface
           of the bond has carrier). The default is ``0``; which disables MII
           monitoring. This is equivalent to the MIIMonitorSec= field for the
-          networkd backend.
+          networkd backend. If no time suffix is specified, the value will be
+          interpreted as milliseconds.
 
      ``min-links`` (scalar)
      :    The minimum number of links up in a bond to consider the bond
@@ -600,6 +608,8 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      :    Set the interval value for how frequently ARP link monitoring should
           happen. The default value is ``0``, which disables ARP monitoring.
           For the networkd backend, this maps to the ARPIntervalSec= property.
+          If no time suffix is specified, the value will be interpreted as
+          milliseconds.
 
      ``arp-ip-targets`` (sequence of scalars)
      :    IPs of other hosts on the link which should be sent ARP requests in
@@ -623,12 +633,14 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      ``up-delay`` (scalar)
      :    Specify the delay before enabling a link once the link is physically
           up. The default value is ``0``. This maps to the UpDelaySec= property
-          for the networkd renderer.
+          for the networkd renderer. If no time suffix is specified, the value
+          will be interpreted as milliseconds.
 
      ``down-delay`` (scalar)
      :    Specify the delay before disabling a link once the link has been
           lost. The default value is ``0``. This maps to the DownDelaySec=
-          property for the networkd renderer.
+          property for the networkd renderer. If no time suffix is specified,
+          the value will be interpreted as milliseconds.
 
      ``fail-over-mac-policy`` (scalar)
      :    Set whether to set all slaves to the same MAC address when adding
@@ -670,11 +682,12 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           are sent at 200ms intervals.
 
      ``learn-packet-interval`` (scalar)
-     :    Specify the interval (seconds) between sending learning packets to
+     :    Specify the interval between sending learning packets to
           each slave.  The value range is between ``1`` and ``0x7fffffff``.
           The default value is ``1``. This option only affects ``balance-tlb``
           and ``balance-alb`` modes. Using the networkd renderer, this field
-          maps to the LearnPacketIntervalSec= property.
+          maps to the LearnPacketIntervalSec= property. If no time suffix is
+          specified, the value will be interpreted as seconds.
 
      ``primary`` (scalar)
      :    Specify a device to be used as a primary slave, or preferred device
