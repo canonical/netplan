@@ -486,12 +486,15 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
           with EAP, common for enterprise wifi); and ``802.1x`` (used primarily
           for wired Ethernet connections).
 
-     The following properties can be used if ``key-management`` is ``wpa-psk``:
+     ``password`` (scalar)
+     :    The password string for EAP, or the pre-shared key for WPA-PSK.
+
+     The following properties can be used if ``key-management`` is ``psk``:
 
      ``psk`` (scalar)
      :    The pre-shared key for this connection.
 
-     The following properties can be used if ``key-management`` is ``wpa-eap``
+     The following properties can be used if ``key-management`` is ``eap``
      or ``802.1x``:
 
      ``method`` (scalar)
@@ -504,9 +507,6 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      ``anonymous-identity`` (scalar)
      :    The identity to pass over the unencrypted channel if the chosen EAP
           method supports passing a different tunnelled identity.
-
-     ``password`` (scalar)
-     :    The password string for EAP.
 
      ``ca-certificate`` (scalar)
      :    Path to a file with one or more trusted certificate authority (CA)
