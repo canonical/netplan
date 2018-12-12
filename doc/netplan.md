@@ -489,11 +489,6 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      ``password`` (scalar)
      :    The password string for EAP, or the pre-shared key for WPA-PSK.
 
-     The following properties can be used if ``key-management`` is ``psk``:
-
-     ``psk`` (scalar)
-     :    The pre-shared key for this connection.
-
      The following properties can be used if ``key-management`` is ``eap``
      or ``802.1x``:
 
