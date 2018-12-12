@@ -8,7 +8,10 @@ netplan.io (0.95) UNRELEASED; urgency=medium
     - Generate output files in dependency order
     - Refactored unit and integration tests, along with various cleanups.
     - Add DHCP overrides to control route usage and default metric for DHCP
-      routes.
+      routes. (LP: #1776228)
+    - Mitigate against bad matching on devices behind bonds then they share
+      the same MAC from a physical interface. (LP: #1804861)
+    - Added snapcraft.yaml.
 
  -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 10 Dec 2018 11:25:26 -0500
 
