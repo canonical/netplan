@@ -1,0 +1,56 @@
+# Contributing to netplan.io
+
+Thanks for taking the time to contribute to netplan!
+
+Here are the guidelines for contributing to the development of netplan. These
+are guidelines, not hard and fast rules; but please exercise judgement. Feel
+free to propose changes to this document.
+
+#### Table Of Contents
+
+[Code of Conduct](#code-of-conduct)
+
+[What should I know before I get started](#what-should-i-know-before-i-get-started)
+  * [Did you find a bug?](#did-you-find-a-bug)
+  * [Code Quality](#code-quality)
+  * [Conventions](#conventions)
+
+## Code of Conduct
+
+This project and everyone participating in it is governed by the
+[Ubuntu Code of Conduct](https://www.ubuntu.com/community/code-of-conduct).
+By participating, you are expected to uphold this code. Please report
+unacceptable behavior to
+[netplan-developers@lists.launchpad.net](mailto:netplan-developers@lists.launchpad.net).
+
+## What should I know before I get started?
+
+### Did you find a bug?
+
+If you've found a bug, please make sure to report it on Launchpad against the
+[netplan](http://bugs.launchpad.net/netplan) project. We do use these bug reports
+to make it easier to backport features to supported releases of Ubuntu: having
+an existing bug report, with people who understand well how the bug appears
+helps immensely in making sure the feature or bug fix is well tested when it is
+being released to supported Ubuntu releases.
+
+### Code quality
+
+We want to maintain the quality of the code in netplan to the highest possible
+degree. As such, we do insist on keeping a code coverage with unit tests to 100%
+coverage if it is possible. If not, please make sure to explain why when submitting
+a pull request, and expect reviewers to challenge you on that decision and suggest
+a course of action.
+
+### Conventions
+
+The netplan project mixes C and python code. Generator code is generally all
+written in C, while the UI / command-line interface is written in python. Please
+look at the surrounding code, and make a best effort to follow the general style
+used in the code. We do insist on proper indentation (4 spaces), but we will
+not block good features and bug fixes on purely style issues. Please exercise
+your best judgement: if it looks odd or too clever to you, chances are it will
+look odd or too clever to code reviewers. In that case, you may be asked for
+some styles changes in a pull request. Similary, if you see code that you
+find hard to understand, we do encourage that you submit pull requests that
+help make the code easier to understand and maintain.
