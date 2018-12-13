@@ -37,3 +37,5 @@
 - integrate 'netplan try' in tmux/screen
 
 - replace nose for python tests with something else, preserving coverage reports
+
+- add automated integration tests for WPA Enterprise / 802.1x that can run self-contained
