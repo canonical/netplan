@@ -600,7 +600,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      ``forward-delay`` (scalar)
      :    Specify the period of time the bridge will remain in Listening and
           Learning states before getting to the Forwarding state. This field
-          maps to the ForwardDelaySec= property for the networkd renderer. 
+          maps to the ForwardDelaySec= property for the networkd renderer.
           If no time suffix is specified, the value will be interpreted as
           seconds.
 
