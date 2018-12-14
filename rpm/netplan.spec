@@ -15,7 +15,7 @@
 
 
 Name:           netplan
-Version:        0.40.3
+Version:        0.95
 Release:        0%{?dist}
 Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
@@ -112,6 +112,9 @@ make check
 
 
 %changelog
+* Fri Dec 13 2018 Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com> - 0.95
+- Update to 0.95
+
 * Sat Oct 13 2018 Neal Gompa <ngompa13@gmail.com> - 0.40.3-0
 - Rebase to 0.40.3
 
