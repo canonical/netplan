@@ -1,0 +1,11 @@
+network:
+  version: 2
+  ethernets:
+    enred:
+      dhcp4: yes
+      dhcp4-overrides:
+        route-metric: 100
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        route-metric: 200

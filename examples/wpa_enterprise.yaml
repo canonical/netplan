@@ -1,0 +1,26 @@
+network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          auth:
+            key-management: eap
+            method: ttls
+            anonymous-identity: "@internal.example.com"
+            identity: "joe@internal.example.com"
+            password: "v3ryS3kr1t"
+        university:
+          auth:
+            key-management: eap
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "d3cryptPr1v4t3K3y"
+        open-network:
+          auth:
+            key-management: none
+      dhcp4: yes
