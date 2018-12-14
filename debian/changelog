@@ -1,4 +1,4 @@
-netplan.io (1.0) UNRELEASED; urgency=medium
+netplan.io (0.95) UNRELEASED; urgency=medium
 
   * New upstream release:
     - Added support for WPA Enterprise / 802.1x authentication (LP: #1739578)
