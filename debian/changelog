@@ -1,4 +1,4 @@
-netplan.io (0.95) UNRELEASED; urgency=medium
+netplan.io (0.95) disco; urgency=medium
 
   * New upstream release:
     - Added support for WPA Enterprise / 802.1x authentication (LP: #1739578)
@@ -14,7 +14,7 @@ netplan.io (0.95) UNRELEASED; urgency=medium
       the same MAC from a physical interface. (LP: #1804861)
     - Added snapcraft.yaml.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Mon, 10 Dec 2018 11:25:26 -0500
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 14 Dec 2018 16:04:05 -0500
 
 netplan.io (0.90.1) disco; urgency=medium
 
