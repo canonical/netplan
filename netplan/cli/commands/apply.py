@@ -44,6 +44,9 @@ class NetplanApply(utils.NetplanCommand):
 
     @staticmethod
     def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
+        old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
+
         if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
             if exit_on_error:
                 sys.exit(os.EX_CONFIG)
@@ -53,18 +56,28 @@ class NetplanApply(utils.NetplanCommand):
         config_manager = ConfigManager()
         devices = netifaces.interfaces()
 
+        # Re-start service when
+        # 1. We have configuration files for it
+        # 2. Previously we had config files for it but not anymore
+        # Ideally we should compare the content of the *netplan-* files before and
+        # after generation to minimize the number of re-starts, but the conditions
+        # above works too.
         restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
+        if not restart_networkd and old_files_networkd:
+            restart_networkd = True
         restart_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
+        if not restart_nm and old_files_nm:
+            restart_nm = True
 
         # stop backends
         if restart_networkd:
-            logging.debug('netplan generated networkd configuration exists, restarting networkd')
+            logging.debug('netplan generated networkd configuration changed, restarting networkd')
             utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
         if restart_nm:
-            logging.debug('netplan generated NM configuration exists, restarting NM')
+            logging.debug('netplan generated NM configuration changed, restarting NM')
             if utils.nm_running():
                 # restarting NM does not cause new config to be applied, need to shut down devices first
                 for device in devices:
