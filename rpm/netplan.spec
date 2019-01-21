@@ -21,7 +21,7 @@ Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
 License:        GPLv3
 URL:            http://netplan.io/
-Source0:        https://github.com/CanonicalLtd/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
+Source0:        https://github.com/CanonicalLtd/%{name}/archive/%{version}/%{version}.tar.gz
 
 BuildRequires:  gcc
 BuildRequires:  make
