@@ -872,7 +872,7 @@ Example:
       en-vpn:
         id: 2
         link: eno1
-        address: ...
+        addresses: ...
 
 
 ## Examples
