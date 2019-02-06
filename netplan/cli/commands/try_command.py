@@ -92,7 +92,6 @@ class NetplanTry(utils.NetplanCommand):
             print("\nReverting.")
             self.revert()
         finally:
-            self.t.reset(self.t_settings)
             self.cleanup()
 
     def backup(self):  # pragma: nocover (requires user input)
