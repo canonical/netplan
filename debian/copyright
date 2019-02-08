@@ -1,7 +1,27 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: netplan.io
+Upstream-Contact: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+Source: https://github.com/CanonicalLtd/netplan
 
 Files: *
-Copyright: 2016 Canonical Ltd.
-License: GPL-3.0
+Copyright: 2016—2018 Canonical Ltd.
+License: GPL-3
+
+Files: debian/*
+Copyright:
+ 2016—2018 Canonical Ltd.
+ 2018 Andrej Shadura <andrewsh@debian.org>
+License: GPL-3
+
+License: GPL-3
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; version 3.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
  On Debian systems, the complete text of the GNU Lesser General
  Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".

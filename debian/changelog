@@ -1,3 +1,18 @@
+netplan.io (0.95-2) unstable; urgency=medium
+
+  * Set Priority to optional (Closes: #920327).
+
+ -- Andrej Shadura <andrewsh@debian.org>  Thu, 24 Jan 2019 09:43:13 +0100
+
+netplan.io (0.95-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update autopkgtests from the upstream.
+  * Add debian/watch following GitHub releases.
+  * Add Homepage (Closes: #917233).
+
+ -- Andrej Shadura <andrewsh@debian.org>  Sat, 29 Dec 2018 16:34:23 +0100
+
 netplan.io (0.95) disco; urgency=medium
 
   * New upstream release:

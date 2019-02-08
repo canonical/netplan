@@ -1,7 +1,10 @@
 Source: netplan.io
-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Maintainer: Debian netplan Maintainers <team+netplan@tracker.debian.org>
+Uploaders:
+ Andrej Shadura <andrewsh@debian.org>,
+ Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
 Section: net
-Priority: important
+Priority: optional
 Standards-Version: 4.1.3
 Build-Depends: debhelper (>= 11),
  pkg-config,
@@ -18,8 +21,9 @@ Build-Depends: debhelper (>= 11),
  pycodestyle | pep8,
  python3-nose,
  pandoc,
-Vcs-Git: https://github.com/CanonicalLtd/netplan
-Vcs-Browser: https://github.com/CanonicalLtd/netplan
+Vcs-Git: https://salsa.debian.org/debian/netplan.io.git
+Vcs-Browser: https://salsa.debian.org/debian/netplan.io
+Homepage: https://netplan.io/
 
 Package: netplan.io
 Architecture: any
@@ -30,10 +34,10 @@ Depends: ${shlibs:Depends},
  python3,
  python3-yaml,
  python3-netifaces,
- systemd (>= 235-3ubuntu3),
+ systemd (>= 239~),
 Suggests: network-manager | wpasupplicant
 Conflicts: netplan
-Breaks: nplan (<< 0.34~), network-manager (<< 1.2.2-0ubuntu4~)
+Breaks: nplan (<< 0.34~), network-manager (<< 1.2.2-1)
 Replaces: nplan (<< 0.34~)
 Provides: nplan
 Description: YAML network configuration abstraction for various backends
@@ -44,17 +48,3 @@ Description: YAML network configuration abstraction for various backends
  networking daemon.
  .
  Currently supported backends are networkd and NetworkManager.
-
-Package: nplan
-Architecture: all
-Priority: optional
-Section: oldlibs
-Depends: netplan.io, ${misc:Depends}
-Description: YAML network configuration abstraction - transitional package
- netplan reads YAML network configuration files which are written
- by administrators, installers, cloud image instantiations, or other OS
- deployments. During early boot it then generates backend specific
- configuration files in /run to hand off control of devices to a particular
- networking daemon.
- .
- This is a transitional package that installs 'netplan.io'.
