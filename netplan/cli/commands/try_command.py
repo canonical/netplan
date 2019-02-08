@@ -93,7 +93,7 @@ class NetplanTry(utils.NetplanCommand):
             print("\nReverting.")
             self.revert()
         finally:
-            if self.t is not None:
+            if self.t:
                 self.t.reset(self.t_settings)
             self.cleanup()
 
