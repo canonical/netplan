@@ -45,6 +45,7 @@ class NetplanTry(utils.NetplanCommand):
         self.new_interfaces = None
         self._config_manager = None
         self.t_settings = None
+        self.t = None
 
     @property
     def config_manager(self):  # pragma: nocover (called by later commands)
@@ -92,6 +93,8 @@ class NetplanTry(utils.NetplanCommand):
             print("\nReverting.")
             self.revert()
         finally:
+            if self.t is not None:
+                self.t.reset(self.t_settings)
             self.cleanup()
 
     def backup(self):  # pragma: nocover (requires user input)
