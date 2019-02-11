@@ -75,6 +75,18 @@ typedef struct missing_node {
     const yaml_node_t* node;
 } missing_node;
 
+/* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
+typedef struct dhcp_overrides {
+    gboolean use_dns;
+    gboolean use_ntp;
+    gboolean send_hostname;
+    gboolean use_hostname;
+    gboolean use_mtu;
+    gboolean use_routes;
+    char* hostname;
+    guint metric;
+} dhcp_overrides;
+
 /**
  * Represent a configuration stanza
  */
@@ -94,6 +106,8 @@ typedef struct net_definition {
     gboolean dhcp4;
     gboolean dhcp6;
     char* dhcp_identifier;
+    dhcp_overrides dhcp4_overrides;
+    dhcp_overrides dhcp6_overrides;
     ra_mode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;

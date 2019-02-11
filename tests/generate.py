@@ -36,10 +36,13 @@ exe_generate = os.path.join(os.path.dirname(os.path.dirname(
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
 # common patterns for expected output
-ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
-ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=600\n'
-ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
-ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nUseMTU=true\nRouteMetric=100\n'
+ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
+ND_DHCP4_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
+ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=600\nUseMTU=true\n'
+ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
+ND_DHCP6_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
+ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
+ND_DHCPYES_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
 
@@ -326,8 +329,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_networkd_udev(None)
 
@@ -490,8 +493,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_networkd_udev(None)
         self.assert_nm_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
@@ -572,7 +575,7 @@ unmanaged-devices+=interface-name:*,''')
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n'
-                                              '[DHCP]\nUseMTU=true\nRouteMetric=100\n'})
+                                              '[DHCP]\nRouteMetric=100\nUseMTU=true\n'})
         self.assert_networkd_udev(None)
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -597,8 +600,8 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -654,8 +657,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'br0.netdev': '[NetDev]\nName=br0\nMACAddress=00:01:02:03:04:05\nKind=bridge\n'})
 
@@ -699,8 +702,8 @@ LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_bridge_dhcp6_no_accept_ra(self):
@@ -726,8 +729,8 @@ IPv6AcceptRA=no
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'br0.netdev': '''[NetDev]
 Name=br0
@@ -764,8 +767,8 @@ IPv6AcceptRA=yes
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'bond0.netdev': '''[NetDev]
 Name=bond0
@@ -796,8 +799,8 @@ LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_eth_dhcp6_accept_ra_unset(self):
@@ -814,8 +817,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_eth_dhcp4_and_6(self):
@@ -863,8 +866,8 @@ Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_dhcp_critical_true(self):
@@ -884,9 +887,9 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
-RouteMetric=100
 CriticalConnection=true
+RouteMetric=100
+UseMTU=true
 '''})
 
     def test_dhcp_identifier_mac(self):
@@ -906,9 +909,9 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
-RouteMetric=100
 ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
 '''})
 
     def test_dhcp_identifier_duid(self):
@@ -929,9 +932,350 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
+
+    # Common tests for dhcp override booleans
+    def run_dhcp_overrides_bool_tests(self, override_name, networkd_name):
+        # dhcp4 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+''' % override_name)
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+        # dhcp6 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % override_name)
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen'})
+
+        # dhcp4 and dhcp6 both yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % (override_name, override_name))
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen'})
+
+        # dhcp4 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + '%s=false\n' % networkd_name})
+
+        # dhcp6 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen' + '%s=false\n' % networkd_name})
+
+        # dhcp4 and dhcp6 both no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: no
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen' + '%s=false\n' % networkd_name})
+
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that '
+                              '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+
+    # Common tests for dhcp override strings
+    def run_dhcp_overrides_string_tests(self, override_name, networkd_name):
+        # dhcp4 only
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: foo
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + '%s=foo\n' % networkd_name})
+
+        # dhcp6 only
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: foo
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen' + '%s=foo\n' % networkd_name})
+
+        # dhcp4 and dhcp6
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: foo
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: foo
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen' + '%s=foo\n' % networkd_name})
+
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: foo
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: bar
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that %s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+
+    # Common tests for dhcp override booleans
+    def run_dhcp_mtu_overrides_bool_tests(self, override_name, networkd_name):
+        # dhcp4 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
+
+        # dhcp6 yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % override_name)
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCP6 % 'engreen'})
+
+        # dhcp4 and dhcp6 both yes
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: yes
+''' % (override_name, override_name))
+        # silently ignored since yes is the default
+        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen'})
+
+        # dhcp4 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP4_NOMTU % 'engreen'})
+
+        # dhcp6 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % override_name)
+        self.assert_networkd({'engreen.network': ND_DHCP6_NOMTU % 'engreen'})
+
+        # dhcp4 and dhcp6 both no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: no
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': ND_DHCPYES_NOMTU % 'engreen'})
+
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that '
+                              '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+
+    def run_dhcp_overrides_guint_tests(self, override_name, networkd_name):
+        # dhcp4 only
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: 6000
+''' % override_name)
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=6000
+UseMTU=true
+'''})
+
+        # dhcp6 only
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: 6000
+''' % override_name)
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=6000
+UseMTU=true
+'''})
+
+        # dhcp4 and dhcp6
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: 6000
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: 6000
+''' % (override_name, override_name))
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=6000
+UseMTU=true
+'''})
+
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        %s: 3333
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: 5555
+''' % (override_name, override_name), expect_fail=True)
+        self.assertEqual(err, 'ERROR: engreen: networkd requires that '
+                              '%s has the same value in both dhcp4_overrides and dhcp6_overrides\n' % override_name)
+
+    def test_dhcp_overrides_use_dns(self):
+        self.run_dhcp_overrides_bool_tests('use-dns', 'UseDNS')
+
+    def test_dhcp_overrides_use_ntp(self):
+        self.run_dhcp_overrides_bool_tests('use-ntp', 'UseNTP')
+
+    def test_dhcp_overrides_send_hostname(self):
+        self.run_dhcp_overrides_bool_tests('send-hostname', 'SendHostname')
+
+    def test_dhcp_overrides_use_hostname(self):
+        self.run_dhcp_overrides_bool_tests('use-hostname', 'UseHostname')
+
+    def test_dhcp_overrides_use_routes(self):
+        self.run_dhcp_overrides_bool_tests('use-routes', 'UseRoutes')
+
+    def test_dhcp_overrides_hostname(self):
+        self.run_dhcp_overrides_string_tests('hostname', 'Hostname')
+
+    def test_dhcp_overrides_use_mtu(self):
+        self.run_dhcp_mtu_overrides_bool_tests('use-mtu', 'UseMTU')
+
+    def test_dhcp_overrides_default_metric(self):
+        self.run_dhcp_overrides_guint_tests('route-metric', 'RouteMetric')
 
     def test_route_v4_single(self):
         self.generate('''network:
@@ -1378,8 +1722,8 @@ Destination=10.10.10.0/24
 Gateway=8.8.8.8
 
 [DHCP]
-UseMTU=true
 RouteMetric=600
+UseMTU=true
 '''})
 
         self.assert_nm(None, '''[keyfile]
@@ -1429,8 +1773,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -1456,8 +1800,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -1486,8 +1830,8 @@ Address=1.2.3.4/12
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -1518,8 +1862,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
@@ -1565,8 +1909,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
@@ -1613,8 +1957,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n\n'
@@ -1639,8 +1983,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -1670,8 +2014,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -1702,8 +2046,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -1775,8 +2119,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -1818,8 +2162,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -1854,8 +2198,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\nPrimarySlave=true\n',
@@ -1892,8 +2236,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
@@ -2024,8 +2368,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -2142,8 +2486,8 @@ DHCP=yes
 LinkLocalAddressing=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_link_local_ipv4(self):
@@ -2164,8 +2508,8 @@ DHCP=yes
 LinkLocalAddressing=ipv4
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_link_local_ipv6(self):
@@ -2186,8 +2530,8 @@ DHCP=yes
 LinkLocalAddressing=ipv6
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
     def test_link_local_disabled(self):
@@ -2208,8 +2552,8 @@ DHCP=yes
 LinkLocalAddressing=no
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 '''})
 
 
@@ -4053,6 +4397,174 @@ method=ignore
 ''' % uuid})
         self.assert_nm_udev(None)
 
+    def test_override_default_metric_v4(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        route-metric: 3333
+''')
+        # silently ignored since yes is the default
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+route-metric=3333
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_override_default_metric_v6(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        route-metric: 6666
+''')
+        # silently ignored since yes is the default
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+route-metric=6666
+'''})
+
+    def test_use_routes_v4(self):
+        """[NetworkManager] Validate config when use-routes DHCP4 override is used"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp4-overrides:
+        use-routes: false
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+ignore-auto-routes=true
+never-default=true
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_use_routes_v6(self):
+        """[NetworkManager] Validate config when use-routes DHCP6 override is used"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp6-overrides:
+        use-routes: false
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+ignore-auto-routes=true
+never-default=true
+'''})
+
+    def test_default_metric_v4(self):
+        """[NetworkManager] Validate config when setting a default metric for DHCPv4"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp4-overrides:
+        route-metric: 4000
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+route-metric=4000
+
+[ipv6]
+method=auto
+'''})
+
+    def test_default_metric_v6(self):
+        """[NetworkManager] Validate config when setting a default metric for DHCPv6"""
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp6-overrides:
+        route-metric: 5050
+          ''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+route-metric=5050
+'''})
+
 
 class TestConfigErrors(TestBase):
     def test_malformed_yaml(self):
@@ -4922,8 +5434,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
                               'bond0.network': '''[Match]
@@ -4990,8 +5502,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
                                             '[Bridge]\nSTP=true\n',
@@ -5139,8 +5651,8 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
 [DHCP]
-UseMTU=true
 RouteMetric=100
+UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
