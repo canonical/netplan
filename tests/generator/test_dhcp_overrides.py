@@ -364,6 +364,9 @@ UseMTU=true
     def test_dhcp_overrides_default_metric(self):
         self.assert_dhcp_overrides_guint('route-metric', 'RouteMetric')
 
+    def test_dhcp_overrides_use_routes(self):
+        self.assert_dhcp_overrides_bool('use-routes', 'UseRoutes')
+
 
 class TestNetworkManager(TestBase):
 

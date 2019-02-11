@@ -409,6 +409,10 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "route-metric");
             exit(1);
         }
+        if (def->dhcp4_overrides.use_routes != def->dhcp6_overrides.use_routes) {
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-routes");
+            exit(1);
+        }
         /* Just use dhcp4_overrides now, since we know they are the same. */
         *combined_dhcp_overrides = def->dhcp4_overrides;
     }
