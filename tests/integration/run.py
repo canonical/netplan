@@ -25,6 +25,7 @@ import glob
 import os
 import subprocess
 import textwrap
+import sys
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -75,5 +76,10 @@ else:
 
 os.environ["NETPLAN_TEST_BACKENDS"] = ",".join(backends)
 
+returncode = 0
 for test in requested_tests:
-    subprocess.call(['python3', os.path.join(tests_dir, "{}.py".format(test))])
+    ret = subprocess.call(['python3', os.path.join(tests_dir, "{}.py".format(test))])
+    if returncode == 0 and ret != 0:
+        returncode = ret
+
+sys.exit(returncode)
