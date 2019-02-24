@@ -48,9 +48,9 @@ For details of the configuration file format, see **netplan**(5).
 
 There are 3 locations that netplan generate considers:
 
- * /lib/netplan/*.yaml
- * /etc/netplan/*.yaml
- * /run/netplan/*.yaml
+ * /lib/netplan/*.yaml and /lib/netplan/*.yml
+ * /etc/netplan/*.yaml and /etc/netplan/*.yml
+ * /run/netplan/*.yaml and /run/netplan/*.yml
 
 If there are multiple files with exactly the same name, then only one
 will be read. A file in /run/netplan will shadow - completely replace

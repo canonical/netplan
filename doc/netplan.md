@@ -3,8 +3,8 @@ Distribution installers, cloud instantiation, image builds for particular
 devices, or any other way to deploy an operating system put its desired
 network configuration into YAML configuration file(s). During
 early boot, the netplan "network renderer" runs which reads
-``/{lib,etc,run}/netplan/*.yaml`` and writes configuration to ``/run`` to hand
-off control of devices to the specified networking daemon.
+``/{lib,etc,run}/netplan/*.{yaml,yml}`` and writes configuration to ``/run``
+to hand off control of devices to the specified networking daemon.
 
  - Configured devices get handled by systemd-networkd by default,
    unless explicitly marked as managed by a specific renderer (NetworkManager)
@@ -20,8 +20,8 @@ off control of devices to the specified networking daemon.
 ## General structure
 netplan's configuration files use the
 [YAML](<http://yaml.org/spec/1.1/current.html>) format. All
-``/{lib,etc,run}/netplan/*.yaml`` are considered. Lexicographically later files
-(regardless of in which directory they are) amend (new mapping keys) or
+``/{lib,etc,run}/netplan/*.{yaml,yml}`` are considered. Lexicographically later
+files (regardless of in which directory they are) amend (new mapping keys) or
 override (same mapping keys) previous ones. A file in ``/run/netplan``
 completely shadows a file with same name in ``/etc/netplan``, and a file in
 either of those directories shadows a file with the same name in

@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     g_option_context_set_summary(opt_context, "Generate backend network configuration from netplan YAML definition.");
     g_option_context_set_description(opt_context,
                                      "This program reads the specified netplan YAML definition file(s)\n"
-                                     "or, if none are given, /etc/netplan/*.yaml.\n"
+                                     "or, if none are given, /etc/netplan/*.yaml and /etc/netplan/*.yml.\n"
                                      "It then generates the corresponding systemd-networkd, NetworkManager,\n"
                                      "and udev configuration files in /run.");
     g_option_context_add_main_entries(opt_context, options, NULL);
@@ -195,35 +195,59 @@ int main(int argc, char** argv)
          * To do that, we put all found files in a hash table, then sort it by
          * file name, and add the entries from /run after the ones from /etc
          * and those after the ones from /lib. */
-        g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
-        g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
-        g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
+        g_autofree char* glob_etc_yaml = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
+        g_autofree char* glob_etc_yml = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yml", NULL);
+        g_autofree char* glob_run_yaml = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
+        g_autofree char* glob_run_yml = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yml", NULL);
+        g_autofree char* glob_lib_yaml = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
+        g_autofree char* glob_lib_yml = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yml", NULL);
         glob_t gl;
         int rc;
         /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
         g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
         g_autoptr(GList) config_keys = NULL;
 
-        rc = glob(glob_lib, 0, NULL, &gl);
+        rc = glob(glob_lib_yaml, 0, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
             // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib);
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib_yaml);
+            return 1;
+            // LCOV_EXCL_STOP
+        }
+        rc = glob(glob_lib_yml, 0, NULL, &gl);
+        if (rc != 0 && rc != GLOB_NOMATCH) {
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib_yml);
             return 1;
             // LCOV_EXCL_STOP
         }
 
-        rc = glob(glob_etc, GLOB_APPEND, NULL, &gl);
+        rc = glob(glob_etc_yaml, GLOB_APPEND, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
             // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc);
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc_yaml);
+            return 1;
+            // LCOV_EXCL_STOP
+        }
+        rc = glob(glob_etc_yml, GLOB_APPEND, NULL, &gl);
+        if (rc != 0 && rc != GLOB_NOMATCH) {
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc_yml);
             return 1;
             // LCOV_EXCL_STOP
         }
 
-        rc = glob(glob_run, GLOB_APPEND, NULL, &gl);
+        rc = glob(glob_run_yaml, GLOB_APPEND, NULL, &gl);
         if (rc != 0 && rc != GLOB_NOMATCH) {
             // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run);
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run_yaml);
+            return 1;
+            // LCOV_EXCL_STOP
+        }
+        rc = glob(glob_run_yml, GLOB_APPEND, NULL, &gl);
+        if (rc != 0 && rc != GLOB_NOMATCH) {
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run_yml);
             return 1;
             // LCOV_EXCL_STOP
         }

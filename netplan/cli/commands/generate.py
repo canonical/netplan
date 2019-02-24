@@ -29,7 +29,7 @@ class NetplanGenerate(utils.NetplanCommand):
     def __init__(self):
         super().__init__(command_id='generate',
                          description='Generate backend specific configuration files'
-                                     ' from /etc/netplan/*.yaml',
+                                     ' from /etc/netplan/*.yaml and /etc/netplan/*.yml',
                          leaf=True)
 
     def run(self):

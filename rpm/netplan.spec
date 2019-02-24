@@ -65,10 +65,10 @@ Provides:       %{ubuntu_name} = %{version}-%{release}
 Provides:       %{ubuntu_name}%{?_isa} = %{version}-%{release}
 
 %description
-netplan reads network configuration from /etc/netplan/*.yaml which are written by administrators,
-installers, cloud image instantiations, or other OS deployments. During early boot, it generates
-backend specific configuration files in /run to hand off control of devices to a particular
-networking daemon.
+netplan reads network configuration from /etc/netplan/*.yaml and /etc/netplan/*.yml which are
+written by administrators, installers, cloud image instantiations, or other OS deployments.
+During early boot, it generates backend specific configuration files in /run to hand off
+control of devices to a particular networking daemon.
 
 Currently supported backends are systemd-networkd and NetworkManager.
 

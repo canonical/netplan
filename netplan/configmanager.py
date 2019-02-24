@@ -95,8 +95,9 @@ class ConfigManager(object):
         # /run/netplan shadows /etc/netplan/, which shadows /lib/netplan
         names_to_paths = {}
         for yaml_dir in ['lib', 'etc', 'run']:
-            for yaml_file in glob.glob(os.path.join(self.prefix, yaml_dir, 'netplan', '*.yaml')):
-                names_to_paths[os.path.basename(yaml_file)] = yaml_file
+            for extension in ('*.yaml', '*.yml'):
+                for yaml_file in glob.glob(os.path.join(self.prefix, yaml_dir, 'netplan', extension)):
+                    names_to_paths[os.path.basename(yaml_file)] = yaml_file
 
         files = [names_to_paths[name] for name in sorted(names_to_paths.keys())]
 

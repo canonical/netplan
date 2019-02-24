@@ -1224,8 +1224,8 @@ UseMTU=true
   version: 2
   ethernets: {enyellow: {dhcp4: true}}''')
 
-        # this should be considered
-        with open(os.path.join(libdir, 'd.yaml'), 'w') as f:
+        # YML files (not yAml) this should be considered as well
+        with open(os.path.join(libdir, 'd.yml'), 'w') as f:
             f.write('''network:
   version: 2
   ethernets: {enblue: {dhcp4: true}}''')
@@ -1241,4 +1241,3 @@ UseMTU=true
                               'enred.link': '[Match]\nOriginalName=enred\n\n[Link]\nWakeOnLan=magic\n',
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
-
