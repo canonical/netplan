@@ -78,22 +78,33 @@ unmanaged-devices+=interface-name:wl0,''')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
-            self.assertEqual(f.read(), '''ctrl_interface=/run/wpa_supplicant
-
+            new_config = f.read()
+            self.assertIn('ctrl_interface=/run/wpa_supplicant', new_config)
+            self.assertIn('''
 network={
-  ssid="Joe's Home"
-  key_mgmt=WPA-PSK
-  psk="s3kr1t"
+  ssid="peer2peer"
+  mode=1
+  key_mgmt=NONE
 }
+''', new_config)
+            self.assertIn('''
 network={
   ssid="Luke's Home"
   key_mgmt=WPA-PSK
   psk="4lsos3kr1t"
 }
+''', new_config)
+            self.assertIn('''
 network={
-  ssid="opennet"
-  key_mgmt=NONE
+  ssid="workplace2"
+  key_mgmt=WPA-EAP
+  eap=PEAP
+  identity="joe@internal.example.com"
+  password="v3ryS3kr1t"
+  ca_cert="/etc/ssl/work2-cacrt.pem"
 }
+''', new_config)
+            self.assertIn('''
 network={
   ssid="workplace"
   key_mgmt=WPA-EAP
@@ -102,6 +113,8 @@ network={
   anonymous_identity="@internal.example.com"
   password="v3ryS3kr1t"
 }
+''', new_config)
+            self.assertIn('''
 network={
   ssid="customernet"
   key_mgmt=WPA-EAP
@@ -113,23 +126,23 @@ network={
   private_key="/etc/ssl/cust-key.pem"
   private_key_passwd="d3cryptPr1v4t3K3y"
 }
+''', new_config)
+            self.assertIn('''
 network={
-  ssid="workplace2"
-  key_mgmt=WPA-EAP
-  eap=PEAP
-  identity="joe@internal.example.com"
-  password="v3ryS3kr1t"
-  ca_cert="/etc/ssl/work2-cacrt.pem"
-}
-network={
-  ssid="peer2peer"
-  mode=1
+  ssid="opennet"
   key_mgmt=NONE
 }
-''')
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="Joe's Home"
+  key_mgmt=WPA-PSK
+  psk="s3kr1t"
+}
+''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/multi-user.target.wants/netplan-wpa@wl0.service')))
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service')))
 
     def test_auth_wired(self):
         self.generate('''network:
@@ -171,7 +184,7 @@ network={
 ''')
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/multi-user.target.wants/netplan-wpa@eth0.service')))
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@eth0.service')))
 
 
 class TestNetworkManager(TestBase):

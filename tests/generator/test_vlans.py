@@ -46,9 +46,9 @@ Name=en1
 
 [Network]
 LinkLocalAddressing=ipv6
-VLAN=engreen
-VLAN=enblue
 VLAN=enred
+VLAN=enblue
+VLAN=engreen
 ''',
                               'enblue.netdev': '''[NetDev]
 Name=enblue
@@ -101,7 +101,7 @@ UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:engreen,interface-name:en1,interface-name:enblue,interface-name:enred,''')
+unmanaged-devices+=interface-name:en1,interface-name:enred,interface-name:enblue,interface-name:engreen,''')
         self.assert_nm_udev(None)
 
 

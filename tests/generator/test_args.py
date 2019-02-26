@@ -119,15 +119,13 @@ class TestConfigArgs(TestBase):
         os.symlink(exe_generate, generator)
 
         subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
-        self.assertEqual(set(os.listdir(outdir)),
-                         {'netplan.stamp', 'multi-user.target.wants', 'network-online.target.wants'})
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth0.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
 
         # should auto-enable networkd and -wait-online
         self.assertTrue(os.path.islink(os.path.join(
-            outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
+            outdir, 'network-online.target.wants', 'systemd-networkd.service')))
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
 

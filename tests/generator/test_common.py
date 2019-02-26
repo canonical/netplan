@@ -1100,7 +1100,7 @@ unmanaged-devices+=interface-name:engreen,''')
                               'engreen.network': ND_DHCP4 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:enblue,interface-name:engreen,''')
+unmanaged-devices+=interface-name:engreen,interface-name:enblue,''')
         self.assert_nm_udev(None)
 
     def test_change_def(self):

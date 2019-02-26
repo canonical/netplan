@@ -47,27 +47,31 @@ unmanaged-devices+=interface-name:wl0,''')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
-            self.assertEqual(f.read(), '''ctrl_interface=/run/wpa_supplicant
-
-network={
-  ssid="Joe's Home"
-  key_mgmt=WPA-PSK
-  psk="s3kr1t"
-}
-network={
-  ssid="workplace"
-  key_mgmt=WPA-PSK
-  psk="c0mpany"
-}
+            new_config = f.read()
+            self.assertIn('''
 network={
   ssid="peer2peer"
   mode=1
   key_mgmt=NONE
 }
-''')
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="workplace"
+  key_mgmt=WPA-PSK
+  psk="c0mpany"
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="Joe's Home"
+  key_mgmt=WPA-PSK
+  psk="s3kr1t"
+}
+''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/multi-user.target.wants/netplan-wpa@wl0.service')))
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service')))
 
     def test_wifi_route(self):
         self.generate('''network:
