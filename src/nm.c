@@ -576,18 +576,16 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append(s, "\n[ipv6]\nmethod=ignore\n");
     }
 
-    conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);
-
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, NULL);
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
 
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, s);
         }
     } else {
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, NULL);
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
         if (def->has_auth) {
             write_dot1x_auth_parameters(&def->auth, s);
         }
