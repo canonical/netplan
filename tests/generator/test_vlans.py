@@ -27,7 +27,7 @@ from .base import TestBase
 class TestNetworkd(TestBase):
 
     @unittest.skipIf("CODECOV_TOKEN" in os.environ, "Skipping on codecov.io: GLib changed hashtable elements order")
-    def test_vlan(self):
+    def test_vlan(self):  # pragma: nocover
         self.generate('''network:
   version: 2
   ethernets:

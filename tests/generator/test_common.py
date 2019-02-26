@@ -1101,7 +1101,7 @@ unmanaged-devices+=interface-name:engreen,''')
         # Skip on codecov.io; GLib changed hashtable elements ordering between
         # releases, so we can't depend on the exact order.
         # TODO: (cyphermox) turn this into an "assert_in_nm()" function.
-        if "CODECOV_TOKEN" not in os.environ:
+        if "CODECOV_TOKEN" not in os.environ:  # pragma: nocover
             self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:engreen,interface-name:enblue,''')
