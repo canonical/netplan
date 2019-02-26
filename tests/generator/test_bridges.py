@@ -18,6 +18,7 @@
 
 import os
 import sys
+import unittest
 
 from .base import TestBase
 
@@ -199,6 +200,7 @@ UseMTU=true
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
+    @unittest.skipIf("CODECOV_TOKEN" in os.environ, "Skip on codecov.io: GLib changed hashtable sorting")
     def test_eth_bridge_nm_blacklist(self):
         self.generate('''network:
   renderer: networkd
