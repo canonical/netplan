@@ -150,9 +150,12 @@ class TestBase(unittest.TestCase):
         con_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections')
         if connections_map:
             self.assertEqual(set(os.listdir(con_dir)),
-                             set(['netplan-' + n for n in connections_map]))
+                             set(['netplan-' + n.split('.nmconnection')[0] + '.nmconnection' for n in connections_map]))
             for fname, contents in connections_map.items():
-                with open(os.path.join(con_dir, 'netplan-' + fname)) as f:
+                extension = ''
+                if '.nmconnection' not in fname:
+                    extension = '.nmconnection'
+                with open(os.path.join(con_dir, 'netplan-' + fname + extension)) as f:
                     self.assertEqual(f.read(), contents)
                     # NM connection files might contain secrets
                     self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
