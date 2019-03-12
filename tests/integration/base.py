@@ -56,21 +56,25 @@ class IntegrationTestsBase(unittest.TestCase):
     '''
     @classmethod
     def setUpClass(klass):
-        # ensure we have this so that iw works
-        subprocess.check_call(['modprobe', 'cfg80211'])
-
         # ensure NM can manage our fake eths
         os.makedirs('/run/udev/rules.d', exist_ok=True)
+
         with open('/run/udev/rules.d/99-nm-veth-test.rules', 'w') as f:
             f.write('ENV{ID_NET_DRIVER}=="veth", ENV{INTERFACE}=="eth42|eth43", ENV{NM_UNMANAGED}="0"\n')
         subprocess.check_call(['udevadm', 'control', '--reload'])
 
-        # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
-        out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
-        m = re.match(r'^(?:global\n)?country (\S+):', out)
-        assert m
-        klass.orig_country = m.group(1)
-        subprocess.check_call(['iw', 'reg', 'set', 'EU'])
+        # ensure we have this so that iw works
+        try:
+            subprocess.check_call(['modprobe', 'cfg80211'])
+            # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
+            out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+            m = re.match(r'^(?:global\n)?country (\S+):', out)
+            assert m
+            klass.orig_country = m.group(1)
+            subprocess.check_call(['iw', 'reg', 'set', 'EU'])
+        except Exception:
+            raise unittest.SkipTest("cfg80211 (wireless) is unavailable, can't test")
+
 
     @classmethod
     def tearDownClass(klass):
@@ -128,6 +132,12 @@ class IntegrationTestsBase(unittest.TestCase):
                                       universal_newlines=True)
         klass.dev_e2_client_mac = out.split()[2]
 
+        os.makedirs('/run/NetworkManager/conf.d', exist_ok=True)
+
+        # work around https://launchpad.net/bugs/1615044
+        with open('/run/NetworkManager/conf.d/11-globally-managed-devices.conf', 'w') as f:
+            f.write('[keyfile]\nunmanaged-devices=')
+
         # create virtual wlan devs
         before_wlan = set([c for c in os.listdir('/sys/class/net') if c.startswith('wlan')])
         subprocess.check_call(['modprobe', 'mac80211_hwsim'])
@@ -147,28 +157,26 @@ class IntegrationTestsBase(unittest.TestCase):
         klass.dev_w_client = devs[1]
 
         # don't let NM trample over our fake AP
-        os.makedirs('/run/NetworkManager/conf.d', exist_ok=True)
         with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
             f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=nptestsrv,%s\n' % klass.dev_w_ap)
-        # work around https://launchpad.net/bugs/1615044
-        with open('/run/NetworkManager/conf.d/11-globally-managed-devices.conf', 'w') as f:
-            f.write('[keyfile]\nunmanaged-devices=')
 
     @classmethod
     def shutdown_devices(klass):
-        '''Remove test wlan devices'''
+        '''Remove test devices'''
 
-        subprocess.check_call(['rmmod', 'mac80211_hwsim'])
         subprocess.check_call(['ip', 'link', 'del', 'dev', klass.dev_e_ap])
         subprocess.check_call(['ip', 'link', 'del', 'dev', klass.dev_e2_ap])
-        subprocess.call(['ip', 'link', 'del', 'dev', 'mybr'],
-                        stderr=subprocess.PIPE)
-        klass.dev_w_ap = None
-        klass.dev_w_client = None
         klass.dev_e_ap = None
         klass.dev_e_client = None
         klass.dev_e2_ap = None
         klass.dev_e2_client = None
+        klass.dev_w_ap = None
+        klass.dev_w_client = None
+
+        subprocess.call(['ip', 'link', 'del', 'dev', 'mybr'],
+                        stderr=subprocess.PIPE)
+
+        subprocess.check_call(['rmmod', 'mac80211_hwsim'])
 
     def setUp(self):
         '''Create test devices and workdir'''
@@ -193,6 +201,7 @@ class IntegrationTestsBase(unittest.TestCase):
 
         This is torn down automatically at the end of the test.
         '''
+
         # give our AP an IP
         subprocess.check_call(['ip', 'a', 'flush', 'dev', self.dev_w_ap])
         if ipv6_mode is not None:
@@ -266,7 +275,7 @@ class IntegrationTestsBase(unittest.TestCase):
                              stdout=subprocess.PIPE)
         self.addCleanup(p.wait)
         self.addCleanup(p.terminate)
-        self.poll_text(log, '' + self.dev_w_ap + ': AP-ENABLED')
+        self.poll_text(log, '' + self.dev_w_ap + ': AP-ENABLED', 500)
 
     def start_dnsmasq(self, ipv6_mode, iface):
         '''Start dnsmasq.
