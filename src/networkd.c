@@ -683,7 +683,7 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
             g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
         } else {
           if (strncmp(auth->password, "hash:",5) == 0) {
-            g_string_append_printf(s, "  password= %s\n", auth->password);
+            g_string_append_printf(s, "  password=%s\n", auth->password);
           } else {
             g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
           }
