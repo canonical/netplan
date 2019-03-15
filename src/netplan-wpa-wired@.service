@@ -1,0 +1,11 @@
+[Unit]
+Description=WPA supplicant for netplan %I
+DefaultDependencies=no
+Requires=sys-subsystem-net-devices-%i.device
+After=sys-subsystem-net-devices-%i.device
+Before=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%I.conf -i%I -Dwired

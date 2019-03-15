@@ -1,0 +1,12 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp3s0:
+      dhcp4: true
+      auth:
+        key-management: 802.1x
+        wired: true
+        method: ttls
+        identity: fluffy@cisco.com
+        password: hash:83...11

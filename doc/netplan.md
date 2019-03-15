@@ -496,6 +496,9 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      :    The EAP method to use. The supported EAP methods are ``tls`` (TLS),
           ``peap`` (Protected EAP), and ``ttls`` (Tunneled TLS).
 
+     ``wired`` (bool)
+     :    Indicates to use the wired WPA driver if true.
+
      ``identity`` (scalar)
      :    The identity to use for EAP.
 

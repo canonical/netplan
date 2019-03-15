@@ -625,6 +625,33 @@ handle_auth_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GErro
     return TRUE;
 }
 
+/**
+ * Generic handler for setting a cur_netdef gboolean field from a scalar node
+ * @data: offset into net_definition where the gboolean field to write is located
+ */
+static gboolean
+handle_auth_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    gboolean v;
+
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        v = TRUE;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        v = FALSE;
+    else
+        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
+
+    *((gboolean*) ((void*) cur_auth + offset)) = v;
+    return TRUE;
+}
+
 static gboolean
 handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
@@ -667,6 +694,7 @@ const mapping_entry_handler auth_handlers[] = {
     {"client-certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_certificate)},
     {"client-key", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key)},
     {"client-key-password", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key_password)},
+    {"wired", YAML_SCALAR_NODE, handle_auth_bool, NULL, auth_offset(wired)},
     {NULL}
 };
 

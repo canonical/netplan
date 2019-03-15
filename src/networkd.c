@@ -771,7 +771,10 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     }
 
     if (def->type == ND_WIFI || def->has_auth) {
-        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@", def->id, ".service", NULL);
+
+      gboolean wired = def->auth.wired;
+
+      g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa",wired?"-wired@":"@", def->id, ".service", NULL);
         if (def->type == ND_WIFI && def->has_match) {
             g_fprintf(stderr, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
             exit(1);
@@ -781,7 +784,9 @@ write_networkd_conf(net_definition* def, const char* rootdir)
 
         g_debug("Creating wpa_supplicant service enablement link %s", link);
         safe_mkdir_p_dir(link);
-        if (symlink("/lib/systemd/system/netplan-wpa@.service", link) < 0 && errno != EEXIST) {
+
+        g_autofree char* slink = g_strjoin(NULL, "/lib/systemd/system/netplan-wpa",wired?"-wired@":"@",".service", NULL);
+        if (symlink(slink, link) < 0 && errno != EEXIST) {
             // LCOV_EXCL_START
             g_fprintf(stderr, "failed to create enablement symlink: %m\n");
             exit(1);
@@ -805,6 +810,7 @@ cleanup_networkd_conf(const char* rootdir)
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
     unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
     unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
+    unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wired@*.service");
     unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
 }
 
