@@ -122,6 +122,86 @@ write_tunnel_params(GString* s, net_definition* def)
 }
 
 static void
+write_wireguard_params(GString* s, net_definition* def)
+{
+    GString *params = NULL;
+    params = g_string_sized_new(200);
+
+    if (def->wireguard.private_key)
+        g_string_append_printf(params, "PrivateKey=%s\n", def->wireguard.private_key);
+    if (def->wireguard.private_key_file)
+        g_string_append_printf(params, "PrivateKeyFile=%s\n", def->wireguard.private_key_file);
+    if (def->wireguard.listen_port)
+        g_string_append_printf(params, "Listen=%u\n", def->wireguard.listen_port);
+    if (def->wireguard.fwmark)
+        g_string_append_printf(params, "FWMark=%u\n", def->wireguard.fwmark);
+
+    g_string_append_printf(s, "\n[WireGuard]\n%s", params->str);
+    g_string_free(params, TRUE);
+
+    GString *peer = NULL;
+    peer = g_string_sized_new(200);
+
+    g_string_append_printf(peer, "PublicKey=%s\n", def->wireguard.public_key);
+    g_string_append(peer, "AllowedIPs=");
+    for (unsigned i = 0; i < def->wireguard.allowed_ips->len; ++i) {
+        if (i > 0 )
+            g_string_append_c(peer, ',');
+        g_string_append_printf(peer, "%s", g_array_index(def->wireguard.allowed_ips, char*, i));
+    }
+    g_string_append_c(peer, '\n');
+
+    if (def->wireguard.keepalive)
+        g_string_append_printf(peer, "PersistentKeepalive=%d\n", def->wireguard.keepalive);
+    if (def->wireguard.endpoint)
+        g_string_append_printf(peer, "Endpoint=%s\n", def->wireguard.endpoint);
+    if (def->wireguard.preshared_key)
+        g_string_append_printf(peer, "PresharedKey=%s\n", def->wireguard.preshared_key);
+
+    g_string_append_printf(s, "\n[WireGuardPeer]\n%s", peer->str);
+    g_string_free(peer, TRUE);
+}
+
+static void
+write_l2tp_params(GString* s, net_definition* def)
+{
+    GString *params = NULL;
+	GString *session = NULL;
+
+    params = g_string_sized_new(200);
+
+    g_string_append_printf(params, "TunnelId=%u\n", def->l2tp.local_tunnel_id);
+    g_string_append_printf(params, "PeerTunnelId=%u\n", def->l2tp.peer_tunnel_id);
+    g_string_append_printf(params, "Local=%s\n", def->l2tp.local_ip);
+    g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
+    if (def->l2tp.encapsulation_type) {
+        g_string_append_printf(params, "EncapsulationType=%s\n", def->l2tp.encapsulation_type);
+        if (!g_ascii_strcasecmp(def->l2tp.encapsulation_type, "udp")) {
+            g_string_append_printf(params, "UDPSourcePort=%u\n", def->l2tp.udp_source_port);
+            g_string_append_printf(params, "DestinationPort=%u\n", def->l2tp.udp_destination_port);
+            g_string_append_printf(params, "UDPChecksum=%s\n", def->l2tp.udp_checksum ? "true" : "false");
+            g_string_append_printf(params, "UDP6ZeroChecksumTx=%s\n", def->l2tp.udp6_checksum_tx ? "true" : "false");
+            g_string_append_printf(params, "UDP6ZeroChecksumRx=%s\n", def->l2tp.udp6_checksum_rx ? "true" : "false");
+        }
+    } else {
+        g_string_append(params, "EncapsulationType=ip\n");
+    }
+
+    g_string_append_printf(s, "\n[L2TP]\n%s", params->str);
+    g_string_free(params, TRUE);
+
+    session = g_string_sized_new(200);
+    g_string_append_printf(session, "Name=%s\n", def->l2tp.session_name);
+    g_string_append_printf(session, "SessionId=%u\n", def->l2tp.session_id);
+    g_string_append_printf(session, "PeerSessonID=%u\n", def->l2tp.peer_session_id);
+    if (def->l2tp.l2_specific_header)
+        g_string_append_printf(session, "Layer2SpecifiHeader=%s\n", def->l2tp.l2_specific_header);
+
+    g_string_append_printf(s, "\n[L2TPSession]\n%s", session->str);
+    g_string_free(session, TRUE);
+}
+
+static void
 write_link_file(net_definition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -289,6 +369,8 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
                 case TUNNEL_MODE_SIT:
                 case TUNNEL_MODE_VTI:
                 case TUNNEL_MODE_VTI6:
+                case TUNNEL_MODE_WIREGUARD:
+                case TUNNEL_MODE_L2TP:
                     g_string_append_printf(s,
                                           "Kind=%s\n",
                                           tunnel_mode_to_string(def->tunnel.mode));
@@ -304,8 +386,17 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
                     g_assert_not_reached();
                 // LCOV_EXCL_STOP
             }
-
-            write_tunnel_params(s, def);
+            switch (def->tunnel.mode) {
+                case TUNNEL_MODE_WIREGUARD:
+                    write_wireguard_params(s, def);
+                    break;
+                case TUNNEL_MODE_L2TP:
+                    write_l2tp_params(s, def);
+                    break;
+                default:
+                    write_tunnel_params(s, def);
+                    break;
+            }
             break;
 
         // LCOV_EXCL_START

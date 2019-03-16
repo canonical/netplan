@@ -1665,6 +1665,116 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
     return ret;
 }
 
+static gboolean
+handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    /* kludge: empty the list of the previous pass data */
+    if (cur_netdef->wireguard.allowed_ips) {
+        g_array_set_size(cur_netdef->wireguard.allowed_ips, 0);
+    }
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* addr = NULL;
+        char* prefix_len;
+        guint64 prefix_len_num;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        /* split off /prefix_len */
+        addr = g_strdup(scalar(entry));
+        prefix_len = strrchr(addr, '/');
+        if (!prefix_len)
+            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
+        *prefix_len = '\0';
+        prefix_len++; /* skip former '/' into first char of prefix */
+        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+
+        if (!cur_netdef->wireguard.allowed_ips)
+            cur_netdef->wireguard.allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
+
+        /* is it an IPv4 address? */
+        if (is_ip4_address(addr)) {
+            if (prefix_len_num == 0 || prefix_len_num > 32)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->wireguard.allowed_ips, s);
+            continue;
+        }
+
+        /* is it an IPv6 address? */
+        if (is_ip6_address(addr)) {
+            if (prefix_len_num == 0 || prefix_len_num > 128)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->wireguard.allowed_ips, s);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+static gboolean
+handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_autofree char* endpoint = NULL;
+    char* port;
+    guint64 port_num;
+
+    /* split off :port */
+    endpoint = g_strdup(scalar(node));
+    port = strrchr(endpoint, ':');
+    if (!port)
+        return yaml_error(node, error, "address '%s' is missing :port", scalar(node));
+    *port = '\0';
+    port++; /* skip former '/' into first char of prefix */
+    port_num = g_ascii_strtoull(port, NULL, 10);
+    if (port_num > 65535)
+        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
+
+    if (is_ip4_address(endpoint)) {
+        return handle_netdef_str(doc, node, data, error);
+    }
+    if (is_ip6_address(endpoint)) {
+        return handle_netdef_str(doc, node, data, error);
+    }
+    return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+}
+
+
+static gboolean
+handle_l2tp_local_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_autofree char* addr = NULL;
+    char* prefix_len;
+
+    addr = g_strdup(scalar(node));
+
+    if (g_ascii_strcasecmp(addr, "auto") == 0 ||
+        g_ascii_strcasecmp(addr, "static") == 0 ||
+        g_ascii_strcasecmp(addr, "dynamic") == 0)
+        return handle_netdef_str(doc, node, data, error);
+
+    /* split off /prefix_len */
+    prefix_len = strrchr(addr, '/');
+    if (prefix_len)
+        return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
+
+    /* is it an IPv4 address? */
+    if (is_ip4_address(addr))
+        return handle_netdef_ip4(doc, node, data, error);
+
+    /* is it an IPv6 address? */
+    if (is_ip6_address(addr))
+        return handle_netdef_ip6(doc, node, data, error);
+
+    return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X"
+                                   " or one of 'auto', 'static' or 'dynamic'.", scalar(node));
+}
+
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
@@ -1772,6 +1882,36 @@ const mapping_entry_handler tunnel_def_handlers[] = {
      */
     {"key", YAML_NO_NODE, handle_tunnel_key_mapping},
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
+
+    /* wireguard */
+    {"private_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key)},
+    {"private_key_file", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key_file)},
+    {"fwmark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.fwmark)},
+    {"listen_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
+
+    /* wireguard peer */
+    {"public_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.public_key)},
+    {"preshared_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.preshared_key)},
+    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint, NULL, netdef_offset(wireguard.endpoint)},
+    {"allowed_ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
+    {"keepalive", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.keepalive)},
+
+    /* l2tp; reuses tunnel.local_ip and tunnel.remote_ip*/
+    {"local_ip", YAML_SCALAR_NODE, handle_l2tp_local_addr, NULL, netdef_offset(l2tp.local_ip)},
+    {"local_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.local_tunnel_id)},
+    {"peer_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_tunnel_id)},
+    {"encapsulation_type", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.encapsulation_type)},
+    {"udp_source_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_source_port)},
+    {"udp_destination_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_destination_port)},
+    {"udp_checksum", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_checksum)},
+    {"udp6_checksum_tx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_tx)},
+    {"udp6_checksum_rx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_rx)},
+
+    /* l2tp session*/
+    {"session_name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.session_name)},
+    {"session_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.session_id)},
+    {"peer_session_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_session_id)},
+    {"l2_specific_header", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.l2_specific_header)},
     {NULL}
 };
 
@@ -1817,6 +1957,48 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
                                     nd->id,
                                     g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
+                case TUNNEL_MODE_WIREGUARD:
+                    if (!nd->wireguard.private_key && !nd->wireguard.private_key_file)
+                        return yaml_error(node, error, "%s: private_key or private_key_file is required.", nd->id);
+                    if (!nd->wireguard.public_key)
+                        return yaml_error(node, error, "%s: public_key is required.", nd->id);
+                    if (!nd->wireguard.allowed_ips)
+                        return yaml_error(node, error, "%s: allowed_ips is required.", nd->id);
+                    break;
+                    if (nd->wireguard.keepalive > 65535)
+                        return yaml_error(node, error, "%s: keepalive must be 1-65535 inclusive.", nd->id);
+
+                case TUNNEL_MODE_L2TP:
+                    if (!nd->l2tp.local_tunnel_id)
+                        return yaml_error(node, error, "%s: local_tunnel_id is required.", nd->id);
+                    if (!nd->l2tp.peer_tunnel_id)
+                        return yaml_error(node, error, "%s: peer_tunnel_id is required.", nd->id);
+                    if (!nd->l2tp.session_name)
+                        return yaml_error(node, error, "%s: session_name is required.", nd->id);
+
+                    if (!nd->l2tp.encapsulation_type)
+                        return yaml_error(node, error, "%s: encapsulation_type is required.", nd->id);
+                    if (g_ascii_strcasecmp(nd->l2tp.encapsulation_type, "udp") == 0) {
+                        if (nd->l2tp.udp_source_port == 0 || nd->l2tp.udp_source_port > 65535)
+                            return yaml_error(node, error, "%s: udp_source_port out of range.", nd->id);
+                        if (nd->l2tp.udp_destination_port == 0 || nd->l2tp.udp_destination_port > 65535)
+                            return yaml_error(node, error, "%s: udp_destination_port out of range.", nd->id);
+                    } else
+                        if (g_ascii_strcasecmp(nd->l2tp.encapsulation_type, "ip") != 0)
+                            return yaml_error(node, error, "%s: encapsulation_type must be 'ip' or 'udp'.", nd->id);
+
+                    if (!nd->l2tp.session_name)
+                        return yaml_error(node, error, "%s: session_name is required.", nd->id);
+                    if (!nd->l2tp.session_id)
+                        return yaml_error(node, error, "%s: session_id is required.", nd->id);
+                    if (!nd->l2tp.peer_session_id)
+                        return yaml_error(node, error, "%s: peer_session_id is required.", nd->id);
+                    if (nd->l2tp.l2_specific_header &&
+                        g_ascii_strcasecmp(nd->l2tp.l2_specific_header, "default") != 0 &&
+                        g_ascii_strcasecmp(nd->l2tp.l2_specific_header, "none") != 0)
+                        return yaml_error(node, error, "%s: l2_specific_header must be 'default' or 'none'.", nd->id);
+
+                    break;
 
                 default:
                     if (nd->tunnel.input_key)
@@ -1835,6 +2017,8 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
 
                 case TUNNEL_MODE_GRETAP:
                 case TUNNEL_MODE_IP6GRETAP:
+                case TUNNEL_MODE_WIREGUARD:
+                case TUNNEL_MODE_L2TP:
                     return yaml_error(node, error,
                                     "%s: %s tunnel mode is not supported by NetworkManager",
                                     nd->id,
@@ -1857,9 +2041,9 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
     }
 
     /* Validate local/remote IPs */
-    if (!nd->tunnel.local_ip)
+    if (!nd->tunnel.local_ip && nd->tunnel.mode != TUNNEL_MODE_WIREGUARD && nd->tunnel.mode != TUNNEL_MODE_L2TP)
         return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
-    if (!nd->tunnel.remote_ip)
+    if (!nd->tunnel.remote_ip && nd->tunnel.mode != TUNNEL_MODE_WIREGUARD)
         return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
 
     switch(nd->tunnel.mode) {
@@ -1873,7 +2057,12 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
             if (!is_ip6_address(nd->tunnel.remote_ip))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
             break;
-
+        case TUNNEL_MODE_WIREGUARD:
+            break;
+        case TUNNEL_MODE_L2TP:
+            if (!is_ip4_address(nd->tunnel.remote_ip) && !is_ip6_address(nd->tunnel.remote_ip))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 or IPv6 address for this tunnel type", nd->id);
+            break;
         default:
             if (!is_ip4_address(nd->tunnel.local_ip))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
