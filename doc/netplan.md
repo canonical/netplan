@@ -797,7 +797,8 @@ more general information about tunnels.
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
     ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
-    the ``networkd`` backend also supports ``gretap`` and ``ip6gretap`` modes.
+    the ``networkd`` backend also supports ``gretap``, ``ip6gretap``, ``wireguard``
+    and ``l2tp`` modes.
     In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
 
 ``local`` (scalar)
@@ -847,6 +848,86 @@ Examples:
 ``keys`` (scalar or mapping)
 
 :   Alternate name for the ``key`` field. See above.
+
+Wireguard-specific keys:
+
+    ``private_key`` (scalar)
+    :   Base64-encoded private key. Either this or ``private_key_file`` is required.
+
+    ``private_key_file`` (scalar)
+    :   Path to a file with the private key. If the file is readable, the ``private_key`` is ignored.
+
+    ``fwmark`` (scalar)
+    :   Firewall mark for outgoing WireGuard packets from this interface, optional.
+
+    ``listen_port``
+    :   UDP port to listen at or 'auto'. Optional, defaults to 'auto'.
+
+    ``public_key`` (scalar)
+    :   Peer's base64-encoded public key, required.
+
+    ``preshared_key`` (scalar)
+    :   Optional preshared key for the interface.
+
+    ``endpoint`` (scalar)
+    :   Endpoint IP address, followed by a colon, and then a port number.
+
+    ``allowed_ips`` (sequence of scalars)
+    :    A list of IP (v4 or v6) addresses with CIDR masks from which
+         this peer is allowed to send incoming traffic and to which outgoing traffic for this
+         peer is directed. The catch-all 0.0.0.0/0 may be specified for matching all IPv4
+         addresses, and ::/0 may be specified for matching all IPv6 addresses.
+
+    ``keepalive`` (scalar)
+    :    An interval in seconds, between 1 and 65535 inclusive, of how often to send an
+         authenticated empty packet to the peer for the purpose of keeping a stateful firewall
+         or NAT mapping valid persistently. Optional.
+
+
+L2TP-specific keys:
+    ``local_ip`` (scalar)
+    :    The IP address of the local interface. Takes an IP address, or the special
+         values "auto", "static", or "dynamic". When an address is set, then the local
+         interface must have the address. If "auto", then one of the addresses on the local
+         interface is used. Similarly, if "static" or "dynamic" is set, then one of the static
+         or dynamic addresses on the local interface is used. Defaults to "auto".
+
+    ``peer_tunnel_id`` (scalar)
+    :    Peer tunnel id, required.
+
+    ``local_tunnel_id`` (scalar)
+    :    Local tunnel id, required.
+
+    ``encapsulation_type`` (scalar)
+    :    The encapsulation type of the tunnel. "udp" or "ip".
+
+    ``udp_source_port`` (scalar)
+    :    The UDP source port. Required for udp encapsulation type.
+
+    ``udp_destination_port`` (scalar)
+    :    The UDP destination port. Required for udp encapsulation type.
+
+    ``udp_checksum`` (scalar)
+    :     When true, specifies if UDP checksum is calculated for transmitted packets over IPv4.
+
+    ``udp6_checksum_tx`` (scalar)
+    :     When false, skip UDP checksum calculation for transmitted packets over IPv6.
+
+    ``udp6_checksum_rx`` (scalar)
+    :     When false, skip UDP checksum calculation for received packets over IPv6.
+
+    ``session_name`` (scalar)
+    :     Session name, required.
+
+    ``session_id`` (scalar)
+    :     Local session id, required.
+
+    ``peer_session_id`` (scalar)
+    :     Peer session id, required.
+
+    ``l2_specific_header`` (scalar)
+    :      layer2specific header type of the session. One of "none" or "default".
+           Defaults to "default".
 
 
 ## Properties for device type ``vlans:``
