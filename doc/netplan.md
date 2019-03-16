@@ -870,7 +870,7 @@ Wireguard-specific keys:
     :   Optional preshared key for the interface.
 
     ``endpoint`` (scalar)
-    :   Endpoint IP address, followed by a colon, and then a port number.
+    :   Endpoint IPv4/IPv6 address or a hostname, followed by a colon, and then a port number.
 
     ``allowed_ips`` (sequence of scalars)
     :    A list of IP (v4 or v6) addresses with CIDR masks from which

@@ -539,6 +539,13 @@ is_ip6_address(const char* address)
 }
 
 static gboolean
+is_hostname(const char *hostname)
+{
+    static const gchar *pattern = "^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$";
+    return g_regex_match_simple(pattern, hostname, G_REGEX_CASELESS, G_REGEX_MATCH_NOTEMPTY);
+}
+
+static gboolean
 handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -1730,18 +1737,14 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* d
     if (!port)
         return yaml_error(node, error, "address '%s' is missing :port", scalar(node));
     *port = '\0';
-    port++; /* skip former '/' into first char of prefix */
+    port++; /* skip former ':' into first char of port */
     port_num = g_ascii_strtoull(port, NULL, 10);
     if (port_num > 65535)
         return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
-
-    if (is_ip4_address(endpoint)) {
+    if (is_ip4_address(endpoint) || is_ip6_address(endpoint) || is_hostname(endpoint)) {
         return handle_netdef_str(doc, node, data, error);
     }
-    if (is_ip6_address(endpoint)) {
-        return handle_netdef_str(doc, node, data, error);
-    }
-    return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
 }
 
 
