@@ -545,6 +545,122 @@ is_hostname(const char *hostname)
     return g_regex_match_simple(pattern, hostname, G_REGEX_CASELESS, G_REGEX_MATCH_NOTEMPTY);
 }
 
+enum {
+    ADDR_IS_IPV4     = 0x01,
+    ADDR_IS_IPV6     = 0x02,
+    ADDR_IS_HOSTNAME = 0x04,
+    ADDR_HAS_PREFIX  = 0x08,
+    ADDR_HAS_PORT    = 0x10,
+    ADDR_IS_OPTIONAL = 0x20,
+};
+
+static const gchar *L2TP_LOCAL_KEYWORDS[] = { "auto", "static", "dynamic", NULL };
+
+static gboolean
+validate_address(const gchar *address, int permitted, int required, const gchar* keywords[])
+{
+    gboolean has_prefix, has_port, is_ip4, is_ip6, is_host_name, expect_ip6;
+    guint64 port_num, prefix_len_num;
+    gchar *port, *prefix_len, *addr, *last_bracket;
+    g_autofree char* addr_copy = NULL;
+
+    int por = permitted | required;
+
+    /* it it can be NULL, let it be, otherwise don't. */
+    if (address == NULL)
+        return required & ADDR_IS_OPTIONAL;
+
+    /* keep some sanity */
+    g_assert(!((por & ADDR_HAS_PREFIX) && (por & ADDR_HAS_PORT)));
+
+    /* check if it's a keyword before everything else */
+    int i = 0;
+    while (keywords && keywords[i]) {
+        if (g_ascii_strcasecmp(address, keywords[i]) == 0)
+            return TRUE;
+        ++i;
+    }
+
+    addr_copy = g_strdup(address);
+    addr = addr_copy;
+    expect_ip6 = FALSE;
+
+    /* strip port or prefix */
+    prefix_len = strrchr(addr, '/');
+    has_prefix = prefix_len != 0;
+    if (has_prefix) {
+        has_port = FALSE;
+        *prefix_len = '\0';
+        prefix_len++; /* skip former '/' into first char of prefix */
+        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+    } else {
+        last_bracket = strchr(addr, ']');
+        if (last_bracket != 0) { /* aha, it's an IPv6 with port */
+            if (addr[0] != '[') { /* '[' must be the first character then */
+                return FALSE;
+            }
+            *last_bracket = '\0';
+            addr += 1; /* addr now points to the actual address */
+            port = last_bracket + 1; /* skip the ']' */
+            if (strlen(port) < 2) { /* no port here? it is hereby decided that brackets require a port. */
+                return FALSE;
+            }
+            if (port[0] != ':') { /* likewise */
+                return FALSE;
+            }
+            port += 1;  /* skip the ':' */
+            expect_ip6 = TRUE; /* make sure we only get IPv6 in brackets */
+        } else {
+            if (!is_ip6_address(addr)) {
+                port = strrchr(addr, ':');
+                if (port == NULL) {
+                    has_port = FALSE;
+                } else {
+                    *port = '\0';
+                    port += 1;
+                    if (strlen(port) < 1) { /* ':' requires a port */
+                        return FALSE;
+                    }
+                }
+            }
+        }
+        if (port != NULL) { /* got some port, validate it too. */
+            port_num = g_ascii_strtoull(port, NULL, 10);
+            if (port_num == 0 || port_num > 65535)
+                return FALSE;
+            has_port = TRUE;
+        }
+    }
+    is_ip4 = is_ip4_address(addr);
+    is_ip6 = is_ip6_address(addr);
+    is_host_name = is_ip4 ? FALSE : is_hostname(addr);
+
+    if (expect_ip6 && !is_ip6)
+        return FALSE;
+
+    /* validate prefix */
+    if (has_prefix) {
+        if (is_ip4 && prefix_len_num > 32)
+            return FALSE;
+        if (is_ip6 && prefix_len_num > 128)
+            return FALSE;
+    }
+
+    /* validate requirements */
+    if (is_ip4 && !(permitted & ADDR_IS_IPV4))
+        return FALSE;
+    if (is_ip6 && !(permitted & ADDR_IS_IPV6))
+        return FALSE;
+    if (is_host_name && !(permitted & ADDR_IS_HOSTNAME))
+        return FALSE;
+    if ((has_prefix && !(permitted & ADDR_HAS_PREFIX)) || (!has_prefix && (required & ADDR_HAS_PREFIX)))
+        return FALSE;
+    if ((has_port && !(permitted & ADDR_HAS_PORT)) || (!has_port && (required & ADDR_HAS_PORT)))
+        return FALSE;
+
+    return TRUE;
+}
+
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -1795,122 +1911,6 @@ static gboolean
 handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     return parse_renderer(node, &backend_global, error);
-}
-
-enum {
-    ADDR_IS_IPV4     = 0x01,
-    ADDR_IS_IPV6     = 0x02,
-    ADDR_IS_HOSTNAME = 0x04,
-    ADDR_HAS_PREFIX  = 0x08,
-    ADDR_HAS_PORT    = 0x10,
-    ADDR_IS_OPTIONAL = 0x20,
-};
-
-static const gchar *L2TP_LOCAL_KEYWORDS[] = { "auto", "static", "dynamic", NULL };
-
-static gboolean
-validate_address(const gchar *address, int permitted, int required, const gchar* keywords[])
-{
-    gboolean has_prefix, has_port, is_ip4, is_ip6, is_host_name, expect_ip6;
-    guint64 port_num, prefix_len_num;
-    gchar *port, *prefix_len, *addr, *last_bracket;
-    g_autofree char* addr_copy = NULL;
-
-    int por = permitted | required;
-
-    /* it it can be NULL, let it be, otherwise don't. */
-    if (address == NULL)
-        return required & ADDR_IS_OPTIONAL;
-
-    /* keep some sanity */
-    g_assert(!((por & ADDR_HAS_PREFIX) && (por & ADDR_HAS_PORT)));
-
-    /* check if it's a keyword before everything else */
-    int i = 0;
-    while (keywords && keywords[i]) {
-        if (g_ascii_strcasecmp(address, keywords[i]) == 0)
-            return TRUE;
-        ++i;
-    }
-
-    addr_copy = g_strdup(address);
-    addr = addr_copy;
-    expect_ip6 = FALSE;
-
-    /* strip port or prefix */
-    prefix_len = strrchr(addr, '/');
-    has_prefix = prefix_len != 0;
-    if (has_prefix) {
-        has_port = FALSE;
-        *prefix_len = '\0';
-        prefix_len++; /* skip former '/' into first char of prefix */
-        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
-    } else {
-        last_bracket = strchr(addr, ']');
-        if (last_bracket != 0) { /* aha, it's an IPv6 with port */
-            if (addr[0] != '[') { /* '[' must be the first character then */
-                return FALSE;
-            }
-            *last_bracket = '\0';
-            addr += 1; /* addr now points to the actual address */
-            port = last_bracket + 1; /* skip the ']' */
-            if (strlen(port) < 2) { /* no port here? it is hereby decided that brackets require a port. */
-                return FALSE;
-            }
-            if (port[0] != ':') { /* likewise */
-                return FALSE;
-            }
-            port += 1;  /* skip the ':' */
-            expect_ip6 = TRUE; /* make sure we only get IPv6 in brackets */
-        } else {
-            if (!is_ip6_address(addr)) {
-                port = strrchr(addr, ':');
-                if (port == NULL) {
-                    has_port = FALSE;
-                } else {
-                    *port = '\0';
-                    port += 1;
-                    if (strlen(port) < 1) { /* ':' requires a port */
-                        return FALSE;
-                    }
-                }
-            }
-        }
-        if (port != NULL) { /* got some port, validate it too. */
-            port_num = g_ascii_strtoull(port, NULL, 10);
-            if (port_num == 0 || port_num > 65535)
-                return FALSE;
-            has_port = TRUE;
-        }
-    }
-    is_ip4 = is_ip4_address(addr);
-    is_ip6 = is_ip6_address(addr);
-    is_host_name = is_ip4 ? FALSE : is_hostname(addr);
-
-    if (expect_ip6 && !is_ip6)
-        return FALSE;
-
-    /* validate prefix */
-    if (has_prefix) {
-        if (is_ip4 && prefix_len_num > 32)
-            return FALSE;
-        if (is_ip6 && prefix_len_num > 128)
-            return FALSE;
-    }
-
-    /* validate requirements */
-    if (is_ip4 && !(permitted & ADDR_IS_IPV4))
-        return FALSE;
-    if (is_ip6 && !(permitted & ADDR_IS_IPV6))
-        return FALSE;
-    if (is_host_name && !(permitted & ADDR_IS_HOSTNAME))
-        return FALSE;
-    if ((has_prefix && !(permitted & ADDR_HAS_PREFIX)) || (!has_prefix && (required & ADDR_HAS_PREFIX)))
-        return FALSE;
-    if ((has_port && !(permitted & ADDR_HAS_PORT)) || (!has_port && (required & ADDR_HAS_PORT)))
-        return FALSE;
-
-    return TRUE;
 }
 
 static gboolean
