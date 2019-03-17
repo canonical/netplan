@@ -1206,7 +1206,7 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
     char** dest = (char**) ((void*) cur_route + offset);
     g_free(*dest);
 
-    if (validate_address(scalar(node), ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, &addr_type)) {
+    if (validate_address(scalar(node), ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_HAS_PREFIX, 0, NULL, &addr_type)) {
         if (addr_type & ADDR_IS_IPV4)
             family = AF_INET;
 
@@ -1231,7 +1231,7 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     char** dest = (char**) ((void*) cur_ip_rule + offset);
     g_free(*dest);
 
-    if (validate_address(scalar(node), ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, &addr_type)) {
+    if (validate_address(scalar(node), ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_HAS_PREFIX, 0, NULL, &addr_type)) {
         if (addr_type & ADDR_IS_IPV4)
             family = AF_INET;
 
