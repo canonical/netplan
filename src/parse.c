@@ -651,6 +651,8 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
 
     /* validate prefix */
     if (has_prefix) {
+        if (prefix_len_num == 0)
+            return FALSE;
         if (is_ip4 && prefix_len_num > 32)
             return FALSE;
         if (is_ip6 && prefix_len_num > 128)
@@ -884,45 +886,26 @@ static gboolean
 handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        g_autofree char* addr = NULL;
-        char* prefix_len;
-        guint64 prefix_len_num;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
+        int addr_type;
 
-        /* split off /prefix_len */
-        addr = g_strdup(scalar(entry));
-        prefix_len = strrchr(addr, '/');
-        if (!prefix_len)
-            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
-        *prefix_len = '\0';
-        prefix_len++; /* skip former '/' into first char of prefix */
-        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
-
-        /* is it an IPv4 address? */
-        if (is_ip4_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 32)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
-            if (!cur_netdef->ip4_addresses)
-                cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip4_addresses, s);
-            continue;
+        if (validate_address(scalar(entry), ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_HAS_PREFIX, ADDR_HAS_PREFIX, NULL, &addr_type)) {
+            if (addr_type & ADDR_IS_IPV4) {
+                if (!cur_netdef->ip4_addresses)
+                    cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+                char* s = g_strdup(scalar(entry));
+                g_array_append_val(cur_netdef->ip4_addresses, s);
+            }
+            if (addr_type & ADDR_IS_IPV6) {
+                if (!cur_netdef->ip6_addresses)
+                    cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+                char* s = g_strdup(scalar(entry));
+                g_array_append_val(cur_netdef->ip6_addresses, s);
+            }
+        } else {
+            return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
         }
-
-        /* is it an IPv6 address? */
-        if (is_ip6_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 128)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-            if (!cur_netdef->ip6_addresses)
-                cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip6_addresses, s);
-            continue;
-        }
-
-        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
     }
 
     return TRUE;
