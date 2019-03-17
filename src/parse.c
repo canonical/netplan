@@ -1883,12 +1883,10 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
             has_port = TRUE;
         }
     }
-printf("per=%x req=%x addr=%s \n has_port=%d has_prefix=%d expect_ip6=%d\n", permitted, required, addr, has_port, has_prefix, expect_ip6);
     is_ip4 = is_ip4_address(addr);
     is_ip6 = is_ip6_address(addr);
     is_host_name = is_ip4 ? FALSE : is_hostname(addr);
 
-printf("ip4=%d ip6=%d\n", is_ip4, is_ip6);
     if (expect_ip6 && !is_ip6)
         return FALSE;
 
