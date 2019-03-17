@@ -575,7 +575,7 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
     if (address == NULL) {
         if (restype)
             *restype = ADDR_IS_OPTIONAL;
-        return required & ADDR_IS_OPTIONAL;
+        return permitted & ADDR_IS_OPTIONAL;
     }
 
     /* keep some sanity */
@@ -2032,7 +2032,7 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
             /* local_ip is not used in wireguard */
             break;
         case TUNNEL_MODE_L2TP:
-            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, ADDR_IS_OPTIONAL, L2TP_LOCAL_KEYWORDS, NULL))
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_IS_OPTIONAL, 0, L2TP_LOCAL_KEYWORDS, NULL))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv4 or IPv6 address without prefix, or "
                                                " one of 'auto', 'static' or 'dynamic' for this tunnel type", nd->id);
             if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, NULL))
