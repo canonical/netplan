@@ -546,29 +546,37 @@ is_hostname(const char *hostname)
 }
 
 enum {
+    ADDR_PARSE_ERROR = 0x00,
     ADDR_IS_IPV4     = 0x01,
     ADDR_IS_IPV6     = 0x02,
     ADDR_IS_HOSTNAME = 0x04,
     ADDR_HAS_PREFIX  = 0x08,
     ADDR_HAS_PORT    = 0x10,
     ADDR_IS_OPTIONAL = 0x20,
+    ADDR_IS_KEYWORD  = 0x40,
 };
 
 static const gchar *L2TP_LOCAL_KEYWORDS[] = { "auto", "static", "dynamic", NULL };
 
 static gboolean
-validate_address(const gchar *address, int permitted, int required, const gchar* keywords[])
+validate_address(const gchar *address, int permitted, int required, const gchar* keywords[], int *restype)
 {
     gboolean has_prefix, has_port, is_ip4, is_ip6, is_host_name, expect_ip6;
     guint64 port_num, prefix_len_num;
     gchar *port, *prefix_len, *addr, *last_bracket;
     g_autofree char* addr_copy = NULL;
 
+    if (restype)
+        *restype = 0; /* means a parse error */
+
     int por = permitted | required;
 
     /* it it can be NULL, let it be, otherwise don't. */
-    if (address == NULL)
+    if (address == NULL) {
+        if (restype)
+            *restype = ADDR_IS_OPTIONAL;
         return required & ADDR_IS_OPTIONAL;
+    }
 
     /* keep some sanity */
     g_assert(!((por & ADDR_HAS_PREFIX) && (por & ADDR_HAS_PORT)));
@@ -576,8 +584,11 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
     /* check if it's a keyword before everything else */
     int i = 0;
     while (keywords && keywords[i]) {
-        if (g_ascii_strcasecmp(address, keywords[i]) == 0)
+        if (g_ascii_strcasecmp(address, keywords[i]) == 0) {
+            if (restype)
+                *restype = ADDR_IS_KEYWORD;
             return TRUE;
+        }
         ++i;
     }
 
@@ -645,7 +656,19 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
         if (is_ip6 && prefix_len_num > 128)
             return FALSE;
     }
-
+    if (restype) {
+        *restype = 0;
+        if (is_ip4)
+            *restype |= ADDR_IS_IPV4;
+        if (is_ip6)
+            *restype |= ADDR_IS_IPV6;
+        if (is_host_name)
+            *restype |= ADDR_IS_HOSTNAME;
+        if (has_prefix)
+            *restype |= ADDR_HAS_PREFIX;
+        if (has_port)
+            *restype |= ADDR_HAS_PORT;
+    }
     /* validate requirements */
     if (is_ip4 && !(permitted & ADDR_IS_IPV4))
         return FALSE;
@@ -2027,9 +2050,9 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
         case TUNNEL_MODE_SIT:
         case TUNNEL_MODE_ISATAP:
         case TUNNEL_MODE_VTI:
-            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL))
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv4 or IPv6 address without prefix for this tunnel type", nd->id);
-            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL))
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 or IPv6 address without prefix for this tunnel type", nd->id);
             break;
         case TUNNEL_MODE_IPIP6:
@@ -2037,29 +2060,29 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
         case TUNNEL_MODE_IP6GRE:
         case TUNNEL_MODE_IP6GRETAP:
         case TUNNEL_MODE_VTI6:
-            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV6, 0, NULL))
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV6, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address without prefix for this tunnel type", nd->id);
-            if (!validate_address(nd->tunnel.remote_ip,ADDR_IS_IPV6, 0, NULL))
+            if (!validate_address(nd->tunnel.remote_ip,ADDR_IS_IPV6, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address without prefix for this tunnel type", nd->id);
             break;
         case TUNNEL_MODE_WIREGUARD:
             if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_IS_HOSTNAME | ADDR_HAS_PORT,
-                                    ADDR_IS_OPTIONAL | ADDR_HAS_PORT, NULL))
+                                    ADDR_IS_OPTIONAL | ADDR_HAS_PORT, NULL, NULL))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 or IPv6 address without prefix"
                                     " or a hostname with port for this tunnel type", nd->id);
             /* local_ip is not used in wireguard */
             break;
         case TUNNEL_MODE_L2TP:
-            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, ADDR_IS_OPTIONAL, L2TP_LOCAL_KEYWORDS))
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, ADDR_IS_OPTIONAL, L2TP_LOCAL_KEYWORDS, NULL))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv4 or IPv6 address without prefix, or "
                                                " one of 'auto', 'static' or 'dynamic' for this tunnel type", nd->id);
-            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL))
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 or IPv6 address without prefix for this tunnel type", nd->id);
             break;
         default:
-            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4, 0, NULL))
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address without prefix for this tunnel type", nd->id);
-            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4, 0, NULL))
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4, 0, NULL, NULL))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address without prefix for this tunnel type", nd->id);
             break;
     }
