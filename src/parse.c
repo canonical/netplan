@@ -1912,8 +1912,12 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
                                     g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
                 case TUNNEL_MODE_WIREGUARD:
-                    if (!nd->wireguard.private_key && !nd->wireguard.private_key_file)
-                        return yaml_error(node, error, "%s: private_key or private_key_file is required.", nd->id);
+                    if (!nd->wireguard.private_key) {
+                        if (0 && !nd->wireguard.private_key_file) /* private_key_file since systemd 76df7779 */
+                            return yaml_error(node, error, "%s: private_key or private_key_file is required.", nd->id);
+                        else
+                            return yaml_error(node, error, "%s: private_key is required.", nd->id);
+                    }
                     if (!nd->wireguard.public_key)
                         return yaml_error(node, error, "%s: public_key is required.", nd->id);
                     if (!nd->wireguard.allowed_ips)

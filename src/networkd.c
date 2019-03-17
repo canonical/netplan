@@ -132,7 +132,7 @@ write_wireguard_params(GString* s, net_definition* def)
     if (def->wireguard.private_key_file)
         g_string_append_printf(params, "PrivateKeyFile=%s\n", def->wireguard.private_key_file);
     if (def->wireguard.listen_port)
-        g_string_append_printf(params, "Listen=%u\n", def->wireguard.listen_port);
+        g_string_append_printf(params, "ListenPort=%u\n", def->wireguard.listen_port);
     if (def->wireguard.fwmark)
         g_string_append_printf(params, "FWMark=%u\n", def->wireguard.fwmark);
 
