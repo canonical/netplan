@@ -277,14 +277,12 @@ typedef struct net_definition {
         /* wireguard peer */
         char *public_key;
         char *preshared_key;
-        char *endpoint;
         GArray *allowed_ips;
         guint keepalive;
     } wireguard;
 
     struct {
         /* l2tp */
-        char *local_ip;
         guint peer_tunnel_id;
         guint local_tunnel_id;
         char *encapsulation_type;

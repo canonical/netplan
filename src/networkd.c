@@ -153,8 +153,8 @@ write_wireguard_params(GString* s, net_definition* def)
 
     if (def->wireguard.keepalive)
         g_string_append_printf(peer, "PersistentKeepalive=%d\n", def->wireguard.keepalive);
-    if (def->wireguard.endpoint)
-        g_string_append_printf(peer, "Endpoint=%s\n", def->wireguard.endpoint);
+    if (def->tunnel.remote_ip)
+        g_string_append_printf(peer, "Endpoint=%s\n", def->tunnel.remote_ip);
     if (def->wireguard.preshared_key)
         g_string_append_printf(peer, "PresharedKey=%s\n", def->wireguard.preshared_key);
 
@@ -172,7 +172,8 @@ write_l2tp_params(GString* s, net_definition* def)
 
     g_string_append_printf(params, "TunnelId=%u\n", def->l2tp.local_tunnel_id);
     g_string_append_printf(params, "PeerTunnelId=%u\n", def->l2tp.peer_tunnel_id);
-    g_string_append_printf(params, "Local=%s\n", def->l2tp.local_ip);
+    if (def->tunnel.local_ip)
+        g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
     if (def->l2tp.encapsulation_type) {
         g_string_append_printf(params, "EncapsulationType=%s\n", def->l2tp.encapsulation_type);

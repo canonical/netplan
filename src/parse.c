@@ -545,67 +545,6 @@ is_hostname(const char *hostname)
     return g_regex_match_simple(pattern, hostname, G_REGEX_CASELESS, G_REGEX_MATCH_NOTEMPTY);
 }
 
-static gboolean
-handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
-    g_autofree char* addr = NULL;
-    char* prefix_len;
-
-    /* these addresses can't have /prefix_len */
-    addr = g_strdup(scalar(node));
-    prefix_len = strrchr(addr, '/');
-
-    /* FIXME: stop excluding this from coverage; refactor address handling instead */
-    // LCOV_EXCL_START
-    if (prefix_len)
-        return yaml_error(node, error,
-                          "invalid address: a single IPv4 address (without /prefixlength) is required");
-
-    /* is it an IPv4 address? */
-    if (!is_ip4_address(addr))
-        return yaml_error(node, error,
-                          "invalid IPv4 address: %s", scalar(node));
-    // LCOV_EXCL_STOP
-
-    g_free(*dest);
-    *dest = g_strdup(scalar(node));
-
-    return TRUE;
-}
-
-static gboolean
-handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
-    g_autofree char* addr = NULL;
-    char* prefix_len;
-
-    /* these addresses can't have /prefix_len */
-    addr = g_strdup(scalar(node));
-    prefix_len = strrchr(addr, '/');
-
-    /* FIXME: stop excluding this from coverage; refactor address handling instead */
-    // LCOV_EXCL_START
-    if (prefix_len)
-        return yaml_error(node, error,
-                          "invalid address: a single IPv6 address (without /prefixlength) is required");
-
-    /* is it an IPv6 address? */
-    if (!is_ip6_address(addr))
-        return yaml_error(node, error,
-                          "invalid IPv6 address: %s", scalar(node));
-    // LCOV_EXCL_STOP
-
-    g_free(*dest);
-    *dest = g_strdup(scalar(node));
-
-    return TRUE;
-}
-
-
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -1581,29 +1520,6 @@ tunnel_mode_to_string(tunnel_mode mode)
 }
 
 static gboolean
-handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    g_autofree char* addr = NULL;
-    char* prefix_len;
-
-    /* split off /prefix_len */
-    addr = g_strdup(scalar(node));
-    prefix_len = strrchr(addr, '/');
-    if (prefix_len)
-        return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
-
-    /* is it an IPv4 address? */
-    if (is_ip4_address(addr))
-        return handle_netdef_ip4(doc, node, data, error);
-
-    /* is it an IPv6 address? */
-    if (is_ip6_address(addr))
-        return handle_netdef_ip6(doc, node, data, error);
-
-    return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(node));
-}
-
-static gboolean
 handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     const char *key = scalar(node);
@@ -1724,60 +1640,6 @@ handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void
     return TRUE;
 }
 
-static gboolean
-handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    g_autofree char* endpoint = NULL;
-    char* port;
-    guint64 port_num;
-
-    /* split off :port */
-    endpoint = g_strdup(scalar(node));
-    port = strrchr(endpoint, ':');
-    if (!port)
-        return yaml_error(node, error, "address '%s' is missing :port", scalar(node));
-    *port = '\0';
-    port++; /* skip former ':' into first char of port */
-    port_num = g_ascii_strtoull(port, NULL, 10);
-    if (port_num > 65535)
-        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
-    if (is_ip4_address(endpoint) || is_ip6_address(endpoint) || is_hostname(endpoint)) {
-        return handle_netdef_str(doc, node, data, error);
-    }
-    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
-}
-
-
-static gboolean
-handle_l2tp_local_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    g_autofree char* addr = NULL;
-    char* prefix_len;
-
-    addr = g_strdup(scalar(node));
-
-    if (g_ascii_strcasecmp(addr, "auto") == 0 ||
-        g_ascii_strcasecmp(addr, "static") == 0 ||
-        g_ascii_strcasecmp(addr, "dynamic") == 0)
-        return handle_netdef_str(doc, node, data, error);
-
-    /* split off /prefix_len */
-    prefix_len = strrchr(addr, '/');
-    if (prefix_len)
-        return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
-
-    /* is it an IPv4 address? */
-    if (is_ip4_address(addr))
-        return handle_netdef_ip4(doc, node, data, error);
-
-    /* is it an IPv6 address? */
-    if (is_ip6_address(addr))
-        return handle_netdef_ip6(doc, node, data, error);
-
-    return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X"
-                                   " or one of 'auto', 'static' or 'dynamic'.", scalar(node));
-}
-
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
@@ -1877,8 +1739,8 @@ const mapping_entry_handler vlan_def_handlers[] = {
 const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
-    {"local", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.local_ip)},
-    {"remote", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.remote_ip)},
+    {"local", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.local_ip)},
+    {"remote", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.remote_ip)},
 
     /* Handle key/keys for clarity in config: this can be either a scalar or
      * mapping of multiple keys (input and output)
@@ -1895,12 +1757,11 @@ const mapping_entry_handler tunnel_def_handlers[] = {
     /* wireguard peer */
     {"public_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.public_key)},
     {"preshared_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.preshared_key)},
-    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint, NULL, netdef_offset(wireguard.endpoint)},
+    {"endpoint", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.remote_ip)},
     {"allowed_ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
     {"keepalive", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.keepalive)},
 
     /* l2tp; reuses tunnel.local_ip and tunnel.remote_ip*/
-    {"local_ip", YAML_SCALAR_NODE, handle_l2tp_local_addr, NULL, netdef_offset(l2tp.local_ip)},
     {"local_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.local_tunnel_id)},
     {"peer_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_tunnel_id)},
     {"encapsulation_type", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.encapsulation_type)},
@@ -1934,6 +1795,124 @@ static gboolean
 handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     return parse_renderer(node, &backend_global, error);
+}
+
+enum {
+    ADDR_IS_IPV4     = 0x01,
+    ADDR_IS_IPV6     = 0x02,
+    ADDR_IS_HOSTNAME = 0x04,
+    ADDR_HAS_PREFIX  = 0x08,
+    ADDR_HAS_PORT    = 0x10,
+    ADDR_IS_OPTIONAL = 0x20,
+};
+
+static const gchar *L2TP_LOCAL_KEYWORDS[] = { "auto", "static", "dynamic", NULL };
+
+static gboolean
+validate_address(const gchar *address, int permitted, int required, const gchar* keywords[])
+{
+    gboolean has_prefix, has_port, is_ip4, is_ip6, is_host_name, expect_ip6;
+    guint64 port_num, prefix_len_num;
+    gchar *port, *prefix_len, *addr, *last_bracket;
+    g_autofree char* addr_copy = NULL;
+
+    int pnr = permitted & required;
+    int por = permitted | required;
+
+    /* it it can be NULL, let it be, otherwise don't. */
+    if (address == NULL)
+        return por & ADDR_IS_OPTIONAL;
+
+    /* keep some sanity */
+    g_assert(!(pnr == 0 && keywords == NULL));
+    g_assert(!((por & ADDR_HAS_PREFIX) && (por & ADDR_HAS_PORT)));
+
+    /* check if it's a keyword before everything else */
+    int i = 0;
+    while (keywords && keywords[i]) {
+        if (g_ascii_strcasecmp(address, keywords[i]) == 0)
+            return TRUE;
+        ++i;
+    }
+
+    addr_copy = g_strdup(address);
+    addr = addr_copy;
+    expect_ip6 = FALSE;
+
+    /* strip port or prefix */
+    prefix_len = strrchr(addr, '/');
+    has_prefix = prefix_len != 0;
+    if (has_prefix) {
+        has_port = FALSE;
+        *prefix_len = '\0';
+        prefix_len++; /* skip former '/' into first char of prefix */
+        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+    } else {
+        last_bracket = strchr(addr, ']');
+        if (last_bracket != 0) { /* aha, it's an IPv6 with port */
+            if (addr[0] != '[') { /* '[' must be the first character then */
+                return FALSE;
+            }
+            *last_bracket = '\0';
+            addr += 1; /* addr now points to the actual address */
+            port = last_bracket + 1; /* skip the ']' */
+            if (strlen(port) < 2) { /* no port here? it is hereby decided that brackets require a port. */
+                return FALSE;
+            }
+            if (port[0] != ':') { /* likewise */
+                return FALSE;
+            }
+            port += 1;  /* skip the ':' */
+            expect_ip6 = TRUE; /* make sure we only get IPv6 in brackets */
+        } else {
+            port = strrchr(addr, ':');
+            if (port == 0) {
+                has_port = FALSE;
+                port = NULL;
+            } else {
+                *port = '\0';
+                port += 1;
+                if (strlen(port) < 1) { /* ':' requires a port */
+                    return FALSE;
+                }
+            }
+        }
+        if (port != NULL) { /* got some port, validate it too. */
+            port_num = g_ascii_strtoull(port, NULL, 10);
+            if (port_num == 0 || port_num > 65535)
+                return FALSE;
+            has_port = TRUE;
+        }
+    }
+
+    is_ip4 = is_ip4_address(addr);
+    is_ip6 = is_ip6_address(addr);
+    is_host_name = is_hostname(addr);
+
+    if (expect_ip6 && !is_ip6)
+        return FALSE;
+
+    /* validate prefix */
+    if (has_prefix) {
+        if (is_ip4 && prefix_len_num > 32)
+            return FALSE;
+        if (is_ip6 && prefix_len_num > 128)
+            return FALSE;
+    }
+
+    /* validate requirements */
+    if ((is_ip4 && !(permitted & ADDR_IS_IPV4 )) || (!is_ip4 && (required & ADDR_IS_IPV4 )))
+        return FALSE;
+    if ((is_ip6 && !(permitted & ADDR_IS_IPV6 )) || (!is_ip6 && (required & ADDR_IS_IPV6 )))
+        return FALSE;
+    if ((is_host_name && !(permitted & ADDR_IS_HOSTNAME )) || (!is_host_name && (required & ADDR_IS_HOSTNAME )))
+        return FALSE;
+    if ((has_prefix && !(permitted & ADDR_HAS_PREFIX)) || (!has_prefix && (required & ADDR_HAS_PREFIX)))
+        return FALSE;
+    if ((has_port && !(permitted & ADDR_HAS_PORT)) || (!has_port && (required & ADDR_HAS_PORT)))
+        return FALSE;
+
+    return TRUE;
 }
 
 static gboolean
@@ -2044,33 +2023,46 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
     }
 
     /* Validate local/remote IPs */
-    if (!nd->tunnel.local_ip && nd->tunnel.mode != TUNNEL_MODE_WIREGUARD && nd->tunnel.mode != TUNNEL_MODE_L2TP)
-        return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
-    if (!nd->tunnel.remote_ip && nd->tunnel.mode != TUNNEL_MODE_WIREGUARD)
-        return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
-
     switch(nd->tunnel.mode) {
+        case TUNNEL_MODE_IPIP:
+        case TUNNEL_MODE_GRE:
+        case TUNNEL_MODE_SIT:
+        case TUNNEL_MODE_ISATAP:
+        case TUNNEL_MODE_VTI:
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL))
+                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 or IPv6 address without prefix for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 or IPv6 address without prefix for this tunnel type", nd->id);
+            break;
         case TUNNEL_MODE_IPIP6:
         case TUNNEL_MODE_IP6IP6:
         case TUNNEL_MODE_IP6GRE:
         case TUNNEL_MODE_IP6GRETAP:
         case TUNNEL_MODE_VTI6:
-            if (!is_ip6_address(nd->tunnel.local_ip))
-                return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
-            if (!is_ip6_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV6, 0, NULL))
+                return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address without prefix for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.remote_ip,ADDR_IS_IPV6, 0, NULL))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address without prefix for this tunnel type", nd->id);
             break;
         case TUNNEL_MODE_WIREGUARD:
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_IS_HOSTNAME | ADDR_HAS_PORT,
+                                    ADDR_HAS_PORT | ADDR_IS_OPTIONAL, NULL))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 or IPv6 address without prefix"
+                                    " or a hostname with port for this tunnel type", nd->id);
+            /* local_ip is not used in wireguard */
             break;
         case TUNNEL_MODE_L2TP:
-            if (!is_ip4_address(nd->tunnel.remote_ip) && !is_ip6_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 or IPv6 address for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, ADDR_IS_OPTIONAL, L2TP_LOCAL_KEYWORDS))
+                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 or IPv6 address without prefix, or "
+                                               " one of 'auto', 'static' or 'dynamic' for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address without prefix for this tunnel type", nd->id);
             break;
         default:
-            if (!is_ip4_address(nd->tunnel.local_ip))
-                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
-            if (!is_ip4_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.local_ip, ADDR_IS_IPV4, 0, NULL))
+                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address without prefix for this tunnel type", nd->id);
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4, 0, NULL))
+                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address without prefix for this tunnel type", nd->id);
             break;
     }
 
