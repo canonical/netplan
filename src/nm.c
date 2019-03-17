@@ -86,6 +86,8 @@ type_str(netdef_type type)
             return "bond";
         case ND_VLAN:
             return "vlan";
+        case ND_DUMMY:
+            return "dummy";
         case ND_TUNNEL:
             return "ip-tunnel";
         // LCOV_EXCL_START
