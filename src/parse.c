@@ -1131,26 +1131,6 @@ handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _
     return TRUE;
 }
 
-static int
-get_ip_family(const char* address)
-{
-    g_autofree char *ip_str;
-    char *prefix_len;
-
-    ip_str = g_strdup(address);
-    prefix_len = strrchr(ip_str, '/');
-    if (prefix_len)
-        *prefix_len = '\0';
-
-    if (is_ip4_address(ip_str))
-        return AF_INET;
-
-    if (is_ip6_address(ip_str))
-        return AF_INET6;
-
-    return -1;
-}
-
 static gboolean
 check_and_set_family(int family, guint* dest)
 {
@@ -1222,38 +1202,50 @@ static gboolean
 handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    int family = get_ip_family(scalar(node));
+    int addr_type, family;
     char** dest = (char**) ((void*) cur_route + offset);
     g_free(*dest);
 
-    if (family < 0)
-        return yaml_error(node, error, "invalid IP family '%d'", family);
+    if (validate_address(scalar(node), ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, &addr_type)) {
+        if (addr_type & ADDR_IS_IPV4)
+            family = AF_INET;
 
-    if (!check_and_set_family(family, &cur_route->family))
-        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+        if (addr_type & ADDR_IS_IPV6)
+            family = AF_INET6;
 
-    *dest = g_strdup(scalar(node));
+        if (!check_and_set_family(family, &cur_route->family))
+            return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
-    return TRUE;
+        *dest = g_strdup(scalar(node));
+        return TRUE;
+    }
+
+    return yaml_error(node, error, "invalid IP address in route to %s", scalar(node));
 }
 
 static gboolean
 handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    int family = get_ip_family(scalar(node));
+    int addr_type, family;
     char** dest = (char**) ((void*) cur_ip_rule + offset);
     g_free(*dest);
 
-    if (family < 0)
-        return yaml_error(node, error, "invalid IP family '%d'", family);
+    if (validate_address(scalar(node), ADDR_IS_IPV4 | ADDR_IS_IPV6, 0, NULL, &addr_type)) {
+        if (addr_type & ADDR_IS_IPV4)
+            family = AF_INET;
 
-    if (!check_and_set_family(family, &cur_ip_rule->family))
-        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+        if (addr_type & ADDR_IS_IPV6)
+            family = AF_INET6;
 
-    *dest = g_strdup(scalar(node));
+        if (!check_and_set_family(family, &cur_ip_rule->family))
+            return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
-    return TRUE;
+        *dest = g_strdup(scalar(node));
+        return TRUE;
+    }
+
+    return yaml_error(node, error, "invalid IP address in route to %s", scalar(node));
 }
 
 static gboolean
