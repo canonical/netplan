@@ -603,6 +603,9 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
         has_port = FALSE;
         *prefix_len = '\0';
         prefix_len++; /* skip former '/' into first char of prefix */
+        if (strlen(prefix_len) == 0)
+            return FALSE;
+
         prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
     } else {
         last_bracket = strchr(addr, ']');
@@ -651,8 +654,6 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
 
     /* validate prefix */
     if (has_prefix) {
-        if (prefix_len_num == 0)
-            return FALSE;
         if (is_ip4 && prefix_len_num > 32)
             return FALSE;
         if (is_ip6 && prefix_len_num > 128)
@@ -1244,7 +1245,6 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
         *dest = g_strdup(scalar(node));
         return TRUE;
     }
-
     return yaml_error(node, error, "invalid IP address in route to %s", scalar(node));
 }
 
