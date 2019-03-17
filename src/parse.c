@@ -1613,6 +1613,11 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler dummy_def_handlers[] = {
+    COMMON_LINK_HANDLERS,
+    {NULL}
+};
+
 const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
@@ -1738,6 +1743,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case ND_TUNNEL: handlers = tunnel_def_handlers; break;
             case ND_VLAN: handlers = vlan_def_handlers; break;
             case ND_WIFI: handlers = wifi_def_handlers; break;
+            case ND_DUMMY: handlers = dummy_def_handlers; break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
         if (!process_mapping(doc, value, handlers, error))
@@ -1765,6 +1771,7 @@ const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_VLAN)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
+    {"dummies", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_DUMMY)},
     {NULL}
 };
 
