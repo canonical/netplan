@@ -569,7 +569,7 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
     if (restype)
         *restype = 0; /* means a parse error */
 
-    int por = permitted | required;
+    permitted = permitted | required;
 
     /* it it can be NULL, let it be, otherwise don't. */
     if (address == NULL) {
@@ -579,7 +579,7 @@ validate_address(const gchar *address, int permitted, int required, const gchar*
     }
 
     /* keep some sanity */
-    g_assert(!((por & ADDR_HAS_PREFIX) && (por & ADDR_HAS_PORT)));
+    g_assert(!((permitted & ADDR_HAS_PREFIX) && (permitted & ADDR_HAS_PORT)));
 
     /* check if it's a keyword before everything else */
     int i = 0;
@@ -890,7 +890,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         assert_type(entry, YAML_SCALAR_NODE);
         int addr_type;
 
-        if (validate_address(scalar(entry), ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_HAS_PREFIX, ADDR_HAS_PREFIX, NULL, &addr_type)) {
+        if (validate_address(scalar(entry), ADDR_IS_IPV4 | ADDR_IS_IPV6, ADDR_HAS_PREFIX, NULL, &addr_type)) {
             if (addr_type & ADDR_IS_IPV4) {
                 if (!cur_netdef->ip4_addresses)
                     cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
@@ -1724,7 +1724,7 @@ handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
 
-        if (validate_address(scalar(entry), ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_HAS_PREFIX, ADDR_HAS_PREFIX, NULL, NULL)) {
+        if (validate_address(scalar(entry), ADDR_IS_IPV4 | ADDR_IS_IPV6, ADDR_HAS_PREFIX, NULL, NULL)) {
             if (!cur_netdef->wireguard.allowed_ips)
                 cur_netdef->wireguard.allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
@@ -2025,7 +2025,7 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address without prefix for this tunnel type", nd->id);
             break;
         case TUNNEL_MODE_WIREGUARD:
-            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_IS_HOSTNAME | ADDR_HAS_PORT,
+            if (!validate_address(nd->tunnel.remote_ip, ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_IS_HOSTNAME,
                                     ADDR_IS_OPTIONAL | ADDR_HAS_PORT, NULL, NULL))
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 or IPv6 address without prefix"
                                     " or a hostname with port for this tunnel type", nd->id);
