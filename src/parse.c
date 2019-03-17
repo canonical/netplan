@@ -1718,40 +1718,15 @@ handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void
     if (cur_netdef->wireguard.allowed_ips) {
         g_array_set_size(cur_netdef->wireguard.allowed_ips, 0);
     }
+
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
-        char* prefix_len;
-        guint64 prefix_len_num;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
 
-        /* split off /prefix_len */
-        addr = g_strdup(scalar(entry));
-        prefix_len = strrchr(addr, '/');
-        if (!prefix_len)
-            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
-        *prefix_len = '\0';
-        prefix_len++; /* skip former '/' into first char of prefix */
-        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
-
-        if (!cur_netdef->wireguard.allowed_ips)
-            cur_netdef->wireguard.allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
-
-        /* is it an IPv4 address? */
-        if (is_ip4_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 32)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->wireguard.allowed_ips, s);
-            continue;
-        }
-
-        /* is it an IPv6 address? */
-        if (is_ip6_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 128)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
+        if (validate_address(scalar(entry), ADDR_IS_IPV4 | ADDR_IS_IPV6 | ADDR_HAS_PREFIX, ADDR_HAS_PREFIX, NULL, NULL)) {
+            if (!cur_netdef->wireguard.allowed_ips)
+                cur_netdef->wireguard.allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->wireguard.allowed_ips, s);
             continue;
