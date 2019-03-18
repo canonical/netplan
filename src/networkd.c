@@ -494,7 +494,12 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(network, "\n");
     }
 
-    if (def->type >= ND_VIRTUAL)
+    /* Always configure virtuals without carrier, but also allow configuring a
+     * physical without a carrier, in case we need to hand off control to some
+     * other thing (OpenVSwitch, keepalived, etc.)
+     */
+    if ((!def->dhcp4 && !def->dhcp6 && !def->ip4_addresses && !def->ip6_addresses)
+        || def->type >= ND_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->bridge) {
