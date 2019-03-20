@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define G_LOG_DOMAIN	"netplan.generate"
+
 #include <stdlib.h>
 #include <string.h>
 #include <glob.h>

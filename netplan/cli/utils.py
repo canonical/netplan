@@ -19,9 +19,12 @@ import sys
 import os
 import argparse
 import subprocess
+import logging
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
+
+log = logging.getLogger("netplan.utils")
 
 
 def get_generator_path():
@@ -82,6 +85,14 @@ def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocove
     subprocess.check_call(command)
 
 
+def enable_debug():
+    '''Enable debugging messages'''
+
+    logger = logging.getLogger('')
+    logger.setLevel('DEBUG')
+    os.environ['G_MESSAGES_DEBUG'] = 'all'
+
+
 class NetplanCommand(argparse.Namespace):
 
     def __init__(self, command_id, description, leaf=True, testing=False):
@@ -115,6 +126,9 @@ class NetplanCommand(argparse.Namespace):
     def parse_args(self):
         ns, self._args = self.parser.parse_known_args(args=self._args, namespace=self)
 
+        if self.debug:
+            enable_debug()
+
         if not self.subcommand and not self.leaf_command:
             print('You need to specify a command', file=sys.stderr)
             self.print_usage()
@@ -140,6 +154,7 @@ class NetplanCommand(argparse.Namespace):
         self.subcommands[name]['class'] = name
         self.subcommands[name]['instance'] = instance
 
+        log.debug("Adding %(subcommand)s subcommand", name)
         if instance.testing:
             if not os.environ.get('ENABLE_TEST_COMMANDS', None):
                 return

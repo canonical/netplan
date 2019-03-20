@@ -33,6 +33,8 @@ import netplan.terminal
 # be slightly short given some complex configs, i.e. if STP must reconverge.
 DEFAULT_INPUT_TIMEOUT = 120
 
+log = logging.getLogger("netplan.try")
+
 
 class NetplanTry(utils.NetplanCommand):
 
@@ -119,13 +121,13 @@ class NetplanTry(utils.NetplanCommand):
             if ifname not in self.config_manager.bonds and \
                ifname not in self.config_manager.bridges and \
                ifname not in self.config_manager.vlans:
-                logging.debug("{} will not be removed: not a virtual interface".format(ifname))
+                log.debug("{} will not be removed: not a virtual interface".format(ifname))
                 continue
             try:
                 cmd = ['ip', 'link', 'del', ifname]
                 subprocess.check_call(cmd)
             except subprocess.CalledProcessError:
-                logging.warn("Could not revert (remove) new interface '{}'".format(ifname))
+                log.warn("Could not revert (remove) new interface '{}'".format(ifname))
 
     def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()
@@ -152,7 +154,7 @@ class NetplanTry(utils.NetplanCommand):
         self.config_manager.parse(extra_config=extra_config)
         self.new_interfaces = self.config_manager.new_interfaces
 
-        logging.debug("New interfaces: {}".format(self.new_interfaces))
+        log.debug("New interfaces: {}".format(self.new_interfaces))
 
         revert_unsupported = []
 

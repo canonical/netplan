@@ -39,12 +39,15 @@ class Netplan(utils.NetplanCommand):
         super().parse_args()
 
     def main(self):
-        self.parse_args()
+        logger = logging.getLogger('')
+        logstream = logging.StreamHandler()
+        logger.setLevel('INFO')
 
-        if self.debug:
-            logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s')
-            os.environ['G_MESSAGES_DEBUG'] = 'all'
-        else:
-            logging.basicConfig(level=logging.INFO, format='%(message)s')
+        logstream.setFormatter(
+            logging.Formatter("%(name)s:%(lineno)d: %(levelname)s: %(message)s"))
+
+        logger.addHandler(logstream)
+
+        self.parse_args()
 
         self.run_command()

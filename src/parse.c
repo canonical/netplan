@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define G_LOG_DOMAIN	"netplan.parse"
+
 #include <stdarg.h>
 #include <errno.h>
 #include <regex.h>

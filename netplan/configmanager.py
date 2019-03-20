@@ -25,6 +25,8 @@ import sys
 import tempfile
 import yaml
 
+log = logging.getLogger('netplan.configmanager')
+
 
 class ConfigManager(object):
 
@@ -113,7 +115,7 @@ class ConfigManager(object):
         for yaml_file in extra_config:
             self.new_interfaces |= self._merge_yaml_config(yaml_file)
 
-        logging.debug("Merged config:\n{}".format(yaml.dump(self.config, default_flow_style=False)))
+        log.debug("Merged config:\n{}".format(yaml.dump(self.config, default_flow_style=False)))
 
     def add(self, config_dict):
         for config_file in config_dict:
@@ -153,8 +155,8 @@ class ConfigManager(object):
             # Given that we're in some halfway done revert; warn the user
             # aggressively and drop everything; leaving any remaining backups
             # around for the user to handle themselves.
-            logging.error("Something really bad happened while reverting config: {}".format(e))
-            logging.error("You should verify the netplan YAML in /etc/netplan and probably run 'netplan apply' again.")
+            log.error("Something really bad happened while reverting config: {}".format(e))
+            log.error("You should verify the netplan YAML in /etc/netplan and probably run 'netplan apply' again.")
             sys.exit(-1)
 
     def cleanup(self):
@@ -179,10 +181,10 @@ class ConfigManager(object):
         for ifname in changed_ifaces:
             iface = new.pop(ifname)
             if ifname in orig:
-                logging.debug("{} exists in {}".format(ifname, orig))
+                log.debug("{} exists in {}".format(ifname, orig))
                 orig[ifname].update(iface)
             else:
-                logging.debug("{} not found in {}".format(ifname, orig))
+                log.debug("{} not found in {}".format(ifname, orig))
                 orig[ifname] = iface
                 new_interfaces.add(ifname)
 
@@ -215,7 +217,7 @@ class ConfigManager(object):
                         new_interfaces |= new
             return new_interfaces
         except (IOError, yaml.YAMLError):  # pragma: nocover (filesystem failures/invalid YAML)
-            logging.error('Error while loading {}, aborting.'.format(yaml_file))
+            log.error('Error while loading {}, aborting.'.format(yaml_file))
             sys.exit(1)
 
 

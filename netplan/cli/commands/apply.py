@@ -28,6 +28,8 @@ from netplan.configmanager import ConfigManager, ConfigurationError
 
 import netifaces
 
+log = logging.getLogger("netplan.apply")
+
 
 class NetplanApply(utils.NetplanCommand):
 
@@ -71,13 +73,13 @@ class NetplanApply(utils.NetplanCommand):
 
         # stop backends
         if restart_networkd:
-            logging.debug('netplan generated networkd configuration changed, restarting networkd')
+            log.debug('networkd configuration changed, stopping networkd')
             utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
         else:
-            logging.debug('no netplan generated networkd configuration exists')
+            log.debug('no networkd configuration generated: not restarting networkd')
 
         if restart_nm:
-            logging.debug('netplan generated NM configuration changed, restarting NM')
+            log.debug('NetworkManager configuration changed, stopping NetworkManager')
             if utils.nm_running():
                 # restarting NM does not cause new config to be applied, need to shut down devices first
                 for device in devices:
@@ -89,7 +91,7 @@ class NetplanApply(utils.NetplanCommand):
 
                 utils.systemctl_network_manager('stop', sync=sync)
         else:
-            logging.debug('no netplan generated NM configuration exists')
+            log.debug('no NetworkManager configuration generated: not restarting NetworkManager')
 
         # evaluate config for extra steps we need to take (like renaming)
         # for now, only applies to non-virtual (real) devices.
@@ -98,7 +100,7 @@ class NetplanApply(utils.NetplanCommand):
 
         # if the interface is up, we can still apply some .link file changes
         for device in devices:
-            logging.debug('netplan triggering .link rules for %s', device)
+            log.debug('triggering .link rules for %s', device)
             subprocess.check_call(['udevadm', 'test-builtin',
                                    'net_setup_link',
                                    '/sys/class/net/' + device],
@@ -108,9 +110,11 @@ class NetplanApply(utils.NetplanCommand):
         # apply renames to "down" devices
         for iface, settings in changes.items():
             if settings.get('name'):
+                new_name = settings.get('name')
+                log.debug('applying name change for %s: now called %s', iface, new_name)
                 subprocess.check_call(['ip', 'link', 'set',
                                        'dev', iface,
-                                       'name', settings.get('name')],
+                                       'name', new_name],
                                       stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
 
@@ -118,9 +122,12 @@ class NetplanApply(utils.NetplanCommand):
 
         # (re)start backends
         if restart_networkd:
+            log.debug('re-starting networkd')
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')]
+            log.debug('starting extra networkd services: %s', ",".join(netplan_wpa))
             utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
         if restart_nm:
+            log.debug('re-starting NetworkManager')
             utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
@@ -134,6 +141,7 @@ class NetplanApply(utils.NetplanCommand):
                 members = settings.get('interfaces', [])
                 for iface in members:
                     if iface == phy:
+                        log.debug("%s is a member of %s", phy, id)
                         return True
 
         return False
@@ -178,10 +186,10 @@ class NetplanApply(utils.NetplanCommand):
         for interface in interfaces:
             if interface not in phys:
                 # do not rename  virtual devices
-                logging.debug('Skipping non-physical interface: %s', interface)
+                log.debug('Skipping non-physical interface: %s', interface)
                 continue
             if NetplanApply.is_composite_member(composite_interfaces, interface):
-                logging.debug('Skipping composite member %s', interface)
+                log.debug('Skipping composite member %s', interface)
                 # do not rename members of virtual devices. MAC addresses
                 # may be the same for all interface members.
                 continue
@@ -191,17 +199,17 @@ class NetplanApply(utils.NetplanCommand):
                 with open(os.path.join(devdir, 'operstate')) as f:
                     state = f.read().strip()
                     if state != 'down':
-                        logging.debug('device %s operstate is %s, not changing', interface, state)
+                        log.debug('device %s operstate is %s, not changing', interface, state)
                         continue
             except IOError as e:
-                logging.error('Cannot determine operstate of %s: %s', interface, str(e))
+                log.error('Cannot determine operstate of %s: %s', interface, str(e))
                 continue
 
             try:
                 driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
                 driver_name = os.path.basename(driver)
             except IOError as e:
-                logging.debug('Cannot replug %s: cannot read link %s/device: %s', interface, devdir, str(e))
+                log.debug('Cannot replug %s: cannot read link %s/device: %s', interface, devdir, str(e))
                 driver_name = None
                 pass
 
@@ -209,8 +217,8 @@ class NetplanApply(utils.NetplanCommand):
             macaddress = link.get('addr')
             if driver_name in matches['by-driver']:
                 new_name = matches['by-driver'][driver_name]
-                logging.debug(new_name)
-                logging.debug(interface)
+                log.debug(new_name)
+                log.debug(interface)
                 if new_name != interface:
                     changes.update({interface: {'name': new_name}})
             if macaddress in matches['by-mac']:
@@ -218,5 +226,5 @@ class NetplanApply(utils.NetplanCommand):
                 if new_name != interface:
                     changes.update({interface: {'name': new_name}})
 
-        logging.debug(changes)
+        log.debug('Link changes: %s', changes)
         return changes

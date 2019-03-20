@@ -23,6 +23,8 @@ import subprocess
 
 import netplan.cli.utils as utils
 
+log = logging.getLogger("netplan.generate")
+
 
 class NetplanGenerate(utils.NetplanCommand):
 
@@ -49,6 +51,6 @@ class NetplanGenerate(utils.NetplanCommand):
             argv += ['--root-dir', self.root_dir]
         if self.mapping:
             argv += ['--mapping', self.mapping]
-        logging.debug('command generate: running %s', argv)
+        log.debug('running %s', argv)
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
         sys.exit(subprocess.call(argv))
