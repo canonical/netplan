@@ -96,7 +96,7 @@ class NetplanMigrate(utils.NetplanCommand):
         if 'hwaddress' in if_options:
             if 'macaddress' in if_config and not if_config['macaddress'] == if_options['hwaddress']:
                 log.error('%s: tried to set MAC %s, but already have MAC %s', iface,
-                              if_options['hwaddress'], if_config['macaddress'])
+                          if_options['hwaddress'], if_config['macaddress'])
                 sys.exit(2)
 
             if_config['macaddress'] = if_options['hwaddress']
@@ -136,7 +136,7 @@ class NetplanMigrate(utils.NetplanCommand):
 
                     if config['options']:
                         log.error('%s: option(s) %s are not supported for dhcp method',
-                                      iface, ", ".join(config['options'].keys()))
+                                  iface, ", ".join(config['options'].keys()))
                         sys.exit(2)
                     if family == 'inet':
                         c['dhcp4'] = True
@@ -186,7 +186,7 @@ class NetplanMigrate(utils.NetplanCommand):
                         else:
                             if 'netmask' not in config['options']:
                                 log.error('%s: address does not specify prefix length, and netmask not specified',
-                                              iface)
+                                          iface)
                                 sys.exit(2)
                             addr_spec = config['options']['address']
                             net_spec = config['options']['address'] + '/' + config['options']['netmask']
@@ -246,7 +246,7 @@ class NetplanMigrate(utils.NetplanCommand):
                         else:
                             if 'netmask' not in config['options']:
                                 log.error('%s: address does not specify prefix length, and netmask not specified',
-                                              iface)
+                                          iface)
                                 sys.exit(2)
                             addr_spec = config['options']['address']
                             net_spec = config['options']['address'] + '/' + config['options']['netmask']
@@ -279,7 +279,7 @@ class NetplanMigrate(utils.NetplanCommand):
                                 sys.exit(2)
                             else:
                                 log.error('%s: unexpected accept_ra value "%s"', iface,
-                                              config['options']['accept_ra'])
+                                          config['options']['accept_ra'])
                                 sys.exit(2)
 
                 else:  # pragma nocover

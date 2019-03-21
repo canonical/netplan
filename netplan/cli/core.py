@@ -19,7 +19,6 @@
 '''netplan command line'''
 
 import logging
-import os
 
 import netplan.cli.utils as utils
 

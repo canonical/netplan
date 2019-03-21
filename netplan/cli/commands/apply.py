@@ -217,8 +217,6 @@ class NetplanApply(utils.NetplanCommand):
             macaddress = link.get('addr')
             if driver_name in matches['by-driver']:
                 new_name = matches['by-driver'][driver_name]
-                log.debug(new_name)
-                log.debug(interface)
                 if new_name != interface:
                     changes.update({interface: {'name': new_name}})
             if macaddress in matches['by-mac']:
