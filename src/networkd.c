@@ -824,7 +824,7 @@ cleanup_networkd_conf(const char* rootdir)
 void
 enable_networkd(const char* generator_dir)
 {
-    g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd.service", NULL);
+    g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
     safe_mkdir_p_dir(link);
     if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
