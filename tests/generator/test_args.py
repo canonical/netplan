@@ -125,7 +125,7 @@ class TestConfigArgs(TestBase):
 
         # should auto-enable networkd and -wait-online
         self.assertTrue(os.path.islink(os.path.join(
-            outdir, 'network-online.target.wants', 'systemd-networkd.service')))
+            outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
 
