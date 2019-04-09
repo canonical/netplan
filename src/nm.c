@@ -141,23 +141,11 @@ write_routes(const net_definition* def, GString *s, int family)
                 exit(1);
             }
 
-            if (cur_route->scope && g_ascii_strcasecmp(cur_route->scope, "global") != 0) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager only supports global scoped routes\n", def->id);
-                exit(1);
-            }
-
-            if (cur_route->table != ROUTE_TABLE_UNSPEC) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support non-default routing tables\n", def->id);
-                exit(1);
-            }
-
-            if (cur_route->from) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support routes with 'from'\n", def->id);
-                exit(1);
-            }
-
-            if (cur_route->onlink) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support on-link routes\n", def->id);
+            if (cur_route->scope) {
+                /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
+                 * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
+                 * ("link" for addresses without gateway, "global" for addresses with next-hop). */
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support setting a scope for routes\n", def->id);
                 exit(1);
             }
 
@@ -166,6 +154,21 @@ write_routes(const net_definition* def, GString *s, int family)
             if (cur_route->metric != METRIC_UNSPEC)
                 g_string_append_printf(s, ",%d", cur_route->metric);
             g_string_append(s, "\n");
+
+            if (   cur_route->onlink
+                || cur_route->table != ROUTE_TABLE_UNSPEC
+                || cur_route->from) {
+                g_string_append_printf(s, "route%d_options=", j);
+                if (cur_route->onlink) {
+                    /* onlink for IPv6 addresses is only supported since nm-1.18.0. */
+                    g_string_append_printf(s, "onlink=true ");
+                }
+                if (cur_route->table != ROUTE_TABLE_UNSPEC)
+                    g_string_append_printf(s, "table=%u ", cur_route->table);
+                if (cur_route->from)
+                    g_string_append_printf(s, "from=%s ", cur_route->from);
+                s->str[s->len - 1] = '\n';
+            }
             j++;
         }
     }
