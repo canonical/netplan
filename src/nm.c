@@ -440,6 +440,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     g_autofree char* conf_path = NULL;
     mode_t orig_umask;
     char uuidstr[37];
+    const char *match_interface_name = NULL;
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
         g_assert(ap);
@@ -475,12 +476,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         else if (!def->has_match)
             g_string_append_printf(s, "interface-name=%s\n", def->id);
         else if (def->match.original_name) {
-            /* NM does not support interface name globbing */
-            if (strpbrk(def->match.original_name, "*[]?")) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support name globbing\n", def->id);
-                exit(1);
-            }
-            g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
+            if (strpbrk(def->match.original_name, "*[]?"))
+                match_interface_name = def->match.original_name;
+            else
+                g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
         }
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
@@ -614,6 +613,11 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
 
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         write_tunnel_params(def, s);
+
+    if (match_interface_name) {
+        g_string_append(s, "\n[match]\n");
+        g_string_append_printf(s, "interface-name=%s;\n", match_interface_name);
+    }
 
     g_string_append(s, "\n[ipv4]\n");
 
