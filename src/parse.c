@@ -221,14 +221,19 @@ yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
 
     va_start(argp, msg);
     g_vasprintf(&s, msg, argp);
-    error_context = get_syntax_error_context(node->start_mark.line, node->start_mark.column, error);
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                "%s:%zu:%zu: Error in network definition: %s\n%s",
-                current_file,
-                node->start_mark.line + 1,
-                node->start_mark.column + 1,
-                s,
-                error_context);
+    if (node != NULL) {
+        error_context = get_syntax_error_context(node->start_mark.line, node->start_mark.column, error);
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                    "%s:%zu:%zu: Error in network definition: %s\n%s",
+                    current_file,
+                    node->start_mark.line + 1,
+                    node->start_mark.column + 1,
+                    s,
+                    error_context);
+    } else {
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+                    "Error in network definition: %s", s);
+    }
     g_free(s);
     va_end(argp);
     return FALSE;
@@ -1886,18 +1891,13 @@ validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
 }
 
 static gboolean
-validate_netdef(net_definition* nd, yaml_node_t* node, GError** error)
+validate_netdef(net_definition* nd, GError** error)
 {
-    int missing_id_count = g_hash_table_size(missing_id);
     gboolean valid = FALSE;
+    /* Set a dummy, NULL yaml_node_t for error reporting */
+    yaml_node_t* node = NULL;
 
     g_assert(nd->type != ND_NONE);
-
-    /* Skip all validation if we're missing some definition IDs (devices).
-     * The ones we have yet to see may be necessary for validation to succeed,
-     * we can complete it on the next parser pass. */
-    if (missing_id_count > 0)
-        return TRUE;
 
     /* set-name: requires match: */
     if (nd->set_name && !nd->has_match)
@@ -2021,10 +2021,6 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         if (!process_mapping(doc, value, handlers, error))
             return FALSE;
 
-        /* validate definition-level conditions */
-        if (!validate_netdef(cur_netdef, value, error))
-            return FALSE;
-
         /* convenience shortcut: physical device without match: means match
          * name on ID */
         if (cur_netdef->type < ND_VIRTUAL && !cur_netdef->has_match)
@@ -2141,14 +2137,18 @@ parse_yaml(const char* filename, GError** error)
 static void
 finish_iterator(gpointer key, gpointer value, gpointer user_data)
 {
+    GError **error = (GError **)user_data;
     net_definition* nd = value;
+
     /* Take more steps to make sure we always have a backend set for netdefs */
-    // LCOV_EXCL_START
     if (nd->backend == BACKEND_NONE) {
         nd->backend = get_default_backend_for_type(nd->type);
         g_debug("%s: setting default backend to %i", nd->id, nd->backend);
     }
-    // LCOV_EXCL_STOP
+
+    /* validate definition-level conditions */
+    if (validate_netdef(nd, error))
+        g_debug("Configuration is valid");
 }
 
 /**
@@ -2158,7 +2158,11 @@ gboolean
 finish_parse(GError** error)
 {
     if (netdefs)
-        g_hash_table_foreach(netdefs, finish_iterator, NULL);
+        g_hash_table_foreach(netdefs, finish_iterator, error);
+
+    if (error && *error)
+        return FALSE;
+
     return TRUE;
 }
 

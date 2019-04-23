@@ -237,7 +237,10 @@ int main(int argc, char** argv)
             process_input_file(g_hash_table_lookup(configs, i->data));
     }
 
-    g_assert(finish_parse(&error));
+    if (!finish_parse(&error)) {
+        g_fprintf(stderr, "%s\n", error->message);
+        exit(1);
+    }
 
     /* Clean up generated config from previous runs */
     cleanup_networkd_conf(rootdir);
