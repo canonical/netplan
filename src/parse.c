@@ -1985,7 +1985,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             /* create new network definition */
             cur_netdef = g_new0(net_definition, 1);
             cur_netdef->type = GPOINTER_TO_UINT(data);
-            cur_netdef->backend = backend_cur_type ?: get_default_backend_for_type(cur_netdef->type);
+            cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
 
             /* Set some default values */
