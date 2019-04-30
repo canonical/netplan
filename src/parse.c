@@ -27,6 +27,8 @@
 #include <yaml.h>
 
 #include "parse.h"
+#include "error.h"
+#include "validation.h"
 
 /* convenience macro to put the offset of a net_definition field into "void* data" */
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
@@ -34,8 +36,6 @@
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(ip_rule, field))
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(authentication_settings, field))
 
-/* file that is currently being processed, for useful error messages */
-const char* current_file;
 /* net_definition that is currently being processed */
 net_definition* cur_netdef;
 
@@ -61,91 +61,6 @@ GList* netdefs_ordered;
  * existing definition */
 GHashTable* ids_in_file;
 
-/* List of "seen" ids not found in netdefs yet by the parser.
- * These are removed when it exists in this list and we reach the point of
- * creating a netdef for that id; so by the time we're done parsing the yaml
- * document it should be empty. */
-GHashTable *missing_id;
-int missing_ids_found;
-
-/****************************************************
- * Loading and error handling
- ****************************************************/
-
-static void
-write_error_marker(GString *message, int column)
-{
-    int i;
-
-    for (i = 0; (column > 0 && i < column); i++)
-        g_string_append_printf(message, " ");
-
-    g_string_append_printf(message, "^");
-}
-
-static char *
-get_syntax_error_context(const int line_num, const int column, GError **error)
-{
-    GString *message = NULL;
-    GFile *cur_file = g_file_new_for_path(current_file);
-    GFileInputStream *file_stream;
-    GDataInputStream *stream;
-    gsize len;
-    gchar* line = NULL;
-
-    message = g_string_sized_new(200);
-    file_stream = g_file_read(cur_file, NULL, error);
-    stream = g_data_input_stream_new (G_INPUT_STREAM(file_stream));
-    g_object_unref(file_stream);
-
-    for (int i = 0; i < line_num + 1; i++) {
-        g_free(line);
-        line = g_data_input_stream_read_line(stream, &len, NULL, error);
-    }
-    g_string_append_printf(message, "%s\n", line);
-
-    write_error_marker(message, column);
-
-    g_object_unref(stream);
-    g_object_unref(cur_file);
-
-    return g_string_free(message, FALSE);
-}
-
-static char *
-get_parser_error_context(yaml_parser_t *parser, GError **error)
-{
-    GString *message = NULL;
-    unsigned char* line = parser->buffer.pointer;
-    unsigned char* current = line;
-
-    message = g_string_sized_new(200);
-
-    while (current > parser->buffer.start) {
-        current--;
-        if (*current == '\n') {
-            line = current + 1;
-            break;
-        }
-    }
-    if (current <= parser->buffer.start)
-        line = parser->buffer.start;
-    current = line + 1;
-    while (current <= parser->buffer.last) {
-        if (*current == '\n') {
-            *current = '\0';
-            break;
-        }
-        current++;
-    }
-
-    g_string_append_printf(message, "%s\n", line);
-
-    write_error_marker(message, parser->problem_mark.column);
-
-    return g_string_free(message, FALSE);
-}
-
 /**
  * Load YAML file name into a yaml_document_t.
  *
@@ -169,74 +84,11 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_file(&parser, fyaml);
     if (!yaml_parser_load(&parser, doc)) {
-        char *error_context = get_parser_error_context(&parser, error);
-        if ((char)*parser.buffer.pointer == '\t')
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                        "%s:%zu:%zu: Invalid YAML: tabs are not allowed for indent:\n%s",
-                        yaml,
-                        parser.problem_mark.line + 1,
-                        parser.problem_mark.column + 1,
-                        error_context);
-        else if (((char)*parser.buffer.pointer == ' ' || (char)*parser.buffer.pointer == '\0')
-                 && !parser.token_available)
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                        "%s:%zu:%zu: Invalid YAML: aliases are not supported:\n%s",
-                        yaml,
-                        parser.problem_mark.line + 1,
-                        parser.problem_mark.column + 1,
-                        error_context);
-        else if (parser.state == YAML_PARSE_BLOCK_MAPPING_KEY_STATE)
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                        "%s:%zu:%zu: Invalid YAML: inconsistent indentation:\n%s",
-                        yaml,
-                        parser.problem_mark.line + 1,
-                        parser.problem_mark.column + 1,
-                        error_context);
-        else {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                        "%s:%zu:%zu: Invalid YAML: %s:\n%s",
-                        yaml,
-                        parser.problem_mark.line + 1,
-                        parser.problem_mark.column + 1,
-                        parser.problem,
-                        error_context);
-        }
-        ret = FALSE;
-        g_free(error_context);
+        ret = parser_error(&parser, yaml, error);
     }
 
     fclose(fyaml);
     return ret;
-}
-
-/**
- * Put a YAML specific error message for @node into @error.
- */
-static gboolean
-yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
-{
-    va_list argp;
-    char* s;
-    char* error_context = NULL;
-
-    va_start(argp, msg);
-    g_vasprintf(&s, msg, argp);
-    if (node != NULL) {
-        error_context = get_syntax_error_context(node->start_mark.line, node->start_mark.column, error);
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                    "%s:%zu:%zu: Error in network definition: %s\n%s",
-                    current_file,
-                    node->start_mark.line + 1,
-                    node->start_mark.column + 1,
-                    s,
-                    error_context);
-    } else {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                    "Error in network definition: %s", s);
-    }
-    g_free(s);
-    va_end(argp);
-    return FALSE;
 }
 
 #define YAML_VARIABLE_NODE  YAML_NO_NODE
@@ -513,34 +365,6 @@ handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
     *((guint*) ((void*) cur_netdef + offset)) = (guint) v;
     return TRUE;
-}
-
-static gboolean
-is_ip4_address(const char* address)
-{
-    struct in_addr a4;
-    int ret;
-
-    ret = inet_pton(AF_INET, address, &a4);
-    g_assert(ret >= 0);
-    if (ret > 0)
-        return TRUE;
-
-    return FALSE;
-}
-
-static gboolean
-is_ip6_address(const char* address)
-{
-    struct in6_addr a6;
-    int ret;
-
-    ret = inet_pton(AF_INET6, address, &a6);
-    g_assert(ret >= 0);
-    if (ret > 0)
-        return TRUE;
-
-    return FALSE;
 }
 
 static gboolean
@@ -1798,136 +1622,6 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
     return parse_renderer(node, &backend_global, error);
 }
 
-static gboolean
-validate_tunnel(net_definition* nd, yaml_node_t* node, GError** error)
-{
-    if (nd->tunnel.mode == TUNNEL_MODE_UNKNOWN)
-        return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
-
-    /* Backend-specific validation rules */
-    switch (nd->backend) {
-        case BACKEND_NETWORKD:
-            switch (nd->tunnel.mode) {
-                case TUNNEL_MODE_VTI:
-                case TUNNEL_MODE_VTI6:
-                    break;
-
-                /* TODO: Remove this exception and fix ISATAP handling with the
-                 *       networkd backend.
-                 *       systemd-networkd has grown ISATAP support in 918049a.
-                 */
-                case TUNNEL_MODE_ISATAP:
-                    return yaml_error(node, error,
-                                    "%s: %s tunnel mode is not supported by networkd",
-                                    nd->id,
-                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
-                    break;
-
-                default:
-                    if (nd->tunnel.input_key)
-                        return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
-                    if (nd->tunnel.output_key)
-                        return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
-                    break;
-            }
-            break;
-
-        case BACKEND_NM:
-            switch (nd->tunnel.mode) {
-                case TUNNEL_MODE_GRE:
-                case TUNNEL_MODE_IP6GRE:
-                    break;
-
-                case TUNNEL_MODE_GRETAP:
-                case TUNNEL_MODE_IP6GRETAP:
-                    return yaml_error(node, error,
-                                    "%s: %s tunnel mode is not supported by NetworkManager",
-                                    nd->id,
-                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
-                    break;
-
-                default:
-                    if (nd->tunnel.input_key)
-                        return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
-                    if (nd->tunnel.output_key)
-                        return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
-                    break;
-            }
-            break;
-
-        // LCOV_EXCL_START
-        default:
-            break;
-        // LCOV_EXCL_STOP
-    }
-
-    /* Validate local/remote IPs */
-    if (!nd->tunnel.local_ip)
-        return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
-    if (!nd->tunnel.remote_ip)
-        return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
-
-    switch(nd->tunnel.mode) {
-        case TUNNEL_MODE_IPIP6:
-        case TUNNEL_MODE_IP6IP6:
-        case TUNNEL_MODE_IP6GRE:
-        case TUNNEL_MODE_IP6GRETAP:
-        case TUNNEL_MODE_VTI6:
-            if (!is_ip6_address(nd->tunnel.local_ip))
-                return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
-            if (!is_ip6_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
-            break;
-
-        default:
-            if (!is_ip4_address(nd->tunnel.local_ip))
-                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
-            if (!is_ip4_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
-            break;
-    }
-
-    return TRUE;
-}
-
-static gboolean
-validate_netdef(net_definition* nd, GError** error)
-{
-    gboolean valid = FALSE;
-    /* Set a dummy, NULL yaml_node_t for error reporting */
-    yaml_node_t* node = NULL;
-
-    g_assert(nd->type != ND_NONE);
-
-    /* set-name: requires match: */
-    if (nd->set_name && !nd->has_match)
-        return yaml_error(node, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
-
-    if (nd->type == ND_WIFI && nd->access_points == NULL)
-        return yaml_error(node, error, "%s: No access points defined", nd->id);
-
-    if (nd->type == ND_VLAN) {
-        if (!nd->vlan_link)
-            return yaml_error(node, error, "%s: missing 'link' property", nd->id);
-        nd->vlan_link->has_vlans = TRUE;
-        if (nd->vlan_id == G_MAXUINT)
-            return yaml_error(node, error, "%s: missing 'id' property", nd->id);
-        if (nd->vlan_id > 4094)
-            return yaml_error(node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
-    }
-
-    if (nd->type == ND_TUNNEL) {
-        valid = validate_tunnel(nd, node, error);
-        if (!valid)
-            goto validation_error;
-    }
-
-    valid = TRUE;
-
-validation_error:
-    return valid;
-}
-
 static void
 initialize_dhcp_overrides(dhcp_overrides* overrides)
 {
@@ -2019,6 +1713,10 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
         if (!process_mapping(doc, value, handlers, error))
+            return FALSE;
+
+        /* validate definition-level conditions */
+        if (!validate_netdef_grammar(cur_netdef, value, error))
             return FALSE;
 
         /* convenience shortcut: physical device without match: means match
@@ -2146,8 +1844,8 @@ finish_iterator(gpointer key, gpointer value, gpointer user_data)
         g_debug("%s: setting default backend to %i", nd->id, nd->backend);
     }
 
-    /* validate definition-level conditions */
-    if (validate_netdef(nd, error))
+    /* Do a final pass of validation for backend-specific conditions */
+    if (validate_backend_rules(nd, error))
         g_debug("Configuration is valid");
 }
 

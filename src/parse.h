@@ -20,6 +20,17 @@
 #include <uuid.h>
 #include <yaml.h>
 
+
+/* file that is currently being processed, for useful error messages */
+const char* current_file;
+
+/* List of "seen" ids not found in netdefs yet by the parser.
+ * These are removed when it exists in this list and we reach the point of
+ * creating a netdef for that id; so by the time we're done parsing the yaml
+ * document it should be empty. */
+GHashTable *missing_id;
+int missing_ids_found;
+
 /****************************************************
  * Parsed definitions
  ****************************************************/
