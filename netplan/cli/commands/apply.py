@@ -97,13 +97,17 @@ class NetplanApply(utils.NetplanCommand):
         changes = NetplanApply.process_link_changes(devices, config_manager)
 
         # if the interface is up, we can still apply some .link file changes
+        devices = netifaces.interfaces()
         for device in devices:
             logging.debug('netplan triggering .link rules for %s', device)
-            subprocess.check_call(['udevadm', 'test-builtin',
-                                   'net_setup_link',
-                                   '/sys/class/net/' + device],
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL)
+            try:
+                subprocess.check_call(['udevadm', 'test-builtin',
+                                       'net_setup_link',
+                                       '/sys/class/net/' + device],
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                logging.debug('Ignoring device without syspath: %s', device)
 
         # apply renames to "down" devices
         for iface, settings in changes.items():
