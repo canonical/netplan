@@ -24,12 +24,21 @@ PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
 PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
 NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
 
-default: generate doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
+default: version_info.so generate doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
 	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
+src/features.h: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
+	echo "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {" > $@
+	awk 'match ($$0, /netplan-feature:[[:space:]]*.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "\""$$2"\"," }' $^ >> $@
+	echo "NULL, };" >> $@
+
+version_info.so: src/version_info.[hc] src/features.h
+	$(CC) -shared -fPIC $(BUILDFLAGS) $(CFLAGS) -o $@ $(filter %.c, $^) src/features.h `pkg-config --cflags --libs python3`
+
 clean:
+	rm -f version_info.so src/features.h
 	rm -f generate doc/*.html doc/*.[1-9]
 	rm -f *.gcda *.gcno generate.info
 	rm -rf test-coverage .coverage

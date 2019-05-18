@@ -6,3 +6,5 @@ __pycache__
 *.pyc
 .coverage
 .vscode
+version_info.so
+src/features.h
