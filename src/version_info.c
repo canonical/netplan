@@ -20,7 +20,18 @@
 #include "version_info.h"
 #include "features.h"
 
-const char* NETPLAN_VERSION = "2.98.1";
+
+const char *
+netplan_version()
+{
+    return NETPLAN_VERSION;
+}
+
+const char **
+netplan_features()
+{
+    return feature_flags;
+}
 
 PyObject *
 pynetplan_version(PyObject* self, PyObject *args)
