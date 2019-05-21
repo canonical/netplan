@@ -205,7 +205,7 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nARPIPTargets=");
         for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
             if (i > 0)
-                g_string_append_printf(params, ",");
+                g_string_append_printf(params, " ");
             g_string_append_printf(params, "%s", g_array_index(def->bond_params.arp_ip_targets, char*, i));
         }
     }
