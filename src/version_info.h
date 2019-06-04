@@ -19,7 +19,6 @@
 
 #include <Python.h>
 
-
 const char *
 netplan_version();
 
