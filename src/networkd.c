@@ -27,6 +27,8 @@
 #include "parse.h"
 #include "util.h"
 
+/* netplan-feature: renderer_networkd */
+
 /**
  * Append [Match] section of @def to @s.
  */
