@@ -20,9 +20,6 @@
 #include <Python.h>
 
 
-#define NETPLAN_VERSION  "2.98.1"
-
-
 const char *
 netplan_version();
 

@@ -1,6 +1,9 @@
+NETPLAN_VERSION=2.98.1
+
 BUILDFLAGS = \
 	-std=c99 \
 	-D_XOPEN_SOURCE=500 \
+	-DNETPLAN_VERSION='"$(NETPLAN_VERSION)"' \
 	-Wall \
 	-Werror \
 	$(NULL)
