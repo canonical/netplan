@@ -1630,7 +1630,7 @@ handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 
     mangled_version = strtol(scalar(node), NULL, 10);
 
-    if (mangled_version >= NETPLAN_VERSION_MIN && mangled_version < NETPLAN_VERSION_MAX)
+    if (mangled_version < NETPLAN_VERSION_MIN || mangled_version >= NETPLAN_VERSION_MAX)
         return yaml_error(node, error, "Only version 2 is supported");
     return TRUE;
 }
