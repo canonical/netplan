@@ -494,6 +494,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(network, "\n");
     }
 
+    /* netplan-feature: config_without_ip */
     if (def->type >= ND_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
