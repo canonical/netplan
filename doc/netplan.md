@@ -231,7 +231,7 @@ Virtual devices
     When enabled, accept Router Advertisements. When disabled, do not respond to
     Router Advertisements.  If unset use the host kernel default setting.
 
-``addresses`` (sequence of scalars)
+``addresses`` (sequence of scalars and mappings)
 
 :   Add static addresses to the interface in addition to the ones received
     through DHCP or RA. Each sequence entry is in CIDR notation, i. e. of the
@@ -242,7 +242,29 @@ Virtual devices
     configured and DHCP is disabled, the interface may still be brought online,
     but will not be addressable from the network.
 
+    In addition to the addresses themselves one can specify configuration
+    parameters as mappings. Current supported options are:
+
+    ``lifetime`` (scalar) – since **0.100**
+    :    Default: ``forever``. This can be ``forever`` or ``0`` and corresponds
+         to the ``PreferredLifetime`` option in ``systemd-networkd``'s Address
+         section. Currently supported on the ``networkd`` backend only.
+
+    ``label`` (scalar) – since **0.100**
+    :    An IP address label, equivalent to the ``ip address label``
+         command. Currently supported on the ``networkd`` backend only.
+
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
+
+    Example:
+
+        ethernets:
+          eth0:
+            addresses:
+              - 10.0.0.15/24:
+                  lifetime: 0
+                  label: "maas"
+              - "2001:1::1/64"
 
 ``ipv6-address-generation`` (scalar) – since **0.99**
 

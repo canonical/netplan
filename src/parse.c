@@ -36,6 +36,7 @@
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
+#define addr_option_offset(field) GUINT_TO_POINTER(offsetof(NetplanAddressOptions, field))
 
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
@@ -45,6 +46,8 @@ static NetplanWifiAccessPoint* cur_access_point;
 
 /* authentication options that are currently being processed */
 static NetplanAuthenticationSettings* cur_auth;
+
+static NetplanAddressOptions* cur_addr_option;
 
 static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
@@ -776,6 +779,26 @@ handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** err
     return ret;
 }
 
+static gboolean handle_address_option_lifetime(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_ascii_strcasecmp(scalar(node), "0") != 0 &&
+        g_ascii_strcasecmp(scalar(node), "forever") != 0) {
+        return yaml_error(node, error, "invalid lifetime value '%s'", scalar(node));
+    }
+    return handle_generic_str(doc, node, cur_addr_option, data, error);
+}
+
+static gboolean handle_address_option_label(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_str(doc, node, cur_addr_option, data, error);
+}
+
+const mapping_entry_handler address_option_handlers[] = {
+    {"lifetime", YAML_SCALAR_NODE, handle_address_option_lifetime, NULL, addr_option_offset(lifetime)},
+    {"label", YAML_SCALAR_NODE, handle_address_option_label, NULL, addr_option_offset(label)},
+    {NULL}
+};
+
 static gboolean
 handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
@@ -784,6 +807,17 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         char* prefix_len;
         guint64 prefix_len_num;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *key, *value = NULL;
+
+        if (entry->type != YAML_SCALAR_NODE && entry->type != YAML_MAPPING_NODE) {
+            return yaml_error(entry, error, "expected either scalar or mapping (check indentation)");
+        }
+
+        if (entry->type == YAML_MAPPING_NODE) {
+            key = yaml_document_get_node(doc, entry->data.mapping.pairs.start->key);
+            value = yaml_document_get_node(doc, entry->data.mapping.pairs.start->value);
+            entry = key;
+        }
         assert_type(entry, YAML_SCALAR_NODE);
 
         /* split off /prefix_len */
@@ -794,6 +828,23 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         *prefix_len = '\0';
         prefix_len++; /* skip former '/' into first char of prefix */
         prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+
+        if (value) {
+            if (!is_ip4_address(addr) && !is_ip6_address(addr))
+                return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+
+            if (!cur_netdef->address_options)
+                cur_netdef->address_options = g_array_new(FALSE, FALSE, sizeof(NetplanAddressOptions*));
+
+            cur_addr_option = g_new0(NetplanAddressOptions, 1);
+            cur_addr_option->address = g_strdup(scalar(key));
+
+            if (!process_mapping(doc, value, address_option_handlers, error))
+                return FALSE;
+
+            g_array_append_val(cur_netdef->address_options, cur_addr_option);
+            continue;
+        }
 
         /* is it an IPv4 address? */
         if (is_ip4_address(addr)) {

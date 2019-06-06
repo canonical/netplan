@@ -225,6 +225,7 @@ struct net_definition {
     NetplanRAMode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
+    GArray* address_options;
     gboolean ip6_privacy;
     guint ip6_addr_gen_mode;
     char* gateway4;
@@ -364,6 +365,12 @@ typedef enum {
     NETPLAN_WIFI_BAND_5,
     NETPLAN_WIFI_BAND_24
 } NetplanWifiBand;
+
+typedef struct {
+    char* address;
+    char* lifetime;
+    char* label;
+} NetplanAddressOptions;
 
 typedef struct {
     NetplanWifiMode mode;

@@ -291,6 +291,72 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_eth_address_option_lifetime_zero(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            lifetime: 0
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/64
+
+[Address]
+Address=192.168.14.2/24
+PreferredLifetime=0
+'''})
+
+    def test_eth_address_option_lifetime_forever(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            lifetime: forever
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/64
+
+[Address]
+Address=192.168.14.2/24
+PreferredLifetime=forever
+'''})
+
+    def test_eth_address_option_label(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            label: test-label
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/64
+
+[Address]
+Address=192.168.14.2/24
+Label=test-label
+'''})
+
     def test_dhcp_critical_true(self):
         self.generate('''network:
   version: 2
