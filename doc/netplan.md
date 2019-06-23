@@ -725,14 +725,16 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      ``up-delay`` (scalar)
      :    Specify the delay before enabling a link once the link is physically
           up. The default value is ``0``. This maps to the UpDelaySec= property
-          for the networkd renderer. If no time suffix is specified, the value
-          will be interpreted as milliseconds.
+          for the networkd renderer. This option is only valid for the miimon
+          link monitor. If no time suffix is specified, the value will be
+          interpreted as milliseconds.
 
      ``down-delay`` (scalar)
      :    Specify the delay before disabling a link once the link has been
           lost. The default value is ``0``. This maps to the DownDelaySec=
-          property for the networkd renderer. If no time suffix is specified,
-          the value will be interpreted as milliseconds.
+          property for the networkd renderer. This option is only valid for the
+          miimon link monitor. If no time suffix is specified, the value will
+          be interpreted as milliseconds.
 
      ``fail-over-mac-policy`` (scalar)
      :    Set whether to set all slaves to the same MAC address when adding
