@@ -60,8 +60,8 @@ class NetplanInfo(utils.NetplanCommand):
 
         if self.version_format == 'json':
             import json
-            print(json.dumps(netplan_version))
+            print(json.dumps(netplan_version, indent=2))
 
         elif self.version_format == 'yaml':
             import yaml
-            print(yaml.dump(netplan_version, default_flow_style=False))
+            print(yaml.dump(netplan_version, indent=2, default_flow_style=False))
