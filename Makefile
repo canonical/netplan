@@ -17,7 +17,7 @@ DATADIR ?= $(PREFIX)/share
 DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
 
-PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)
+PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py)
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)

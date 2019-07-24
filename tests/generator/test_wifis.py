@@ -18,7 +18,6 @@
 
 import os
 import stat
-import sys
 
 from .base import TestBase, ND_WIFI_DHCP4
 
@@ -319,4 +318,3 @@ method=ignore
 ssid=homenet
 mode=adhoc
 '''})
-

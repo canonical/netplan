@@ -20,8 +20,6 @@
 
 import os
 import random
-import re
-import sys
 import stat
 import string
 import tempfile

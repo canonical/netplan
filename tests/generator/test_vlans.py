@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import re
 import unittest
 
@@ -222,4 +221,3 @@ method=auto
 method=ignore
 ''' % uuid})
         self.assert_nm_udev(None)
-
