@@ -99,31 +99,31 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "Apply",
         ]
-        output = subprocess.check_output(
-            BUSCTL_NETPLAN_APPLY, encoding="utf-8")
-        self.assertEqual(output, "b true\n")
+        output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
+        self.assertEqual(output.decode("utf-8"), "b true\n")
         # one call to netplan apply in total
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "apply"],
-            ])
+        ])
 
         # and again!
-        output = subprocess.check_output(
-            BUSCTL_NETPLAN_APPLY, encoding="utf-8")
+        output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
+        self.assertEqual(output.decode("utf-8"), "b true\n")
         # and another call to netplan apply
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "apply"],
                 ["netplan", "apply"],
-            ])
+        ])
 
     def test_netplan_dbus_no_such_command(self):
-        cp = subprocess.run(
+        p = subprocess.Popen(
             ["busctl", "call",
              "io.netplan.Netplan",
              "/io/netplan/Netplan",
              "io.netplan.Netplan",
              "NoSuchCommand"],
-            capture_output=True, encoding="utf-8")
-        self.assertEqual(cp.returncode, 1)
-        self.assertEqual(cp.stdout, "")
-        self.assertEqual(cp.stderr, "Unknown method 'NoSuchCommand' or interface 'io.netplan.Netplan'.\n")
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.wait()
+        self.assertEqual(p.returncode, 1)
+        self.assertEqual(p.stdout.read().decode("utf-8"), "")
+        self.assertEqual(p.stderr.read().decode("utf-8"), "Unknown method 'NoSuchCommand' or interface 'io.netplan.Netplan'.\n")
