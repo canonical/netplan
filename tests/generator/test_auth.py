@@ -18,7 +18,6 @@
 
 import os
 import stat
-import sys
 
 from .base import TestBase, ND_DHCP4, ND_WIFI_DHCP4
 
@@ -452,7 +451,6 @@ ssid=peer2peer
 mode=adhoc
 '''})
         self.assert_nm_udev(None)
-
 
     def test_auth_wired(self):
         self.generate('''network:
