@@ -1,6 +1,7 @@
 BUILDFLAGS = \
 	-std=c99 \
 	-D_XOPEN_SOURCE=500 \
+	-DSBINDIR=\"$(SBINDIR)\" \
 	-Wall \
 	-Werror \
 	$(NULL)
@@ -12,25 +13,31 @@ BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completio
 ROOTPREFIX ?= /
 PREFIX ?= /usr
 ROOTLIBEXECDIR ?= $(ROOTPREFIX)/lib
+LIBEXECDIR ?= $(PREFIX)/lib
 SBINDIR ?= $(PREFIX)/sbin
 DATADIR ?= $(PREFIX)/share
 DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
 
-PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)
+# FIXME: also add $(wildcard tests/generator/*.py) here
+PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)  $(wildcard tests/dbus/*.py)
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
 PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
 NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
 
-default: generate doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
+default: generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
+netplan-dbus: src/dbus.c
+	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
+
 clean:
 	rm -f generate doc/*.html doc/*.[1-9]
+	rm -f netplan-dbus dbus/*.service
 	rm -f *.gcda *.gcno generate.info
 	rm -rf test-coverage .coverage
 
@@ -81,6 +88,15 @@ install: default
 	install -m 644 doc/*.8 $(DESTDIR)/$(MANDIR)/man8/
 	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/netplan-wpa@.service
 	install -T -D -m 644 netplan.completions $(DESTDIR)/$(BASH_COMPLETIONS_DIR)/netplan
+	# dbus
+	mkdir -p $(DESTDIR)/share/dbus-1/system.d $(DESTDIR)/share/dbus-1/system-services
+	install -m 755 netplan-dbus $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
+	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)/share/dbus-1/system.d/
+	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/share/dbus-1/system-services/
+
+%.service: %.service.in
+	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)/#" $< > $@
+
 
 %.html: %.md
 	pandoc -s --toc -o $@ $<
