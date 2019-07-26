@@ -1,4 +1,5 @@
 generate
+netplan-dbus
 test-coverage
 doc/*.html
 doc/*.[1-9]
