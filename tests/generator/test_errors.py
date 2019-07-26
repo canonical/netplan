@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from .base import TestBase
 
 
@@ -671,4 +668,3 @@ class TestConfigErrors(TestBase):
     engreen:
       dhcp4: *yes''', expect_fail=True)
         self.assertIn("aliases are not supported", err)
-

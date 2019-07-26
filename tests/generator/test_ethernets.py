@@ -17,9 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, UDEV_MAC_RULE, UDEV_NO_MAC_RULE
+from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE
 
 
 class TestNetworkd(TestBase):
@@ -588,4 +587,3 @@ method=ignore
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
-

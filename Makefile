@@ -19,8 +19,7 @@ DATADIR ?= $(PREFIX)/share
 DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
 
-# FIXME: also add $(wildcard tests/generator/*.py) here
-PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py)  $(wildcard tests/dbus/*.py)
+PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/dbus/*.py)
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
