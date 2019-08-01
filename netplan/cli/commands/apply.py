@@ -44,6 +44,29 @@ class NetplanApply(utils.NetplanCommand):
 
     @staticmethod
     def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        # if we are inside a snap, then call dbus to run netplan apply instead
+        if "SNAP" in os.environ:
+            # TODO: maybe check if we are inside a classic snap and don't do
+            # this if we are in a classic snap?
+            res = subprocess.call(["/usr/bin/busctl", "call", "--quiet",
+                                   "io.netplan.Netplan",  # the service
+                                   "/io/netplan/Netplan",  # the object
+                                   "io.netplan.Netplan",  # the interface
+                                   "Apply",  # the method
+                                   ])
+
+            if res != 0:
+                if exit_on_error:
+                    sys.exit(res)
+                elif res == 130:
+                    raise PermissionError(
+                        "failed to communicate with dbus service")
+                elif res == 1:
+                    raise RuntimeError(
+                        "failed to communicate with dbus service")
+            else:
+                return
+
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
 
