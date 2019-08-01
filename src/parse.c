@@ -1510,6 +1510,7 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
+    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},      \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
     {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
@@ -1626,6 +1627,7 @@ static void
 initialize_dhcp_overrides(dhcp_overrides* overrides)
 {
     overrides->use_dns = TRUE;
+    overrides->use_domains = NULL;
     overrides->use_ntp = TRUE;
     overrides->send_hostname = TRUE;
     overrides->use_hostname = TRUE;
