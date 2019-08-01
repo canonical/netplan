@@ -388,6 +388,15 @@ client processes as specified in the netplan YAML.
           on a preferred interface. Available for both the ``networkd`` and
           ``NetworkManager`` backends.
 
+     ``use-domains`` (scalar)
+     :    Takes a boolean, or the special value "route". When true, the domain 
+          name received from the DHCP server will be used as DNS search domain
+          over this link, similar to the effect of the Domains= setting. If set
+          to "route", the domain name received from the DHCP server will be 
+          used for routing DNS queries only, but not for searching, similar to
+          the effect of the Domains= setting when the argument is prefixed with
+          "~".
+
 
 ## Routing
 Complex routing is possible with netplan. Standard static routes as well
