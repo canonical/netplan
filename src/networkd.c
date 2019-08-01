@@ -385,7 +385,7 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
             exit(1);
         }
-        if (def->dhcp4_overrides.use_domains != def->dhcp6_overrides.use_domains) {
+        if (g_strcmp0(def->dhcp4_overrides.use_domains, def->dhcp6_overrides.use_domains) != 0){
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-domains");
             exit(1);
         }
