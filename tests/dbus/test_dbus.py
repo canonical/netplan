@@ -19,9 +19,19 @@ import subprocess
 import tempfile
 import unittest
 
+rootdir = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
+exe_cli = [os.path.join(rootdir, 'src', 'netplan.script')]
+if shutil.which('python3-coverage'):
+    exe_cli = ['python3-coverage', 'run', '--append', '--'] + exe_cli
+
+# Make sure we can import our development netplan.
+os.environ.update({'PYTHONPATH': '.'})
+
 
 class MockCmd:
     """MockCmd will mock a given command name and capture all calls to it"""
+
     def __init__(self, name):
         self._tmp = tempfile.TemporaryDirectory()
         self.name = name
@@ -63,6 +73,10 @@ class TestNetplanDBus(unittest.TestCase):
         self.mock_netplan_cmd = MockCmd("netplan")
         self._create_mock_system_bus()
         self._run_netplan_dbus_on_mock_bus()
+        self._mock_snap_env()
+
+    def _mock_snap_env(self):
+        os.environ["SNAP"] = "test-netplan-apply-snapd"
 
     def _create_mock_system_bus(self):
         env = {}
@@ -90,6 +104,16 @@ class TestNetplanDBus(unittest.TestCase):
         # netplan-dbus does not produce output
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
+
+    def test_netplan_apply_in_snap_uses_dbus(self):
+        p = subprocess.Popen(
+            exe_cli + ["apply"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(p.stdout.read(), b"")
+        self.assertEqual(p.stderr.read(), b"")
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "apply"],
+        ])
 
     def test_netplan_dbus_happy(self):
         BUSCTL_NETPLAN_APPLY = [
