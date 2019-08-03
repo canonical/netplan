@@ -776,12 +776,7 @@ handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
         strcmp(scalar(node), "balance-alb") == 0))
         return yaml_error(node, error, "unknown bond mode '%s'", scalar(node));
 
-    guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
-    g_free(*dest);
-    *dest = g_strdup(scalar(node));
-
-    return TRUE;
+    return handle_netdef_str(doc, node, data, error);
 }
 
 /**
