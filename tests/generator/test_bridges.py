@@ -214,7 +214,7 @@ UseMTU=true
       dhcp4: yes''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:mybr,interface-name:eth42,interface-name:eth43,''')
+unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr,''')
 
     def test_bridge_components(self):
         self.generate('''network:

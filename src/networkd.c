@@ -520,12 +520,13 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
     if (def->has_vlans) {
         /* iterate over all netdefs to find VLANs attached to us */
-        GHashTableIter i;
+        GList *l = netdefs_ordered;
         net_definition* nd;
-        g_hash_table_iter_init(&i, netdefs);
-        while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
+        for (; l != NULL; l = l->next) {
+            nd = l->data;
             if (nd->vlan_link == def)
                 g_string_append_printf(network, "VLAN=%s\n", nd->id);
+        }
     }
 
     if (def->routes != NULL) {
