@@ -163,6 +163,10 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``ipv6-mtu`` (scalar)
+:   Set the IPv6 MTU (only supported with `networkd` backend). Note
+    that needing to set this is an unusual requirement.
+
 ``ipv6-privacy`` (bool)
 
 :   Enable IPv6 Privacy Extensions (RFC 4941) for the specified interface, and
