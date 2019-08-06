@@ -655,6 +655,23 @@ method=ignore
 
 class TestConfigErrors(TestBase):
 
+    def test_bond_invalid_mode(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bonds:
+    bond0:
+      interfaces: [eno1]
+      parameters:
+        mode: lacp
+        arp-ip-targets:
+          - 2001:dead:beef::1
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("unknown bond mode 'lacp'", err)
+
     def test_bond_invalid_arp_target(self):
         self.generate('''network:
   version: 2
