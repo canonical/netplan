@@ -656,7 +656,7 @@ method=ignore
 class TestConfigErrors(TestBase):
 
     def test_bond_invalid_mode(self):
-        self.generate('''network:
+        err = self.generate('''network:
   version: 2
   ethernets:
     eno1:
