@@ -462,10 +462,8 @@ handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* 
         cur_auth->key_management = KEY_MANAGEMENT_NONE;
     else if (strcmp(scalar(node), "psk") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_WPA_PSK;
-    /* netplan-feature: wpa_eap */
     else if (strcmp(scalar(node), "eap") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_WPA_EAP;
-    /* netplan-feature: 802.1x */
     else if (strcmp(scalar(node), "802.1x") == 0)
         cur_auth->key_management = KEY_MANAGEMENT_8021X;
     else
@@ -871,7 +869,6 @@ struct optional_address_option optional_address_options[] = {
     {NULL},
 };
 
-/* netplan-feature: optional_addresses */
 static gboolean
 handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
@@ -1180,7 +1177,6 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
     return TRUE;
 }
 
-/* netplan-feature: bridge_params */
 const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.ageing_time)},
     {"forward-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.forward_delay)},
@@ -1205,7 +1201,6 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
  * Grammar and handlers for network config "routes" entry
  ****************************************************/
 
-/* netplan-feature: custom_routing */
 const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
@@ -1257,7 +1252,6 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
     return TRUE;
 }
 
-/* netplan-feature: policy_routing */
 const mapping_entry_handler ip_rules_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(from)},
     {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark},
@@ -1351,7 +1345,6 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
     return TRUE;
 }
 
-/* netplan-feature: bond_params */
 const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
@@ -1513,7 +1506,6 @@ const mapping_entry_handler nameservers_handlers[] = {
 };
 
 /* Handlers for DHCP overrides. */
-/* netplan-feature: dhcp_overrides */
 #define COMMON_DHCP_OVERRIDES_HANDLERS(overrides)                                                           \
     {"hostname", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.hostname)},             \
     {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
@@ -1563,7 +1555,6 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}
 
-/* netplan-feature: ethernets */
 const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
@@ -1571,7 +1562,6 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {NULL}
 };
 
-/* netplan-feature: wifis */
 const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
@@ -1580,7 +1570,6 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {NULL}
 };
 
-/* netplan-feature: bridges */
 const mapping_entry_handler bridge_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
@@ -1588,7 +1577,6 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {NULL}
 };
 
-/* netplan-feature: bonds */
 const mapping_entry_handler bond_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
@@ -1596,7 +1584,6 @@ const mapping_entry_handler bond_def_handlers[] = {
     {NULL}
 };
 
-/* netplan-feature: vlans */
 const mapping_entry_handler vlan_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
@@ -1604,7 +1591,6 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
-/* netplan-feature: tunnels */
 const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},

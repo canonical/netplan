@@ -16,10 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from .base import TestBase
+
 
 def prepare_config_for_mode(renderer, mode, key=None):
     config = """network:

@@ -22,6 +22,7 @@ import os
 import sys
 import glob
 import subprocess
+import shutil
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
@@ -44,6 +45,32 @@ class NetplanApply(utils.NetplanCommand):
 
     @staticmethod
     def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        # if we are inside a snap, then call dbus to run netplan apply instead
+        if "SNAP" in os.environ:
+            # TODO: maybe check if we are inside a classic snap and don't do
+            # this if we are in a classic snap?
+            busctl = shutil.which("busctl")
+            if busctl is None:
+                raise RuntimeError("missing busctl utility")
+            res = subprocess.call([busctl, "call", "--quiet", "--system",
+                                   "io.netplan.Netplan",  # the service
+                                   "/io/netplan/Netplan",  # the object
+                                   "io.netplan.Netplan",  # the interface
+                                   "Apply",  # the method
+                                   ])
+
+            if res != 0:
+                if exit_on_error:
+                    sys.exit(res)
+                elif res == 130:
+                    raise PermissionError(
+                        "failed to communicate with dbus service")
+                elif res == 1:
+                    raise RuntimeError(
+                        "failed to communicate with dbus service")
+            else:
+                return
+
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
 
@@ -97,13 +124,17 @@ class NetplanApply(utils.NetplanCommand):
         changes = NetplanApply.process_link_changes(devices, config_manager)
 
         # if the interface is up, we can still apply some .link file changes
+        devices = netifaces.interfaces()
         for device in devices:
             logging.debug('netplan triggering .link rules for %s', device)
-            subprocess.check_call(['udevadm', 'test-builtin',
-                                   'net_setup_link',
-                                   '/sys/class/net/' + device],
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL)
+            try:
+                subprocess.check_call(['udevadm', 'test-builtin',
+                                       'net_setup_link',
+                                       '/sys/class/net/' + device],
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                logging.debug('Ignoring device without syspath: %s', device)
 
         # apply renames to "down" devices
         for iface, settings in changes.items():

@@ -39,7 +39,6 @@ write_error_marker(GString *message, int column)
     g_string_append_printf(message, "^");
 }
 
-/* netplan-feature: syntax_error_context */
 static char *
 get_syntax_error_context(const int line_num, const int column, GError **error)
 {
@@ -70,7 +69,7 @@ get_syntax_error_context(const int line_num, const int column, GError **error)
 }
 
 static char *
-get_parser_error_context(const yaml_parser_t *parser, GError **error) /* netplan-feature: parser_error_context */
+get_parser_error_context(const yaml_parser_t *parser, GError **error)
 {
     GString *message = NULL;
     unsigned char* line = parser->buffer.pointer;
@@ -158,7 +157,7 @@ yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
     if (node != NULL) {
         error_context = get_syntax_error_context(node->start_mark.line, node->start_mark.column, error);
         g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
-                    "%s:%zu:%zu: Error in network definition: %s\n%s",  // netplan-feature: error_context_lineno
+                    "%s:%zu:%zu: Error in network definition: %s\n%s",
                     current_file,
                     node->start_mark.line + 1,
                     node->start_mark.column + 1,

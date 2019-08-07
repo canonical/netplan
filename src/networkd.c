@@ -207,7 +207,7 @@ write_bond_parameters(net_definition* def, GString* s)
         g_string_append_printf(params, "\nARPIPTargets=");
         for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
             if (i > 0)
-                g_string_append_printf(params, ",");
+                g_string_append_printf(params, " ");
             g_string_append_printf(params, "%s", g_array_index(def->bond_params.arp_ip_targets, char*, i));
         }
     }
@@ -496,7 +496,6 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(network, "\n");
     }
 
-    /* netplan-feature: config_without_ip */
     if (def->type >= ND_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
@@ -519,12 +518,13 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
     if (def->has_vlans) {
         /* iterate over all netdefs to find VLANs attached to us */
-        GHashTableIter i;
+        GList *l = netdefs_ordered;
         net_definition* nd;
-        g_hash_table_iter_init(&i, netdefs);
-        while (g_hash_table_iter_next (&i, NULL, (gpointer*) &nd))
+        for (; l != NULL; l = l->next) {
+            nd = l->data;
             if (nd->vlan_link == def)
                 g_string_append_printf(network, "VLAN=%s\n", nd->id);
+        }
     }
 
     if (def->routes != NULL) {
@@ -695,7 +695,11 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
         if (auth->key_management == KEY_MANAGEMENT_WPA_PSK) {
             g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
         } else {
-            g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
+            if (strncmp(auth->password, "hash:", 5) == 0) {
+                g_string_append_printf(s, "  password=%s\n", auth->password);
+            } else {
+                g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
+            }
         }
     }
     if (auth->ca_certificate) {

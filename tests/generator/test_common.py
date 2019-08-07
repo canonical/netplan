@@ -18,7 +18,6 @@
 
 import os
 import textwrap
-import sys
 
 from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES
 
@@ -1252,4 +1251,3 @@ LinkLocalAddressing=ipv6
 ''',
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
-

@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import re
 import unittest
 
@@ -48,8 +47,8 @@ Name=en1
 
 [Network]
 LinkLocalAddressing=ipv6
-VLAN=enred
 VLAN=enblue
+VLAN=enred
 VLAN=engreen
 ''',
                               'enblue.netdev': '''[NetDev]
@@ -103,7 +102,7 @@ UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:en1,interface-name:enred,interface-name:enblue,interface-name:engreen,''')
+unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:enred,interface-name:engreen,''')
         self.assert_nm_udev(None)
 
 
@@ -222,4 +221,3 @@ method=auto
 method=ignore
 ''' % uuid})
         self.assert_nm_udev(None)
-

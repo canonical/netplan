@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from .base import TestBase
 
 
@@ -195,7 +192,7 @@ UseMTU=true
                                             'AdSelect=none\n'
                                             'AllSlavesActive=1\n'
                                             'ARPIntervalSec=15ms\n'
-                                            'ARPIPTargets=10.10.10.10,20.20.20.20\n'
+                                            'ARPIPTargets=10.10.10.10 20.20.20.20\n'
                                             'ARPValidate=all\n'
                                             'ARPAllTargets=all\n'
                                             'UpDelaySec=20ms\n'

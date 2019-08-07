@@ -18,7 +18,6 @@
 
 import os
 import stat
-import sys
 
 from .base import TestBase, ND_DHCP4, ND_WIFI_DHCP4
 
@@ -51,6 +50,13 @@ class TestNetworkd(TestBase):
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
+        workplacehashed:
+          auth:
+            key-management: eap
+            method: ttls
+            anonymous-identity: "@internal.example.com"
+            identity: "joe@internal.example.com"
+            password: hash:9db1636cedc5948537e7bee0cc1e9590
         customernet:
           auth:
             key-management: eap
@@ -112,6 +118,16 @@ network={
   identity="joe@internal.example.com"
   anonymous_identity="@internal.example.com"
   password="v3ryS3kr1t"
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="workplacehashed"
+  key_mgmt=WPA-EAP
+  eap=TTLS
+  identity="joe@internal.example.com"
+  anonymous_identity="@internal.example.com"
+  password=hash:9db1636cedc5948537e7bee0cc1e9590
 }
 ''', new_config)
             self.assertIn('''
@@ -216,6 +232,13 @@ class TestNetworkManager(TestBase):
             identity: "joe@internal.example.com"
             password: "v3ryS3kr1t"
             ca-certificate: /etc/ssl/work2-cacrt.pem
+        workplacehashed:
+          auth:
+            key-management: eap
+            method: ttls
+            anonymous-identity: "@internal.example.com"
+            identity: "joe@internal.example.com"
+            password: hash:9db1636cedc5948537e7bee0cc1e9590
         customernet:
           auth:
             key-management: 802.1x
@@ -334,6 +357,33 @@ identity=joe@internal.example.com
 password=v3ryS3kr1t
 ca-cert=/etc/ssl/work2-cacrt.pem
 ''',
+                        'wl0-workplacehashed': '''[connection]
+id=netplan-wl0-workplacehashed
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=workplacehashed
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-eap
+
+[802-1x]
+eap=ttls
+identity=joe@internal.example.com
+anonymous-identity=@internal.example.com
+password=hash:9db1636cedc5948537e7bee0cc1e9590
+''',
                         'wl0-customernet': '''[connection]
 id=netplan-wl0-customernet
 type=wifi
@@ -401,7 +451,6 @@ ssid=peer2peer
 mode=adhoc
 '''})
         self.assert_nm_udev(None)
-
 
     def test_auth_wired(self):
         self.generate('''network:

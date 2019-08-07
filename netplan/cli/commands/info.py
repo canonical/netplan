@@ -19,7 +19,7 @@
 
 from collections import OrderedDict
 import netplan.cli.utils as utils
-import netplan.version_info
+import netplan._features
 
 class NetplanInfo(utils.NetplanCommand):
 
@@ -45,13 +45,12 @@ class NetplanInfo(utils.NetplanCommand):
 
         netplan_version = {
             'netplan.io': {
-                'version': netplan.version_info.version(),
+                'version': netplan._features.NETPLAN_VERSION,
                 'website': 'http://netplan.io/',
             }
         }
 
-        # The C code for version_info gets you Bytes, not strings; decode it to UTF-8.
-        flags = [ x.decode('utf-8') for x in netplan.version_info.features() ]
+        flags = netplan._features.NETPLAN_FEATURE_FLAGS
         netplan_version['netplan.io'].update({'features': flags})
 
         # Default to output in YAML format.
