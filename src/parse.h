@@ -161,6 +161,7 @@ typedef struct dhcp_overrides {
     gboolean use_hostname;
     gboolean use_mtu;
     gboolean use_routes;
+    char* use_domains;
     char* hostname;
     guint metric;
 } dhcp_overrides;

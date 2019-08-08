@@ -385,6 +385,10 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
             exit(1);
         }
+        if (g_strcmp0(def->dhcp4_overrides.use_domains, def->dhcp6_overrides.use_domains) != 0){
+            g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-domains");
+            exit(1);
+        }
         if (def->dhcp4_overrides.use_ntp != def->dhcp6_overrides.use_ntp) {
             g_fprintf(stderr, DHCP_OVERRIDES_ERROR, def->id, "use-ntp");
             exit(1);
@@ -575,6 +579,8 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
             g_string_append_printf(network, "UseRoutes=false\n");
         if (!combined_dhcp_overrides.use_dns)
             g_string_append_printf(network, "UseDNS=false\n");
+        if (combined_dhcp_overrides.use_domains)
+            g_string_append_printf(network, "UseDomains=%s\n", combined_dhcp_overrides.use_domains);
         if (!combined_dhcp_overrides.use_ntp)
             g_string_append_printf(network, "UseNTP=false\n");
         if (!combined_dhcp_overrides.send_hostname)
