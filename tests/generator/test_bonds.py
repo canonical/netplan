@@ -158,7 +158,7 @@ UseMTU=true
   bonds:
     bn0:
       parameters:
-        mode: 802.1ad
+        mode: 802.3ad
         lacp-rate: 10
         mii-monitor-interval: 10
         min-links: 10
@@ -184,7 +184,7 @@ UseMTU=true
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
-                                            'Mode=802.1ad\n'
+                                            'Mode=802.3ad\n'
                                             'LACPTransmitRate=10\n'
                                             'MIIMonitorSec=10ms\n'
                                             'MinLinks=10\n'
@@ -231,7 +231,7 @@ UseMTU=true
   bonds:
     bn0:
       parameters:
-        mode: 802.1ad
+        mode: 802.3ad
         mii-monitor-interval: 10ms
         up-delay: 20ms
         down-delay: 30s
@@ -241,7 +241,7 @@ UseMTU=true
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
-                                            'Mode=802.1ad\n'
+                                            'Mode=802.3ad\n'
                                             'MIIMonitorSec=10ms\n'
                                             'ARPIntervalSec=15m\n'
                                             'UpDelaySec=20ms\n'
@@ -494,7 +494,7 @@ method=ignore
     bn0:
       interfaces: [eno1, switchport]
       parameters:
-        mode: 802.1ad
+        mode: 802.3ad
         lacp-rate: 10
         mii-monitor-interval: 10
         min-links: 10
@@ -555,7 +555,7 @@ type=bond
 interface-name=bn0
 
 [bond]
-mode=802.1ad
+mode=802.3ad
 lacp_rate=10
 miimon=10
 min_links=10
@@ -654,6 +654,23 @@ method=ignore
 
 
 class TestConfigErrors(TestBase):
+
+    def test_bond_invalid_mode(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bonds:
+    bond0:
+      interfaces: [eno1]
+      parameters:
+        mode: lacp
+        arp-ip-targets:
+          - 2001:dead:beef::1
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("unknown bond mode 'lacp'", err)
 
     def test_bond_invalid_arp_target(self):
         self.generate('''network:
