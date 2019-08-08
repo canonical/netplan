@@ -1557,6 +1557,7 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},                   \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                          \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                          \
+    {"ipv6-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(ipv6_mtubytes)},  \
     {"ipv6-privacy", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ip6_privacy)}, \
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                                    \
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},        \

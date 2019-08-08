@@ -494,6 +494,10 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append(network, "\n");
     }
 
+    if (def->ipv6_mtubytes) {
+        g_string_append_printf(network, "IPv6MTUBytes=%d\n", def->ipv6_mtubytes);
+    }
+
     if (def->type >= ND_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
