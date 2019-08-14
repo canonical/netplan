@@ -46,7 +46,7 @@ class NetplanInfo(utils.NetplanCommand):
         netplan_version = {
             'netplan.io': {
                 'version': netplan._features.NETPLAN_VERSION,
-                'website': 'http://netplan.io/',
+                'website': 'https://netplan.io/',
             }
         }
 
