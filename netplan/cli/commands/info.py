@@ -17,9 +17,9 @@
 
 '''netplan info command line'''
 
-from collections import OrderedDict
 import netplan.cli.utils as utils
 import netplan._features
+
 
 class NetplanInfo(utils.NetplanCommand):
 
