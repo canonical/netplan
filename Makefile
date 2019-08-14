@@ -104,10 +104,10 @@ install: default
 	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/netplan-wpa@.service
 	install -T -D -m 644 netplan.completions $(DESTDIR)/$(BASH_COMPLETIONS_DIR)/netplan
 	# dbus
-	mkdir -p $(DESTDIR)/share/dbus-1/system.d $(DESTDIR)/share/dbus-1/system-services
+	mkdir -p $(DESTDIR)$(PREFIX)/share/dbus-1/system.d $(DESTDIR)$(PREFIX)/share/dbus-1/system-services
 	install -m 755 netplan-dbus $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
-	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)/share/dbus-1/system.d/
-	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/share/dbus-1/system-services/
+	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)$(PREFIX)/share/dbus-1/system.d/
+	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)$(PREFIX)/share/dbus-1/system-services/
 
 %.service: %.service.in
 	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)/#" $< > $@
