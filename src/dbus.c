@@ -11,6 +11,13 @@
 
 #include "_features.h"
 
+// LCOV_EXCL_START
+/* XXX: (cyphermox)
+ * This file  is completely excluded from coverage on purpose. Tests should
+ * still include code in here, but sadly coverage does not appear to
+ * correctly capture tests being run over a DBus bus.
+ */
+
 static int method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
@@ -144,3 +151,5 @@ finish:
 
     return r < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
+
+// LCOV_EXCL_STOP
