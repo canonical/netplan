@@ -13,6 +13,7 @@ SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir sy
 SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
 BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completion || echo "/etc/bash_completion.d")
 
+GCOV ?= gcov
 ROOTPREFIX ?= /
 PREFIX ?= /usr
 ROOTLIBEXECDIR ?= $(ROOTPREFIX)/lib
@@ -79,7 +80,7 @@ check-coverage: coverage
 	python3-coverage report --omit=/usr* --show-missing --fail-under=100
 
 c-coverage:
-	lcov --directory . --capture -o generate.info
+	lcov --directory . --capture --gcov-tool=$(GCOV) -o generate.info
 	lcov --remove generate.info "/usr*" -o generate.info
 	genhtml -o test-coverage/C/ -t "generate test coverage" generate.info
 
