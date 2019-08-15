@@ -7,4 +7,6 @@ __pycache__
 *.pyc
 .coverage
 .vscode
+src/_features.h
+netplan/_features.py
 dbus/io.netplan.Netplan.service

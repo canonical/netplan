@@ -31,6 +31,8 @@
 
 GString* udev_rules;
 
+/* netplan-feature: renderer_nm */
+
 /**
  * Append NM device specifier of @def to @s.
  */

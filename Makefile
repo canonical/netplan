@@ -1,6 +1,9 @@
+NETPLAN_VERSION=2.98.1
+
 BUILDFLAGS = \
 	-std=c99 \
 	-D_XOPEN_SOURCE=500 \
+	-DNETPLAN_VERSION='"$(NETPLAN_VERSION)"' \
 	-DSBINDIR=\"$(SBINDIR)\" \
 	-Wall \
 	-Werror \
@@ -10,6 +13,7 @@ SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir sy
 SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
 BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completion || echo "/etc/bash_completion.d")
 
+GCOV ?= gcov
 ROOTPREFIX ?= /
 PREFIX ?= /usr
 ROOTLIBEXECDIR ?= $(ROOTPREFIX)/lib
@@ -26,15 +30,28 @@ PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
 PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
 NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
 
-default: generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
+default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
 
 generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-netplan-dbus: src/dbus.c
+netplan-dbus: src/dbus.c src/_features.h
 	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
 
+src/_features.h: src/[^_]*.[hc]
+	echo "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {" > $@
+	awk 'match ($$0, /netplan-feature:.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "\""$$2"\"," }' $^ >> $@
+	echo "NULL, };" >> $@
+
+netplan/_features.py: src/[^_]*.[hc]
+	echo "# Generated file" > $@
+	echo "NETPLAN_VERSION = \"$(NETPLAN_VERSION)\"" >> $@
+	echo "NETPLAN_FEATURE_FLAGS = [" >> $@
+	awk 'match ($$0, /netplan-feature:.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "    \""$$2"\"," }' $^ >> $@
+	echo "]" >> $@
+
 clean:
+	rm -f netplan/_features.py src/_features.h
 	rm -f generate doc/*.html doc/*.[1-9]
 	rm -f netplan-dbus dbus/*.service
 	rm -f *.gcda *.gcno generate.info
@@ -63,7 +80,7 @@ check-coverage: coverage
 	python3-coverage report --omit=/usr* --show-missing --fail-under=100
 
 c-coverage:
-	lcov --directory . --capture -o generate.info
+	lcov --directory . --capture --gcov-tool=$(GCOV) -o generate.info
 	lcov --remove generate.info "/usr*" -o generate.info
 	genhtml -o test-coverage/C/ -t "generate test coverage" generate.info
 
@@ -88,10 +105,10 @@ install: default
 	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/netplan-wpa@.service
 	install -T -D -m 644 netplan.completions $(DESTDIR)/$(BASH_COMPLETIONS_DIR)/netplan
 	# dbus
-	mkdir -p $(DESTDIR)/share/dbus-1/system.d $(DESTDIR)/share/dbus-1/system-services
+	mkdir -p $(DESTDIR)$(PREFIX)/share/dbus-1/system.d $(DESTDIR)$(PREFIX)/share/dbus-1/system-services
 	install -m 755 netplan-dbus $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
-	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)/share/dbus-1/system.d/
-	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/share/dbus-1/system-services/
+	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)$(PREFIX)/share/dbus-1/system.d/
+	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)$(PREFIX)/share/dbus-1/system-services/
 
 %.service: %.service.in
 	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)/#" $< > $@
