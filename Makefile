@@ -14,7 +14,7 @@ SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
 BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completion || echo "/etc/bash_completion.d")
 
 GCOV ?= gcov
-ROOTPREFIX ?= /
+ROOTPREFIX ?=
 PREFIX ?= /usr
 ROOTLIBEXECDIR ?= $(ROOTPREFIX)/lib
 LIBEXECDIR ?= $(PREFIX)/lib
@@ -105,13 +105,13 @@ install: default
 	install -D -m 644 src/netplan-wpa@.service $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/netplan-wpa@.service
 	install -T -D -m 644 netplan.completions $(DESTDIR)/$(BASH_COMPLETIONS_DIR)/netplan
 	# dbus
-	mkdir -p $(DESTDIR)$(PREFIX)/share/dbus-1/system.d $(DESTDIR)$(PREFIX)/share/dbus-1/system-services
+	mkdir -p $(DESTDIR)/$(DATADIR)/dbus-1/system.d $(DESTDIR)/$(DATADIR)/dbus-1/system-services
 	install -m 755 netplan-dbus $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
-	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)$(PREFIX)/share/dbus-1/system.d/
-	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)$(PREFIX)/share/dbus-1/system-services/
+	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)/$(DATADIR)/dbus-1/system.d/
+	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/$(DATADIR)/dbus-1/system-services/
 
 %.service: %.service.in
-	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)/#" $< > $@
+	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)#" $< > $@
 
 
 %.html: %.md
