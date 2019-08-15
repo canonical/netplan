@@ -572,7 +572,6 @@ class TestInfo(unittest.TestCase):
         """
         out = subprocess.check_output(exe_cli + ['info'])
         self.assertIn(b'features:', out)
-        self.assertIn(b'- renderer', out)
 
     def test_info_yaml(self):
         """
