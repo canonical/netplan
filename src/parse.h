@@ -20,6 +20,9 @@
 #include <uuid.h>
 #include <yaml.h>
 
+#define NETPLAN_VERSION_MIN	2
+#define NETPLAN_VERSION_MAX	3
+
 
 /* file that is currently being processed, for useful error messages */
 const char* current_file;

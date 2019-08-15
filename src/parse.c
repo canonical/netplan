@@ -1196,6 +1196,7 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
     }
     return TRUE;
 }
+
 const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.ageing_time)},
     {"forward-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.forward_delay)},
@@ -1633,7 +1634,11 @@ const mapping_entry_handler tunnel_def_handlers[] = {
 static gboolean
 handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    if (strcmp(scalar(node), "2") != 0)
+    long mangled_version;
+
+    mangled_version = strtol(scalar(node), NULL, 10);
+
+    if (mangled_version < NETPLAN_VERSION_MIN || mangled_version >= NETPLAN_VERSION_MAX)
         return yaml_error(node, error, "Only version 2 is supported");
     return TRUE;
 }

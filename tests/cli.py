@@ -563,6 +563,32 @@ iface en1 inet6 static
         self.assertTrue(os.path.exists(self.ifaces_path))
 
 
+class TestInfo(unittest.TestCase):
+    '''Test netplan info'''
+
+    def test_info_defaults(self):
+        """
+        Check that 'netplan info' outputs at all, should include website URL
+        """
+        out = subprocess.check_output(exe_cli + ['info'])
+        self.assertIn(b'features:', out)
+        self.assertIn(b'- renderer', out)
+
+    def test_info_yaml(self):
+        """
+        Verify that 'netplan info --yaml' output looks a bit like YAML
+        """
+        out = subprocess.check_output(exe_cli + ['info', '--yaml'])
+        self.assertIn(b'features:', out)
+
+    def test_info_json(self):
+        """
+        Verify that 'netplan info --json' output looks a bit like JSON
+        """
+        out = subprocess.check_output(exe_cli + ['info', '--json'])
+        self.assertIn(b'"features": [', out)
+
+
 class TestIp(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
