@@ -343,6 +343,9 @@ UseMTU=true
     def test_dhcp_overrides_use_dns(self):
         self.assert_dhcp_overrides_bool('use-dns', 'UseDNS')
 
+    def test_dhcp_overrides_use_domains(self):
+        self.assert_dhcp_overrides_string('use-domains', 'UseDomains')
+
     def test_dhcp_overrides_use_ntp(self):
         self.assert_dhcp_overrides_bool('use-ntp', 'UseNTP')
 

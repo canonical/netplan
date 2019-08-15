@@ -760,6 +760,26 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
 }
 
 /**
+ * Handler for bond "mode" types.
+ * @data: offset into net_definition where the const char* field to write is
+ *        located
+ */
+static gboolean
+handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (!(strcmp(scalar(node), "balance-rr") == 0 ||
+        strcmp(scalar(node), "active-backup") == 0 ||
+        strcmp(scalar(node), "balance-xor") == 0 ||
+        strcmp(scalar(node), "broadcast") == 0 ||
+        strcmp(scalar(node), "802.3ad") == 0 ||
+        strcmp(scalar(node), "balance-tlb") == 0 ||
+        strcmp(scalar(node), "balance-alb") == 0))
+        return yaml_error(node, error, "unknown bond mode '%s'", scalar(node));
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+/**
  * Handler for bond "interfaces:" list.
  * @data: ignored
  */
@@ -1346,7 +1366,7 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
 }
 
 const mapping_entry_handler bond_params_handlers[] = {
-    {"mode", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.mode)},
+    {"mode", YAML_SCALAR_NODE, handle_bond_mode, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
     {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.monitor_interval)},
     {"min-links", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.min_links)},
@@ -1511,6 +1531,7 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
+    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},      \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
     {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
@@ -1538,6 +1559,7 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},                   \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                          \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                          \
+    {"ipv6-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(ipv6_mtubytes)},  \
     {"ipv6-privacy", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ip6_privacy)}, \
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                                    \
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},        \
@@ -1631,6 +1653,7 @@ static void
 initialize_dhcp_overrides(dhcp_overrides* overrides)
 {
     overrides->use_dns = TRUE;
+    overrides->use_domains = NULL;
     overrides->use_ntp = TRUE;
     overrides->send_hostname = TRUE;
     overrides->use_hostname = TRUE;

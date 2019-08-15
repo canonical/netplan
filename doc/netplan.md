@@ -163,6 +163,10 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
+``ipv6-mtu`` (scalar)
+:   Set the IPv6 MTU (only supported with `networkd` backend). Note
+    that needing to set this is an unusual requirement.
+
 ``ipv6-privacy`` (bool)
 
 :   Enable IPv6 Privacy Extensions (RFC 4941) for the specified interface, and
@@ -387,6 +391,15 @@ client processes as specified in the netplan YAML.
           Use this to prioritize routes for devices by setting a higher metric
           on a preferred interface. Available for both the ``networkd`` and
           ``NetworkManager`` backends.
+
+     ``use-domains`` (scalar)
+     :    Takes a boolean, or the special value "route". When true, the domain 
+          name received from the DHCP server will be used as DNS search domain
+          over this link, similar to the effect of the Domains= setting. If set
+          to "route", the domain name received from the DHCP server will be 
+          used for routing DNS queries only, but not for searching, similar to
+          the effect of the Domains= setting when the argument is prefixed with
+          "~".
 
 
 ## Routing

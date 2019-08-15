@@ -164,6 +164,7 @@ typedef struct dhcp_overrides {
     gboolean use_hostname;
     gboolean use_mtu;
     gboolean use_routes;
+    char* use_domains;
     char* hostname;
     guint metric;
 } dhcp_overrides;
@@ -219,6 +220,8 @@ typedef struct net_definition {
 
     /* interface mtu */
     guint mtubytes;
+    /* ipv6 mtu */
+    guint ipv6_mtubytes;
 
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;

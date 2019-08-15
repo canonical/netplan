@@ -433,6 +433,11 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     if (def->bond)
         g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
 
+    if (def->ipv6_mtubytes) {
+        g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support ipv6-mtu\n", def->id);
+        exit(1);
+    }
+
     if (def->type < ND_VIRTUAL) {
         GString *link_str = NULL;
 
