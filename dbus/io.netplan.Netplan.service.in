@@ -2,3 +2,4 @@
 Name=io.netplan.Netplan
 Exec=@ROOTLIBEXECDIR@/netplan/netplan-dbus
 User=root
+AssumedAppArmorLabel=unconfined
