@@ -159,6 +159,17 @@ class TestNetplanDBus(unittest.TestCase):
                 ["netplan", "apply"],
         ])
 
+    def test_netplan_dbus_info(self):
+        BUSCTL_NETPLAN_INFO = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Info",
+        ]
+        output = subprocess.check_output(BUSCTL_NETPLAN_INFO)
+        self.assertIn("Features", output.decode("utf-8"))
+
     def test_netplan_dbus_no_such_command(self):
         p = subprocess.Popen(
             ["busctl", "call",
