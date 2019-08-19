@@ -181,4 +181,4 @@ class TestNetplanDBus(unittest.TestCase):
         p.wait()
         self.assertEqual(p.returncode, 1)
         self.assertEqual(p.stdout.read().decode("utf-8"), "")
-        self.assertEqual(p.stderr.read().decode("utf-8"), "Unknown method 'NoSuchCommand' or interface 'io.netplan.Netplan'.\n")
+        self.assertIn("Unknown method", p.stderr.read().decode("utf-8"))
