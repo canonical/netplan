@@ -167,6 +167,8 @@ Virtual devices
 :   Set the IPv6 MTU (only supported with `networkd` backend). Note
     that needing to set this is an unusual requirement.
 
+    **Requires feature: ipv6-mtu**
+
 ``ipv6-privacy`` (bool)
 
 :   Enable IPv6 Privacy Extensions (RFC 4941) for the specified interface, and
@@ -400,6 +402,8 @@ client processes as specified in the netplan YAML.
           used for routing DNS queries only, but not for searching, similar to
           the effect of the Domains= setting when the argument is prefixed with
           "~".
+
+i         **Requires feature: dhcp-use-domains**
 
 
 ## Routing
