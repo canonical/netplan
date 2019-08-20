@@ -403,7 +403,7 @@ client processes as specified in the netplan YAML.
           the effect of the Domains= setting when the argument is prefixed with
           "~".
 
-i         **Requires feature: dhcp-use-domains**
+          **Requires feature: dhcp-use-domains**
 
 
 ## Routing
