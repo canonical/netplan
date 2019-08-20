@@ -1,9 +1,6 @@
-NETPLAN_VERSION=2.98.1
-
 BUILDFLAGS = \
 	-std=c99 \
 	-D_XOPEN_SOURCE=500 \
-	-DNETPLAN_VERSION='"$(NETPLAN_VERSION)"' \
 	-DSBINDIR=\"$(SBINDIR)\" \
 	-Wall \
 	-Werror \
@@ -45,7 +42,6 @@ src/_features.h: src/[^_]*.[hc]
 
 netplan/_features.py: src/[^_]*.[hc]
 	echo "# Generated file" > $@
-	echo "NETPLAN_VERSION = \"$(NETPLAN_VERSION)\"" >> $@
 	echo "NETPLAN_FEATURE_FLAGS = [" >> $@
 	awk 'match ($$0, /netplan-feature:.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "    \""$$2"\"," }' $^ >> $@
 	echo "]" >> $@

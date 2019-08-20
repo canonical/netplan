@@ -58,10 +58,6 @@ static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
     if (exit_status < 0)
        return exit_status;
 
-    exit_status = sd_bus_message_append(reply, "(sv)", "Version", "s", NETPLAN_VERSION);
-    if (exit_status < 0)
-       return exit_status;
-
     exit_status = sd_bus_message_open_container(reply, 'r', "sv");
     if (exit_status < 0)
        return exit_status;
