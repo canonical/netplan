@@ -514,8 +514,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
-            self.assertIn('192.168.5.1', f.read().strip())
-            self.assertIn('192.168.5.34', f.read().strip())
+            result = f.read().strip()
+            self.assertIn('192.168.5.1', result)
+            self.assertIn('192.168.5.34', result)
 
     def test_bond_arp_all_targets(self):
         self.setup_eth(None)
