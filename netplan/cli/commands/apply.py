@@ -118,6 +118,9 @@ class NetplanApply(utils.NetplanCommand):
         else:
             logging.debug('no netplan generated NM configuration exists')
 
+        # Refresh devices now; restarting a backend might have made something appear.
+        devices = netifaces.interfaces()
+
         # evaluate config for extra steps we need to take (like renaming)
         # for now, only applies to non-virtual (real) devices.
         config_manager.parse()
