@@ -33,7 +33,7 @@ generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/n
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 netplan-dbus: src/dbus.c src/_features.h
-	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
 
 src/_features.h: src/[^_]*.[hc]
 	echo "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {" > $@
