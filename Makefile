@@ -36,7 +36,7 @@ netplan-dbus: src/dbus.c src/_features.h
 	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
 
 src/_features.h: src/[^_]*.[hc]
-	echo "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {" > $@
+	printf "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {\n" > $@
 	awk 'match ($$0, /netplan-feature:.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "\""$$2"\"," }' $^ >> $@
 	echo "NULL, };" >> $@
 
