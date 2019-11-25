@@ -58,6 +58,9 @@ unmanaged-devices+=interface-name:eth0,''')
                               'eth1.network': '''[Match]
 Name=eth1
 
+[Link]
+MTUBytes=1280
+
 [Network]
 LinkLocalAddressing=ipv6
 '''})

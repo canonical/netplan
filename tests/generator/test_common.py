@@ -104,13 +104,26 @@ ConfigureWithoutCarrier=yes
             'bond0.network': '''[Match]
 Name=bond0
 
+[Link]
+MTUBytes=9000
+
 [Network]
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 VLAN=bond0.108
 ''',
             'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=9000\n',
-            'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nIPv6MTUBytes=2000\nBond=bond0\n'
+            'eth1.network': '''[Match]
+Name=eth1
+
+[Link]
+MTUBytes=9000
+
+[Network]
+LinkLocalAddressing=no
+IPv6MTUBytes=2000
+Bond=bond0
+'''
         })
         self.assert_networkd_udev(None)
 
