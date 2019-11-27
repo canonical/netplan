@@ -448,6 +448,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         }
     }
 
+    if (def->mtubytes) {
+        g_string_append_printf(link, "MTUBytes=%d\n", def->mtubytes);
+    }
 
     if (def->dhcp4 && def->dhcp6)
         g_string_append(network, "DHCP=yes\n");
