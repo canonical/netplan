@@ -1520,6 +1520,14 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
  * Grammar and handlers for network devices
  ****************************************************/
 
+const mapping_entry_handler nm_backend_settings_handlers[] = {
+    {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.name)},
+    {"uuid", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
+    {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
+    {NULL}
+};
+
 const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
     {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
@@ -1572,6 +1580,9 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                            \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
 
+#define COMMON_BACKEND_HANDLERS							\
+    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}
+
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS                                                           \
     {"match", YAML_MAPPING_NODE, handle_match},                                          \
@@ -1580,6 +1591,7 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
 
 const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"auth", YAML_MAPPING_NODE, handle_auth},
     {NULL}
@@ -1587,6 +1599,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
 
 const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {"auth", YAML_MAPPING_NODE, handle_auth},
@@ -1595,6 +1608,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
 
 const mapping_entry_handler bridge_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
     {NULL}
@@ -1602,6 +1616,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
 
 const mapping_entry_handler bond_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
     {NULL}
@@ -1609,6 +1624,7 @@ const mapping_entry_handler bond_def_handlers[] = {
 
 const mapping_entry_handler vlan_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
     {NULL}
@@ -1616,6 +1632,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
 
 const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
     {"local", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.local_ip)},
     {"remote", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.remote_ip)},

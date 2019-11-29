@@ -289,6 +289,18 @@ struct net_definition {
 
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
+
+    union {
+        struct NetplanNMSettings {
+            char *name;
+            char *uuid;
+            char *stable_id;
+            char *device;
+        } nm;
+        struct NetplanNetworkdSettings {
+            char *unit;
+        } networkd;
+    } backend_settings;
 };
 
 typedef enum {
