@@ -46,10 +46,10 @@ generate: libnetplan.so.$(NETPLAN_SOVER) util.o nm.o networkd.o error.o src/gene
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 netplan-dbus: src/dbus.c src/_features.h
-	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
 
 src/_features.h: src/[^_]*.[hc]
-	echo "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {" > $@
+	printf "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {\n" > $@
 	awk 'match ($$0, /netplan-feature:.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "\""$$2"\"," }' $^ >> $@
 	echo "NULL, };" >> $@
 
