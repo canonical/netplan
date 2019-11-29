@@ -36,20 +36,20 @@ GString* udev_rules;
  * Append NM device specifier of @def to @s.
  */
 static void
-g_string_append_netdef_match(GString* s, const net_definition* def)
+g_string_append_netdef_match(GString* s, const NetplanNetDefinition* def)
 {
     g_assert(!def->match.driver || def->set_name);
     if (def->match.mac) {
         g_string_append_printf(s, "mac:%s", def->match.mac);
-    } else if (def->match.original_name || def->set_name || def->type >= ND_VIRTUAL) {
+    } else if (def->match.original_name || def->set_name || def->type >= NETPLAN_DEF_TYPE_VIRTUAL) {
         /* we always have the renamed name here */
         g_string_append_printf(s, "interface-name:%s",
-                (def->type >= ND_VIRTUAL) ? def->id
+                (def->type >= NETPLAN_DEF_TYPE_VIRTUAL) ? def->id
                                           : (def->set_name ?: def->match.original_name));
     } else {
         /* no matches → match all devices of that type */
         switch (def->type) {
-            case ND_ETHERNET:
+            case NETPLAN_DEF_TYPE_ETHERNET:
                 g_string_append(s, "type:ethernet");
                 break;
             /* This cannot be reached with just NM and networkd backends, as
@@ -57,7 +57,7 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
              * wifi device from NM. This would become relevant with another
              * wifi-supporting backend, but until then this just spoils 100%
              * code coverage.
-            case ND_WIFI:
+            case NETPLAN_DEF_TYPE_WIFI:
                 g_string_append(s, "type:wifi");
                 break;
             */
@@ -74,20 +74,20 @@ g_string_append_netdef_match(GString* s, const net_definition* def)
  * Return NM "type=" string.
  */
 static const char*
-type_str(netdef_type type)
+type_str(const NetplanDefType type)
 {
     switch (type) {
-        case ND_ETHERNET:
+        case NETPLAN_DEF_TYPE_ETHERNET:
             return "ethernet";
-        case ND_WIFI:
+        case NETPLAN_DEF_TYPE_WIFI:
             return "wifi";
-        case ND_BRIDGE:
+        case NETPLAN_DEF_TYPE_BRIDGE:
             return "bridge";
-        case ND_BOND:
+        case NETPLAN_DEF_TYPE_BOND:
             return "bond";
-        case ND_VLAN:
+        case NETPLAN_DEF_TYPE_VLAN:
             return "vlan";
-        case ND_TUNNEL:
+        case NETPLAN_DEF_TYPE_TUNNEL:
             return "ip-tunnel";
         // LCOV_EXCL_START
         default:
@@ -100,14 +100,14 @@ type_str(netdef_type type)
  * Return NM wifi "mode=" string.
  */
 static const char*
-wifi_mode_str(wifi_mode mode)
+wifi_mode_str(const NetplanWifiMode mode)
 {
     switch (mode) {
-        case WIFI_MODE_INFRASTRUCTURE:
+        case NETPLAN_WIFI_MODE_INFRASTRUCTURE:
             return "infrastructure";
-        case WIFI_MODE_ADHOC:
+        case NETPLAN_WIFI_MODE_ADHOC:
             return "adhoc";
-        case WIFI_MODE_AP:
+        case NETPLAN_WIFI_MODE_AP:
             return "ap";
         // LCOV_EXCL_START
         default:
@@ -117,7 +117,7 @@ wifi_mode_str(wifi_mode mode)
 }
 
 static void
-write_search_domains(const net_definition* def, GString *s)
+write_search_domains(const NetplanNetDefinition* def, GString *s)
 {
     if (def->search_domains) {
         g_string_append(s, "dns-search=");
@@ -128,11 +128,11 @@ write_search_domains(const net_definition* def, GString *s)
 }
 
 static void
-write_routes(const net_definition* def, GString *s, int family)
+write_routes(const NetplanNetDefinition* def, GString *s, int family)
 {
     if (def->routes != NULL) {
         for (unsigned i = 0, j = 1; i < def->routes->len; ++i) {
-            ip_route *cur_route = g_array_index(def->routes, ip_route*, i);
+            const NetplanIPRoute *cur_route = g_array_index(def->routes, NetplanIPRoute*, i);
 
             if (cur_route->family != family)
                 continue;
@@ -147,7 +147,7 @@ write_routes(const net_definition* def, GString *s, int family)
                 exit(1);
             }
 
-            if (cur_route->table != ROUTE_TABLE_UNSPEC) {
+            if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
                 g_fprintf(stderr, "ERROR: %s: NetworkManager does not support non-default routing tables\n", def->id);
                 exit(1);
             }
@@ -164,7 +164,7 @@ write_routes(const net_definition* def, GString *s, int family)
 
             g_string_append_printf(s, "route%d=%s,%s",
                                    j, cur_route->to, cur_route->via);
-            if (cur_route->metric != METRIC_UNSPEC)
+            if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
                 g_string_append_printf(s, ",%d", cur_route->metric);
             g_string_append(s, "\n");
             j++;
@@ -173,7 +173,7 @@ write_routes(const net_definition* def, GString *s, int family)
 }
 
 static void
-write_bond_parameters(const net_definition* def, GString *s)
+write_bond_parameters(const NetplanNetDefinition* def, GString *s)
 {
     GString* params = NULL;
 
@@ -237,7 +237,7 @@ write_bond_parameters(const net_definition* def, GString *s)
 }
 
 static void
-write_bridge_params(const net_definition* def, GString *s)
+write_bridge_params(const NetplanNetDefinition* def, GString *s)
 {
     GString* params = NULL;
 
@@ -263,7 +263,7 @@ write_bridge_params(const net_definition* def, GString *s)
 }
 
 static void
-write_tunnel_params(const net_definition* def, GString *s)
+write_tunnel_params(const NetplanNetDefinition* def, GString *s)
 {
     g_string_append(s, "\n[ip-tunnel]\n");
 
@@ -278,23 +278,23 @@ write_tunnel_params(const net_definition* def, GString *s)
 }
 
 static void
-write_dot1x_auth_parameters(const authentication_settings* auth, GString *s)
+write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GString *s)
 {
-    if (auth->eap_method == EAP_NONE) {
+    if (auth->eap_method == NETPLAN_AUTH_EAP_NONE) {
         return;
     }
 
     g_string_append_printf(s, "\n[802-1x]\n");
 
     switch (auth->eap_method) {
-        case EAP_NONE: break; // LCOV_EXCL_LINE
-        case EAP_TLS:
+        case NETPLAN_AUTH_EAP_NONE: break; // LCOV_EXCL_LINE
+        case NETPLAN_AUTH_EAP_TLS:
             g_string_append(s, "eap=tls\n");
             break;
-        case EAP_PEAP:
+        case NETPLAN_AUTH_EAP_PEAP:
             g_string_append(s, "eap=peap\n");
             break;
-        case EAP_TTLS:
+        case NETPLAN_AUTH_EAP_TTLS:
             g_string_append(s, "eap=ttls\n");
             break;
     }
@@ -305,7 +305,7 @@ write_dot1x_auth_parameters(const authentication_settings* auth, GString *s)
     if (auth->anonymous_identity) {
         g_string_append_printf(s, "anonymous-identity=%s\n", auth->anonymous_identity);
     }
-    if (auth->password && auth->key_management != KEY_MANAGEMENT_WPA_PSK) {
+    if (auth->password && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK) {
         g_string_append_printf(s, "password=%s\n", auth->password);
     }
     if (auth->ca_certificate) {
@@ -323,26 +323,26 @@ write_dot1x_auth_parameters(const authentication_settings* auth, GString *s)
 }
 
 static void
-write_wifi_auth_parameters(const authentication_settings* auth, GString *s)
+write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GString *s)
 {
-    if (auth->key_management == KEY_MANAGEMENT_NONE) {
+    if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_NONE) {
         return;
     }
 
     g_string_append(s, "\n[wifi-security]\n");
 
     switch (auth->key_management) {
-        case KEY_MANAGEMENT_NONE: break; // LCOV_EXCL_LINE
-        case KEY_MANAGEMENT_WPA_PSK:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_NONE: break; // LCOV_EXCL_LINE
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
             g_string_append(s, "key-mgmt=wpa-psk\n");
             if (auth->password) {
                 g_string_append_printf(s, "psk=%s\n", auth->password);
             }
             break;
-        case KEY_MANAGEMENT_WPA_EAP:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
             g_string_append(s, "key-mgmt=wpa-eap\n");
             break;
-        case KEY_MANAGEMENT_8021X:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
             g_string_append(s, "key-mgmt=ieee8021x\n");
             break;
     }
@@ -351,7 +351,7 @@ write_wifi_auth_parameters(const authentication_settings* auth, GString *s)
 }
 
 static void
-maybe_generate_uuid(net_definition* def)
+maybe_generate_uuid(NetplanNetDefinition* def)
 {
     if (uuid_is_null(def->uuid))
         uuid_generate(def->uuid);
@@ -359,23 +359,23 @@ maybe_generate_uuid(net_definition* def)
 
 /**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
- * particular net_definition and wifi_access_point, as NM requires a separate
+ * particular NetplanNetDefinition and NetplanWifiAccessPoint, as NM requires a separate
  * connection file for each SSID.
- * @def: The net_definition for which to create a connection
+ * @def: The NetplanNetDefinition for which to create a connection
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  * @ap: The access point for which to create a connection. Must be %NULL for
  *      non-wifi types.
  */
 static void
-write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_access_point* ap)
+write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const NetplanWifiAccessPoint* ap)
 {
     GString *s = NULL;
     g_autofree char* conf_path = NULL;
     mode_t orig_umask;
     char uuidstr[37];
 
-    if (def->type == ND_WIFI)
+    if (def->type == NETPLAN_DEF_TYPE_WIFI)
         g_assert(ap);
     else
         g_assert(ap == NULL);
@@ -395,7 +395,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append_printf(s, "uuid=%s\n", uuidstr);
     }
 
-    if (def->type < ND_VIRTUAL) {
+    if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
         /* physical (existing) devices use matching; driver matching is not
          * supported, MAC matching is done below (different keyfile section),
          * so only match names here */
@@ -416,7 +416,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         /* virtual (created) devices set a name */
         g_string_append_printf(s, "interface-name=%s\n", def->id);
 
-        if (def->type == ND_BRIDGE)
+        if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
             write_bridge_params(def, s);
     }
     if (def->bridge) {
@@ -437,7 +437,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         exit(1);
     }
 
-    if (def->type < ND_VIRTUAL) {
+    if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
         GString *link_str = NULL;
 
         link_str = g_string_new(NULL);
@@ -456,7 +456,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
         if (link_str->len > 0) {
             switch (def->type) {
-                case ND_WIFI:
+                case NETPLAN_DEF_TYPE_WIFI:
                     g_string_append_printf(s, "\n[802-11-wireless]\n%s", link_str->str);  break;
                 default:
                     g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);  break;
@@ -483,7 +483,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_free(link_str, TRUE);
     }
 
-    if (def->type == ND_VLAN) {
+    if (def->type == NETPLAN_DEF_TYPE_VLAN) {
         g_assert(def->vlan_id < G_MAXUINT);
         g_assert(def->vlan_link != NULL);
         g_string_append_printf(s, "\n[vlan]\nid=%u\nparent=", def->vlan_id);
@@ -499,22 +499,22 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         }
     }
 
-    if (def->type == ND_BOND)
+    if (def->type == NETPLAN_DEF_TYPE_BOND)
         write_bond_parameters(def, s);
 
-    if (def->type == ND_TUNNEL)
+    if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         write_tunnel_params(def, s);
 
     g_string_append(s, "\n[ipv4]\n");
 
-    if (ap && ap->mode == WIFI_MODE_AP)
+    if (ap && ap->mode == NETPLAN_WIFI_MODE_AP)
         g_string_append(s, "method=shared\n");
     else if (def->dhcp4)
         g_string_append(s, "method=auto\n");
     else if (def->ip4_addresses)
         /* This requires adding at least one address (done below) */
         g_string_append(s, "method=manual\n");
-    else if (def->type == ND_TUNNEL)
+    else if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         /* sit tunnels will not start in link-local apparently */
         g_string_append(s, "method=disabled\n");
     else
@@ -544,7 +544,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         g_string_append(s, "never-default=true\n");
     }
 
-    if (def->dhcp4 && def->dhcp4_overrides.metric != METRIC_UNSPEC)
+    if (def->dhcp4 && def->dhcp4_overrides.metric != NETPLAN_METRIC_UNSPEC)
         g_string_append_printf(s, "route-metric=%u\n", def->dhcp4_overrides.metric);
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
@@ -575,7 +575,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
             g_string_append(s, "never-default=true\n");
         }
 
-        if (def->dhcp6_overrides.metric != METRIC_UNSPEC)
+        if (def->dhcp6_overrides.metric != NETPLAN_METRIC_UNSPEC)
             g_string_append_printf(s, "route-metric=%u\n", def->dhcp6_overrides.metric);
     }
     else {
@@ -605,14 +605,14 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
 /**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
- * particular net_definition.
+ * particular NetplanNetDefinition.
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
 void
-write_nm_conf(net_definition* def, const char* rootdir)
+write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
 {
-    if (def->backend != BACKEND_NM) {
+    if (def->backend != NETPLAN_BACKEND_NM) {
         g_debug("NetworkManager: definition %s is not for us (backend %i)", def->id, def->backend);
         return;
     }
@@ -623,10 +623,10 @@ write_nm_conf(net_definition* def, const char* rootdir)
     }
 
     /* for wifi we need to create a separate connection file for every SSID */
-    if (def->type == ND_WIFI) {
+    if (def->type == NETPLAN_DEF_TYPE_WIFI) {
         GHashTableIter iter;
         gpointer key;
-        wifi_access_point* ap;
+        const NetplanWifiAccessPoint* ap;
         g_assert(def->access_points);
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
@@ -640,9 +640,9 @@ write_nm_conf(net_definition* def, const char* rootdir)
 static void
 nd_append_non_nm_ids(gpointer data, gpointer str)
 {
-    net_definition* nd = data;
+    const NetplanNetDefinition* nd = data;
 
-    if (nd->backend != BACKEND_NM) {
+    if (nd->backend != NETPLAN_BACKEND_NM) {
         if (nd->match.driver) {
             /* NM cannot match on drivers, so ignore these via udev rules */
             if (!udev_rules)

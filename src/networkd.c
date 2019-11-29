@@ -32,7 +32,7 @@
  * Append [Match] section of @def to @s.
  */
 static void
-append_match_section(net_definition* def, GString* s, gboolean match_rename)
+append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match_rename)
 {
     /* Note: an empty [Match] section is interpreted as matching all devices,
      * which is what we want for the simple case that you only have one device
@@ -48,7 +48,7 @@ append_match_section(net_definition* def, GString* s, gboolean match_rename)
     if (!match_rename && def->match.original_name)
         g_string_append_printf(s, "OriginalName=%s\n", def->match.original_name);
     if (match_rename) {
-        if (def->type >= ND_VIRTUAL)
+        if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
             g_string_append_printf(s, "Name=%s\n", def->id);
         else if (def->set_name)
             g_string_append_printf(s, "Name=%s\n", def->set_name);
@@ -76,7 +76,7 @@ append_match_section(net_definition* def, GString* s, gboolean match_rename)
 }
 
 static void
-write_bridge_params(GString* s, net_definition* def)
+write_bridge_params(GString* s, const NetplanNetDefinition* def)
 {
     GString *params = NULL;
 
@@ -102,14 +102,14 @@ write_bridge_params(GString* s, net_definition* def)
 }
 
 static void
-write_tunnel_params(GString* s, net_definition* def)
+write_tunnel_params(GString* s, const NetplanNetDefinition* def)
 {
     GString *params = NULL;
 
     params = g_string_sized_new(200);
 
     g_string_printf(params, "Independent=true\n");
-    if (def->tunnel.mode == TUNNEL_MODE_IPIP6 || def->tunnel.mode == TUNNEL_MODE_IP6IP6)
+    if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_IPIP6 || def->tunnel.mode == NETPLAN_TUNNEL_MODE_IP6IP6)
         g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
     g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
@@ -123,13 +123,13 @@ write_tunnel_params(GString* s, net_definition* def)
 }
 
 static void
-write_link_file(net_definition* def, const char* rootdir, const char* path)
+write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
     mode_t orig_umask;
 
     /* Don't write .link files for virtual devices; they use .netdev instead */
-    if (def->type >= ND_VIRTUAL)
+    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         return;
 
     /* do we need to write a .link file? */
@@ -170,7 +170,7 @@ interval_has_suffix(const char* param) {
 
 
 static void
-write_bond_parameters(net_definition* def, GString* s)
+write_bond_parameters(const NetplanNetDefinition* def, GString* s)
 {
     GString* params = NULL;
 
@@ -249,12 +249,12 @@ write_bond_parameters(net_definition* def, GString* s)
 }
 
 static void
-write_netdev_file(net_definition* def, const char* rootdir, const char* path)
+write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
     mode_t orig_umask;
 
-    g_assert(def->type >= ND_VIRTUAL);
+    g_assert(def->type >= NETPLAN_DEF_TYPE_VIRTUAL);
 
     /* build file contents */
     s = g_string_sized_new(200);
@@ -266,37 +266,37 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
 
     switch (def->type) {
-        case ND_BRIDGE:
+        case NETPLAN_DEF_TYPE_BRIDGE:
             g_string_append(s, "Kind=bridge\n");
             write_bridge_params(s, def);
             break;
 
-        case ND_BOND:
+        case NETPLAN_DEF_TYPE_BOND:
             g_string_append(s, "Kind=bond\n");
             write_bond_parameters(def, s);
             break;
 
-        case ND_VLAN:
+        case NETPLAN_DEF_TYPE_VLAN:
             g_string_append_printf(s, "Kind=vlan\n\n[VLAN]\nId=%u\n", def->vlan_id);
             break;
 
-        case ND_TUNNEL:
+        case NETPLAN_DEF_TYPE_TUNNEL:
             switch(def->tunnel.mode) {
-                case TUNNEL_MODE_GRE:
-                case TUNNEL_MODE_GRETAP:
-                case TUNNEL_MODE_IPIP:
-                case TUNNEL_MODE_IP6GRE:
-                case TUNNEL_MODE_IP6GRETAP:
-                case TUNNEL_MODE_SIT:
-                case TUNNEL_MODE_VTI:
-                case TUNNEL_MODE_VTI6:
+                case NETPLAN_TUNNEL_MODE_GRE:
+                case NETPLAN_TUNNEL_MODE_GRETAP:
+                case NETPLAN_TUNNEL_MODE_IPIP:
+                case NETPLAN_TUNNEL_MODE_IP6GRE:
+                case NETPLAN_TUNNEL_MODE_IP6GRETAP:
+                case NETPLAN_TUNNEL_MODE_SIT:
+                case NETPLAN_TUNNEL_MODE_VTI:
+                case NETPLAN_TUNNEL_MODE_VTI6:
                     g_string_append_printf(s,
                                           "Kind=%s\n",
                                           tunnel_mode_to_string(def->tunnel.mode));
                     break;
 
-                case TUNNEL_MODE_IP6IP6:
-                case TUNNEL_MODE_IPIP6:
+                case NETPLAN_TUNNEL_MODE_IP6IP6:
+                case NETPLAN_TUNNEL_MODE_IPIP6:
                     g_string_append(s, "Kind=ip6tnl\n");
                     break;
 
@@ -323,7 +323,7 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 }
 
 static void
-write_route(ip_route* r, GString* s)
+write_route(NetplanIPRoute* r, GString* s)
 {
     g_string_append_printf(s, "\n[Route]\n");
 
@@ -340,14 +340,14 @@ write_route(ip_route* r, GString* s)
         g_string_append_printf(s, "Type=%s\n", r->type);
     if (r->onlink)
         g_string_append_printf(s, "GatewayOnlink=true\n");
-    if (r->metric != METRIC_UNSPEC)
+    if (r->metric != NETPLAN_METRIC_UNSPEC)
         g_string_append_printf(s, "Metric=%d\n", r->metric);
-    if (r->table != ROUTE_TABLE_UNSPEC)
+    if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         g_string_append_printf(s, "Table=%d\n", r->table);
 }
 
 static void
-write_ip_rule(ip_rule* r, GString* s)
+write_ip_rule(NetplanIPRule* r, GString* s)
 {
     g_string_append_printf(s, "\n[RoutingPolicyRule]\n");
 
@@ -356,13 +356,13 @@ write_ip_rule(ip_rule* r, GString* s)
     if (r->to)
         g_string_append_printf(s, "To=%s\n", r->to);
 
-    if (r->table != ROUTE_TABLE_UNSPEC)
+    if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         g_string_append_printf(s, "Table=%d\n", r->table);
-    if (r->priority != IP_RULE_PRIO_UNSPEC)
+    if (r->priority != NETPLAN_IP_RULE_PRIO_UNSPEC)
         g_string_append_printf(s, "Priority=%d\n", r->priority);
-    if (r->fwmark != IP_RULE_FW_MARK_UNSPEC)
+    if (r->fwmark != NETPLAN_IP_RULE_FW_MARK_UNSPEC)
         g_string_append_printf(s, "FirewallMark=%d\n", r->fwmark);
-    if (r->tos != IP_RULE_TOS_UNSPEC)
+    if (r->tos != NETPLAN_IP_RULE_TOS_UNSPEC)
         g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
 }
 
@@ -371,7 +371,7 @@ write_ip_rule(ip_rule* r, GString* s)
     "dhcp4_overrides and dhcp6_overrides\n"
 
 static void
-combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overrides)
+combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* combined_dhcp_overrides)
 {
     /* if only one of dhcp4 or dhcp6 is enabled, those overrides are used */
     if (def->dhcp4 && !def->dhcp6) {
@@ -424,7 +424,7 @@ combine_dhcp_overrides(net_definition* def, dhcp_overrides* combined_dhcp_overri
 }
 
 static void
-write_network_file(net_definition* def, const char* rootdir, const char* path)
+write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* network = NULL;
     GString* link = NULL;
@@ -441,9 +441,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         if (def->optional) {
             g_string_append(link, "RequiredForOnline=no\n");
         }
-        for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
-            if (def->optional_addresses & optional_address_options[i].flag) {
-            g_string_append_printf(link, "OptionalAddresses=%s\n", optional_address_options[i].name);
+        for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
+            if (def->optional_addresses & NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag) {
+            g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
             }
         }
     }
@@ -476,9 +476,9 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
-    if (def->accept_ra == ACCEPT_RA_ENABLED)
+    if (def->accept_ra == NETPLAN_RA_MODE_ENABLED)
         g_string_append_printf(network, "IPv6AcceptRA=yes\n");
-    else if (def->accept_ra == ACCEPT_RA_DISABLED)
+    else if (def->accept_ra == NETPLAN_RA_MODE_DISABLED)
         g_string_append_printf(network, "IPv6AcceptRA=no\n");
     if (def->ip6_privacy)
         g_string_append(network, "IPv6PrivacyExtensions=yes\n");
@@ -503,7 +503,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         g_string_append_printf(network, "IPv6MTUBytes=%d\n", def->ipv6_mtubytes);
     }
 
-    if (def->type >= ND_VIRTUAL)
+    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->bridge) {
@@ -526,7 +526,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     if (def->has_vlans) {
         /* iterate over all netdefs to find VLANs attached to us */
         GList *l = netdefs_ordered;
-        net_definition* nd;
+        const NetplanNetDefinition* nd;
         for (; l != NULL; l = l->next) {
             nd = l->data;
             if (nd->vlan_link == def)
@@ -536,13 +536,13 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 
     if (def->routes != NULL) {
         for (unsigned i = 0; i < def->routes->len; ++i) {
-            ip_route* cur_route = g_array_index (def->routes, ip_route*, i);
+            NetplanIPRoute* cur_route = g_array_index (def->routes, NetplanIPRoute*, i);
             write_route(cur_route, network);
         }
     }
     if (def->ip_rules != NULL) {
         for (unsigned i = 0; i < def->ip_rules->len; ++i) {
-            ip_rule* cur_rule = g_array_index (def->ip_rules, ip_rule*, i);
+            NetplanIPRule* cur_rule = g_array_index (def->ip_rules, NetplanIPRule*, i);
             write_ip_rule(cur_rule, network);
         }
     }
@@ -556,11 +556,11 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         if (def->critical)
             g_string_append_printf(network, "CriticalConnection=true\n");
 
-        dhcp_overrides combined_dhcp_overrides;
+        NetplanDHCPOverrides combined_dhcp_overrides;
         combine_dhcp_overrides(def, &combined_dhcp_overrides);
 
-        if (combined_dhcp_overrides.metric == METRIC_UNSPEC) {
-            g_string_append_printf(network, "RouteMetric=%i\n", (def->type == ND_WIFI ? 600 : 100));
+        if (combined_dhcp_overrides.metric == NETPLAN_METRIC_UNSPEC) {
+            g_string_append_printf(network, "RouteMetric=%i\n", (def->type == NETPLAN_DEF_TYPE_WIFI ? 600 : 100));
         } else {
             g_string_append_printf(network, "RouteMetric=%u\n",
                                    combined_dhcp_overrides.metric);
@@ -613,7 +613,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
 }
 
 static void
-write_rules_file(net_definition* def, const char* rootdir)
+write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* s = NULL;
     g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
@@ -622,7 +622,7 @@ write_rules_file(net_definition* def, const char* rootdir)
     /* do we need to write a .rules file?
      * It's only required for reliably setting the name of a physical device
      * until systemd issue #9006 is resolved. */
-    if (def->type >= ND_VIRTUAL)
+    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         return;
 
     /* Matching by name does not work.
@@ -657,39 +657,39 @@ write_rules_file(net_definition* def, const char* rootdir)
 }
 
 static void
-append_wpa_auth_conf(GString* s, const authentication_settings* auth)
+append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth)
 {
     switch (auth->key_management) {
-        case KEY_MANAGEMENT_NONE:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_NONE:
             g_string_append(s, "  key_mgmt=NONE\n");
             break;
 
-        case KEY_MANAGEMENT_WPA_PSK:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
             g_string_append(s, "  key_mgmt=WPA-PSK\n");
             break;
 
-        case KEY_MANAGEMENT_WPA_EAP:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
             g_string_append(s, "  key_mgmt=WPA-EAP\n");
             break;
 
-        case KEY_MANAGEMENT_8021X:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
             g_string_append(s, "  key_mgmt=IEEE8021X\n");
             break;
     }
 
     switch (auth->eap_method) {
-        case EAP_NONE:
+        case NETPLAN_AUTH_EAP_NONE:
             break;
 
-        case EAP_TLS:
+        case NETPLAN_AUTH_EAP_TLS:
             g_string_append(s, "  eap=TLS\n");
             break;
 
-        case EAP_PEAP:
+        case NETPLAN_AUTH_EAP_PEAP:
             g_string_append(s, "  eap=PEAP\n");
             break;
 
-        case EAP_TTLS:
+        case NETPLAN_AUTH_EAP_TTLS:
             g_string_append(s, "  eap=TTLS\n");
             break;
     }
@@ -701,7 +701,7 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
         g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", auth->anonymous_identity);
     }
     if (auth->password) {
-        if (auth->key_management == KEY_MANAGEMENT_WPA_PSK) {
+        if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK) {
             g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
         } else {
             if (strncmp(auth->password, "hash:", 5) == 0) {
@@ -726,7 +726,7 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
 }
 
 static void
-write_wpa_conf(net_definition* def, const char* rootdir)
+write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     GHashTableIter iter;
     GString* s = g_string_new("ctrl_interface=/run/wpa_supplicant\n\n");
@@ -734,19 +734,19 @@ write_wpa_conf(net_definition* def, const char* rootdir)
     mode_t orig_umask;
 
     g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
-    if (def->type == ND_WIFI) {
-        wifi_access_point* ap;
+    if (def->type == NETPLAN_DEF_TYPE_WIFI) {
+        NetplanWifiAccessPoint* ap;
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
             g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
             switch (ap->mode) {
-                case WIFI_MODE_INFRASTRUCTURE:
+                case NETPLAN_WIFI_MODE_INFRASTRUCTURE:
                     /* default in wpasupplicant */
                     break;
-                case WIFI_MODE_ADHOC:
+                case NETPLAN_WIFI_MODE_ADHOC:
                     g_string_append(s, "  mode=1\n");
                     break;
-                case WIFI_MODE_AP:
+                case NETPLAN_WIFI_MODE_AP:
                     g_fprintf(stderr, "ERROR: %s: networkd does not support wifi in access point mode\n", def->id);
                     exit(1);
             }
@@ -782,7 +782,7 @@ write_wpa_conf(net_definition* def, const char* rootdir)
  * Returns: TRUE if @def applies to networkd, FALSE otherwise.
  */
 gboolean
-write_networkd_conf(net_definition* def, const char* rootdir)
+write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
 
@@ -791,14 +791,14 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     write_link_file(def, rootdir, path_base);
     write_rules_file(def, rootdir);
 
-    if (def->backend != BACKEND_NETWORKD) {
+    if (def->backend != NETPLAN_BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
         return FALSE;
     }
 
-    if (def->type == ND_WIFI || def->has_auth) {
+    if (def->type == NETPLAN_DEF_TYPE_WIFI || def->has_auth) {
         g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@", def->id, ".service", NULL);
-        if (def->type == ND_WIFI && def->has_match) {
+        if (def->type == NETPLAN_DEF_TYPE_WIFI && def->has_match) {
             g_fprintf(stderr, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
             exit(1);
         }
@@ -816,7 +816,7 @@ write_networkd_conf(net_definition* def, const char* rootdir)
 
     }
 
-    if (def->type >= ND_VIRTUAL)
+    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         write_netdev_file(def, rootdir, path_base);
     write_network_file(def, rootdir, path_base);
     return TRUE;
