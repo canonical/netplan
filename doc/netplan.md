@@ -823,7 +823,8 @@ more general information about tunnels.
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
     ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
-    the ``networkd`` backend also supports ``gretap`` and ``ip6gretap`` modes.
+    the ``networkd`` backend also supports ``gretap``, ``ip6gretap``
+    and ``l2tp`` modes.
     In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
 
 ``local`` (scalar)
@@ -873,6 +874,51 @@ Examples:
 ``keys`` (scalar or mapping)
 
 :   Alternate name for the ``key`` field. See above.
+
+L2TP-specific keys:
+    ``local_ip`` (scalar)
+    :    The IP address of the local interface. Takes an IP address, or the special
+         values "auto", "static", or "dynamic". When an address is set, then the local
+         interface must have the address. If "auto", then one of the addresses on the local
+         interface is used. Similarly, if "static" or "dynamic" is set, then one of the static
+         or dynamic addresses on the local interface is used. Defaults to "auto".
+
+    ``peer_tunnel_id`` (scalar)
+    :    Peer tunnel id, required.
+
+    ``local_tunnel_id`` (scalar)
+    :    Local tunnel id, required.
+
+    ``encapsulation_type`` (scalar)
+    :    The encapsulation type of the tunnel. "udp" or "ip".
+
+    ``udp_source_port`` (scalar)
+    :    The UDP source port. Required for udp encapsulation type.
+
+    ``udp_destination_port`` (scalar)
+    :    The UDP destination port. Required for udp encapsulation type.
+
+    ``udp_checksum`` (scalar)
+    :     When true, specifies if UDP checksum is calculated for transmitted packets over IPv4.
+
+    ``udp6_checksum_tx`` (scalar)
+    :     When false, skip UDP checksum calculation for transmitted packets over IPv6.
+
+    ``udp6_checksum_rx`` (scalar)
+    :     When false, skip UDP checksum calculation for received packets over IPv6.
+
+    ``session_name`` (scalar)
+    :     Session name, required.
+
+    ``session_id`` (scalar)
+    :     Local session id, required.
+
+    ``peer_session_id`` (scalar)
+    :     Peer session id, required.
+
+    ``l2_specific_header`` (scalar)
+    :      layer2specific header type of the session. One of "none" or "default".
+           Defaults to "default".
 
 
 ## Properties for device type ``vlans:``

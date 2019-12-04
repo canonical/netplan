@@ -19,7 +19,7 @@
 from .base import TestBase
 
 
-def prepare_config_for_mode(renderer, mode, key=None):
+def prepare_config_for_mode(renderer, mode, key=None, more={}):
     config = """network:
   version: 2
   renderer: {}
@@ -57,6 +57,9 @@ def prepare_config_for_mode(renderer, mode, key=None):
         input: {}
         output: {}
 """.format(key['input'], key['output'])
+
+    for k,v in more.items():
+        config += '      {}: {}\n'.format(k, v)
 
     return config
 
@@ -414,6 +417,350 @@ Address=15.15.15.15/24
 Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
+
+    def test_l2tp_udp(self):
+        """[networkd] Validate generation of L2TP/UDP tunnels"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'udp',
+                'udp_source_port': '5000',
+                'udp_destination_port': '6000',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'peer_session_id': '3000',
+                'l2_specific_header': 'none'})
+        self.generate(config)
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
+Name=tun0
+Kind=l2tp
+
+[L2TP]
+TunnelId=2000
+PeerTunnelId=1000
+Local=10.10.10.10
+Remote=20.20.20.20
+EncapsulationType=udp
+UDPSourcePort=5000
+DestinationPort=6000
+UDPChecksum=false
+UDP6ZeroChecksumTx=false
+UDP6ZeroChecksumRx=false
+
+[L2TPSession]
+Name=testsession
+SessionId=4000
+PeerSessonID=3000
+Layer2SpecifiHeader=none
+''',
+                              'tun0.network': '''[Match]
+Name=tun0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=15.15.15.15/24
+Gateway=20.20.20.21
+ConfigureWithoutCarrier=yes
+'''})
+
+    def test_l2tp_udpv6(self):
+        """[networkd] Validate generation of L2TP/UDP6 tunnels"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'udp',
+                'udp_source_port': '5000',
+                'udp_destination_port': '6000',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'peer_session_id': '3000',
+                'local_ip': '2001:dead:beef::2',
+                'l2_specific_header': 'none'})
+        self.generate(config)
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
+Name=tun0
+Kind=l2tp
+
+[L2TP]
+TunnelId=2000
+PeerTunnelId=1000
+Local=2001:dead:beef::2
+Remote=20.20.20.20
+EncapsulationType=udp
+UDPSourcePort=5000
+DestinationPort=6000
+UDPChecksum=false
+UDP6ZeroChecksumTx=false
+UDP6ZeroChecksumRx=false
+
+[L2TPSession]
+Name=testsession
+SessionId=4000
+PeerSessonID=3000
+Layer2SpecifiHeader=none
+''',
+                              'tun0.network': '''[Match]
+Name=tun0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=15.15.15.15/24
+Gateway=20.20.20.21
+ConfigureWithoutCarrier=yes
+'''})
+
+    def test_l2tp_ip(self):
+        """[networkd] [l2tp] Validate generation of L2TP/IP tunnels"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'udp_source_port': '5000',
+                'udp_destination_port': '6000',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': 'dynamic',
+                'peer_session_id': '3000',
+                'l2_specific_header': 'none'})
+        self.generate(config)
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
+Name=tun0
+Kind=l2tp
+
+[L2TP]
+TunnelId=2000
+PeerTunnelId=1000
+Local=dynamic
+Remote=20.20.20.20
+EncapsulationType=ip
+
+[L2TPSession]
+Name=testsession
+SessionId=4000
+PeerSessonID=3000
+Layer2SpecifiHeader=none
+''',
+                              'tun0.network': '''[Match]
+Name=tun0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=15.15.15.15/24
+Gateway=20.20.20.21
+ConfigureWithoutCarrier=yes
+'''})
+
+    def test_l2tp_ip_ipv4(self):
+        """[networkd] [l2tp] Validate generation of L2TP/IP tunnels"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'udp_source_port': '5000',
+                'udp_destination_port': '6000',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.10.10.10',
+                'peer_session_id': '3000',
+                'l2_specific_header': 'none'})
+        self.generate(config)
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
+Name=tun0
+Kind=l2tp
+
+[L2TP]
+TunnelId=2000
+PeerTunnelId=1000
+Local=10.10.10.10
+Remote=20.20.20.20
+EncapsulationType=ip
+
+[L2TPSession]
+Name=testsession
+SessionId=4000
+PeerSessonID=3000
+Layer2SpecifiHeader=none
+''',
+                              'tun0.network': '''[Match]
+Name=tun0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=15.15.15.15/24
+Gateway=20.20.20.21
+ConfigureWithoutCarrier=yes
+'''})
+
+    def test_l2tp_noencap_fail(self):
+        """[networkd] [l2tp] Show error on missing encapsulation_type"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: encapsulation_type is required.", out)
+
+    def test_l2tp_bogus_encap_fail(self):
+        """[networkd] [l2tp] Show error on bogus encapsulation_type"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'session_name': 'testsession',
+                'encapsulation_type': 'bogus',
+                'session_id': '4000',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: encapsulation_type must be 'ip' or 'udp'.", out)
+
+    def test_l2tp_bogus_specheader_fail(self):
+        """[networkd] [l2tp] Show error on bogus l2tp_specific_header"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'session_name': 'testsession',
+                'encapsulation_type': 'ip',
+                'l2_specific_header': 'bogus',
+                'session_id': '4000',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: l2_specific_header must be 'default' or 'none'.", out)
+
+
+    def test_l2tp_local_prefix_fail(self):
+        """[networkd] [l2tp] Show error on prefix present on local_ip"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.20.30.40/50',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: address '10.20.30.40/50' should not include /prefixlength", out)
+
+    def test_l2tp_local_bogus_fail(self):
+        """[networkd] [l2tp] Show error on bogus local_ip"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.20.30.400',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("malformed address '10.20.30.400', must be X.X.X.X or X:X:X:X:X:X:X:X or one of 'auto', 'static' or 'dynamic'", out)
+
+    def test_l2tp_no_session_name_fail(self):
+        """[networkd] [l2tp] Show error on missing session name"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'session_id': '4000',
+                'local_ip': '10.20.30.40',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: session_name is required.", out)
+
+    def test_l2tp_no_session_id_fail(self):
+        """[networkd] [l2tp] Show error on missing session id"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'session_name': 'testsession',
+                'local_ip': '10.20.30.40',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: session_id is required.", out)
+
+
+    def test_l2tp_no_peer_session_id_fail(self):
+        """[networkd] [l2tp] Show error on missing peer_session id"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'session_name': 'testsession',
+                'local_ip': '10.20.30.40',
+                'session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: peer_session_id is required.", out)
+
+    def test_l2tp_no_peer_tunnel_id_fail(self):
+        """[networkd] [l2tp] Show error on missing peer_tunnel_id"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'ip',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.20.30.40',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: peer_tunnel_id is required.", out)
+
+    def test_l2tp_no_local_tunnel_id_fail(self):
+        """[networkd] [l2tp] Show error on missing local_tunnel_id"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'encapsulation_type': 'ip',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.20.30.40',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: local_tunnel_id is required", out)
+
+    def test_l2tp_bad_udp_source_port_fail(self):
+        """[networkd] [l2tp] Show error on bad udp_source_port"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'udp',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.20.30.40',
+                'udp_source_port': '500000',
+                'udp_destination_port': '6000',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: udp_source_port out of range.", out)
+
+    def test_l2tp_udp_destination_port_fail(self):
+        """[networkd] [l2tp] Show error on bad udp_destination_port"""
+        config = prepare_config_for_mode('networkd', 'l2tp',
+            more = {
+                'peer_tunnel_id': '1000',
+                'local_tunnel_id': '2000',
+                'encapsulation_type': 'udp',
+                'session_name': 'testsession',
+                'session_id': '4000',
+                'local_ip': '10.20.30.40',
+                'udp_source_port': '5000',
+                'udp_destination_port': '600000',
+                'peer_session_id': '3000'})
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: udp_destination_port out of range.", out)
+
 
 
 class TestNetworkManager(TestBase):
