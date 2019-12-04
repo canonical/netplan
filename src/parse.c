@@ -1430,8 +1430,15 @@ handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     g_autofree char* addr = NULL;
     char* prefix_len;
 
-    /* split off /prefix_len */
     addr = g_strdup(scalar(node));
+
+    /* L2TP-specific forms */
+    if (g_ascii_strcasecmp(addr, "auto") == 0 ||
+        g_ascii_strcasecmp(addr, "static") == 0 ||
+        g_ascii_strcasecmp(addr, "dynamic") == 0)
+        return handle_netdef_str(doc, node, data, error);
+
+    /* split off /prefix_len */
     prefix_len = strrchr(addr, '/');
     if (prefix_len)
         return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
@@ -1514,36 +1521,6 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
     }
 
     return ret;
-}
-
-static gboolean
-handle_l2tp_local_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    g_autofree char* addr = NULL;
-    char* prefix_len;
-
-    addr = g_strdup(scalar(node));
-
-    if (g_ascii_strcasecmp(addr, "auto") == 0 ||
-        g_ascii_strcasecmp(addr, "static") == 0 ||
-        g_ascii_strcasecmp(addr, "dynamic") == 0)
-        return handle_netdef_str(doc, node, data, error);
-
-    /* split off /prefix_len */
-    prefix_len = strrchr(addr, '/');
-    if (prefix_len)
-        return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
-
-    /* is it an IPv4 address? */
-    if (is_ip4_address(addr))
-        return handle_netdef_ip4(doc, node, data, error);
-
-    /* is it an IPv6 address? */
-    if (is_ip6_address(addr))
-        return handle_netdef_ip6(doc, node, data, error);
-
-    return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X"
-                                   " or one of 'auto', 'static' or 'dynamic'.", scalar(node));
 }
 
 /****************************************************
@@ -1657,7 +1634,6 @@ const mapping_entry_handler tunnel_def_handlers[] = {
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
 
     /* l2tp; reuses tunnel.local_ip and tunnel.remote_ip*/
-    {"local_ip", YAML_SCALAR_NODE, handle_l2tp_local_addr, NULL, netdef_offset(tunnel.local_ip)},
     {"local_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.local_tunnel_id)},
     {"peer_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_tunnel_id)},
     {"encapsulation_type", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.encapsulation_type)},
