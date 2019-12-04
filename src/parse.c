@@ -1671,7 +1671,6 @@ process_wireguard_peer(yaml_document_t* doc, yaml_node_t* node, wireguard_peer *
 static gboolean
 handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_netdef->wireguard_peers == NULL);
     cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(wireguard_peer));
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
