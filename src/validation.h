@@ -22,6 +22,7 @@
 
 gboolean is_ip4_address(const char* address);
 gboolean is_ip6_address(const char* address);
+gboolean is_hostname(const char *hostname);
 
 gboolean
 validate_netdef_grammar(net_definition* nd, yaml_node_t* node, GError** error);

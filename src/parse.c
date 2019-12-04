@@ -1516,6 +1516,183 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
     return ret;
 }
 
+/**
+ * Handler for setting a wireguard_peer string field from a scalar node
+ * @data: pointer to the const char* field to write
+ */
+static gboolean
+handle_wireguard_peer_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    char** dest = (char**) data;
+    g_free(*dest);
+    *dest = g_strdup(scalar(node));
+    return TRUE;
+}
+
+/**
+ * Handler for setting a wireguard_peer string field from a scalar node
+ * @data: pointer to the guint field to write
+ */
+static gboolean
+handle_wireguard_peer_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint64 v;
+    gchar* endptr;
+	guint* dest = (guint*) data;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(node));
+
+    *dest = (guint) v;
+    return TRUE;
+}
+
+static gboolean
+handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    const wireguard_peer* peer = data;
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* addr = NULL;
+        char* prefix_len;
+        guint64 prefix_len_num;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        /* split off /prefix_len */
+        addr = g_strdup(scalar(entry));
+        prefix_len = strrchr(addr, '/');
+        if (!prefix_len)
+            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
+        *prefix_len = '\0';
+        prefix_len++; /* skip former '/' into first char of prefix */
+        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+
+        /* is it an IPv4 address? */
+        if (is_ip4_address(addr)) {
+            if (prefix_len_num > 32)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(peer->allowed_ips, s);
+            continue;
+        }
+
+        /* is it an IPv6 address? */
+        if (is_ip6_address(addr)) {
+            if (prefix_len_num > 128)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(peer->allowed_ips, s);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+static gboolean
+handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_autofree char* endpoint = NULL;
+    char* port;
+    char* address;
+    guint64 port_num;
+    const wireguard_peer* peer = data;
+
+    endpoint = g_strdup(scalar(node));
+    /* absolute minimal length of endpoint is 3 chars: 'h:8' */
+    if (strlen(endpoint) < 3) {
+        return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+    }
+    if (endpoint[0] == '[') {
+        /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
+        char *endbrace = strrchr(endpoint, ']');
+        if (!endbrace)
+            return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+        address = endpoint + 1;
+        *endbrace = '\0';
+        port = strrchr(endbrace + 1, ':');
+    } else {
+        address = endpoint;
+        port = strrchr(endpoint, ':');
+    }
+    /* split off :port */
+    if (!port)
+        return yaml_error(node, error, "endpoint '%s' is missing :port", scalar(node));
+    *port = '\0';
+    port++; /* skip former ':' into first char of port */
+    port_num = g_ascii_strtoull(port, NULL, 10);
+    if (port_num > 65535)
+        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
+    if (is_ip4_address(address) || is_ip6_address(address) || is_hostname(address)) {
+        return handle_wireguard_peer_str(doc, node, &peer->endpoint, error);
+    }
+    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+}
+
+#define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(wireguard_peer, field))
+const mapping_entry_handler wireguard_peer_handlers[] = {
+    {"public_key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
+    {"preshared_key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
+    {"preshared_key_file", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key_file)},
+    {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
+    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
+    {"allowed_ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
+};
+
+static gboolean
+process_wireguard_peer(yaml_document_t* doc, yaml_node_t* node, wireguard_peer *peer, GError** error)
+{
+    for (yaml_node_pair_t *entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+        const mapping_entry_handler* h;
+
+        g_assert(*error == NULL);
+
+        key = yaml_document_get_node(doc, entry->key);
+        value = yaml_document_get_node(doc, entry->value);
+        assert_type(key, YAML_SCALAR_NODE);
+        h = get_handler(wireguard_peer_handlers, scalar(key));
+        if (!h)
+            return yaml_error(key, error, "unknown key '%s'", scalar(key));
+        assert_type(value, h->type);
+
+        if (!h->handler(doc, value, (void *)peer + GPOINTER_TO_UINT(h->data), error))
+            return FALSE;
+    }
+    return TRUE;
+}
+
+static gboolean
+handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_netdef->wireguard_peers == NULL);
+    cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(wireguard_peer));
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* addr = NULL;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_MAPPING_NODE);
+
+        wireguard_peer peer = {0};
+        peer.allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
+
+        gboolean ret = process_wireguard_peer(doc, entry, &peer, error);
+        if (ret) {
+            g_array_append_val(cur_netdef->wireguard_peers, peer);
+            continue;
+        }
+        /* This might leak memory on failure,
+           but since the process terminates at this error it's ignored. */
+        return FALSE;
+    }
+    return TRUE;
+}
+
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
@@ -1625,6 +1802,14 @@ const mapping_entry_handler tunnel_def_handlers[] = {
      */
     {"key", YAML_NO_NODE, handle_tunnel_key_mapping},
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
+
+    /* wireguard */
+    {"private_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key)},
+    {"private_key_file", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key_file)},
+    {"fwmark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.fwmark)},
+    {"listen_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
+    {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
+
     {NULL}
 };
 

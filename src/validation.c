@@ -56,6 +56,13 @@ is_ip6_address(const char* address)
     return FALSE;
 }
 
+gboolean
+is_hostname(const char *hostname)
+{
+    static const gchar *pattern = "^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$";
+    return g_regex_match_simple(pattern, hostname, G_REGEX_CASELESS, G_REGEX_MATCH_NOTEMPTY);
+}
+
 /************************************************
  * Validation for grammar and backend rules.
  ************************************************/
@@ -64,6 +71,24 @@ validate_tunnel_grammar(net_definition* nd, yaml_node_t* node, GError** error)
 {
     if (nd->tunnel.mode == TUNNEL_MODE_UNKNOWN)
         return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
+
+    if (nd->tunnel.mode == TUNNEL_MODE_WIREGUARD) {
+        if (!nd->wireguard.private_key && !nd->wireguard.private_key_file)
+            return yaml_error(node, error, "%s: private_key or private_key_file is required.", nd->id);
+        if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
+            return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
+        for (guint i = 0; i < nd->wireguard_peers->len; i++) {
+            wireguard_peer *peer = &g_array_index (nd->wireguard_peers, wireguard_peer, i);
+
+            if (!peer->public_key)
+                return yaml_error(node, error, "%s: public_key is required.", nd->id);
+            if (!peer->allowed_ips || peer->allowed_ips->len == 0)
+                return yaml_error(node, error, "%s: allowed_ips is required.", nd->id);
+            if (peer->keepalive > 65535)
+                return yaml_error(node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
+        }
+        return TRUE;
+    }
 
     /* Validate local/remote IPs */
     if (!nd->tunnel.local_ip)
@@ -103,6 +128,7 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
             switch (nd->tunnel.mode) {
                 case TUNNEL_MODE_VTI:
                 case TUNNEL_MODE_VTI6:
+                case TUNNEL_MODE_WIREGUARD:
                     break;
 
                 /* TODO: Remove this exception and fix ISATAP handling with the
@@ -115,7 +141,6 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
                                     nd->id,
                                     g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
-
                 default:
                     if (nd->tunnel.input_key)
                         return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
@@ -133,6 +158,7 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
 
                 case TUNNEL_MODE_GRETAP:
                 case TUNNEL_MODE_IP6GRETAP:
+                case TUNNEL_MODE_WIREGUARD:
                     return yaml_error(node, error,
                                     "%s: %s tunnel mode is not supported by NetworkManager",
                                     nd->id,

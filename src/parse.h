@@ -98,6 +98,7 @@ typedef enum {
     TUNNEL_MODE_GRETAP      = 101,
     TUNNEL_MODE_IP6GRETAP   = 102,
 
+    TUNNEL_MODE_WIREGUARD   = 103,
     _TUNNEL_MODE_MAX,
 } tunnel_mode;
 
@@ -116,6 +117,7 @@ tunnel_mode_table[_TUNNEL_MODE_MAX] = {
 
     [TUNNEL_MODE_GRETAP] = "gretap",
     [TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+    [TUNNEL_MODE_WIREGUARD] = "wireguard",
 };
 
 struct optional_address_option {
@@ -282,9 +284,28 @@ typedef struct net_definition {
         char *output_key;
     } tunnel;
 
+    struct {
+        char *private_key;
+        char *private_key_file;
+        guint fwmark;
+        guint listen_port;
+    } wireguard;
+
+    GArray *wireguard_peers;
+
     authentication_settings auth;
     gboolean has_auth;
 } net_definition;
+
+typedef struct {
+    char *endpoint;
+    char *public_key;
+    char *preshared_key;
+    char *preshared_key_file;
+    GArray *allowed_ips;
+    guint keepalive;
+} wireguard_peer;
+
 
 typedef enum {
     WIFI_MODE_INFRASTRUCTURE,

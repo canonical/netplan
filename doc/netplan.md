@@ -823,7 +823,8 @@ more general information about tunnels.
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
     ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
-    the ``networkd`` backend also supports ``gretap`` and ``ip6gretap`` modes.
+    the ``networkd`` backend also supports ``gretap``, ``ip6gretap``
+    and ``wireguard`` modes.
     In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
 
 ``local`` (scalar)
@@ -873,6 +874,43 @@ Examples:
 ``keys`` (scalar or mapping)
 
 :   Alternate name for the ``key`` field. See above.
+
+Wireguard-specific keys:
+
+    ``private_key`` (scalar)
+    :   Base64-encoded private key. Either this or ``private_key_file`` is required.
+
+    ``private_key_file`` (scalar)
+    :   Path to a file with the private key. If the file is readable, the ``private_key`` is ignored.
+
+    ``fwmark`` (scalar)
+    :   Firewall mark for outgoing WireGuard packets from this interface, optional.
+
+    ``listen_port`` (scalar)
+    :   UDP port to listen at or 'auto'. Optional, defaults to 'auto'.
+
+    ``peers`` (sequence of mappings)
+    :   A list of peers, each having keys documented below.
+
+    ``public_key`` (scalar)
+    :   Peer's base64-encoded public key, required.
+
+    ``preshared_key`` (scalar)
+    :   Optional preshared key for the interface.
+
+    ``endpoint`` (scalar)
+    :   Endpoint IPv4/IPv6 address or a hostname, followed by a colon, and then a port number.
+
+    ``allowed_ips`` (sequence of scalars)
+    :    A list of IP (v4 or v6) addresses with CIDR masks from which
+         this peer is allowed to send incoming traffic and to which outgoing traffic for this
+         peer is directed. The catch-all 0.0.0.0/0 may be specified for matching all IPv4
+         addresses, and ::/0 may be specified for matching all IPv6 addresses.
+
+    ``keepalive`` (scalar)
+    :    An interval in seconds, between 1 and 65535 inclusive, of how often to send an
+         authenticated empty packet to the peer for the purpose of keeping a stateful firewall
+         or NAT mapping valid persistently. Optional.
 
 
 ## Properties for device type ``vlans:``
