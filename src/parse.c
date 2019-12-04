@@ -1643,6 +1643,8 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
     {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
     {"allowed_ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
+
+    {NULL}
 };
 
 static gboolean
