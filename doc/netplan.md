@@ -540,6 +540,9 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      :    Password to use to decrypt the private key specified in
           ``client-key`` if it is encrypted.
 
+     ``phase2-auth`` (scalar)
+     :    Phase 2 authentication mechanism.
+
 
 ## Properties for device type ``ethernets:``
 Ethernet device definitions do not support any specific properties beyond the
