@@ -395,10 +395,10 @@ client processes as specified in the netplan YAML.
           ``NetworkManager`` backends.
 
      ``use-domains`` (scalar)
-     :    Takes a boolean, or the special value "route". When true, the domain 
+     :    Takes a boolean, or the special value "route". When true, the domain
           name received from the DHCP server will be used as DNS search domain
           over this link, similar to the effect of the Domains= setting. If set
-          to "route", the domain name received from the DHCP server will be 
+          to "route", the domain name received from the DHCP server will be
           used for routing DNS queries only, but not for searching, similar to
           the effect of the Domains= setting when the argument is prefixed with
           "~".
@@ -876,47 +876,47 @@ Examples:
 :   Alternate name for the ``key`` field. See above.
 
 L2TP-specific keys:
-    ``local_ip`` (scalar)
+    ``local`` (scalar)
     :    The IP address of the local interface. Takes an IP address, or the special
          values "auto", "static", or "dynamic". When an address is set, then the local
          interface must have the address. If "auto", then one of the addresses on the local
          interface is used. Similarly, if "static" or "dynamic" is set, then one of the static
          or dynamic addresses on the local interface is used. Defaults to "auto".
 
-    ``peer_tunnel_id`` (scalar)
+    ``peer-tunnel-id`` (scalar)
     :    Peer tunnel id, required.
 
-    ``local_tunnel_id`` (scalar)
+    ``local-tunnel-id`` (scalar)
     :    Local tunnel id, required.
 
-    ``encapsulation_type`` (scalar)
+    ``encapsulation-type`` (scalar)
     :    The encapsulation type of the tunnel. "udp" or "ip".
 
-    ``udp_source_port`` (scalar)
+    ``udp-source-port`` (scalar)
     :    The UDP source port. Required for udp encapsulation type.
 
-    ``udp_destination_port`` (scalar)
+    ``udp-destination-port`` (scalar)
     :    The UDP destination port. Required for udp encapsulation type.
 
-    ``udp_checksum`` (scalar)
+    ``udp-checksum`` (scalar)
     :     When true, specifies if UDP checksum is calculated for transmitted packets over IPv4.
 
-    ``udp6_checksum_tx`` (scalar)
+    ``udp6-checksum-tx`` (scalar)
     :     When false, skip UDP checksum calculation for transmitted packets over IPv6.
 
-    ``udp6_checksum_rx`` (scalar)
+    ``udp6-checksum-rx`` (scalar)
     :     When false, skip UDP checksum calculation for received packets over IPv6.
 
-    ``session_name`` (scalar)
+    ``session-name`` (scalar)
     :     Session name, required.
 
-    ``session_id`` (scalar)
+    ``session-id`` (scalar)
     :     Local session id, required.
 
-    ``peer_session_id`` (scalar)
+    ``peer-session-id`` (scalar)
     :     Peer session id, required.
 
-    ``l2_specific_header`` (scalar)
+    ``l2-specific-header`` (scalar)
     :      layer2specific header type of the session. One of "none" or "default".
            Defaults to "default".
 

@@ -53,7 +53,7 @@ network:
 """.format(key['input'], key['output'])
 
     for k,v in kwargs.items():
-        config += '      {}: {}\n'.format(k, v)
+        config += '      {}: {}\n'.format(k.replace('_', '-'), v)
 
     return config
 

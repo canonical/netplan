@@ -1634,20 +1634,20 @@ const mapping_entry_handler tunnel_def_handlers[] = {
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
 
     /* l2tp; reuses tunnel.local_ip and tunnel.remote_ip*/
-    {"local_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.local_tunnel_id)},
-    {"peer_tunnel_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_tunnel_id)},
-    {"encapsulation_type", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.encapsulation_type)},
-    {"udp_source_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_source_port)},
-    {"udp_destination_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_destination_port)},
-    {"udp_checksum", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_checksum)},
-    {"udp6_checksum_tx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_tx)},
-    {"udp6_checksum_rx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_rx)},
+    {"local-tunnel-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.local_tunnel_id)},
+    {"peer-tunnel-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_tunnel_id)},
+    {"encapsulation-type", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.encapsulation_type)},
+    {"udp-source-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_source_port)},
+    {"udp-destination-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_destination_port)},
+    {"udp-checksum", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_checksum)},
+    {"udp6-checksum-tx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_tx)},
+    {"udp6-checksum-rx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_rx)},
 
     /* l2tp session*/
-    {"session_name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.session_name)},
-    {"session_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.session_id)},
-    {"peer_session_id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_session_id)},
-    {"l2_specific_header", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.l2_specific_header)},
+    {"session-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.session_name)},
+    {"session-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.session_id)},
+    {"peer-session-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_session_id)},
+    {"l2-specific-header", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.l2_specific_header)},
     {NULL}
 };
 
