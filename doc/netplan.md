@@ -395,10 +395,10 @@ client processes as specified in the netplan YAML.
           ``NetworkManager`` backends.
 
      ``use-domains`` (scalar)
-     :    Takes a boolean, or the special value "route". When true, the domain 
+     :    Takes a boolean, or the special value "route". When true, the domain
           name received from the DHCP server will be used as DNS search domain
           over this link, similar to the effect of the Domains= setting. If set
-          to "route", the domain name received from the DHCP server will be 
+          to "route", the domain name received from the DHCP server will be
           used for routing DNS queries only, but not for searching, similar to
           the effect of the Domains= setting when the argument is prefixed with
           "~".
@@ -877,31 +877,34 @@ Examples:
 
 Wireguard-specific keys:
 
-    ``private_key`` (scalar)
+    ``private-key`` (scalar)
     :   Base64-encoded private key. Either this or ``private_key_file`` is required.
 
-    ``private_key_file`` (scalar)
+    ``private-key-file`` (scalar)
     :   Path to a file with the private key. If the file is readable, the ``private_key`` is ignored.
 
     ``fwmark`` (scalar)
     :   Firewall mark for outgoing WireGuard packets from this interface, optional.
 
-    ``listen_port`` (scalar)
+    ``listen-port`` (scalar)
     :   UDP port to listen at or 'auto'. Optional, defaults to 'auto'.
 
     ``peers`` (sequence of mappings)
     :   A list of peers, each having keys documented below.
 
-    ``public_key`` (scalar)
+    ``public-key`` (scalar)
     :   Peer's base64-encoded public key, required.
 
-    ``preshared_key`` (scalar)
-    :   Optional preshared key for the interface.
+    ``preshared-key`` (scalar)
+    :   Optional preshared key for a peer.
+
+    ``preshared-key-file`` (scalar)
+    :   Path to a file with an optional preshared key for a peer.
 
     ``endpoint`` (scalar)
     :   Endpoint IPv4/IPv6 address or a hostname, followed by a colon, and then a port number.
 
-    ``allowed_ips`` (sequence of scalars)
+    ``allowed-ips`` (sequence of scalars)
     :    A list of IP (v4 or v6) addresses with CIDR masks from which
          this peer is allowed to send incoming traffic and to which outgoing traffic for this
          peer is directed. The catch-all 0.0.0.0/0 may be specified for matching all IPv4

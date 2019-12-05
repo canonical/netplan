@@ -1637,12 +1637,12 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* d
 
 #define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(wireguard_peer, field))
 const mapping_entry_handler wireguard_peer_handlers[] = {
-    {"public_key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
-    {"preshared_key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
-    {"preshared_key_file", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key_file)},
+    {"public-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
+    {"preshared-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
+    {"preshared-key-file", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key_file)},
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
     {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
-    {"allowed_ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
+    {"allowed-ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
 
     {NULL}
 };
@@ -1805,10 +1805,10 @@ const mapping_entry_handler tunnel_def_handlers[] = {
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
 
     /* wireguard */
-    {"private_key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key)},
-    {"private_key_file", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key_file)},
+    {"private-key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key)},
+    {"private-key-file", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key_file)},
     {"fwmark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.fwmark)},
-    {"listen_port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
+    {"listen-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
     {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
 
     {NULL}
