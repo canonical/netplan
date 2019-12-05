@@ -69,8 +69,10 @@ network={
 }
 ''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service')))
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_route(self):
         self.generate('''network:
