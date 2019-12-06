@@ -733,6 +733,40 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
 }
 
 static void
+write_wpa_unit(net_definition* def, const char* rootdir)
+{
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar *stdouth = NULL;
+    g_autofree gchar *stderrh = NULL;
+    gint exit_status = 0;
+
+    gchar *argv[] = {"bin" "/" "systemd-escape", def->id, NULL};
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdouth, &stderrh, &exit_status, &err);
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to ask systemd to escape %s; exit %d\nstdout: '%s'\nstderr: '%s'", def->id, exit_status, stdouth, stderrh);
+        exit(1);
+        // LCOV_EXCL_STOP
+    }
+    g_strstrip(stdouth);
+
+    GString* s = g_string_new("[Unit]\n");
+    g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", stdouth, ".service", NULL);
+    g_string_append_printf(s, "Description=WPA supplicant for netplan %s\n", stdouth);
+    g_string_append(s, "DefaultDependencies=no\n");
+    g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", stdouth);
+    g_string_append(s, "Before=network.target\nWants=network.target\n\n");
+    g_string_append(s, "[Service]\nType=simple\n");
+    g_string_append_printf(s, "ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%s.conf -i%s", stdouth, stdouth);
+
+    if (def->type != ND_WIFI) {
+        g_string_append(s, " -Dwired\n");
+    }
+    g_string_free_to_file(s, rootdir, path, NULL);
+}
+
+static void
 write_wpa_conf(net_definition* def, const char* rootdir)
 {
     GHashTableIter iter;
@@ -804,17 +838,23 @@ write_networkd_conf(net_definition* def, const char* rootdir)
     }
 
     if (def->type == ND_WIFI || def->has_auth) {
-        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@", def->id, ".service", NULL);
+        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", def->id, ".service", NULL);
+        g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", def->id, ".service", NULL);
         if (def->type == ND_WIFI && def->has_match) {
             g_fprintf(stderr, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
             exit(1);
         }
 
+        g_debug("Creating wpa_supplicant config");
         write_wpa_conf(def, rootdir);
+
+        g_debug("Creating wpa_supplicant unit %s", slink);
+        write_wpa_unit(def, rootdir);
 
         g_debug("Creating wpa_supplicant service enablement link %s", link);
         safe_mkdir_p_dir(link);
-        if (symlink("/lib/systemd/system/netplan-wpa@.service", link) < 0 && errno != EEXIST) {
+
+        if (symlink(slink, link) < 0 && errno != EEXIST) {
             // LCOV_EXCL_START
             g_fprintf(stderr, "failed to create enablement symlink: %m\n");
             exit(1);
@@ -837,7 +877,7 @@ cleanup_networkd_conf(const char* rootdir)
 {
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
     unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
-    unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
+    unlink_glob(rootdir, "/run/systemd/system/netplan-wpa-*.service");
     unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
 }
 
