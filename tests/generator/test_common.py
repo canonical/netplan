@@ -296,7 +296,6 @@ UseMTU=true
   version: 2
   ethernets:
     engreen:
-      dhcp4: yes
       critical: yes
 ''')
 
@@ -304,13 +303,10 @@ UseMTU=true
 Name=engreen
 
 [Network]
-DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
 CriticalConnection=true
-RouteMetric=100
-UseMTU=true
 '''})
 
     def test_dhcp_identifier_mac(self):
