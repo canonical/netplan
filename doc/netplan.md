@@ -198,7 +198,7 @@ Virtual devices
 
 :   (networkd backend only) Designate the connection as "critical to the
     system", meaning that special care will be taken by systemd-networkd to
-    not release the IP from DHCP when the daemon is restarted.
+    not release the assigned IP when the daemon is restarted.
 
 ``dhcp-identifier`` (scalar)
 

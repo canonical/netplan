@@ -550,14 +550,17 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         }
     }
 
-    if (def->dhcp4 || def->dhcp6) {
+    if (def->dhcp4 || def->dhcp6 || def->critical) {
         /* NetworkManager compatible route metrics */
         g_string_append(network, "\n[DHCP]\n");
+    }
 
+    if (def->critical)
+        g_string_append_printf(network, "CriticalConnection=true\n");
+
+    if (def->dhcp4 || def->dhcp6) {
         if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
             g_string_append_printf(network, "ClientIdentifier=%s\n", def->dhcp_identifier);
-        if (def->critical)
-            g_string_append_printf(network, "CriticalConnection=true\n");
 
         dhcp_overrides combined_dhcp_overrides;
         combine_dhcp_overrides(def, &combined_dhcp_overrides);
