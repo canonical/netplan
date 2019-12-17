@@ -1860,12 +1860,12 @@ netplan_parse_yaml(const char* filename, GError** error)
     if (!load_yaml(filename, &doc, error))
         return FALSE;
 
+    if (!netdefs)
+        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
+
     /* empty file? */
     if (yaml_document_get_root_node(&doc) == NULL)
         return TRUE;
-
-    if (!netdefs)
-        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
 
     g_assert(ids_in_file == NULL);
     ids_in_file = g_hash_table_new(g_str_hash, NULL);

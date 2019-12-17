@@ -736,7 +736,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth)
 }
 
 static void
-write_wpa_unit(net_definition* def, const char* rootdir)
+write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdouth = NULL;
@@ -763,7 +763,7 @@ write_wpa_unit(net_definition* def, const char* rootdir)
     g_string_append(s, "[Service]\nType=simple\n");
     g_string_append_printf(s, "ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%s.conf -i%s", stdouth, stdouth);
 
-    if (def->type != ND_WIFI) {
+    if (def->type != NETPLAN_DEF_TYPE_WIFI) {
         g_string_append(s, " -Dwired\n");
     }
     g_string_free_to_file(s, rootdir, path, NULL);

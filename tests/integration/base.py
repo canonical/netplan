@@ -29,6 +29,9 @@ import tempfile
 import unittest
 import shutil
 
+# make sure we point to libnetplan properly.
+os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
+
 test_backends = "networkd NetworkManager" if "NETPLAN_TEST_BACKENDS" not in os.environ else os.environ["NETPLAN_TEST_BACKENDS"]
 
 for program in ['wpa_supplicant', 'hostapd', 'dnsmasq']:

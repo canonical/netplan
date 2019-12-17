@@ -237,7 +237,8 @@ int main(int argc, char** argv)
             process_input_file(g_hash_table_lookup(configs, i->data));
     }
 
-    if (!netplan_finish_parse(&error)) {
+    netdefs = netplan_finish_parse(&error);
+    if (error) {
         g_fprintf(stderr, "%s\n", error->message);
         exit(1);
     }
