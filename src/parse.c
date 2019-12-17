@@ -497,6 +497,7 @@ const mapping_entry_handler auth_handlers[] = {
     {"client-certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_certificate)},
     {"client-key", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key)},
     {"client-key-password", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key_password)},
+    {"phase2-auth", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(phase2_auth)},
     {NULL}
 };
 

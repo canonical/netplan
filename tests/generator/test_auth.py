@@ -157,8 +157,10 @@ network={
 }
 ''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service')))
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
     def test_auth_wired(self):
         self.generate('''network:
@@ -174,6 +176,7 @@ network={
         client-certificate: /etc/ssl/cust-crt.pem
         client-key: /etc/ssl/cust-key.pem
         client-key-password: "d3cryptPr1v4t3K3y"
+        phase2-auth: MSCHAPV2
       dhcp4: yes
       ''')
 
@@ -196,11 +199,14 @@ network={
   client_cert="/etc/ssl/cust-crt.pem"
   private_key="/etc/ssl/cust-key.pem"
   private_key_passwd="d3cryptPr1v4t3K3y"
+  phase2="auth=MSCHAPV2"
 }
 ''')
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-eth0.service')))
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@eth0.service')))
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-eth0.service')))
 
 
 class TestNetworkManager(TestBase):
@@ -249,6 +255,7 @@ class TestNetworkManager(TestBase):
             client-certificate: /etc/ssl/cust-crt.pem
             client-key: /etc/ssl/cust-key.pem
             client-key-password: "d3cryptPr1v4t3K3y"
+            phase2-auth: MSCHAPV2
         opennet:
           auth:
             key-management: none
@@ -413,6 +420,7 @@ ca-cert=/etc/ssl/cust-cacrt.pem
 client-cert=/etc/ssl/cust-crt.pem
 private-key=/etc/ssl/cust-key.pem
 private-key-password=d3cryptPr1v4t3K3y
+phase2-auth=MSCHAPV2
 ''',
                         'wl0-opennet': '''[connection]
 id=netplan-wl0-opennet

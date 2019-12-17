@@ -320,6 +320,10 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GString *
     if (auth->client_key_password) {
         g_string_append_printf(s, "private-key-password=%s\n", auth->client_key_password);
     }
+    if (auth->phase2_auth) {
+        g_string_append_printf(s, "phase2-auth=%s\n", auth->phase2_auth);
+    }
+
 }
 
 static void
