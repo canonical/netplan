@@ -35,6 +35,10 @@ if shutil.which('python3-coverage'):
 os.environ.update({'PYTHONPATH': '.'})
 
 
+def _load_yaml(text):
+    return yaml.load(text, Loader=yaml.SafeLoader)
+
+
 class TestArgs(unittest.TestCase):
     '''Generic argument parsing tests'''
 
@@ -145,6 +149,7 @@ class TestGenerate(unittest.TestCase):
 
 
 class TestIfupdownMigrate(unittest.TestCase):
+
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
         self.ifaces_path = os.path.join(self.workdir.name, 'etc/network/interfaces')
@@ -203,20 +208,20 @@ source-directory /etc/network/interfaces.d''')[0]
 
     def test_dhcp4(self):
         out = self.do_test('auto en1\niface en1 inet dhcp')[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}}, out.decode())
 
     def test_dhcp6(self):
         out = self.do_test('auto en1\niface en1 inet6 dhcp')[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp6': True}}}}, out.decode())
 
     def test_dhcp4_and_6(self):
         out = self.do_test('auto lo\niface lo inet loopback\n\n'
                            'auto en1\niface en1 inet dhcp\niface en1 inet6 dhcp')[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True, 'dhcp6': True}}}}, out.decode())
 
@@ -224,7 +229,7 @@ source-directory /etc/network/interfaces.d''')[0]
         out = self.do_test('iface lo inet loopback\nauto lo\nsource-directory interfaces.d',
                            dropins={'interfaces.d/std': 'auto en1\niface en1 inet dhcp',
                                     'interfaces.d/std.bak': 'some_bogus dontreadme'})[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}}, out.decode())
 
@@ -232,7 +237,7 @@ source-directory /etc/network/interfaces.d''')[0]
         out = self.do_test('iface lo inet loopback\nauto lo\nsource-directory /etc/network/defs/my',
                            dropins={'defs/my/std': 'auto en1\niface en1 inet dhcp',
                                     'defs/my/std.bak': 'some_bogus dontreadme'})[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}}, out.decode())
 
@@ -240,7 +245,7 @@ source-directory /etc/network/interfaces.d''')[0]
         out = self.do_test('iface lo inet loopback\nauto lo\nsource interfaces.d/*.cfg',
                            dropins={'interfaces.d/std.cfg': 'auto en1\niface en1 inet dhcp',
                                     'interfaces.d/std.cfgold': 'some_bogus dontreadme'})[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}}, out.decode())
 
@@ -248,21 +253,21 @@ source-directory /etc/network/interfaces.d''')[0]
         out = self.do_test('iface lo inet loopback\nauto lo\nsource /etc/network/*.cfg',
                            dropins={'std.cfg': 'auto en1\niface en1 inet dhcp',
                                     'std.cfgold': 'some_bogus dontreadme'})[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}}, out.decode())
 
     def test_allow(self):
         out = self.do_test('allow-hotplug en1\niface en1 inet dhcp\n'
                            'allow-auto en2\niface en2 inet dhcp')[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True},
                           'en2': {'dhcp4': True}}}}, out.decode())
 
     def test_no_scripts(self):
         out = self.do_test('auto en1\niface en1 inet dhcp\nno-scripts en1')[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}}, out.decode())
 
@@ -276,7 +281,7 @@ source-directory /etc/network/interfaces.d''')[0]
     def test_write_file_haveconfig(self):
         (out, err) = self.do_test('auto en1\niface en1 inet dhcp', dry_run=False)
         with open(self.converted_path) as f:
-            config = yaml.load(f)
+            config = _load_yaml(f)
         self.assertEqual(config, {'network': {
             'version': 2,
             'ethernets': {'en1': {'dhcp4': True}}}})
@@ -302,13 +307,13 @@ source-directory /etc/network/interfaces.d''')[0]
 
     def test_static_ipv4_prefix(self):
         out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["1.2.3.4/8"]}}}}, out.decode())
 
     def test_static_ipv4_netmask(self):
         out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4\nnetmask 255.0.0.0', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["1.2.3.4/8"]}}}}, out.decode())
 
@@ -349,14 +354,14 @@ source-directory /etc/network/interfaces.d''')[0]
 
     def test_static_ipv6_prefix(self):
         out = self.do_test('auto en1\niface en1 inet6 static\naddress fc00:0123:4567:89ab:cdef::1234/64', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"]}}}}, out.decode())
 
     def test_static_ipv6_netmask(self):
         out = self.do_test('auto en1\niface en1 inet6 static\n'
                            'address fc00:0123:4567:89ab:cdef::1234\nnetmask 64', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"]}}}}, out.decode())
 
@@ -404,7 +409,7 @@ source-directory /etc/network/interfaces.d''')[0]
     def test_static_ipv6_accept_ra_0(self):
         out = self.do_test('auto en1\niface en1 inet6 static\n'
                            'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 0', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"],
                                   'accept_ra': False}}}}, out.decode())
@@ -412,7 +417,7 @@ source-directory /etc/network/interfaces.d''')[0]
     def test_static_ipv6_accept_ra_1(self):
         out = self.do_test('auto en1\niface en1 inet6 static\n'
                            'address fc00:0123:4567:89ab:cdef::1234/64\naccept_ra 1', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["fc00:123:4567:89ab:cdef::1234/64"],
                                   'accept_ra': True}}}}, out.decode())
@@ -438,7 +443,7 @@ iface en1 inet static
 iface en1 inet6 static
   address fc00:0123:4567:89ab:cdef::1234/64
   gateway fc00:0123:4567:89ab::1""", dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1':
                           {'addresses': ["1.2.3.4/8", "fc00:123:4567:89ab:cdef::1234/64"],
@@ -455,7 +460,7 @@ iface en1 inet static
 iface en1 inet6 static
   address fc00:0123:4567:89ab:cdef::1234/64
   dns-nameservers fc00:0123:4567:89ab:1::1  fc00:0123:4567:89ab:2::1""", dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1':
                           {'addresses': ["1.2.3.4/8", "fc00:123:4567:89ab:cdef::1234/64"],
@@ -467,7 +472,7 @@ iface en1 inet6 static
 
     def test_static_dns2(self):
         out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\ndns-search foo  foo.bar', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["1.2.3.4/8"],
                                   'nameservers': {
@@ -476,7 +481,7 @@ iface en1 inet6 static
 
     def test_static_mtu(self):
         out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nmtu 1280', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["1.2.3.4/8"],
                                   'mtu': 1280}}}}, out.decode())
@@ -494,7 +499,7 @@ iface en1 inet6 static
 
     def test_static_hwaddress(self):
         out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\nhwaddress 52:54:00:6b:3c:59', dry_run=True)[0]
-        self.assertEqual(yaml.load(out), {'network': {
+        self.assertEqual(_load_yaml(out), {'network': {
             'version': 2,
             'ethernets': {'en1': {'addresses': ["1.2.3.4/8"],
                                   'macaddress': '52:54:00:6b:3c:59'}}}}, out.decode())
