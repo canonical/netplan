@@ -154,7 +154,7 @@ typedef struct authentication_settings {
     char* client_certificate;
     char* client_key;
     char* client_key_password;
-    char* phase2_auth;
+    char* phase2_auth; /* netplan-feature: auth-phase2 */
 } authentication_settings;
 
 /* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
