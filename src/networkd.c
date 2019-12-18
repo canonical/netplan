@@ -735,6 +735,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth)
 
 }
 
+/* netplan-feature: generated-supplicant */
 static void
 write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
