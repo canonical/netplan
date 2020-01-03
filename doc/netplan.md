@@ -886,6 +886,11 @@ Examples:
 :    netplan ID of the underlying device definition on which this VLAN gets
      created.
 
+## Properties for device type ``dummies:``
+
+    None.
+
+
 Example:
 
     ethernets:

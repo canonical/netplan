@@ -48,6 +48,7 @@ typedef enum {
     ND_BRIDGE = ND_VIRTUAL,
     ND_BOND,
     ND_VLAN,
+    ND_DUMMY,
     ND_TUNNEL,
 } netdef_type;
 
