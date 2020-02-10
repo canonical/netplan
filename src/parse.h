@@ -234,6 +234,8 @@ typedef struct net_definition {
     } match;
     gboolean has_match;
     gboolean wake_on_lan;
+    gboolean emit_lldp;
+
 
     /* these properties are only valid for ND_WIFI */
     GHashTable* access_points; /* SSID → wifi_access_point* */

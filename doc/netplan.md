@@ -133,6 +133,10 @@ Virtual devices
 
 :    Enable wake on LAN. Off by default.
 
+``emit-lldp`` (bool)
+
+:    (networkd backend only) Whether to emit LLDP packets. Off by default
+
 
 ## Common properties for all device types
 
