@@ -79,6 +79,8 @@ type_str(netdef_type type)
     switch (type) {
         case ND_ETHERNET:
             return "ethernet";
+        case ND_GSM:
+            return "gsm";
         case ND_WIFI:
             return "wifi";
         case ND_BRIDGE:
@@ -422,6 +424,33 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
 
         if (def->type == ND_BRIDGE)
             write_bridge_params(def, s);
+    }
+    if (def->type == ND_GSM) {
+        g_string_append_printf(s, "\n[gsm]\n");
+
+        /* Use NetworkManager's auto configuration feature if no APN, username, or password is specified */
+        if (def->gsm_params.auto_config || (!def->gsm_params.apn &&
+                !def->gsm_params.username && !def->gsm_params.password)) {
+            g_string_append_printf(s, "auto-config=true\n");
+        } else {
+            if (def->gsm_params.apn)
+                g_string_append_printf(s, "apn=%s\n", def->gsm_params.apn);
+            if (def->gsm_params.password)
+                g_string_append_printf(s, "password=%s\n", def->gsm_params.password);
+            if (def->gsm_params.username)
+                g_string_append_printf(s, "username=%s\n", def->gsm_params.username);
+        }
+
+        if (def->gsm_params.device_id)
+            g_string_append_printf(s, "device-id=%s", def->gsm_params.device_id);
+        if (def->gsm_params.network_id)
+            g_string_append_printf(s, "network-id=%s\n", def->gsm_params.network_id);
+        if (def->gsm_params.pin)
+            g_string_append_printf(s, "pin=%s\n", def->gsm_params.pin);
+        if (def->gsm_params.sim_id)
+            g_string_append_printf(s, "sim-id=%s\n", def->gsm_params.sim_id);
+        if (def->gsm_params.sim_operator_id)
+            g_string_append_printf(s, "sim-operator-id=%s\n", def->gsm_params.sim_operator_id);
     }
     if (def->bridge) {
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
