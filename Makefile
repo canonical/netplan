@@ -1,4 +1,4 @@
-NETPLAN_SOVER=0.0.0
+NETPLAN_SOVER=0.0
 
 BUILDFLAGS = \
 	-g \
@@ -24,6 +24,7 @@ SBINDIR ?= $(PREFIX)/sbin
 DATADIR ?= $(PREFIX)/share
 DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
+INCLUDEDIR ?= $(PREFIX)/include
 
 PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/dbus/*.py)
 
@@ -99,10 +100,11 @@ python-coverage:
 	python3-coverage xml --omit=/usr* || true
 
 install: default
-	mkdir -p $(DESTDIR)/$(SBINDIR) $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
+	mkdir -p $(DESTDIR)/$(SBINDIR) $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR) $(DESTDIR)/$(LIBDIR)
 	mkdir -p $(DESTDIR)/$(MANDIR)/man5 $(DESTDIR)/$(MANDIR)/man8
 	mkdir -p $(DESTDIR)/$(DOCDIR)/netplan/examples
 	mkdir -p $(DESTDIR)/$(DATADIR)/netplan/netplan
+	mkdir -p $(DESTDIR)/$(INCLUDEDIR)/netplan
 	install -m 755 generate $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
 	find netplan/ -name '*.py' -exec install -Dm 644 "{}" "$(DESTDIR)/$(DATADIR)/netplan/{}" \;
 	install -m 755 src/netplan.script $(DESTDIR)/$(DATADIR)/netplan/
@@ -110,6 +112,10 @@ install: default
 	ln -srf $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
 	# lib
 	install -m 644 *.so.* $(DESTDIR)/$(LIBDIR)/
+	ln -snf $(DESTDIR)/$(LIBDIR)/libnetplan.so.$(NETPLAN_SOVER) $(DESTDIR)/$(LIBDIR)/libnetplan.so
+	# headers, dev data
+	install -m 644 src/*.h $(DESTDIR)/$(INCLUDEDIR)/netplan/
+	# TODO: install pkg-config once available
 	# docs, data
 	install -m 644 doc/*.html $(DESTDIR)/$(DOCDIR)/netplan/
 	install -m 644 examples/*.yaml $(DESTDIR)/$(DOCDIR)/netplan/examples/
