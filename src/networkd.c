@@ -708,7 +708,11 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth)
     }
     if (auth->password) {
         if (auth->key_management == KEY_MANAGEMENT_WPA_PSK) {
-            g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
+            if (strncmp(auth->password, "hex:", 4) == 0 && strlen(auth->password) > 4) {
+                g_string_append_printf(s, "  psk=%s\n", 4 + auth->password);
+            } else {
+                g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
+            }
         } else {
             if (strncmp(auth->password, "hash:", 5) == 0) {
                 g_string_append_printf(s, "  password=%s\n", auth->password);
