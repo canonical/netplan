@@ -442,7 +442,7 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
         }
 
         if (def->gsm_params.device_id)
-            g_string_append_printf(s, "device-id=%s", def->gsm_params.device_id);
+            g_string_append_printf(s, "device-id=%s\n", def->gsm_params.device_id);
         if (def->gsm_params.network_id)
             g_string_append_printf(s, "network-id=%s\n", def->gsm_params.network_id);
         if (def->gsm_params.pin)
