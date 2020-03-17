@@ -36,6 +36,12 @@ class TestNetworkd(TestBase):
           auth:
             key-management: psk
             password: "4lsos3kr1t"
+        "BobsHome":
+          password: "hex:e03ce667c87bc81ca968d9120ca37f89eb09aec3c55b80386e5d772efd6b926e"
+        "BillsHome":
+          auth:
+            key-management: psk
+            password: "hex:db3b0acf5653aeaddd5fe034fb9f07175b2864f847b005aaa2f09182d9411b04"
         workplace:
           auth:
             key-management: eap
@@ -98,6 +104,20 @@ network={
   ssid="Luke's Home"
   key_mgmt=WPA-PSK
   psk="4lsos3kr1t"
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="BobsHome"
+  key_mgmt=WPA-PSK
+  psk=e03ce667c87bc81ca968d9120ca37f89eb09aec3c55b80386e5d772efd6b926e
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="BillsHome"
+  key_mgmt=WPA-PSK
+  psk=e03ce667c87bc81ca968d9120ca37f89eb09aec3c55b80386e5d772efd6b926e
 }
 ''', new_config)
             self.assertIn('''
