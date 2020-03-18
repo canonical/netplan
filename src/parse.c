@@ -1614,6 +1614,19 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
+const mapping_entry_handler gsm_def_handlers[] = {
+    COMMON_LINK_HANDLERS,
+    {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.apn)},
+    {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(gsm_params.auto_config)},
+    {"device-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.device_id)},
+    {"network-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.network_id)},
+    {"password", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.password)},
+    {"pin", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.pin)},
+    {"sim-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.sim_id)},
+    {"sim-operator-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.sim_operator_id)},
+    {"username", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.username)},
+};
+
 const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
@@ -1736,6 +1749,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case ND_BOND: handlers = bond_def_handlers; break;
             case ND_BRIDGE: handlers = bridge_def_handlers; break;
             case ND_ETHERNET: handlers = ethernet_def_handlers; break;
+            case ND_GSM: handlers = gsm_def_handlers; break;
             case ND_TUNNEL: handlers = tunnel_def_handlers; break;
             case ND_VLAN: handlers = vlan_def_handlers; break;
             case ND_WIFI: handlers = wifi_def_handlers; break;
@@ -1766,6 +1780,7 @@ const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_VLAN)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
+    {"gsms", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_GSM)},
     {NULL}
 };
 

@@ -43,6 +43,7 @@ typedef enum {
     /* physical devices */
     ND_ETHERNET,
     ND_WIFI,
+    ND_GSM,
     /* virtual devices */
     ND_VIRTUAL,
     ND_BRIDGE = ND_VIRTUAL,
@@ -261,6 +262,18 @@ typedef struct net_definition {
         char* learn_interval;
         char* primary_slave;
     } bond_params;
+
+    struct {
+        char* apn;
+        gboolean auto_config;
+        char* device_id;
+        char* network_id;
+        char* password;
+        char* pin;
+        char* sim_id;
+        char* sim_operator_id;
+        char* username;
+    } gsm_params;
 
     struct {
         char* ageing_time;

@@ -841,6 +841,11 @@ write_networkd_conf(net_definition* def, const char* rootdir)
         return FALSE;
     }
 
+    if (def->type == ND_GSM) {
+        g_fprintf(stderr, "ERROR: %s: networkd backend does not support GSM modem configuration\n", def->id);
+        exit(1);
+    }
+
     if (def->type == ND_WIFI || def->has_auth) {
         g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", def->id, ".service", NULL);
         g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", def->id, ".service", NULL);
