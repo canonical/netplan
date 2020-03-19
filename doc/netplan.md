@@ -135,7 +135,7 @@ Virtual devices
 
 ``emit-lldp`` (bool)
 
-:    (networkd backend only) Whether to emit LLDP packets. Off by default
+:    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
 
 ## Common properties for all device types
