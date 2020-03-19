@@ -362,7 +362,7 @@ class IntegrationTestsBase(unittest.TestCase):
                                                 stderr=subprocess.PIPE, universal_newlines=True)
                 self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
 
-        if subprocess.call(['nm-online', '--quiet', '--timeout=120', '--wait-for-startup']) != 0:
+        if subprocess.call(['nm-online', '--quiet', '--timeout=240', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
 
     def nm_wait_connected(self, iface, timeout):
