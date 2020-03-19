@@ -46,6 +46,22 @@ unmanaged-devices+=interface-name:eth0,''')
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
+    def test_eth_lldp(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: n
+      emit-lldp: true''')
+
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+EmitLLDP=true
+LinkLocalAddressing=ipv6
+'''})
+
     def test_eth_mtu(self):
         self.generate('''network:
   version: 2

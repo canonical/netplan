@@ -1576,7 +1576,8 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
 #define PHYSICAL_LINK_HANDLERS                                                           \
     {"match", YAML_MAPPING_NODE, handle_match},                                          \
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
+    {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
 const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
