@@ -31,9 +31,9 @@ class TestNetworkd(TestBase):
     wl0:
       access-points:
         "Joe's Home":
-          password: "s3kr1t"
+          password: "s0s3kr1t"
         workplace:
-          password: "c0mpany"
+          password: "c0mpany1"
         peer2peer:
           mode: adhoc
       dhcp4: yes''')
@@ -58,14 +58,14 @@ network={
 network={
   ssid="workplace"
   key_mgmt=WPA-PSK
-  psk="c0mpany"
+  psk="c0mpany1"
 }
 ''', new_config)
             self.assertIn('''
 network={
   ssid="Joe's Home"
   key_mgmt=WPA-PSK
-  psk="s3kr1t"
+  psk="s0s3kr1t"
 }
 ''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
@@ -81,7 +81,7 @@ network={
     wl0:
       access-points:
         workplace:
-          password: "c0mpany"
+          password: "c0mpany1"
       dhcp4: yes
       routes:
         - to: 10.10.10.0/24
@@ -117,7 +117,7 @@ unmanaged-devices+=interface-name:wl0,''')
         driver: foo
       access-points:
         workplace:
-          password: "c0mpany"
+          password: "c0mpany1"
       dhcp4: yes''', expect_fail=True)
         self.assertIn('networkd backend does not support wifi with match:', err)
 
@@ -128,7 +128,7 @@ unmanaged-devices+=interface-name:wl0,''')
     wl0:
       access-points:
         workplace:
-          password: "c0mpany"
+          password: "c0mpany1"
           mode: ap
       dhcp4: yes''', expect_fail=True)
         self.assertIn('networkd does not support wifi in access point mode', err)
@@ -144,9 +144,9 @@ class TestNetworkManager(TestBase):
     wl0:
       access-points:
         "Joe's Home":
-          password: "s3kr1t"
+          password: "s0s3kr1t"
         workplace:
-          password: "c0mpany"
+          password: "c0mpany1"
       dhcp4: yes''')
 
         self.assert_nm({'wl0-Joe%27s%20Home': '''[connection]
@@ -169,7 +169,7 @@ mode=infrastructure
 
 [wifi-security]
 key-mgmt=wpa-psk
-psk=s3kr1t
+psk=s0s3kr1t
 ''',
                         'wl0-workplace': '''[connection]
 id=netplan-wl0-workplace
@@ -191,7 +191,7 @@ mode=infrastructure
 
 [wifi-security]
 key-mgmt=wpa-psk
-psk=c0mpany
+psk=c0mpany1
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
@@ -265,7 +265,7 @@ mode=infrastructure
       access-points:
         homenet:
           mode: ap
-          password: s3cret''')
+          password: s0s3cret''')
 
         self.assert_nm({'wl0-homenet': '''[connection]
 id=netplan-wl0-homenet
@@ -287,7 +287,7 @@ mode=ap
 
 [wifi-security]
 key-mgmt=wpa-psk
-psk=s3cret
+psk=s0s3cret
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
