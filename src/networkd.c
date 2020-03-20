@@ -724,7 +724,7 @@ append_wpa_auth_conf(GString* s, const authentication_settings* auth, const char
                     }
                 /* this is required to be unquoted */
                 g_string_append_printf(s, "  psk=%s\n", auth->password);
-            } else if (len < 8 || len > 64) {
+            } else if (len < 8 || len > 63) {
                 /* per wpa_supplicant spec, passphrase needs to be between 8
                    and 63 characters */
                 g_fprintf(stderr, "ERROR: %s: ASCII passphrase must be between 8 and 63 characters (inclusive)\n", id);
