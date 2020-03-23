@@ -1430,8 +1430,15 @@ handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     g_autofree char* addr = NULL;
     char* prefix_len;
 
-    /* split off /prefix_len */
     addr = g_strdup(scalar(node));
+
+    /* L2TP-specific forms */
+    if (g_ascii_strcasecmp(addr, "auto") == 0 ||
+        g_ascii_strcasecmp(addr, "static") == 0 ||
+        g_ascii_strcasecmp(addr, "dynamic") == 0)
+        return handle_netdef_str(doc, node, data, error);
+
+    /* split off /prefix_len */
     prefix_len = strrchr(addr, '/');
     if (prefix_len)
         return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
@@ -1639,6 +1646,22 @@ const mapping_entry_handler tunnel_def_handlers[] = {
      */
     {"key", YAML_NO_NODE, handle_tunnel_key_mapping},
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
+
+    /* l2tp; reuses tunnel.local_ip and tunnel.remote_ip*/
+    {"local-tunnel-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.local_tunnel_id)},
+    {"peer-tunnel-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_tunnel_id)},
+    {"encapsulation-type", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.encapsulation_type)},
+    {"udp-source-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_source_port)},
+    {"udp-destination-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_destination_port)},
+    {"udp-checksum", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp_checksum)},
+    {"udp6-checksum-tx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_tx)},
+    {"udp6-checksum-rx", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.udp6_checksum_rx)},
+
+    /* l2tp session*/
+    {"session-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.session_name)},
+    {"session-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.session_id)},
+    {"peer-session-id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(l2tp.peer_session_id)},
+    {"l2-specific-header", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(l2tp.l2_specific_header)},
     {NULL}
 };
 

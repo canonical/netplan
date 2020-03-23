@@ -83,6 +83,35 @@ validate_tunnel_grammar(net_definition* nd, yaml_node_t* node, GError** error)
                 return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
             break;
 
+        case TUNNEL_MODE_L2TP:
+            if (!nd->l2tp.local_tunnel_id)
+                return yaml_error(node, error, "%s: local_tunnel_id is required.", nd->id);
+            if (!nd->l2tp.peer_tunnel_id)
+                return yaml_error(node, error, "%s: peer_tunnel_id is required.", nd->id);
+            if (!nd->l2tp.session_name)
+                return yaml_error(node, error, "%s: session_name is required.", nd->id);
+            if (!nd->l2tp.encapsulation_type)
+                return yaml_error(node, error, "%s: encapsulation_type is required.", nd->id);
+            if (g_ascii_strcasecmp(nd->l2tp.encapsulation_type, "udp") == 0) {
+                if (nd->l2tp.udp_source_port == 0 || nd->l2tp.udp_source_port > 65535)
+                    return yaml_error(node, error, "%s: udp_source_port out of range.", nd->id);
+                if (nd->l2tp.udp_destination_port == 0 || nd->l2tp.udp_destination_port > 65535)
+                    return yaml_error(node, error, "%s: udp_destination_port out of range.", nd->id);
+            } else {
+                if (g_ascii_strcasecmp(nd->l2tp.encapsulation_type, "ip") != 0)
+                    return yaml_error(node, error, "%s: encapsulation_type must be 'ip' or 'udp'.", nd->id);
+            }
+            if (!nd->l2tp.session_id)
+                return yaml_error(node, error, "%s: session_id is required.", nd->id);
+            if (!nd->l2tp.peer_session_id)
+                return yaml_error(node, error, "%s: peer_session_id is required.", nd->id);
+            if (nd->l2tp.l2_specific_header &&
+                g_ascii_strcasecmp(nd->l2tp.l2_specific_header, "default") != 0 &&
+                g_ascii_strcasecmp(nd->l2tp.l2_specific_header, "none") != 0)
+                return yaml_error(node, error, "%s: l2_specific_header must be 'default' or 'none'.", nd->id);
+
+            break;
+
         default:
             if (!is_ip4_address(nd->tunnel.local_ip))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
@@ -103,6 +132,7 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
             switch (nd->tunnel.mode) {
                 case TUNNEL_MODE_VTI:
                 case TUNNEL_MODE_VTI6:
+                case TUNNEL_MODE_L2TP:
                     break;
 
                 /* TODO: Remove this exception and fix ISATAP handling with the
@@ -133,11 +163,13 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
 
                 case TUNNEL_MODE_GRETAP:
                 case TUNNEL_MODE_IP6GRETAP:
+                case TUNNEL_MODE_L2TP:
                     return yaml_error(node, error,
                                     "%s: %s tunnel mode is not supported by NetworkManager",
                                     nd->id,
                                     g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
+
 
                 default:
                     if (nd->tunnel.input_key)

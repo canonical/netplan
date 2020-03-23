@@ -99,6 +99,7 @@ typedef enum {
     TUNNEL_MODE_GRETAP      = 101,
     TUNNEL_MODE_IP6GRETAP   = 102,
 
+    TUNNEL_MODE_L2TP        = 104,
     _TUNNEL_MODE_MAX,
 } tunnel_mode;
 
@@ -117,6 +118,7 @@ tunnel_mode_table[_TUNNEL_MODE_MAX] = {
 
     [TUNNEL_MODE_GRETAP] = "gretap",
     [TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+    [TUNNEL_MODE_L2TP] = "l2tp",
 };
 
 struct optional_address_option {
@@ -296,6 +298,24 @@ typedef struct net_definition {
         char *input_key;
         char *output_key;
     } tunnel;
+
+    struct {
+        /* l2tp */
+        guint peer_tunnel_id;
+        guint local_tunnel_id;
+        char *encapsulation_type;
+        guint udp_source_port;
+        guint udp_destination_port;
+        gboolean udp_checksum;
+        gboolean udp6_checksum_tx;
+        gboolean udp6_checksum_rx;
+
+        /* l2tp session */
+        char *session_name;
+        guint session_id;
+        guint peer_session_id;
+        char *l2_specific_header;
+    } l2tp;
 
     authentication_settings auth;
     gboolean has_auth;
