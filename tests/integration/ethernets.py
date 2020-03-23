@@ -93,6 +93,8 @@ class _CommonTests():
         search: ["fakesuffix"]
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
+        if self.backend == 'NetworkManager':
+            self.nm_online_full(self.dev_e_client)
         self.assert_iface_up(self.dev_e_client,
                              ['inet 172.16.42.99/18',
                               'inet6 1234:ffff::42/64',
