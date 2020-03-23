@@ -374,7 +374,8 @@ class IntegrationTestsBase(unittest.TestCase):
         for t in range(timeout):
             c = NM.Client.new(None)
             con = c.get_device_by_iface(iface).get_active_connection()
-            if not con: self.fail('no active connection for %s by NM' % iface)
+            if not con:
+                self.fail('no active connection for %s by NM' % iface)
             flags = NM.utils_enum_to_str(NM.ActivationStateFlags, con.get_state_flags())
             if "ip4-ready" in flags:
                 break
