@@ -43,6 +43,7 @@ typedef enum {
     /* physical devices */
     NETPLAN_DEF_TYPE_ETHERNET,
     NETPLAN_DEF_TYPE_WIFI,
+    NETPLAN_DEF_TYPE_GSM,
     /* virtual devices */
     NETPLAN_DEF_TYPE_VIRTUAL,
     NETPLAN_DEF_TYPE_BRIDGE = NETPLAN_DEF_TYPE_VIRTUAL,
@@ -240,6 +241,8 @@ struct net_definition {
     } match;
     gboolean has_match;
     gboolean wake_on_lan;
+    gboolean emit_lldp;
+
 
     /* these properties are only valid for ND_WIFI */
     GHashTable* access_points; /* SSID → wifi_access_point* */
@@ -267,6 +270,18 @@ struct net_definition {
         char* learn_interval;
         char* primary_slave;
     } bond_params;
+
+    struct {
+        char* apn;
+        gboolean auto_config;
+        char* device_id;
+        char* network_id;
+        char* password;
+        char* pin;
+        char* sim_id;
+        char* sim_operator_id;
+        char* username;
+    } gsm_params;
 
     struct {
         char* ageing_time;

@@ -16,7 +16,9 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -452,6 +454,10 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         g_string_append_printf(link, "MTUBytes=%d\n", def->mtubytes);
     }
 
+    if (def->emit_lldp) {
+        g_string_append(network, "EmitLLDP=true\n");
+    }
+
     if (def->dhcp4 && def->dhcp6)
         g_string_append(network, "DHCP=yes\n");
     else if (def->dhcp4)
@@ -663,7 +669,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 }
 
 static void
-append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth)
+append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, const char* id)
 {
     switch (auth->key_management) {
         case NETPLAN_AUTH_KEY_MANAGEMENT_NONE:
@@ -708,7 +714,24 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth)
     }
     if (auth->password) {
         if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK) {
-            g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
+            size_t len = strlen(auth->password);
+            if (len == 64) {
+                /* must be a hex-digit key representation */
+                for (unsigned i = 0; i < 64; ++i)
+                    if (!isxdigit(auth->password[i])) {
+                        g_fprintf(stderr, "ERROR: %s: PSK length of 64 is only supported for hex-digit representation\n", id);
+                        exit(1);
+                    }
+                /* this is required to be unquoted */
+                g_string_append_printf(s, "  psk=%s\n", auth->password);
+            } else if (len < 8 || len > 63) {
+                /* per wpa_supplicant spec, passphrase needs to be between 8
+                   and 63 characters */
+                g_fprintf(stderr, "ERROR: %s: ASCII passphrase must be between 8 and 63 characters (inclusive)\n", id);
+                exit(1);
+            } else {
+                g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
+            }
         } else {
             if (strncmp(auth->password, "hash:", 5) == 0) {
                 g_string_append_printf(s, "  password=%s\n", auth->password);
@@ -798,7 +821,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
 
             /* wifi auth trumps netdef auth */
             if (ap->has_auth) {
-                append_wpa_auth_conf(s, &ap->auth);
+                append_wpa_auth_conf(s, &ap->auth, ap->ssid);
             }
             else {
                 g_string_append(s, "  key_mgmt=NONE\n");
@@ -809,7 +832,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
     else {
         /* wired 802.1x auth or similar */
         g_string_append(s, "network={\n");
-        append_wpa_auth_conf(s, &def->auth);
+        append_wpa_auth_conf(s, &def->auth, def->id);
         g_string_append(s, "}\n");
     }
 
@@ -839,6 +862,11 @@ write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
     if (def->backend != NETPLAN_BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
         return FALSE;
+    }
+
+    if (def->type == NETPLAN_DEF_TYPE_GSM) {
+        g_fprintf(stderr, "ERROR: %s: networkd backend does not support GSM modem configuration\n", def->id);
+        exit(1);
     }
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI || def->has_auth) {
