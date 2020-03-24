@@ -53,9 +53,9 @@ reload_udevd(void)
 static void
 nd_iterator_list(gpointer value, gpointer user_data)
 {
-    if (write_networkd_conf((net_definition*) value, (const char*) user_data))
+    if (write_networkd_conf((NetplanNetDefinition*) value, (const char*) user_data))
         any_networkd = TRUE;
-    write_nm_conf((net_definition*) value, (const char*) user_data);
+    write_nm_conf((NetplanNetDefinition*) value, (const char*) user_data);
 }
 
 
@@ -91,7 +91,7 @@ find_interface(gchar* interface)
 
     g_hash_table_iter_init (&iter, netdefs);
     while (g_hash_table_iter_next (&iter, &key, &value)) {
-        net_definition *nd = (net_definition *) value;
+        NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
         if (!g_strcmp0(nd->set_name, interface))
             g_ptr_array_add (found, (gpointer) nd);
         else if (!g_strcmp0(nd->id, interface))
@@ -104,7 +104,7 @@ find_interface(gchar* interface)
         // LCOV_EXCL_START
         g_hash_table_iter_init (&iter, netdefs);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
-            net_definition *nd = (net_definition *) value;
+            NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
             if (!g_strcmp0(nd->match.driver, driver))
                 g_ptr_array_add (found, (gpointer) nd);
         }
@@ -118,10 +118,10 @@ find_interface(gchar* interface)
         goto exit_find;
     }
     else {
-         net_definition *nd = (net_definition *)g_ptr_array_index (found, 0);
+         const NetplanNetDefinition *nd = (NetplanNetDefinition *)g_ptr_array_index (found, 0);
          g_printf("id=%s, backend=%s, set_name=%s, match_name=%s, match_mac=%s, match_driver=%s\n",
              nd->id,
-             netdef_backend_to_name[nd->backend],
+             netplan_backend_to_name[nd->backend],
              nd->set_name,
              nd->match.original_name,
              nd->match.mac,
@@ -141,7 +141,7 @@ process_input_file(const char* f)
     GError* error = NULL;
 
     g_debug("Processing input file %s..", f);
-    if (!parse_yaml(f, &error)) {
+    if (!netplan_parse_yaml(f, &error)) {
         g_fprintf(stderr, "%s\n", error->message);
         exit(1);
     }
@@ -237,7 +237,8 @@ int main(int argc, char** argv)
             process_input_file(g_hash_table_lookup(configs, i->data));
     }
 
-    if (!finish_parse(&error)) {
+    netdefs = netplan_finish_parse(&error);
+    if (error) {
         g_fprintf(stderr, "%s\n", error->message);
         exit(1);
     }
@@ -266,7 +267,7 @@ int main(int argc, char** argv)
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if global renderer is NM */
-    if (get_global_backend() == BACKEND_NM)
+    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM)
         g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
     if (called_as_generator) {

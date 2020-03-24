@@ -30,27 +30,27 @@
 #include "error.h"
 #include "validation.h"
 
-/* convenience macro to put the offset of a net_definition field into "void* data" */
-#define netdef_offset(field) GUINT_TO_POINTER(offsetof(net_definition, field))
-#define route_offset(field) GUINT_TO_POINTER(offsetof(ip_route, field))
-#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(ip_rule, field))
-#define auth_offset(field) GUINT_TO_POINTER(offsetof(authentication_settings, field))
+/* convenience macro to put the offset of a NetplanNetDefinition field into "void* data" */
+#define netdef_offset(field) GUINT_TO_POINTER(offsetof(NetplanNetDefinition, field))
+#define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
+#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
+#define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 
-/* net_definition that is currently being processed */
-net_definition* cur_netdef;
+/* NetplanNetDefinition that is currently being processed */
+static NetplanNetDefinition* cur_netdef;
 
 /* wifi AP that is currently being processed */
-wifi_access_point* cur_access_point;
+static NetplanWifiAccessPoint* cur_access_point;
 
 /* authentication options that are currently being processed */
-authentication_settings* cur_auth;
+static NetplanAuthenticationSettings* cur_auth;
 
-ip_route* cur_route;
-ip_rule* cur_ip_rule;
+static NetplanIPRoute* cur_route;
+static NetplanIPRule* cur_ip_rule;
 
-netdef_backend backend_global, backend_cur_type;
+static NetplanBackend backend_global, backend_cur_type;
 
-/* Global ID → net_definition* map for all parsed config files */
+/* Global ID → NetplanNetDefinition* map for all parsed config files */
 GHashTable* netdefs;
 
 /* Contains the same objects as 'netdefs' but ordered by dependency */
@@ -59,7 +59,7 @@ GList* netdefs_ordered;
 /* Set of IDs in currently parsed YAML file, for being able to detect
  * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
  * existing definition */
-GHashTable* ids_in_file;
+static GHashTable* ids_in_file;
 
 /**
  * Load YAML file name into a yaml_document_t.
@@ -87,6 +87,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
         ret = parser_error(&parser, yaml, error);
     }
 
+    yaml_parser_delete(&parser);
     fclose(fyaml);
     return ret;
 }
@@ -136,13 +137,13 @@ scalar(const yaml_node_t* node)
 static void
 add_missing_node(const yaml_node_t* node)
 {
-    missing_node* missing;
+    NetplanMissingNode* missing;
 
     /* Let's capture the current netdef we were playing with along with the
      * actual yaml_node_t that errors (that is an identifier not previously
      * seen by the compiler). We can use it later to write an sensible error
      * message and point the user in the right direction. */
-    missing = g_new0(missing_node, 1);
+    missing = g_new0(NetplanMissingNode, 1);
     missing->netdef_id = cur_netdef->id;
     missing->node = node;
 
@@ -249,7 +250,7 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
 
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
- * @data: offset into net_definition where the const char* field to write is
+ * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
@@ -264,7 +265,7 @@ handle_netdef_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 
 /**
  * Generic handler for setting a cur_netdef ID/iface name field from a scalar node
- * @data: offset into net_definition where the const char* field to write is
+ * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
@@ -278,20 +279,20 @@ handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 /**
  * Generic handler for setting a cur_netdef ID/iface name field referring to an
  * existing ID from a scalar node
- * @data: offset into net_definition where the net_definition* field to write is
+ * @data: offset into NetplanNetDefinition where the NetplanNetDefinition* field to write is
  *        located
  */
 static gboolean
 handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    net_definition* ref = NULL;
+    NetplanNetDefinition* ref = NULL;
 
     ref = g_hash_table_lookup(netdefs, scalar(node));
     if (!ref) {
         add_missing_node(node);
     } else {
-        *((net_definition**) ((void*) cur_netdef + offset)) = ref;
+        *((NetplanNetDefinition**) ((void*) cur_netdef + offset)) = ref;
     }
     return TRUE;
 }
@@ -299,7 +300,7 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
 
 /**
  * Generic handler for setting a cur_netdef MAC address field from a scalar node
- * @data: offset into net_definition where the const char* field to write is
+ * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
@@ -323,7 +324,7 @@ handle_netdef_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 
 /**
  * Generic handler for setting a cur_netdef gboolean field from a scalar node
- * @data: offset into net_definition where the gboolean field to write is located
+ * @data: offset into NetplanNetDefinition where the gboolean field to write is located
  */
 static gboolean
 handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
@@ -350,7 +351,7 @@ handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
 
 /**
  * Generic handler for setting a cur_netdef guint field from a scalar node
- * @data: offset into net_definition where the guint field to write is located
+ * @data: offset into NetplanNetDefinition where the guint field to write is located
  */
 static gboolean
 handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
@@ -432,7 +433,7 @@ handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
  * Grammar and handlers for network config "match" entry
  ****************************************************/
 
-const mapping_entry_handler match_handlers[] = {
+static const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.driver)},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, handle_netdef_id, NULL, netdef_offset(match.original_name)},
@@ -459,13 +460,13 @@ handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* 
 {
     g_assert(cur_auth);
     if (strcmp(scalar(node), "none") == 0)
-        cur_auth->key_management = KEY_MANAGEMENT_NONE;
+        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_NONE;
     else if (strcmp(scalar(node), "psk") == 0)
-        cur_auth->key_management = KEY_MANAGEMENT_WPA_PSK;
+        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
     else if (strcmp(scalar(node), "eap") == 0)
-        cur_auth->key_management = KEY_MANAGEMENT_WPA_EAP;
+        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
     else if (strcmp(scalar(node), "802.1x") == 0)
-        cur_auth->key_management = KEY_MANAGEMENT_8021X;
+        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
     else
         return yaml_error(node, error, "unknown key management type '%s'", scalar(node));
     return TRUE;
@@ -476,17 +477,17 @@ handle_auth_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
 {
     g_assert(cur_auth);
     if (strcmp(scalar(node), "tls") == 0)
-        cur_auth->eap_method = EAP_TLS;
+        cur_auth->eap_method = NETPLAN_AUTH_EAP_TLS;
     else if (strcmp(scalar(node), "peap") == 0)
-        cur_auth->eap_method = EAP_PEAP;
+        cur_auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
     else if (strcmp(scalar(node), "ttls") == 0)
-        cur_auth->eap_method = EAP_TTLS;
+        cur_auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
     else
         return yaml_error(node, error, "unknown EAP method '%s'", scalar(node));
     return TRUE;
 }
 
-const mapping_entry_handler auth_handlers[] = {
+static const mapping_entry_handler auth_handlers[] = {
     {"key-management", YAML_SCALAR_NODE, handle_auth_key_management},
     {"method", YAML_SCALAR_NODE, handle_auth_method},
     {"identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(identity)},
@@ -504,15 +505,15 @@ const mapping_entry_handler auth_handlers[] = {
  * Grammar and handlers for network device definition
  ****************************************************/
 
-static netdef_backend
-get_default_backend_for_type(netdef_type type)
+static NetplanBackend
+get_default_backend_for_type(NetplanDefType type)
 {
-    if (backend_global != BACKEND_NONE)
+    if (backend_global != NETPLAN_BACKEND_NONE)
         return backend_global;
 
     /* networkd can handle all device types at the moment, so nothing
      * type-specific */
-    return BACKEND_NETWORKD;
+    return NETPLAN_BACKEND_NETWORKD;
 }
 
 static gboolean
@@ -521,7 +522,7 @@ handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void
     g_assert(cur_access_point);
     /* shortcut for WPA-PSK */
     cur_access_point->has_auth = TRUE;
-    cur_access_point->auth.key_management = KEY_MANAGEMENT_WPA_PSK;
+    cur_access_point->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
     g_free(cur_access_point->auth.password);
     cur_access_point->auth.password = g_strdup(scalar(node));
     return TRUE;
@@ -547,17 +548,17 @@ handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _,
 {
     g_assert(cur_access_point);
     if (strcmp(scalar(node), "infrastructure") == 0)
-        cur_access_point->mode = WIFI_MODE_INFRASTRUCTURE;
+        cur_access_point->mode = NETPLAN_WIFI_MODE_INFRASTRUCTURE;
     else if (strcmp(scalar(node), "adhoc") == 0)
-        cur_access_point->mode = WIFI_MODE_ADHOC;
+        cur_access_point->mode = NETPLAN_WIFI_MODE_ADHOC;
     else if (strcmp(scalar(node), "ap") == 0)
-        cur_access_point->mode = WIFI_MODE_AP;
+        cur_access_point->mode = NETPLAN_WIFI_MODE_AP;
     else
         return yaml_error(node, error, "unknown wifi mode '%s'", scalar(node));
     return TRUE;
 }
 
-const mapping_entry_handler wifi_access_point_handlers[] = {
+static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
     {"auth", YAML_MAPPING_NODE, handle_access_point_auth},
@@ -568,12 +569,12 @@ const mapping_entry_handler wifi_access_point_handlers[] = {
  * Parse scalar node's string into a netdef_backend.
  */
 static gboolean
-parse_renderer(yaml_node_t* node, netdef_backend* backend, GError** error)
+parse_renderer(yaml_node_t* node, NetplanBackend* backend, GError** error)
 {
     if (strcmp(scalar(node), "networkd") == 0)
-        *backend = BACKEND_NETWORKD;
+        *backend = NETPLAN_BACKEND_NETWORKD;
     else if (strcmp(scalar(node), "NetworkManager") == 0)
-        *backend = BACKEND_NM;
+        *backend = NETPLAN_BACKEND_NM;
     else
         return yaml_error(node, error, "unknown renderer '%s'", scalar(node));
     return TRUE;
@@ -592,12 +593,12 @@ handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
         g_ascii_strcasecmp(scalar(node), "on") == 0 ||
         g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
         g_ascii_strcasecmp(scalar(node), "y") == 0)
-        cur_netdef->accept_ra = ACCEPT_RA_ENABLED;
+        cur_netdef->accept_ra = NETPLAN_RA_MODE_ENABLED;
     else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
         g_ascii_strcasecmp(scalar(node), "off") == 0 ||
         g_ascii_strcasecmp(scalar(node), "no") == 0 ||
         g_ascii_strcasecmp(scalar(node), "n") == 0)
-        cur_netdef->accept_ra = ACCEPT_RA_DISABLED;
+        cur_netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
     else
         return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
 
@@ -703,7 +704,7 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
         assert_type(value, YAML_MAPPING_NODE);
 
         g_assert(cur_access_point == NULL);
-        cur_access_point = g_new0(wifi_access_point, 1);
+        cur_access_point = g_new0(NetplanWifiAccessPoint, 1);
         cur_access_point->ssid = g_strdup(scalar(key));
         g_debug("%s: adding wifi AP '%s'", cur_netdef->id, cur_access_point->ssid);
 
@@ -740,7 +741,7 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        net_definition *component;
+        NetplanNetDefinition *component;
 
         assert_type(entry, YAML_SCALAR_NODE);
         component = g_hash_table_lookup(netdefs, scalar(entry));
@@ -762,7 +763,7 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
 
 /**
  * Handler for bond "mode" types.
- * @data: offset into net_definition where the const char* field to write is
+ * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
@@ -790,7 +791,7 @@ handle_bond_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        net_definition *component;
+        NetplanNetDefinition *component;
 
         assert_type(entry, YAML_SCALAR_NODE);
         component = g_hash_table_lookup(netdefs, scalar(entry));
@@ -881,12 +882,12 @@ handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError
     return TRUE;
 }
 
-struct optional_address_option optional_address_options[] = {
-    {"ipv4-ll", OPTIONAL_IPV4_LL},
-    {"ipv6-ra", OPTIONAL_IPV6_RA},
-    {"dhcp4",   OPTIONAL_DHCP4},
-    {"dhcp6",   OPTIONAL_DHCP6},
-    {"static",  OPTIONAL_STATIC},
+struct NetplanOptionalAddressType NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
+    {"ipv4-ll", NETPLAN_OPTIONAL_IPV4_LL},
+    {"ipv6-ra", NETPLAN_OPTIONAL_IPV6_RA},
+    {"dhcp4",   NETPLAN_OPTIONAL_DHCP4},
+    {"dhcp6",   NETPLAN_OPTIONAL_DHCP6},
+    {"static",  NETPLAN_OPTIONAL_STATIC},
     {NULL},
 };
 
@@ -898,9 +899,9 @@ handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _
         assert_type(entry, YAML_SCALAR_NODE);
         int found = FALSE;
 
-        for (unsigned i = 0; optional_address_options[i].name != NULL; ++i) {
-            if (g_ascii_strcasecmp(scalar(entry), optional_address_options[i].name) == 0) {
-                cur_netdef->optional_addresses |= optional_address_options[i].flag;
+        for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
+            if (g_ascii_strcasecmp(scalar(entry), NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name) == 0) {
+                cur_netdef->optional_addresses |= NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag;
                 found = TRUE;
                 break;
             }
@@ -1132,7 +1133,7 @@ handle_bridge_path_cost(yaml_document_t* doc, yaml_node_t* node, const void* dat
         yaml_node_t* key, *value;
         guint v;
         gchar* endptr;
-        net_definition *component;
+        NetplanNetDefinition *component;
         guint* ref_ptr;
 
         key = yaml_document_get_node(doc, entry->key);
@@ -1168,7 +1169,7 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
         yaml_node_t* key, *value;
         guint v;
         gchar* endptr;
-        net_definition *component;
+        NetplanNetDefinition *component;
         guint* ref_ptr;
 
         key = yaml_document_get_node(doc, entry->key);
@@ -1198,7 +1199,7 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
     return TRUE;
 }
 
-const mapping_entry_handler bridge_params_handlers[] = {
+static const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.ageing_time)},
     {"forward-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.forward_delay)},
     {"hello-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.hello_time)},
@@ -1222,7 +1223,7 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
  * Grammar and handlers for network config "routes" entry
  ****************************************************/
 
-const mapping_entry_handler routes_handlers[] = {
+static const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
@@ -1240,15 +1241,15 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
 
-        cur_route = g_new0(ip_route, 1);
+        cur_route = g_new0(NetplanIPRoute, 1);
         cur_route->type = g_strdup("unicast");
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_route->metric = METRIC_UNSPEC; /* 0 is a valid metric */
+        cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
 
         if (process_mapping(doc, entry, routes_handlers, error)) {
             if (!cur_netdef->routes) {
-                cur_netdef->routes = g_array_new(FALSE, FALSE, sizeof(ip_route*));
+                cur_netdef->routes = g_array_new(FALSE, FALSE, sizeof(NetplanIPRoute*));
             }
 
             g_array_append_val(cur_netdef->routes, cur_route);
@@ -1273,7 +1274,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
     return TRUE;
 }
 
-const mapping_entry_handler ip_rules_handlers[] = {
+static const mapping_entry_handler ip_rules_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(from)},
     {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark},
     {"priority", YAML_SCALAR_NODE, handle_ip_rule_prio},
@@ -1289,16 +1290,16 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
 
-        cur_ip_rule = g_new0(ip_rule, 1);
+        cur_ip_rule = g_new0(NetplanIPRule, 1);
         cur_ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_ip_rule->priority = IP_RULE_PRIO_UNSPEC;
-        cur_ip_rule->table = ROUTE_TABLE_UNSPEC;
-        cur_ip_rule->tos = IP_RULE_TOS_UNSPEC;
-        cur_ip_rule->fwmark = IP_RULE_FW_MARK_UNSPEC;
+        cur_ip_rule->priority = NETPLAN_IP_RULE_PRIO_UNSPEC;
+        cur_ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+        cur_ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
+        cur_ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 
         if (process_mapping(doc, entry, ip_rules_handlers, error)) {
             if (!cur_netdef->ip_rules) {
-                cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(ip_rule*));
+                cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
             }
 
             g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
@@ -1347,7 +1348,7 @@ handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
 static gboolean
 handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    net_definition *component;
+    NetplanNetDefinition *component;
     char** ref_ptr;
 
     component = g_hash_table_lookup(netdefs, scalar(node));
@@ -1366,7 +1367,7 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
     return TRUE;
 }
 
-const mapping_entry_handler bond_params_handlers[] = {
+static const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_bond_mode, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
     {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.monitor_interval)},
@@ -1419,9 +1420,9 @@ handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data
  ****************************************************/
 
 const char*
-tunnel_mode_to_string(tunnel_mode mode)
+tunnel_mode_to_string(NetplanTunnelMode mode)
 {
-    return tunnel_mode_table[mode];
+    return netplan_tunnel_mode_table[mode];
 }
 
 static gboolean
@@ -1451,11 +1452,11 @@ static gboolean
 handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     const char *key = scalar(node);
-    tunnel_mode i;
+    NetplanTunnelMode i;
 
     // Skip over unknown (0) tunnel mode.
-    for (i = 1; i < _TUNNEL_MODE_MAX; ++i) {
-        if (g_strcmp0(tunnel_mode_table[i], key) == 0) {
+    for (i = 1; i < NETPLAN_TUNNEL_MODE_MAX_; ++i) {
+        if (g_strcmp0(netplan_tunnel_mode_table[i], key) == 0) {
             cur_netdef->tunnel.mode = i;
             return TRUE;
         }
@@ -1486,7 +1487,7 @@ handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return TRUE;
 }
 
-const mapping_entry_handler tunnel_keys_handlers[] = {
+static const mapping_entry_handler tunnel_keys_handlers[] = {
     {"input", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
     {"output", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
     {NULL}
@@ -1520,7 +1521,15 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
  * Grammar and handlers for network devices
  ****************************************************/
 
-const mapping_entry_handler nameservers_handlers[] = {
+static const mapping_entry_handler nm_backend_settings_handlers[] = {
+    {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.name)},
+    {"uuid", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
+    {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
+    {NULL}
+};
+
+static const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
     {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
     {NULL}
@@ -1538,12 +1547,12 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
     {"use-routes", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_routes)}
 
-const mapping_entry_handler dhcp4_overrides_handlers[] = {
+static const mapping_entry_handler dhcp4_overrides_handlers[] = {
     COMMON_DHCP_OVERRIDES_HANDLERS(dhcp4_overrides),
     {NULL},
 };
 
-const mapping_entry_handler dhcp6_overrides_handlers[] = {
+static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     COMMON_DHCP_OVERRIDES_HANDLERS(dhcp6_overrides),
     {NULL},
 };
@@ -1572,6 +1581,9 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                            \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
 
+#define COMMON_BACKEND_HANDLERS							\
+    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}
+
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS                                                           \
     {"match", YAML_MAPPING_NODE, handle_match},                                          \
@@ -1579,43 +1591,48 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
-const mapping_entry_handler ethernet_def_handlers[] = {
+static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"auth", YAML_MAPPING_NODE, handle_auth},
     {NULL}
 };
 
-const mapping_entry_handler wifi_def_handlers[] = {
+static const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"access-points", YAML_MAPPING_NODE, handle_wifi_access_points},
     {"auth", YAML_MAPPING_NODE, handle_auth},
     {NULL}
 };
 
-const mapping_entry_handler bridge_def_handlers[] = {
+static const mapping_entry_handler bridge_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
     {"parameters", YAML_MAPPING_NODE, handle_bridge},
     {NULL}
 };
 
-const mapping_entry_handler bond_def_handlers[] = {
+static const mapping_entry_handler bond_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
     {"parameters", YAML_MAPPING_NODE, handle_bonding},
     {NULL}
 };
 
-const mapping_entry_handler vlan_def_handlers[] = {
+static const mapping_entry_handler vlan_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
     {NULL}
 };
 
-const mapping_entry_handler gsm_def_handlers[] = {
+static const mapping_entry_handler gsm_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.apn)},
     {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(gsm_params.auto_config)},
@@ -1628,8 +1645,9 @@ const mapping_entry_handler gsm_def_handlers[] = {
     {"username", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.username)},
 };
 
-const mapping_entry_handler tunnel_def_handlers[] = {
+static const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
     {"local", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.local_ip)},
     {"remote", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.remote_ip)},
@@ -1665,7 +1683,7 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
 }
 
 static void
-initialize_dhcp_overrides(dhcp_overrides* overrides)
+initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
 {
     overrides->use_dns = TRUE;
     overrides->use_domains = NULL;
@@ -1675,7 +1693,7 @@ initialize_dhcp_overrides(dhcp_overrides* overrides)
     overrides->use_mtu = TRUE;
     overrides->use_routes = TRUE;
     overrides->hostname = NULL;
-    overrides->metric = METRIC_UNSPEC;
+    overrides->metric = NETPLAN_METRIC_UNSPEC;
 }
 
 /**
@@ -1720,14 +1738,14 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
                 return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
             /* create new network definition */
-            cur_netdef = g_new0(net_definition, 1);
+            cur_netdef = g_new0(NetplanNetDefinition, 1);
             cur_netdef->type = GPOINTER_TO_UINT(data);
-            cur_netdef->backend = backend_cur_type ?: BACKEND_NONE;
+            cur_netdef->backend = backend_cur_type ?: NETPLAN_BACKEND_NONE;
             cur_netdef->id = g_strdup(scalar(key));
 
             /* Set some default values */
             cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-            cur_netdef->tunnel.mode = TUNNEL_MODE_UNKNOWN;
+            cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
             cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
             /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
             cur_netdef->linklocal.ipv6 = TRUE;
@@ -1747,13 +1765,13 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         /* and fill it with definitions */
         switch (cur_netdef->type) {
-            case ND_BOND: handlers = bond_def_handlers; break;
-            case ND_BRIDGE: handlers = bridge_def_handlers; break;
-            case ND_ETHERNET: handlers = ethernet_def_handlers; break;
-            case ND_GSM: handlers = gsm_def_handlers; break;
-            case ND_TUNNEL: handlers = tunnel_def_handlers; break;
-            case ND_VLAN: handlers = vlan_def_handlers; break;
-            case ND_WIFI: handlers = wifi_def_handlers; break;
+            case NETPLAN_DEF_TYPE_BOND: handlers = bond_def_handlers; break;
+            case NETPLAN_DEF_TYPE_BRIDGE: handlers = bridge_def_handlers; break;
+            case NETPLAN_DEF_TYPE_ETHERNET: handlers = ethernet_def_handlers; break;
+            case NETPLAN_DEF_TYPE_GSM: handlers = gsm_def_handlers; break;
+            case NETPLAN_DEF_TYPE_TUNNEL: handlers = tunnel_def_handlers; break;
+            case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
+            case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
         if (!process_mapping(doc, value, handlers, error))
@@ -1765,23 +1783,23 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 
         /* convenience shortcut: physical device without match: means match
          * name on ID */
-        if (cur_netdef->type < ND_VIRTUAL && !cur_netdef->has_match)
+        if (cur_netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !cur_netdef->has_match)
             cur_netdef->match.original_name = cur_netdef->id;
     }
-    backend_cur_type = BACKEND_NONE;
+    backend_cur_type = NETPLAN_BACKEND_NONE;
     return TRUE;
 }
 
-const mapping_entry_handler network_handlers[] = {
-    {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BOND)},
-    {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_BRIDGE)},
-    {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_ETHERNET)},
+static const mapping_entry_handler network_handlers[] = {
+    {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BOND)},
+    {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BRIDGE)},
+    {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_ETHERNET)},
     {"renderer", YAML_SCALAR_NODE, handle_network_renderer},
-    {"tunnels", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_TUNNEL)},
+    {"tunnels", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_TUNNEL)},
     {"version", YAML_SCALAR_NODE, handle_network_version},
-    {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_VLAN)},
-    {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_WIFI)},
-    {"gsms", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(ND_GSM)},
+    {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
+    {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
+    {"gsms", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_GSM)},
     {NULL}
 };
 
@@ -1789,7 +1807,7 @@ const mapping_entry_handler network_handlers[] = {
  * Grammar and handlers for root node
  ****************************************************/
 
-const mapping_entry_handler root_handlers[] = {
+static const mapping_entry_handler root_handlers[] = {
     {"network", YAML_MAPPING_NODE, NULL, network_handlers},
     {NULL}
 };
@@ -1826,7 +1844,7 @@ process_document(yaml_document_t* doc, GError** error)
     if (g_hash_table_size(missing_id) > 0) {
         GHashTableIter iter;
         gpointer key, value;
-        missing_node *missing;
+        NetplanMissingNode *missing;
 
         g_clear_error(error);
 
@@ -1834,7 +1852,7 @@ process_document(yaml_document_t* doc, GError** error)
          * approximate early failure and give the user a meaningful error. */
         g_hash_table_iter_init (&iter, missing_id);
         g_hash_table_iter_next (&iter, &key, &value);
-        missing = (missing_node*) value;
+        missing = (NetplanMissingNode*) value;
 
         return yaml_error(missing->node, error, "%s: interface '%s' is not defined",
                           missing->netdef_id,
@@ -1850,7 +1868,7 @@ process_document(yaml_document_t* doc, GError** error)
  * Parse given YAML file and create/update global "netdefs" list.
  */
 gboolean
-parse_yaml(const char* filename, GError** error)
+netplan_parse_yaml(const char* filename, GError** error)
 {
     yaml_document_t doc;
     gboolean ret;
@@ -1858,12 +1876,12 @@ parse_yaml(const char* filename, GError** error)
     if (!load_yaml(filename, &doc, error))
         return FALSE;
 
+    if (!netdefs)
+        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
+
     /* empty file? */
     if (yaml_document_get_root_node(&doc) == NULL)
         return TRUE;
-
-    if (!netdefs)
-        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
 
     g_assert(ids_in_file == NULL);
     ids_in_file = g_hash_table_new(g_str_hash, NULL);
@@ -1881,10 +1899,10 @@ static void
 finish_iterator(gpointer key, gpointer value, gpointer user_data)
 {
     GError **error = (GError **)user_data;
-    net_definition* nd = value;
+    NetplanNetDefinition* nd = value;
 
     /* Take more steps to make sure we always have a backend set for netdefs */
-    if (nd->backend == BACKEND_NONE) {
+    if (nd->backend == NETPLAN_BACKEND_NONE) {
         nd->backend = get_default_backend_for_type(nd->type);
         g_debug("%s: setting default backend to %i", nd->id, nd->backend);
     }
@@ -1897,23 +1915,25 @@ finish_iterator(gpointer key, gpointer value, gpointer user_data)
 /**
  * Post-processing after parsing all config files
  */
-gboolean
-finish_parse(GError** error)
+GHashTable *
+netplan_finish_parse(GError** error)
 {
-    if (netdefs)
+    if (netdefs) {
+        g_debug("We have some netdefs, pass them through a final round of validation");
         g_hash_table_foreach(netdefs, finish_iterator, error);
+    }
 
     if (error && *error)
-        return FALSE;
+        return NULL;
 
-    return TRUE;
+    return netdefs;
 }
 
 /**
  * Return current global backend.
  */
-netdef_backend
-get_global_backend()
+NetplanBackend
+netplan_get_global_backend()
 {
     return backend_global;
 }

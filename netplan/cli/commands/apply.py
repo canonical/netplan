@@ -74,7 +74,14 @@ class NetplanApply(utils.NetplanCommand):
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
 
-        if run_generate and subprocess.call([utils.get_generator_path()]) != 0:
+        generator_call = []
+        generate_out = None
+        if 'NETPLAN_PROFILE' in os.environ:
+            generator_call.extend(['valgrind', '--leak-check=full'])
+            generate_out = subprocess.STDOUT
+
+        generator_call.append(utils.get_generator_path())
+        if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
             if exit_on_error:
                 sys.exit(os.EX_CONFIG)
             else:

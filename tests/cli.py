@@ -33,6 +33,7 @@ if shutil.which('python3-coverage'):
 
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
+os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
 
 
 def _load_yaml(text):
@@ -67,7 +68,9 @@ class TestGenerate(unittest.TestCase):
         self.workdir = tempfile.TemporaryDirectory()
 
     def test_no_config(self):
-        out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name])
+        p = subprocess.Popen(exe_cli + ['generate', '--root-dir', self.workdir.name], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
         self.assertEqual(out, b'')
         self.assertEqual(os.listdir(self.workdir.name), [])
 

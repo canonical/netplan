@@ -1,4 +1,8 @@
+NETPLAN_SOVER=0.0
+
 BUILDFLAGS = \
+	-g \
+	-fPIC \
 	-std=c99 \
 	-D_XOPEN_SOURCE=500 \
 	-DSBINDIR=\"$(SBINDIR)\" \
@@ -13,12 +17,14 @@ BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completio
 GCOV ?= gcov
 ROOTPREFIX ?=
 PREFIX ?= /usr
+LIBDIR ?= $(PREFIX)/lib
 ROOTLIBEXECDIR ?= $(ROOTPREFIX)/lib
 LIBEXECDIR ?= $(PREFIX)/lib
 SBINDIR ?= $(PREFIX)/sbin
 DATADIR ?= $(PREFIX)/share
 DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
+INCLUDEDIR ?= $(PREFIX)/include
 
 PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/dbus/*.py)
 
@@ -29,8 +35,16 @@ NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
 
 default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
 
-generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
-	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c, $^) `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
+%.o: src/%.c
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
+
+libnetplan.so.$(NETPLAN_SOVER): parse.o util.o validation.o error.o
+	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --libs yaml-0.1`
+	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
+
+#generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
+generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o generate.o
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 netplan-dbus: src/dbus.c src/_features.h
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
@@ -49,6 +63,7 @@ netplan/_features.py: src/[^_]*.[hc]
 clean:
 	rm -f netplan/_features.py src/_features.h
 	rm -f generate doc/*.html doc/*.[1-9]
+	rm -f *.o *.so*
 	rm -f netplan-dbus dbus/*.service
 	rm -f *.gcda *.gcno generate.info
 	rm -rf test-coverage .coverage
@@ -85,15 +100,23 @@ python-coverage:
 	python3-coverage xml --omit=/usr* || true
 
 install: default
-	mkdir -p $(DESTDIR)/$(SBINDIR) $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)
+	mkdir -p $(DESTDIR)/$(SBINDIR) $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR) $(DESTDIR)/$(LIBDIR)
 	mkdir -p $(DESTDIR)/$(MANDIR)/man5 $(DESTDIR)/$(MANDIR)/man8
 	mkdir -p $(DESTDIR)/$(DOCDIR)/netplan/examples
 	mkdir -p $(DESTDIR)/$(DATADIR)/netplan/netplan
+	mkdir -p $(DESTDIR)/$(INCLUDEDIR)/netplan
 	install -m 755 generate $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
 	find netplan/ -name '*.py' -exec install -Dm 644 "{}" "$(DESTDIR)/$(DATADIR)/netplan/{}" \;
 	install -m 755 src/netplan.script $(DESTDIR)/$(DATADIR)/netplan/
 	ln -srf $(DESTDIR)/$(DATADIR)/netplan/netplan.script $(DESTDIR)/$(SBINDIR)/netplan
 	ln -srf $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
+	# lib
+	install -m 644 *.so.* $(DESTDIR)/$(LIBDIR)/
+	ln -snf $(DESTDIR)/$(LIBDIR)/libnetplan.so.$(NETPLAN_SOVER) $(DESTDIR)/$(LIBDIR)/libnetplan.so
+	# headers, dev data
+	install -m 644 src/*.h $(DESTDIR)/$(INCLUDEDIR)/netplan/
+	# TODO: install pkg-config once available
+	# docs, data
 	install -m 644 doc/*.html $(DESTDIR)/$(DOCDIR)/netplan/
 	install -m 644 examples/*.yaml $(DESTDIR)/$(DOCDIR)/netplan/examples/
 	install -m 644 doc/*.5 $(DESTDIR)/$(MANDIR)/man5/
