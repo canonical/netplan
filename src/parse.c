@@ -37,18 +37,18 @@
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 
 /* NetplanNetDefinition that is currently being processed */
-NetplanNetDefinition* cur_netdef;
+static NetplanNetDefinition* cur_netdef;
 
 /* wifi AP that is currently being processed */
-NetplanWifiAccessPoint* cur_access_point;
+static NetplanWifiAccessPoint* cur_access_point;
 
 /* authentication options that are currently being processed */
-NetplanAuthenticationSettings* cur_auth;
+static NetplanAuthenticationSettings* cur_auth;
 
-NetplanIPRoute* cur_route;
-NetplanIPRule* cur_ip_rule;
+static NetplanIPRoute* cur_route;
+static NetplanIPRule* cur_ip_rule;
 
-NetplanBackend backend_global, backend_cur_type;
+static NetplanBackend backend_global, backend_cur_type;
 
 /* Global ID → NetplanNetDefinition* map for all parsed config files */
 GHashTable* netdefs;
@@ -59,7 +59,7 @@ GList* netdefs_ordered;
 /* Set of IDs in currently parsed YAML file, for being able to detect
  * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
  * existing definition */
-GHashTable* ids_in_file;
+static GHashTable* ids_in_file;
 
 /**
  * Load YAML file name into a yaml_document_t.
@@ -433,7 +433,7 @@ handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
  * Grammar and handlers for network config "match" entry
  ****************************************************/
 
-const mapping_entry_handler match_handlers[] = {
+static const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(match.driver)},
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, handle_netdef_id, NULL, netdef_offset(match.original_name)},
@@ -487,7 +487,7 @@ handle_auth_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     return TRUE;
 }
 
-const mapping_entry_handler auth_handlers[] = {
+static const mapping_entry_handler auth_handlers[] = {
     {"key-management", YAML_SCALAR_NODE, handle_auth_key_management},
     {"method", YAML_SCALAR_NODE, handle_auth_method},
     {"identity", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(identity)},
@@ -558,7 +558,7 @@ handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _,
     return TRUE;
 }
 
-const mapping_entry_handler wifi_access_point_handlers[] = {
+static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
     {"auth", YAML_MAPPING_NODE, handle_access_point_auth},
@@ -1199,7 +1199,7 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
     return TRUE;
 }
 
-const mapping_entry_handler bridge_params_handlers[] = {
+static const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.ageing_time)},
     {"forward-delay", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.forward_delay)},
     {"hello-time", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bridge_params.hello_time)},
@@ -1223,7 +1223,7 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
  * Grammar and handlers for network config "routes" entry
  ****************************************************/
 
-const mapping_entry_handler routes_handlers[] = {
+static const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
@@ -1274,7 +1274,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
     return TRUE;
 }
 
-const mapping_entry_handler ip_rules_handlers[] = {
+static const mapping_entry_handler ip_rules_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(from)},
     {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark},
     {"priority", YAML_SCALAR_NODE, handle_ip_rule_prio},
@@ -1367,7 +1367,7 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
     return TRUE;
 }
 
-const mapping_entry_handler bond_params_handlers[] = {
+static const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_bond_mode, NULL, netdef_offset(bond_params.mode)},
     {"lacp-rate", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.lacp_rate)},
     {"mii-monitor-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.monitor_interval)},
@@ -1487,7 +1487,7 @@ handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return TRUE;
 }
 
-const mapping_entry_handler tunnel_keys_handlers[] = {
+static const mapping_entry_handler tunnel_keys_handlers[] = {
     {"input", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
     {"output", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
     {NULL}
@@ -1521,7 +1521,7 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
  * Grammar and handlers for network devices
  ****************************************************/
 
-const mapping_entry_handler nm_backend_settings_handlers[] = {
+static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.name)},
     {"uuid", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.uuid)},
     {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
@@ -1529,7 +1529,7 @@ const mapping_entry_handler nm_backend_settings_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler nameservers_handlers[] = {
+static const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
     {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
     {NULL}
@@ -1547,12 +1547,12 @@ const mapping_entry_handler nameservers_handlers[] = {
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
     {"use-routes", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_routes)}
 
-const mapping_entry_handler dhcp4_overrides_handlers[] = {
+static const mapping_entry_handler dhcp4_overrides_handlers[] = {
     COMMON_DHCP_OVERRIDES_HANDLERS(dhcp4_overrides),
     {NULL},
 };
 
-const mapping_entry_handler dhcp6_overrides_handlers[] = {
+static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     COMMON_DHCP_OVERRIDES_HANDLERS(dhcp6_overrides),
     {NULL},
 };
@@ -1591,7 +1591,7 @@ const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
-const mapping_entry_handler ethernet_def_handlers[] = {
+static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
@@ -1599,7 +1599,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler wifi_def_handlers[] = {
+static const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
@@ -1608,7 +1608,7 @@ const mapping_entry_handler wifi_def_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler bridge_def_handlers[] = {
+static const mapping_entry_handler bridge_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bridge_interfaces, NULL, NULL},
@@ -1616,7 +1616,7 @@ const mapping_entry_handler bridge_def_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler bond_def_handlers[] = {
+static const mapping_entry_handler bond_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, handle_bond_interfaces, NULL, NULL},
@@ -1624,7 +1624,7 @@ const mapping_entry_handler bond_def_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler vlan_def_handlers[] = {
+static const mapping_entry_handler vlan_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
@@ -1632,7 +1632,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
-const mapping_entry_handler gsm_def_handlers[] = {
+static const mapping_entry_handler gsm_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.apn)},
     {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(gsm_params.auto_config)},
@@ -1645,7 +1645,7 @@ const mapping_entry_handler gsm_def_handlers[] = {
     {"username", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.username)},
 };
 
-const mapping_entry_handler tunnel_def_handlers[] = {
+static const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
@@ -1790,7 +1790,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     return TRUE;
 }
 
-const mapping_entry_handler network_handlers[] = {
+static const mapping_entry_handler network_handlers[] = {
     {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BOND)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BRIDGE)},
     {"ethernets", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_ETHERNET)},
@@ -1807,7 +1807,7 @@ const mapping_entry_handler network_handlers[] = {
  * Grammar and handlers for root node
  ****************************************************/
 
-const mapping_entry_handler root_handlers[] = {
+static const mapping_entry_handler root_handlers[] = {
     {"network", YAML_MAPPING_NODE, NULL, network_handlers},
     {NULL}
 };
