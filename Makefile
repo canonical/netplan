@@ -112,7 +112,7 @@ install: default
 	ln -srf $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/generate $(DESTDIR)/$(SYSTEMD_GENERATOR_DIR)/netplan
 	# lib
 	install -m 644 *.so.* $(DESTDIR)/$(LIBDIR)/
-	ln -snf $(DESTDIR)/$(LIBDIR)/libnetplan.so.$(NETPLAN_SOVER) $(DESTDIR)/$(LIBDIR)/libnetplan.so
+	ln -snf libnetplan.so.$(NETPLAN_SOVER) $(DESTDIR)/$(LIBDIR)/libnetplan.so
 	# headers, dev data
 	install -m 644 src/*.h $(DESTDIR)/$(INCLUDEDIR)/netplan/
 	# TODO: install pkg-config once available
