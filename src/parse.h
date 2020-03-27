@@ -284,6 +284,12 @@ typedef struct net_definition {
 
     authentication_settings auth;
     gboolean has_auth;
+
+    /* these properties are only valid for SR-IOV NICs */
+    struct net_definition* pf_link;
+    struct net_definition* vf_vlan_link;
+    gboolean vf_filter;
+
 } net_definition;
 
 typedef enum {

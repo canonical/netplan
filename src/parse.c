@@ -586,6 +586,16 @@ handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 }
 
 static gboolean
+handle_vlan_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    if (strcmp(scalar(node), "sriov") == 0)
+        cur_netdef->vf_filter = TRUE;
+    else
+        return yaml_error(node, error, "unknown renderer '%s'", scalar(node));
+    return TRUE;
+}
+
+static gboolean
 handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
@@ -1582,6 +1592,7 @@ const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"auth", YAML_MAPPING_NODE, handle_auth},
+    {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(pf_link)},
     {NULL}
 };
 
@@ -1611,6 +1622,7 @@ const mapping_entry_handler vlan_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
+    {"renderer", YAML_SCALAR_NODE, handle_vlan_renderer},
     {NULL}
 };
 
@@ -1719,6 +1731,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
             netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
+            cur_netdef->vf_filter = FALSE;
 
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);

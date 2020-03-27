@@ -256,6 +256,11 @@ write_netdev_file(net_definition* def, const char* rootdir, const char* path)
 
     g_assert(def->type >= ND_VIRTUAL);
 
+    if (def->type == ND_VLAN && def->vf_filter) {
+        g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
+        return;
+    }
+
     /* build file contents */
     s = g_string_sized_new(200);
     g_string_append_printf(s, "[NetDev]\nName=%s\n", def->id);

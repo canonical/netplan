@@ -488,18 +488,22 @@ write_nm_conf_access_point(net_definition* def, const char* rootdir, const wifi_
     }
 
     if (def->type == ND_VLAN) {
-        g_assert(def->vlan_id < G_MAXUINT);
-        g_assert(def->vlan_link != NULL);
-        g_string_append_printf(s, "\n[vlan]\nid=%u\nparent=", def->vlan_id);
-        if (def->vlan_link->has_match) {
-            /* we need to refer to the parent's UUID as we don't have an
-             * interface name with match: */
-            maybe_generate_uuid(def->vlan_link);
-            uuid_unparse(def->vlan_link->uuid, uuidstr);
-            g_string_append_printf(s, "%s\n", uuidstr);
+        if (def->vf_filter) {
+            g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
         } else {
-            /* if we have an interface name, use that as parent */
-            g_string_append_printf(s, "%s\n", def->vlan_link->id);
+            g_assert(def->vlan_id < G_MAXUINT);
+            g_assert(def->vlan_link != NULL);
+            g_string_append_printf(s, "\n[vlan]\nid=%u\nparent=", def->vlan_id);
+            if (def->vlan_link->has_match) {
+                /* we need to refer to the parent's UUID as we don't have an
+                 * interface name with match: */
+                maybe_generate_uuid(def->vlan_link);
+                uuid_unparse(def->vlan_link->uuid, uuidstr);
+                g_string_append_printf(s, "%s\n", uuidstr);
+            } else {
+                /* if we have an interface name, use that as parent */
+                g_string_append_printf(s, "%s\n", def->vlan_link->id);
+            }
         }
     }
 
