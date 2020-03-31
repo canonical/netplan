@@ -1,5 +1,5 @@
 #
-# Tests for gsm devices config generated via netplan
+# Tests for gsm/cdma modem devices config generated via netplan
 #
 # Copyright (C) 2020 Canonical, Ltd.
 # Author: Lukas Märdian <lukas.maerdian@canonical.com>
@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# import os #FIXME
-
 from .base import TestBase
 
 
@@ -29,10 +27,10 @@ class TestNetworkd(TestBase):
         # "networkd backend does not support GSM modem configuration"
         err = self.generate('''network:
   version: 2
-  gsms:
+  modems:
     mobilephone:
       auto-config: true''', expect_fail=True)
-        self.assertIn("ERROR: mobilephone: networkd backend does not support GSM modem configuration", err)
+        self.assertIn("ERROR: mobilephone: networkd backend does not support GSM/CDMA modem configuration", err)
 
         self.assert_networkd({})
         self.assert_nm({})
@@ -41,11 +39,42 @@ class TestNetworkd(TestBase):
 class TestNetworkManager(TestBase):
     '''networkmanager output'''
 
+    def test_cdma_config(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  modems:
+    mobilephone:
+      number: "#666"
+      username: test-user
+      password: s0s3kr1t''')
+        self.assert_nm({'mobilephone': '''[connection]
+id=netplan-mobilephone
+type=cdma
+interface-name=mobilephone
+
+[cdma]
+password=s0s3kr1t
+username=test-user
+number=#666
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_nm_udev(None)
+
     def test_gsm_auto_config(self):
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       auto-config: true''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -72,7 +101,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       pin: "1234"''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -100,7 +129,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       apn: internet''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -127,7 +156,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       apn: internet
       username: some-user
@@ -158,7 +187,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       device-id: test''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -186,7 +215,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       network-id: test''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -214,7 +243,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       pin: 1234''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -242,7 +271,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       sim-id: test''')
         self.assert_nm({'mobilephone': '''[connection]
@@ -270,7 +299,7 @@ method=ignore
         self.generate('''network:
   version: 2
   renderer: NetworkManager
-  gsms:
+  modems:
     mobilephone:
       sim-operator-id: test''')
         self.assert_nm({'mobilephone': '''[connection]

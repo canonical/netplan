@@ -864,8 +864,8 @@ write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
         return FALSE;
     }
 
-    if (def->type == NETPLAN_DEF_TYPE_GSM) {
-        g_fprintf(stderr, "ERROR: %s: networkd backend does not support GSM modem configuration\n", def->id);
+    if (def->type == NETPLAN_DEF_TYPE_MODEM) {
+        g_fprintf(stderr, "ERROR: %s: networkd backend does not support GSM/CDMA modem configuration\n", def->id);
         exit(1);
     }
 

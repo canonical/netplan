@@ -30,7 +30,7 @@ either of those directories shadows a file with the same name in
 The top-level node in a netplan configuration file is a ``network:`` mapping
 that contains ``version: 2`` (the YAML currently being used by curtin, MaaS,
 etc. is version 1), and then device definitions grouped by their type, such as
-``ethernets:``, ``gsms:``, ``wifis:``, or ``bridges:``. These are the types that our
+``ethernets:``, ``modems:``, ``wifis:``, or ``bridges:``. These are the types that our
 renderer can understand and are supported by our backends.
 
 Each type block contains device definitions as a map where the keys (called
@@ -52,7 +52,7 @@ and the ID field has a different interpretation for each:
 
 Physical devices
 
-:   (Examples: ethernet, gsm, wifi) These can dynamically come and go between
+:   (Examples: ethernet, modem, wifi) These can dynamically come and go between
     reboots and even during runtime (hotplugging). In the generic case, they
     can be selected by ``match:`` rules on desired properties, such as name/name
     pattern, MAC address, driver, or device paths. In general these will match
@@ -552,9 +552,9 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
 Ethernet device definitions do not support any specific properties beyond the
 common ones described above.
 
-## Properties for device type ``gsms:``
-GSM modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does
-not support GSM modems.
+## Properties for device type ``modems:``
+GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does
+not support modems.
 
 ``apn`` (scalar)
 :    Set the carrier APN (Access Point Name). This can be omitted if ``auto-config`` is enabled.
@@ -569,6 +569,9 @@ not support GSM modems.
 
 ``network-id`` (scalar)
 :    Specify the Network ID (GSM LAI format). If this is specified, the device will not roam networks.
+
+``number`` (scalar)
+:    The number to dial to establish the connection to the CDMA-based mobile broadband network.
 
 ``password`` (scalar)
 :    Specify the password used to authenticate with the carrier network. This can be omitted
