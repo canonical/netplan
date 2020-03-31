@@ -3,6 +3,7 @@ network:
   renderer: NetworkManager
   modems:
     cdc-wdm1:
+      modem-mtu: 1600
       apn: ISP.CINGULAR
       username: ISP@CINGULARGPRS.COM
       password: CINGULAR1

@@ -466,6 +466,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
 
         if (def->modem_params.device_id)
             g_string_append_printf(s, "device-id=%s\n", def->modem_params.device_id);
+        if (def->modem_params.mtu)
+            g_string_append_printf(s, "mtu=%u\n", def->modem_params.mtu);
         if (def->modem_params.network_id)
             g_string_append_printf(s, "network-id=%s\n", def->modem_params.network_id);
         if (def->modem_params.number)
