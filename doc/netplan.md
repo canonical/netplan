@@ -571,7 +571,7 @@ not support modems.
 :    Specify the Network ID (GSM LAI format). If this is specified, the device will not roam networks.
 
 ``number`` (scalar)
-:    The number to dial to establish the connection to the CDMA-based mobile broadband network.
+:    The number to dial to establish the connection to the mobile broadband network. (Deprecated for GSM)
 
 ``password`` (scalar)
 :    Specify the password used to authenticate with the carrier network. This can be omitted

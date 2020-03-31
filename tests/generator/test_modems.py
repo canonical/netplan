@@ -103,6 +103,7 @@ method=ignore
   renderer: NetworkManager
   modems:
     mobilephone:
+      number: "*99#"
       pin: "1234"''')
         self.assert_nm({'mobilephone': '''[connection]
 id=netplan-mobilephone
@@ -111,6 +112,7 @@ interface-name=mobilephone
 
 [gsm]
 auto-config=true
+number=*99#
 pin=1234
 
 [ethernet]
@@ -310,6 +312,49 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 sim-operator-id=test
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_nm_udev(None)
+
+    def test_gsm_example(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  modems:
+    cdc-wdm1:
+      apn: ISP.CINGULAR
+      username: ISP@CINGULARGPRS.COM
+      password: CINGULAR1
+      number: "*99#"
+      network-id: 24005
+      device-id: da812de91eec16620b06cd0ca5cbc7ea25245222
+      pin: 2345
+      sim-id: 89148000000060671234
+      sim-operator-id: 310260''')
+        self.assert_nm({'cdc-wdm1': '''[connection]
+id=netplan-cdc-wdm1
+type=gsm
+interface-name=cdc-wdm1
+
+[gsm]
+apn=ISP.CINGULAR
+password=CINGULAR1
+username=ISP@CINGULARGPRS.COM
+device-id=da812de91eec16620b06cd0ca5cbc7ea25245222
+network-id=24005
+number=*99#
+pin=2345
+sim-id=89148000000060671234
+sim-operator-id=310260
 
 [ethernet]
 wake-on-lan=0
