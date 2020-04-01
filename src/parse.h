@@ -43,7 +43,7 @@ typedef enum {
     /* physical devices */
     NETPLAN_DEF_TYPE_ETHERNET,
     NETPLAN_DEF_TYPE_WIFI,
-    NETPLAN_DEF_TYPE_GSM,
+    NETPLAN_DEF_TYPE_MODEM,
     /* virtual devices */
     NETPLAN_DEF_TYPE_VIRTUAL,
     NETPLAN_DEF_TYPE_BRIDGE = NETPLAN_DEF_TYPE_VIRTUAL,
@@ -276,12 +276,13 @@ struct net_definition {
         gboolean auto_config;
         char* device_id;
         char* network_id;
+        char* number;
         char* password;
         char* pin;
         char* sim_id;
         char* sim_operator_id;
         char* username;
-    } gsm_params;
+    } modem_params;
 
     struct {
         char* ageing_time;
