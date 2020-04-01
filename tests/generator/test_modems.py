@@ -45,7 +45,7 @@ class TestNetworkManager(TestBase):
   renderer: NetworkManager
   modems:
     mobilephone:
-      modem-mtu: 0
+      mtu: 0
       number: "#666"
       username: test-user
       password: s0s3kr1t''')
@@ -105,7 +105,7 @@ method=ignore
   modems:
     mobilephone:
       number: "*99#"
-      modem-mtu: 1600
+      mtu: 1600
       pin: "1234"''')
         self.assert_nm({'mobilephone': '''[connection]
 id=netplan-mobilephone
@@ -334,7 +334,7 @@ method=ignore
   renderer: NetworkManager
   modems:
     cdc-wdm1:
-      modem-mtu: 1600
+      mtu: 1600
       apn: ISP.CINGULAR
       username: ISP@CINGULARGPRS.COM
       password: CINGULAR1

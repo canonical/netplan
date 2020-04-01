@@ -1637,7 +1637,6 @@ static const mapping_entry_handler modem_def_handlers[] = {
     {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.apn)},
     {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(modem_params.auto_config)},
     {"device-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.device_id)},
-    {"modem-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(modem_params.mtu)},
     {"network-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.network_id)},
     {"number", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.number)},
     {"password", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.password)},

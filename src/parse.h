@@ -276,7 +276,6 @@ struct net_definition {
         gboolean auto_config;
         char* device_id;
         char* network_id;
-        guint mtu;
         char* number;
         char* password;
         char* pin;

@@ -467,8 +467,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
 
         if (def->modem_params.device_id)
             g_string_append_printf(s, "device-id=%s\n", def->modem_params.device_id);
-        if (def->modem_params.mtu)
-            g_string_append_printf(s, "mtu=%u\n", def->modem_params.mtu);
+        if (def->mtubytes)
+            g_string_append_printf(s, "mtu=%u\n", def->mtubytes);
         if (def->modem_params.network_id)
             g_string_append_printf(s, "network-id=%s\n", def->modem_params.network_id);
         if (def->modem_params.number)
@@ -519,6 +519,9 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
             switch (def->type) {
                 case NETPLAN_DEF_TYPE_WIFI:
                     g_string_append_printf(s, "\n[802-11-wireless]\n%s", link_str->str);  break;
+                case NETPLAN_DEF_TYPE_MODEM:
+                    /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
+                    break;
                 default:
                     g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);  break;
             }

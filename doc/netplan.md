@@ -567,9 +567,6 @@ not support modems.
 :    Specify the device ID (as given by the WWAN management service) of the modem to match.
      This can be found using ``mmcli``.
 
-``modem-mtu`` (scalar)
-:    If non-zero, only transmit packets of the specified size or smaller, breaking larger packets up into multiple frames.
-
 ``network-id`` (scalar)
 :    Specify the Network ID (GSM LAI format). If this is specified, the device will not roam networks.
 
