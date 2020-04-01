@@ -624,6 +624,20 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
+     ``bssid`` (scalar)
+     :    If specified, directs the device to only associate with the given
+          access point.
+
+     ``band`` (scalar)
+     :    Possible bands are ``a`` (for 5GHz 802.11a) and ``bg``
+          (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
+          network if unset (the default).
+
+     ``channel`` (scalar)
+     :    Wireless channel to use for the Wi-Fi connection. Because channel
+          numbers overlap between bands, this property takes effect only if
+          the ``band`` property is set, too.
+
 ## Properties for device type ``bridges:``
 
 ``interfaces`` (sequence of scalars)

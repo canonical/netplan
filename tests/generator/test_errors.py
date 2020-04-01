@@ -210,6 +210,16 @@ class TestConfigErrors(TestBase):
           mode: bogus''', expect_fail=True)
         self.assertIn("unknown wifi mode 'bogus'", err)
 
+    def test_wifi_ap_unknown_band(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: bogus''', expect_fail=True)
+        self.assertIn("unknown wifi band 'bogus'", err)
+
     def test_invalid_ipv4_address(self):
         err = self.generate('''network:
   version: 2

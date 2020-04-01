@@ -35,11 +35,12 @@
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
+#define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
 
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
 
-/* wifi AP that is currently being processed */
+/* NetplanWifiAccessPoint that is currently being processed */
 static NetplanWifiAccessPoint* cur_access_point;
 
 /* authentication options that are currently being processed */
@@ -559,6 +560,18 @@ get_default_backend_for_type(NetplanDefType type)
 }
 
 static gboolean
+handle_access_point_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_guint(doc, node, cur_access_point, data, error);
+}
+
+static gboolean
+handle_access_point_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_mac(doc, node, cur_access_point, data, error);
+}
+
+static gboolean
 handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_access_point);
@@ -600,7 +613,23 @@ handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _,
     return TRUE;
 }
 
+static gboolean
+handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_access_point);
+    if (strcmp(scalar(node), "a") == 0)
+        cur_access_point->band = NETPLAN_WIFI_BAND_5;
+    else if (strcmp(scalar(node), "bg") == 0)
+        cur_access_point->band = NETPLAN_WIFI_BAND_24;
+    else
+        return yaml_error(node, error, "unknown wifi band '%s'", scalar(node));
+    return TRUE;
+}
+
 static const mapping_entry_handler wifi_access_point_handlers[] = {
+    {"band", YAML_SCALAR_NODE, handle_access_point_band},
+    {"bssid", YAML_SCALAR_NODE, handle_access_point_mac, NULL, access_point_offset(bssid)},
+    {"channel", YAML_SCALAR_NODE, handle_access_point_guint, NULL, access_point_offset(channel)},
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
     {"auth", YAML_MAPPING_NODE, handle_access_point_auth},
