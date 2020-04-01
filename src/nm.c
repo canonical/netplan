@@ -679,6 +679,13 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
                 g_string_append_printf(s, "channel=%u\n", ap->channel);
             }
         }
+        if (ap->seen_bssids) {
+            g_string_append_printf(s, "seen-bssids=");
+            for (unsigned i = 0; i < ap->seen_bssids->len; ++i) {
+                g_string_append_printf(s, "%s;", g_array_index(ap->seen_bssids, char*, i));
+            }
+            g_string_append_printf(s, "\n");
+        }
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, s);
         }

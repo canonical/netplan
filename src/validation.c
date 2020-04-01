@@ -19,6 +19,7 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 #include <arpa/inet.h>
+#include <regex.h>
 
 #include <yaml.h>
 
@@ -54,6 +55,23 @@ is_ip6_address(const char* address)
         return TRUE;
 
     return FALSE;
+}
+
+gboolean
+is_mac_address(const char* address)
+{
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]$", REG_EXTENDED|REG_NOSUB) == 0);
+        re_inited = TRUE;
+    }
+
+    if (regexec(&re, address, 0, NULL, 0) != 0)
+        return FALSE;
+
+    return TRUE;
 }
 
 /************************************************

@@ -220,6 +220,16 @@ class TestConfigErrors(TestBase):
           band: bogus''', expect_fail=True)
         self.assertIn("unknown wifi band 'bogus'", err)
 
+    def test_wifi_ap_malformed_bssid(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          seen-bssids: ["00:11:22:33:44:55", "xx:yy:zz:aa:bb:cc"]''', expect_fail=True)
+        self.assertIn("malformed bssid xx:yy:zz:aa:bb:cc, must be XX:XX:XX:XX:XX:XX", err)
+
     def test_invalid_ipv4_address(self):
         err = self.generate('''network:
   version: 2
