@@ -71,16 +71,17 @@ g_string_append_netdef_match(GString* s, const NetplanNetDefinition* def)
 }
 
 /**
- * Infere if this is a modem netdef of type GSM.
+ * Infer if this is a modem netdef of type GSM.
  * This is done by checking for certain modem_params, which are only
  * applicable to GSM connections.
  */
 static const gboolean
-modem_is_gsm(const NetplanNetDefinition* def) {
-    if(def->type == NETPLAN_DEF_TYPE_MODEM && (def->modem_params.apn ||
-       def->modem_params.auto_config || def->modem_params.device_id ||
-       def->modem_params.network_id || def->modem_params.pin ||
-       def->modem_params.sim_id || def->modem_params.sim_operator_id))
+modem_is_gsm(const NetplanNetDefinition* def)
+{
+    if (def->type == NETPLAN_DEF_TYPE_MODEM && (def->modem_params.apn ||
+        def->modem_params.auto_config || def->modem_params.device_id ||
+        def->modem_params.network_id || def->modem_params.pin ||
+        def->modem_params.sim_id || def->modem_params.sim_operator_id))
         return TRUE;
 
     return FALSE;
