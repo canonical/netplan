@@ -230,6 +230,38 @@ class TestConfigErrors(TestBase):
           seen-bssids: ["00:11:22:33:44:55", "xx:yy:zz:aa:bb:cc"]''', expect_fail=True)
         self.assertIn("malformed bssid xx:yy:zz:aa:bb:cc, must be XX:XX:XX:XX:XX:XX", err)
 
+    def test_wifi_ap_bssids_not_supported(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          seen-bssids: ["00:11:22:33:44:55", "de:ad:be:ef:ca:fe"]''', expect_fail=True)
+        self.assertIn("ERROR: wl0: networkd backend does not support the collection of seen bssids", err)
+
+    def test_wifi_ap_invalid_freq24(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: bg
+          channel: 15''', expect_fail=True)
+        self.assertIn("ERROR: invalid 2.4GHz WiFi channel: 15", err)
+
+    def test_wifi_ap_invalid_freq5(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: a
+          channel: 14''', expect_fail=True)
+        self.assertIn("ERROR: invalid 5GHz WiFi channel: 14", err)
+
     def test_invalid_ipv4_address(self):
         err = self.generate('''network:
   version: 2
