@@ -248,6 +248,74 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
     return TRUE;
 }
 
+/*************************************************************
+ * Generic helper functions to extract data from scalar nodes.
+ *************************************************************/
+
+/**
+ * Handler for setting a guint field from a scalar node, inside a given struct
+ * @entryptr: pointer to the begining of the to-be-modified data structure
+ * @data: offset into entryptr struct where the guint field to write is located
+ */
+static gboolean
+handle_generic_guint(yaml_document_t* doc, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr);
+    guint offset = GPOINTER_TO_UINT(data);
+    guint64 v;
+    gchar* endptr;
+
+    v = g_ascii_strtoull(scalar(node), &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(node));
+
+    *((guint*) ((void*) entryptr + offset)) = (guint) v;
+    return TRUE;
+}
+
+/**
+ * Handler for setting a string field from a scalar node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the const char* field to write is
+ *        located
+ */
+static gboolean
+handle_generic_str(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr);
+    guint offset = GPOINTER_TO_UINT(data);
+    char** dest = (char**) ((void*) entryptr + offset);
+    g_free(*dest);
+    *dest = g_strdup(scalar(node));
+    return TRUE;
+}
+
+/*
+ * Handler for setting a MAC address field from a scalar node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the const char* field to write is
+ *        located
+ */
+static gboolean
+handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr);
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    g_assert(node->type == YAML_SCALAR_NODE);
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]$", REG_EXTENDED|REG_NOSUB) == 0);
+        re_inited = TRUE;
+    }
+
+    if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
+        return yaml_error(node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
+
+    return handle_generic_str(doc, node, entryptr, data, error);
+}
+
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -256,11 +324,7 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
 static gboolean
 handle_netdef_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
-    g_free(*dest);
-    *dest = g_strdup(scalar(node));
-    return TRUE;
+    return handle_generic_str(doc, node, cur_netdef, data, error);
 }
 
 /**
@@ -306,20 +370,7 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
 static gboolean
 handle_netdef_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    static regex_t re;
-    static gboolean re_inited = FALSE;
-
-    g_assert(node->type == YAML_SCALAR_NODE);
-
-    if (!re_inited) {
-        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]$", REG_EXTENDED|REG_NOSUB) == 0);
-        re_inited = TRUE;
-    }
-
-    if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
-        return yaml_error(node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
-
-    return handle_netdef_str(doc, node, data, error);
+    return handle_generic_mac(doc, node, cur_netdef, data, error);
 }
 
 /**
@@ -356,16 +407,7 @@ handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
 static gboolean
 handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint offset = GPOINTER_TO_UINT(data);
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(node));
-
-    *((guint*) ((void*) cur_netdef + offset)) = (guint) v;
-    return TRUE;
+    return handle_generic_guint(doc, node, cur_netdef, data, error);
 }
 
 static gboolean
