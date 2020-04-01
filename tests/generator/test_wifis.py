@@ -145,8 +145,18 @@ class TestNetworkManager(TestBase):
       access-points:
         "Joe's Home":
           password: "s0s3kr1t"
+          bssid: 00:11:22:33:44:55
+          band: bg
+          channel: 11
         workplace:
           password: "c0mpany1"
+          bssid: de:ad:be:ef:ca:fe
+          band: a
+          channel: 22
+        channel-no-band:
+          channel: 22
+        band-no-channel:
+          band: a
       dhcp4: yes''')
 
         self.assert_nm({'wl0-Joe%27s%20Home': '''[connection]
@@ -166,6 +176,9 @@ method=ignore
 [wifi]
 ssid=Joe's Home
 mode=infrastructure
+bssid=00:11:22:33:44:55
+band=bg
+channel=11
 
 [wifi-security]
 key-mgmt=wpa-psk
@@ -188,10 +201,50 @@ method=ignore
 [wifi]
 ssid=workplace
 mode=infrastructure
+bssid=de:ad:be:ef:ca:fe
+band=a
+channel=22
 
 [wifi-security]
 key-mgmt=wpa-psk
 psk=c0mpany1
+''',
+                        'wl0-channel-no-band': '''[connection]
+id=netplan-wl0-channel-no-band
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=channel-no-band
+mode=infrastructure
+''',
+                        'wl0-band-no-channel': '''[connection]
+id=netplan-wl0-band-no-channel
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=band-no-channel
+mode=infrastructure
+band=a
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
