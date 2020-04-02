@@ -674,8 +674,13 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         }
         if (ap->band == NETPLAN_WIFI_BAND_5 || ap->band == NETPLAN_WIFI_BAND_24) {
             g_string_append_printf(s, "band=%s\n", wifi_band_str(ap->band));
+            /* Channel is only unambiguous, if band is set. */
             if (ap->channel) {
-                /* Channel is only unambiguous, if band is set. */
+                /* Validate WiFi channel */
+                if (ap->band == NETPLAN_WIFI_BAND_5)
+                    wifi_get_freq5(ap->channel);
+                else
+                    wifi_get_freq24(ap->channel);
                 g_string_append_printf(s, "channel=%u\n", ap->channel);
             }
         }

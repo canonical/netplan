@@ -194,7 +194,7 @@ class TestNetworkManager(TestBase):
           password: "c0mpany1"
           bssid: de:ad:be:ef:ca:fe
           band: a
-          channel: 22
+          channel: 100
         channel-no-band:
           channel: 22
         band-no-channel:
@@ -246,7 +246,7 @@ ssid=workplace
 mode=infrastructure
 bssid=de:ad:be:ef:ca:fe
 band=a
-channel=22
+channel=100
 
 [wifi-security]
 key-mgmt=wpa-psk

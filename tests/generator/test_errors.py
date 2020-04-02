@@ -243,6 +243,7 @@ class TestConfigErrors(TestBase):
     def test_wifi_ap_invalid_freq24(self):
         err = self.generate('''network:
   version: 2
+  renderer: NetworkManager
   wifis:
     wl0:
       access-points:
