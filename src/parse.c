@@ -428,6 +428,19 @@ handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return TRUE;
 }
 
+static gboolean
+handle_netdef_addrgen(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_assert(cur_netdef);
+    if (strcmp(scalar(node), "eui64") == 0)
+        cur_netdef->addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
+    else if (strcmp(scalar(node), "stable-privacy") == 0)
+        cur_netdef->addr_gen_mode = NETPLAN_ADDRGEN_STABLEPRIVACY;
+    else
+        return yaml_error(node, error, "unknown addr-gen-mode '%s'", scalar(node));
+    return TRUE;
+}
+
 
 /****************************************************
  * Grammar and handlers for network config "match" entry
@@ -1560,6 +1573,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS                                                                  \
     {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},                                        \
+    {"addr-gen-mode", YAML_SCALAR_NODE, handle_netdef_addrgen},                               \
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},                                      \
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},        \
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},              \

@@ -724,6 +724,46 @@ method=auto
 method=auto
 '''})
 
+    def test_ip6_addr_gen_mode(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addr-gen-mode: stable-privacy
+    enblue:
+      addr-gen-mode: eui64''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=1
+''',
+                        'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=0
+'''})
+
     def test_eth_manual_addresses(self):
         self.generate('''network:
   version: 2

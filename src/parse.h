@@ -79,6 +79,12 @@ typedef enum {
     NETPLAN_OPTIONAL_STATIC  = 1<<4,
 } NetplanOptionalAddressFlag;
 
+typedef enum {
+    NETPLAN_ADDRGEN_DEFAULT,
+    NETPLAN_ADDRGEN_EUI64,
+    NETPLAN_ADDRGEN_STABLEPRIVACY,
+} NetplanAddrGenMode;
+
 struct NetplanOptionalAddressType {
     char* name;
     NetplanOptionalAddressFlag flag;
@@ -202,6 +208,7 @@ struct net_definition {
     GArray* ip4_addresses;
     GArray* ip6_addresses;
     gboolean ip6_privacy;
+    guint addr_gen_mode;
     char* gateway4;
     char* gateway6;
     GArray* ip4_nameservers;
