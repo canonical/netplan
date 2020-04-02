@@ -640,7 +640,8 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
 
      ``seen-bssids`` (sequence of scalars)
      :    A list of BSSIDs (each BSSID formatted as a MAC address) that have
-          been detected as part of the Wi-Fi network.
+          been detected as part of the Wi-Fi network. This is only supported
+          with NetworkManager.
 
 ## Properties for device type ``bridges:``
 
