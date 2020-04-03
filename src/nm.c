@@ -631,7 +631,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers || def->addr_gen_mode) {
         g_string_append(s, "\n[ipv6]\n");
-        g_string_append(s, (def->dhcp6 || def->addr_gen_mode) ? "method=auto\n" : "method=manual\n");
+        g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
         if (def->ip6_addresses)
             for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));

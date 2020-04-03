@@ -730,8 +730,10 @@ method=auto
   renderer: NetworkManager
   ethernets:
     engreen:
+      dhcp6: yes
       addr-gen-mode: stable-privacy
     enblue:
+      dhcp6: yes
       addr-gen-mode: eui64''')
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
