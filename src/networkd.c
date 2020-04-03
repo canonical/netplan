@@ -215,6 +215,11 @@ write_bridge_params_networkd(GString* s, const NetplanNetDefinition* def)
         if (def->bridge_params.max_age)
             g_string_append_printf(params, "MaxAgeSec=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "STP=%s\n", def->bridge_params.stp ? "true" : "false");
+        if (def->bridge_params.vlans) {
+            // TODO: research and implement bridge vlans for networkd
+            g_fprintf(stderr, "ERROR: %s: networkd does not support bridge vlans\n", def->id);
+            exit(1);
+        }
 
         g_string_append_printf(s, "\n[Bridge]\n%s", params->str);
 
@@ -982,6 +987,11 @@ _netplan_netdef_write_network_file(
             g_string_append_printf(network, "Learning=%s\n", def->bridge_learning ? "true" : "false");
         if (def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET)
             g_string_append_printf(network, "NeighborSuppression=%s\n", def->bridge_neigh_suppress ? "true" : "false");
+	if (def->bridge_params.port_vlans) {
+            // TODO: research and implement bridge port-vlans for networkd
+            g_fprintf(stderr, "ERROR: %s: networkd does not support bridge port-vlans\n", def->id);
+            exit(1);
+        }
 
     }
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {

@@ -2167,6 +2167,108 @@ handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const char* k
     return TRUE;
 }
 
+static gboolean
+handle_generic_vlans(yaml_document_t* doc, yaml_node_t* node, GArray** entryptr, const void* data, GError** error)
+{
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^([0-9]+)(-([0-9]+))?( (pvid))?( (untagged))?$", REG_EXTENDED) == 0);
+        re_inited = TRUE;
+    }
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* vlan = NULL;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        vlan = g_strdup(scalar(entry));
+
+        size_t maxGroups = 7+1;
+        regmatch_t groups[maxGroups];
+        /* does it match the vlans= definition? */
+        if (regexec(&re, vlan, maxGroups, groups, 0) == 0) {
+            NetplanBridgeVlan* data = g_new0(NetplanBridgeVlan, 1);
+            for (unsigned g = 1; g < maxGroups; g = g+2) {
+                if (groups[g].rm_so == (size_t)-1)
+                    continue; // Invalid group
+
+                char cursorCopy[strlen(vlan) + 1];
+                strcpy(cursorCopy, vlan);
+                cursorCopy[groups[g].rm_eo] = 0;
+                guint v = 0;
+                switch (g) {
+                    case 1:
+                        v = g_ascii_strtoull(cursorCopy + groups[g].rm_so, NULL, 10);
+                        if (v < 1 || v > 4094)
+                            return yaml_error(node, error, "malformed vlan vid '%u', must be in range [1..4094]", v);
+                        data->vid = v;
+                        break;
+                    case 3:
+                        v = g_ascii_strtoull(cursorCopy + groups[g].rm_so, NULL, 10);
+                        if (v < 1 || v > 4094)
+                            return yaml_error(node, error, "malformed vlan vid '%u', must be in range [1..4094]", v);
+                        else if (v <= data->vid)
+                            return yaml_error(node, error, "malformed vlan vid range '%s': %u > %u!", scalar(entry), data->vid, v);
+                        data->vid_to = v;
+                        break;
+                    case 5:
+                        data->pvid = TRUE;
+                        break;
+                    case 7:
+                        data->untagged = TRUE;
+                        break;
+                    default: g_assert_not_reached(); // LCOV_EXCL_LINE
+                }
+            }
+            if (!*entryptr)
+                *entryptr = g_array_new(FALSE, FALSE, sizeof(NetplanBridgeVlan*));
+            g_array_append_val(*entryptr, data);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed vlan '%s', must be: $vid [pvid] [untagged] [, $vid [pvid] [untagged]]", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+static gboolean
+handle_bridge_vlans(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_vlans(doc, node, &(cur_netdef->bridge_params.vlans), data, error);
+}
+
+static gboolean
+handle_bridge_port_vlans(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+        NetplanNetDefinition *component;
+        GArray** ref_ptr;
+
+        key = yaml_document_get_node(doc, entry->key);
+        assert_type(key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(doc, entry->value);
+        assert_type(value, YAML_SEQUENCE_NODE);
+
+        component = g_hash_table_lookup(netdefs, scalar(key));
+        if (!component) {
+            add_missing_node(key);
+        } else {
+            ref_ptr = &(component->bridge_params.port_vlans);
+            if (*ref_ptr)
+                return yaml_error(node, error, "%s: interface '%s' already has port vlans",
+                                  cur_netdef->id, scalar(key));
+
+            if (!handle_generic_vlans(doc, value, ref_ptr, data, error))
+                return FALSE;
+        }
+    }
+    return TRUE;
+}
+
 static const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.ageing_time)},
     {"aging-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.ageing_time)},
@@ -2175,8 +2277,10 @@ static const mapping_entry_handler bridge_params_handlers[] = {
     {"max-age", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.max_age)},
     {"path-cost", YAML_MAPPING_NODE, {.map={.custom=handle_bridge_path_cost}}, netdef_offset(bridge_params.path_cost)},
     {"port-priority", YAML_MAPPING_NODE, {.map={.custom=handle_bridge_port_priority}}, netdef_offset(bridge_params.port_priority)},
+    {"port-vlans", YAML_MAPPING_NODE, handle_bridge_port_vlans},
     {"priority", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bridge_params.priority)},
     {"stp", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bridge_params.stp)},
+    {"vlans", YAML_SEQUENCE_NODE, handle_bridge_vlans},
     {NULL}
 };
 

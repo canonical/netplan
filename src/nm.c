@@ -146,6 +146,25 @@ wifi_band_str(const NetplanWifiBand band)
 }
 
 /**
+ * Return NM bridge vlan string.
+ */
+static const char*
+bridge_vlan_str(const NetplanBridgeVlan* vlan)
+{
+    GString* s = NULL;
+    s = g_string_sized_new(20);
+
+    g_string_append_printf(s, "%u", vlan->vid);
+    if (vlan->vid_to)
+        g_string_append_printf(s, "-%u", vlan->vid_to);
+    if (vlan->pvid)
+        g_string_append(s, " pvid");
+    if (vlan->untagged)
+        g_string_append(s, " untagged");
+    return s->str;
+}
+
+/**
  * Return NM addr-gen-mode string.
  */
 STATIC char*
@@ -388,6 +407,18 @@ write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
         if (def->bridge_params.max_age)
             g_key_file_set_string(kf, "bridge", "max-age", def->bridge_params.max_age);
         g_key_file_set_boolean(kf, "bridge", "stp", def->bridge_params.stp);
+        if (def->bridge_params.vlans) {
+            g_string_append(params, "vlan-filtering=true\n");
+            g_string_append(params, "vlans=");
+            for (unsigned i = 0; i < def->bridge_params.vlans->len; ++i) {
+                if (i > 0)
+                    g_string_append(params, ", ");
+                g_string_append_printf(params, "%s", bridge_vlan_str(
+                                       g_array_index(def->bridge_params.vlans,
+                                       NetplanBridgeVlan*, i)));
+            }
+            g_string_append(params, "\n");
+        }
     }
 }
 
@@ -824,6 +855,17 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "bridge-port", "priority", def->bridge_params.port_priority);
         if (def->bridge_hairpin != NETPLAN_TRISTATE_UNSET)
             g_key_file_set_boolean(kf, "bridge-port", "hairpin-mode", def->bridge_hairpin);
+	if (def->bridge_params.port_vlans) {
+            g_string_append(s, "vlans=");
+            for (unsigned i = 0; i < def->bridge_params.port_vlans->len; ++i) {
+                if (i > 0)
+                    g_string_append(s, ", ");
+                g_string_append_printf(s, "%s", bridge_vlan_str(
+                                       g_array_index(def->bridge_params.port_vlans,
+                                       NetplanBridgeVlan*, i)));
+            }
+            g_string_append(s, "\n");
+        }
     }
     if (def->bond) {
         g_key_file_set_string(kf, "connection", "slave-type", "bond"); /* wokeignore:rule=slave */
