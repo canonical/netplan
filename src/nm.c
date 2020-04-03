@@ -139,6 +139,25 @@ wifi_mode_str(const NetplanWifiMode mode)
     }
 }
 
+/**
+ * Return NM bridge vlan string.
+ */
+static const char*
+bridge_vlan_str(const NetplanBridgeVlan* vlan)
+{
+    GString* s = NULL;
+    s = g_string_sized_new(20);
+
+    g_string_append_printf(s, "%u", vlan->vid);
+    if (vlan->vid_to)
+        g_string_append_printf(s, "-%u", vlan->vid_to);
+    if (vlan->pvid)
+        g_string_append(s, " pvid");
+    if (vlan->untagged)
+        g_string_append(s, " untagged");
+    return s->str;
+}
+
 static void
 write_search_domains(const NetplanNetDefinition* def, GString *s)
 {
@@ -278,6 +297,17 @@ write_bridge_params(const NetplanNetDefinition* def, GString *s)
         if (def->bridge_params.max_age)
             g_string_append_printf(params, "max-age=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "stp=%s\n", def->bridge_params.stp ? "true" : "false");
+        if (def->bridge_params.vlans) {
+            g_string_append(params, "vlans=");
+            for (unsigned i = 0; i < def->bridge_params.vlans->len; ++i) {
+                if (i > 0)
+                    g_string_append(params, ", ");
+                g_string_append_printf(params, "%s", bridge_vlan_str(
+                                       g_array_index(def->bridge_params.vlans,
+                                       NetplanBridgeVlan*, i)));
+            }
+            g_string_append(params, "\n");
+        }
 
         g_string_append_printf(s, "\n[bridge]\n%s", params->str);
 
@@ -483,12 +513,24 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->bridge) {
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
 
-        if (def->bridge_params.path_cost || def->bridge_params.port_priority)
+        if (def->bridge_params.path_cost || def->bridge_params.port_priority ||
+            def->bridge_params.port_vlans)
             g_string_append_printf(s, "\n[bridge-port]\n");
         if (def->bridge_params.path_cost)
             g_string_append_printf(s, "path-cost=%u\n", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
             g_string_append_printf(s, "priority=%u\n", def->bridge_params.port_priority);
+        if (def->bridge_params.port_vlans) {
+            g_string_append(s, "vlans=");
+            for (unsigned i = 0; i < def->bridge_params.port_vlans->len; ++i) {
+                if (i > 0)
+                    g_string_append(s, ", ");
+                g_string_append_printf(s, "%s", bridge_vlan_str(
+                                       g_array_index(def->bridge_params.port_vlans,
+                                       NetplanBridgeVlan*, i)));
+            }
+            g_string_append(s, "\n");
+        }
     }
     if (def->bond)
         g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);

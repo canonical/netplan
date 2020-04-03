@@ -598,6 +598,76 @@ method=ignore
         self.assert_networkd({})
         self.assert_nm_udev(None)
 
+    def test_bridge_vlans(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport: {}
+  bridges:
+    br0:
+      interfaces: [eno1, switchport]
+      parameters:
+        vlans: [1-100 pvid untagged, 42 untagged, 13, 1 pvid, 2-100 pvid untagged]
+        port-vlans:
+          eno1: [99-999 pvid untagged, 1 untagged, 42 pvid]
+          switchport: [4000-4094, 1 pvid, 13 untagged]''')
+
+        self.assert_nm({'br0': '''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+
+[bridge]
+stp=true
+vlans=1-100 pvid untagged, 42 untagged, 13, 1 pvid, 2-100 pvid untagged
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bridge
+master=br0
+
+[bridge-port]
+vlans=99-999 pvid untagged, 1 untagged, 42 pvid
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=switchport
+slave-type=bridge
+master=br0
+
+[bridge-port]
+vlans=4000-4094, 1 pvid, 13 untagged
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+
 
 class TestConfigErrors(TestBase):
 
@@ -712,3 +782,95 @@ class TestConfigErrors(TestBase):
         port-priority:
           eno1: 257
       dhcp4: true''', expect_fail=True)
+
+    def test_bridge_no_vlan(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlans: [99-999 pvid untagged, 1 untagged, 42 pvid]''', expect_fail=True)
+        self.assertIn("ERROR: br0: networkd does not support bridge vlans", err)
+
+    def test_bridge_no_port_vlan(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-vlans:
+          eno1: [99-999 pvid untagged, 1 untagged, 42 pvid]''', expect_fail=True)
+        self.assertIn("ERROR: eno1: networkd does not support bridge port-vlans", err)
+
+    def test_bridge_invalid_vlan(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlans: [1 unmapped INVALID]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan '1 unmapped INVALID', must be: $vid [pvid] [untagged] \
+[, $vid [pvid] [untagged]]", err)
+
+    def test_bridge_invalid_vlan_vid(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlans: [0]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan vid '0', must be in range [1..4094]", err)
+
+    def test_bridge_invalid_port_vlan_vid_to(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-vlans:
+          eno1: [1-4095]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan vid '4095', must be in range [1..4094]", err)
+
+    def test_bridge_port_vlan_already_defined(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-vlans:
+          eno1: [1]
+          eno1: [1]''', expect_fail=True)
+        self.assertIn("Error in network definition: br0: interface 'eno1' already has port vlans", err)
+
+    def test_bridge_invalid_vlan_vid_range(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlans: [100-1]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan vid range '100-1': 100 > 1!", err)
+
+    def test_bridge_port_vlan_add_missing_node(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bridges:
+    br0:
+      interfaces: [eno1]
+      parameters:
+        port-vlans:
+          eth0: [1]''', expect_fail=True)
+        self.assertIn("Error in network definition: br0: interface 'eth0' is not defined", err)
