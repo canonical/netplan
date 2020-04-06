@@ -433,9 +433,9 @@ handle_netdef_addrgen(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
 {
     g_assert(cur_netdef);
     if (strcmp(scalar(node), "eui64") == 0)
-        cur_netdef->addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
+        cur_netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
     else if (strcmp(scalar(node), "stable-privacy") == 0)
-        cur_netdef->addr_gen_mode = NETPLAN_ADDRGEN_STABLEPRIVACY;
+        cur_netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_STABLEPRIVACY;
     else
         return yaml_error(node, error, "unknown ipv6-address-generation '%s'", scalar(node));
     return TRUE;

@@ -208,7 +208,7 @@ struct net_definition {
     GArray* ip4_addresses;
     GArray* ip6_addresses;
     gboolean ip6_privacy;
-    guint addr_gen_mode;
+    guint ip6_addr_gen_mode;
     char* gateway4;
     char* gateway6;
     GArray* ip4_nameservers;

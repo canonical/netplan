@@ -487,7 +487,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
-    if (def->addr_gen_mode) {
+    if (def->ip6_addr_gen_mode) {
         /* TODO: Figure out how we can configure ipv6-address-generation for networkd.
          *       IPv6Token= seems to be the corresponding option, but it doesn't do
          *       exactly what we need and has quite some restrictions, c.f.:

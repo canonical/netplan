@@ -629,14 +629,14 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->dhcp4 && def->dhcp4_overrides.metric != NETPLAN_METRIC_UNSPEC)
         g_string_append_printf(s, "route-metric=%u\n", def->dhcp4_overrides.metric);
 
-    if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers || def->addr_gen_mode) {
+    if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers || def->ip6_addr_gen_mode) {
         g_string_append(s, "\n[ipv6]\n");
         g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
         if (def->ip6_addresses)
             for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
-        if (def->addr_gen_mode) {
-            g_string_append_printf(s, "addr-gen-mode=%s\n", addr_gen_mode_str(def->addr_gen_mode));
+        if (def->ip6_addr_gen_mode) {
+            g_string_append_printf(s, "addr-gen-mode=%s\n", addr_gen_mode_str(def->ip6_addr_gen_mode));
         }
         if (def->ip6_privacy)
             g_string_append(s, "ip6-privacy=2\n");
