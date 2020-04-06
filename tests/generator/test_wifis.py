@@ -133,6 +133,50 @@ unmanaged-devices+=interface-name:wl0,''')
       dhcp4: yes''', expect_fail=True)
         self.assertIn('networkd does not support wifi in access point mode', err)
 
+    def test_wifi_wowlan(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wowlan:
+        - any
+        - disconnect
+        - magic_pkt
+        - gtk_rekey_failure
+        - eap_identity_req
+        - four_way_handshake
+        - rfkill_release
+        - default
+      access-points:
+        homenet: {mode: infrastructure}''')
+
+        self.assert_networkd({'wl0.network': '''[Match]
+Name=wl0
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:wl0,''')
+        self.assert_nm_udev(None)
+
+        # generates wpa config and enables wpasupplicant unit
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
+            new_config = f.read()
+            self.assertIn('''
+wowlan_triggers=default any disconnect magic_pkt gtk_rekey_failure eap_identity_req four_way_handshake rfkill_release
+network={
+  ssid="homenet"
+  key_mgmt=NONE
+}
+''', new_config)
+            self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+
 
 class TestNetworkManager(TestBase):
 
@@ -320,3 +364,58 @@ method=ignore
 ssid=homenet
 mode=adhoc
 '''})
+
+    def test_wifi_wowlan(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      wowlan: [any, tcp, four_way_handshake, magic_pkt]
+      access-points:
+        homenet: {mode: infrastructure}''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[802-11-wireless]
+wake-on-wlan=330
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+'''})
+
+
+class TestConfigErrors(TestBase):
+
+    def test_wifi_invalid_wowlan(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wowlan: [bogus]
+      access-points:
+        homenet: {mode: infrastructure}''', expect_fail=True)
+        self.assertIn("Error in network definition: invalid value for wowlan: 'bogus'", err)
+
+    def test_wifi_wowlan_unsupported(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wowlan: [tcp]
+      access-points:
+        homenet: {mode: infrastructure}''', expect_fail=True)
+        self.assertIn("ERROR: unsupported wowlan_trigger mask: 0x100", err)

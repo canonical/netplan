@@ -630,6 +630,14 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
+``wowlan`` (sequence of scalars)
+
+:    This enables WakeOnWLan on supported devices. Not all drivers support all
+     options. May be any combination of ``any``, ``disconnect``, ``magic_pkt``,
+     ``gtk_rekey_failure``, ``eap_identity_req``, ``four_way_handshake``,
+     ``rfkill_release``, ``tcp`` or ``ignore``. The value of ``tcp`` and
+     ``ignore`` is only supported with NetworkManager.
+
 ## Properties for device type ``bridges:``
 
 ``interfaces`` (sequence of scalars)

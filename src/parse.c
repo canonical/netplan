@@ -625,6 +625,42 @@ handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** er
     return process_mapping(doc, node, match_handlers, error);
 }
 
+struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[] = {
+    {"default",            NETPLAN_WIFI_WOWLAN_DEFAULT},
+    {"any",                NETPLAN_WIFI_WOWLAN_ANY},
+    {"disconnect",         NETPLAN_WIFI_WOWLAN_DISCONNECT},
+    {"magic_pkt",          NETPLAN_WIFI_WOWLAN_MAGIC},
+    {"gtk_rekey_failure",  NETPLAN_WIFI_WOWLAN_GTK_REKEY_FAILURE},
+    {"eap_identity_req",   NETPLAN_WIFI_WOWLAN_EAP_IDENTITY_REQ},
+    {"four_way_handshake", NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE},
+    {"rfkill_release",     NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE},
+    {"tcp",                NETPLAN_WIFI_WOWLAN_TCP},
+    {"ignore",             NETPLAN_WIFI_WOWLAN_IGNORE},
+    {NULL},
+};
+
+static gboolean
+handle_wowlan(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+        int found = FALSE;
+
+        for (unsigned i = 0; NETPLAN_WIFI_WOWLAN_TYPES[i].name != NULL; ++i) {
+            if (g_ascii_strcasecmp(scalar(entry), NETPLAN_WIFI_WOWLAN_TYPES[i].name) == 0) {
+                cur_netdef->wowlan |= NETPLAN_WIFI_WOWLAN_TYPES[i].flag;
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
+            return yaml_error(node, error, "invalid value for wowlan: '%s'", scalar(entry));
+        }
+    }
+    return TRUE;
+}
+
 static gboolean
 handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
@@ -1603,6 +1639,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"match", YAML_MAPPING_NODE, handle_match},                                          \
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
+    {"wowlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},       \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
