@@ -731,10 +731,10 @@ method=auto
   ethernets:
     engreen:
       dhcp6: yes
-      addr-gen-mode: stable-privacy
+      ipv6-address-generation: stable-privacy
     enblue:
       dhcp6: yes
-      addr-gen-mode: eui64''')
+      ipv6-address-generation: eui64''')
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
 type=ethernet

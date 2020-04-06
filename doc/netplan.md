@@ -239,7 +239,7 @@ Virtual devices
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
-``addr-gen-mode`` (scalar)
+``ipv6-address-generation`` (scalar)
 
 :   Configure method for creating the address for use with RFC4862 IPv6
     Stateless Address Autoconfiguration. Possible values are ``eui64``

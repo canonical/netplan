@@ -488,10 +488,12 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
     if (def->addr_gen_mode) {
-        /* TODO: figure out if/how we can configure addr-gen-mode for networkd
-         *       IPv6Token= might be an option:
-         *       https://www.freedesktop.org/software/systemd/man/systemd.network.html */
-        g_fprintf(stderr, "ERROR: %s: addr-gen-mode is not supported by networkd\n", def->id);
+        /* TODO: Figure out how we can configure ipv6-address-generation for networkd.
+         *       IPv6Token= seems to be the corresponding option, but it doesn't do
+         *       exactly what we need and has quite some restrictions, c.f.:
+         *       https://github.com/systemd/systemd/issues/4625
+         *       https://github.com/systemd/systemd/pull/14415 */
+        g_fprintf(stderr, "ERROR: %s: ipv6-address-generation is not supported by networkd\n", def->id);
         exit(1);
     }
     if (def->accept_ra == NETPLAN_RA_MODE_ENABLED)

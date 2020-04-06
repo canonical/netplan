@@ -294,16 +294,16 @@ class TestConfigErrors(TestBase):
   renderer: NetworkManager
   ethernets:
     engreen:
-      addr-gen-mode: 0''', expect_fail=True)
-        self.assertIn("unknown addr-gen-mode '0'", err)
+      ipv6-address-generation: 0''', expect_fail=True)
+        self.assertIn("unknown ipv6-address-generation '0'", err)
 
     def test_addr_gen_mode_not_supported(self):
         err = self.generate('''network:
   version: 2
   ethernets:
     engreen:
-      addr-gen-mode: eui64''', expect_fail=True)
-        self.assertIn("ERROR: engreen: addr-gen-mode is not supported by networkd", err)
+      ipv6-address-generation: eui64''', expect_fail=True)
+        self.assertIn("ERROR: engreen: ipv6-address-generation is not supported by networkd", err)
 
     def test_invalid_gateway4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
