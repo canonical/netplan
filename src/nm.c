@@ -71,16 +71,37 @@ g_string_append_netdef_match(GString* s, const NetplanNetDefinition* def)
 }
 
 /**
+ * Infer if this is a modem netdef of type GSM.
+ * This is done by checking for certain modem_params, which are only
+ * applicable to GSM connections.
+ */
+static const gboolean
+modem_is_gsm(const NetplanNetDefinition* def)
+{
+    if (def->type == NETPLAN_DEF_TYPE_MODEM && (def->modem_params.apn ||
+        def->modem_params.auto_config || def->modem_params.device_id ||
+        def->modem_params.network_id || def->modem_params.pin ||
+        def->modem_params.sim_id || def->modem_params.sim_operator_id))
+        return TRUE;
+
+    return FALSE;
+}
+
+/**
  * Return NM "type=" string.
  */
 static const char*
-type_str(const NetplanDefType type)
+type_str(const NetplanNetDefinition* def)
 {
+    const NetplanDefType type = def->type;
     switch (type) {
         case NETPLAN_DEF_TYPE_ETHERNET:
             return "ethernet";
-        case NETPLAN_DEF_TYPE_GSM:
-            return "gsm";
+        case NETPLAN_DEF_TYPE_MODEM:
+            if (modem_is_gsm(def))
+                return "gsm";
+            else
+                return "cdma";
         case NETPLAN_DEF_TYPE_WIFI:
             return "wifi";
         case NETPLAN_DEF_TYPE_BRIDGE:
@@ -390,7 +411,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     g_string_append_printf(s, "[connection]\nid=netplan-%s", def->id);
     if (ap)
         g_string_append_printf(s, "-%s", ap->ssid);
-    g_string_append_printf(s, "\ntype=%s\n", type_str(def->type));
+    g_string_append_printf(s, "\ntype=%s\n", type_str(def));
 
     /* VLAN devices refer to us as their parent; if our ID is not a name but we
      * have matches, parent= must be the connection UUID, so put it into the
@@ -425,32 +446,39 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
             write_bridge_params(def, s);
     }
-    if (def->type == NETPLAN_DEF_TYPE_GSM) {
-        g_string_append_printf(s, "\n[gsm]\n");
+    if (def->type == NETPLAN_DEF_TYPE_MODEM) {
+        if (modem_is_gsm(def))
+            g_string_append_printf(s, "\n[gsm]\n");
+        else
+            g_string_append_printf(s, "\n[cdma]\n");
 
         /* Use NetworkManager's auto configuration feature if no APN, username, or password is specified */
-        if (def->gsm_params.auto_config || (!def->gsm_params.apn &&
-                !def->gsm_params.username && !def->gsm_params.password)) {
+        if (def->modem_params.auto_config || (!def->modem_params.apn &&
+                !def->modem_params.username && !def->modem_params.password)) {
             g_string_append_printf(s, "auto-config=true\n");
         } else {
-            if (def->gsm_params.apn)
-                g_string_append_printf(s, "apn=%s\n", def->gsm_params.apn);
-            if (def->gsm_params.password)
-                g_string_append_printf(s, "password=%s\n", def->gsm_params.password);
-            if (def->gsm_params.username)
-                g_string_append_printf(s, "username=%s\n", def->gsm_params.username);
+            if (def->modem_params.apn)
+                g_string_append_printf(s, "apn=%s\n", def->modem_params.apn);
+            if (def->modem_params.password)
+                g_string_append_printf(s, "password=%s\n", def->modem_params.password);
+            if (def->modem_params.username)
+                g_string_append_printf(s, "username=%s\n", def->modem_params.username);
         }
 
-        if (def->gsm_params.device_id)
-            g_string_append_printf(s, "device-id=%s\n", def->gsm_params.device_id);
-        if (def->gsm_params.network_id)
-            g_string_append_printf(s, "network-id=%s\n", def->gsm_params.network_id);
-        if (def->gsm_params.pin)
-            g_string_append_printf(s, "pin=%s\n", def->gsm_params.pin);
-        if (def->gsm_params.sim_id)
-            g_string_append_printf(s, "sim-id=%s\n", def->gsm_params.sim_id);
-        if (def->gsm_params.sim_operator_id)
-            g_string_append_printf(s, "sim-operator-id=%s\n", def->gsm_params.sim_operator_id);
+        if (def->modem_params.device_id)
+            g_string_append_printf(s, "device-id=%s\n", def->modem_params.device_id);
+        if (def->mtubytes)
+            g_string_append_printf(s, "mtu=%u\n", def->mtubytes);
+        if (def->modem_params.network_id)
+            g_string_append_printf(s, "network-id=%s\n", def->modem_params.network_id);
+        if (def->modem_params.number)
+            g_string_append_printf(s, "number=%s\n", def->modem_params.number);
+        if (def->modem_params.pin)
+            g_string_append_printf(s, "pin=%s\n", def->modem_params.pin);
+        if (def->modem_params.sim_id)
+            g_string_append_printf(s, "sim-id=%s\n", def->modem_params.sim_id);
+        if (def->modem_params.sim_operator_id)
+            g_string_append_printf(s, "sim-operator-id=%s\n", def->modem_params.sim_operator_id);
     }
     if (def->bridge) {
         g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
@@ -491,6 +519,9 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
             switch (def->type) {
                 case NETPLAN_DEF_TYPE_WIFI:
                     g_string_append_printf(s, "\n[802-11-wireless]\n%s", link_str->str);  break;
+                case NETPLAN_DEF_TYPE_MODEM:
+                    /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
+                    break;
                 default:
                     g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);  break;
             }

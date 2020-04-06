@@ -130,8 +130,10 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     GString* s = NULL;
     mode_t orig_umask;
 
-    /* Don't write .link files for virtual devices; they use .netdev instead */
-    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
+    /* Don't write .link files for virtual devices; they use .netdev instead.
+     * Don't write .link files for MODEM devices, as they aren't supported by networkd.
+     */
+    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL || def->type == NETPLAN_DEF_TYPE_MODEM)
         return;
 
     /* do we need to write a .link file? */
@@ -865,8 +867,8 @@ write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
         return FALSE;
     }
 
-    if (def->type == NETPLAN_DEF_TYPE_GSM) {
-        g_fprintf(stderr, "ERROR: %s: networkd backend does not support GSM modem configuration\n", def->id);
+    if (def->type == NETPLAN_DEF_TYPE_MODEM) {
+        g_fprintf(stderr, "ERROR: %s: networkd backend does not support GSM/CDMA modem configuration\n", def->id);
         exit(1);
     }
 

@@ -1632,17 +1632,18 @@ static const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
-static const mapping_entry_handler gsm_def_handlers[] = {
+static const mapping_entry_handler modem_def_handlers[] = {
     COMMON_LINK_HANDLERS,
-    {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.apn)},
-    {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(gsm_params.auto_config)},
-    {"device-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.device_id)},
-    {"network-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.network_id)},
-    {"password", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.password)},
-    {"pin", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.pin)},
-    {"sim-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.sim_id)},
-    {"sim-operator-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.sim_operator_id)},
-    {"username", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(gsm_params.username)},
+    {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.apn)},
+    {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(modem_params.auto_config)},
+    {"device-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.device_id)},
+    {"network-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.network_id)},
+    {"number", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.number)},
+    {"password", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.password)},
+    {"pin", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.pin)},
+    {"sim-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.sim_id)},
+    {"sim-operator-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.sim_operator_id)},
+    {"username", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.username)},
 };
 
 static const mapping_entry_handler tunnel_def_handlers[] = {
@@ -1768,7 +1769,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case NETPLAN_DEF_TYPE_BOND: handlers = bond_def_handlers; break;
             case NETPLAN_DEF_TYPE_BRIDGE: handlers = bridge_def_handlers; break;
             case NETPLAN_DEF_TYPE_ETHERNET: handlers = ethernet_def_handlers; break;
-            case NETPLAN_DEF_TYPE_GSM: handlers = gsm_def_handlers; break;
+            case NETPLAN_DEF_TYPE_MODEM: handlers = modem_def_handlers; break;
             case NETPLAN_DEF_TYPE_TUNNEL: handlers = tunnel_def_handlers; break;
             case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
@@ -1799,7 +1800,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"version", YAML_SCALAR_NODE, handle_network_version},
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
-    {"gsms", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_GSM)},
+    {"modems", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
     {NULL}
 };
 
