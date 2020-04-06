@@ -126,8 +126,10 @@ wifi_get_freq5(int channel)
                        155, 157, 159, 161, 165, 169, 173 };
     gboolean found = FALSE;
     for (unsigned i = 0; i < sizeof(channels) / sizeof(int); i++) {
-        if (channel == channels[i])
+        if (channel == channels[i]) {
             found = TRUE;
+            break;
+        }
     }
     if (!found) {
         g_fprintf(stderr, "ERROR: invalid 5GHz WiFi channel: %d\n", channel);

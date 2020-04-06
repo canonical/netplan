@@ -821,32 +821,29 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
             if (ap->bssid) {
                 g_string_append_printf(s, "  bssid=%s\n", ap->bssid);
             }
-            if (ap->band) {
-                if (ap->band == NETPLAN_WIFI_BAND_24) {
-                    // initialize frequency hashtable
-                    if(!wifi_frequency_24)
-                        wifi_get_freq24(1);
-                    if (ap->channel) {
-                        g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq24(ap->channel));
-                    } else {
-                        g_string_append_printf(s, "  freq_list=");
-                        g_hash_table_foreach(wifi_frequency_24, wifi_append_freq, s);
-                        // overwrite last whitespace with newline
-                        s = g_string_overwrite(s, s->len-1, "\n");
-                    }
+            if (ap->band == NETPLAN_WIFI_BAND_24) {
+                // initialize 2.4GHz frequency hashtable
+                if(!wifi_frequency_24)
+                    wifi_get_freq24(1);
+                if (ap->channel) {
+                    g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq24(ap->channel));
+                } else {
+                    g_string_append_printf(s, "  freq_list=");
+                    g_hash_table_foreach(wifi_frequency_24, wifi_append_freq, s);
+                    // overwrite last whitespace with newline
+                    s = g_string_overwrite(s, s->len-1, "\n");
                 }
-                if (ap->band == NETPLAN_WIFI_BAND_5) {
-                    // initialize frequency hashtable
-                    if(!wifi_frequency_5)
-                        wifi_get_freq5(7);
-                    if (ap->channel) {
-                        g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq5(ap->channel));
-                    } else {
-                        g_string_append_printf(s, "  freq_list=");
-                        g_hash_table_foreach(wifi_frequency_5, wifi_append_freq, s);
-                        // overwrite last whitespace with newline
-                        s = g_string_overwrite(s, s->len-1, "\n");
-                    }
+            } else if (ap->band == NETPLAN_WIFI_BAND_5) {
+                // initialize 5GHz frequency hashtable
+                if(!wifi_frequency_5)
+                    wifi_get_freq5(7);
+                if (ap->channel) {
+                    g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq5(ap->channel));
+                } else {
+                    g_string_append_printf(s, "  freq_list=");
+                    g_hash_table_foreach(wifi_frequency_5, wifi_append_freq, s);
+                    // overwrite last whitespace with newline
+                    s = g_string_overwrite(s, s->len-1, "\n");
                 }
             }
             if (ap->seen_bssids) {
