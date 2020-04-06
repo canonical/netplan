@@ -667,6 +667,12 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           a number between ``0`` and ``63``. This metric is used in the
           designated port and root port selection algorithms.
 
+     ``port-vlans`` (sequence of scalars)
+     :    Array of bridge VLAN objects. The VLAN list can be specified with the
+          following syntax: $vid [pvid] [untagged] [, $vid [pvid] [untagged]]..
+          where $vid is either a single id between 1 and 4094 or a range,
+          represented as a couple of ids separated by a dash.
+
      ``forward-delay`` (scalar)
      :    Specify the period of time the bridge will remain in Listening and
           Learning states before getting to the Forwarding state. This field
@@ -698,6 +704,11 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           default value is "true", which means that Spanning Tree should be
           used.
 
+     ``vlans`` (sequence of scalars)
+     :    Array of bridge VLAN objects. The VLAN list can be specified with the
+          following syntax: $vid [pvid] [untagged] [, $vid [pvid] [untagged]]..
+          where $vid is either a single id between 1 and 4094 or a range,
+          represented as a couple of ids separated by a dash.
 
 ## Properties for device type ``bonds:``
 

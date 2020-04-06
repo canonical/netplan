@@ -96,6 +96,11 @@ write_bridge_params(GString* s, const NetplanNetDefinition* def)
         if (def->bridge_params.max_age)
             g_string_append_printf(params, "MaxAgeSec=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "STP=%s\n", def->bridge_params.stp ? "true" : "false");
+        if (def->bridge_params.vlans) {
+            // TODO: research and implement bridge vlans for networkd
+            g_fprintf(stderr, "ERROR: %s: networkd does not support bridge vlans\n", def->id);
+            exit(1);
+        }
 
         g_string_append_printf(s, "\n[Bridge]\n%s", params->str);
 
@@ -526,6 +531,11 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
             g_string_append_printf(network, "Cost=%u\n", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
             g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
+        if (def->bridge_params.port_vlans) {
+            // TODO: research and implement bridge port-vlans for networkd
+            g_fprintf(stderr, "ERROR: %s: networkd does not support bridge port-vlans\n", def->id);
+            exit(1);
+        }
     }
     if (def->bond) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
