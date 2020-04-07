@@ -33,21 +33,21 @@ class TestNetworkd(TestBase):
         "Joe's Home":
           password: "s0s3kr1t"
           bssid: 00:11:22:33:44:55
-          band: bg
+          band: 2.4GHz
           channel: 11
         workplace:
           password: "c0mpany1"
           bssid: de:ad:be:ef:ca:fe
-          band: a
+          band: 5GHz
           channel: 100
         peer2peer:
           mode: adhoc
         channel-no-band:
           channel: 7
         band-no-channel:
-          band: bg
+          band: 2.4G
         band-no-channel2:
-          band: a
+          band: 5G
       dhcp4: yes''')
 
         self.assert_networkd({'wl0.network': ND_WIFI_DHCP4 % 'wl0'})
@@ -184,7 +184,7 @@ class TestNetworkManager(TestBase):
         "Joe's Home":
           password: "s0s3kr1t"
           bssid: 00:11:22:33:44:55
-          band: bg
+          band: 2.4GHz
           channel: 11
           seen-bssids:
             - de:ad:be:ef:ca:fe
@@ -193,12 +193,12 @@ class TestNetworkManager(TestBase):
         workplace:
           password: "c0mpany1"
           bssid: de:ad:be:ef:ca:fe
-          band: a
+          band: 5GHz
           channel: 100
         channel-no-band:
           channel: 22
         band-no-channel:
-          band: a
+          band: 5GHz
       dhcp4: yes''')
 
         self.assert_nm({'wl0-Joe%27s%20Home': '''[connection]

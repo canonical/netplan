@@ -617,9 +617,9 @@ static gboolean
 handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_access_point);
-    if (strcmp(scalar(node), "a") == 0)
+    if (strcmp(scalar(node), "5GHz") == 0 || strcmp(scalar(node), "5G") == 0)
         cur_access_point->band = NETPLAN_WIFI_BAND_5;
-    else if (strcmp(scalar(node), "bg") == 0)
+    else if (strcmp(scalar(node), "2.4GHz") == 0 || strcmp(scalar(node), "2.4G") == 0)
         cur_access_point->band = NETPLAN_WIFI_BAND_24;
     else
         return yaml_error(node, error, "unknown wifi band '%s'", scalar(node));

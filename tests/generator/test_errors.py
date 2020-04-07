@@ -248,7 +248,7 @@ class TestConfigErrors(TestBase):
     wl0:
       access-points:
         workplace:
-          band: bg
+          band: 2.4GHz
           channel: 15''', expect_fail=True)
         self.assertIn("ERROR: invalid 2.4GHz WiFi channel: 15", err)
 
@@ -259,7 +259,7 @@ class TestConfigErrors(TestBase):
     wl0:
       access-points:
         workplace:
-          band: a
+          band: 5GHz
           channel: 14''', expect_fail=True)
         self.assertIn("ERROR: invalid 5GHz WiFi channel: 14", err)
 

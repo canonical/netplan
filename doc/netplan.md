@@ -629,20 +629,20 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           access point.
 
      ``band`` (scalar)
-     :    Possible bands are ``a`` (for 5GHz 802.11a) and ``bg``
+     :    Possible bands are ``5GHz`` (for 5GHz 802.11a) and ``2.4GHz``
           (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
           network if unset (the default).
 
      ``channel`` (scalar)
      :    Wireless channel to use for the Wi-Fi connection. Because channel
           numbers overlap between bands, this property takes effect only if
-          the ``band`` property is set, too.
+          the ``band`` property is also set.
 
      ``seen-bssids`` (sequence of scalars)
      :    A list of BSSIDs (each BSSID formatted as a MAC address) that have
-          been detected as part of the Wi-Fi network. This is a read-only
-          option, used only to track NetworkManager's state when using the
-          netplan read-write plugin.
+          been detected as part of the Wi-Fi network. This property is only
+          meant for reading and reflects an internal state of NetworkManager.
+          The changes you make to this property will not be preserved.
 
 ## Properties for device type ``bridges:``
 
