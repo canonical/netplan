@@ -638,12 +638,6 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           numbers overlap between bands, this property takes effect only if
           the ``band`` property is also set.
 
-     ``seen-bssids`` (sequence of scalars)
-     :    A list of BSSIDs (each BSSID formatted as a MAC address) that have
-          been detected as part of the Wi-Fi network. This property is only
-          meant for reading and reflects an internal state of NetworkManager.
-          The changes you make to this property will not be preserved.
-
 ## Properties for device type ``bridges:``
 
 ``interfaces`` (sequence of scalars)

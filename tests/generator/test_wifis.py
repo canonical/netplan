@@ -186,10 +186,6 @@ class TestNetworkManager(TestBase):
           bssid: 00:11:22:33:44:55
           band: 2.4GHz
           channel: 11
-          seen-bssids:
-            - de:ad:be:ef:ca:fe
-            - 00:11:22:33:44:55
-            - 55:44:33:22:11:00
         workplace:
           password: "c0mpany1"
           bssid: de:ad:be:ef:ca:fe
@@ -221,7 +217,6 @@ mode=infrastructure
 bssid=00:11:22:33:44:55
 band=bg
 channel=11
-seen-bssids=de:ad:be:ef:ca:fe;00:11:22:33:44:55;55:44:33:22:11:00;
 
 [wifi-security]
 key-mgmt=wpa-psk

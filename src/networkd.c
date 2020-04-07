@@ -846,10 +846,6 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
                     s = g_string_overwrite(s, s->len-1, "\n");
                 }
             }
-            if (ap->seen_bssids) {
-                g_fprintf(stderr, "ERROR: %s: networkd backend does not support the collection of seen bssids\n", def->id);
-                exit(1);
-            }
             switch (ap->mode) {
                 case NETPLAN_WIFI_MODE_INFRASTRUCTURE:
                     /* default in wpasupplicant */

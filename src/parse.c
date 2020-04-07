@@ -626,38 +626,12 @@ handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _,
     return TRUE;
 }
 
-static gboolean
-handle_access_point_bssids(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
-{
-    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        g_autofree char* addr = NULL;
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
-
-        addr = g_strdup(scalar(entry));
-
-        /* is it a MAC address? */
-        if (is_mac_address(addr)) {
-            if (!cur_access_point->seen_bssids)
-                cur_access_point->seen_bssids = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_access_point->seen_bssids, s);
-            continue;
-        }
-
-        return yaml_error(node, error, "malformed bssid %s, must be XX:XX:XX:XX:XX:XX", scalar(entry));
-    }
-
-    return TRUE;
-}
-
 static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"band", YAML_SCALAR_NODE, handle_access_point_band},
     {"bssid", YAML_SCALAR_NODE, handle_access_point_mac, NULL, access_point_offset(bssid)},
     {"channel", YAML_SCALAR_NODE, handle_access_point_guint, NULL, access_point_offset(channel)},
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
-    {"seen-bssids", YAML_SEQUENCE_NODE, handle_access_point_bssids},
     {"auth", YAML_MAPPING_NODE, handle_access_point_auth},
     {NULL}
 };
