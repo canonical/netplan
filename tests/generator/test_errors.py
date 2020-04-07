@@ -321,6 +321,23 @@ class TestConfigErrors(TestBase):
         - 2001::1/''', expect_fail=True)
         self.assertIn("invalid prefix length in address '2001::1/'", err)
 
+    def test_invalid_addr_gen_mode(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-generation: 0''', expect_fail=True)
+        self.assertIn("unknown ipv6-address-generation '0'", err)
+
+    def test_addr_gen_mode_not_supported(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      ipv6-address-generation: eui64''', expect_fail=True)
+        self.assertIn("ERROR: engreen: ipv6-address-generation is not supported by networkd", err)
+
     def test_invalid_gateway4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
             err = self.generate('''network:

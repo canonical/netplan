@@ -239,6 +239,12 @@ Virtual devices
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
+``ipv6-address-generation`` (scalar)
+
+:   Configure method for creating the address for use with RFC4862 IPv6
+    Stateless Address Autoconfiguration. Possible values are ``eui64``
+    or ``stable-privacy``.
+
 ``gateway4``, ``gateway6`` (scalar)
 
 :   Set default gateway for IPv4/6, for manual address configuration. This
