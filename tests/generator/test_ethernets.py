@@ -66,6 +66,30 @@ LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev(None)
 
+    def test_eth_sriov_link(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enp1:
+      dhcp4: n
+    enp1s16f1:
+      dhcp4: n
+      link: enp1''')
+
+        self.assert_networkd({'enp1.network': '''[Match]
+Name=enp1
+
+[Network]
+LinkLocalAddressing=ipv6
+''',
+                              'enp1s16f1.network': '''[Match]
+Name=enp1s16f1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_networkd_udev(None)
+
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
   version: 2
@@ -309,6 +333,48 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
+
+    def test_eth_sriov_link(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enp1:
+      dhcp4: n
+    enp1s16f1:
+      dhcp4: n
+      link: enp1''')
+
+        self.assert_networkd({})
+        self.assert_nm({'enp1': '''[connection]
+id=netplan-enp1
+type=ethernet
+interface-name=enp1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'enp1s16f1': '''[connection]
+id=netplan-enp1s16f1
+type=ethernet
+interface-name=enp1s16f1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+})
 
     def test_eth_set_mac(self):
         self.generate('''network:

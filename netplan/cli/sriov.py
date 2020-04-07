@@ -29,10 +29,10 @@ import netifaces
 
 def get_vf_count_and_active_pfs(interfaces, config_manager,
                                 vf_counts, active_vfs, active_pfs):
-    for phy, settings in config_manager.ethernets.items():
+    for ethernet, settings in config_manager.ethernets.items():
         if not settings:
             continue
-        if phy == 'renderer':
+        if ethernet == 'renderer':
             continue
 
         pf_link = settings.get('link')
@@ -55,20 +55,21 @@ def get_vf_count_and_active_pfs(interfaces, config_manager,
                     vf_counts[interface] += 1
                     # store the matching interface in the dictionary of
                     # active PFs
-                    active_pfs[pf_link].append(interface)
-                else:
+                    active_pfs[pf_link].add(interface)
+
+                if pf_link not in active_pfs:
                     logging.warning('could not match physical interface for the defined PF: %s' % pf_link)
                     # continue looking for other VFs
                     continue
             else:
                 # no match field, assume entry name is interface name
                 vf_counts[pf_link] += 1
-                active_pfs[pf_link].append(pf_link)
+                active_pfs[pf_link].add(pf_link)
 
             # we can't yet perform matching on VFs as those are only
             # created later - but store, for convenience, all the valid
             # VFs that we encounter so far
-            active_vfs[phy] = []
+            active_vfs[ethernet] = set()
 
 
 def set_numvfs_for_pf(pf, vf_count):
@@ -165,7 +166,7 @@ def apply_vlan_filter_for_vf(pf, vf, vlan_name, vlan_id, prefix='/'):
         subprocess.check_call(['ip', 'link', 'set',
                                'dev', pf,
                                'vf', vf_index,
-                               'vlan', vlan_id],
+                               'vlan', str(vlan_id)],
                               stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
@@ -179,6 +180,10 @@ def apply_sriov_config(interfaces, config_manager):
     then and perform all other necessary setup.
     """
 
+    # TODO: error out when a vf matches more than one interface
+
+    # TODO: handle set-name?!
+
     # for sr-iov devices, we identify VFs by them having a link: field
     # pointing to an PF. So let's browse through all ethernet devices,
     # find all that are VFs and count how many of those are linked to
@@ -187,7 +192,7 @@ def apply_sriov_config(interfaces, config_manager):
     # we also store all matches between VF/PF netplan entry names and
     # interface that they're currently matching to
     active_vfs = {}
-    active_pfs = defaultdict(list)
+    active_pfs = defaultdict(set)
 
     get_vf_count_and_active_pfs(
         interfaces, config_manager, vf_counts, active_vfs, active_pfs)
@@ -221,9 +226,9 @@ def apply_sriov_config(interfaces, config_manager):
         settings = config_manager.ethernets.get(vf)
         match = settings.get('match')
         if match:
-            by_name = pf_match.get('name')
-            by_mac = pf_match.get('macaddress')
-            by_driver = pf_match.get('driver')
+            by_name = match.get('name')
+            by_mac = match.get('macaddress')
+            by_driver = match.get('driver')
 
             for interface in interfaces:
                 if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
@@ -231,7 +236,7 @@ def apply_sriov_config(interfaces, config_manager):
                      (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
                     continue
 
-                active_vfs[vf].append(interface)
+                active_vfs[vf].add(interface)
 
     filtered_vlans_set = set()
     for vlan, settings in config_manager.vlans.items():
@@ -240,10 +245,6 @@ def apply_sriov_config(interfaces, config_manager):
         if settings.get('renderer') == 'sriov':
             # this only works for SR-IOV VF interfaces
             link = settings.get('link')
-            if link not in vfs:
-                raise ConfigurationError(
-                    'SR-IOV vlan %s defined for %s, which is not a VF' % (vlan, link))
-
             vlan_id = settings.get('id')
             if not vlan_id:
                 raise ConfigurationError(
@@ -255,17 +256,15 @@ def apply_sriov_config(interfaces, config_manager):
                 # the configuration has been defined 'for the future'
                 # XXX: but maybe we should error out here as well?
                 logging.warning(
-                    'SR-IOV vlan defined for %s but link %s has no matches' % (vlan, link))
+                    'SR-IOV vlan defined for %s but link %s is either not a VF or has no matches' % (vlan, link))
                 continue
 
             # get the parent pf interface
             # first we fetch the related vf netplan entry
-            vf_entry = config_manager.ethernets.get(link).get('link')
-            # then use it to get the pf
-            pf_entry = config_manager.ethernets.get(vf_entry)
+            vf_parent_entry = config_manager.ethernets.get(link).get('link')
             # and finally, get the matched pf interface
             # XXX: what if there are multiple vfs matched and pfs matched?
-            pf = active_pfs.get(pf_entry)[0]  # TODO: this is probably wrong
+            pf = active_pfs.get(vf_parent_entry).pop()  # TODO: this is probably wrong
 
             for vf in vfs:
                 if vf in filtered_vlans_set:

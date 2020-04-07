@@ -436,6 +436,11 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
     GString* s = NULL;
     mode_t orig_umask;
 
+    if (def->type == ND_VLAN && def->vf_filter) {
+        g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
+        return;
+    }
+
     /* Prepare the [Link] section of the .network file. */
     link = g_string_sized_new(200);
 
@@ -537,7 +542,7 @@ write_network_file(net_definition* def, const char* rootdir, const char* path)
         net_definition* nd;
         for (; l != NULL; l = l->next) {
             nd = l->data;
-            if (nd->vlan_link == def)
+            if (nd->vlan_link == def && !nd->vf_filter)
                 g_string_append_printf(network, "VLAN=%s\n", nd->id);
         }
     }

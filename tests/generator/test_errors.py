@@ -363,6 +363,13 @@ class TestConfigErrors(TestBase):
     ena: {id: 1, link: en1}''', expect_fail=True)
         self.assertIn("ena: interface 'en1' is not defined", err)
 
+    def test_vlan_unknown_renderer(self):
+        err = self.generate('''network:
+  version: 2
+  vlans:
+    ena: {id: 1, link: en1, renderer: foo}''', expect_fail=True)
+        self.assertIn("unknown vlan renderer 'foo'", err)
+
     def test_device_bad_route_to(self):
         self.generate('''network:
   version: 2

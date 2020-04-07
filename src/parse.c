@@ -582,17 +582,14 @@ parse_renderer(yaml_node_t* node, netdef_backend* backend, GError** error)
 static gboolean
 handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    return parse_renderer(node, &cur_netdef->backend, error);
-}
+    if (cur_netdef->type == ND_VLAN) {
+        if (strcmp(scalar(node), "sriov") == 0) {
+            cur_netdef->vf_filter = TRUE;
+            return TRUE;
+        }
+    }
 
-static gboolean
-handle_vlan_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
-{
-    if (strcmp(scalar(node), "sriov") == 0)
-        cur_netdef->vf_filter = TRUE;
-    else
-        return yaml_error(node, error, "unknown renderer '%s'", scalar(node));
-    return TRUE;
+    return parse_renderer(node, &cur_netdef->backend, error);
 }
 
 static gboolean
@@ -1622,7 +1619,6 @@ const mapping_entry_handler vlan_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     {"id", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(vlan_id)},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(vlan_link)},
-    {"renderer", YAML_SCALAR_NODE, handle_vlan_renderer},
     {NULL}
 };
 
