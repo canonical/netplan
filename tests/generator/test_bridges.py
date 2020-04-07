@@ -621,6 +621,7 @@ interface-name=br0
 
 [bridge]
 stp=true
+vlan-filtering=true
 vlans=1-100 pvid untagged, 42 untagged, 13, 1 pvid, 2-100 pvid untagged
 
 [ipv4]

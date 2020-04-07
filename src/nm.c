@@ -298,6 +298,7 @@ write_bridge_params(const NetplanNetDefinition* def, GString *s)
             g_string_append_printf(params, "max-age=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "stp=%s\n", def->bridge_params.stp ? "true" : "false");
         if (def->bridge_params.vlans) {
+            g_string_append(params, "vlan-filtering=true\n");
             g_string_append(params, "vlans=");
             for (unsigned i = 0; i < def->bridge_params.vlans->len; ++i) {
                 if (i > 0)
