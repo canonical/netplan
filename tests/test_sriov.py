@@ -31,17 +31,28 @@ from netplan.configmanager import ConfigManager, ConfigurationError
 class MockSRIOVOpen():
     def __init__(self):
         # now this is a VERY ugly hack to make mock_open() better
-        self.read_state = []
+        self.read_queue = []
+        self.write_queue = []
 
         def sriov_read():
-            data = self.read_state.pop(0)
-            if isinstance(data, str):
-                return data
+            if not self.read_queue:
+                return None
+            action = self.read_queue.pop(0)
+            if isinstance(action, str):
+                return action
             else:
-                raise data
+                raise action
+
+        def sriov_write(data):
+            if not self.write_queue:
+                return
+            action = self.write_queue.pop(0)
+            if isinstance(action, Exception):
+                raise action
 
         self.open = mock_open()
         self.open.return_value.read.side_effect = sriov_read
+        self.open.return_value.write.side_effect = sriov_write
 
 
 def mock_set_counts(interfaces, config_manager, vf_counts, active_vfs, active_pfs):
@@ -164,7 +175,7 @@ class TestSRIOV(unittest.TestCase):
 
     def test_set_numvfs_for_pf(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_state = ['1\n', '8\n']
+        sriov_open.read_queue = ['1\n', '8\n']
 
         with patch('builtins.open', sriov_open.open):
             ret = sriov.set_numvfs_for_pf('enp1', 2)
@@ -178,12 +189,20 @@ class TestSRIOV(unittest.TestCase):
         handle.write.assert_called_once_with('2')
 
     def test_set_numvfs_for_pf_failsafe(self):
-        # TODO
-        pass
+        sriov_open = MockSRIOVOpen()
+        sriov_open.read_queue = ['1\n', '8\n']
+        sriov_open.write_queue = [IOError(16, 'Error'), None, None]
+
+        with patch('builtins.open', sriov_open.open):
+            ret = sriov.set_numvfs_for_pf('enp1', 2)
+
+        self.assertTrue(ret)
+        handle = sriov_open.open()
+        self.assertEqual(handle.write.call_count, 3)
 
     def test_set_numvfs_for_pf_over_max(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_state = ['1\n', '8\n']
+        sriov_open.read_queue = ['1\n', '8\n']
 
         with patch('builtins.open', sriov_open.open):
             with self.assertRaises(ConfigurationError) as e:
@@ -194,7 +213,7 @@ class TestSRIOV(unittest.TestCase):
 
     def test_set_numvfs_for_pf_smaller(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_state = ['4\n', '8\n']
+        sriov_open.read_queue = ['4\n', '8\n']
 
         with patch('builtins.open', sriov_open.open):
             ret = sriov.set_numvfs_for_pf('enp1', 3)
@@ -214,19 +233,27 @@ class TestSRIOV(unittest.TestCase):
 
         with patch('builtins.open', sriov_open.open):
             for case in cases:
-                sriov_open.read_state = case
+                sriov_open.read_queue = case
                 with self.assertRaises(RuntimeError):
                     sriov.set_numvfs_for_pf('enp1', 3)
 
     def test_set_numvfs_for_pf_write_failed(self):
-        # TODO
-        pass
+        sriov_open = MockSRIOVOpen()
+        sriov_open.read_queue = ['1\n', '8\n']
+        sriov_open.write_queue = [IOError(16, 'Error'), IOError(16, 'Error')]
+
+        with patch('builtins.open', sriov_open.open):
+            with self.assertRaises(RuntimeError) as e:
+                sriov.set_numvfs_for_pf('enp1', 2)
+
+            self.assertIn('failed setting sriov_numvfs to 2 for enp1',
+                          str(e.exception))
 
     def test_perform_hardware_specific_quirks(self):
         # for now we have no custom quirks defined, so we just
         # check if the function succeeds
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_state = ['0x001f\n', '0x1337\n']
+        sriov_open.read_queue = ['0x001f\n', '0x1337\n']
 
         with patch('builtins.open', sriov_open.open):
             sriov.perform_hardware_specific_quirks('enp1')
@@ -245,7 +272,7 @@ class TestSRIOV(unittest.TestCase):
 
         with patch('builtins.open', sriov_open.open):
             for case in cases:
-                sriov_open.read_state = case
+                sriov_open.read_queue = case
                 with self.assertRaises(RuntimeError) as e:
                     sriov.perform_hardware_specific_quirks('enp1')
 
@@ -321,6 +348,10 @@ class TestSRIOV(unittest.TestCase):
       renderer: sriov
       id: 15
       link: customvf1
+    vf1.16:
+      renderer: sriov
+      id: 16
+      link: foobar
 ''', file=fd)
         self.configmanager.parse()
         interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
