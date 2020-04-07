@@ -22,7 +22,7 @@ import subprocess
 from collections import defaultdict
 
 import netplan.cli.utils as utils
-from netplan.configmanager import ConfigManager, ConfigurationError
+from netplan.configmanager import ConfigurationError
 
 import netifaces
 
@@ -47,8 +47,8 @@ def get_vf_count_and_active_pfs(interfaces, config_manager,
 
                 for interface in interfaces:
                     if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
-                         (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
-                         (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
+                            (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
+                            (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
                         continue
                     # we have a matching PF
                     # let's remember that we can have more than one match
@@ -56,15 +56,16 @@ def get_vf_count_and_active_pfs(interfaces, config_manager,
                     # store the matching interface in the dictionary of
                     # active PFs
                     active_pfs[pf_link].add(interface)
-
-                if pf_link not in active_pfs:
-                    logging.warning('could not match physical interface for the defined PF: %s' % pf_link)
-                    # continue looking for other VFs
-                    continue
             else:
                 # no match field, assume entry name is interface name
-                vf_counts[pf_link] += 1
-                active_pfs[pf_link].add(pf_link)
+                if pf_link in interfaces:
+                    vf_counts[pf_link] += 1
+                    active_pfs[pf_link].add(pf_link)
+
+            if pf_link not in active_pfs:
+                logging.warning('could not match physical interface for the defined PF: %s' % pf_link)
+                # continue looking for other VFs
+                continue
 
             # we can't yet perform matching on VFs as those are only
             # created later - but store, for convenience, all the valid
@@ -222,21 +223,25 @@ def apply_sriov_config(interfaces, config_manager):
     # this is needed because we will have to now match the defined VF
     # entries to existing interfaces, otherwise we won't be able to set
     # filtered VLANs for those.
+    # TODO: does matching those even make sense?
     for vf in active_vfs:
         settings = config_manager.ethernets.get(vf)
         match = settings.get('match')
         if match:
+            # right now we only match by name, as I don't think matching per
+            # driver and/or macaddress makes sense
             by_name = match.get('name')
-            by_mac = match.get('macaddress')
-            by_driver = match.get('driver')
+            # by_mac = match.get('macaddress')
+            # by_driver = match.get('driver')
 
             for interface in interfaces:
-                if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
-                     (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
-                     (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
+                if by_name and not utils.is_interface_matching_name(interface, by_name):
                     continue
 
                 active_vfs[vf].add(interface)
+        else:
+            if vf in interfaces:
+                active_vfs[vf].add(vf)
 
     filtered_vlans_set = set()
     for vlan, settings in config_manager.vlans.items():

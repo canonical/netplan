@@ -32,12 +32,14 @@ class MockSRIOVOpen():
     def __init__(self):
         # now this is a VERY ugly hack to make mock_open() better
         self.read_state = []
+
         def sriov_read():
             data = self.read_state.pop(0)
             if isinstance(data, str):
                 return data
             else:
                 raise data
+
         self.open = mock_open()
         self.open.return_value.read.side_effect = sriov_read
 
@@ -105,6 +107,7 @@ class TestSRIOV(unittest.TestCase):
   version: 2
   renderer: networkd
   ethernets:
+    renderer: networkd
     enp1:
       mtu: 9000
     enp2:
@@ -118,6 +121,8 @@ class TestSRIOV(unittest.TestCase):
         name: enp[4-5]
     enp0:
       mtu: 9000
+    enp9: {}
+    wlp6s0: {}
     enp1s16f1:
       link: enp1
       macaddress: 01:02:03:04:05:00
@@ -132,6 +137,8 @@ class TestSRIOV(unittest.TestCase):
       match:
         name: enp[4-5]s16f1
       link: enpx
+    enp9s16f1:
+      link: enp9
 ''', file=fd)
         self.configmanager.parse()
         interfaces = ['enp1', 'enp2', 'enp3', 'enp5', 'enp0']
@@ -160,7 +167,7 @@ class TestSRIOV(unittest.TestCase):
         sriov_open.read_state = ['1\n', '8\n']
 
         with patch('builtins.open', sriov_open.open):
-            ret =sriov.set_numvfs_for_pf('enp1', 2)
+            ret = sriov.set_numvfs_for_pf('enp1', 2)
 
         self.assertTrue(ret)
         self.assertListEqual(sriov_open.open.call_args_list,
@@ -188,14 +195,13 @@ class TestSRIOV(unittest.TestCase):
     def test_set_numvfs_for_pf_smaller(self):
         sriov_open = MockSRIOVOpen()
         sriov_open.read_state = ['4\n', '8\n']
-        
+
         with patch('builtins.open', sriov_open.open):
             ret = sriov.set_numvfs_for_pf('enp1', 3)
 
         self.assertFalse(ret)
         handle = sriov_open.open()
         self.assertEqual(handle.write.call_count, 0)
-            
 
     def test_set_numvfs_for_pf_read_failed(self):
         sriov_open = MockSRIOVOpen()
@@ -209,7 +215,7 @@ class TestSRIOV(unittest.TestCase):
         with patch('builtins.open', sriov_open.open):
             for case in cases:
                 sriov_open.read_state = case
-                with self.assertRaises(RuntimeError) as e:
+                with self.assertRaises(RuntimeError):
                     sriov.set_numvfs_for_pf('enp1', 3)
 
     def test_set_numvfs_for_pf_write_failed(self):
@@ -223,12 +229,12 @@ class TestSRIOV(unittest.TestCase):
         sriov_open.read_state = ['0x001f\n', '0x1337\n']
 
         with patch('builtins.open', sriov_open.open):
-            ret = sriov.perform_hardware_specific_quirks('enp1')
+            sriov.perform_hardware_specific_quirks('enp1')
 
         # it's good enough if it did all the matching
         self.assertListEqual(sriov_open.open.call_args_list,
                              [call('/sys/class/net/enp1/device/vendor'),
-                              call('/sys/class/net/enp1/device/device'),])
+                              call('/sys/class/net/enp1/device/device'), ])
 
     def test_perform_hardware_specific_quirks_failed(self):
         sriov_open = MockSRIOVOpen()
@@ -253,7 +259,7 @@ class TestSRIOV(unittest.TestCase):
         sriov.apply_vlan_filter_for_vf('enp2', 'enp2s16f1', 'vlan10', 10, prefix=self.workdir.name)
 
         self.assertEqual(check_call.call_count, 1)
-        self.assertListEqual(check_call.call_args[0][0], 
+        self.assertListEqual(check_call.call_args[0][0],
                              ['ip', 'link', 'set', 'dev', 'enp2',
                               'vf', '3', 'vlan', '10'])
 

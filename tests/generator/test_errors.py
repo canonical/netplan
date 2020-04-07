@@ -366,9 +366,10 @@ class TestConfigErrors(TestBase):
     def test_vlan_unknown_renderer(self):
         err = self.generate('''network:
   version: 2
+  ethernets: {en1: {}}
   vlans:
     ena: {id: 1, link: en1, renderer: foo}''', expect_fail=True)
-        self.assertIn("unknown vlan renderer 'foo'", err)
+        self.assertIn("unknown renderer 'foo'", err)
 
     def test_device_bad_route_to(self):
         self.generate('''network:

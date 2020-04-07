@@ -373,8 +373,7 @@ method=link-local
 
 [ipv6]
 method=ignore
-''',
-})
+'''})
 
     def test_eth_set_mac(self):
         self.generate('''network:
