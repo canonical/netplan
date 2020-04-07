@@ -251,8 +251,8 @@ struct net_definition {
     gboolean emit_lldp;
 
 
-    /* these properties are only valid for ND_WIFI */
-    GHashTable* access_points; /* SSID → wifi_access_point* */
+    /* these properties are only valid for NETPLAN_DEF_TYPE_WIFI */
+    GHashTable* access_points; /* SSID → NetplanWifiAccessPoint* */
 
     struct {
         char* mode;
@@ -333,9 +333,18 @@ typedef enum {
     NETPLAN_WIFI_MODE_AP
 } NetplanWifiMode;
 
+typedef enum {
+    NETPLAN_WIFI_BAND_DEFAULT,
+    NETPLAN_WIFI_BAND_5,
+    NETPLAN_WIFI_BAND_24
+} NetplanWifiBand;
+
 typedef struct {
     NetplanWifiMode mode;
     char* ssid;
+    NetplanWifiBand band;
+    char* bssid;
+    guint channel;
 
     NetplanAuthenticationSettings auth;
     gboolean has_auth;

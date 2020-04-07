@@ -210,6 +210,39 @@ class TestConfigErrors(TestBase):
           mode: bogus''', expect_fail=True)
         self.assertIn("unknown wifi mode 'bogus'", err)
 
+    def test_wifi_ap_unknown_band(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: bogus''', expect_fail=True)
+        self.assertIn("unknown wifi band 'bogus'", err)
+
+    def test_wifi_ap_invalid_freq24(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: 2.4GHz
+          channel: 15''', expect_fail=True)
+        self.assertIn("ERROR: invalid 2.4GHz WiFi channel: 15", err)
+
+    def test_wifi_ap_invalid_freq5(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: 5GHz
+          channel: 14''', expect_fail=True)
+        self.assertIn("ERROR: invalid 5GHz WiFi channel: 14", err)
+
     def test_invalid_ipv4_address(self):
         err = self.generate('''network:
   version: 2

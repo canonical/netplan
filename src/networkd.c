@@ -29,6 +29,15 @@
 #include "parse.h"
 #include "util.h"
 
+/**
+ * Append WiFi frequencies to wpa_supplicant's freq_list=
+ */
+static void
+wifi_append_freq(gpointer key, gpointer value, gpointer user_data)
+{
+    GString* s = user_data;
+    g_string_append_printf(s, "%d ", GPOINTER_TO_INT(value));
+}
 
 /**
  * Append [Match] section of @def to @s.
@@ -819,6 +828,34 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
             g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
+            if (ap->bssid) {
+                g_string_append_printf(s, "  bssid=%s\n", ap->bssid);
+            }
+            if (ap->band == NETPLAN_WIFI_BAND_24) {
+                // initialize 2.4GHz frequency hashtable
+                if(!wifi_frequency_24)
+                    wifi_get_freq24(1);
+                if (ap->channel) {
+                    g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq24(ap->channel));
+                } else {
+                    g_string_append_printf(s, "  freq_list=");
+                    g_hash_table_foreach(wifi_frequency_24, wifi_append_freq, s);
+                    // overwrite last whitespace with newline
+                    s = g_string_overwrite(s, s->len-1, "\n");
+                }
+            } else if (ap->band == NETPLAN_WIFI_BAND_5) {
+                // initialize 5GHz frequency hashtable
+                if(!wifi_frequency_5)
+                    wifi_get_freq5(7);
+                if (ap->channel) {
+                    g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq5(ap->channel));
+                } else {
+                    g_string_append_printf(s, "  freq_list=");
+                    g_hash_table_foreach(wifi_frequency_5, wifi_append_freq, s);
+                    // overwrite last whitespace with newline
+                    s = g_string_overwrite(s, s->len-1, "\n");
+                }
+            }
             switch (ap->mode) {
                 case NETPLAN_WIFI_MODE_INFRASTRUCTURE:
                     /* default in wpasupplicant */
