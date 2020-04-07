@@ -146,7 +146,6 @@ unmanaged-devices+=interface-name:wl0,''')
         - eap_identity_req
         - four_way_handshake
         - rfkill_release
-        - default
       access-points:
         homenet: {mode: infrastructure}''')
 
@@ -165,7 +164,7 @@ unmanaged-devices+=interface-name:wl0,''')
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
             new_config = f.read()
             self.assertIn('''
-wowlan_triggers=default any disconnect magic_pkt gtk_rekey_failure eap_identity_req four_way_handshake rfkill_release
+wowlan_triggers=any disconnect magic_pkt gtk_rekey_failure eap_identity_req four_way_handshake rfkill_release
 network={
   ssid="homenet"
   key_mgmt=NONE

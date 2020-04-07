@@ -35,7 +35,7 @@
  */
 char *
 wifi_wowlan_str(NetplanWifiWowlanFlag flag) {
-    if (flag >= NETPLAN_WIFI_WOWLAN_TCP) {
+    if (flag & NETPLAN_WIFI_WOWLAN_TYPES[0].flag || flag >= NETPLAN_WIFI_WOWLAN_TCP) {
         g_fprintf(stderr, "ERROR: unsupported wowlan_trigger mask: 0x%x\n", flag);
         exit(1);
     }
