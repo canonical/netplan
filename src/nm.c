@@ -139,6 +139,24 @@ wifi_mode_str(const NetplanWifiMode mode)
     }
 }
 
+/**
+ * Return NM addr-gen-mode string.
+ */
+static const char*
+addr_gen_mode_str(const NetplanAddrGenMode mode)
+{
+    switch (mode) {
+        case NETPLAN_ADDRGEN_EUI64:
+            return "0";
+        case NETPLAN_ADDRGEN_STABLEPRIVACY:
+            return "1";
+        // LCOV_EXCL_START
+        default:
+            g_assert_not_reached();
+        // LCOV_EXCL_STOP
+    }
+}
+
 static void
 write_search_domains(const NetplanNetDefinition* def, GString *s)
 {
@@ -611,12 +629,15 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->dhcp4 && def->dhcp4_overrides.metric != NETPLAN_METRIC_UNSPEC)
         g_string_append_printf(s, "route-metric=%u\n", def->dhcp4_overrides.metric);
 
-    if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers) {
+    if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers || def->ip6_addr_gen_mode) {
         g_string_append(s, "\n[ipv6]\n");
         g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
         if (def->ip6_addresses)
             for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
+        if (def->ip6_addr_gen_mode) {
+            g_string_append_printf(s, "addr-gen-mode=%s\n", addr_gen_mode_str(def->ip6_addr_gen_mode));
+        }
         if (def->ip6_privacy)
             g_string_append(s, "ip6-privacy=2\n");
         if (def->gateway6)
