@@ -443,7 +443,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     else
         g_assert(ap == NULL);
 
-    if (def->type == ND_VLAN && def->vf_filter) {
+    if (def->type == NETPLAN_DEF_TYPE_VLAN && def->vf_filter) {
         g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
         return;
     }

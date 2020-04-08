@@ -27,8 +27,8 @@ from netplan.configmanager import ConfigurationError
 import netifaces
 
 
-def get_vf_count_and_active_pfs(interfaces, config_manager,
-                                vf_counts, active_vfs, active_pfs):
+def get_vf_count_and_functions(interfaces, config_manager,
+                               vf_counts, vfs, pfs):
     for ethernet, settings in config_manager.ethernets.items():
         if not settings:
             continue
@@ -54,15 +54,17 @@ def get_vf_count_and_active_pfs(interfaces, config_manager,
                     # let's remember that we can have more than one match
                     vf_counts[interface] += 1
                     # store the matching interface in the dictionary of
-                    # active PFs
-                    active_pfs[pf_link].add(interface)
+                    # active PFs, but error out if we matched more than one
+                    if pf_link in pfs:
+                        raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
+                    pfs[pf_link] = interface
             else:
                 # no match field, assume entry name is interface name
                 if pf_link in interfaces:
                     vf_counts[pf_link] += 1
-                    active_pfs[pf_link].add(pf_link)
+                    pfs[pf_link] = pf_link
 
-            if pf_link not in active_pfs:
+            if pf_link not in pfs:
                 logging.warning('could not match physical interface for the defined PF: %s' % pf_link)
                 # continue looking for other VFs
                 continue
@@ -70,7 +72,7 @@ def get_vf_count_and_active_pfs(interfaces, config_manager,
             # we can't yet perform matching on VFs as those are only
             # created later - but store, for convenience, all the valid
             # VFs that we encounter so far
-            active_vfs[ethernet] = set()
+            vfs[ethernet] = None
 
 
 def set_numvfs_for_pf(pf, vf_count):
@@ -181,8 +183,6 @@ def apply_sriov_config(interfaces, config_manager):
     then and perform all other necessary setup.
     """
 
-    # TODO: error out when a vf matches more than one interface
-
     # for sr-iov devices, we identify VFs by them having a link: field
     # pointing to an PF. So let's browse through all ethernet devices,
     # find all that are VFs and count how many of those are linked to
@@ -190,11 +190,11 @@ def apply_sriov_config(interfaces, config_manager):
     vf_counts = defaultdict(int)
     # we also store all matches between VF/PF netplan entry names and
     # interface that they're currently matching to
-    active_vfs = {}
-    active_pfs = defaultdict(set)
+    vfs = {}
+    pfs = defaultdict(set)
 
-    get_vf_count_and_active_pfs(
-        interfaces, config_manager, vf_counts, active_vfs, active_pfs)
+    get_vf_count_and_functions(
+        interfaces, config_manager, vf_counts, vfs, pfs)
 
     # setup the required number of VFs per PF
     # at the same time store which PFs got changed in case the NICs
@@ -222,7 +222,7 @@ def apply_sriov_config(interfaces, config_manager):
     # entries to existing interfaces, otherwise we won't be able to set
     # filtered VLANs for those.
     # TODO: does matching those even make sense?
-    for vf in active_vfs:
+    for vf in vfs:
         settings = config_manager.ethernets.get(vf)
         match = settings.get('match')
         if match:
@@ -231,15 +231,17 @@ def apply_sriov_config(interfaces, config_manager):
             by_name = match.get('name')
             # by_mac = match.get('macaddress')
             # by_driver = match.get('driver')
+            # TODO: print warning if other matches are provided
 
             for interface in interfaces:
                 if by_name and not utils.is_interface_matching_name(interface, by_name):
                     continue
-
-                active_vfs[vf].add(interface)
+                if vf in vfs and vfs[vf]:
+                    raise ConfigurationError('matched more than one interface for a VF device: %s' % vf)
+                vfs[vf] = interface
         else:
             if vf in interfaces:
-                active_vfs[vf].add(vf)
+                vfs[vf] = vf
 
     filtered_vlans_set = set()
     for vlan, settings in config_manager.vlans.items():
@@ -253,8 +255,8 @@ def apply_sriov_config(interfaces, config_manager):
                 raise ConfigurationError(
                     'no id property defined for SR-IOV vlan %s' % vlan)
 
-            vfs = active_vfs.get(link)
-            if not vfs:
+            vf = vfs.get(link)
+            if not vf:
                 # it is possible this is not an error, for instance when
                 # the configuration has been defined 'for the future'
                 # XXX: but maybe we should error out here as well?
@@ -266,14 +268,11 @@ def apply_sriov_config(interfaces, config_manager):
             # first we fetch the related vf netplan entry
             vf_parent_entry = config_manager.ethernets.get(link).get('link')
             # and finally, get the matched pf interface
-            # XXX: what if there are multiple vfs matched and pfs matched?
-            for pf in active_pfs.get(vf_parent_entry):
-                break
+            pf = pfs.get(vf_parent_entry)
 
-            for vf in vfs:
-                if vf in filtered_vlans_set:
-                    raise ConfigurationError(
-                        'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, link, vlan))
+            if vf in filtered_vlans_set:
+                raise ConfigurationError(
+                    'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, link, vlan))
 
-                apply_vlan_filter_for_vf(pf, vf, vlan, vlan_id)
-                filtered_vlans_set.add(vf)
+            apply_vlan_filter_for_vf(pf, vf, vlan, vlan_id)
+            filtered_vlans_set.add(vf)

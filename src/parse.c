@@ -667,7 +667,7 @@ parse_renderer(yaml_node_t* node, NetplanBackend* backend, GError** error)
 static gboolean
 handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    if (cur_netdef->type == ND_VLAN) {
+    if (cur_netdef->type == NETPLAN_DEF_TYPE_VLAN) {
         if (strcmp(scalar(node), "sriov") == 0) {
             cur_netdef->vf_filter = TRUE;
             return TRUE;
