@@ -183,8 +183,6 @@ def apply_sriov_config(interfaces, config_manager):
 
     # TODO: error out when a vf matches more than one interface
 
-    # TODO: handle set-name?!
-
     # for sr-iov devices, we identify VFs by them having a link: field
     # pointing to an PF. So let's browse through all ethernet devices,
     # find all that are VFs and count how many of those are linked to
@@ -269,11 +267,13 @@ def apply_sriov_config(interfaces, config_manager):
             vf_parent_entry = config_manager.ethernets.get(link).get('link')
             # and finally, get the matched pf interface
             # XXX: what if there are multiple vfs matched and pfs matched?
-            pf = active_pfs.get(vf_parent_entry).pop()  # TODO: this is probably wrong
+            for pf in active_pfs.get(vf_parent_entry):
+                break
 
             for vf in vfs:
                 if vf in filtered_vlans_set:
                     raise ConfigurationError(
-                        'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, vlan, link))
+                        'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, link, vlan))
 
                 apply_vlan_filter_for_vf(pf, vf, vlan, vlan_id)
+                filtered_vlans_set.add(vf)

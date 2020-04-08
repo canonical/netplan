@@ -377,3 +377,112 @@ class TestSRIOV(unittest.TestCase):
         quirks.assert_called_once_with('enp1')
         # only one had a hardware vlan
         apply_vlan.assert_called_once_with('enp2', 'enp2s16f1', 'vf1.15', 15)
+
+    @patch('netifaces.interfaces')
+    @patch('netplan.cli.sriov.get_vf_count_and_active_pfs')
+    @patch('netplan.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan.cli.sriov.apply_vlan_filter_for_vf')
+    @patch('netplan.cli.utils.get_interface_driver_name')
+    @patch('netplan.cli.utils.get_interface_macaddress')
+    def test_apply_sriov_config_invalid_vlan(self, gim, gidn, apply_vlan, quirks,
+                                             set_numvfs, get_counts, netifs):
+        # set up the environment
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      mtu: 9000
+    enpx:
+      match:
+        name: enp[2-3]
+    enp1s16f1:
+      link: enp1
+      macaddress: 01:02:03:04:05:00
+    enp1s16f2:
+      link: enp1
+    customvf1:
+      match:
+        name: enp[2-3]s16f[1-4]
+      link: enpx
+  vlans:
+    vf1.15:
+      renderer: sriov
+      link: customvf1
+''', file=fd)
+        self.configmanager.parse()
+        interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
+        # set up all the mock objects
+        netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
+                               'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
+        get_counts.side_effect = mock_set_counts
+        set_numvfs.side_effect = lambda pf, _: False if pf == 'enp2' else True
+        gidn.return_value = 'foodriver'
+        gim.return_value = '00:01:02:03:04:05'
+
+        # call method under test
+        with self.assertRaises(ConfigurationError) as e:
+            sriov.apply_sriov_config(interfaces, self.configmanager)
+
+        self.assertIn('no id property defined for SR-IOV vlan vf1.15',
+                      str(e.exception))
+        self.assertEqual(apply_vlan.call_count, 0)
+
+    @patch('netifaces.interfaces')
+    @patch('netplan.cli.sriov.get_vf_count_and_active_pfs')
+    @patch('netplan.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan.cli.sriov.apply_vlan_filter_for_vf')
+    @patch('netplan.cli.utils.get_interface_driver_name')
+    @patch('netplan.cli.utils.get_interface_macaddress')
+    def test_apply_sriov_config_too_many_vlans(self, gim, gidn, apply_vlan, quirks,
+                                               set_numvfs, get_counts, netifs):
+        # set up the environment
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      mtu: 9000
+    enpx:
+      match:
+        name: enp[2-3]
+    enp1s16f1:
+      link: enp1
+      macaddress: 01:02:03:04:05:00
+    enp1s16f2:
+      link: enp1
+    customvf1:
+      match:
+        name: enp[2-3]s16f[1-4]
+      link: enpx
+  vlans:
+    vf1.15:
+      renderer: sriov
+      id: 15
+      link: customvf1
+    vf1.16:
+      renderer: sriov
+      id: 16
+      link: customvf1
+''', file=fd)
+        self.configmanager.parse()
+        interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
+        # set up all the mock objects
+        netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
+                               'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
+        get_counts.side_effect = mock_set_counts
+        set_numvfs.side_effect = lambda pf, _: False if pf == 'enp2' else True
+        gidn.return_value = 'foodriver'
+        gim.return_value = '00:01:02:03:04:05'
+
+        # call method under test
+        with self.assertRaises(ConfigurationError) as e:
+            sriov.apply_sriov_config(interfaces, self.configmanager)
+
+        self.assertIn('interface enp2s16f1 for netplan device customvf1 (vf1.16) already has an SR-IOV vlan defined',
+                      str(e.exception))
+        self.assertEqual(apply_vlan.call_count, 1)

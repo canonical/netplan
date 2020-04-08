@@ -86,7 +86,7 @@ def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocove
     subprocess.check_call(command)
 
 
-def get_interface_driver_name(interface, only_down=False):
+def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (covered in autopkgtest)
     devdir = os.path.join('/sys/class/net', interface)
     if only_down:
         try:
@@ -109,7 +109,7 @@ def get_interface_driver_name(interface, only_down=False):
     return driver_name
 
 
-def get_interface_macaddress(interface):
+def get_interface_macaddress(interface):  # pragma: nocover (covered in autopkgtest)
     link = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]
 
     return link.get('addr')
