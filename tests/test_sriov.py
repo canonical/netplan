@@ -35,8 +35,6 @@ class MockSRIOVOpen():
         self.write_queue = []
 
         def sriov_read():
-            if not self.read_queue:
-                return None
             action = self.read_queue.pop(0)
             if isinstance(action, str):
                 return action
