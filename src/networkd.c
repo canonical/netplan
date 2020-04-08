@@ -31,24 +31,21 @@
 
 
 /**
- * wowlan_triggers= string for wpa_supplicant.conf
+ * append wowlan_triggers= string for wpa_supplicant.conf
  */
-char *
-wifi_wowlan_str(NetplanWifiWowlanFlag flag) {
+static void
+append_wifi_wowlan_flags(NetplanWifiWowlanFlag flag, GString* str) {
     if (flag & NETPLAN_WIFI_WOWLAN_TYPES[0].flag || flag >= NETPLAN_WIFI_WOWLAN_TCP) {
         g_fprintf(stderr, "ERROR: unsupported wowlan_trigger mask: 0x%x\n", flag);
         exit(1);
     }
-    GString* str = NULL;
-    str = g_string_sized_new(200);
     for (unsigned i = 0; NETPLAN_WIFI_WOWLAN_TYPES[i].name != NULL; ++i) {
         if (flag & NETPLAN_WIFI_WOWLAN_TYPES[i].flag) {
             g_string_append_printf(str, "%s ", NETPLAN_WIFI_WOWLAN_TYPES[i].name);
         }
     }
-    if (str->len > 0)
-        str = g_string_set_size(str, str->len-1);
-    return str->str;
+    /* replace trailing space with newline */
+    str = g_string_overwrite(str, str->len-1, "\n");
 }
 
 /**
@@ -837,7 +834,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
     g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
         if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT) {
-            g_string_append_printf(s, "wowlan_triggers=%s\n", wifi_wowlan_str(def->wowlan));
+            g_string_append(s, "wowlan_triggers=");
+            append_wifi_wowlan_flags(def->wowlan, s);
         }
         NetplanWifiAccessPoint* ap;
         g_hash_table_iter_init(&iter, def->access_points);
