@@ -30,7 +30,7 @@ either of those directories shadows a file with the same name in
 The top-level node in a netplan configuration file is a ``network:`` mapping
 that contains ``version: 2`` (the YAML currently being used by curtin, MaaS,
 etc. is version 1), and then device definitions grouped by their type, such as
-``ethernets:``, ``wifis:``, or ``bridges:``. These are the types that our
+``ethernets:``, ``modems:``, ``wifis:``, or ``bridges:``. These are the types that our
 renderer can understand and are supported by our backends.
 
 Each type block contains device definitions as a map where the keys (called
@@ -52,7 +52,7 @@ and the ID field has a different interpretation for each:
 
 Physical devices
 
-:   (Examples: ethernet, wifi) These can dynamically come and go between
+:   (Examples: ethernet, modem, wifi) These can dynamically come and go between
     reboots and even during runtime (hotplugging). In the generic case, they
     can be selected by ``match:`` rules on desired properties, such as name/name
     pattern, MAC address, driver, or device paths. In general these will match
@@ -132,6 +132,10 @@ Virtual devices
 ``wakeonlan`` (bool)
 
 :    Enable wake on LAN. Off by default.
+
+``emit-lldp`` (bool)
+
+:    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
 
 ## Common properties for all device types
@@ -239,6 +243,12 @@ Virtual devices
     but will not be addressable from the network.
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
+
+``ipv6-address-generation`` (scalar)
+
+:   Configure method for creating the address for use with RFC4862 IPv6
+    Stateless Address Autoconfiguration. Possible values are ``eui64``
+    or ``stable-privacy``.
 
 ``gateway4``, ``gateway6`` (scalar)
 
@@ -566,6 +576,48 @@ Example:
       enp1s16f1:
         link: enp1
 
+## Properties for device type ``modems:``
+GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does
+not support modems.
+
+``apn`` (scalar)
+:    Set the carrier APN (Access Point Name). This can be omitted if ``auto-config`` is enabled.
+
+``auto-config`` (bool)
+:    Specify whether to try and autoconfigure the modem by doing a lookup of the carrier
+     against the Mobile Broadband Provider database. This may not work for all carriers.
+
+``device-id`` (scalar)
+:    Specify the device ID (as given by the WWAN management service) of the modem to match.
+     This can be found using ``mmcli``.
+
+``network-id`` (scalar)
+:    Specify the Network ID (GSM LAI format). If this is specified, the device will not roam networks.
+
+``number`` (scalar)
+:    The number to dial to establish the connection to the mobile broadband network. (Deprecated for GSM)
+
+``password`` (scalar)
+:    Specify the password used to authenticate with the carrier network. This can be omitted
+     if ``auto-config`` is enabled.
+
+``pin`` (scalar)
+:    Specify the SIM PIN to allow it to operate if a PIN is set.
+
+``sim-id`` (scalar)
+:    Specify the SIM unique identifier (as given by the WWAN management service) which this
+     connection applies to. If given, the connection will apply to any device also allowed by
+     ``device-id`` which contains a SIM card matching the given identifier.
+
+``sim-operator-id`` (scalar)
+:    Specify the MCC/MNC string (such as "310260" or "21601") which identifies the carrier that
+     this connection should apply to. If given, the connection will apply to any device also
+     allowed by ``device-id`` and ``sim-id`` which contains a SIM card provisioned by the given operator.
+
+``username`` (scalar)
+:    Specify the username used to authentiate with the carrier network. This can be omitted if
+     ``auto-config`` is enabled.
+
 ## Properties for device type ``wifis:``
 Note that ``systemd-networkd`` does not natively support wifi, so you need
 wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
@@ -595,6 +647,20 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           ``ap`` (create an access point to which other devices can connect),
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
+
+     ``bssid`` (scalar)
+     :    If specified, directs the device to only associate with the given
+          access point.
+
+     ``band`` (scalar)
+     :    Possible bands are ``5GHz`` (for 5GHz 802.11a) and ``2.4GHz``
+          (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
+          network if unset (the default).
+
+     ``channel`` (scalar)
+     :    Wireless channel to use for the Wi-Fi connection. Because channel
+          numbers overlap between bands, this property takes effect only if
+          the ``band`` property is also set.
 
 ## Properties for device type ``bridges:``
 
@@ -917,6 +983,34 @@ Example:
         id: 2
         link: eno1
         addresses: ...
+
+
+## Backend-specific configuration parameters
+
+In addition to the other fields available to configure interfaces, some
+backends may require to record some of their own parameters in netplan,
+especially if the netplan definitions are generated automatically by the
+consumer of that backend. Currently, this is only used with ``NetworkManager``.
+
+``networkmanager`` (mapping)
+
+:    Keeps the NetworkManager-specific configuration parameters used by the
+     daemon to recognize connections.
+
+     ``name`` (scalar)
+     :    Set the display name for the connection.
+
+     ``uuid`` (scalar)
+     :    Defines the UUID (unique identifier) for this connection, as
+          generated by NetworkManager itself.
+
+     ``stable-id`` (scalar)
+     :    Defines the stable ID (a different form of a connection name) used
+          by NetworkManager in case the name of the connection might otherwise
+          change, such as when sharing connections between users.
+
+     ``device`` (scalar)
+     :    Defines the interface name for which this connection applies.
 
 
 ## Examples

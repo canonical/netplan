@@ -210,6 +210,39 @@ class TestConfigErrors(TestBase):
           mode: bogus''', expect_fail=True)
         self.assertIn("unknown wifi mode 'bogus'", err)
 
+    def test_wifi_ap_unknown_band(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: bogus''', expect_fail=True)
+        self.assertIn("unknown wifi band 'bogus'", err)
+
+    def test_wifi_ap_invalid_freq24(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: 2.4GHz
+          channel: 15''', expect_fail=True)
+        self.assertIn("ERROR: invalid 2.4GHz WiFi channel: 15", err)
+
+    def test_wifi_ap_invalid_freq5(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: 5GHz
+          channel: 14''', expect_fail=True)
+        self.assertIn("ERROR: invalid 5GHz WiFi channel: 14", err)
+
     def test_invalid_ipv4_address(self):
         err = self.generate('''network:
   version: 2
@@ -287,6 +320,23 @@ class TestConfigErrors(TestBase):
       addresses:
         - 2001::1/''', expect_fail=True)
         self.assertIn("invalid prefix length in address '2001::1/'", err)
+
+    def test_invalid_addr_gen_mode(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-generation: 0''', expect_fail=True)
+        self.assertIn("unknown ipv6-address-generation '0'", err)
+
+    def test_addr_gen_mode_not_supported(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      ipv6-address-generation: eui64''', expect_fail=True)
+        self.assertIn("ERROR: engreen: ipv6-address-generation is not supported by networkd", err)
 
     def test_invalid_gateway4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:

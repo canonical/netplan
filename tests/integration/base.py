@@ -28,6 +28,10 @@ import subprocess
 import tempfile
 import unittest
 import shutil
+import gi
+
+# make sure we point to libnetplan properly.
+os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
 
 test_backends = "networkd NetworkManager" if "NETPLAN_TEST_BACKENDS" not in os.environ else os.environ["NETPLAN_TEST_BACKENDS"]
 
@@ -362,8 +366,25 @@ class IntegrationTestsBase(unittest.TestCase):
                                                 stderr=subprocess.PIPE, universal_newlines=True)
                 self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
 
-        if subprocess.call(['nm-online', '--quiet', '--timeout=120', '--wait-for-startup']) != 0:
+        if subprocess.call(['nm-online', '--quiet', '--timeout=240', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
+
+    def nm_online_full(self, iface, timeout=60):
+        '''Wait for NetworkManager connection to be completed (incl. IP4 & DHCP)'''
+
+        gi.require_version('NM', '1.0')
+        from gi.repository import NM
+        for t in range(timeout):
+            c = NM.Client.new(None)
+            con = c.get_device_by_iface(iface).get_active_connection()
+            if not con:
+                self.fail('no active connection for %s by NM' % iface)
+            flags = NM.utils_enum_to_str(NM.ActivationStateFlags, con.get_state_flags())
+            if "ip4-ready" in flags:
+                break
+            time.sleep(1)
+        else:
+            self.fail('timed out waiting for %s to get ready by NM' % iface)
 
     def nm_wait_connected(self, iface, timeout):
         for t in range(timeout):
