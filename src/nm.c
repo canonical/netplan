@@ -555,6 +555,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         if (def->mtubytes) {
             g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
         }
+        if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
+            g_string_append_printf(link_str, "wake-on-wlan=%u\n", def->wowlan);
 
         if (link_str->len > 0) {
             switch (def->type) {

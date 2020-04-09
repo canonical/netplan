@@ -132,6 +132,24 @@ netplan_tunnel_mode_table[NETPLAN_TUNNEL_MODE_MAX_] = {
     [NETPLAN_TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
 };
 
+typedef enum {
+    NETPLAN_WIFI_WOWLAN_DEFAULT           = 1<<0,
+    NETPLAN_WIFI_WOWLAN_ANY               = 1<<1,
+    NETPLAN_WIFI_WOWLAN_DISCONNECT        = 1<<2,
+    NETPLAN_WIFI_WOWLAN_MAGIC             = 1<<3,
+    NETPLAN_WIFI_WOWLAN_GTK_REKEY_FAILURE = 1<<4,
+    NETPLAN_WIFI_WOWLAN_EAP_IDENTITY_REQ  = 1<<5,
+    NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE    = 1<<6,
+    NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE    = 1<<7,
+    NETPLAN_WIFI_WOWLAN_TCP               = 1<<8,
+} NetplanWifiWowlanFlag;
+
+struct NetplanWifiWowlanType {
+    char* name;
+    NetplanWifiWowlanFlag flag;
+};
+
+extern struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[];
 
 typedef enum {
     NETPLAN_AUTH_KEY_MANAGEMENT_NONE,
@@ -248,6 +266,7 @@ struct net_definition {
     } match;
     gboolean has_match;
     gboolean wake_on_lan;
+    NetplanWifiWowlanFlag wowlan;
     gboolean emit_lldp;
 
 
