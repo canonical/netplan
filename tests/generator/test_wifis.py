@@ -60,15 +60,25 @@ unmanaged-devices+=interface-name:wl0,''')
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
             new_config = f.read()
 
+            network = 'ssid="{}"\n  freq_list='.format('band-no-channel2')
             freqs_5GHz = [5610, 5310, 5620, 5320, 5630, 5640, 5340, 5035, 5040, 5045, 5055, 5060, 5660, 5680, 5670, 5080, 5690,
                           5700, 5710, 5720, 5825, 5745, 5755, 5805, 5765, 5160, 5775, 5170, 5480, 5180, 5795, 5190, 5500, 5200,
                           5510, 5210, 5520, 5220, 5530, 5230, 5540, 5240, 5550, 5250, 5560, 5260, 5570, 5270, 5580, 5280, 5590,
                           5290, 5600, 5300, 5865, 5845, 5785]
+            freqs = new_config.split(network)
+            freqs = freqs[1].split('\n')[0]
+            self.assertEqual(len(freqs.split(' ')), len(freqs_5GHz))
             for freq in freqs_5GHz:
-                self.assertRegexpMatches(new_config, 'ssid="band-no-channel2"\n  freq_list=[ 0-9]*{}[ 0-9]*\n'.format(freq))
+                self.assertRegexpMatches(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
+
+            network = 'ssid="{}"\n  freq_list='.format('band-no-channel')
             freqs_24GHz = [2412, 2417, 2422, 2427, 2432, 2442, 2447, 2437, 2452, 2457, 2462, 2467, 2472, 2484]
+            freqs = new_config.split(network)
+            freqs = freqs[1].split('\n')[0]
+            self.assertEqual(len(freqs.split(' ')), len(freqs_24GHz))
             for freq in freqs_24GHz:
-                self.assertRegexpMatches(new_config, 'ssid="band-no-channel"\n  freq_list=[ 0-9]*{}[ 0-9]*\n'.format(freq))
+                self.assertRegexpMatches(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
+
             self.assertIn('''
 network={
   ssid="channel-no-band"
