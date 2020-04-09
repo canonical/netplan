@@ -635,7 +635,6 @@ struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[] = {
     {"four_way_handshake", NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE},
     {"rfkill_release",     NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE},
     {"tcp",                NETPLAN_WIFI_WOWLAN_TCP},
-    {"ignore",             NETPLAN_WIFI_WOWLAN_IGNORE},
     {NULL},
 };
 
@@ -654,10 +653,11 @@ handle_wowlan(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
                 break;
             }
         }
-        if (!found) {
-            return yaml_error(node, error, "invalid value for wowlan: '%s'", scalar(entry));
-        }
+        if (!found)
+            return yaml_error(node, error, "invalid value for wakeonwlan: '%s'", scalar(entry));
     }
+    if (cur_netdef->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT && cur_netdef->wowlan & NETPLAN_WIFI_WOWLAN_TYPES[0].flag)
+        return yaml_error(node, error, "'default' is an exclusive flag for wakeonwlan");
     return TRUE;
 }
 
@@ -1639,7 +1639,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"match", YAML_MAPPING_NODE, handle_match},                                          \
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
-    {"wowlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},       \
+    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},       \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {

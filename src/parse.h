@@ -142,7 +142,6 @@ typedef enum {
     NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE    = 1<<6,
     NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE    = 1<<7,
     NETPLAN_WIFI_WOWLAN_TCP               = 1<<8,
-    NETPLAN_WIFI_WOWLAN_IGNORE            = 1<<15,
 } NetplanWifiWowlanFlag;
 
 struct NetplanWifiWowlanType {
