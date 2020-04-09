@@ -130,6 +130,8 @@ class TestSRIOV(unittest.TestCase):
         name: enp[4-5]
     enp0:
       mtu: 9000
+    enp8:
+      virtual-functions: 7
     enp9: {}
     wlp6s0: {}
     enp1s16f1:
@@ -151,7 +153,7 @@ class TestSRIOV(unittest.TestCase):
       link: enp9
 ''', file=fd)
         self.configmanager.parse()
-        interfaces = ['enp1', 'enp2', 'enp3', 'enp5', 'enp0']
+        interfaces = ['enp1', 'enp2', 'enp3', 'enp5', 'enp0', 'enp8']
         vf_counts = defaultdict(int)
         vfs = {}
         pfs = {}
@@ -162,7 +164,7 @@ class TestSRIOV(unittest.TestCase):
         # check if the right vf counts have been recorded in vf_counts
         self.assertDictEqual(
             vf_counts,
-            {'enp1': 2, 'enp2': 2, 'enp3': 1, 'enp5': 1})
+            {'enp1': 2, 'enp2': 2, 'enp3': 1, 'enp5': 1, 'enp8': 7})
         # also check if the vfs and pfs dictionaries got properly set
         self.assertDictEqual(
             vfs,
@@ -171,7 +173,7 @@ class TestSRIOV(unittest.TestCase):
         self.assertDictEqual(
             pfs,
             {'enp1': 'enp1', 'enp2': 'enp2', 'enp3': 'enp3',
-             'enpx': 'enp5'})
+             'enpx': 'enp5', 'enp8': 'enp8'})
 
     @patch('netplan.cli.utils.get_interface_driver_name')
     @patch('netplan.cli.utils.get_interface_macaddress')
@@ -207,24 +209,60 @@ class TestSRIOV(unittest.TestCase):
         self.assertIn('matched more than one interface for a PF device: enpx',
                       str(e.exception))
 
+    @patch('netplan.cli.utils.get_interface_driver_name')
+    @patch('netplan.cli.utils.get_interface_macaddress')
+    def test_get_vf_count_and_functions_not_enough_explicit(self, gim, gidn):
+        # we mock-out get_interface_driver_name and get_interface_macaddress
+        # to return useful values for the test
+        gim.side_effect = lambda x: '00:01:02:03:04:05' if x == 'enp3' else '00:00:00:00:00:00'
+        gidn.side_effect = lambda x: 'foo' if x == 'enp2' else 'bar'
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    renderer: networkd
+    enp1:
+      virtual-functions: 2
+      mtu: 9000
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+    enp1s16f3:
+      link: enp1
+''', file=fd)
+        self.configmanager.parse()
+        interfaces = ['enp1', 'wlp6s0']
+        vf_counts = defaultdict(int)
+        vfs = {}
+        pfs = {}
+
+        # call the function under test
+        with self.assertRaises(ConfigurationError) as e:
+            sriov.get_vf_count_and_functions(interfaces, self.configmanager,
+                                             vf_counts, vfs, pfs)
+
+        self.assertIn('more VFs allocated than the explicit size declared: 3 > 2',
+                      str(e.exception))
+
     def test_set_numvfs_for_pf(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_queue = ['1\n', '8\n']
+        sriov_open.read_queue = ['8\n']
 
         with patch('builtins.open', sriov_open.open):
             ret = sriov.set_numvfs_for_pf('enp1', 2)
 
         self.assertTrue(ret)
         self.assertListEqual(sriov_open.open.call_args_list,
-                             [call('/sys/class/net/enp1/device/sriov_numvfs'),
-                              call('/sys/class/net/enp1/device/sriov_totalvfs'),
+                             [call('/sys/class/net/enp1/device/sriov_totalvfs'),
                               call('/sys/class/net/enp1/device/sriov_numvfs', 'w')])
         handle = sriov_open.open()
         handle.write.assert_called_once_with('2')
 
     def test_set_numvfs_for_pf_failsafe(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_queue = ['1\n', '8\n']
+        sriov_open.read_queue = ['8\n']
         sriov_open.write_queue = [IOError(16, 'Error'), None, None]
 
         with patch('builtins.open', sriov_open.open):
@@ -236,7 +274,7 @@ class TestSRIOV(unittest.TestCase):
 
     def test_set_numvfs_for_pf_over_max(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_queue = ['1\n', '8\n']
+        sriov_open.read_queue = ['8\n']
 
         with patch('builtins.open', sriov_open.open):
             with self.assertRaises(ConfigurationError) as e:
@@ -247,7 +285,7 @@ class TestSRIOV(unittest.TestCase):
 
     def test_set_numvfs_for_pf_over_theoretical_max(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_queue = ['1\n', '1337\n']
+        sriov_open.read_queue = ['1337\n']
 
         with patch('builtins.open', sriov_open.open):
             with self.assertRaises(ConfigurationError) as e:
@@ -256,24 +294,11 @@ class TestSRIOV(unittest.TestCase):
             self.assertIn('cannot allocate more VFs for PF enp1 than the SR-IOV maximum',
                           str(e.exception))
 
-    def test_set_numvfs_for_pf_smaller(self):
-        sriov_open = MockSRIOVOpen()
-        sriov_open.read_queue = ['4\n', '8\n']
-
-        with patch('builtins.open', sriov_open.open):
-            ret = sriov.set_numvfs_for_pf('enp1', 3)
-
-        self.assertFalse(ret)
-        handle = sriov_open.open()
-        self.assertEqual(handle.write.call_count, 0)
-
     def test_set_numvfs_for_pf_read_failed(self):
         sriov_open = MockSRIOVOpen()
         cases = (
             [IOError],
             ['not a number\n'],
-            ['1\n', IOError],
-            ['1\n', 'not a number\n'],
             )
 
         with patch('builtins.open', sriov_open.open):
@@ -284,7 +309,7 @@ class TestSRIOV(unittest.TestCase):
 
     def test_set_numvfs_for_pf_write_failed(self):
         sriov_open = MockSRIOVOpen()
-        sriov_open.read_queue = ['1\n', '8\n']
+        sriov_open.read_queue = ['8\n']
         sriov_open.write_queue = [IOError(16, 'Error'), IOError(16, 'Error')]
 
         with patch('builtins.open', sriov_open.open):

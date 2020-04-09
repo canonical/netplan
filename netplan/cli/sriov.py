@@ -27,6 +27,34 @@ from netplan.configmanager import ConfigurationError
 import netifaces
 
 
+def _get_target_interface(interfaces, config_manager, pf_link, pfs):
+    if pf_link not in pfs:
+        # handle the match: syntax, get the actual device name
+        pf_match = config_manager.ethernets[pf_link].get('match')
+        if pf_match:
+            by_name = pf_match.get('name')
+            by_mac = pf_match.get('macaddress')
+            by_driver = pf_match.get('driver')
+
+            for interface in interfaces:
+                if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
+                        (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
+                        (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
+                    continue
+                # we have a matching PF
+                # store the matching interface in the dictionary of
+                # active PFs, but error out if we matched more than one
+                if pf_link in pfs:
+                    raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
+                pfs[pf_link] = interface
+        else:
+            # no match field, assume entry name is interface name
+            if pf_link in interfaces:
+                pfs[pf_link] = pf_link
+
+    return pfs.get(pf_link, None)
+
+
 def get_vf_count_and_functions(interfaces, config_manager,
                                vf_counts, vfs, pfs):
     """
@@ -34,37 +62,25 @@ def get_vf_count_and_functions(interfaces, config_manager,
     PFs and VFs, matching the former with actual networking interfaces.
     Count how many VFs each PF will need.
     """
+    explicit_counts = {}
     for ethernet, settings in config_manager.ethernets.items():
         if not settings:
             continue
         if ethernet == 'renderer':
             continue
 
+        # we now also support explicitly stating how many VFs should be
+        # allocated for a PF
+        explicit_num = settings.get('virtual-functions')
+        if explicit_num:
+            pf = _get_target_interface(interfaces, config_manager, ethernet, pfs)
+            if pf:
+                explicit_counts[pf] = explicit_num
+            continue
+
         pf_link = settings.get('link')
         if pf_link and pf_link in config_manager.ethernets:
-            if pf_link not in pfs:
-                # handle the match: syntax, get the actual device name
-                pf_match = config_manager.ethernets[pf_link].get('match')
-                if pf_match:
-                    by_name = pf_match.get('name')
-                    by_mac = pf_match.get('macaddress')
-                    by_driver = pf_match.get('driver')
-
-                    for interface in interfaces:
-                        if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
-                                (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
-                                (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
-                            continue
-                        # we have a matching PF
-                        # store the matching interface in the dictionary of
-                        # active PFs, but error out if we matched more than one
-                        if pf_link in pfs:
-                            raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
-                        pfs[pf_link] = interface
-                else:
-                    # no match field, assume entry name is interface name
-                    if pf_link in interfaces:
-                        pfs[pf_link] = pf_link
+            _get_target_interface(interfaces, config_manager, pf_link, pfs)
 
             if pf_link in pfs:
                 vf_counts[pfs[pf_link]] += 1
@@ -77,6 +93,15 @@ def get_vf_count_and_functions(interfaces, config_manager,
             # created later - but store, for convenience, all the valid
             # VFs that we encounter so far
             vfs[ethernet] = None
+
+    # sanity check: since we can explicitly state the VF count, make sure
+    # that this number isn't smaller than the actual number of VFs declared
+    # the explicit number also overrides the number of actual VFs
+    for pf, count in explicit_counts.items():
+        if pf in vf_counts and vf_counts[pf] > count:
+            raise ConfigurationError(
+                'more VFs allocated than the explicit size declared: %s > %s' % (vf_counts[pf], count))
+        vf_counts[pf] = count
 
 
 def set_numvfs_for_pf(pf, vf_count):
@@ -91,26 +116,16 @@ def set_numvfs_for_pf(pf, vf_count):
     numvfs_path = os.path.join(devdir, 'sriov_numvfs')
     totalvfs_path = os.path.join(devdir, 'sriov_totalvfs')
     try:
-        with open(numvfs_path) as f:
-            vf_current = int(f.read().strip())
         with open(totalvfs_path) as f:
             vf_max = int(f.read().strip())
     except IOError as e:
-        raise RuntimeError('failed parsing sriov_numvfs/sriov_totalvfs for %s: %s' % (pf, str(e)))
+        raise RuntimeError('failed parsing sriov_totalvfs for %s: %s' % (pf, str(e)))
     except ValueError:
-        raise RuntimeError('invalid sriov_numvfs/sriov_totalvfs value for %s' % pf)
+        raise RuntimeError('invalid sriov_totalvfs value for %s' % pf)
 
     if vf_count > vf_max:
         raise ConfigurationError(
             'cannot allocate more VFs for PF %s than supported: %s > %s (sriov_totalvfs)' % (pf, vf_count, vf_max))
-
-    if vf_count <= vf_current:
-        # XXX: this might be a wrong assumption, but I assume that
-        #  the operation of adding/removing VFs is very invasive,
-        #  so it makes no sense to decrease the number of VFs if
-        #  less are needed - leaving the unused ones unconfigured?
-        logging.debug('the %s PF already defines more VFs than required (%s > %s), skipping' % (pf, vf_current, vf_count))
-        return False
 
     try:
         with open(numvfs_path, 'w') as f:

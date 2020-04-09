@@ -576,6 +576,12 @@ Example:
       enp1s16f1:
         link: enp1
 
+``virtual-functions`` (scalar)
+
+:    (SR-IOV devices only) Explicit number of Virtual Functions for the given
+     Physical Function. This is optional, as normally netplan will allocate as
+     many VFs as there are needed.
+
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does
 not support modems.

@@ -1726,6 +1726,7 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     PHYSICAL_LINK_HANDLERS,
     {"auth", YAML_MAPPING_NODE, handle_auth},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(sriov_link)},
+    {"virtual-functions", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(sriov_explicit_vf_count)},
     {NULL}
 };
 
