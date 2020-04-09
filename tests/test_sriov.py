@@ -140,6 +140,7 @@ class TestSRIOV(unittest.TestCase):
       macaddress: 01:02:03:04:05:01
     enp2s16f1:
       link: enp2
+    enp2s16f2: {link: enp2}
     enp3s16f1:
       link: enp3
     enpxs16f1:
@@ -161,12 +162,12 @@ class TestSRIOV(unittest.TestCase):
         # check if the right vf counts have been recorded in vf_counts
         self.assertDictEqual(
             vf_counts,
-            {'enp1': 2, 'enp2': 1, 'enp3': 1, 'enp5': 1})
+            {'enp1': 2, 'enp2': 2, 'enp3': 1, 'enp5': 1})
         # also check if the vfs and pfs dictionaries got properly set
         self.assertDictEqual(
             vfs,
             {'enp1s16f1': None, 'enp1s16f2': None, 'enp2s16f1': None,
-             'enp3s16f1': None, 'enpxs16f1': None})
+             'enp2s16f2': None, 'enp3s16f1': None, 'enpxs16f1': None})
         self.assertDictEqual(
             pfs,
             {'enp1': 'enp1', 'enp2': 'enp2', 'enp3': 'enp3',

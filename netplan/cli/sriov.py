@@ -42,34 +42,33 @@ def get_vf_count_and_functions(interfaces, config_manager,
 
         pf_link = settings.get('link')
         if pf_link and pf_link in config_manager.ethernets:
-            # handle the match: syntax, get the actual device name
-            pf_match = config_manager.ethernets[pf_link].get('match')
-
-            if pf_match:
-                by_name = pf_match.get('name')
-                by_mac = pf_match.get('macaddress')
-                by_driver = pf_match.get('driver')
-
-                for interface in interfaces:
-                    if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
-                            (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
-                            (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
-                        continue
-                    # we have a matching PF
-                    # let's remember that we can have more than one match
-                    vf_counts[interface] += 1
-                    # store the matching interface in the dictionary of
-                    # active PFs, but error out if we matched more than one
-                    if pf_link in pfs:
-                        raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
-                    pfs[pf_link] = interface
-            else:
-                # no match field, assume entry name is interface name
-                if pf_link in interfaces:
-                    vf_counts[pf_link] += 1
-                    pfs[pf_link] = pf_link
-
             if pf_link not in pfs:
+                # handle the match: syntax, get the actual device name
+                pf_match = config_manager.ethernets[pf_link].get('match')
+                if pf_match:
+                    by_name = pf_match.get('name')
+                    by_mac = pf_match.get('macaddress')
+                    by_driver = pf_match.get('driver')
+
+                    for interface in interfaces:
+                        if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
+                                (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
+                                (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
+                            continue
+                        # we have a matching PF
+                        # store the matching interface in the dictionary of
+                        # active PFs, but error out if we matched more than one
+                        if pf_link in pfs:
+                            raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
+                        pfs[pf_link] = interface
+                else:
+                    # no match field, assume entry name is interface name
+                    if pf_link in interfaces:
+                        pfs[pf_link] = pf_link
+
+            if pf_link in pfs:
+                vf_counts[pfs[pf_link]] += 1
+            else:
                 logging.warning('could not match physical interface for the defined PF: %s' % pf_link)
                 # continue looking for other VFs
                 continue
@@ -219,7 +218,7 @@ def apply_sriov_config(interfaces, config_manager):
     # we also store all matches between VF/PF netplan entry names and
     # interface that they're currently matching to
     vfs = {}
-    pfs = defaultdict(set)
+    pfs = {}
 
     get_vf_count_and_functions(
         interfaces, config_manager, vf_counts, vfs, pfs)
@@ -249,7 +248,7 @@ def apply_sriov_config(interfaces, config_manager):
     # this is needed because we will have to now match the defined VF
     # entries to existing interfaces, otherwise we won't be able to set
     # filtered VLANs for those.
-    # TODO: does matching those even make sense?
+    # XXX: does matching those even make sense?
     for vf in vfs:
         settings = config_manager.ethernets.get(vf)
         match = settings.get('match')
