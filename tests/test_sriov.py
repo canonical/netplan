@@ -244,6 +244,17 @@ class TestSRIOV(unittest.TestCase):
             self.assertIn('cannot allocate more VFs for PF enp1 than supported',
                           str(e.exception))
 
+    def test_set_numvfs_for_pf_over_theoretical_max(self):
+        sriov_open = MockSRIOVOpen()
+        sriov_open.read_queue = ['1\n', '1337\n']
+
+        with patch('builtins.open', sriov_open.open):
+            with self.assertRaises(ConfigurationError) as e:
+                sriov.set_numvfs_for_pf('enp1', 345)
+
+            self.assertIn('cannot allocate more VFs for PF enp1 than the SR-IOV maximum',
+                          str(e.exception))
+
     def test_set_numvfs_for_pf_smaller(self):
         sriov_open = MockSRIOVOpen()
         sriov_open.read_queue = ['4\n', '8\n']

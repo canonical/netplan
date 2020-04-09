@@ -269,7 +269,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
 
     g_assert(def->type >= NETPLAN_DEF_TYPE_VIRTUAL);
 
-    if (def->type == NETPLAN_DEF_TYPE_VLAN && def->vf_filter) {
+    if (def->type == NETPLAN_DEF_TYPE_VLAN && def->sriov_vlan_filter) {
         g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
         return;
     }
@@ -449,7 +449,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     GString* s = NULL;
     mode_t orig_umask;
 
-    if (def->type == NETPLAN_DEF_TYPE_VLAN && def->vf_filter) {
+    if (def->type == NETPLAN_DEF_TYPE_VLAN && def->sriov_vlan_filter) {
         g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
         return;
     }
@@ -568,7 +568,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         const NetplanNetDefinition* nd;
         for (; l != NULL; l = l->next) {
             nd = l->data;
-            if (nd->vlan_link == def && !nd->vf_filter)
+            if (nd->vlan_link == def && !nd->sriov_vlan_filter)
                 g_string_append_printf(network, "VLAN=%s\n", nd->id);
         }
     }

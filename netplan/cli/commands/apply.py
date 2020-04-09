@@ -138,7 +138,7 @@ class NetplanApply(utils.NetplanCommand):
         # apply any SR-IOV related changes, if applicable
         try:
             apply_sriov_config(devices, config_manager)
-        except ConfigurationError as e:
+        except (ConfigurationError, RuntimeError) as e:
             logging.error(str(e))
             if exit_on_error:
                 sys.exit(1)

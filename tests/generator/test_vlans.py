@@ -105,8 +105,7 @@ UseMTU=true
 unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:enred,interface-name:engreen,''')
         self.assert_nm_udev(None)
 
-    @unittest.skipIf("CODECOV_TOKEN" in os.environ, "Skipping on codecov.io: GLib changed hashtable elements order")
-    def test_vlan_sriov(self):  # pragma: nocover
+    def test_vlan_sriov(self):
         # we need to make sure renderer: sriov vlans are not saved as part of
         # the NM/networkd config
         self.generate('''network:

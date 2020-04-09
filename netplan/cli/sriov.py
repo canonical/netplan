@@ -29,6 +29,11 @@ import netifaces
 
 def get_vf_count_and_functions(interfaces, config_manager,
                                vf_counts, vfs, pfs):
+    """
+    Go through the list of netplan ethernet devices and identify which are
+    PFs and VFs, matching the former with actual networking interfaces.
+    Count how many VFs each PF will need.
+    """
     for ethernet, settings in config_manager.ethernets.items():
         if not settings:
             continue
@@ -76,6 +81,13 @@ def get_vf_count_and_functions(interfaces, config_manager,
 
 
 def set_numvfs_for_pf(pf, vf_count):
+    """
+    Allocate the required number of VFs for the selected PF.
+    """
+    if vf_count > 256:
+        raise ConfigurationError(
+            'cannot allocate more VFs for PF %s than the SR-IOV maximum: %s > 256' % (pf, vf_count))
+
     devdir = os.path.join('/sys/class/net', pf, 'device')
     numvfs_path = os.path.join(devdir, 'sriov_numvfs')
     totalvfs_path = os.path.join(devdir, 'sriov_totalvfs')
@@ -126,6 +138,10 @@ def set_numvfs_for_pf(pf, vf_count):
 
 
 def perform_hardware_specific_quirks(pf):
+    """
+    Perform any hardware-specific quirks for the given SR-IOV device to make
+    sure all the VF-count changes are applied.
+    """
     devdir = os.path.join('/sys/class/net', pf, 'device')
     try:
         with open(os.path.join(devdir, 'vendor')) as f:
@@ -139,11 +155,22 @@ def perform_hardware_specific_quirks(pf):
     quirk_devices = ()  # TODO: add entries to the list
     if combined_id in quirk_devices:
         # some devices need special handling, so this is the place
-        # TODO
+
+        # Currently this part is empty, but has been added as a preemptive
+        # measure, as apparently a lot of SR-IOV cards have issues with
+        # dynamically allocating VFs. Some cards seem to require a full
+        # kernel module reload cycle after changing the sriov_numvfs value
+        # for the changes to come into effect.
+        # Any identified card/vendor can then be special-cased here, if
+        # needed.
         pass
 
 
 def apply_vlan_filter_for_vf(pf, vf, vlan_name, vlan_id, prefix='/'):
+    """
+    Apply the hardware VLAN filtering for the selected VF.
+    """
+
     # this is more complicated, because to do this, we actually need to have
     # the vf index - just knowing the vf interface name is not enough
     vf_index = None
@@ -164,7 +191,8 @@ def apply_vlan_filter_for_vf(pf, vf, vlan_name, vlan_id, prefix='/'):
             'could not determine the VF index for %s while configuring vlan %s' % (vf, vlan_name))
 
     # now, create the VLAN filter
-    # ip link set dev PF vf ID vlan VID
+    # TODO: would be best if we did this directl via python, without calling
+    #  the iproute tooling
     try:
         subprocess.check_call(['ip', 'link', 'set',
                                'dev', pf,
@@ -180,7 +208,7 @@ def apply_vlan_filter_for_vf(pf, vf, vlan_name, vlan_id, prefix='/'):
 def apply_sriov_config(interfaces, config_manager):
     """
     Go through all interfaces, identify which ones are SR-IOV VFs, create
-    then and perform all other necessary setup.
+    them and perform all other necessary setup.
     """
 
     # for sr-iov devices, we identify VFs by them having a link: field
