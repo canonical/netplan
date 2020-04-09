@@ -140,6 +140,24 @@ wifi_mode_str(const NetplanWifiMode mode)
 }
 
 /**
+ * Return NM wifi "band=" string.
+ */
+static const char*
+wifi_band_str(const NetplanWifiBand band)
+{
+    switch (band) {
+        case NETPLAN_WIFI_BAND_5:
+            return "a";
+        case NETPLAN_WIFI_BAND_24:
+            return "bg";
+        // LCOV_EXCL_START
+        default:
+            g_assert_not_reached();
+        // LCOV_EXCL_STOP
+    }
+}
+
+/**
  * Return NM addr-gen-mode string.
  */
 static const char*
@@ -674,6 +692,21 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
 
         g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
+        if (ap->bssid) {
+            g_string_append_printf(s, "bssid=%s\n", ap->bssid);
+        }
+        if (ap->band == NETPLAN_WIFI_BAND_5 || ap->band == NETPLAN_WIFI_BAND_24) {
+            g_string_append_printf(s, "band=%s\n", wifi_band_str(ap->band));
+            /* Channel is only unambiguous, if band is set. */
+            if (ap->channel) {
+                /* Validate WiFi channel */
+                if (ap->band == NETPLAN_WIFI_BAND_5)
+                    wifi_get_freq5(ap->channel);
+                else
+                    wifi_get_freq24(ap->channel);
+                g_string_append_printf(s, "channel=%u\n", ap->channel);
+            }
+        }
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, s);
         }

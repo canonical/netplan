@@ -19,6 +19,7 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 #include <arpa/inet.h>
+#include <regex.h>
 
 #include <yaml.h>
 

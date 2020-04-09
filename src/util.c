@@ -86,3 +86,65 @@ unlink_glob(const char* rootdir, const char* _glob)
     for (size_t i = 0; i < gl.gl_pathc; ++i)
         unlink(gl.gl_pathv[i]);
 }
+
+/**
+ * Get the frequency of a given 2.4GHz WiFi channel
+ */
+int
+wifi_get_freq24(int channel)
+{
+    if (channel < 1 || channel > 14) {
+        g_fprintf(stderr, "ERROR: invalid 2.4GHz WiFi channel: %d\n", channel);
+        exit(1);
+    }
+
+    if (!wifi_frequency_24) {
+        wifi_frequency_24 = g_hash_table_new(g_direct_hash, g_direct_equal);
+        /* Initialize 2.4GHz frequencies, as of:
+         * https://en.wikipedia.org/wiki/List_of_WLAN_channels#2.4_GHz_(802.11b/g/n/ax) */
+        for (unsigned i = 0; i < 13; i++) {
+            g_hash_table_insert(wifi_frequency_24, GINT_TO_POINTER(i+1),
+                                GINT_TO_POINTER(2412+i*5));
+        }
+        g_hash_table_insert(wifi_frequency_24, GINT_TO_POINTER(14),
+                            GINT_TO_POINTER(2484));
+    }
+    return GPOINTER_TO_INT(g_hash_table_lookup(wifi_frequency_24,
+                           GINT_TO_POINTER(channel)));
+}
+
+/**
+ * Get the frequency of a given 5GHz WiFi channel
+ */
+int
+wifi_get_freq5(int channel)
+{
+    int channels[] = { 7, 8, 9, 11, 12, 16, 32, 34, 36, 38, 40, 42, 44, 46, 48,
+                       50, 52, 54, 56, 58, 60, 62, 64, 68, 96, 100, 102, 104,
+                       106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126,
+                       128, 132, 134, 136, 138, 140, 142, 144, 149, 151, 153,
+                       155, 157, 159, 161, 165, 169, 173 };
+    gboolean found = FALSE;
+    for (unsigned i = 0; i < sizeof(channels) / sizeof(int); i++) {
+        if (channel == channels[i]) {
+            found = TRUE;
+            break;
+        }
+    }
+    if (!found) {
+        g_fprintf(stderr, "ERROR: invalid 5GHz WiFi channel: %d\n", channel);
+        exit(1);
+    }
+    if (!wifi_frequency_5) {
+        wifi_frequency_5 = g_hash_table_new(g_direct_hash, g_direct_equal);
+        /* Initialize 5GHz frequencies, as of:
+         * https://en.wikipedia.org/wiki/List_of_WLAN_channels#5.0_GHz_(802.11j)_WLAN
+         * Skipping channels 183-196. They are valid only in Japan with registration needed */
+        for (unsigned i = 0; i < sizeof(channels) / sizeof(int); i++) {
+            g_hash_table_insert(wifi_frequency_5, GINT_TO_POINTER(channels[i]),
+                                GINT_TO_POINTER(5000+channels[i]*5));
+        }
+    }
+    return GPOINTER_TO_INT(g_hash_table_lookup(wifi_frequency_5,
+                           GINT_TO_POINTER(channel)));
+}
