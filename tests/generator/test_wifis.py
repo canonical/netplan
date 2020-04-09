@@ -59,22 +59,26 @@ unmanaged-devices+=interface-name:wl0,''')
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
             new_config = f.read()
-            self.assertIn('''
-network={
-  ssid="band-no-channel2"
-  freq_list=5610 5310 5620 5320 5630 5640 5340 5035 5040 5045 5055 5060 5660 5680 5670 5080 5690 5700 5710 5720 5825 5745 5755 \
-5805 5765 5160 5775 5170 5480 5180 5795 5190 5500 5200 5510 5210 5520 5220 5530 5230 5540 5240 5550 5250 5560 5260 5570 5270 \
-5580 5280 5590 5290 5600 5300 5865 5845 5785
-  key_mgmt=NONE
-}
-''', new_config)
-            self.assertIn('''
-network={
-  ssid="band-no-channel"
-  freq_list=2412 2417 2422 2427 2432 2442 2447 2437 2452 2457 2462 2467 2472 2484
-  key_mgmt=NONE
-}
-''', new_config)
+
+            network = 'ssid="{}"\n  freq_list='.format('band-no-channel2')
+            freqs_5GHz = [5610, 5310, 5620, 5320, 5630, 5640, 5340, 5035, 5040, 5045, 5055, 5060, 5660, 5680, 5670, 5080, 5690,
+                          5700, 5710, 5720, 5825, 5745, 5755, 5805, 5765, 5160, 5775, 5170, 5480, 5180, 5795, 5190, 5500, 5200,
+                          5510, 5210, 5520, 5220, 5530, 5230, 5540, 5240, 5550, 5250, 5560, 5260, 5570, 5270, 5580, 5280, 5590,
+                          5290, 5600, 5300, 5865, 5845, 5785]
+            freqs = new_config.split(network)
+            freqs = freqs[1].split('\n')[0]
+            self.assertEqual(len(freqs.split(' ')), len(freqs_5GHz))
+            for freq in freqs_5GHz:
+                self.assertRegexpMatches(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
+
+            network = 'ssid="{}"\n  freq_list='.format('band-no-channel')
+            freqs_24GHz = [2412, 2417, 2422, 2427, 2432, 2442, 2447, 2437, 2452, 2457, 2462, 2467, 2472, 2484]
+            freqs = new_config.split(network)
+            freqs = freqs[1].split('\n')[0]
+            self.assertEqual(len(freqs.split(' ')), len(freqs_24GHz))
+            for freq in freqs_24GHz:
+                self.assertRegexpMatches(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
+
             self.assertIn('''
 network={
   ssid="channel-no-band"
@@ -170,6 +174,84 @@ unmanaged-devices+=interface-name:wl0,''')
           mode: ap
       dhcp4: yes''', expect_fail=True)
         self.assertIn('networkd does not support wifi in access point mode', err)
+
+    def test_wifi_wowlan(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wakeonwlan:
+        - any
+        - disconnect
+        - magic_pkt
+        - gtk_rekey_failure
+        - eap_identity_req
+        - four_way_handshake
+        - rfkill_release
+      access-points:
+        homenet: {mode: infrastructure}''')
+
+        self.assert_networkd({'wl0.network': '''[Match]
+Name=wl0
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:wl0,''')
+        self.assert_nm_udev(None)
+
+        # generates wpa config and enables wpasupplicant unit
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
+            new_config = f.read()
+            self.assertIn('''
+wowlan_triggers=any disconnect magic_pkt gtk_rekey_failure eap_identity_req four_way_handshake rfkill_release
+network={
+  ssid="homenet"
+  key_mgmt=NONE
+}
+''', new_config)
+            self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+
+    def test_wifi_wowlan_default(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wakeonwlan: [default]
+      access-points:
+        homenet: {mode: infrastructure}''')
+
+        self.assert_networkd({'wl0.network': '''[Match]
+Name=wl0
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:wl0,''')
+        self.assert_nm_udev(None)
+
+        # generates wpa config and enables wpasupplicant unit
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
+            new_config = f.read()
+            self.assertIn('''
+network={
+  ssid="homenet"
+  key_mgmt=NONE
+}
+''', new_config)
+            self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
 
 class TestNetworkManager(TestBase):
@@ -411,3 +493,97 @@ method=ignore
 ssid=homenet
 mode=adhoc
 '''})
+
+    def test_wifi_wowlan(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      wakeonwlan: [any, tcp, four_way_handshake, magic_pkt]
+      access-points:
+        homenet: {mode: infrastructure}''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[802-11-wireless]
+wake-on-wlan=330
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+'''})
+
+    def test_wifi_wowlan_default(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      wakeonwlan: [default]
+      access-points:
+        homenet: {mode: infrastructure}''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+'''})
+
+
+class TestConfigErrors(TestBase):
+
+    def test_wifi_invalid_wowlan(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wakeonwlan: [bogus]
+      access-points:
+        homenet: {mode: infrastructure}''', expect_fail=True)
+        self.assertIn("Error in network definition: invalid value for wakeonwlan: 'bogus'", err)
+
+    def test_wifi_wowlan_unsupported(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wakeonwlan: [tcp]
+      access-points:
+        homenet: {mode: infrastructure}''', expect_fail=True)
+        self.assertIn("ERROR: unsupported wowlan_triggers mask: 0x100", err)
+
+    def test_wifi_wowlan_exclusive(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      wakeonwlan: [default, magic_pkt]
+      access-points:
+        homenet: {mode: infrastructure}''', expect_fail=True)
+        self.assertIn("Error in network definition: 'default' is an exclusive flag for wakeonwlan", err)

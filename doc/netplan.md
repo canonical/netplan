@@ -644,6 +644,14 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           numbers overlap between bands, this property takes effect only if
           the ``band`` property is also set.
 
+``wakeonwlan`` (sequence of scalars)
+
+:    This enables WakeOnWLan on supported devices. Not all drivers support all
+     options. May be any combination of ``any``, ``disconnect``, ``magic_pkt``,
+     ``gtk_rekey_failure``, ``eap_identity_req``, ``four_way_handshake``,
+     ``rfkill_release`` or ``tcp`` (NetworkManager only). Or the exclusive
+     ``default`` flag (the default).
+
 ## Properties for device type ``bridges:``
 
 ``interfaces`` (sequence of scalars)
