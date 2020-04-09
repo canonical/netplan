@@ -62,16 +62,16 @@ unmanaged-devices+=interface-name:wl0,''')
             self.assertIn('''
 network={
   ssid="band-no-channel2"
-  freq_list=5610 5310 5620 5320 5630 5640 5340 5035 5040 5045 5055 5060 5660 5680 5670 5080 5690 5700 5710 5720 5825 5745 5755 \
-5805 5765 5160 5775 5170 5480 5180 5795 5190 5500 5200 5510 5210 5520 5220 5530 5230 5540 5240 5550 5250 5560 5260 5570 5270 \
-5580 5280 5590 5290 5600 5300 5865 5845 5785
+  freq_list=5610 5250 5500 5805 5640 5280 5530 5170 5060 5310 5560 5200 5755 5700 5340 5035 5230 5480 5590 5785 5620 5260 5510 \
+5670 5040 5290 5540 5180 5845 5680 5320 5570 5210 5765 5710 5045 5600 5240 5795 5630 5270 5520 5160 5865 5660 5300 5550 5190 \
+5745 5080 5690 5580 5220 5775 5720 5055 5825
   key_mgmt=NONE
 }
 ''', new_config)
             self.assertIn('''
 network={
   ssid="band-no-channel"
-  freq_list=2412 2417 2422 2427 2432 2442 2447 2437 2452 2457 2462 2467 2472 2484
+  freq_list=2472 2437 2467 2432 2462 2427 2457 2422 2452 2412 2417 2447 2442 2484
   key_mgmt=NONE
 }
 ''', new_config)
@@ -496,7 +496,7 @@ mode=adhoc
   renderer: NetworkManager
   wifis:
     wl0:
-      wakeonwlan: [any, four_way_handshake, magic_pkt]
+      wakeonwlan: [any, tcp, four_way_handshake, magic_pkt]
       access-points:
         homenet: {mode: infrastructure}''')
 
@@ -509,7 +509,7 @@ interface-name=wl0
 wake-on-lan=0
 
 [802-11-wireless]
-wake-on-wlan=74
+wake-on-wlan=330
 
 [ipv4]
 method=link-local
