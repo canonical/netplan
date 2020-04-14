@@ -667,6 +667,13 @@ parse_renderer(yaml_node_t* node, NetplanBackend* backend, GError** error)
 static gboolean
 handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
+    if (cur_netdef->type == NETPLAN_DEF_TYPE_VLAN) {
+        if (strcmp(scalar(node), "sriov") == 0) {
+            cur_netdef->sriov_vlan_filter = TRUE;
+            return TRUE;
+        }
+    }
+
     return parse_renderer(node, &cur_netdef->backend, error);
 }
 
@@ -1718,6 +1725,7 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
     {"auth", YAML_MAPPING_NODE, handle_auth},
+    {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(sriov_link)},
     {NULL}
 };
 
@@ -1874,6 +1882,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             cur_netdef->linklocal.ipv6 = TRUE;
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
             netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
+            cur_netdef->sriov_vlan_filter = FALSE;
 
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);

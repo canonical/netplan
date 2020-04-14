@@ -147,6 +147,11 @@ Virtual devices
     in ``networks:``, for a device type (in e. g. ``ethernets:``) or
     for a particular device definition. Default is ``networkd``.
 
+    The ``renderer`` property has one additional acceptable value for vlan objects
+    (i. e. defined in ``vlans:``): ``sriov``. If a vlan is defined with the ``sriov``
+    renderer for an SR-IOV Virtual Function interface, this causes netplan to set
+    up a hardware VLAN filter for it. There can be only one defined per VF.
+
 ``dhcp4`` (bool)
 
 :   Enable DHCP for IPv4. Off by default.
@@ -555,8 +560,21 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
 
 
 ## Properties for device type ``ethernets:``
-Ethernet device definitions do not support any specific properties beyond the
-common ones described above.
+Ethernet device definitions, beyond common ones described above, also support
+some additional properties that can be used for SR-IOV devices.
+
+``link`` (scalar)
+
+:    (SR-IOV devices only) The ``link`` property declares the device as a
+     Virtual Function of the selected Physical Function device, as identified
+     by the given netplan id.
+
+Example:
+
+    ethernets:
+      enp1: {...}
+      enp1s16f1:
+        link: enp1
 
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does

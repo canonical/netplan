@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2020 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +18,11 @@
 
 import sys
 import os
+import logging
+import fnmatch
 import argparse
 import subprocess
+import netifaces
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
@@ -80,6 +84,51 @@ def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocove
         command.append(service)
 
     subprocess.check_call(command)
+
+
+def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (covered in autopkgtest)
+    devdir = os.path.join('/sys/class/net', interface)
+    if only_down:
+        try:
+            with open(os.path.join(devdir, 'operstate')) as f:
+                state = f.read().strip()
+                if state != 'down':
+                    logging.debug('device %s operstate is %s, not changing', interface, state)
+                    return None
+        except IOError as e:
+            logging.error('Cannot determine operstate of %s: %s', interface, str(e))
+            return None
+
+    try:
+        driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
+        driver_name = os.path.basename(driver)
+    except IOError as e:
+        logging.debug('Cannot replug %s: cannot read link %s/device: %s', interface, devdir, str(e))
+        return None
+
+    return driver_name
+
+
+def get_interface_macaddress(interface):  # pragma: nocover (covered in autopkgtest)
+    link = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]
+
+    return link.get('addr')
+
+
+def is_interface_matching_name(interface, match_driver):
+    return fnmatch.fnmatchcase(interface, match_driver)
+
+
+def is_interface_matching_driver_name(interface, match_driver):
+    driver_name = get_interface_driver_name(interface)
+
+    return match_driver == driver_name
+
+
+def is_interface_matching_macaddress(interface, match_mac):
+    macaddress = get_interface_macaddress(interface)
+
+    return match_mac == macaddress
 
 
 class NetplanCommand(argparse.Namespace):

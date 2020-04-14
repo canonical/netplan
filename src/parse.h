@@ -333,6 +333,10 @@ struct net_definition {
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
 
+    /* these properties are only valid for SR-IOV NICs */
+    struct net_definition* sriov_link;
+    gboolean sriov_vlan_filter;
+
     union {
         struct NetplanNMSettings {
             char *name;

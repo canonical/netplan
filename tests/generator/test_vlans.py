@@ -105,6 +105,51 @@ UseMTU=true
 unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:enred,interface-name:engreen,''')
         self.assert_nm_udev(None)
 
+    def test_vlan_sriov(self):
+        # we need to make sure renderer: sriov vlans are not saved as part of
+        # the NM/networkd config
+        self.generate('''network:
+  version: 2
+  ethernets:
+    en1: {}
+  vlans:
+    enblue:
+      id: 1
+      link: en1
+      renderer: sriov
+    engreen: {id: 2, link: en1, dhcp6: true}''')
+
+        self.assert_networkd({'en1.network': '''[Match]
+Name=en1
+
+[Network]
+LinkLocalAddressing=ipv6
+VLAN=engreen
+''',
+                              'engreen.netdev': '''[NetDev]
+Name=engreen
+Kind=vlan
+
+[VLAN]
+Id=2
+''',
+                              'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
+        self.assert_nm_udev(None)
+
 
 class TestNetworkManager(TestBase):
 
@@ -220,4 +265,52 @@ method=auto
 [ipv6]
 method=ignore
 ''' % uuid})
+        self.assert_nm_udev(None)
+
+    def test_vlan_sriov(self):
+        # we need to make sure renderer: sriov vlans are not saved as part of
+        # the NM/networkd config
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    en1: {}
+  vlans:
+    enblue:
+      id: 1
+      link: en1
+      addresses: [1.2.3.4/24]
+      renderer: sriov
+    engreen: {id: 2, link: en1, dhcp6: true}''')
+
+        self.assert_networkd({})
+        self.assert_nm({'en1': '''[connection]
+id=netplan-en1
+type=ethernet
+interface-name=en1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'engreen': '''[connection]
+id=netplan-engreen
+type=vlan
+interface-name=engreen
+
+[vlan]
+id=2
+parent=en1
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+'''})
         self.assert_nm_udev(None)
