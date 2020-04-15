@@ -578,9 +578,11 @@ Example:
 
 ``virtual-functions`` (scalar)
 
-:    (SR-IOV devices only) Explicit number of Virtual Functions for the given
-     Physical Function. This is optional, as normally netplan will allocate as
-     many VFs as there are needed.
+:    (SR-IOV devices only) In certain special cases VFs might need to be
+     configured outside of netplan. For such configurations ``virtual-functions``
+     can be optionally used to set an explicit number of Virtual Functions for
+     the given Physical Function. This should be used for special cases only, as
+     normally netplan allocates as many VFs as there are needed.
 
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does
