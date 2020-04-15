@@ -576,13 +576,14 @@ Example:
       enp1s16f1:
         link: enp1
 
-``virtual-functions`` (scalar)
+``virtual-function-count`` (scalar)
 
 :    (SR-IOV devices only) In certain special cases VFs might need to be
-     configured outside of netplan. For such configurations ``virtual-functions``
+     configured outside of netplan. For such configurations ``virtual-function-count``
      can be optionally used to set an explicit number of Virtual Functions for
-     the given Physical Function. This should be used for special cases only, as
-     normally netplan allocates as many VFs as there are needed.
+     the given Physical Function. If unset, the default is to create only as many
+     VFs as are defined in the netplan configuration. This should be used for special
+     cases only.
 
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does

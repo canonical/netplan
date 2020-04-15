@@ -71,7 +71,7 @@ def get_vf_count_and_functions(interfaces, config_manager,
 
         # we now also support explicitly stating how many VFs should be
         # allocated for a PF
-        explicit_num = settings.get('virtual-functions')
+        explicit_num = settings.get('virtual-function-count')
         if explicit_num:
             pf = _get_target_interface(interfaces, config_manager, ethernet, pfs)
             if pf:

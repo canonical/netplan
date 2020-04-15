@@ -82,7 +82,7 @@ LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev(None)
 
-    def test_eth_sriov_link(self):
+    def test_eth_sriov_vlan_filterv_link(self):
         self.generate('''network:
   version: 2
   ethernets:
@@ -111,7 +111,7 @@ LinkLocalAddressing=ipv6
   version: 2
   ethernets:
     enp1:
-      virtual-functions: 8''')
+      virtual-function-count: 8''')
 
         self.assert_networkd({'enp1.network': '''[Match]
 Name=enp1
@@ -413,7 +413,7 @@ method=ignore
   ethernets:
     enp1:
       dhcp4: n
-      virtual-functions: 8''')
+      virtual-function-count: 8''')
 
         self.assert_networkd({})
         self.assert_nm({'enp1': '''[connection]

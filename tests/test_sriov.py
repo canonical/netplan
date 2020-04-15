@@ -131,7 +131,7 @@ class TestSRIOV(unittest.TestCase):
     enp0:
       mtu: 9000
     enp8:
-      virtual-functions: 7
+      virtual-function-count: 7
     enp9: {}
     wlp6s0: {}
     enp1s16f1:
@@ -223,7 +223,7 @@ class TestSRIOV(unittest.TestCase):
   ethernets:
     renderer: networkd
     enp1:
-      virtual-functions: 2
+      virtual-function-count: 2
       mtu: 9000
     enp1s16f1:
       link: enp1
