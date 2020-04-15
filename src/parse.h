@@ -336,6 +336,7 @@ struct net_definition {
     /* these properties are only valid for SR-IOV NICs */
     struct net_definition* sriov_link;
     gboolean sriov_vlan_filter;
+    guint sriov_explicit_vf_count;
 
     union {
         struct NetplanNMSettings {
