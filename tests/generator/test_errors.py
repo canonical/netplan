@@ -250,7 +250,7 @@ class TestConfigErrors(TestBase):
     wl0:
       access-points:
         hidden:
-          hidden_ssid: maybe''', expect_fail=True)
+          hidden-ssid: maybe''', expect_fail=True)
         self.assertIn("invalid boolean value 'maybe'", err)
 
     def test_invalid_ipv4_address(self):

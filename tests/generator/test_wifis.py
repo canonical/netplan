@@ -43,10 +43,10 @@ class TestNetworkd(TestBase):
         peer2peer:
           mode: adhoc
         hidden-y:
-          hidden_ssid: y
+          hidden-ssid: y
           password: "0bscur1ty"
         hidden-n:
-          hidden_ssid: n
+          hidden-ssid: n
           password: "5ecur1ty"
         channel-no-band:
           channel: 7
