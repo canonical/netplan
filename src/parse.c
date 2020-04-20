@@ -573,6 +573,29 @@ get_default_backend_for_type(NetplanDefType type)
 }
 
 static gboolean
+handle_access_point_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    gboolean v;
+
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        v = TRUE;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        v = FALSE;
+    else
+        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
+
+    *((gboolean*) ((void*) cur_access_point + offset)) = v;
+    return TRUE;
+}
+
+static gboolean
 handle_access_point_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_guint(doc, node, cur_access_point, data, error);
@@ -642,6 +665,7 @@ handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _,
 static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"band", YAML_SCALAR_NODE, handle_access_point_band},
     {"bssid", YAML_SCALAR_NODE, handle_access_point_mac, NULL, access_point_offset(bssid)},
+    {"hidden_ssid", YAML_SCALAR_NODE, handle_access_point_bool, NULL, access_point_offset(hidden_ssid)},
     {"channel", YAML_SCALAR_NODE, handle_access_point_guint, NULL, access_point_offset(channel)},
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},

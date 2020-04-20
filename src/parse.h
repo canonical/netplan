@@ -368,6 +368,7 @@ typedef struct {
     char* ssid;
     NetplanWifiBand band;
     char* bssid;
+    gboolean hidden_ssid;
     guint channel;
 
     NetplanAuthenticationSettings auth;
