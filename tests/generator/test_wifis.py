@@ -42,9 +42,12 @@ class TestNetworkd(TestBase):
           channel: 100
         peer2peer:
           mode: adhoc
-        hidden:
-          hidden_ssid: true
+        hidden-y:
+          hidden_ssid: y
           password: "0bscur1ty"
+        hidden-n:
+          hidden_ssid: n
+          password: "5ecur1ty"
         channel-no-band:
           channel: 7
         band-no-channel:
@@ -97,10 +100,17 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="hidden"
+  ssid="hidden-y"
   scan_ssid=1
   key_mgmt=WPA-PSK
   psk="0bscur1ty"
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="hidden-n"
+  key_mgmt=WPA-PSK
+  psk="5ecur1ty"
 }
 ''', new_config)
             self.assertIn('''
