@@ -44,7 +44,7 @@ class TestNetworkd(TestBase):
           mode: adhoc
         hidden:
           hidden_ssid: true
-          password: "c0mpany1"
+          password: "0bscur1ty"
         channel-no-band:
           channel: 7
         band-no-channel:
@@ -62,7 +62,6 @@ unmanaged-devices+=interface-name:wl0,''')
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
             new_config = f.read()
-            print(new_config)
 
             network = 'ssid="{}"\n  freq_list='.format('band-no-channel2')
             freqs_5GHz = [5610, 5310, 5620, 5320, 5630, 5640, 5340, 5035, 5040, 5045, 5055, 5060, 5660, 5680, 5670, 5080, 5690,
@@ -94,6 +93,14 @@ network={
   ssid="peer2peer"
   mode=1
   key_mgmt=NONE
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="hidden"
+  scan_ssid=1
+  key_mgmt=WPA-PSK
+  psk="0bscur1ty"
 }
 ''', new_config)
             self.assertIn('''
