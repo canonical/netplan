@@ -671,6 +671,12 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           numbers overlap between bands, this property takes effect only if
           the ``band`` property is also set.
 
+     ``hidden_ssid`` (bool)
+     :    Set to ``true`` to change the SSID scan technique for connecting to 
+          hidden WiFi networks. Note this may have slower performance compared
+          to ``false`` (the default) when connecting to publicly broadcast
+          SSIDs.
+
 ``wakeonwlan`` (sequence of scalars)
 
 :    This enables WakeOnWLan on supported devices. Not all drivers support all
