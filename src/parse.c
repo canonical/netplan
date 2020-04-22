@@ -1829,7 +1829,7 @@ initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
 }
 
 /**
- * Callback for a net device type entry like "ethernets:" in "networks:"
+ * Callback for a net device type entry like "ethernets:" in "network:"
  * @data: netdef_type (as pointer)
  */
 static gboolean
