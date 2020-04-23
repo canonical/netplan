@@ -109,6 +109,9 @@ class NetplanApply(utils.NetplanCommand):
         if restart_networkd:
             logging.debug('netplan generated networkd configuration changed, restarting networkd')
             utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa-*.service'])
+            # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
+            # upgraded system, we need to make sure to stop those.
+            utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
