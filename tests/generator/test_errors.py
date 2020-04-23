@@ -243,14 +243,14 @@ class TestConfigErrors(TestBase):
           channel: 14''', expect_fail=True)
         self.assertIn("ERROR: invalid 5GHz WiFi channel: 14", err)
 
-    def test_wifi_invalid_hidden_ssid(self):
+    def test_wifi_invalid_hidden(self):
         err = self.generate('''network:
   version: 2
   wifis:
     wl0:
       access-points:
         hidden:
-          hidden-ssid: maybe''', expect_fail=True)
+          hidden: maybe''', expect_fail=True)
         self.assertIn("invalid boolean value 'maybe'", err)
 
     def test_invalid_ipv4_address(self):

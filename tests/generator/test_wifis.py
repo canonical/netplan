@@ -43,10 +43,10 @@ class TestNetworkd(TestBase):
         peer2peer:
           mode: adhoc
         hidden-y:
-          hidden-ssid: y
+          hidden: y
           password: "0bscur1ty"
         hidden-n:
-          hidden-ssid: n
+          hidden: n
           password: "5ecur1ty"
         channel-no-band:
           channel: 7
@@ -294,6 +294,12 @@ class TestNetworkManager(TestBase):
           bssid: de:ad:be:ef:ca:fe
           band: 5GHz
           channel: 100
+        hidden-y:
+          hidden: y
+          password: "0bscur1ty"
+        hidden-n:
+          hidden: n
+          password: "5ecur1ty"
         channel-no-band:
           channel: 22
         band-no-channel:
@@ -349,6 +355,51 @@ channel=100
 [wifi-security]
 key-mgmt=wpa-psk
 psk=c0mpany1
+''',
+                        'wl0-hidden-y': '''[connection]
+id=netplan-wl0-hidden-y
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=hidden-y
+mode=infrastructure
+hidden=TRUE
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=0bscur1ty
+''',
+                        'wl0-hidden-n': '''[connection]
+id=netplan-wl0-hidden-n
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=hidden-n
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=5ecur1ty
 ''',
                         'wl0-channel-no-band': '''[connection]
 id=netplan-wl0-channel-no-band

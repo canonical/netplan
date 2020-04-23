@@ -665,7 +665,7 @@ handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _,
 static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"band", YAML_SCALAR_NODE, handle_access_point_band},
     {"bssid", YAML_SCALAR_NODE, handle_access_point_mac, NULL, access_point_offset(bssid)},
-    {"hidden-ssid", YAML_SCALAR_NODE, handle_access_point_bool, NULL, access_point_offset(hidden_ssid)},
+    {"hidden", YAML_SCALAR_NODE, handle_access_point_bool, NULL, access_point_offset(hidden)},
     {"channel", YAML_SCALAR_NODE, handle_access_point_guint, NULL, access_point_offset(channel)},
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
