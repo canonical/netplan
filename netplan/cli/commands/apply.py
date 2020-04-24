@@ -111,7 +111,10 @@ class NetplanApply(utils.NetplanCommand):
             utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa-*.service'])
             # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
             # upgraded system, we need to make sure to stop those.
-            utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
+            try:
+                utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
+            except subprocess.CalledProcessError:
+                logging.debug('could not stop historical "netplan-wpa@*" systemd service')
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
