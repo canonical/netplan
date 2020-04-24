@@ -144,7 +144,7 @@ Virtual devices
 
 :   Use the given networking backend for this definition. Currently supported are
     ``networkd`` and ``NetworkManager``. This property can be specified globally
-    in ``networks:``, for a device type (in e. g. ``ethernets:``) or
+    in ``network:``, for a device type (in e. g. ``ethernets:``) or
     for a particular device definition. Default is ``networkd``.
 
     The ``renderer`` property has one additional acceptable value for vlan objects
