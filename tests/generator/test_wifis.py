@@ -116,6 +116,77 @@ network={
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
+    def test_wifi_upgrade(self):
+        # pretend an old 'netplan-wpa@*.service' link still exists on an upgraded system
+        os.makedirs(os.path.join(self.workdir.name, 'lib/systemd/system'))
+        os.makedirs(os.path.join(self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants'))
+        with open(os.path.join(self.workdir.name, 'lib/systemd/system/netplan-wpa@.service'), 'w') as out:
+            out.write('''[Unit]
+Description=WPA supplicant for netplan %I
+DefaultDependencies=no
+Requires=sys-subsystem-net-devices-%i.device
+After=sys-subsystem-net-devices-%i.device
+Before=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%I.conf -i%I''')
+        os.symlink(os.path.join(self.workdir.name, 'lib/systemd/system/netplan-wpa@.service'),
+                   os.path.join(self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service'))
+
+        # run generate, which should cleanup the old files/symlinks
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        "Joe's Home":
+          password: "s0s3kr1t"
+      dhcp4: yes''')
+
+        # verify new files/links exist, while old have been removed
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+        # old files/links
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'lib/systemd/system/netplan-wpa@.service')))
+        self.assertFalse(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service')))
+
+        # pretend another old systemd service file exists for wl1
+        os.symlink(os.path.join(self.workdir.name, 'lib/systemd/system/netplan-wpa@.service'),
+                   os.path.join(self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl1.service'))
+
+        # run generate again, to verify the historical netplan-wpa@.service links and wl0 links are gone
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl1:
+      access-points:
+        "Other Home":
+          password: "s0s3kr1t"
+      dhcp4: yes''')
+
+        # verify new files/links exist, while old have been removed
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl1.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl1.service')))
+        # old files/links
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.workdir.name, 'lib/systemd/system/netplan-wpa@.service')))
+        self.assertFalse(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl1.service')))
+        self.assertFalse(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa@wl0.service')))
+        self.assertFalse(os.path.isfile(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+        self.assertFalse(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+
     def test_wifi_route(self):
         self.generate('''network:
   version: 2

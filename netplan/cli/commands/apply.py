@@ -108,7 +108,13 @@ class NetplanApply(utils.NetplanCommand):
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration changed, restarting networkd')
-            utils.systemctl_networkd('stop', sync=sync, extra_services=['netplan-wpa@*.service'])
+            wpa_services = ['netplan-wpa-*.service']
+            # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
+            # upgraded system, we need to make sure to stop those.
+            if utils.systemctl_is_active('netplan-wpa@*.service'):
+                wpa_services.insert(0, 'netplan-wpa@*.service')
+            utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services)
+
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
@@ -169,7 +175,7 @@ class NetplanApply(utils.NetplanCommand):
 
         # (re)start backends
         if restart_networkd:
-            netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa@*.service')]
+            netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
             utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
         if restart_nm:
             utils.systemctl_network_manager('start', sync=sync)
