@@ -86,6 +86,13 @@ def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocove
     subprocess.check_call(command)
 
 
+def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtest)
+    '''Return True if at least one matching unit is running'''
+    if subprocess.call(['systemctl', '--quiet', 'is-active', unit_pattern]) == 0:
+        return True
+    return False
+
+
 def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (covered in autopkgtest)
     devdir = os.path.join('/sys/class/net', interface)
     if only_down:

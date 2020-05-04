@@ -1,0 +1,14 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eno1:
+      mtu: 9000
+    enp1s16f1:
+      link: eno1
+      addresses : [ "10.15.98.25/24" ]
+    vf1:
+      match:
+        name: enp1s16f[2-3]
+      link: eno1
+      addresses : [ "10.15.99.25/24" ]
