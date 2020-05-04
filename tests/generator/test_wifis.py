@@ -42,6 +42,12 @@ class TestNetworkd(TestBase):
           channel: 100
         peer2peer:
           mode: adhoc
+        hidden-y:
+          hidden: y
+          password: "0bscur1ty"
+        hidden-n:
+          hidden: n
+          password: "5ecur1ty"
         channel-no-band:
           channel: 7
         band-no-channel:
@@ -90,6 +96,21 @@ network={
   ssid="peer2peer"
   mode=1
   key_mgmt=NONE
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="hidden-y"
+  scan_ssid=1
+  key_mgmt=WPA-PSK
+  psk="0bscur1ty"
+}
+''', new_config)
+            self.assertIn('''
+network={
+  ssid="hidden-n"
+  key_mgmt=WPA-PSK
+  psk="5ecur1ty"
 }
 ''', new_config)
             self.assertIn('''
@@ -344,6 +365,12 @@ class TestNetworkManager(TestBase):
           bssid: de:ad:be:ef:ca:fe
           band: 5GHz
           channel: 100
+        hidden-y:
+          hidden: y
+          password: "0bscur1ty"
+        hidden-n:
+          hidden: n
+          password: "5ecur1ty"
         channel-no-band:
           channel: 22
         band-no-channel:
@@ -399,6 +426,51 @@ channel=100
 [wifi-security]
 key-mgmt=wpa-psk
 psk=c0mpany1
+''',
+                        'wl0-hidden-y': '''[connection]
+id=netplan-wl0-hidden-y
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=hidden-y
+mode=infrastructure
+hidden=TRUE
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=0bscur1ty
+''',
+                        'wl0-hidden-n': '''[connection]
+id=netplan-wl0-hidden-n
+type=wifi
+interface-name=wl0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=hidden-n
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=5ecur1ty
 ''',
                         'wl0-channel-no-band': '''[connection]
 id=netplan-wl0-channel-no-band

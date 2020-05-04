@@ -863,6 +863,9 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
             if (ap->bssid) {
                 g_string_append_printf(s, "  bssid=%s\n", ap->bssid);
             }
+            if (ap->hidden) {
+                g_string_append(s, "  scan_ssid=1\n");
+            }
             if (ap->band == NETPLAN_WIFI_BAND_24) {
                 // initialize 2.4GHz frequency hashtable
                 if(!wifi_frequency_24)

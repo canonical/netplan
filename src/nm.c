@@ -700,6 +700,9 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         if (ap->bssid) {
             g_string_append_printf(s, "bssid=%s\n", ap->bssid);
         }
+        if (ap->hidden) {
+            g_string_append(s, "hidden=true\n");
+        }
         if (ap->band == NETPLAN_WIFI_BAND_5 || ap->band == NETPLAN_WIFI_BAND_24) {
             g_string_append_printf(s, "band=%s\n", wifi_band_str(ap->band));
             /* Channel is only unambiguous, if band is set. */

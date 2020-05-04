@@ -317,6 +317,34 @@ handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
     return handle_generic_str(doc, node, entryptr, data, error);
 }
 
+/*
+ * Handler for setting a boolean field from a scalar node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the boolean field to write is located
+*/
+static gboolean
+handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    gboolean v;
+
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        v = TRUE;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        v = FALSE;
+    else
+        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
+
+    *((gboolean*) ((void*) entryptr + offset)) = v;
+    return TRUE;
+}
+
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -381,24 +409,7 @@ handle_netdef_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 static gboolean
 handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint offset = GPOINTER_TO_UINT(data);
-    gboolean v;
-
-    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "y") == 0)
-        v = TRUE;
-    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "n") == 0)
-        v = FALSE;
-    else
-        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
-
-    *((gboolean*) ((void*) cur_netdef + offset)) = v;
-    return TRUE;
+    return handle_generic_bool(doc, node, cur_netdef, data, error);
 }
 
 /**
@@ -585,6 +596,12 @@ handle_access_point_mac(yaml_document_t* doc, yaml_node_t* node, const void* dat
 }
 
 static gboolean
+handle_access_point_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_bool(doc, node, cur_access_point, data, error);
+}
+
+static gboolean
 handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     g_assert(cur_access_point);
@@ -642,6 +659,7 @@ handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _,
 static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"band", YAML_SCALAR_NODE, handle_access_point_band},
     {"bssid", YAML_SCALAR_NODE, handle_access_point_mac, NULL, access_point_offset(bssid)},
+    {"hidden", YAML_SCALAR_NODE, handle_access_point_bool, NULL, access_point_offset(hidden)},
     {"channel", YAML_SCALAR_NODE, handle_access_point_guint, NULL, access_point_offset(channel)},
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
@@ -1076,24 +1094,7 @@ check_and_set_family(int family, guint* dest)
 static gboolean
 handle_routes_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint offset = GPOINTER_TO_UINT(data);
-    gboolean v;
-
-    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "y") == 0)
-        v = TRUE;
-    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "n") == 0)
-        v = FALSE;
-    else
-        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
-
-    *((gboolean*) ((void*) cur_route + offset)) = v;
-    return TRUE;
+    return handle_generic_bool(doc, node, cur_route, data, error);
 }
 
 static gboolean
