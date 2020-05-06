@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 Canonical, Ltd.
+# Copyright (C) 2019-2020 Canonical, Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -225,6 +225,21 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
                  "--origin-hint=99_snapd"],
+        ])
+
+    def test_netplan_dbus_try(self):
+        BUSCTL_NETPLAN_TRY = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Try",
+            "a{ss}", "1", "timeout", "1",
+        ]
+        output = subprocess.check_output(BUSCTL_NETPLAN_TRY)
+        self.assertEqual("b true\n", output.decode("utf-8"))
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "try"],
         ])
 
     def test_netplan_dbus_no_such_command(self):
