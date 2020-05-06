@@ -274,11 +274,11 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual("b true\n", output.decode("utf-8"))
 
         # FIXME: verify call stack
-        #self.assertEquals(self.mock_netplan_cmd.calls(), [
-        #        ["netplan", "try"],
-        #        ["netplan", "try", "--timeout", "10"],
-        #        ["netplan", "try", "--config-file", "./config.yaml", "--timeout", "10"],
-        #])
+        # self.assertEquals(self.mock_netplan_cmd.calls(), [
+        #         ["netplan", "try"],
+        #         ["netplan", "try", "--timeout", "10"],
+        #         ["netplan", "try", "--config-file", "./config.yaml", "--timeout", "10"],
+        # ])
 
     def test_netplan_dbus_no_such_command(self):
         p = subprocess.Popen(
