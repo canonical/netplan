@@ -667,10 +667,10 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]
       parameters:
         mode: lacp
-        arp-ip-targets:
-          - 2001:dead:beef::1
-      dhcp4: true''', expect_fail=True)
-        self.assertIn("unknown bond mode 'lacp'", err)
+      dhcp4: true''', expect_fail=False)
+        # netplan < 0.98 accepted invalid bond modes, we should _not_ reject such
+        # configs, even though they are invalid, to avoid regressions in stables releases.
+        self.assertIn("WARNING: unknown bond mode 'lacp'", err)
 
     def test_bond_invalid_arp_target(self):
         self.generate('''network:

@@ -921,7 +921,7 @@ handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
         strcmp(scalar(node), "802.3ad") == 0 ||
         strcmp(scalar(node), "balance-tlb") == 0 ||
         strcmp(scalar(node), "balance-alb") == 0))
-        return yaml_error(node, error, "unknown bond mode '%s'", scalar(node));
+        g_fprintf(stderr, "WARNING: unknown bond mode '%s'. Your config needs to be updated to work with future series of Ubuntu.\n", scalar(node));
 
     return handle_netdef_str(doc, node, data, error);
 }
