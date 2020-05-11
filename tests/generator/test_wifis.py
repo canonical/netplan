@@ -444,7 +444,7 @@ method=ignore
 [wifi]
 ssid=hidden-y
 mode=infrastructure
-hidden=TRUE
+hidden=true
 
 [wifi-security]
 key-mgmt=wpa-psk
