@@ -586,46 +586,62 @@ Example:
      cases only.
 
 ## Properties for device type ``modems:``
-GSM/CDMA modem configuration is only supported for the ``NetworkManager`` backend. ``systemd-networkd`` does
-not support modems.
+GSM/CDMA modem configuration is only supported for the ``NetworkManager``
+backend. ``systemd-networkd`` does not support modems.
 
 ``apn`` (scalar)
-:    Set the carrier APN (Access Point Name). This can be omitted if ``auto-config`` is enabled.
+
+:    Set the carrier APN (Access Point Name). This can be omitted if
+     ``auto-config`` is enabled.
 
 ``auto-config`` (bool)
-:    Specify whether to try and autoconfigure the modem by doing a lookup of the carrier
-     against the Mobile Broadband Provider database. This may not work for all carriers.
+
+:    Specify whether to try and autoconfigure the modem by doing a lookup of
+     the carrier against the Mobile Broadband Provider database. This may not
+     work for all carriers.
 
 ``device-id`` (scalar)
-:    Specify the device ID (as given by the WWAN management service) of the modem to match.
-     This can be found using ``mmcli``.
+
+:    Specify the device ID (as given by the WWAN management service) of the
+     modem to match. This can be found using ``mmcli``.
 
 ``network-id`` (scalar)
-:    Specify the Network ID (GSM LAI format). If this is specified, the device will not roam networks.
+
+:    Specify the Network ID (GSM LAI format). If this is specified, the device
+     will not roam networks.
 
 ``number`` (scalar)
-:    The number to dial to establish the connection to the mobile broadband network. (Deprecated for GSM)
+
+:    The number to dial to establish the connection to the mobile broadband
+     network. (Deprecated for GSM)
 
 ``password`` (scalar)
-:    Specify the password used to authenticate with the carrier network. This can be omitted
-     if ``auto-config`` is enabled.
+
+:    Specify the password used to authenticate with the carrier network. This
+     can be omitted if ``auto-config`` is enabled.
 
 ``pin`` (scalar)
+
 :    Specify the SIM PIN to allow it to operate if a PIN is set.
 
 ``sim-id`` (scalar)
-:    Specify the SIM unique identifier (as given by the WWAN management service) which this
-     connection applies to. If given, the connection will apply to any device also allowed by
-     ``device-id`` which contains a SIM card matching the given identifier.
+
+:    Specify the SIM unique identifier (as given by the WWAN management service)
+     which this connection applies to. If given, the connection will apply to
+     any device also allowed by ``device-id`` which contains a SIM card matching
+     the given identifier.
 
 ``sim-operator-id`` (scalar)
-:    Specify the MCC/MNC string (such as "310260" or "21601") which identifies the carrier that
-     this connection should apply to. If given, the connection will apply to any device also
-     allowed by ``device-id`` and ``sim-id`` which contains a SIM card provisioned by the given operator.
+
+:    Specify the MCC/MNC string (such as "310260" or "21601") which identifies
+     the carrier that this connection should apply to. If given, the connection
+     will apply to any device also allowed by ``device-id`` and ``sim-id``
+     which contains a SIM card provisioned by the given operator.
 
 ``username`` (scalar)
-:    Specify the username used to authentiate with the carrier network. This can be omitted if
-     ``auto-config`` is enabled.
+
+:    Specify the username used to authentiate with the carrier network. This
+     can be omitted if ``auto-config`` is enabled.
 
 ## Properties for device type ``wifis:``
 Note that ``systemd-networkd`` does not natively support wifi, so you need
