@@ -247,8 +247,8 @@ Virtual devices
 ``ipv6-address-generation`` (scalar)
 
 :   Configure method for creating the address for use with RFC4862 IPv6
-    Stateless Address Autoconfiguration. Possible values are ``eui64``
-    or ``stable-privacy``.
+    Stateless Address Autoconfiguration (only supported with `NetworkManager`
+    backend). Possible values are ``eui64`` or ``stable-privacy``.
 
 ``gateway4``, ``gateway6`` (scalar)
 
