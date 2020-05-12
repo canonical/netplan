@@ -358,6 +358,8 @@ When using the NetworkManager backend, different values may be specified for
 ``dhcp4-overrides`` and ``dhcp6-overrides``, and will be applied to the DHCP
 client processes as specified in the netplan YAML.
 
+``dhcp4-overrides``, ``dhcp6-overrides`` (mapping)
+
 :    The ``dhcp4-overrides`` and ``dhcp6-overrides`` mappings override the
      default DHCP behavior.
 
@@ -585,9 +587,13 @@ Example:
      VFs as are defined in the netplan configuration. This should be used for special
      cases only.
 
+     **Requires feature: sriov**
+
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager``
 backend. ``systemd-networkd`` does not support modems.
+
+**Requires feature: modems**
 
 ``apn`` (scalar)
 

@@ -297,6 +297,7 @@ struct net_definition {
         char* primary_slave;
     } bond_params;
 
+    /* netplan-feature: modems */
     struct {
         char* apn;
         gboolean auto_config;
@@ -334,6 +335,7 @@ struct net_definition {
     gboolean has_auth;
 
     /* these properties are only valid for SR-IOV NICs */
+    /* netplan-feature: sriov */
     struct net_definition* sriov_link;
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
