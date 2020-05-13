@@ -66,7 +66,8 @@ clean:
 	rm -f *.o *.so*
 	rm -f netplan-dbus dbus/*.service
 	rm -f *.gcda *.gcno generate.info
-	rm -rf test-coverage .coverage
+	rm -rf test-coverage .coverage coverage.xml
+	find . | grep -E "(__pycache__|\.pyc)" | xargs rm -rf
 
 check: default linting
 	tests/cli.py
