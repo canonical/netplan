@@ -175,6 +175,10 @@ class NetplanApply(utils.NetplanCommand):
 
         # (re)start backends
         if restart_networkd:
+            # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
+            # so let's make sure we only run it iff we're willing to run 'netplan generate'
+            if run_generate:
+                utils.systemctl_daemon_reload()
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
             utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
         if restart_nm:

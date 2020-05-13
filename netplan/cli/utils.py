@@ -93,6 +93,11 @@ def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtes
     return False
 
 
+def systemctl_daemon_reload():  # pragma: nocover (covered in autopkgtest)
+    '''Reload systemd unit files from disk and re-calculate its dependencies'''
+    subprocess.check_call(['systemctl', 'daemon-reload'])
+
+
 def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (covered in autopkgtest)
     devdir = os.path.join('/sys/class/net', interface)
     if only_down:
