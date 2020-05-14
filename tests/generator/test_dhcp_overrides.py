@@ -16,11 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
-from .base import (TestBase, ND_DHCP4, ND_DHCP4_NOMTU, ND_DHCP6, ND_DHCP6_NOMTU,
-        ND_DHCPYES, ND_DHCPYES_NOMTU)
+from .base import (TestBase, ND_DHCP4, ND_DHCP4_NOMTU, ND_DHCP6,
+                   ND_DHCP6_NOMTU, ND_DHCPYES, ND_DHCPYES_NOMTU)
 
 
 class TestNetworkd(TestBase):
@@ -345,6 +342,9 @@ UseMTU=true
 
     def test_dhcp_overrides_use_dns(self):
         self.assert_dhcp_overrides_bool('use-dns', 'UseDNS')
+
+    def test_dhcp_overrides_use_domains(self):
+        self.assert_dhcp_overrides_string('use-domains', 'UseDomains')
 
     def test_dhcp_overrides_use_ntp(self):
         self.assert_dhcp_overrides_bool('use-ntp', 'UseNTP')

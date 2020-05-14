@@ -20,8 +20,6 @@
 
 import os
 import random
-import re
-import sys
 import stat
 import string
 import tempfile
@@ -30,6 +28,9 @@ import unittest
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), 'generate')
+
+# make sure we point to libnetplan properly.
+os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
 
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'

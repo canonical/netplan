@@ -1,4 +1,5 @@
 generate
+netplan-dbus
 test-coverage
 doc/*.html
 doc/*.[1-9]
@@ -6,3 +7,6 @@ __pycache__
 *.pyc
 .coverage
 .vscode
+src/_features.h
+netplan/_features.py
+dbus/io.netplan.Netplan.service

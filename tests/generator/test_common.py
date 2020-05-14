@@ -18,7 +18,6 @@
 
 import os
 import textwrap
-import sys
 
 from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES
 
@@ -80,8 +79,9 @@ UseMTU=true
               version: 2
               ethernets:
                 eth1:
-                  mtu: 1280
+                  mtu: 9000
                   dhcp4: n
+                  ipv6-mtu: 2000
               bonds:
                 bond0:
                   interfaces:
@@ -104,13 +104,26 @@ ConfigureWithoutCarrier=yes
             'bond0.network': '''[Match]
 Name=bond0
 
+[Link]
+MTUBytes=9000
+
 [Network]
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 VLAN=bond0.108
 ''',
-            'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
-            'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'
+            'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=9000\n',
+            'eth1.network': '''[Match]
+Name=eth1
+
+[Link]
+MTUBytes=9000
+
+[Network]
+LinkLocalAddressing=no
+IPv6MTUBytes=2000
+Bond=bond0
+'''
         })
         self.assert_networkd_udev(None)
 
@@ -283,7 +296,6 @@ UseMTU=true
   version: 2
   ethernets:
     engreen:
-      dhcp4: yes
       critical: yes
 ''')
 
@@ -291,13 +303,10 @@ UseMTU=true
 Name=engreen
 
 [Network]
-DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
 CriticalConnection=true
-RouteMetric=100
-UseMTU=true
 '''})
 
     def test_dhcp_identifier_mac(self):
@@ -577,6 +586,16 @@ method=ignore
 ''',
         })
 
+    def test_ipv6_mtu(self):
+        self.generate(textwrap.dedent("""
+            network:
+              version: 2
+              renderer: NetworkManager
+              ethernets:
+                eth1:
+                  mtu: 9000
+                  ipv6-mtu: 2000"""), expect_fail=True)
+
     def test_eth_global_renderer(self):
         self.generate('''network:
   version: 2
@@ -703,6 +722,48 @@ method=auto
 
 [ipv6]
 method=auto
+'''})
+
+    def test_ip6_addr_gen_mode(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-generation: stable-privacy
+    enblue:
+      dhcp6: yes
+      ipv6-address-generation: eui64''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=1
+''',
+                        'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=0
 '''})
 
     def test_eth_manual_addresses(self):
@@ -1073,10 +1134,11 @@ class TestMerging(TestBase):
     def test_global_backend(self):
         self.generate('''network:
   version: 2
+  renderer: NetworkManager
   ethernets:
     engreen:
       dhcp4: y''',
-                      confs={'backend': 'network:\n  renderer: NetworkManager'})
+                      confs={'backend': 'network:\n  renderer: networkd'})
 
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
         self.assert_nm(None, '''[keyfile]
@@ -1243,6 +1305,11 @@ UseMTU=true
 
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen',
                               'enred.link': '[Match]\nOriginalName=enred\n\n[Link]\nWakeOnLan=magic\n',
+                              'enred.network': '''[Match]
+Name=enred
+
+[Network]
+LinkLocalAddressing=ipv6
+''',
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
-

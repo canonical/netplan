@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from .base import TestBase
 
 
@@ -161,7 +158,7 @@ UseMTU=true
   bonds:
     bn0:
       parameters:
-        mode: 802.1ad
+        mode: 802.3ad
         lacp-rate: 10
         mii-monitor-interval: 10
         min-links: 10
@@ -187,7 +184,7 @@ UseMTU=true
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
-                                            'Mode=802.1ad\n'
+                                            'Mode=802.3ad\n'
                                             'LACPTransmitRate=10\n'
                                             'MIIMonitorSec=10ms\n'
                                             'MinLinks=10\n'
@@ -195,7 +192,7 @@ UseMTU=true
                                             'AdSelect=none\n'
                                             'AllSlavesActive=1\n'
                                             'ARPIntervalSec=15ms\n'
-                                            'ARPIPTargets=10.10.10.10,20.20.20.20\n'
+                                            'ARPIPTargets=10.10.10.10 20.20.20.20\n'
                                             'ARPValidate=all\n'
                                             'ARPAllTargets=all\n'
                                             'UpDelaySec=20ms\n'
@@ -234,7 +231,7 @@ UseMTU=true
   bonds:
     bn0:
       parameters:
-        mode: 802.1ad
+        mode: 802.3ad
         mii-monitor-interval: 10ms
         up-delay: 20ms
         down-delay: 30s
@@ -244,7 +241,7 @@ UseMTU=true
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
-                                            'Mode=802.1ad\n'
+                                            'Mode=802.3ad\n'
                                             'MIIMonitorSec=10ms\n'
                                             'ARPIntervalSec=15m\n'
                                             'UpDelaySec=20ms\n'
@@ -497,7 +494,7 @@ method=ignore
     bn0:
       interfaces: [eno1, switchport]
       parameters:
-        mode: 802.1ad
+        mode: 802.3ad
         lacp-rate: 10
         mii-monitor-interval: 10
         min-links: 10
@@ -558,7 +555,7 @@ type=bond
 interface-name=bn0
 
 [bond]
-mode=802.1ad
+mode=802.3ad
 lacp_rate=10
 miimon=10
 min_links=10
@@ -657,6 +654,23 @@ method=ignore
 
 
 class TestConfigErrors(TestBase):
+
+    def test_bond_invalid_mode(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bonds:
+    bond0:
+      interfaces: [eno1]
+      parameters:
+        mode: lacp
+        arp-ip-targets:
+          - 2001:dead:beef::1
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("unknown bond mode 'lacp'", err)
 
     def test_bond_invalid_arp_target(self):
         self.generate('''network:

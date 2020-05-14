@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
- * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ * Copyright (C) 2019 Canonical, Ltd.
+ * Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,15 @@
 
 #pragma once
 
-GHashTable* wifi_frequency_24;
-GHashTable* wifi_frequency_5;
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 
-void safe_mkdir_p_dir(const char* file_path);
-void g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
-void unlink_glob(const char* rootdir, const char* _glob);
+#include <yaml.h>
 
-int wifi_get_freq24(int channel);
-int wifi_get_freq5(int channel);
+
+gboolean
+parser_error(const yaml_parser_t* parser, const char* yaml, GError** error);
+
+gboolean
+yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...);

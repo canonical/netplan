@@ -17,9 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, UDEV_MAC_RULE, UDEV_NO_MAC_RULE
+from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE
 
 
 class TestNetworkd(TestBase):
@@ -32,7 +31,13 @@ class TestNetworkd(TestBase):
       wakeonlan: true
       dhcp4: n''')
 
-        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
+        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n',
+                              'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev(None)
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -40,6 +45,22 @@ unmanaged-devices+=interface-name:eth0,''')
         self.assert_nm_udev(None)
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
+
+    def test_eth_lldp(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: n
+      emit-lldp: true''')
+
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+EmitLLDP=true
+LinkLocalAddressing=ipv6
+'''})
 
     def test_eth_mtu(self):
         self.generate('''network:
@@ -49,7 +70,55 @@ unmanaged-devices+=interface-name:eth0,''')
       mtu: 1280
       dhcp4: n''')
 
-        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n'})
+        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
+                              'eth1.network': '''[Match]
+Name=eth1
+
+[Link]
+MTUBytes=1280
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_networkd_udev(None)
+
+    def test_eth_sriov_vlan_filterv_link(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enp1:
+      dhcp4: n
+    enp1s16f1:
+      dhcp4: n
+      link: enp1''')
+
+        self.assert_networkd({'enp1.network': '''[Match]
+Name=enp1
+
+[Network]
+LinkLocalAddressing=ipv6
+''',
+                              'enp1s16f1.network': '''[Match]
+Name=enp1s16f1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_networkd_udev(None)
+
+    def test_eth_sriov_virtual_functions(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enp1:
+      virtual-function-count: 8''')
+
+        self.assert_networkd({'enp1.network': '''[Match]
+Name=enp1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev(None)
 
     def test_eth_match_by_driver_rename(self):
@@ -61,7 +130,14 @@ unmanaged-devices+=interface-name:eth0,''')
         driver: ixgbe
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '''[Match]
+Driver=ixgbe
+Name=lom1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('ixgbe', 'lom1'))})
         # NM cannot match by driver, so blacklisting needs to happen via udev
         self.assert_nm(None, None)
@@ -76,7 +152,14 @@ unmanaged-devices+=interface-name:eth0,''')
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '''[Match]
+MACAddress=11:22:33:44:55:66
+Name=lom1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
@@ -274,6 +357,72 @@ wake-on-lan=0
 
 [802-3-ethernet]
 mtu=1280
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_eth_sriov_link(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enp1:
+      dhcp4: n
+    enp1s16f1:
+      dhcp4: n
+      link: enp1''')
+
+        self.assert_networkd({})
+        self.assert_nm({'enp1': '''[connection]
+id=netplan-enp1
+type=ethernet
+interface-name=enp1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'enp1s16f1': '''[connection]
+id=netplan-enp1s16f1
+type=ethernet
+interface-name=enp1s16f1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_eth_sriov_virtual_functions(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enp1:
+      dhcp4: n
+      virtual-function-count: 8''')
+
+        self.assert_networkd({})
+        self.assert_nm({'enp1': '''[connection]
+id=netplan-enp1
+type=ethernet
+interface-name=enp1
+
+[ethernet]
+wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -562,4 +711,3 @@ method=ignore
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
-

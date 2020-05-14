@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import unittest
 
 from .base import TestBase
@@ -215,7 +214,7 @@ UseMTU=true
       dhcp4: yes''')
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=interface-name:mybr,interface-name:eth42,interface-name:eth43,''')
+unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr,''')
 
     def test_bridge_components(self):
         self.generate('''network:
@@ -713,4 +712,3 @@ class TestConfigErrors(TestBase):
         port-priority:
           eno1: 257
       dhcp4: true''', expect_fail=True)
-

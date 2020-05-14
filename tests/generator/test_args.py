@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import subprocess
 
 from .base import TestBase, exe_generate
@@ -125,7 +124,7 @@ class TestConfigArgs(TestBase):
 
         # should auto-enable networkd and -wait-online
         self.assertTrue(os.path.islink(os.path.join(
-            outdir, 'network-online.target.wants', 'systemd-networkd.service')))
+            outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
 
