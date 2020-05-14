@@ -172,7 +172,7 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
-``ipv6-mtu`` (scalar)
+``ipv6-mtu`` (scalar) _– since 0.98_
 :   Set the IPv6 MTU (only supported with `networkd` backend). Note
     that needing to set this is an unusual requirement.
 
@@ -411,7 +411,7 @@ client processes as specified in the netplan YAML.
           on a preferred interface. Available for both the ``networkd`` and
           ``NetworkManager`` backends.
 
-     ``use-domains`` (scalar)
+     ``use-domains`` (scalar) _– since 0.98_
      :    Takes a boolean, or the special value "route". When true, the domain 
           name received from the DHCP server will be used as DNS search domain
           over this link, similar to the effect of the Domains= setting. If set
