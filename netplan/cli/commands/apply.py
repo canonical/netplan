@@ -108,6 +108,10 @@ class NetplanApply(utils.NetplanCommand):
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration changed, restarting networkd')
+            # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
+            # so let's make sure we only run it iff we're willing to run 'netplan generate'
+            if run_generate:
+                utils.systemctl_daemon_reload()
             wpa_services = ['netplan-wpa-*.service']
             # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
             # upgraded system, we need to make sure to stop those.
