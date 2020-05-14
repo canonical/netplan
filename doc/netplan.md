@@ -43,8 +43,8 @@ configuration files. Their primary purpose is to serve as anchor names for
 composite devices, for example to enumerate the members of a bridge that is
 currently being defined.
 
-If an interface is defined with an ID in a configuration file; it will be
-brought up by the applicable renderer. To not have netplan touch an interface
+(Since 0.97) If an interface is defined with an ID in a configuration file; it will
+be brought up by the applicable renderer. To not have netplan touch an interface
 at all, it should be completely omitted from the netplan configuration files.
 
 There are two physically/structurally different classes of device definitions,
