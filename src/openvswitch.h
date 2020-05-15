@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
- * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ * Copyright (C) 2020 Canonical, Ltd.
+ * Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,14 +17,8 @@
 
 #pragma once
 
-GHashTable* wifi_frequency_24;
-GHashTable* wifi_frequency_5;
+#include "parse.h"
 
-void safe_mkdir_p_dir(const char* file_path);
-void g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
-void unlink_glob(const char* rootdir, const char* _glob);
-
-int wifi_get_freq24(int channel);
-int wifi_get_freq5(int channel);
-
-gchar* systemd_escape(char* string);
+void write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir);
+void write_ovs_conf_finish(const char* rootdir);
+void cleanup_ovs_conf(const char* rootdir);

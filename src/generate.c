@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "networkd.h"
 #include "nm.h"
+#include "openvswitch.h"
 
 static gchar* rootdir;
 static gchar** files;
@@ -55,7 +56,9 @@ nd_iterator_list(gpointer value, gpointer user_data)
 {
     if (write_networkd_conf((NetplanNetDefinition*) value, (const char*) user_data))
         any_networkd = TRUE;
+
     write_nm_conf((NetplanNetDefinition*) value, (const char*) user_data);
+    write_ovs_conf((NetplanNetDefinition*) value, (const char*) user_data);
 }
 
 
@@ -246,6 +249,7 @@ int main(int argc, char** argv)
     /* Clean up generated config from previous runs */
     cleanup_networkd_conf(rootdir);
     cleanup_nm_conf(rootdir);
+    cleanup_ovs_conf(rootdir);
 
     if (mapping_iface && netdefs) {
         return find_interface(mapping_iface);
@@ -256,6 +260,7 @@ int main(int argc, char** argv)
         g_debug("Generating output files..");
         g_list_foreach (netdefs_ordered, nd_iterator_list, rootdir);
         write_nm_conf_finish(rootdir);
+        write_ovs_conf_finish(rootdir);
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only
          * invalidates cache at most every 3 seconds. Not sure if this

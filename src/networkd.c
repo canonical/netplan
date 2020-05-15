@@ -812,19 +812,8 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdouth = NULL;
-    g_autofree gchar *stderrh = NULL;
-    gint exit_status = 0;
 
-    gchar *argv[] = {"bin" "/" "systemd-escape", def->id, NULL};
-    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdouth, &stderrh, &exit_status, &err);
-    g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to ask systemd to escape %s; exit %d\nstdout: '%s'\nstderr: '%s'", def->id, exit_status, stdouth, stderrh);
-        exit(1);
-        // LCOV_EXCL_STOP
-    }
-    g_strstrip(stdouth);
+    stdouth = systemd_escape(def->id);
 
     GString* s = g_string_new("[Unit]\n");
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", stdouth, ".service", NULL);

@@ -56,6 +56,7 @@ typedef enum {
     NETPLAN_BACKEND_NONE,
     NETPLAN_BACKEND_NETWORKD,
     NETPLAN_BACKEND_NM,
+    NETPLAN_BACKEND_OVS,
     NETPLAN_BACKEND_MAX_,
 } NetplanBackend;
 
@@ -63,6 +64,7 @@ static const char* const netplan_backend_to_name[NETPLAN_BACKEND_MAX_] = {
         [NETPLAN_BACKEND_NONE] = "none",
         [NETPLAN_BACKEND_NETWORKD] = "networkd",
         [NETPLAN_BACKEND_NM] = "NetworkManager",
+        [NETPLAN_BACKEND_OVS] = "OpenVSwitch",
 };
 
 typedef enum {
@@ -195,6 +197,11 @@ typedef struct dhcp_overrides {
     char* hostname;
     guint metric;
 } NetplanDHCPOverrides;
+
+typedef struct ovs_settings {
+    GHashTable* external_ids;
+    GHashTable* other_config;
+} NetplanOVSSettings;
 
 /**
  * Represent a configuration stanza
@@ -340,6 +347,10 @@ struct net_definition {
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
 
+    /* these properties are only valid for OpenVSwitch */
+    /* netplan-feature: openvswitch */
+    NetplanOVSSettings ovs_settings;
+
     union {
         struct NetplanNMSettings {
             char *name;
@@ -418,6 +429,7 @@ typedef struct {
 /* Written/updated by parse_yaml(): char* id →  net_definition */
 extern GHashTable* netdefs;
 extern GList* netdefs_ordered;
+extern NetplanOVSSettings ovs_settings_global;
 
 /****************************************************
  * Functions
