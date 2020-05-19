@@ -201,11 +201,15 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                 exit(1);
             }
 
-            if (cur_route->scope) {
+            if (!g_strcmp0(cur_route->scope, "global")) {
                 /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
                  * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
                  * ("link" for addresses without gateway, "global" for addresses with next-hop). */
-                g_fprintf(stderr, "WARNING: %s: NetworkManager does not support setting a scope for routes\n", def->id);
+                g_debug("%s: NetworkManager does not support setting a scope for routes, it will auto-detect them.", def->id);
+            } else if (cur_route->scope) {
+                /* Error out if scope is not set to its default value of 'global' */
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support setting a scope for routes\n", def->id);
+                exit(1);
             }
 
             g_string_append_printf(s, "route%d=%s,%s",

@@ -1371,7 +1371,6 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 
         cur_route = g_new0(NetplanIPRoute, 1);
         cur_route->type = g_strdup("unicast");
-        /* FIXME: do not pre-fill scope, NM does not support scopes and will throw a warning. */
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
