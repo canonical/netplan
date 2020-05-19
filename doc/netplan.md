@@ -89,8 +89,8 @@ Virtual devices
      :   Current interface name. Globs are supported, and the primary use case
          for matching on names, as selecting one fixed name can be more easily
          achieved with having no ``match:`` at all and just using the ID (see
-         above). Note that currently only networkd supports globbing,
-         NetworkManager does not.
+         above).
+         (``NetworkManager``: as of v1.14.0)
 
      ``macaddress`` (scalar)
      :   Device's MAC address in the form "XX:XX:XX:XX:XX:XX". Globs are not
@@ -440,6 +440,7 @@ These options are available for all types of interfaces.
 
      ``from`` (scalar)
      :    Set a source IP address for traffic going through the route.
+          (``NetworkManager``: as of v1.8.0)
 
      ``to`` (scalar)
      :    Destination address for the route.
@@ -450,6 +451,7 @@ These options are available for all types of interfaces.
      ``on-link`` (bool)
      :    When set to "true", specifies that the route is directly connected
           to the interface.
+          (``NetworkManager``: as of v1.12.0 for IPv4 and v1.18.0 for IPv6)
 
      ``metric`` (scalar)
      :    The relative priority of the route. Must be a positive integer value.
@@ -460,7 +462,8 @@ These options are available for all types of interfaces.
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
-          values are "global", "link", or "host".
+          values are "global", "link", or "host". ``NetworkManager`` does
+          not support setting a scope.
 
      ``table`` (scalar)
      :    The table number to use for the route. In some scenarios, it may be
@@ -469,6 +472,7 @@ These options are available for all types of interfaces.
           parameter. Allowed values are positive integers starting from 1.
           Some values are already in use to refer to specific routing tables:
           see ``/etc/iproute2/rt_tables``.
+          (``NetworkManager``: as of v1.10.0)
 
 ``routing-policy`` (mapping)
 
@@ -1142,7 +1146,6 @@ This is a complex example which shows most available features:
         switchports:
           # all cards on second PCI bus unconfigured by
           # themselves, will be added to br0 below
-          # note: globbing is not supported by NetworkManager
           match:
             name: enp2*
           mtu: 1280
