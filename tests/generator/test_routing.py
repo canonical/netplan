@@ -731,7 +731,7 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 '''})
 
     def test_route_reject_from(self):
-        self.generate('''network:
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -742,6 +742,7 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
           via: 192.168.14.20
           from: 192.168.14.2
           ''')
+        self.assertEqual('', out)
 
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
@@ -763,7 +764,7 @@ method=ignore
         self.assert_networkd({})
 
     def test_route_reject_onlink(self):
-        self.generate('''network:
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -774,6 +775,7 @@ method=ignore
           via: 192.168.1.20
           on-link: true
           ''')
+        self.assertEqual('', out)
 
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
@@ -795,7 +797,7 @@ method=ignore
         self.assert_networkd({})
 
     def test_route_reject_table(self):
-        self.generate('''network:
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -806,6 +808,7 @@ method=ignore
           via: 192.168.1.20
           table: 31337
           ''')
+        self.assertEqual('', out)
 
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
@@ -837,25 +840,10 @@ method=ignore
         - to: 10.10.10.0/24
           via: 192.168.1.20
           scope: host
-          ''')
-        self.assertIn('WARNING: engreen: NetworkManager does not support setting a scope for routes', out)
+          ''', expect_fail=True)
+        self.assertIn('ERROR: engreen: NetworkManager does not support setting a scope for routes', out)
 
-        self.assert_nm({'engreen': '''[connection]
-id=netplan-engreen
-type=ethernet
-interface-name=engreen
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=manual
-address1=192.168.14.2/24
-route1=10.10.10.0/24,192.168.1.20
-
-[ipv6]
-method=ignore
-'''})
+        self.assert_nm({})
         self.assert_networkd({})
 
     def test_route_reject_type(self):
