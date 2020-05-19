@@ -205,8 +205,7 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                 /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
                  * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
                  * ("link" for addresses without gateway, "global" for addresses with next-hop). */
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support setting a scope for routes\n", def->id);
-                exit(1);
+                g_fprintf(stderr, "WARNING: %s: NetworkManager does not support setting a scope for routes\n", def->id);
             }
 
             g_string_append_printf(s, "route%d=%s,%s",
