@@ -26,17 +26,18 @@
 #include "util.h"
 
 static void
-write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir)
+write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical)
 {
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
-    g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", id, ".service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", id, ".service", NULL);
 
     GString* s = g_string_new("[Unit]\n");
     g_string_append_printf(s, "Description=OpenVSwitch configuration for %s\n", id);
     g_string_append(s, "DefaultDependencies=no\n");
-    g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id);
-    g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id);
+    if (physical) {
+        g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id);
+        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id);
+    }
     g_string_append(s, "Before=network.target\nWants=network.target\n\n");
 
     g_string_append(s, "[Service]\nType=oneshot\n");
@@ -45,7 +46,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir)
     g_string_free_to_file(s, rootdir, path, NULL);
 
     safe_mkdir_p_dir(link);
-    if (symlink(slink, link) < 0 && errno != EEXIST) {
+    if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to create enablement symlink: %m\n");
         exit(1);
@@ -67,13 +68,26 @@ netplan_type_to_table_name(const NetplanDefType type)
     switch (type) {
         case NETPLAN_DEF_TYPE_BRIDGE:
             return "Bridge";
-        default:
+        default: /* For regular interfaces, bonds and others */
             return "Interface";
     }
 }
 
+static gboolean
+netplan_type_is_physical(const NetplanDefType type)
+{
+    switch (type) {
+        case NETPLAN_DEF_TYPE_ETHERNET:
+        // case NETPLAN_DEF_TYPE_WIFI:
+        // case NETPLAN_DEF_TYPE_MODEM:
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
 static void
-write_ovs_additional_data(GHashTable *data, const NetplanDefType type, const gchar* id_escaped, GString* cmds, const char* setting)
+write_ovs_additional_data(GHashTable *data, const char* type, const gchar* id_escaped, GString* cmds, const char* setting)
 {
     GHashTableIter iter;
     gchar* key;
@@ -81,8 +95,10 @@ write_ovs_additional_data(GHashTable *data, const NetplanDefType type, const gch
 
     g_hash_table_iter_init(&iter, data);
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &value)) {
+        /* XXX: we need to check what happens when an invalid key=value pair
+            gets supplied here. We might want to handle this somehow. */
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s %s:%s=%s",
-                           netplan_type_to_table_name(type), id_escaped, setting, key, value);
+                           type, id_escaped, setting, key, value);
     }
 }
 
@@ -95,7 +111,8 @@ void
 write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* cmds = g_string_new(NULL);
-    g_autofree gchar* id_escaped = NULL; // TODO: Check if this works
+    g_autofree gchar* id_escaped = NULL;
+    const char* type = netplan_type_to_table_name(def->type);
 
     id_escaped = systemd_escape(def->id);
 
@@ -104,13 +121,13 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     /* Common OVS settings can be specified even for non-OVS interfaces */
     if (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0) {
-        write_ovs_additional_data(def->ovs_settings.external_ids, def->type,
-                                          id_escaped, cmds, "external-ids");
+        write_ovs_additional_data(def->ovs_settings.external_ids, type,
+                                  id_escaped, cmds, "external-ids");
     }
 
     if (def->ovs_settings.other_config && g_hash_table_size(def->ovs_settings.other_config) > 0) {
-        write_ovs_additional_data(def->ovs_settings.other_config, def->type,
-                                          id_escaped, cmds, "other-config");
+        write_ovs_additional_data(def->ovs_settings.other_config, type,
+                                  id_escaped, cmds, "other-config");
     }
 
     /* For other, more OVS specific settings, we expect the backend to be set to OVS */
@@ -122,7 +139,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     /* If we need to configure anything for this netdef, write the required systemd unit */
     if (cmds->len > 0)
-        write_ovs_systemd_unit(id_escaped, cmds, rootdir);
+        write_ovs_systemd_unit(id_escaped, cmds, rootdir, netplan_type_is_physical(def->type));
     g_string_free(cmds, TRUE);
 }
 
@@ -132,7 +149,24 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 void
 write_ovs_conf_finish(const char* rootdir)
 {
-    /* TODO: Write the global config here */
+    GString* cmds = g_string_new(NULL);
+
+    /* Global external-ids and other-config settings */
+    if (ovs_settings_global.external_ids && g_hash_table_size(ovs_settings_global.external_ids) > 0) {
+        write_ovs_additional_data(ovs_settings_global.external_ids, "open_vswitch",
+                                  ".", cmds, "external-ids");
+    }
+
+    if (ovs_settings_global.other_config && g_hash_table_size(ovs_settings_global.other_config) > 0) {
+        write_ovs_additional_data(ovs_settings_global.other_config, "open_vswitch",
+                                  ".", cmds, "other-config");
+    }
+
+    /* TODO: Add any additional base OVS config we might need */
+
+    if (cmds->len > 0)
+        write_ovs_systemd_unit("global", cmds, rootdir, FALSE);
+    g_string_free(cmds, TRUE);
 }
 
 /**
@@ -141,6 +175,6 @@ write_ovs_conf_finish(const char* rootdir)
 void
 cleanup_ovs_conf(const char* rootdir)
 {
-    //unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-*.service");
-    //unlink_glob(rootdir, "/run/systemd/system/netplan-ovs-*.service");
+    unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-*.service");
+    unlink_glob(rootdir, "/run/systemd/system/netplan-ovs-*.service");
 }

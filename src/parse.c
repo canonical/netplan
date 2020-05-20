@@ -350,15 +350,13 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
 }
 
 /*
- * Handler for TODO
+ * Handler for setting a HashTable field from a mapping node, inside a given struct
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
 */
 static gboolean
 handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
-    g_assert(cur_netdef);
-
     guint offset = GPOINTER_TO_UINT(data);
     GHashTable** map = (GHashTable**) ((void*) entryptr + offset);
     if (!*map)
@@ -375,7 +373,7 @@ handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
 
         /* TODO: make sure we free all the memory here */
         if (!g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value))))
-            return yaml_error(key, error, "%s: Duplicate map entry '%s'", cur_netdef->id, scalar(key));
+            return yaml_error(node, error, "duplicate map entry '%s'", scalar(key));
     }
 
     return TRUE;
@@ -535,6 +533,7 @@ handle_netdef_addrgen(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
 static gboolean
 handle_netdef_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_netdef);
     return handle_generic_map(doc, node, cur_netdef, data, error);
 }
 
@@ -1866,7 +1865,7 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
 }
 
 static gboolean
-handle_network_ovs_settings(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_network_ovs_settings_global(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_map(doc, node, &ovs_settings_global, data, error);
 }
@@ -1981,8 +1980,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 }
 
 static const mapping_entry_handler ovs_network_settings_handlers[] = {
-    {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings, NULL, ovs_settings_offset(external_ids)},
-    {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings, NULL, ovs_settings_offset(other_config)},
+    {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
+    {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
     {NULL}
 };
 
