@@ -20,6 +20,7 @@
 
 import os
 import random
+import glob
 import stat
 import string
 import tempfile
@@ -171,3 +172,24 @@ class TestBase(unittest.TestCase):
             return
         with open(rule_path) as f:
             self.assertEqual(f.read(), contents)
+
+    def assert_ovs(self, file_contents_map):
+        systemd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        if not file_contents_map:
+            # in this case we assume no OVS configuration should be present
+            self.assertFalse(glob.glob(os.path.join(systemd_dir, '*netplan-ovs-*.service')))
+            return
+
+        self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
+        for fname, contents in file_contents_map.items():
+            fname = 'netplan-ovs-' + fname
+            with open(os.path.join(systemd_dir, fname)) as f:
+                self.assertEqual(f.read(), contents)
+            if fname.endswith('.service'):
+                link_path = os.path.join(
+                    systemd_dir, 'systemd-networkd.service.wants', fname)
+                self.assertTrue(os.path.islink(link_path))
+                link_target = os.readlink(link_path)
+                self.assertEqual(link_target,
+                                 os.path.join(
+                                    '/', 'run', 'systemd', 'system', fname))

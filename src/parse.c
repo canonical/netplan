@@ -36,6 +36,7 @@
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
+#define ovs_settings_offset(field) GUINT_TO_POINTER(offsetof(NetplanOVSSettings, field))
 
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
@@ -50,6 +51,9 @@ static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
 
 static NetplanBackend backend_global, backend_cur_type;
+
+/* global OpenVSwitch settings */
+NetplanOVSSettings ovs_settings_global;
 
 /* Global ID → NetplanNetDefinition* map for all parsed config files */
 GHashTable* netdefs;
@@ -345,6 +349,37 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
     return TRUE;
 }
 
+/*
+ * Handler for setting a HashTable field from a mapping node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the boolean field to write is located
+*/
+static gboolean
+handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    GHashTable** map = (GHashTable**) ((void*) entryptr + offset);
+    if (!*map)
+        *map = g_hash_table_new(g_str_hash, g_str_equal);
+
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+
+        key = yaml_document_get_node(doc, entry->key);
+        value = yaml_document_get_node(doc, entry->value);
+
+        assert_type(key, YAML_SCALAR_NODE);
+        assert_type(value, YAML_SCALAR_NODE);
+
+        /* TODO: make sure we free all the memory here */
+        if (!g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value))))
+            return yaml_error(node, error, "duplicate map entry '%s'", scalar(key));
+    }
+
+    return TRUE;
+}
+
+
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -493,6 +528,13 @@ handle_netdef_addrgen(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
     else
         return yaml_error(node, error, "unknown ipv6-address-generation '%s'", scalar(node));
     return TRUE;
+}
+
+static gboolean
+handle_netdef_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_netdef);
+    return handle_generic_map(doc, node, cur_netdef, data, error);
 }
 
 
@@ -1660,6 +1702,12 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {NULL}
 };
 
+static const mapping_entry_handler ovs_backend_settings_handlers[] = {
+    {"external-ids", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.external_ids)},
+    {"other-config", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.other_config)},
+    {NULL}
+};
+
 static const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
     {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
@@ -1713,8 +1761,9 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                            \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
 
-#define COMMON_BACKEND_HANDLERS							\
-    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}
+#define COMMON_BACKEND_HANDLERS                                                \
+    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}, \
+    {"openvswitch", YAML_MAPPING_NODE, NULL, ovs_backend_settings_handlers}
 
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS                                                           \
@@ -1816,6 +1865,12 @@ static gboolean
 handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     return parse_renderer(node, &backend_global, error);
+}
+
+static gboolean
+handle_network_ovs_settings_global(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_map(doc, node, &ovs_settings_global, data, error);
 }
 
 static void
@@ -1927,6 +1982,12 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     return TRUE;
 }
 
+static const mapping_entry_handler ovs_network_settings_handlers[] = {
+    {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
+    {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
+    {NULL}
+};
+
 static const mapping_entry_handler network_handlers[] = {
     {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BOND)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BRIDGE)},
@@ -1937,6 +1998,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
     {"modems", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
+    {"openvswitch", YAML_MAPPING_NODE, NULL, ovs_network_settings_handlers},
     {NULL}
 };
 

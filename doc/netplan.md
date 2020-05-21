@@ -137,6 +137,17 @@ Virtual devices
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
+``openvswitch`` (mapping)
+
+:    TODO: This is just a stub - we'll update it once we have more OVS structure
+     defined.
+
+     ``external-ids`` (mapping)
+     :   Passed-through directly to OpenVSwitch
+
+     ``other-config`` (mapping)
+     :   Passed-through directly to OpenVSwitch
+
 
 ## Common properties for all device types
 

@@ -148,3 +148,29 @@ wifi_get_freq5(int channel)
     return GPOINTER_TO_INT(g_hash_table_lookup(wifi_frequency_5,
                            GINT_TO_POINTER(channel)));
 }
+
+/**
+ * Systemd-escape the given string. The caller is responsible for freeing
+ * the allocated escaped string.
+ */
+gchar*
+systemd_escape(char* string)
+{
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar* stderrh = NULL;
+    gint exit_status = 0;
+    gchar *escaped;
+
+    gchar *argv[] = {"bin" "/" "systemd-escape", string, NULL};
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &escaped, &stderrh, &exit_status, &err);
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to ask systemd to escape %s; exit %d\nstdout: '%s'\nstderr: '%s'", string, exit_status, escaped, stderrh);
+        exit(1);
+        // LCOV_EXCL_STOP
+    }
+    g_strstrip(escaped);
+
+    return escaped;
+}
