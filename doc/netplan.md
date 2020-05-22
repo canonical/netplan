@@ -1087,6 +1087,10 @@ more general information about tunnels.
 
 :   Defines the address of the remote endpoint of the tunnel.
 
+``ttl`` (scalar)
+
+:   Defines the TTL of the tunnel.
+
 ``key``  (scalar or mapping)
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted

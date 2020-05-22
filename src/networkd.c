@@ -142,6 +142,8 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
         g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
     g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
+    if (def->tunnel.ttl)
+        g_string_append_printf(params, "TTL=%u\n", def->tunnel.ttl);
     if (def->tunnel.input_key)
         g_string_append_printf(params, "InputKey=%s\n", def->tunnel.input_key);
     if (def->tunnel.output_key)
