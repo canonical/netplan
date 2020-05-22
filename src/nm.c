@@ -224,12 +224,12 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                 g_string_append_printf(s, "route%d_options=", j);
                 if (cur_route->onlink) {
                     /* onlink for IPv6 addresses is only supported since nm-1.18.0. */
-                    g_string_append_printf(s, "onlink=true ");
+                    g_string_append_printf(s, "onlink=true,");
                 }
                 if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC)
-                    g_string_append_printf(s, "table=%u ", cur_route->table);
+                    g_string_append_printf(s, "table=%u,", cur_route->table);
                 if (cur_route->from)
-                    g_string_append_printf(s, "from=%s ", cur_route->from);
+                    g_string_append_printf(s, "src=%s,", cur_route->from);
                 s->str[s->len - 1] = '\n';
             }
             j++;
