@@ -42,6 +42,7 @@ def prepare_config_for_mode(renderer, mode, key=None):
       mode: {}
       local: {}
       remote: {}
+      ttl: 64
       addresses: [ 15.15.15.15/24 ]
       gateway4: 20.20.20.21
 """.format(mode, local_ip, remote_ip)
@@ -754,6 +755,7 @@ Kind=ipip
 Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
+TTL=64
 ''',
                               'tun0.network': '''[Match]
 Name=tun0
