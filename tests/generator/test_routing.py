@@ -756,7 +756,7 @@ wake-on-lan=0
 method=manual
 address1=192.168.14.2/24
 route1=10.10.10.0/24,192.168.14.20
-route1_options=from=192.168.14.2
+route1_options=src=192.168.14.2
 
 [ipv6]
 method=ignore
