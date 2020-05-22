@@ -730,7 +730,7 @@ route1=2001:dead:beef::2/64,2001:beef:beef::1,997
 route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 '''})
 
-    def test_route_reject_from(self):
+    def test_route_from(self):
         out = self.generate('''network:
   version: 2
   ethernets:
@@ -763,7 +763,7 @@ method=ignore
 '''})
         self.assert_networkd({})
 
-    def test_route_reject_onlink(self):
+    def test_route_onlink(self):
         out = self.generate('''network:
   version: 2
   ethernets:
@@ -796,7 +796,7 @@ method=ignore
 '''})
         self.assert_networkd({})
 
-    def test_route_reject_table(self):
+    def test_route_table(self):
         out = self.generate('''network:
   version: 2
   ethernets:
@@ -823,6 +823,41 @@ method=manual
 address1=192.168.14.2/24
 route1=10.10.10.0/24,192.168.1.20
 route1_options=table=31337
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+
+    def test_route_options(self):
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          table: 31337
+          from: 192.168.14.2
+          on-link: true
+          ''')
+        self.assertEqual('', out)
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=onlink=true,table=31337,src=192.168.14.2
 
 [ipv6]
 method=ignore
