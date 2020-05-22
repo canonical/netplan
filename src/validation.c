@@ -208,7 +208,7 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
 
     if (nd->tunnel.ttl) {
 	if ((nd->tunnel.ttl) < 1 || (nd->tunnel.ttl) > 255)
-            return yaml_error(node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id, nd->tunnel.ttl);
+            return yaml_error(node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
     }
 
     switch(nd->tunnel.mode) {

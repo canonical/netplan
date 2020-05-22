@@ -1262,6 +1262,20 @@ class TestConfigErrors(TestBase):
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: missing 'remote' property for tunnel", out)
 
+    def test_invalid_ttl(self):
+        """Fail if TTL not in range [1...255]"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 20.20.20.20
+      remote: 10.10.10.10
+      ttl: 300
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'ttl' property for tunnel must be in range [1...255]", out)
+
     def test_wrong_local_ip_for_mode_v4(self):
         """Show an error when an IPv6 local addr is used for an IPv4 tunnel mode"""
         config = '''network:
