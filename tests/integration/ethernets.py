@@ -89,6 +89,10 @@ class _CommonTests():
 ''' % {'r': self.backend}) # globbing match on "eth42", i.e. self.dev_e_client
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, ['inet 172.16.42.99/18', 'inet6 1234:ffff::42/64'])
+        out = subprocess.check_output(['ip', 'a', 'show', 'dev', self.dev_e_client],
+                                      universal_newlines=True)
+        self.assertIn('inet 172.16.42.99/18', out)
+        self.assertIn('inet6 1234:ffff::42/64', out)
 
     def test_manual_addresses(self):
         self.setup_eth(None)
