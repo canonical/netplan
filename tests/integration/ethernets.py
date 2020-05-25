@@ -76,6 +76,20 @@ class _CommonTests():
         subprocess.check_call(['ip', 'link', 'set', self.dev_e2_client,
                                'address', self.dev_e2_client_mac])
 
+    def test_eth_glob(self):
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    englob:
+      match: {name: "eth?2"}
+      addresses: ["172.16.42.99/18", "1234:FFFF::42/64"]
+''' % {'r': self.backend}) # globbing match on "eth42", i.e. self.dev_e_client
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, ['inet 172.16.42.99/18', 'inet6 1234:ffff::42/64'])
+
     def test_manual_addresses(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
