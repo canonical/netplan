@@ -38,15 +38,18 @@ class NetplanApply(utils.NetplanCommand):
         super().__init__(command_id='apply',
                          description='Apply current netplan config to running system',
                          leaf=True)
+        self.sriov_only = False
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
-        self.func = NetplanApply.command_apply
+        self.parser.add_argument('--sriov-only', action='store_true',
+                                 help='TODO')
+
+        self.func = self.command_apply
 
         self.parse_args()
         self.run_command()
 
-    @staticmethod
-    def command_apply(run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+    def command_apply(self, run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
         # if we are inside a snap, then call dbus to run netplan apply instead
         if "SNAP" in os.environ:
             # TODO: maybe check if we are inside a classic snap and don't do
@@ -73,6 +76,21 @@ class NetplanApply(utils.NetplanCommand):
             else:
                 return
 
+        config_manager = ConfigManager()
+
+        # For certain use-cases, we might want to only apply specific configuration.
+        # If we only need SR-IOV configuration, do that and exit early.
+        if self.sriov_only:
+            devices = netifaces.interfaces()
+            config_manager.parse()
+            try:
+                apply_sriov_config(devices, config_manager)
+            except (ConfigurationError, RuntimeError) as e:
+                logging.error(str(e))
+                if exit_on_error:
+                    sys.exit(1)
+            return
+
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
 
@@ -89,7 +107,6 @@ class NetplanApply(utils.NetplanCommand):
             else:
                 raise ConfigurationError("the configuration could not be generated")
 
-        config_manager = ConfigManager()
         devices = netifaces.interfaces()
 
         # Re-start service when

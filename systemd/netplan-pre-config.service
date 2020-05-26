@@ -1,0 +1,9 @@
+[Unit]
+Description=Netplan one-shot initial boot pre-configuration service
+DefaultDependencies=no
+After=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=netplan apply --sriov-only
