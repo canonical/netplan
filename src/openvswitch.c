@@ -119,6 +119,26 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     /* TODO: error out on non-existing ovs-vsctl tool */
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
 
+    if (def->type == NETPLAN_DEF_TYPE_BOND) {
+        if(!def->bridge) {
+            g_fprintf(stderr, "Bond %s needs to be a slave of an OVS bridge\n", def->bond);
+            exit(1);
+        }
+        /* XXX: verify def->bridge is an actual OVS bridge */
+        /* XXX: verify we have at least 2 slaves, as needed to define an OVS bond */
+        /* An OVS port will self-transform into a bond, once >= 2 slaves are added. */
+        /* TODO: make sure this systemd unit is run after the OVS bridge was created */
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-port %s %s",
+                           def->bridge, def->id);
+    }
+
+    /* This is a bond slave */
+    if (def->bond) {
+        /* TODO: make sure this systemd unit isrun after the OVS bond (port) was created */
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-bond-iface %s %s",
+                           def->bond, def->id);
+    }
+
     /* Common OVS settings can be specified even for non-OVS interfaces */
     if (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0) {
         write_ovs_additional_data(def->ovs_settings.external_ids, type,
