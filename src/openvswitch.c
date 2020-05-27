@@ -120,28 +120,6 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     /* TODO: error out on non-existing ovs-vsctl tool */
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
 
-    if (def->type == NETPLAN_DEF_TYPE_BOND) {
-        if(!def->bridge) {
-            g_fprintf(stderr, "Bond %s needs to be a slave of an OVS bridge\n", def->bond);
-            exit(1);
-        }
-        /* XXX: verify def->bridge is an actual OVS bridge */
-        /* XXX: verify we have at least 2 slaves, as needed to define an OVS bond */
-        /* An OVS port will self-transform into a bond, once >= 2 slaves are added. */
-        /* TODO: make sure this systemd unit is run after the OVS bridge was created */
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-port %s %s",
-                           def->bridge, def->id);
-    }
-
-    /* This is a bond slave */
-    if (def->bond) {
-        /* TODO: make sure this systemd unit isrun after the OVS bond (port) was created */
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-bond-iface %s %s",
-                           def->bond, def->id);
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-bond-iface %s %s",
-                           def->bond, def->bond)
-    }
-
     /* Common OVS settings can be specified even for non-OVS interfaces */
     if (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0) {
         write_ovs_additional_data(def->ovs_settings.external_ids, type,
@@ -156,7 +134,39 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     /* For other, more OVS specific settings, we expect the backend to be set to OVS.
      * The OVS backend is implicitly set, if an interface contains the "openvswitch:" key. */
     if (def->backend == NETPLAN_BACKEND_OVS) {
-        /* TODO */
+        if (def->type == NETPLAN_DEF_TYPE_BOND) {
+            if (!def->bridge) {
+                g_fprintf(stderr, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
+                exit(1);
+            }
+            NetplanNetDefinition* bridge = g_hash_table_lookup(netdefs, def->bridge);
+            if (!bridge || bridge->backend != NETPLAN_BACKEND_OVS) {
+                g_fprintf(stderr, "Bond %s: %s needs to be handled by OpenVSwitch\n", def->id, bridge->id);
+                exit(1);
+            }
+            GHashTableIter iter;
+            gchar* key;
+            NetplanNetDefinition* value;
+            GString* s = g_string_new(OPENVSWITCH_OVS_VSCTL " add-bond");
+            int i = 0;
+            g_string_append_printf(s, " %s %s", def->bridge, def->id);
+
+            g_hash_table_iter_init(&iter, netdefs);
+            while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &value)) {
+                if (!g_strcmp0(def->id, value->bond)) {
+                    /* Append and count bond interfaces */
+                    g_string_append_printf(s, " %s", value->id);
+                    i++;
+                }
+            }
+            if (i < 2) {
+                g_fprintf(stderr, "Bond %s needs to have at least 2 slave interfaces\n", def->id);
+                exit(1);
+            }
+            /* TODO: make sure this systemd unit is run after the OVS bridge was created */
+            append_systemd_cmd(cmds, s->str, def->bridge, def->id);
+            g_string_free(s, TRUE);
+        }
     } else {
         g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
     }

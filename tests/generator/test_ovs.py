@@ -136,34 +136,8 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
 ''')
         self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'service': '''[Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl add-port br0 bond0
-'''},
-                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'service': '''[Service]
-Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl add-bond-iface bond0 eth1
-ExecStart=/usr/bin/ovs-vsctl --if-exists del-bond-iface bond0 bond0
-'''},
-                         'eth2.service': OVS_PHYSICAL % {'iface': 'eth2', 'service': '''[Service]
-Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl add-bond-iface bond0 eth2
-ExecStart=/usr/bin/ovs-vsctl --if-exists del-bond-iface bond0 bond0
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
 '''}})
         # Confirm that the networkd config is still sane
-        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '''[Match]
-Name=br0
-
-[Network]
-LinkLocalAddressing=ipv6
-Address=192.170.1.1/24
-ConfigureWithoutCarrier=yes
-''',
-                              'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
-                              'bond0.network': '''[Match]\nName=bond0\n
-[Network]
-LinkLocalAddressing=no
-ConfigureWithoutCarrier=yes
-Bridge=br0
-''',
-                              'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
