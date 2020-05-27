@@ -1708,6 +1708,14 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {NULL}
 };
 
+static gboolean
+handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly. */
+    cur_netdef->backend = NETPLAN_BACKEND_OVS;
+    return process_mapping(doc, node, ovs_backend_settings_handlers, error);
+}
+
 static const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
     {"addresses", YAML_SEQUENCE_NODE, handle_nameservers_addresses},
@@ -1763,7 +1771,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 
 #define COMMON_BACKEND_HANDLERS                                                \
     {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}, \
-    {"openvswitch", YAML_MAPPING_NODE, NULL, ovs_backend_settings_handlers}
+    {"openvswitch", YAML_MAPPING_NODE, handle_ovs_backend}
 
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS                                                           \

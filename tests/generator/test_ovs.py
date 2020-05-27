@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL
+from .base import TestBase, ND_DHCP4, OVS_PHYSICAL, OVS_VIRTUAL
 
 
 class TestOpenVSwitch(TestBase):
@@ -49,9 +49,8 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band=tru
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
 '''}})
-        # Confirm that the networkd config is still sane
-        self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0',
-                              'eth1.network': ND_DHCP4 % 'eth1'})
+        # Confirm that networkd does not touch the OVS interfaces
+        self.assert_networkd({})
 
     def test_bridge_external_ids_other_config(self):
         self.generate('''network:
@@ -70,20 +69,8 @@ Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
 '''}})
-        # Confirm that the networkd config is still sane
-        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '''[Match]
-Name=br0
-
-[Network]
-DHCP=ipv4
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-
-[DHCP]
-RouteMetric=100
-UseMTU=true
-'''})
+        # Confirm that networkd does not touch the OVS interfaces
+        self.assert_networkd({})
 
     def test_global_external_ids_other_config(self):
         self.generate('''network:
