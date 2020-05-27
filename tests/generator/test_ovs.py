@@ -149,3 +149,50 @@ ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+
+    def test_bond_no_bridge(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      openvswitch: {}
+''', expect_fail=True)
+        self.assertIn("Bond bond0 needs to be a slave of an OpenVSwitch bridge", err)
+
+    def test_bond_invalid_bridge(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      openvswitch: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+''', expect_fail=True)
+        self.assertIn("Bond bond0: br0 needs to be handled by OpenVSwitch", err)
+
+    def test_bond_not_enough_interfaces(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+  bonds:
+    bond0:
+      interfaces: [eth1]
+      openvswitch: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+      openvswitch: {}
+''', expect_fail=True)
+        self.assertIn("Bond bond0 needs to have at least 2 slave interfaces", err)
