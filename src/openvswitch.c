@@ -27,7 +27,7 @@
 #include "util.h"
 
 static void
-write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical)
+write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, const char* dependency)
 {
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", id, ".service", NULL);
@@ -39,9 +39,13 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
         g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id);
         g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id);
     }
-    g_string_append(s, "Before=network.target\nWants=network.target\n\n");
+    g_string_append(s, "Before=network.target\nWants=network.target\n");
+    if (dependency) {
+        g_string_append_printf(s, "Requires=netplan-ovs-%s.service\n", dependency);
+        g_string_append_printf(s, "After=netplan-ovs-%s.service\n", dependency);
+    }
 
-    g_string_append(s, "[Service]\nType=oneshot\n");
+    g_string_append(s, "\n[Service]\nType=oneshot\n");
     g_string_append(s, cmds->str);
 
     g_string_free_to_file(s, rootdir, path, NULL);
@@ -113,6 +117,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* cmds = g_string_new(NULL);
     g_autofree gchar* id_escaped = NULL;
+    g_autofree gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
 
     id_escaped = systemd_escape(def->id);
@@ -163,7 +168,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 g_fprintf(stderr, "Bond %s needs to have at least 2 slave interfaces\n", def->id);
                 exit(1);
             }
-            /* TODO: make sure this systemd unit is run after the OVS bridge was created */
+            dependency = def->bridge;
             append_systemd_cmd(cmds, s->str, def->bridge, def->id);
             g_string_free(s, TRUE);
         }
@@ -173,7 +178,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     /* If we need to configure anything for this netdef, write the required systemd unit */
     if (cmds->len > 0)
-        write_ovs_systemd_unit(id_escaped, cmds, rootdir, netplan_type_is_physical(def->type));
+        write_ovs_systemd_unit(id_escaped, cmds, rootdir, netplan_type_is_physical(def->type), dependency);
     g_string_free(cmds, TRUE);
 }
 
@@ -199,7 +204,7 @@ write_ovs_conf_finish(const char* rootdir)
     /* TODO: Add any additional base OVS config we might need */
 
     if (cmds->len > 0)
-        write_ovs_systemd_unit("global", cmds, rootdir, FALSE);
+        write_ovs_systemd_unit("global", cmds, rootdir, FALSE, NULL);
     g_string_free(cmds, TRUE);
 }
 

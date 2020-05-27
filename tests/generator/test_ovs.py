@@ -40,12 +40,14 @@ class TestOpenVSwitch(TestBase):
         other-config:
           disable-in-band: false
 ''')
-        self.assert_ovs({'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'service': '''[Service]
+        self.assert_ovs({'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''
+[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band=true
 '''},
-                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'service': '''[Service]
+                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''
+[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
 '''}})
@@ -64,7 +66,8 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=fal
           disable-in-band: true
       dhcp4: yes
 ''')
-        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'service': '''[Service]
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
+[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
@@ -84,7 +87,8 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
     eth0:
       dhcp4: yes
 ''')
-        self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'service': '''[Service]
+        self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
+[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=true
@@ -134,7 +138,11 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
       interfaces: [bond0]
       openvswitch: {}
 ''')
-        self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'service': '''[Service]
+        self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
+                        '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
 '''}})
