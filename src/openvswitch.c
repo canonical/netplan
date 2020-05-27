@@ -138,6 +138,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
         /* TODO: make sure this systemd unit isrun after the OVS bond (port) was created */
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-bond-iface %s %s",
                            def->bond, def->id);
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-bond-iface %s %s",
+                           def->bond, def->bond)
     }
 
     /* Common OVS settings can be specified even for non-OVS interfaces */
