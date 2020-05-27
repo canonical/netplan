@@ -3,6 +3,7 @@
 #
 # Copyright (C) 2020 Canonical, Ltd.
 # Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>
+#         Lukas 'slyon' Märdian <lukas.maerdian@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,12 +40,12 @@ class TestOpenVSwitch(TestBase):
         other-config:
           disable-in-band: false
 ''')
-        self.assert_ovs({'eth0.service': OVS_PHYSICAL % { 'iface': 'eth0', 'service': '''[Service]
+        self.assert_ovs({'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band=true
 '''},
-                         'eth1.service': OVS_PHYSICAL % { 'iface': 'eth1', 'service': '''[Service]
+                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
 '''}})
@@ -64,7 +65,7 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=fal
           disable-in-band: true
       dhcp4: yes
 ''')
-        self.assert_ovs({'br0.service': OVS_VIRTUAL % { 'iface': 'br0', 'service': '''[Service]
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
@@ -96,7 +97,7 @@ UseMTU=true
     eth0:
       dhcp4: yes
 ''')
-        self.assert_ovs({'global.service': OVS_VIRTUAL % { 'iface': 'global', 'service': '''[Service]
+        self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=true
@@ -131,11 +132,11 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
         self.generate('''network:
   version: 2
   ethernets:
+    eth1: {}
     eth2: {}
-    eth3: {}
   bonds:
     bond0:
-      interfaces: [eth2, eth3]
+      interfaces: [eth1, eth2]
       #parameters:
       #  mode: balance-tcp # this is a bond mode only supported on openvswitch
       openvswitch: {}
@@ -146,17 +147,19 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
       interfaces: [bond0]
       openvswitch: {}
 ''')
-        self.assert_ovs({'bond0.service': OVS_VIRTUAL % { 'iface': 'bond0', 'service': '''[Service]
+        self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-port br0 bond0
 '''},
-                         'eth2.service': OVS_PHYSICAL % { 'iface': 'eth1', 'service': '''[Service]
+                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond-iface bond0 eth1
+ExecStart=/usr/bin/ovs-vsctl --if-exists del-bond-iface bond0 bond0
 '''},
-                         'eth2.service': OVS_PHYSICAL % { 'iface': 'eth2', 'service': '''[Service]
+                         'eth2.service': OVS_PHYSICAL % {'iface': 'eth2', 'service': '''[Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond-iface bond0 eth2
+ExecStart=/usr/bin/ovs-vsctl --if-exists del-bond-iface bond0 bond0
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
@@ -175,5 +178,5 @@ LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 Bridge=br0
 ''',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth3.network': '[Match]\nName=eth3\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+                              'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})

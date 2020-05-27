@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2020 Canonical, Ltd.
  * Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>
+ *         Lukas 'slyon' Märdian <lukas.maerdian@canonical.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
