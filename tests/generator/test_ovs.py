@@ -131,7 +131,6 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
       #parameters:
       #  mode: balance-tcp # this is a bond mode only supported on openvswitch
       openvswitch: {}
-      #  lacp: active
   bridges:
     br0:
       addresses: [192.170.1.1/24]
@@ -145,6 +144,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -196,3 +196,62 @@ ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
       openvswitch: {}
 ''', expect_fail=True)
         self.assertIn("Bond bond0 needs to have at least 2 slave interfaces", err)
+
+    def test_bond_lacp(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      openvswitch:
+        lacp: active
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+      openvswitch: {}
+''')
+        self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
+                        '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=active
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+
+    def test_bond_lacp_invalid(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      openvswitch:
+        lacp: invalid
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+      openvswitch: {}
+''', expect_fail=True)
+        self.assertIn("Value of 'lacp' needs to be 'active', 'passive' or 'off", err)
+
+    def test_bond_lacp_wrong_type(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1:
+      openvswitch:
+        lacp: passive
+''', expect_fail=True)
+        self.assertIn("Key 'lacp' is only valid for iterface type 'openvswitch bond'", err)

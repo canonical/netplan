@@ -201,6 +201,7 @@ typedef struct dhcp_overrides {
 typedef struct ovs_settings {
     GHashTable* external_ids;
     GHashTable* other_config;
+    char* lacp;
 } NetplanOVSSettings;
 
 /**

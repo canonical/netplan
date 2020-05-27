@@ -148,6 +148,8 @@ Virtual devices
      ``other-config`` (mapping)
      :   Passed-through directly to OpenVSwitch
 
+     ``lacp`` (scalar)
+     :   Valid for bond interfaces. Accepts ``active``, ``passive` or ``off`` (the default).
 
 ## Common properties for all device types
 

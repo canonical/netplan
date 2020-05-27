@@ -1702,9 +1702,22 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {NULL}
 };
 
+static gboolean
+handle_ovs_bond_lacp(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND)
+        return yaml_error(node, error, "Key 'lacp' is only valid for iterface type 'openvswitch bond'");
+
+    if (g_strcmp0(scalar(node), "active") && g_strcmp0(scalar(node), "passive") && g_strcmp0(scalar(node), "off"))
+        return yaml_error(node, error, "Value of 'lacp' needs to be 'active', 'passive' or 'off");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
 static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.external_ids)},
     {"other-config", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.other_config)},
+    {"lacp", YAML_SCALAR_NODE, handle_ovs_bond_lacp, NULL, netdef_offset(ovs_settings.lacp)},
     {NULL}
 };
 
