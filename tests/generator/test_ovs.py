@@ -43,12 +43,14 @@ class TestOpenVSwitch(TestBase):
         self.assert_ovs({'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band=true
 '''},
                          'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
 '''}})
         # Confirm that networkd does not touch the OVS interfaces
@@ -69,6 +71,7 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=fal
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
 '''}})
@@ -90,6 +93,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
         self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=true
 '''}})
@@ -128,8 +132,6 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
   bonds:
     bond0:
       interfaces: [eth1, eth2]
-      #parameters:
-      #  mode: balance-tcp # this is a bond mode only supported on openvswitch
       openvswitch: {}
   bridges:
     br0:
@@ -143,7 +145,9 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 '''}})
@@ -221,7 +225,9 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=active
 '''}})
@@ -281,7 +287,9 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=balance-tcp
@@ -314,7 +322,9 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=active-backup

@@ -46,6 +46,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     }
 
     g_string_append(s, "\n[Service]\nType=oneshot\n");
+    g_string_append(s, "RemainAfterExit=yes\n");
     g_string_append(s, cmds->str);
 
     g_string_free_to_file(s, rootdir, path, NULL);
@@ -63,6 +64,12 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
 #define append_systemd_cmd(s, command, ...) \
 { \
     g_string_append(s, "ExecStart="); \
+    g_string_append_printf(s, command, __VA_ARGS__); \
+    g_string_append(s, "\n"); \
+}
+#define append_systemd_stop(s, command, ...) \
+{ \
+    g_string_append(s, "ExecStop="); \
     g_string_append_printf(s, command, __VA_ARGS__); \
     g_string_append(s, "\n"); \
 }
@@ -143,6 +150,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, const gchar* id_escap
     }
 
     append_systemd_cmd(cmds, s->str, systemd_escape(def->bridge), id_escaped);
+    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s", id_escaped);
     g_string_free(s, TRUE);
     return def->bridge;
 }
