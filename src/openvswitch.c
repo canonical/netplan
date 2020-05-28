@@ -108,7 +108,7 @@ write_ovs_additional_data(GHashTable *data, const char* type, const gchar* id_es
 }
 
 static char*
-write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
+write_ovs_bond_interfaces(const NetplanNetDefinition* def, const gchar* id_escaped, GString* cmds)
 {
     NetplanNetDefinition* tmp_nd;
     GHashTableIter iter;
@@ -142,7 +142,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
         exit(1);
     }
 
-    append_systemd_cmd(cmds, s->str, def->bridge, def->id);
+    append_systemd_cmd(cmds, s->str, systemd_escape(def->bridge), id_escaped);
     g_string_free(s, TRUE);
     return def->bridge;
 }
@@ -181,13 +181,13 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     if (def->backend == NETPLAN_BACKEND_OVS) {
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:
-                dependency = write_ovs_bond_interfaces(def, cmds);
+                dependency = write_ovs_bond_interfaces(def, id_escaped, cmds);
                 /* Mark this bond as created by netplan */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s external-ids:netplan=true",
                                    id_escaped);
                 /* Set LACP mode, default to "off" */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s lacp=%s",
-                                   def->id, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
+                                   id_escaped, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
                 if (def->bond_params.mode) {
                     /* OVS supports only "active-backup", "balance-tcp" and "balance-slb":
                      * http://www.openvswitch.org/support/dist-docs/ovs-vswitchd.conf.db.5.txt */
@@ -195,7 +195,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                         !strcmp(def->bond_params.mode, "balance-tcp") ||
                         !strcmp(def->bond_params.mode, "balance-slb")) {
                         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s bond_mode=%s",
-                                           def->id, def->bond_params.mode);
+                                           id_escaped, def->bond_params.mode);
                     } else {
                         g_fprintf(stderr, "%s: bond mode '%s' not supported by openvswitch\n",
                                   def->id, def->bond_params.mode);
