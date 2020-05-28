@@ -182,6 +182,10 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:
                 dependency = write_ovs_bond_interfaces(def, cmds);
+                /* Mark this bond as created by netplan */
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s external-ids:netplan=true",
+                                   id_escaped);
+                /* Set LACP mode, default to "off" */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s lacp=%s",
                                    def->id, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
                 if (def->bond_params.mode) {

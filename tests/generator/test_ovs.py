@@ -144,6 +144,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 '''}})
         # Confirm that the networkd config is still sane
@@ -221,6 +222,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=active
 '''}})
         # Confirm that the networkd config is still sane
@@ -280,6 +282,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=balance-tcp
 '''}})
@@ -312,6 +315,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=active-backup
 '''}})
