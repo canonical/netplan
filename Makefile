@@ -130,7 +130,7 @@ install: default
 	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/$(DATADIR)/dbus-1/system-services/
 	# systemd
 	mkdir -p $(DESTDIR)/lib/systemd/system $(DESTDIR)/lib/systemd/system/network-pre.target.wants
-	install -m 644 systemd/netplan-pre-config.service $(DESTDIR)/$(DATADIR)/lib/systemd/system/
+	install -m 644 systemd/netplan-pre-config.service $(DESTDIR)/lib/systemd/system/
 	ln -sf ../netplan-pre-config.service $(DESTDIR)/lib/systemd/system/network-pre.target.wants/
 
 %.service: %.service.in
