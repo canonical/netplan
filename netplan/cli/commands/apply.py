@@ -42,7 +42,7 @@ class NetplanApply(utils.NetplanCommand):
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
         self.parser.add_argument('--sriov-only', action='store_true',
-                                 help='TODO')
+                                 help='Only apply SR-IOV related configuration and exit')
 
         self.func = self.command_apply
 
