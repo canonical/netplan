@@ -318,3 +318,23 @@ ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=active-backup
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+
+    def test_bond_mode_ovs_invalid(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      parameters:
+        mode: balance-rr
+      openvswitch: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+      openvswitch: {}
+''', expect_fail=True)
+        self.assertIn("bond0: bond mode 'balance-rr' not supported by openvswitch", err)

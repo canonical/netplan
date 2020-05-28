@@ -184,10 +184,20 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = write_ovs_bond_interfaces(def, cmds);
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s lacp=%s",
                                    def->id, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
-                /* XXX: Does OVS support all the other bond modes? */
-                if (def->bond_params.mode)
-                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s bond_mode=%s",
-                                       def->id, def->bond_params.mode);
+                if (def->bond_params.mode) {
+                    /* OVS supports only "active-backup", "balance-tcp" and "balance-slb":
+                     * http://www.openvswitch.org/support/dist-docs/ovs-vswitchd.conf.db.5.txt */
+                    if (!strcmp(def->bond_params.mode, "active-backup") ||
+                        !strcmp(def->bond_params.mode, "balance-tcp") ||
+                        !strcmp(def->bond_params.mode, "balance-slb")) {
+                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s bond_mode=%s",
+                                           def->id, def->bond_params.mode);
+                    } else {
+                        g_fprintf(stderr, "%s: bond mode '%s' not supported by openvswitch\n",
+                                  def->id, def->bond_params.mode);
+                        exit(1);
+                    }
+                }
                 break;
 
             default:
