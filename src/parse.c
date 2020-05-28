@@ -962,8 +962,18 @@ handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
         strcmp(scalar(node), "broadcast") == 0 ||
         strcmp(scalar(node), "802.3ad") == 0 ||
         strcmp(scalar(node), "balance-tlb") == 0 ||
-        strcmp(scalar(node), "balance-alb") == 0))
+        strcmp(scalar(node), "balance-alb") == 0 ||
+        strcmp(scalar(node), "balance-tcp") == 0 || // only supported for OVS
+        strcmp(scalar(node), "balance-slb") == 0))  // only supported for OVS
         return yaml_error(node, error, "unknown bond mode '%s'", scalar(node));
+
+    /* Implicitly set NETPLAN_BACKEND_OVS if ovs-only mode selected */
+    if (!strcmp(scalar(node), "balance-tcp") ||
+        !strcmp(scalar(node), "balance-slb")) {
+        g_debug("%s: mode '%s' only supported with openvswitch, choosing this backend",
+                cur_netdef->id, scalar(node));
+        cur_netdef->backend = NETPLAN_BACKEND_OVS;
+    }
 
     return handle_netdef_str(doc, node, data, error);
 }

@@ -824,6 +824,8 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           ``balance-rr`` (round robin). Possible values are ``balance-rr``,
           ``active-backup``, ``balance-xor``, ``broadcast``, ``802.3ad``,
           ``balance-tlb``, and ``balance-alb``.
+          For OpenVSwitch the additional modes ``balance-tcp`` and
+          ``balance-slb`` are supported.
 
      ``lacp-rate`` (scalar)
      :    Set the rate at which LACPDUs are transmitted. This is only useful

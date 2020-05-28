@@ -255,3 +255,66 @@ ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=active
         lacp: passive
 ''', expect_fail=True)
         self.assertIn("Key 'lacp' is only valid for iterface type 'openvswitch bond'", err)
+
+    def test_bond_mode_implicit_params(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      parameters:
+        mode: balance-tcp # Sets OVS backend implicitly
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+      openvswitch: {}
+''')
+        self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
+                        '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
+ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=balance-tcp
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+
+    def test_bond_mode_explicit_params(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      parameters:
+        mode: active-backup
+      openvswitch: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+      openvswitch: {}
+''')
+        self.assert_ovs({'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
+                        '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
+ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=active-backup
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})

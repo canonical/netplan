@@ -184,6 +184,10 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = write_ovs_bond_interfaces(def, cmds);
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s lacp=%s",
                                    def->id, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
+                /* XXX: Does OVS support all the other bond modes? */
+                if (def->bond_params.mode)
+                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s bond_mode=%s",
+                                       def->id, def->bond_params.mode);
                 break;
 
             default:
