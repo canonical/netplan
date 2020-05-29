@@ -145,7 +145,9 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
   bonds:
     bond0:
       interfaces: [eth1, eth2]
-      openvswitch: {}
+      openvswitch:
+        external-ids:
+          iface-id: myhostname
   bridges:
     br0:
       addresses: [192.170.1.1/24]
@@ -161,8 +163,9 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
-ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id=myhostname
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -241,8 +244,8 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
-ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=active
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=active
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -303,9 +306,9 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
-ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=balance-tcp
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=balance-tcp
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -338,9 +341,9 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
-ExecStart=/usr/bin/ovs-vsctl set port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set port bond0 bond_mode=active-backup
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',

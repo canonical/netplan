@@ -1740,12 +1740,15 @@ handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     gboolean ret = process_mapping(doc, node, ovs_backend_settings_handlers, &values, error);
     guint len = g_list_length(values);
 
-    if (len == 1 && (g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) ||
-        g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp)))
-        return ret;
-    else if (len == 2 && g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) &&
-             g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp))
-        return ret;
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND) {
+        /* Non-bond interfaces might still be handled by the networkd backend */
+        if (len == 1 && (g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) ||
+            g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp)))
+            return ret;
+        else if (len == 2 && g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) &&
+                g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp))
+            return ret;
+    }
 
     /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly.
      * But only if empty "openvswitch: {}" or "openvswitch:" with more than

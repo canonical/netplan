@@ -80,7 +80,9 @@ netplan_type_to_table_name(const NetplanDefType type)
     switch (type) {
         case NETPLAN_DEF_TYPE_BRIDGE:
             return "Bridge";
-        default: /* For regular interfaces, bonds and others */
+        case NETPLAN_DEF_TYPE_BOND:
+            return "Port";
+        default: /* For regular interfaces and others */
             return "Interface";
     }
 }
@@ -159,7 +161,7 @@ static void
 write_ovs_tag_netplan(const gchar* id_escaped, GString* cmds)
 {
     /* Mark this port as created by netplan */
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s external-ids:netplan=true",
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s external-ids:netplan=true",
                        id_escaped);
 }
 
@@ -171,7 +173,7 @@ write_ovs_bond_mode(const NetplanNetDefinition* def, const gchar* id_escaped, GS
     if (!strcmp(def->bond_params.mode, "active-backup") ||
         !strcmp(def->bond_params.mode, "balance-tcp") ||
         !strcmp(def->bond_params.mode, "balance-slb")) {
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s bond_mode=%s",
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s bond_mode=%s",
                             id_escaped, def->bond_params.mode);
     } else {
         g_fprintf(stderr, "%s: bond mode '%s' not supported by openvswitch\n",
@@ -198,17 +200,6 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     /* TODO: error out on non-existing ovs-vsctl tool */
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
 
-    /* Common OVS settings can be specified even for non-OVS interfaces */
-    if (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0) {
-        write_ovs_additional_data(def->ovs_settings.external_ids, type,
-                                  id_escaped, cmds, "external-ids");
-    }
-
-    if (def->ovs_settings.other_config && g_hash_table_size(def->ovs_settings.other_config) > 0) {
-        write_ovs_additional_data(def->ovs_settings.other_config, type,
-                                  id_escaped, cmds, "other-config");
-    }
-
     /* For other, more OVS specific settings, we expect the backend to be set to OVS.
      * The OVS backend is implicitly set, if an interface contains an empty "openvswitch: {}"
      * key, or an "openvswitch:" key containing only "external-ids" or "other-config". */
@@ -218,7 +209,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = write_ovs_bond_interfaces(def, id_escaped, cmds);
                 write_ovs_tag_netplan(id_escaped, cmds);
                 /* Set LACP mode, default to "off" */
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set port %s lacp=%s",
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s lacp=%s",
                                    id_escaped, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
                 if (def->bond_params.mode) {
                     write_ovs_bond_mode(def, id_escaped, cmds);
@@ -230,6 +221,20 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
         }
     } else {
         g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
+    }
+
+    /* Set "external-ids" and "other-config" after NETPLAN_BACKEND_OVS interfaces, as bonds,
+     * bridges, etc. might just be created before.*/
+
+    /* Common OVS settings can be specified even for non-OVS interfaces */
+    if (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0) {
+        write_ovs_additional_data(def->ovs_settings.external_ids, type,
+                                  id_escaped, cmds, "external-ids");
+    }
+
+    if (def->ovs_settings.other_config && g_hash_table_size(def->ovs_settings.other_config) > 0) {
+        write_ovs_additional_data(def->ovs_settings.other_config, type,
+                                  id_escaped, cmds, "other-config");
     }
 
     /* If we need to configure anything for this netdef, write the required systemd unit */
