@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 Canonical, Ltd.
  * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ *         Lukas Märdian <lukas.maerdian@canonical.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1749,6 +1750,7 @@ handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
                 g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp))
             return ret;
     }
+    g_list_free_full(values, g_free);
 
     /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly.
      * But only if empty "openvswitch: {}" or "openvswitch:" with more than
