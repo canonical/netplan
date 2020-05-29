@@ -220,7 +220,7 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
 static gboolean
-process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, GError** error)
+process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, GList** out_values, GError** error)
 {
     yaml_node_pair_t* entry;
 
@@ -239,10 +239,12 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
         if (!h)
             return yaml_error(key, error, "unknown key '%s'", scalar(key));
         assert_type(value, h->type);
+        if (out_values)
+            *out_values = g_list_prepend(*out_values, g_strdup(scalar(key)));
         if (h->map_handlers) {
             g_assert(h->handler == NULL);
             g_assert(h->type == YAML_MAPPING_NODE);
-            if (!process_mapping(doc, value, h->map_handlers, error))
+            if (!process_mapping(doc, value, h->map_handlers, NULL, error))
                 return FALSE;
         } else {
             if (!h->handler(doc, value, h->data, error))
@@ -664,7 +666,7 @@ handle_access_point_auth(yaml_document_t* doc, yaml_node_t* node, const void* _,
     cur_access_point->has_auth = TRUE;
 
     cur_auth = &cur_access_point->auth;
-    ret = process_mapping(doc, node, auth_handlers, error);
+    ret = process_mapping(doc, node, auth_handlers, NULL, error);
     cur_auth = NULL;
 
     return ret;
@@ -760,7 +762,7 @@ static gboolean
 handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     cur_netdef->has_match = TRUE;
-    return process_mapping(doc, node, match_handlers, error);
+    return process_mapping(doc, node, match_handlers, NULL, error);
 }
 
 struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[] = {
@@ -807,7 +809,7 @@ handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** err
     cur_netdef->has_auth = TRUE;
 
     cur_auth = &cur_netdef->auth;
-    ret = process_mapping(doc, node, auth_handlers, error);
+    ret = process_mapping(doc, node, auth_handlers, NULL, error);
     cur_auth = NULL;
 
     return ret;
@@ -907,7 +909,7 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
             return ret;
         }
 
-        if (!process_mapping(doc, value, wifi_access_point_handlers, error)) {
+        if (!process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
             cur_access_point = NULL;
             return FALSE;
         }
@@ -1396,7 +1398,7 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 {
     cur_netdef->custom_bridging = TRUE;
     cur_netdef->bridge_params.stp = TRUE;
-    return process_mapping(doc, node, bridge_params_handlers, error);
+    return process_mapping(doc, node, bridge_params_handlers, NULL, error);
 }
 
 /****************************************************
@@ -1427,7 +1429,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
 
-        if (process_mapping(doc, entry, routes_handlers, error)) {
+        if (process_mapping(doc, entry, routes_handlers, NULL, error)) {
             if (!cur_netdef->routes) {
                 cur_netdef->routes = g_array_new(FALSE, FALSE, sizeof(NetplanIPRoute*));
             }
@@ -1477,7 +1479,7 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
         cur_ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
         cur_ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 
-        if (process_mapping(doc, entry, ip_rules_handlers, error)) {
+        if (process_mapping(doc, entry, ip_rules_handlers, NULL, error)) {
             if (!cur_netdef->ip_rules) {
                 cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
             }
@@ -1581,7 +1583,7 @@ static const mapping_entry_handler bond_params_handlers[] = {
 static gboolean
 handle_bonding(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    return process_mapping(doc, node, bond_params_handlers, error);
+    return process_mapping(doc, node, bond_params_handlers, NULL, error);
 }
 
 static gboolean
@@ -1691,7 +1693,7 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
             ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.output_key), error);
     }
     else if (node->type == YAML_MAPPING_NODE) {
-        ret = process_mapping(doc, node, tunnel_keys_handlers, error);
+        ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
     }
     else {
         return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
@@ -1734,9 +1736,22 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
 static gboolean
 handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly. */
+    GList* values = NULL;
+    gboolean ret = process_mapping(doc, node, ovs_backend_settings_handlers, &values, error);
+    guint len = g_list_length(values);
+
+    if (len == 1 && (g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) ||
+        g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp)))
+        return ret;
+    else if (len == 2 && g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) &&
+             g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp))
+        return ret;
+
+    /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly.
+     * But only if empty "openvswitch: {}" or "openvswitch:" with more than
+     * "other-config" or "external-ids" keys is given. */
     cur_netdef->backend = NETPLAN_BACKEND_OVS;
-    return process_mapping(doc, node, ovs_backend_settings_handlers, error);
+    return ret;
 }
 
 static const mapping_entry_handler nameservers_handlers[] = {
@@ -1997,7 +2012,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
-        if (!process_mapping(doc, value, handlers, error))
+        if (!process_mapping(doc, value, handlers, NULL, error))
             return FALSE;
 
         /* validate definition-level conditions */
@@ -2063,7 +2078,7 @@ process_document(yaml_document_t* doc, GError** error)
 
         g_clear_error(error);
 
-        ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, error);
+        ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, NULL, error);
 
         still_missing = g_hash_table_size(missing_id);
 

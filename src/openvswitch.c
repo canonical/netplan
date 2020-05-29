@@ -185,7 +185,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     }
 
     /* For other, more OVS specific settings, we expect the backend to be set to OVS.
-     * The OVS backend is implicitly set, if an interface contains the "openvswitch:" key. */
+     * The OVS backend is implicitly set, if an interface contains an empty "openvswitch: {}"
+     * key, or an "openvswitch:" key containing only "external-ids" or "other-config". */
     if (def->backend == NETPLAN_BACKEND_OVS) {
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:
