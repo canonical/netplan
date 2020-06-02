@@ -1742,12 +1742,12 @@ handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     guint len = g_list_length(values);
 
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND) {
+        GList *other_config = g_list_find_custom(values, "other-config", (GCompareFunc) strcmp);
+        GList *external_ids = g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp);
         /* Non-bond interfaces might still be handled by the networkd backend */
-        if (len == 1 && (g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) ||
-            g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp)))
+        if (len == 1 && (other_config || external_ids))
             return ret;
-        else if (len == 2 && g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) &&
-                g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp))
+        else if (len == 2 && other_config && external_ids)
             return ret;
     }
     g_list_free_full(values, g_free);
