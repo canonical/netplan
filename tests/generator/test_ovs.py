@@ -57,40 +57,6 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=fal
         self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0',
                               'eth1.network': ND_DHCP4 % 'eth1'})
 
-    def test_bridge_external_ids_other_config(self):
-        self.generate('''network:
-  version: 2
-  bridges:
-    br0:
-      openvswitch:
-        external-ids:
-          iface-id: myhostname
-        other-config:
-          disable-in-band: true
-      dhcp4: yes
-''')
-        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
-'''}})
-        # Confirm that the networkd config is still sane
-        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
-                              'br0.network': '''[Match]
-Name=br0
-
-[Network]
-DHCP=ipv4
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-
-[DHCP]
-RouteMetric=100
-UseMTU=true
-'''})
-
     def test_global_external_ids_other_config(self):
         self.generate('''network:
   version: 2
@@ -368,3 +334,61 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
       openvswitch: {}
 ''', expect_fail=True)
         self.assertIn("bond0: bond mode 'balance-rr' not supported by openvswitch", err)
+
+    def test_bridge_setup(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [eth1, eth2]
+      openvswitch: {}
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
+                        '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStart=/usr/bin/ovs-vsctl add-port br0 eth1
+ExecStop=/usr/bin/ovs-vsctl del-port br0 eth1
+ExecStart=/usr/bin/ovs-vsctl add-port br0 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port br0 eth2
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+ExecStart=ip addr add 192.170.1.1/24 dev br0
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
+
+    def test_bridge_external_ids_other_config(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        external-ids:
+          iface-id: myhostname
+        other-config:
+          disable-in-band: true
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
+'''}})
+        # Confirm that the bridge has been only configured for OVS
+        self.assert_networkd(None)

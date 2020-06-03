@@ -202,6 +202,11 @@ typedef struct ovs_settings {
     GHashTable* external_ids;
     GHashTable* other_config;
     char* lacp;
+    char* fail_mode;
+    gboolean mcast_snooping;
+    GArray* protocols;
+    gboolean rstp;
+
 } NetplanOVSSettings;
 
 /**

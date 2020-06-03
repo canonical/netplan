@@ -1727,10 +1727,34 @@ handle_ovs_bond_lacp(yaml_document_t* doc, yaml_node_t* node, const void* data, 
     return handle_netdef_str(doc, node, data, error);
 }
 
+static gboolean
+handle_ovs_bridge_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key is only valid for iterface type 'openvswitch bridge'");
+
+    return handle_netdef_bool(doc, node, data, error);
+}
+
+static gboolean
+handle_ovs_bridge_fail_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'fail-mode' is only valid for iterface type 'openvswitch bridge'");
+
+    if (g_strcmp0(scalar(node), "standalone") && g_strcmp0(scalar(node), "secure"))
+        return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
 static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.external_ids)},
     {"other-config", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.other_config)},
     {"lacp", YAML_SCALAR_NODE, handle_ovs_bond_lacp, NULL, netdef_offset(ovs_settings.lacp)},
+    {"fail-mode", YAML_SCALAR_NODE, handle_ovs_bridge_fail_mode, NULL, netdef_offset(ovs_settings.fail_mode)},
+    {"mcast-snooping", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.mcast_snooping)},
+    {"rstp", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.rstp)},
     {NULL}
 };
 
@@ -1741,8 +1765,8 @@ handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     gboolean ret = process_mapping(doc, node, ovs_backend_settings_handlers, &values, error);
     guint len = g_list_length(values);
 
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND) {
-        /* Non-bond interfaces might still be handled by the networkd backend */
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND && cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE) {
+        /* Non-bond/non-bridge interfaces might still be handled by the networkd backend */
         if (len == 1 && (g_list_find_custom(values, "other-config", (GCompareFunc) strcmp) ||
             g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp)))
             return ret;
@@ -1938,6 +1962,13 @@ initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
     overrides->metric = NETPLAN_METRIC_UNSPEC;
 }
 
+static void
+initialize_ovs_settings(NetplanOVSSettings* ovs_settings)
+{
+    ovs_settings->mcast_snooping = FALSE;
+    ovs_settings->rstp = FALSE;
+}
+
 /**
  * Callback for a net device type entry like "ethernets:" in "network:"
  * @data: netdef_type (as pointer)
@@ -1998,6 +2029,9 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
             initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
+
+            /* OpenVSwitch defaults */
+            initialize_ovs_settings(&cur_netdef->ovs_settings);
 
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
         }

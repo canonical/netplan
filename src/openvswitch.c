@@ -182,6 +182,26 @@ write_ovs_bond_mode(const NetplanNetDefinition* def, const gchar* id_escaped, GS
     }
 }
 
+static void
+write_ovs_bridge_interfaces(const NetplanNetDefinition* def, const gchar* id_escaped, GString* cmds)
+{
+    NetplanNetDefinition* tmp_nd;
+    GHashTableIter iter;
+    gchar* key;
+
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-br %s", def->id);
+
+    g_hash_table_iter_init(&iter, netdefs);
+    while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
+        if (!g_strcmp0(def->id, tmp_nd->bridge)) {
+            append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " add-port %s %s", def->id, tmp_nd->id);
+            append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s %s", def->id, tmp_nd->id);
+        }
+    }
+
+    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-br %s", def->id);
+}
+
 /**
  * Generate the OpenVSwitch systemd units for configuration of the selected netdef
  * @rootdir: If not %NULL, generate configuration in this root directory
@@ -216,9 +236,31 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 }
                 break;
 
+            case NETPLAN_DEF_TYPE_BRIDGE:
+                write_ovs_bridge_interfaces(def, id_escaped, cmds);
+                /* Set fail-mode, default to "standalone" */
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-fail-mode %s %s",
+                                   id_escaped, def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone");
+                /* Enable/disable mcast-snooping */ 
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s mcast_snooping_enable=%s",
+                                   id_escaped, def->ovs_settings.mcast_snooping? "true" : "false");
+                /* Enable/disable rstp */
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s rstp_enable=%s",
+                                   id_escaped, def->ovs_settings.rstp? "true" : "false");
+                break;
+
             default:
                 break;
         }
+
+        // XXX: Per OVS documentation, port IP addresses are set via ip addr
+        if (def->ip4_addresses)
+            for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
+                append_systemd_cmd(cmds, "ip addr add %s dev %s", g_array_index(def->ip4_addresses, char*, i), id_escaped);
+        if (def->ip6_addresses)
+            for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
+                append_systemd_cmd(cmds, "ip addr add %s dev %s", g_array_index(def->ip6_addresses, char*, i), id_escaped);
+        // TODO: handle DHCP
     } else {
         g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
     }
