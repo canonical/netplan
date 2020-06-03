@@ -206,7 +206,6 @@ typedef struct ovs_settings {
     gboolean mcast_snooping;
     GArray* protocols;
     gboolean rstp;
-
 } NetplanOVSSettings;
 
 /**
