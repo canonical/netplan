@@ -459,7 +459,10 @@ combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* co
     }
 }
 
-static void
+/**
+ * Write the needed networkd .network configuration for the selected netplan definition.
+ */
+void
 write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* network = NULL;
@@ -563,7 +566,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
-    if (def->bridge) {
+    if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
@@ -573,7 +576,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         if (def->bridge_params.port_priority)
             g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
     }
-    if (def->bond) {
+    if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)

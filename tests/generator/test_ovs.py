@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL
+from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL
 
 
 class TestOpenVSwitch(TestBase):
@@ -79,6 +79,24 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
 
+    def test_global_set_protocols(self):
+        self.generate('''network:
+  version: 2
+  openvswitch:
+    protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
+  ethernets:
+    eth0:
+      dhcp4: yes
+''')
+        self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-ofctl -O OpenFlow10,OpenFlow11,OpenFlow12
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
+
     def test_duplicate_map_entry(self):
         err = self.generate('''network:
   version: 2
@@ -135,7 +153,9 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id=myhostname
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'bond0.network': ND_EMPTY % ('bond0', 'no')})
 
     def test_bond_no_bridge(self):
         err = self.generate('''network:
@@ -215,7 +235,9 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=active
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'bond0.network': ND_EMPTY % ('bond0', 'no')})
 
     def test_bond_lacp_invalid(self):
         err = self.generate('''network:
@@ -278,7 +300,9 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=balance-tcp
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'bond0.network': ND_EMPTY % ('bond0', 'no')})
 
     def test_bond_mode_explicit_params(self):
         self.generate('''network:
@@ -313,7 +337,9 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
+                              'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'bond0.network': ND_EMPTY % ('bond0', 'no')})
 
     def test_bond_mode_ovs_invalid(self):
         err = self.generate('''network:
@@ -361,11 +387,11 @@ ExecStop=/usr/bin/ovs-vsctl del-br br0
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
-ExecStart=ip addr add 192.170.1.1/24 dev br0
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24')})
 
     def test_bridge_external_ids_other_config(self):
         self.generate('''network:
@@ -391,4 +417,82 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
 '''}})
         # Confirm that the bridge has been only configured for OVS
-        self.assert_networkd(None)
+        self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
+
+    def test_bridge_non_default_parameters(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [eth1, eth2]
+      openvswitch:
+        fail-mode: secure
+        mcast-snooping: true
+        rstp: true
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
+                        '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStart=/usr/bin/ovs-vsctl add-port br0 eth1
+ExecStop=/usr/bin/ovs-vsctl del-port br0 eth1
+ExecStart=/usr/bin/ovs-vsctl add-port br0 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port br0 eth2
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 secure
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24')})
+
+    def test_bridge_set_protocols(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        protocols: [OpenFlow10, OpenFlow11, OpenFlow15]
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
+                        '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,OpenFlow15
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
+
+    def test_bridge_set_protocols_invalid(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        protocols: [OpenFlow10, OpenFooBar13, OpenFlow15]
+''', expect_fail=True)
+        self.assertIn("Unsupported OVS 'protocol' value", err)
+
+    def test_set_protocols_invalid_interface(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      openvswitch:
+        protocols: [OpenFlow10, OpenFlow15]
+''', expect_fail=True)
+        self.assertIn("Key 'protocols' is only valid for iterface type 'openvswitch bridge'", err)

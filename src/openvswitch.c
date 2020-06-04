@@ -23,6 +23,7 @@
 #include <glib/gprintf.h>
 
 #include "openvswitch.h"
+#include "networkd.h"
 #include "parse.h"
 #include "util.h"
 
@@ -61,6 +62,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
 }
 
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
+#define OPENVSWITCH_OVS_OFCTL "/usr/bin/ovs-ofctl"
 #define append_systemd_cmd(s, command, ...) \
 { \
     g_string_append(s, "ExecStart="); \
@@ -202,6 +204,26 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, const gchar* id_esc
     append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-br %s", def->id);
 }
 
+static void
+write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge, GString* cmds)
+{
+    GString* s = g_string_new(g_array_index(ovs_settings->protocols, char*, 0));
+
+    for (unsigned i = 1; i < ovs_settings->protocols->len; ++i)
+        g_string_append_printf(s, ",%s", g_array_index(ovs_settings->protocols, char*, i));
+
+    /* This is typically done per-bridge, but OVS also allows setting protocols
+       for when establishing an OpenFlow session. */
+    if (bridge) {
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s protocols=%s", bridge, s->str);
+    }
+    else {
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_OFCTL " -O %s", s->str);
+    }
+
+    g_string_free(s, TRUE);
+}
+
 /**
  * Generate the OpenVSwitch systemd units for configuration of the selected netdef
  * @rootdir: If not %NULL, generate configuration in this root directory
@@ -214,6 +236,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     g_autofree gchar* id_escaped = NULL;
     g_autofree gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
+    g_autofree char* base_config_path = NULL;
 
     id_escaped = systemd_escape(def->id);
 
@@ -247,20 +270,19 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 /* Enable/disable rstp */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s rstp_enable=%s",
                                    id_escaped, def->ovs_settings.rstp? "true" : "false");
+                /* Set protocols */
+                if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
+                    write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
+                }
                 break;
 
             default:
                 break;
         }
 
-        // XXX: Per OVS documentation, port IP addresses are set via ip addr
-        if (def->ip4_addresses)
-            for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
-                append_systemd_cmd(cmds, "ip addr add %s dev %s", g_array_index(def->ip4_addresses, char*, i), id_escaped);
-        if (def->ip6_addresses)
-            for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
-                append_systemd_cmd(cmds, "ip addr add %s dev %s", g_array_index(def->ip6_addresses, char*, i), id_escaped);
-        // TODO: handle DHCP
+        /* Try writing out a base config */
+        base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", id_escaped, NULL);
+        write_network_file(def, rootdir, base_config_path);
     } else {
         g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
     }
@@ -302,6 +324,10 @@ write_ovs_conf_finish(const char* rootdir)
     if (ovs_settings_global.other_config && g_hash_table_size(ovs_settings_global.other_config) > 0) {
         write_ovs_additional_data(ovs_settings_global.other_config, "open_vswitch",
                                   ".", cmds, "other-config");
+    }
+
+    if (ovs_settings_global.protocols && ovs_settings_global.protocols->len > 0) {
+        write_ovs_protocols(&ovs_settings_global, NULL, cmds);
     }
 
     /* TODO: Add any additional base OVS config we might need */

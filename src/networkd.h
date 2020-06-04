@@ -22,3 +22,5 @@
 gboolean write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
 void cleanup_networkd_conf(const char* rootdir);
 void enable_networkd(const char* generator_dir);
+
+void write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path);

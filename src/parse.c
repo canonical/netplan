@@ -1743,9 +1743,50 @@ handle_ovs_bridge_fail_mode(yaml_document_t* doc, yaml_node_t* node, const void*
         return yaml_error(node, error, "Key 'fail-mode' is only valid for iterface type 'openvswitch bridge'");
 
     if (g_strcmp0(scalar(node), "standalone") && g_strcmp0(scalar(node), "secure"))
-        return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure");
+        return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
 
     return handle_netdef_str(doc, node, data, error);
+
+
+}
+
+static gboolean
+handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    const char* supported[] = {
+        "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", NULL
+    };
+    unsigned i = 0;
+    guint offset = GPOINTER_TO_UINT(data);
+    GArray** protocols = (GArray**) ((void*) entryptr + offset);
+
+    for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *iter);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        for (i = 0; supported[i] != NULL; ++i)
+            if (!g_strcmp0(scalar(entry), supported[i]))
+                break;
+
+        if (supported[i] == NULL)
+            return yaml_error(node, error, "Unsupported OVS 'protocol' value");
+
+        if (!*protocols)
+            *protocols = g_array_new(FALSE, FALSE, sizeof(char*));
+        char* s = g_strdup(scalar(entry));
+        g_array_append_val(*protocols, s);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+handle_ovs_bridge_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'protocols' is only valid for iterface type 'openvswitch bridge'");
+
+    return handle_ovs_protocol(doc, node, cur_netdef, data, error);
 }
 
 
@@ -1756,6 +1797,7 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {"fail-mode", YAML_SCALAR_NODE, handle_ovs_bridge_fail_mode, NULL, netdef_offset(ovs_settings.fail_mode)},
     {"mcast-snooping", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.mcast_snooping)},
     {"rstp", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.rstp)},
+    {"protocols", YAML_SEQUENCE_NODE, handle_ovs_bridge_protocol, NULL, netdef_offset(ovs_settings.protocols)},
     {NULL}
 };
 
@@ -1949,6 +1991,12 @@ handle_network_ovs_settings_global(yaml_document_t* doc, yaml_node_t* node, cons
     return handle_generic_map(doc, node, &ovs_settings_global, data, error);
 }
 
+static gboolean
+handle_network_ovs_settings_global_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_ovs_protocol(doc, node, &ovs_settings_global, data, error);
+}
+
 static void
 initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
 {
@@ -2071,6 +2119,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 static const mapping_entry_handler ovs_network_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
     {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
+    {"protocols", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_protocol, NULL, ovs_settings_offset(protocols)},
     {NULL}
 };
 
