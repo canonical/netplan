@@ -1746,8 +1746,6 @@ handle_ovs_bridge_fail_mode(yaml_document_t* doc, yaml_node_t* node, const void*
         return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
 
     return handle_netdef_str(doc, node, data, error);
-
-
 }
 
 static gboolean
@@ -1769,7 +1767,7 @@ handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
                 break;
 
         if (supported[i] == NULL)
-            return yaml_error(node, error, "Unsupported OVS 'protocol' value");
+            return yaml_error(node, error, "Unsupported OVS 'protocol' value: %s", scalar(entry));
 
         if (!*protocols)
             *protocols = g_array_new(FALSE, FALSE, sizeof(char*));

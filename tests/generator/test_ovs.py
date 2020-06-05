@@ -384,6 +384,7 @@ ExecStop=/usr/bin/ovs-vsctl del-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl add-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -410,6 +411,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -445,6 +447,7 @@ ExecStop=/usr/bin/ovs-vsctl del-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl add-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 secure
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
@@ -469,6 +472,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -485,7 +489,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,Open
       openvswitch:
         protocols: [OpenFlow10, OpenFooBar13, OpenFlow15]
 ''', expect_fail=True)
-        self.assertIn("Unsupported OVS 'protocol' value", err)
+        self.assertIn("Unsupported OVS 'protocol' value: OpenFooBar13", err)
 
     def test_set_protocols_invalid_interface(self):
         err = self.generate('''network:

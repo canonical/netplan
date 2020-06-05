@@ -153,7 +153,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
         exit(1);
     }
 
-    append_systemd_cmd(cmds, s->str, systemd_escape(def->bridge), def->id);
+    append_systemd_cmd(cmds, s->str, def->bridge, def->id);
     append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s", def->id);
     g_string_free(s, TRUE);
     return def->bridge;
@@ -261,6 +261,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
             case NETPLAN_DEF_TYPE_BRIDGE:
                 write_ovs_bridge_interfaces(def, cmds);
+                write_ovs_tag_netplan(def->id, cmds);
                 /* Set fail-mode, default to "standalone" */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-fail-mode %s %s",
                                    def->id, def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone");
