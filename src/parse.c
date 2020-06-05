@@ -1752,7 +1752,7 @@ static gboolean
 handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     const char* supported[] = {
-        "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", NULL
+        "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", "OpenFlow16", NULL
     };
     unsigned i = 0;
     guint offset = GPOINTER_TO_UINT(data);

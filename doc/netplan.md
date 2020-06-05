@@ -155,14 +155,15 @@ Virtual devices
      :   Valid for bridge interfaces. Accepts ``secure`` or ``standalone`` (the default).
 
      ``mcast-snooping`` (bool)
-     :   Valid for bridge interfaces.
+     :   Valid for bridge interfaces. False by default.
 
      ``protocols`` (sequence of scalars)
      :   Valid for bridge interfaces or the network section. List of protocols to be used when
-         negotiating a connection with the controller.
+         negotiating a connection with the controller. Accepts ``OpenFlow10``, ``OpenFlow11``,
+         ``OpenFlow12``, ``OpenFlow13``, ``OpenFlow14``, ``OpenFlow15`` and ``OpenFlow16``.
 
      ``rstp`` (bool)
-     :   Valid for bridge interfaces.
+     :   Valid for bridge interfaces. False by default.
 
 ## Common properties for all device types
 

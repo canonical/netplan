@@ -457,6 +457,36 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24')})
 
+    def test_bridge_fail_mode_invalid(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        fail-mode: glorious
+''', expect_fail=True)
+        self.assertIn("Value of 'fail-mode' needs to be 'standalone' or 'secure'", err)
+
+    def test_fail_mode_non_bridge(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      openvswitch:
+        fail-mode: glorious
+''', expect_fail=True)
+        self.assertIn("Key 'fail-mode' is only valid for iterface type 'openvswitch bridge'", err)
+
+    def test_rstp_non_bridge(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      openvswitch:
+        rstp: true
+''', expect_fail=True)
+        self.assertIn("Key is only valid for iterface type 'openvswitch bridge'", err)
+
     def test_bridge_set_protocols(self):
         self.generate('''network:
   version: 2
