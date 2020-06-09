@@ -198,6 +198,11 @@ typedef struct dhcp_overrides {
     guint metric;
 } NetplanDHCPOverrides;
 
+typedef struct ovs_controller {
+    char* connection_mode;
+    GArray* addresses;
+} NetplanOVSController;
+
 typedef struct ovs_settings {
     GHashTable* external_ids;
     GHashTable* other_config;
@@ -206,6 +211,7 @@ typedef struct ovs_settings {
     gboolean mcast_snooping;
     GArray* protocols;
     gboolean rstp;
+    NetplanOVSController controller;
 } NetplanOVSSettings;
 
 /**

@@ -530,3 +530,27 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,Open
         protocols: [OpenFlow10, OpenFlow15]
 ''', expect_fail=True)
         self.assertIn("Key 'protocols' is only valid for iterface type 'openvswitch bridge'", err)
+
+    def test_bridge_controller_addresses(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          addresses: ["ptcp:", "ptcp:1337", "ptcp:1337:[fe80::1234%eth0]", "ptcp:1337:[fe80::1]", "tcp:10.10.10.1", tcp:127.0.0.1:1337, "tcp:[fe80::1234%eth0]", "tcp:[fe80::1]:1337", unix:/some/path, punix:/other/path]
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
+                        '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})

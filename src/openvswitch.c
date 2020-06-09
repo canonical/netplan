@@ -275,10 +275,17 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
                     write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
                 }
+                /* Set controller connection mode */
+                if (def->ovs_settings.controller.connection_mode) {
+                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s", def->id, def->ovs_settings.controller.connection_mode);
+                }
                 break;
 
+            // LCOV_EXCL_START
             default:
-                break;
+                g_assert_not_reached();
+                //break;
+            // LCOV_EXCL_STOP
         }
 
         /* Try writing out a base config */
