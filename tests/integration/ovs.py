@@ -37,6 +37,11 @@ class _CommonTests():
   ethernets:
     %(ec)s: {}
     %(e2c)s: {}
+  openvswitch:
+    ssl:
+      ca-cert: /some/ca-cert.pem
+      certificate: /another/certificate.pem
+      private-key: /private/key.pem
   bridges:
     ovsbr:
       addresses: [192.170.1.1/24]
