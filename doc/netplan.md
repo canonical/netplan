@@ -166,17 +166,16 @@ Virtual devices
      :   Valid for bridge interfaces. False by default.
 
      ``controller`` (mapping)
-     :   Valid for bridge interfaces.
+     :   Valid for bridge interfaces. Specify an external OpenFlow controller.
 
           ``addresses`` (sequence of scalars)
-          :   Sets the configured controller targets. Each  target may use any
-              of the following forms: ``ssl:host[:port]``, ``tcp:host[:port]``,
-              ``unix:file``, ``pssl:[port][:host]``, ``ptcp:[port][:host]`` or
-              ``punix:file``
+          :   Set the list of addresses to use for the controller targets. The
+              syntax of these addresses is as defined in ovs-vsctl(8). Example:
+              addresses: ``[tcp:127.0.0.1:6653, "ssl:[fe80::1234%eth0]:6653"]``
 
           ``connection-mode`` (scalar)
-          :   Mode to be used to connect to the OpenFlow controller. Accepts
-              ``out-of-band`` and ``in-band`` (the default).
+          :   Set the connection mode for the controller. Supported options are
+              ``in-band`` and ``out-of-band``. The default is ``in-band``.
 
 ## Common properties for all device types
 
