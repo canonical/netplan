@@ -224,6 +224,18 @@ write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge,
     g_string_free(s, TRUE);
 }
 
+static void
+write_ovs_bridge_controller_targets(const NetplanOVSController* controller, const gchar* bridge, GString* cmds)
+{
+    GString* s = g_string_new(g_array_index(controller->addresses, char*, 0));
+
+    for (unsigned i = 1; i < controller->addresses->len; ++i)
+        g_string_append_printf(s, " %s", g_array_index(controller->addresses, char*, i));
+
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-controller %s %s", bridge, s->str);
+    g_string_free(s, TRUE);
+}
+
 /**
  * Generate the OpenVSwitch systemd units for configuration of the selected netdef
  * @rootdir: If not %NULL, generate configuration in this root directory
@@ -275,9 +287,12 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
                     write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
                 }
-                /* Set controller connection mode */
-                if (def->ovs_settings.controller.connection_mode) {
-                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s", def->id, def->ovs_settings.controller.connection_mode);
+                /* Set controller target addresses */
+                if (def->ovs_settings.controller.addresses && def->ovs_settings.controller.addresses->len > 0) {
+                    write_ovs_bridge_controller_targets(&(def->ovs_settings.controller), def->id, cmds);
+                    /* Set controller connection mode, only applicable if at least one controller target address was set */
+                    if (def->ovs_settings.controller.connection_mode)
+                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s", def->id, def->ovs_settings.controller.connection_mode);
                 }
                 break;
 

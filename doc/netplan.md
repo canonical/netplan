@@ -165,6 +165,19 @@ Virtual devices
      ``rstp`` (bool)
      :   Valid for bridge interfaces. False by default.
 
+     ``controller`` (mapping)
+     :   Valid for bridge interfaces.
+
+          ``addresses`` (sequence of scalars)
+          :   Sets the configured controller targets. Each  target may use any
+              of the following forms: ``ssl:host[:port]``, ``tcp:host[:port]``,
+              ``unix:file``, ``pssl:[port][:host]``, ``ptcp:[port][:host]`` or
+              ``punix:file``
+
+          ``connection-mode`` (scalar)
+          :   Mode to be used to connect to the OpenFlow controller. Accepts
+              ``out-of-band`` and ``in-band`` (the default).
+
 ## Common properties for all device types
 
 ``renderer`` (scalar)

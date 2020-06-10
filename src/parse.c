@@ -1800,79 +1800,6 @@ handle_ovs_bridge_controller_connection_mode(yaml_document_t* doc, yaml_node_t* 
 }
 
 static gboolean
-verify_ovs_target(gboolean host_first, gchar* s) {
-    static guint dport = 6653; // the default port
-    g_autofree gchar* host = NULL;
-    g_autofree gchar* port = NULL;
-    gchar** vec = NULL;
-
-    /* Format tcp:host[:port] (or ssl:host[:port]) */
-    if (host_first) {
-        g_assert(s != NULL);
-        // IP6 host, indicated by bracketed notation ([..IPv6..])
-        if (s[0] == '[') {
-            gchar* tmp = NULL;
-            tmp = s+1; //get rid of '['
-            // append default port to unify parsing
-            if (!g_strrstr(tmp, "]:"))
-                vec = g_strsplit(g_strdup_printf("%s:%u", tmp, dport), "]:", 2);
-            else
-                vec = g_strsplit(tmp, "]:", 2);
-        // IP4 host
-        } else {
-            // append default port to unify parsing
-            if (!g_strrstr(s, ":"))
-                vec = g_strsplit(g_strdup_printf("%s:%u", s, dport), ":", 2);
-            else
-                vec = g_strsplit(s, ":", 2);
-        }
-        // host and port are always set
-        host = g_strdup(vec[0]); //set host alias
-        port = g_strdup(vec[1]); //set port alias
-        g_assert(vec[2] == NULL);
-        g_strfreev(vec);
-    /* Format ptcp:[port][:host] (or pssl:[port][:host]) */
-    } else {
-        // special case: "ptcp:" (no port, no host)
-        if (!g_strcmp0(s, ""))
-            port = g_strdup_printf("%u", dport);
-        else {
-            vec = g_strsplit(s, ":", 2);
-            port = g_strdup(vec[0]);
-            host = g_strdup(vec[1]);
-            // get rid of IPv6 brackets
-            if (host && host[0] == '[') {
-                char **split = g_strsplit_set(host, "[]", 3);
-                g_free(host);
-                host = g_strjoinv("", split);
-                g_strfreev(split);
-            }
-            g_assert(vec[2] == NULL);
-            g_strfreev(vec);
-        }
-    }
-
-    g_assert(port != NULL);
-    // special case where IPv6 notation contains '%iface' name
-    if (host && g_strrstr(host, "%")) {
-        gchar** split = g_strsplit (host, "%", 2);
-        g_free(host);
-        host = g_strdup(split[0]); // designated scope for IPv6 link-level addresses
-        g_assert(split[1] != NULL && split[2] == NULL);
-        //TODO: verify split[1] is an actual interface name
-        g_strfreev(split);
-    }
-
-    if (atoi(port) > 0 && atoi(port) <= 65535) {
-        if (!host)
-            return TRUE;
-        else if (host && (is_ip4_address(host) || is_ip6_address(host)))
-            return TRUE;
-    }
-    return FALSE;
-}
-
-static gboolean
 handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
@@ -1886,15 +1813,15 @@ handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, 
 
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_SCALAR_NODE);
-        // we always need at least one colon
-        if (!strstr(scalar(entry), ":"))
+        /* We always need at least one colon */
+        if (!g_strrstr(scalar(entry), ":"))
             return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
 
         vec = g_strsplit (scalar(entry), ":", 2);
 
-        /* TODO: Add support for ssl/pssl, which needs private-key, certificate and ca-cert keys */
-        is_host = !g_strcmp0(vec[0], "tcp"); // or ssl
-        is_port = !g_strcmp0(vec[0], "ptcp"); // or pssl
+        /* TODO: We probably need private-key, certificate and ca-cert keys, to fully support ssl: and pssl: */
+        is_host = !g_strcmp0(vec[0], "tcp") || !g_strcmp0(vec[0], "ssl");
+        is_port = !g_strcmp0(vec[0], "ptcp") || !g_strcmp0(vec[0], "pssl");
         is_unix = !g_strcmp0(vec[0], "unix") || !g_strcmp0(vec[0], "punix");
 
         if (!cur_netdef->ovs_settings.controller.addresses)
@@ -1902,19 +1829,18 @@ handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, 
 
         /* Format: [p]unix:file */
         if (is_unix && vec[1] != NULL && vec[2] == NULL) {
-            //TODO: verify vec[1] is a valid file/path (which does not exist, yet, at 'generate' stage)
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
-        /* Format tcp:host[:port] (or ssl:host[:port]) */
-        } else if (is_host && verify_ovs_target(TRUE, vec[1])) {
+        /* Format tcp:host[:port] or ssl:host[:port] */
+        } else if (is_host && validate_ovs_target(TRUE, vec[1])) {
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
-        /* Format ptcp:[port][:host] (or pssl:[port][:host]) */
-        } else if (is_port && verify_ovs_target(FALSE, vec[1])) {
+        /* Format ptcp:[port][:host] or pssl:[port][:host] */
+        } else if (is_port && validate_ovs_target(FALSE, vec[1])) {
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
