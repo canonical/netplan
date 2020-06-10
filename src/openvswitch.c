@@ -224,15 +224,45 @@ write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge,
     g_string_free(s, TRUE);
 }
 
+static gboolean
+check_ovs_ssl(gchar* target)
+{
+    /* Check if target needs ssl */
+    if (g_str_has_prefix(target, "ssl:") || g_str_has_prefix(target, "pssl:")) {
+        /* Check if SSL is configured in ovs_settings_global.ssl */
+        if (!ovs_settings_global.ssl.ca_certificate || !ovs_settings_global.ssl.client_certificate ||
+            !ovs_settings_global.ssl.client_key) {
+            g_fprintf(stderr, "ERROR: openvswitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
+            exit(1);
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static void
 write_ovs_bridge_controller_targets(const NetplanOVSController* controller, const gchar* bridge, GString* cmds)
 {
-    GString* s = g_string_new(g_array_index(controller->addresses, char*, 0));
+    gboolean needs_ssl = FALSE;
+    g_autofree gchar* ssl = "";
+    gchar* target = g_array_index(controller->addresses, char*, 0);
+    needs_ssl |= check_ovs_ssl(target);
+    GString* s = g_string_new(target);
 
-    for (unsigned i = 1; i < controller->addresses->len; ++i)
-        g_string_append_printf(s, " %s", g_array_index(controller->addresses, char*, i));
+    for (unsigned i = 1; i < controller->addresses->len; ++i) {
+        target = g_array_index(controller->addresses, char*, i);
+        needs_ssl |= check_ovs_ssl(target);
+        g_string_append_printf(s, " %s", target);
+    }
 
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-controller %s %s", bridge, s->str);
+    if (needs_ssl) {
+        ssl = g_strdup_printf(" --private-key %s --certificate %s --ca-cert %s",
+                              ovs_settings_global.ssl.client_key,
+                              ovs_settings_global.ssl.client_certificate,
+                              ovs_settings_global.ssl.ca_certificate);
+    }
+
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL "%s set-controller %s %s", ssl, bridge, s->str);
     g_string_free(s, TRUE);
 }
 

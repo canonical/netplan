@@ -177,6 +177,19 @@ Virtual devices
           :   Set the connection mode for the controller. Supported options are
               ``in-band`` and ``out-of-band``. The default is ``in-band``.
 
+     ``ssl`` (mapping)
+     :   Valid for global ``openvswitch`` settings. Options for configuring SSL
+         server endpoint for the switch.
+
+          ``ca-cert`` (scalar)
+          :   Path to a file containing the CA certificate to be used.
+
+          ``certificate`` (scalar)
+          :   Path to a file containing the server certificate.
+
+          ``private-key`` (scalar)
+          :   Path to a file containing the private key for the server.
+
 ## Common properties for all device types
 
 ``renderer`` (scalar)

@@ -212,6 +212,7 @@ typedef struct ovs_settings {
     GArray* protocols;
     gboolean rstp;
     NetplanOVSController controller;
+    NetplanAuthenticationSettings ssl;
 } NetplanOVSSettings;
 
 /**

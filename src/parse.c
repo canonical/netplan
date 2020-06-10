@@ -1819,7 +1819,6 @@ handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, 
 
         vec = g_strsplit (scalar(entry), ":", 2);
 
-        /* TODO: We probably need private-key, certificate and ca-cert keys, to fully support ssl: and pssl: */
         is_host = !g_strcmp0(vec[0], "tcp") || !g_strcmp0(vec[0], "ssl");
         is_port = !g_strcmp0(vec[0], "ptcp") || !g_strcmp0(vec[0], "pssl");
         is_unix = !g_strcmp0(vec[0], "unix") || !g_strcmp0(vec[0], "punix");
@@ -2187,10 +2186,30 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     return TRUE;
 }
 
+static const mapping_entry_handler ovs_global_ssl_handlers[] = {
+    {"ca-cert", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(ca_certificate)},
+    {"certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_certificate)},
+    {"private-key", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key)},
+    {NULL}
+};
+
+static gboolean
+handle_ovs_global_ssl(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret;
+
+    cur_auth = &(ovs_settings_global.ssl);
+    ret = process_mapping(doc, node, ovs_global_ssl_handlers, NULL, error);
+    cur_auth = NULL;
+
+    return ret;
+}
+
 static const mapping_entry_handler ovs_network_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
     {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
     {"protocols", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_protocol, NULL, ovs_settings_offset(protocols)},
+    {"ssl", YAML_MAPPING_NODE, handle_ovs_global_ssl},
     {NULL}
 };
 
