@@ -38,18 +38,17 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-      dhcp4: no
-      addresses: [ "10.20.10.1/24" ]
+      addresses: ["9876:BBBB::11/70"]
       routes:
-        - to: 20.0.0.0/24
-          via: 10.10.10.10
+        - to: 2001:f00f:f00f::1/64
+          via: 9876:BBBB::5
           on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, ['inet 10.20.10.1'])
-        out = subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client],
+        out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client],
                                       universal_newlines=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
-        self.assertRegex(out, r'20\.0\.0\.0/24 via 10\.10\.10\.10 proto static.* onlink')
+        self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* onlink')
 
     def test_route_from(self):
         self.setup_eth(None)
@@ -94,7 +93,7 @@ class _CommonTests():
         out = subprocess.check_output(['ip', 'route', 'show', 'table', table_id, 'dev',
                                       self.dev_e_client], universal_newlines=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
-        self.assertRegex(out, r'10\.0\.0\.0/8 via 11\.0\.0\.1 proto static.* onlink')
+        self.assertRegex(out, r'10\.0\.0\.0/8 via 11\.0\.0\.1 proto static[^\n]* onlink')
 
     @unittest.skip("fails due to networkd bug setting routes with dhcp")
     def test_routes_v4_with_dhcp(self):
