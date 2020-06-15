@@ -85,21 +85,16 @@ class _CommonTests():
       addresses: [ "10.20.10.2/24" ]
       gateway4: 10.20.10.1
       routes:
-        - to: 0.0.0.0/0
+        - to: 10.0.0.0/8
           via: 11.0.0.1
           table: %(tid)s
-          on-link: true
-      routing-policy:
-        - to: 10.0.0.0/8
-          from: 10.20.10.2/24
-          table: %(tid)s''' % {'r': self.backend, 'ec': self.dev_e_client, 'tid': table_id})
+          on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client, 'tid': table_id})
         self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['inet '])
         out = subprocess.check_output(['ip', 'route', 'show', 'table', table_id, 'dev',
                                       self.dev_e_client], universal_newlines=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
-        self.assertRegex(out, r'(default|0\.0\.0\.0/24) via 11\.0\.0\.1 proto static.* onlink')
+        self.assertRegex(out, r'10\.0\.0\.0/8 via 11\.0\.0\.1 proto static.* onlink')
 
     @unittest.skip("fails due to networkd bug setting routes with dhcp")
     def test_routes_v4_with_dhcp(self):
