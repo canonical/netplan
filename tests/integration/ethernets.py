@@ -156,6 +156,14 @@ class _CommonTests():
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.start_dnsmasq(None, self.dev_e2_ap)
         self.generate_and_settle()
+        # generate_and_settle() ('netplan apply') can bring down the interfaces (incl. our 2nd DHCP server
+        # at veth43/dev_e_ap). Re-configure the AP's IP address to fix the DHCP server at dev_e2_ap.
+        out = subprocess.check_output(['ip', 'a', 'show', 'dev', self.dev_e2_ap])
+        if self.dev_e2_ap_ip4.encode('utf-8') not in out:
+            subprocess.check_call(['ip', 'a', 'add', self.dev_e2_ap_ip4, 'dev', self.dev_e2_ap])
+            subprocess.check_call(['ip', 'link', 'set', self.dev_e2_ap, 'up'])
+        if self.backend == 'NetworkManager':
+            self.nm_online_full(self.dev_e2_client)
         self.assert_iface_up(self.dev_e_client,
                              ['inet 172.16.5.3/20'],
                              ['inet 192.168.5',   # old DHCP
