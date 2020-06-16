@@ -23,6 +23,8 @@ import fnmatch
 import argparse
 import subprocess
 import netifaces
+import re
+import glob
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
@@ -53,6 +55,19 @@ def nm_running():  # pragma: nocover (covered in autopkgtest)
         return True
     except (OSError, subprocess.SubprocessError):
         return False
+
+
+def nm_interfaces(paths=glob.glob('/run/NetworkManager/system-connections/netplan-*')):
+    pat = re.compile('^interface-name=(.*)$')
+    interfaces = []
+    for path in paths:
+        with open(path, 'r') as f:
+            for line in f:
+                m = pat.match(line)
+                if m:
+                    interfaces.append(m.group(1))
+                    break  # skip to next file
+    return interfaces
 
 
 def systemctl_network_manager(action, sync=False):  # pragma: nocover (covered in autopkgtest)
