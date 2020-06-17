@@ -50,6 +50,7 @@ typedef enum {
     NETPLAN_DEF_TYPE_BOND,
     NETPLAN_DEF_TYPE_VLAN,
     NETPLAN_DEF_TYPE_TUNNEL,
+    NETPLAN_DEF_TYPE_PORT,
 } NetplanDefType;
 
 typedef enum {
@@ -261,6 +262,9 @@ struct net_definition {
     /* master ID for slave devices */
     char* bridge;
     char* bond;
+
+    /* peer ID for OVS patch ports */
+    char* peer;
 
     /* vlan */
     guint vlan_id;

@@ -178,6 +178,58 @@ assert_valid_id(yaml_node_t* node, GError** error)
     return TRUE;
 }
 
+static void
+initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
+{
+    overrides->use_dns = TRUE;
+    overrides->use_domains = NULL;
+    overrides->use_ntp = TRUE;
+    overrides->send_hostname = TRUE;
+    overrides->use_hostname = TRUE;
+    overrides->use_mtu = TRUE;
+    overrides->use_routes = TRUE;
+    overrides->hostname = NULL;
+    overrides->metric = NETPLAN_METRIC_UNSPEC;
+}
+
+static void
+initialize_ovs_settings(NetplanOVSSettings* ovs_settings)
+{
+    ovs_settings->mcast_snooping = FALSE;
+    ovs_settings->rstp = FALSE;
+}
+
+static  NetplanNetDefinition*
+netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
+{
+    /* create new network definition */
+    cur_netdef = g_new0(NetplanNetDefinition, 1);
+    cur_netdef->type = type;
+    cur_netdef->backend = backend ?: NETPLAN_BACKEND_NONE;
+    cur_netdef->id = g_strdup(id);
+
+    /* Set some default values */
+    cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
+    cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
+    cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
+    /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
+    cur_netdef->linklocal.ipv6 = TRUE;
+    g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+    netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
+    cur_netdef->sriov_vlan_filter = FALSE;
+
+    /* DHCP override defaults */
+    initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
+    initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
+
+    /* OpenVSwitch defaults */
+    initialize_ovs_settings(&cur_netdef->ovs_settings);
+
+    g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+    return cur_netdef;
+}
+
+
 /****************************************************
  * Data types and functions for interpreting YAML nodes
  ****************************************************/
@@ -2067,25 +2119,51 @@ handle_network_ovs_settings_global_protocol(yaml_document_t* doc, yaml_node_t* n
     return handle_ovs_protocol(doc, node, &ovs_settings_global, data, error);
 }
 
-static void
-initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
+static gboolean
+handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    overrides->use_dns = TRUE;
-    overrides->use_domains = NULL;
-    overrides->use_ntp = TRUE;
-    overrides->send_hostname = TRUE;
-    overrides->use_hostname = TRUE;
-    overrides->use_mtu = TRUE;
-    overrides->use_routes = TRUE;
-    overrides->hostname = NULL;
-    overrides->metric = NETPLAN_METRIC_UNSPEC;
-}
+    yaml_node_t* port = NULL;
+    yaml_node_t* peer = NULL;
+    yaml_node_t* pair = NULL;
+    yaml_node_item_t *item = NULL;
+    NetplanNetDefinition *component = NULL;
 
-static void
-initialize_ovs_settings(NetplanOVSSettings* ovs_settings)
-{
-    ovs_settings->mcast_snooping = FALSE;
-    ovs_settings->rstp = FALSE;
+    for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
+        pair = yaml_document_get_node(doc, *iter);
+        assert_type(pair, YAML_SEQUENCE_NODE);
+
+        item = pair->data.sequence.items.start;
+        /* A peer port definition must contain exactly 2 ports */
+        if (item+2 != pair->data.sequence.items.top) {
+            return yaml_error(pair, error, "An openvswitch peer port sequence must have exactly two entries");
+        }
+
+        port = yaml_document_get_node(doc, *item);
+        assert_type(port, YAML_SCALAR_NODE);
+        peer = yaml_document_get_node(doc, ++(*item));
+        assert_type(peer, YAML_SCALAR_NODE);
+
+        /* Create port 1 netdef */
+        component = g_hash_table_lookup(netdefs, scalar(port));
+        if (!component)
+            component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+
+        if (component->peer && g_strcmp0(component->peer, scalar(peer)) != 0)
+            return yaml_error(port, error, "openvswitch port '%s' is already assigned to peer '%s'",
+                              component->id, component->peer);
+        component->peer = g_strdup(scalar(peer));
+
+        /* Create port 2 (peer) netdef */
+        component = g_hash_table_lookup(netdefs, scalar(peer));
+        if (!component)
+            component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+
+        if (component->peer && g_strcmp0(component->peer, scalar(port)) != 0)
+            return yaml_error(peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
+                              component->id, component->peer);
+        component->peer = g_strdup(scalar(port));
+    }
+    return TRUE;
 }
 
 /**
@@ -2129,30 +2207,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             if (cur_netdef->type != GPOINTER_TO_UINT(data))
                 return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
-            /* create new network definition */
-            cur_netdef = g_new0(NetplanNetDefinition, 1);
-            cur_netdef->type = GPOINTER_TO_UINT(data);
-            cur_netdef->backend = backend_cur_type ?: NETPLAN_BACKEND_NONE;
-            cur_netdef->id = g_strdup(scalar(key));
-
-            /* Set some default values */
-            cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-            cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
-            cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
-            /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
-            cur_netdef->linklocal.ipv6 = TRUE;
-            g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
-            netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
-            cur_netdef->sriov_vlan_filter = FALSE;
-
-            /* DHCP override defaults */
-            initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
-            initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
-
-            /* OpenVSwitch defaults */
-            initialize_ovs_settings(&cur_netdef->ovs_settings);
-
-            g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+            netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
         }
 
         // XXX: breaks multi-pass parsing.
@@ -2209,6 +2264,7 @@ static const mapping_entry_handler ovs_network_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
     {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
     {"protocols", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_protocol, NULL, ovs_settings_offset(protocols)},
+    {"ports", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_ports},
     {"ssl", YAML_MAPPING_NODE, handle_ovs_global_ssl},
     {NULL}
 };

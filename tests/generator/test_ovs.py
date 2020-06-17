@@ -659,3 +659,78 @@ ExecStart=/usr/bin/ovs-vsctl set controller br0 connection-mode=out-of-band
 'openvswitch.ssl' settings are not set", err)
         self.assert_ovs({})
         self.assert_networkd({})
+
+    def test_global_ports(self):
+        self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+''')
+        self.assert_ovs({'patch0\\x2d1.service': OVS_VIRTUAL % {'iface': 'patch0\\x2d1', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
+ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
+ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
+''',
+                         'patch1\\x2d0.service': OVS_VIRTUAL % {'iface': 'patch1\\x2d0', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
+ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
+ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
+'''}}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'ipv6'),
+                              'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'ipv6')})
+
+    def test_few_ports(self):
+        err = self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patch0-1]
+''', expect_fail=True)
+        self.assertIn("An openvswitch peer port sequence must have exactly two entries", err)
+        self.assertIn("- [patch0-1]", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_many_ports(self):
+        err = self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patch0-1, "patchx", patchy]
+''', expect_fail=True)
+        self.assertIn("An openvswitch peer port sequence must have exactly two entries", err)
+        self.assertIn("- [patch0-1, \"patchx\", patchy]", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_ovs_invalid_port(self):
+        err = self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patchx, patchy]
+      - [patchx, patchz]
+''', expect_fail=True)
+        self.assertIn("openvswitch port 'patchx' is already assigned to peer 'patchy'", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_ovs_invalid_peer(self):
+        err = self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patchx, patchy]
+      - [patchz, patchx]
+''', expect_fail=True)
+        self.assertIn("openvswitch port 'patchx' is already assigned to peer 'patchy'", err)
+        self.assert_ovs({})
+        self.assert_networkd({})

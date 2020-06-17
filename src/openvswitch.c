@@ -326,6 +326,13 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 }
                 break;
 
+            case NETPLAN_DEF_TYPE_PORT:
+                g_assert(def->peer);
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
+                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
+                break;
+
             // LCOV_EXCL_START
             default:
                 g_assert_not_reached();

@@ -177,6 +177,17 @@ Virtual devices
           :   Set the connection mode for the controller. Supported options are
               ``in-band`` and ``out-of-band``. The default is ``in-band``.
 
+     ``ports`` (sequence of sequence of scalars)
+     :   OpenvSwitch patch ports. Each port is declared as a pair of names
+         which can be referenced as interfaces in dependent virtual devices
+         (bonds, bridges).
+
+         Example:
+
+             openvswitch:
+               ports:
+                 - [port0-1, port1-0]
+
      ``ssl`` (mapping)
      :   Valid for global ``openvswitch`` settings. Options for configuring SSL
          server endpoint for the switch.
