@@ -248,6 +248,9 @@ class NetplanApply(utils.NetplanCommand):
                 continue
 
             driver_name = utils.get_interface_driver_name(interface, only_down=True)
+            if not driver_name:
+                # don't allow up interfaces to match by mac
+                continue
             macaddress = utils.get_interface_macaddress(interface)
             if driver_name in matches['by-driver']:
                 new_name = matches['by-driver'][driver_name]

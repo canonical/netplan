@@ -1483,7 +1483,10 @@ handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* d
     if (!component) {
         add_missing_node(node);
     } else {
-        if (cur_netdef->bond_params.primary_slave)
+        /* If this is not the primary pass, the primary slave might already be equally set. */
+        if (!g_strcmp0(cur_netdef->bond_params.primary_slave, scalar(node))) {
+            return TRUE;
+        } else if (cur_netdef->bond_params.primary_slave)
             return yaml_error(node, error, "%s: bond already has a primary slave: %s",
                               cur_netdef->id, cur_netdef->bond_params.primary_slave);
 
