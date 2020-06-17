@@ -131,11 +131,6 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
         g_fprintf(stderr, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
         exit(1);
     }
-    tmp_nd = g_hash_table_lookup(netdefs, def->bridge);
-    if (!tmp_nd || tmp_nd->backend != NETPLAN_BACKEND_OVS) {
-        g_fprintf(stderr, "Bond %s: %s needs to be handled by OpenVSwitch\n", def->id, tmp_nd->id);
-        exit(1);
-    }
 
     s = g_string_new(OPENVSWITCH_OVS_VSCTL " add-bond");
     g_string_append_printf(s, " %s %s", def->bridge, def->id);

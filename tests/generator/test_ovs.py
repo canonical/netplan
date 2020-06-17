@@ -170,23 +170,6 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id=myhostname
 ''', expect_fail=True)
         self.assertIn("Bond bond0 needs to be a slave of an OpenVSwitch bridge", err)
 
-    def test_bond_invalid_bridge(self):
-        err = self.generate('''network:
-  version: 2
-  ethernets:
-    eth1: {}
-    eth2: {}
-  bonds:
-    bond0:
-      interfaces: [eth1, eth2]
-      openvswitch: {}
-  bridges:
-    br0:
-      addresses: [192.170.1.1/24]
-      interfaces: [bond0]
-''', expect_fail=True)
-        self.assertIn("Bond bond0: br0 needs to be handled by OpenVSwitch", err)
-
     def test_bond_not_enough_interfaces(self):
         err = self.generate('''network:
   version: 2
@@ -734,3 +717,105 @@ ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
         self.assertIn("openvswitch port 'patchx' is already assigned to peer 'patchy'", err)
         self.assert_ovs({})
         self.assert_networkd({})
+
+    def test_bridge_auto_ovs_backend(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1: {}
+    eth2: {}
+  bonds:
+    bond0:
+      interfaces: [eth1, eth2]
+      openvswitch: {}
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+'''},
+                         'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
+                                                         '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth1 eth2
+ExecStop=/usr/bin/ovs-vsctl del-port bond0
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
+'''}})
+        self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'bond0.network': ND_EMPTY % ('bond0', 'no'),
+                              'eth1.network':
+                              '''[Match]
+Name=eth1
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+''',
+                              'eth2.network':
+                              '''[Match]
+Name=eth2
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+'''})
+
+    def test_bond_auto_ovs_backend(self):
+        self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patchx, patchy]
+  ethernets:
+    eth0: {}
+  bonds:
+    bond0:
+      interfaces: [patchx, eth0]
+  bridges:
+    br0:
+      addresses: [192.170.1.1/24]
+      interfaces: [bond0]
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+'''},
+                         'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
+                                                         '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth0 patchx
+ExecStop=/usr/bin/ovs-vsctl del-port bond0
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
+'''}})
+        self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'bond0.network': ND_EMPTY % ('bond0', 'no'),
+                              'patchx.network': ND_EMPTY % ('patchx', 'no'),
+                              'patchy.network': ND_EMPTY % ('patchy', 'ipv6'),
+                              'eth0.network': '[Match]\nName=eth0\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})

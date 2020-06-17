@@ -996,7 +996,11 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
             if (component->bond)
                 return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
                                   cur_netdef->id, scalar(entry), component->bond);
-           component->bridge = g_strdup(cur_netdef->id);
+            component->bridge = g_strdup(cur_netdef->id);
+            if (component->backend == NETPLAN_BACKEND_OVS) {
+                g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", cur_netdef->id);
+                cur_netdef->backend = NETPLAN_BACKEND_OVS;
+            }
         }
     }
 
@@ -1057,6 +1061,10 @@ handle_bond_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data
                 return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
                                   cur_netdef->id, scalar(entry), component->bond);
             component->bond = g_strdup(cur_netdef->id);
+            if (component->backend == NETPLAN_BACKEND_OVS) {
+                g_debug("%s: Bond contains openvswitch interface, choosing OVS backend", cur_netdef->id);
+                cur_netdef->backend = NETPLAN_BACKEND_OVS;
+            }
         }
     }
 
