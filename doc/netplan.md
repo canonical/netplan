@@ -133,7 +133,7 @@ Virtual devices
 
 :    Enable wake on LAN. Off by default.
 
-``emit-lldp`` (bool) _– since 0.99_
+``emit-lldp`` (bool) – since **0.99**
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
@@ -172,7 +172,7 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
-``ipv6-mtu`` (scalar) _– since 0.98_
+``ipv6-mtu`` (scalar) – since **0.98**
 :   Set the IPv6 MTU (only supported with `networkd` backend). Note
     that needing to set this is an unusual requirement.
 
@@ -244,7 +244,7 @@ Virtual devices
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
-``ipv6-address-generation`` (scalar) _– since 0.99_
+``ipv6-address-generation`` (scalar) – since **0.99**
 
 :   Configure method for creating the address for use with RFC4862 IPv6
     Stateless Address Autoconfiguration (only supported with `NetworkManager`
@@ -411,7 +411,7 @@ client processes as specified in the netplan YAML.
           on a preferred interface. Available for both the ``networkd`` and
           ``NetworkManager`` backends.
 
-     ``use-domains`` (scalar) _– since 0.98_
+     ``use-domains`` (scalar) – since **0.98**
      :    Takes a boolean, or the special value "route". When true, the domain 
           name received from the DHCP server will be used as DNS search domain
           over this link, similar to the effect of the Domains= setting. If set
@@ -557,7 +557,7 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      :    Password to use to decrypt the private key specified in
           ``client-key`` if it is encrypted.
 
-     ``phase2-auth`` (scalar) _– since 0.99_
+     ``phase2-auth`` (scalar) – since **0.99**
      :    Phase 2 authentication mechanism.
 
 
@@ -565,7 +565,7 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
 Ethernet device definitions, beyond common ones described above, also support
 some additional properties that can be used for SR-IOV devices.
 
-``link`` (scalar) _– since 0.99_
+``link`` (scalar) – since **0.99**
 
 :    (SR-IOV devices only) The ``link`` property declares the device as a
      Virtual Function of the selected Physical Function device, as identified
@@ -578,7 +578,7 @@ Example:
       enp1s16f1:
         link: enp1
 
-``virtual-function-count`` (scalar) _– since 0.99_
+``virtual-function-count`` (scalar) – since **0.99**
 
 :    (SR-IOV devices only) In certain special cases VFs might need to be
      configured outside of netplan. For such configurations ``virtual-function-count``
@@ -595,56 +595,56 @@ backend. ``systemd-networkd`` does not support modems.
 
 **Requires feature: modems**
 
-``apn`` (scalar) _– since 0.99_
+``apn`` (scalar) – since **0.99**
 
 :    Set the carrier APN (Access Point Name). This can be omitted if
      ``auto-config`` is enabled.
 
-``auto-config`` (bool) _– since 0.99_
+``auto-config`` (bool) – since **0.99**
 
 :    Specify whether to try and autoconfigure the modem by doing a lookup of
      the carrier against the Mobile Broadband Provider database. This may not
      work for all carriers.
 
-``device-id`` (scalar) _– since 0.99_
+``device-id`` (scalar) – since **0.99**
 
 :    Specify the device ID (as given by the WWAN management service) of the
      modem to match. This can be found using ``mmcli``.
 
-``network-id`` (scalar) _– since 0.99_
+``network-id`` (scalar) – since **0.99**
 
 :    Specify the Network ID (GSM LAI format). If this is specified, the device
      will not roam networks.
 
-``number`` (scalar) _– since 0.99_
+``number`` (scalar) – since **0.99**
 
 :    The number to dial to establish the connection to the mobile broadband
      network. (Deprecated for GSM)
 
-``password`` (scalar) _– since 0.99_
+``password`` (scalar) – since **0.99**
 
 :    Specify the password used to authenticate with the carrier network. This
      can be omitted if ``auto-config`` is enabled.
 
-``pin`` (scalar) _– since 0.99_
+``pin`` (scalar) – since **0.99**
 
 :    Specify the SIM PIN to allow it to operate if a PIN is set.
 
-``sim-id`` (scalar) _– since 0.99_
+``sim-id`` (scalar) – since **0.99**
 
 :    Specify the SIM unique identifier (as given by the WWAN management service)
      which this connection applies to. If given, the connection will apply to
      any device also allowed by ``device-id`` which contains a SIM card matching
      the given identifier.
 
-``sim-operator-id`` (scalar) _– since 0.99_
+``sim-operator-id`` (scalar) – since **0.99**
 
 :    Specify the MCC/MNC string (such as "310260" or "21601") which identifies
      the carrier that this connection should apply to. If given, the connection
      will apply to any device also allowed by ``device-id`` and ``sim-id``
      which contains a SIM card provisioned by the given operator.
 
-``username`` (scalar) _– since 0.99_
+``username`` (scalar) – since **0.99**
 
 :    Specify the username used to authentiate with the carrier network. This
      can be omitted if ``auto-config`` is enabled.
@@ -679,27 +679,27 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
-     ``bssid`` (scalar) _– since 0.99_
+     ``bssid`` (scalar) – since **0.99**
      :    If specified, directs the device to only associate with the given
           access point.
 
-     ``band`` (scalar) _– since 0.99_
+     ``band`` (scalar) – since **0.99**
      :    Possible bands are ``5GHz`` (for 5GHz 802.11a) and ``2.4GHz``
           (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
           network if unset (the default).
 
-     ``channel`` (scalar) _– since 0.99_
+     ``channel`` (scalar) – since **0.99**
      :    Wireless channel to use for the Wi-Fi connection. Because channel
           numbers overlap between bands, this property takes effect only if
           the ``band`` property is also set.
 
-     ``hidden`` (bool) _– since 0.100_
+     ``hidden`` (bool) – since **0.100**
      :    Set to ``true`` to change the SSID scan technique for connecting to 
           hidden WiFi networks. Note this may have slower performance compared
           to ``false`` (the default) when connecting to publicly broadcast
           SSIDs.
 
-``wakeonwlan`` (sequence of scalars) _– since 0.99_
+``wakeonwlan`` (sequence of scalars) – since **0.99**
 
 :    This enables WakeOnWLan on supported devices. Not all drivers support all
      options. May be any combination of ``any``, ``disconnect``, ``magic_pkt``,
@@ -1037,24 +1037,24 @@ backends may require to record some of their own parameters in netplan,
 especially if the netplan definitions are generated automatically by the
 consumer of that backend. Currently, this is only used with ``NetworkManager``.
 
-``networkmanager`` (mapping) _– since 0.99_
+``networkmanager`` (mapping) – since **0.99**
 
 :    Keeps the NetworkManager-specific configuration parameters used by the
      daemon to recognize connections.
 
-     ``name`` (scalar) _– since 0.99_
+     ``name`` (scalar) – since **0.99**
      :    Set the display name for the connection.
 
-     ``uuid`` (scalar) _– since 0.99_
+     ``uuid`` (scalar) – since **0.99**
      :    Defines the UUID (unique identifier) for this connection, as
           generated by NetworkManager itself.
 
-     ``stable-id`` (scalar) _– since 0.99_
+     ``stable-id`` (scalar) – since **0.99**
      :    Defines the stable ID (a different form of a connection name) used
           by NetworkManager in case the name of the connection might otherwise
           change, such as when sharing connections between users.
 
-     ``device`` (scalar) _– since 0.99_
+     ``device`` (scalar) – since **0.99**
      :    Defines the interface name for which this connection applies.
 
 
