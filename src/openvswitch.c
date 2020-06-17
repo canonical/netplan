@@ -238,7 +238,6 @@ check_ovs_ssl(gchar* target)
 static void
 write_ovs_bridge_controller_targets(const NetplanOVSController* controller, const gchar* bridge, GString* cmds)
 {
-    g_autofree gchar* ssl = "";
     gchar* target = g_array_index(controller->addresses, char*, 0);
     gboolean needs_ssl = check_ovs_ssl(target);
     GString* s = g_string_new(target);
@@ -250,14 +249,7 @@ write_ovs_bridge_controller_targets(const NetplanOVSController* controller, cons
         g_string_append_printf(s, " %s", target);
     }
 
-    if (needs_ssl) {
-        ssl = g_strdup_printf(" --private-key %s --certificate %s --ca-cert %s",
-                              ovs_settings_global.ssl.client_key,
-                              ovs_settings_global.ssl.client_certificate,
-                              ovs_settings_global.ssl.ca_certificate);
-    }
-
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL "%s set-controller %s %s", ssl, bridge, s->str);
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-controller %s %s", bridge, s->str);
     g_string_free(s, TRUE);
 }
 
@@ -383,6 +375,14 @@ write_ovs_conf_finish(const char* rootdir)
 
     if (ovs_settings_global.protocols && ovs_settings_global.protocols->len > 0) {
         write_ovs_protocols(&ovs_settings_global, NULL, cmds);
+    }
+
+    if (ovs_settings_global.ssl.client_key && ovs_settings_global.ssl.client_certificate &&
+        ovs_settings_global.ssl.ca_certificate) {
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-ssl %s %s %s",
+                           ovs_settings_global.ssl.client_key,
+                           ovs_settings_global.ssl.client_certificate,
+                           ovs_settings_global.ssl.ca_certificate);
     }
 
     /* TODO: Add any additional base OVS config we might need */

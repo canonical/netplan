@@ -541,10 +541,15 @@ ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
-ExecStart=/usr/bin/ovs-vsctl --private-key /key/path --certificate /some/path --ca-cert /another/path set-controller br0 ptcp: \
-ptcp:1337 ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] ssl:10.10.10.1 tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] \
-tcp:[fe80::1]:1337 unix:/some/path punix:other/path
+ExecStart=/usr/bin/ovs-vsctl set-controller br0 ptcp: ptcp:1337 ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] ssl:10.10.10.1 \
+tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] tcp:[fe80::1]:1337 unix:/some/path punix:other/path
 ExecStart=/usr/bin/ovs-vsctl set controller br0 connection-mode=out-of-band
+'''},
+                         'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
@@ -625,6 +630,24 @@ ExecStart=/usr/bin/ovs-vsctl set controller br0 connection-mode=out-of-band
 ''', expect_fail=True)
         self.assertIn("Key 'controller.addresses' is only valid for iterface type 'openvswitch bridge'", err)
         self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_global_ssl(self):
+        self.generate('''network:
+  version: 2
+  openvswitch:
+    ssl:
+      ca-cert: /another/path
+      certificate: /some/path
+      private-key: /key/path
+''')
+        self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
+'''}})
+        # Confirm that the networkd config is still sane
         self.assert_networkd({})
 
     def test_missing_ssl(self):
