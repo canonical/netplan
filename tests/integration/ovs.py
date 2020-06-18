@@ -59,11 +59,12 @@ class _CommonTests():
         self.assertIn(b'        Controller "pssl:1337:[::1]"', out)
         self.assertIn(b'        Controller "unix:/some/socket"', out)
         self.assertIn(b'        fail_mode: secure', out)
-        self.assertIn(b'        Port eth42\n            Interface eth42', out)
-        self.assertIn(b'        Port eth43\n            Interface eth43', out)
+        self.assertIn(b'        Port %(ec)b\n            Interface %(ec)b' % {b'ec': self.dev_e_client.encode()}, out)
+        self.assertIn(b'        Port %(e2c)b\n            Interface %(e2c)b' % {b'e2c': self.dev_e2_client.encode()}, out)
         # Verify the bridge was tagged 'netplan:true' correctly
         out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', 'list', 'Port'])
         self.assertIn(b'ovsbr\nexternal_ids        : {netplan="true"}', out)
+        self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
 
     def test_bond_base(self):
         self.setup_eth(None, False)
@@ -84,15 +85,14 @@ class _CommonTests():
   bridges:
     ovsbr:
       addresses: [192.170.1.1/24]
-      interfaces: [mybond]
-      openvswitch: {}''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+      interfaces: [mybond]''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
         self.assertIn(b'    Bridge ovsbr', out)
         self.assertIn(b'        Port mybond', out)
-        self.assertIn(b'            Interface eth42', out)
-        self.assertIn(b'            Interface eth43', out)
+        self.assertIn(b'            Interface %b' % self.dev_e_client.encode(), out)
+        self.assertIn(b'            Interface %b' % self.dev_e2_client.encode(), out)
         # Verify the bond was tagged 'netplan:true' correctly
         out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', 'list', 'Port'])
         self.assertIn(b'mybond\nexternal_ids        : {netplan="true"}', out)
@@ -101,8 +101,43 @@ class _CommonTests():
         self.assertIn(b'---- mybond ----', out)
         self.assertIn(b'bond_mode: balance-slb', out)
         self.assertIn(b'lacp_status: off', out)
-        self.assertIn(b'slave eth42: enabled', out)
-        self.assertIn(b'slave eth43: enabled', out)
+        self.assertIn(b'slave %b: enabled' % self.dev_e_client.encode(), out)
+        self.assertIn(b'slave %b: enabled' % self.dev_e2_client.encode(), out)
+        self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
+
+    def test_bridge_patch_ports(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br0'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch0-1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch1-0'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  bridges:
+    br0:
+      addresses: [192.168.1.1/24]
+      interfaces: [patch0-1]
+    br1:
+      addresses: [192.168.2.1/24]
+      interfaces: [patch1-0]''')
+        self.generate_and_settle()
+        # Basic verification that the interfaces/ports are set up in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge br0', out)
+        self.assertIn(b'''        Port patch0-1
+            Interface patch0-1
+                type: patch
+                options: {peer=patch1-0}''', out)
+        self.assertIn(b'    Bridge br1', out)
+        self.assertIn(b'''        Port patch1-0
+            Interface patch1-0
+                type: patch
+                options: {peer=patch0-1}''', out)
+        self.assert_iface('br0', ['inet 192.168.1.1/24'])
+        self.assert_iface('br1', ['inet 192.168.2.1/24'])
 
 
 @unittest.skipIf("networkd" not in test_backends,
