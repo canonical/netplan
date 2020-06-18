@@ -380,11 +380,16 @@ handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check
         if (is_ip4_address(addr)) {
             if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 32)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
             if (!*ip4)
                 *ip4 = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            /* Do not append the same IP (on multiple passes), if it is already contained */
+            for (unsigned i = 0; i < (*ip4)->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(*ip4, char*, i)))
+                    goto skip_ip4;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(*ip4, s);
+skip_ip4:
             continue;
         }
 
@@ -394,8 +399,14 @@ handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
             if (!*ip6)
                 *ip6 = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            /* Do not append the same IP (on multiple passes), if it is already contained */
+            for (unsigned i = 0; i < (*ip6)->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(*ip6, char*, i)))
+                    goto skip_ip6;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(*ip6, s);
+skip_ip6:
             continue;
         }
 
