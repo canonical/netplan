@@ -263,7 +263,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* cmds = g_string_new(NULL);
     g_autofree gchar* id_escaped = NULL;
-    g_autofree gchar* dependency = NULL;
+    gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
 
@@ -315,16 +315,17 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
             case NETPLAN_DEF_TYPE_PORT:
                 g_assert(def->peer);
+                dependency = def->bridge?: def->bond;
+                if (!dependency) {
+                    g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
+                    exit(1);
+                }
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
                 append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
                 break;
 
-            // LCOV_EXCL_START
-            default:
-                g_assert_not_reached();
-                //break;
-            // LCOV_EXCL_STOP
+            default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
 
         /* Try writing out a base config */

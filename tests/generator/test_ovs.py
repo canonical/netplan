@@ -667,31 +667,15 @@ ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
         self.assert_networkd({})
 
     def test_global_ports(self):
-        self.generate('''network:
+        err = self.generate('''network:
   version: 2
   openvswitch:
     ports:
       - [patch0-1, patch1-0]
-''')
-        self.assert_ovs({'patch0\\x2d1.service': OVS_VIRTUAL % {'iface': 'patch0\\x2d1', 'extra': '''
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
-ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
-''',
-                         'patch1\\x2d0.service': OVS_VIRTUAL % {'iface': 'patch1\\x2d0', 'extra': '''
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
-ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
-'''}}})
-        # Confirm that the networkd config is still sane
-        self.assert_networkd({'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'ipv6'),
-                              'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'ipv6')})
+''', expect_fail=True)
+        self.assertIn('patch0-1: OpenVSwitch patch port needs to be assigned to a bridge/bond', err)
+        self.assert_ovs({})
+        self.assert_networkd({})
 
     def test_few_ports(self):
         err = self.generate('''network:
@@ -761,6 +745,8 @@ ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStart=/usr/bin/ovs-vsctl add-port br0 bond0
+ExecStop=/usr/bin/ovs-vsctl del-port br0 bond0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
@@ -801,29 +787,47 @@ Bond=bond0
     def test_bond_auto_ovs_backend(self):
         self.generate('''network:
   version: 2
-  openvswitch:
-    ports:
-      - [patchx, patchy]
   ethernets:
     eth0: {}
   bonds:
     bond0:
-      interfaces: [patchx, eth0]
+      interfaces: [eth0, patchy]
   bridges:
     br0:
       addresses: [192.170.1.1/24]
       interfaces: [bond0]
+    br1:
+      addresses: [2001:FFfe::1/64]
+      interfaces: [patchx]
+  openvswitch:
+    ports:
+      - [patchx, patchy]
 ''')
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStart=/usr/bin/ovs-vsctl add-port br0 bond0
+ExecStop=/usr/bin/ovs-vsctl del-port br0 bond0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+'''},
+                         'br1.service': OVS_VIRTUAL % {'iface': 'br1', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br1
+ExecStart=/usr/bin/ovs-vsctl add-port br1 patchx
+ExecStop=/usr/bin/ovs-vsctl del-port br1 patchx
+ExecStop=/usr/bin/ovs-vsctl del-br br1
+ExecStart=/usr/bin/ovs-vsctl set Port br1 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br1 rstp_enable=false
 '''},
                          'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
                                                          '''Requires=netplan-ovs-br0.service
@@ -832,13 +836,14 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 eth0 patchx
+ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 patchy eth0
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
+                              'br1.network': ND_WITHIP % ('br1', '2001:FFfe::1/64'),
                               'bond0.network': ND_EMPTY % ('bond0', 'no'),
                               'patchx.network': ND_EMPTY % ('patchx', 'no'),
-                              'patchy.network': ND_EMPTY % ('patchy', 'ipv6'),
+                              'patchy.network': ND_EMPTY % ('patchy', 'no'),
                               'eth0.network': '[Match]\nName=eth0\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})

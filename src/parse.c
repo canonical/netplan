@@ -214,8 +214,6 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
     /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
     cur_netdef->linklocal.ipv6 = TRUE;
-    g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
-    netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
     cur_netdef->sriov_vlan_filter = FALSE;
 
     /* DHCP override defaults */
@@ -226,6 +224,7 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     initialize_ovs_settings(&cur_netdef->ovs_settings);
 
     g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+    netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
     return cur_netdef;
 }
 
@@ -2159,25 +2158,32 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
 
         port = yaml_document_get_node(doc, *item);
         assert_type(port, YAML_SCALAR_NODE);
-        peer = yaml_document_get_node(doc, ++(*item));
+        peer = yaml_document_get_node(doc, *(item+1));
         assert_type(peer, YAML_SCALAR_NODE);
 
         /* Create port 1 netdef */
         component = g_hash_table_lookup(netdefs, scalar(port));
-        if (!component)
+        if (!component) {
             component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if(g_hash_table_remove(missing_id, scalar(port)))
+                missing_ids_found++;
+        }
 
-        if (component->peer && g_strcmp0(component->peer, scalar(peer)) != 0)
+        if (component->peer && g_strcmp0(component->peer, scalar(peer)))
             return yaml_error(port, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component->id, component->peer);
         component->peer = g_strdup(scalar(peer));
 
         /* Create port 2 (peer) netdef */
+        component = NULL;
         component = g_hash_table_lookup(netdefs, scalar(peer));
-        if (!component)
+        if (!component) {
             component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if(g_hash_table_remove(missing_id, scalar(peer)))
+                missing_ids_found++;
+        }
 
-        if (component->peer && g_strcmp0(component->peer, scalar(port)) != 0)
+        if (component->peer && g_strcmp0(component->peer, scalar(port)))
             return yaml_error(peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component->id, component->peer);
         component->peer = g_strdup(scalar(port));
