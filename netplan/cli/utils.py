@@ -24,7 +24,6 @@ import argparse
 import subprocess
 import netifaces
 import re
-import glob
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
@@ -57,7 +56,7 @@ def nm_running():  # pragma: nocover (covered in autopkgtest)
         return False
 
 
-def nm_interfaces(paths=glob.glob('/run/NetworkManager/system-connections/netplan-*')):
+def nm_interfaces(paths):
     pat = re.compile('^interface-name=(.*)$')
     interfaces = []
     for path in paths:
