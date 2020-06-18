@@ -177,6 +177,8 @@ class _CommonTests():
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.start_dnsmasq(None, self.dev_e2_ap)
         self.generate_and_settle()
+        if self.backend == 'NetworkManager':
+            self.nm_online_full(self.dev_e2_client)
         self.assert_iface_up(self.dev_e_client,
                              ['inet 172.16.5.3/20'],
                              ['inet 192.168.5',   # old DHCP
