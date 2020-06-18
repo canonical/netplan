@@ -891,11 +891,16 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         if (is_ip4_address(addr)) {
             if (prefix_len_num == 0 || prefix_len_num > 32)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
             if (!cur_netdef->ip4_addresses)
                 cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            /* Do not append the same IP (on multiple passes), if it is already contained */
+            for (unsigned i = 0; i < cur_netdef->ip4_addresses->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(cur_netdef->ip4_addresses, char*, i)))
+                    goto skip_ip4;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ip4_addresses, s);
+            skip_ip4:;
             continue;
         }
 
@@ -905,8 +910,14 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
             if (!cur_netdef->ip6_addresses)
                 cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            /* Do not append the same IP (on multiple passes), if it is already contained */
+            for (unsigned i = 0; i < cur_netdef->ip6_addresses->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(cur_netdef->ip6_addresses, char*, i)))
+                    goto skip_ip6;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ip6_addresses, s);
+            skip_ip6:;
             continue;
         }
 
