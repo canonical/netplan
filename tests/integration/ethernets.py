@@ -77,6 +77,9 @@ class _CommonTests():
                                'address', self.dev_e2_client_mac])
 
     def test_eth_glob(self):
+        '''Supposed to fail if tested against NetworkManager < 1.14
+
+        Interface globbing was introduced as of NM 1.14+'''
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:

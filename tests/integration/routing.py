@@ -30,6 +30,10 @@ from base import IntegrationTestsBase, test_backends
 class _CommonTests():
 
     def test_route_on_link(self):
+        '''Supposed to fail if tested against NetworkManager < 1.12/1.18
+
+        The on-link option was introduced as of NM 1.12+ (for IPv4)
+        The on-link option was introduced as of NM 1.18+ (for IPv6)'''
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
@@ -51,6 +55,9 @@ class _CommonTests():
         self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* onlink')
 
     def test_route_from(self):
+        '''Supposed to fail if tested against NetworkManager < 1.8
+
+        The from option was introduced as of NM 1.8+'''
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
@@ -71,6 +78,9 @@ class _CommonTests():
         self.assertIn('10.10.10.0/24 via 192.168.14.20 proto static src 192.168.14.2', out)
 
     def test_route_table(self):
+        '''Supposed to fail if tested against NetworkManager < 1.10
+
+        The table option was introduced as of NM 1.10+'''
         self.setup_eth(None)
         self.start_dnsmasq(None, self.dev_e2_ap)
         table_id = '255' # This is the 'local' FIB of /etc/iproute2/rt_tables
