@@ -129,9 +129,9 @@ install: default
 	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)/$(DATADIR)/dbus-1/system.d/
 	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/$(DATADIR)/dbus-1/system-services/
 	# systemd
-	mkdir -p $(DESTDIR)/lib/systemd/system $(DESTDIR)/lib/systemd/system/network-pre.target.wants
-	install -m 644 systemd/netplan-pre-config.service $(DESTDIR)/lib/systemd/system/
-	ln -sf ../netplan-pre-config.service $(DESTDIR)/lib/systemd/system/network-pre.target.wants/
+	mkdir -p $(DESTDIR)/lib/systemd/system $(DESTDIR)/lib/systemd/system/systemd-udevd-settle.service.wants
+	install -m 644 systemd/netplan-sriov-setup.service $(DESTDIR)/lib/systemd/system/
+	ln -sf ../netplan-sriov-setup.service $(DESTDIR)/lib/systemd/system/systemd-udevd-settle.service.wants/
 
 %.service: %.service.in
 	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)#" $< > $@

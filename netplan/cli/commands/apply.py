@@ -50,6 +50,14 @@ class NetplanApply(utils.NetplanCommand):
         self.run_command()
 
     def command_apply(self, run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        config_manager = ConfigManager()
+
+        # For certain use-cases, we might want to only apply specific configuration.
+        # If we only need SR-IOV configuration, do that and exit early.
+        if self.sriov_only:
+            NetplanApply.process_sriov_config(config_manager, exit_on_error)
+            return
+
         # if we are inside a snap, then call dbus to run netplan apply instead
         if "SNAP" in os.environ:
             # TODO: maybe check if we are inside a classic snap and don't do
@@ -75,21 +83,6 @@ class NetplanApply(utils.NetplanCommand):
                         "failed to communicate with dbus service")
             else:
                 return
-
-        config_manager = ConfigManager()
-
-        # For certain use-cases, we might want to only apply specific configuration.
-        # If we only need SR-IOV configuration, do that and exit early.
-        if self.sriov_only:
-            devices = netifaces.interfaces()
-            config_manager.parse()
-            try:
-                apply_sriov_config(devices, config_manager)
-            except (ConfigurationError, RuntimeError) as e:
-                logging.error(str(e))
-                if exit_on_error:
-                    sys.exit(1)
-            return
 
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
@@ -162,14 +155,6 @@ class NetplanApply(utils.NetplanCommand):
         config_manager.parse()
         changes = NetplanApply.process_link_changes(devices, config_manager)
 
-        # apply any SR-IOV related changes, if applicable
-        try:
-            apply_sriov_config(devices, config_manager)
-        except (ConfigurationError, RuntimeError) as e:
-            logging.error(str(e))
-            if exit_on_error:
-                sys.exit(1)
-
         # if the interface is up, we can still apply some .link file changes
         devices = netifaces.interfaces()
         for device in devices:
@@ -193,6 +178,9 @@ class NetplanApply(utils.NetplanCommand):
                                       stderr=subprocess.DEVNULL)
 
         subprocess.check_call(['udevadm', 'settle'])
+
+        # apply any SR-IOV related changes, if applicable
+        NetplanApply.process_sriov_config(config_manager, exit_on_error)
 
         # (re)start backends
         if restart_networkd:
@@ -279,3 +267,12 @@ class NetplanApply(utils.NetplanCommand):
 
         logging.debug(changes)
         return changes
+
+    @staticmethod
+    def process_sriov_config(config_manager, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        try:
+            apply_sriov_config(config_manager)
+        except (ConfigurationError, RuntimeError) as e:
+            logging.error(str(e))
+            if exit_on_error:
+                sys.exit(1)

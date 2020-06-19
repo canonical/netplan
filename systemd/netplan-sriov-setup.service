@@ -1,0 +1,9 @@
+[Unit]
+Description=Netplan one-shot initial SR-IOV configuration service
+DefaultDependencies=no
+After=systemd-udevd-settle.service
+Wants=systemd-udevd-settle.service
+
+[Service]
+Type=oneshot
+ExecStart=netplan apply --sriov-only

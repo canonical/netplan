@@ -30,25 +30,35 @@ import netifaces
 def _get_target_interface(interfaces, config_manager, pf_link, pfs):
     if pf_link not in pfs:
         # handle the match: syntax, get the actual device name
-        pf_match = config_manager.ethernets[pf_link].get('match')
+        pf_dev = config_manager.ethernets[pf_link]
+        pf_match = pf_dev.get('match')
         if pf_match:
-            by_name = pf_match.get('name')
-            by_mac = pf_match.get('macaddress')
-            by_driver = pf_match.get('driver')
+            # now here it's a bit tricky
+            set_name = pf_dev.get('set-name')
+            if set_name:
+                # if we had a match: stanza and set-name: this means we should
+                # assume that, if found, the interface has already been
+                # renamed - use the new name
+                pfs[pf_link] = set_name
+            else:
+                # no set-name, so we need to do the matching ourselves
+                by_name = pf_match.get('name')
+                by_mac = pf_match.get('macaddress')
+                by_driver = pf_match.get('driver')
 
-            for interface in interfaces:
-                if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
-                        (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
-                        (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
-                    continue
-                # we have a matching PF
-                # store the matching interface in the dictionary of
-                # active PFs, but error out if we matched more than one
-                if pf_link in pfs:
-                    raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
-                pfs[pf_link] = interface
+                for interface in interfaces:
+                    if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
+                            (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
+                            (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
+                        continue
+                    # we have a matching PF
+                    # store the matching interface in the dictionary of
+                    # active PFs, but error out if we matched more than one
+                    if pf_link in pfs:
+                        raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
+                    pfs[pf_link] = interface
         else:
-            # no match field, assume entry name is interface name
+            # no match field, assume entry name is the interface name
             if pf_link in interfaces:
                 pfs[pf_link] = pf_link
 
@@ -219,11 +229,13 @@ def apply_vlan_filter_for_vf(pf, vf, vlan_name, vlan_id, prefix='/'):
             'failed setting SR-IOV VLAN filter for vlan %s (ip link set command failed)' % vlan_name)
 
 
-def apply_sriov_config(interfaces, config_manager):
+def apply_sriov_config(config_manager):
     """
     Go through all interfaces, identify which ones are SR-IOV VFs, create
     them and perform all other necessary setup.
     """
+    config_manager.parse()
+    interfaces = netifaces.interfaces()
 
     # for sr-iov devices, we identify VFs by them having a link: field
     # pointing to an PF. So let's browse through all ethernet devices,
