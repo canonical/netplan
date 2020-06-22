@@ -243,15 +243,15 @@ check_ovs_ssl(gchar* target)
 static void
 write_ovs_bridge_controller_targets(const NetplanOVSController* controller, const gchar* bridge, GString* cmds)
 {
-    gboolean needs_ssl = FALSE;
     g_autofree gchar* ssl = "";
     gchar* target = g_array_index(controller->addresses, char*, 0);
-    needs_ssl |= check_ovs_ssl(target);
+    gboolean needs_ssl = check_ovs_ssl(target);
     GString* s = g_string_new(target);
 
     for (unsigned i = 1; i < controller->addresses->len; ++i) {
         target = g_array_index(controller->addresses, char*, i);
-        needs_ssl |= check_ovs_ssl(target);
+        if (!needs_ssl)
+            needs_ssl = check_ovs_ssl(target);
         g_string_append_printf(s, " %s", target);
     }
 
