@@ -29,12 +29,46 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
+    def test_bridge_base(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovsbr'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  ethernets:
+    %(ec)s: {}
+    %(e2c)s: {}
+  openvswitch:
+    ssl:
+      ca-cert: /some/ca-cert.pem
+      certificate: /another/certificate.pem
+      private-key: /private/key.pem
+  bridges:
+    ovsbr:
+      addresses: [192.170.1.1/24]
+      interfaces: [%(ec)s, %(e2c)s]
+      openvswitch:
+        fail-mode: secure
+        controller:
+          addresses: [tcp:127.0.0.1, "pssl:1337:[::1]", unix:/some/socket]
+''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        # Basic verification that the interfaces/ports are in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge ovsbr', out)
+        self.assertIn(b'        Controller "tcp:127.0.0.1"', out)
+        self.assertIn(b'        Controller "pssl:1337:[::1]"', out)
+        self.assertIn(b'        Controller "unix:/some/socket"', out)
+        self.assertIn(b'        fail_mode: secure', out)
+        self.assertIn(b'        Port eth42\n            Interface eth42', out)
+        self.assertIn(b'        Port eth43\n            Interface eth43', out)
+        # Verify the bridge was tagged 'netplan:true' correctly
+        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', 'list', 'Port'])
+        self.assertIn(b'ovsbr\nexternal_ids        : {netplan="true"}', out)
+
     def test_bond_base(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovsbr'])
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'mybond'])
-        # XXX: Temporary bridge setup, until netplan-ovs can do it itself
-        subprocess.call(['ovs-vsctl', 'add-br', 'ovsbr'])
         with open(self.config, 'w') as f:
             f.write('''network:
   ethernets:
@@ -59,7 +93,7 @@ class _CommonTests():
         self.assertIn(b'        Port mybond', out)
         self.assertIn(b'            Interface eth42', out)
         self.assertIn(b'            Interface eth43', out)
-        # Verify the bridge was tagged 'netplan:true' correctly
+        # Verify the bond was tagged 'netplan:true' correctly
         out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', 'list', 'Port'])
         self.assertIn(b'mybond\nexternal_ids        : {netplan="true"}', out)
         # Verify bond params

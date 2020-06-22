@@ -530,3 +530,132 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,Open
         protocols: [OpenFlow10, OpenFlow15]
 ''', expect_fail=True)
         self.assertIn("Key 'protocols' is only valid for iterface type 'openvswitch bridge'", err)
+
+    def test_bridge_controller(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          addresses: ["ptcp:", "ptcp:1337", "ptcp:1337:[fe80::1234%eth0]", "pssl:1337:[fe80::1]", "ssl:10.10.10.1",\
+                      tcp:127.0.0.1:1337, "tcp:[fe80::1234%eth0]", "tcp:[fe80::1]:1337", unix:/some/path, punix:other/path]
+          connection-mode: out-of-band
+  openvswitch:
+    ssl:
+      ca-cert: /another/path
+      certificate: /some/path
+      private-key: /key/path
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
+                        '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+ExecStart=/usr/bin/ovs-vsctl --private-key /key/path --certificate /some/path --ca-cert /another/path set-controller br0 ptcp: \
+ptcp:1337 ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] ssl:10.10.10.1 tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] \
+tcp:[fe80::1]:1337 unix:/some/path punix:other/path
+ExecStart=/usr/bin/ovs-vsctl set controller br0 connection-mode=out-of-band
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
+
+    def test_bridge_controller_invalid_target(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          addresses: [ptcp]
+''', expect_fail=True)
+        self.assertIn("Unsupported OVS controller target: ptcp", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_bridge_controller_invalid_target_ip(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          addresses: ["tcp:[fe80:1234%eth0]"]
+''', expect_fail=True)
+        self.assertIn("Unsupported OVS controller target: tcp:[fe80:1234%eth0]", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_bridge_controller_invalid_target_port(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          addresses: [ptcp:65536]
+''', expect_fail=True)
+        self.assertIn("Unsupported OVS controller target: ptcp:65536", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_bridge_controller_invalid_connection_mode(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          connection-mode: INVALID
+''', expect_fail=True)
+        self.assertIn("Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_bridge_controller_connection_mode_invalid_interface_type(self):
+        err = self.generate('''network:
+  version: 2
+  bonds:
+    mybond:
+      openvswitch:
+        controller:
+          connection-mode: in-band
+''', expect_fail=True)
+        self.assertIn("Key 'controller.connection-mode' is only valid for iterface type 'openvswitch bridge'", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_bridge_controller_addresses_invalid_interface_type(self):
+        err = self.generate('''network:
+  version: 2
+  bonds:
+    mybond:
+      openvswitch:
+        controller:
+          addresses: [unix:/some/socket]
+''', expect_fail=True)
+        self.assertIn("Key 'controller.addresses' is only valid for iterface type 'openvswitch bridge'", err)
+        self.assert_ovs({})
+        self.assert_networkd({})
+
+    def test_missing_ssl(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch:
+        controller:
+          addresses: [ssl:10.10.10.1]
+  openvswitch:
+    ssl: {}
+''', expect_fail=True)
+        self.assertIn("ERROR: openvswitch bridge controller target 'ssl:10.10.10.1' needs SSL configuration, but global \
+'openvswitch.ssl' settings are not set", err)
+        self.assert_ovs({})
+        self.assert_networkd({})

@@ -1787,6 +1787,77 @@ handle_ovs_bridge_protocol(yaml_document_t* doc, yaml_node_t* node, const void* 
     return handle_ovs_protocol(doc, node, cur_netdef, data, error);
 }
 
+static gboolean
+handle_ovs_bridge_controller_connection_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'controller.connection-mode' is only valid for iterface type 'openvswitch bridge'");
+
+    if (g_strcmp0(scalar(node), "in-band") && g_strcmp0(scalar(node), "out-of-band"))
+        return yaml_error(node, error, "Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+static gboolean
+handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'controller.addresses' is only valid for iterface type 'openvswitch bridge'");
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        gchar** vec = NULL;
+        gboolean is_host = FALSE;
+        gboolean is_port = FALSE;
+        gboolean is_unix = FALSE;
+
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+        /* We always need at least one colon */
+        if (!g_strrstr(scalar(entry), ":"))
+            return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
+
+        vec = g_strsplit (scalar(entry), ":", 2);
+
+        is_host = !g_strcmp0(vec[0], "tcp") || !g_strcmp0(vec[0], "ssl");
+        is_port = !g_strcmp0(vec[0], "ptcp") || !g_strcmp0(vec[0], "pssl");
+        is_unix = !g_strcmp0(vec[0], "unix") || !g_strcmp0(vec[0], "punix");
+
+        if (!cur_netdef->ovs_settings.controller.addresses)
+            cur_netdef->ovs_settings.controller.addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+        /* Format: [p]unix:file */
+        if (is_unix && vec[1] != NULL && vec[2] == NULL) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_strfreev(vec);
+            continue;
+        /* Format tcp:host[:port] or ssl:host[:port] */
+        } else if (is_host && validate_ovs_target(TRUE, vec[1])) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_strfreev(vec);
+            continue;
+        /* Format ptcp:[port][:host] or pssl:[port][:host] */
+        } else if (is_port && validate_ovs_target(FALSE, vec[1])) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_strfreev(vec);
+            continue;
+        }
+
+        g_strfreev(vec);
+        return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+static const mapping_entry_handler ovs_controller_handlers[] = {
+    {"addresses", YAML_SEQUENCE_NODE, handle_ovs_bridge_controller_addresses, NULL, netdef_offset(ovs_settings.controller.addresses)},
+    {"connection-mode", YAML_SCALAR_NODE, handle_ovs_bridge_controller_connection_mode, NULL, netdef_offset(ovs_settings.controller.connection_mode)},
+    {NULL},
+};
 
 static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.external_ids)},
@@ -1796,6 +1867,7 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {"mcast-snooping", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.mcast_snooping)},
     {"rstp", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.rstp)},
     {"protocols", YAML_SEQUENCE_NODE, handle_ovs_bridge_protocol, NULL, netdef_offset(ovs_settings.protocols)},
+    {"controller", YAML_MAPPING_NODE, NULL, ovs_controller_handlers},
     {NULL}
 };
 
@@ -2114,10 +2186,30 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     return TRUE;
 }
 
+static const mapping_entry_handler ovs_global_ssl_handlers[] = {
+    {"ca-cert", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(ca_certificate)},
+    {"certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_certificate)},
+    {"private-key", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key)},
+    {NULL}
+};
+
+static gboolean
+handle_ovs_global_ssl(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret;
+
+    cur_auth = &(ovs_settings_global.ssl);
+    ret = process_mapping(doc, node, ovs_global_ssl_handlers, NULL, error);
+    cur_auth = NULL;
+
+    return ret;
+}
+
 static const mapping_entry_handler ovs_network_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
     {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
     {"protocols", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_protocol, NULL, ovs_settings_offset(protocols)},
+    {"ssl", YAML_MAPPING_NODE, handle_ovs_global_ssl},
     {NULL}
 };
 

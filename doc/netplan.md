@@ -165,6 +165,31 @@ Virtual devices
      ``rstp`` (bool)
      :   Valid for bridge interfaces. False by default.
 
+     ``controller`` (mapping)
+     :   Valid for bridge interfaces. Specify an external OpenFlow controller.
+
+          ``addresses`` (sequence of scalars)
+          :   Set the list of addresses to use for the controller targets. The
+              syntax of these addresses is as defined in ovs-vsctl(8). Example:
+              addresses: ``[tcp:127.0.0.1:6653, "ssl:[fe80::1234%eth0]:6653"]``
+
+          ``connection-mode`` (scalar)
+          :   Set the connection mode for the controller. Supported options are
+              ``in-band`` and ``out-of-band``. The default is ``in-band``.
+
+     ``ssl`` (mapping)
+     :   Valid for global ``openvswitch`` settings. Options for configuring SSL
+         server endpoint for the switch.
+
+          ``ca-cert`` (scalar)
+          :   Path to a file containing the CA certificate to be used.
+
+          ``certificate`` (scalar)
+          :   Path to a file containing the server certificate.
+
+          ``private-key`` (scalar)
+          :   Path to a file containing the private key for the server.
+
 ## Common properties for all device types
 
 ``renderer`` (scalar)
