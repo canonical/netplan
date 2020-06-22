@@ -187,7 +187,7 @@ Virtual devices
 
              openvswitch:
                ports:
-                 - [port0-1, port1-0]
+                 - [patch0-1, patch1-0]
 
      ``ssl`` (mapping) – since **0.100**
      :   Valid for global ``openvswitch`` settings. Options for configuring SSL
