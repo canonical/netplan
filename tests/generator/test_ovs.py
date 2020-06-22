@@ -840,6 +840,28 @@ ExecStart=/usr/bin/ovs-vsctl add-bond br0 bond0 patchy eth0
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
+'''},
+                         'patchx.service': OVS_VIRTUAL % {'iface': 'patchx', 'extra':
+                                                                '''Requires=netplan-ovs-br1.service
+After=netplan-ovs-br1.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch
+ExecStart=/usr/bin/ovs-vsctl set Interface patchx options:peer=patchy
+ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchx
+'''},
+                         'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
+                                                                '''Requires=netplan-ovs-bond0.service
+After=netplan-ovs-bond0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch
+ExecStart=/usr/bin/ovs-vsctl set Interface patchy options:peer=patchx
+ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchy
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '2001:FFfe::1/64'),
@@ -847,3 +869,70 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
                               'patchx.network': ND_EMPTY % ('patchx', 'no'),
                               'patchy.network': ND_EMPTY % ('patchy', 'no'),
                               'eth0.network': '[Match]\nName=eth0\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n'})
+
+    def test_patch_ports(self):
+        self.generate('''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  bridges:
+    br0:
+      addresses: [192.168.1.1/24]
+      interfaces: [patch0-1]
+    br1:
+      addresses: [192.168.1.2/24]
+      interfaces: [patch1-0]
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br0
+ExecStart=/usr/bin/ovs-vsctl add-port br0 patch0-1
+ExecStop=/usr/bin/ovs-vsctl del-port br0 patch0-1
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+'''},
+                         'br1.service': OVS_VIRTUAL % {'iface': 'br1', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl add-br br1
+ExecStart=/usr/bin/ovs-vsctl add-port br1 patch1-0
+ExecStop=/usr/bin/ovs-vsctl del-port br1 patch1-0
+ExecStop=/usr/bin/ovs-vsctl del-br br1
+ExecStart=/usr/bin/ovs-vsctl set Port br1 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br1 rstp_enable=false
+'''},
+                         'patch0\\x2d1.service': OVS_VIRTUAL % {'iface': 'patch0\\x2d1', 'extra':
+                                                                '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
+ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
+ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
+'''},
+                         'patch1\\x2d0.service': OVS_VIRTUAL % {'iface': 'patch1\\x2d0', 'extra':
+                                                                '''Requires=netplan-ovs-br1.service
+After=netplan-ovs-br1.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
+ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
+ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
+'''}})
+        self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
+                              'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
+                              'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'no'),
+                              'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'no')})
