@@ -190,7 +190,8 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
 
     g_hash_table_iter_init(&iter, netdefs);
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
-        if (!g_strcmp0(def->id, tmp_nd->bridge)) {
+        /* OVS bonds will connect to their OVS bridge and create the interface/port themselves */
+        if (tmp_nd->type != NETPLAN_DEF_TYPE_BOND && !g_strcmp0(def->id, tmp_nd->bridge)) {
             append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " add-port %s %s", def->id, tmp_nd->id);
             append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s %s", def->id, tmp_nd->id);
         }

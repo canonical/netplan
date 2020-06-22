@@ -745,8 +745,6 @@ ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-br br0
-ExecStart=/usr/bin/ovs-vsctl add-port br0 bond0
-ExecStop=/usr/bin/ovs-vsctl del-port br0 bond0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
@@ -808,8 +806,6 @@ Bond=bond0
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl add-br br0
-ExecStart=/usr/bin/ovs-vsctl add-port br0 bond0
-ExecStop=/usr/bin/ovs-vsctl del-port br0 bond0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
@@ -842,7 +838,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 '''},
                          'patchx.service': OVS_VIRTUAL % {'iface': 'patchx', 'extra':
-                                                                '''Requires=netplan-ovs-br1.service
+                                                          '''Requires=netplan-ovs-br1.service
 After=netplan-ovs-br1.service
 
 [Service]
@@ -853,7 +849,7 @@ ExecStart=/usr/bin/ovs-vsctl set Interface patchx options:peer=patchy
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchx
 '''},
                          'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
-                                                                '''Requires=netplan-ovs-bond0.service
+                                                          '''Requires=netplan-ovs-bond0.service
 After=netplan-ovs-bond0.service
 
 [Service]
