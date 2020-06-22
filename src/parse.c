@@ -228,7 +228,6 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     return cur_netdef;
 }
 
-
 /****************************************************
  * Data types and functions for interpreting YAML nodes
  ****************************************************/
