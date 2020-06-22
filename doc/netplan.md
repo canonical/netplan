@@ -137,35 +137,36 @@ Virtual devices
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
-``openvswitch`` (mapping)
+``openvswitch`` (mapping) – since **0.100**
 
-:    TODO: This is just a stub - we'll update it once we have more OVS structure
-     defined.
+:    This provides additional configuration for the network device for openvswitch.
+     If openvswitch is not available on the system, netplan treats the presence of
+     openvswitch configuration as an error.
 
-     ``external-ids`` (mapping)
+     ``external-ids`` (mapping) – since **0.100**
      :   Passed-through directly to OpenVSwitch
 
-     ``other-config`` (mapping)
+     ``other-config`` (mapping) – since **0.100**
      :   Passed-through directly to OpenVSwitch
 
-     ``lacp`` (scalar)
+     ``lacp`` (scalar) – since **0.100**
      :   Valid for bond interfaces. Accepts ``active``, ``passive` or ``off`` (the default).
 
-     ``fail-mode`` (scalar)
+     ``fail-mode`` (scalar) – since **0.100**
      :   Valid for bridge interfaces. Accepts ``secure`` or ``standalone`` (the default).
 
-     ``mcast-snooping`` (bool)
+     ``mcast-snooping`` (bool) – since **0.100**
      :   Valid for bridge interfaces. False by default.
 
-     ``protocols`` (sequence of scalars)
+     ``protocols`` (sequence of scalars) – since **0.100**
      :   Valid for bridge interfaces or the network section. List of protocols to be used when
          negotiating a connection with the controller. Accepts ``OpenFlow10``, ``OpenFlow11``,
          ``OpenFlow12``, ``OpenFlow13``, ``OpenFlow14``, ``OpenFlow15`` and ``OpenFlow16``.
 
-     ``rstp`` (bool)
+     ``rstp`` (bool) – since **0.100**
      :   Valid for bridge interfaces. False by default.
 
-     ``controller`` (mapping)
+     ``controller`` (mapping) – since **0.100**
      :   Valid for bridge interfaces. Specify an external OpenFlow controller.
 
           ``addresses`` (sequence of scalars)
@@ -177,7 +178,7 @@ Virtual devices
           :   Set the connection mode for the controller. Supported options are
               ``in-band`` and ``out-of-band``. The default is ``in-band``.
 
-     ``ports`` (sequence of sequence of scalars)
+     ``ports`` (sequence of sequence of scalars) – since **0.100**
      :   OpenvSwitch patch ports. Each port is declared as a pair of names
          which can be referenced as interfaces in dependent virtual devices
          (bonds, bridges).
@@ -188,7 +189,7 @@ Virtual devices
                ports:
                  - [port0-1, port1-0]
 
-     ``ssl`` (mapping)
+     ``ssl`` (mapping) – since **0.100**
      :   Valid for global ``openvswitch`` settings. Options for configuring SSL
          server endpoint for the switch.
 
