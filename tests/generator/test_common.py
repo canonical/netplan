@@ -296,7 +296,6 @@ UseMTU=true
   version: 2
   ethernets:
     engreen:
-      dhcp4: yes
       critical: yes
 ''')
 
@@ -304,13 +303,10 @@ UseMTU=true
 Name=engreen
 
 [Network]
-DHCP=ipv4
 LinkLocalAddressing=ipv6
 
 [DHCP]
 CriticalConnection=true
-RouteMetric=100
-UseMTU=true
 '''})
 
     def test_dhcp_identifier_mac(self):
@@ -726,6 +722,48 @@ method=auto
 
 [ipv6]
 method=auto
+'''})
+
+    def test_ip6_addr_gen_mode(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-generation: stable-privacy
+    enblue:
+      dhcp6: yes
+      ipv6-address-generation: eui64''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=1
+''',
+                        'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=0
 '''})
 
     def test_eth_manual_addresses(self):

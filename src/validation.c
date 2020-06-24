@@ -19,6 +19,7 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 #include <arpa/inet.h>
+#include <regex.h>
 
 #include <yaml.h>
 
@@ -67,12 +68,12 @@ is_hostname(const char *hostname)
  * Validation for grammar and backend rules.
  ************************************************/
 static gboolean
-validate_tunnel_grammar(net_definition* nd, yaml_node_t* node, GError** error)
+validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
-    if (nd->tunnel.mode == TUNNEL_MODE_UNKNOWN)
+    if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
         return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
 
-    if (nd->tunnel.mode == TUNNEL_MODE_WIREGUARD) {
+    if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
         if (!nd->wireguard.private_key && !nd->wireguard.private_key_file)
             return yaml_error(node, error, "%s: private_key or private_key_file is required.", nd->id);
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
@@ -97,11 +98,11 @@ validate_tunnel_grammar(net_definition* nd, yaml_node_t* node, GError** error)
         return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
 
     switch(nd->tunnel.mode) {
-        case TUNNEL_MODE_IPIP6:
-        case TUNNEL_MODE_IP6IP6:
-        case TUNNEL_MODE_IP6GRE:
-        case TUNNEL_MODE_IP6GRETAP:
-        case TUNNEL_MODE_VTI6:
+        case NETPLAN_TUNNEL_MODE_IPIP6:
+        case NETPLAN_TUNNEL_MODE_IP6IP6:
+        case NETPLAN_TUNNEL_MODE_IP6GRE:
+        case NETPLAN_TUNNEL_MODE_IP6GRETAP:
+        case NETPLAN_TUNNEL_MODE_VTI6:
             if (!is_ip6_address(nd->tunnel.local_ip))
                 return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
             if (!is_ip6_address(nd->tunnel.remote_ip))
@@ -120,22 +121,22 @@ validate_tunnel_grammar(net_definition* nd, yaml_node_t* node, GError** error)
 }
 
 static gboolean
-validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** error)
+validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     /* Backend-specific validation rules for tunnels */
     switch (nd->backend) {
-        case BACKEND_NETWORKD:
+        case NETPLAN_BACKEND_NETWORKD:
             switch (nd->tunnel.mode) {
-                case TUNNEL_MODE_VTI:
-                case TUNNEL_MODE_VTI6:
-                case TUNNEL_MODE_WIREGUARD:
+                case NETPLAN_TUNNEL_MODE_VTI:
+                case NETPLAN_TUNNEL_MODE_VTI6:
+                case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     break;
 
                 /* TODO: Remove this exception and fix ISATAP handling with the
                  *       networkd backend.
                  *       systemd-networkd has grown ISATAP support in 918049a.
                  */
-                case TUNNEL_MODE_ISATAP:
+                case NETPLAN_TUNNEL_MODE_ISATAP:
                     return yaml_error(node, error,
                                     "%s: %s tunnel mode is not supported by networkd",
                                     nd->id,
@@ -150,15 +151,15 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
             }
             break;
 
-        case BACKEND_NM:
+        case NETPLAN_BACKEND_NM:
             switch (nd->tunnel.mode) {
-                case TUNNEL_MODE_GRE:
-                case TUNNEL_MODE_IP6GRE:
+                case NETPLAN_TUNNEL_MODE_GRE:
+                case NETPLAN_TUNNEL_MODE_IP6GRE:
                     break;
 
-                case TUNNEL_MODE_GRETAP:
-                case TUNNEL_MODE_IP6GRETAP:
-                case TUNNEL_MODE_WIREGUARD:
+                case NETPLAN_TUNNEL_MODE_GRETAP:
+                case NETPLAN_TUNNEL_MODE_IP6GRETAP:
+                case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     return yaml_error(node, error,
                                     "%s: %s tunnel mode is not supported by NetworkManager",
                                     nd->id,
@@ -184,12 +185,12 @@ validate_tunnel_backend_rules(net_definition* nd, yaml_node_t* node, GError** er
 }
 
 gboolean
-validate_netdef_grammar(net_definition* nd, yaml_node_t* node, GError** error)
+validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     int missing_id_count = g_hash_table_size(missing_id);
     gboolean valid = FALSE;
 
-    g_assert(nd->type != ND_NONE);
+    g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
 
     /* Skip all validation if we're missing some definition IDs (devices).
      * The ones we have yet to see may be necessary for validation to succeed,
@@ -201,10 +202,10 @@ validate_netdef_grammar(net_definition* nd, yaml_node_t* node, GError** error)
     if (nd->set_name && !nd->has_match)
         return yaml_error(node, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
 
-    if (nd->type == ND_WIFI && nd->access_points == NULL)
+    if (nd->type == NETPLAN_DEF_TYPE_WIFI && nd->access_points == NULL)
         return yaml_error(node, error, "%s: No access points defined", nd->id);
 
-    if (nd->type == ND_VLAN) {
+    if (nd->type == NETPLAN_DEF_TYPE_VLAN) {
         if (!nd->vlan_link)
             return yaml_error(node, error, "%s: missing 'link' property", nd->id);
         nd->vlan_link->has_vlans = TRUE;
@@ -214,7 +215,7 @@ validate_netdef_grammar(net_definition* nd, yaml_node_t* node, GError** error)
             return yaml_error(node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
     }
 
-    if (nd->type == ND_TUNNEL) {
+    if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
         valid = validate_tunnel_grammar(nd, node, error);
         if (!valid)
             goto netdef_grammar_error;
@@ -227,15 +228,15 @@ netdef_grammar_error:
 }
 
 gboolean
-validate_backend_rules(net_definition* nd, GError** error)
+validate_backend_rules(NetplanNetDefinition* nd, GError** error)
 {
     gboolean valid = FALSE;
     /* Set a dummy, NULL yaml_node_t for error reporting */
     yaml_node_t* node = NULL;
 
-    g_assert(nd->type != ND_NONE);
+    g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
 
-    if (nd->type == ND_TUNNEL) {
+    if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
         valid = validate_tunnel_backend_rules(nd, node, error);
         if (!valid)
             goto backend_rules_error;

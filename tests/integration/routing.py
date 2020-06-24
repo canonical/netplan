@@ -29,6 +29,82 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
+    def test_route_on_link(self):
+        '''Supposed to fail if tested against NetworkManager < 1.12/1.18
+
+        The on-link option was introduced as of NM 1.12+ (for IPv4)
+        The on-link option was introduced as of NM 1.18+ (for IPv6)'''
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      addresses: ["9876:BBBB::11/70"]
+      routes:
+        - to: 2001:f00f:f00f::1/64
+          via: 9876:BBBB::5
+          on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, ['inet 10.20.10.1'])
+        out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client],
+                                      universal_newlines=True)
+        # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
+        self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* onlink')
+
+    def test_route_from(self):
+        '''Supposed to fail if tested against NetworkManager < 1.8
+
+        The from option was introduced as of NM 1.8+'''
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          from: 192.168.14.2''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.14.2'])
+        out = subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client],
+                                      universal_newlines=True)
+        self.assertIn('10.10.10.0/24 via 192.168.14.20 proto static src 192.168.14.2', out)
+
+    def test_route_table(self):
+        '''Supposed to fail if tested against NetworkManager < 1.10
+
+        The table option was introduced as of NM 1.10+'''
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        table_id = '255' # This is the 'local' FIB of /etc/iproute2/rt_tables
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      dhcp4: no
+      addresses: [ "10.20.10.2/24" ]
+      gateway4: 10.20.10.1
+      routes:
+        - to: 10.0.0.0/8
+          via: 11.0.0.1
+          table: %(tid)s
+          on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client, 'tid': table_id})
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, ['inet '])
+        out = subprocess.check_output(['ip', 'route', 'show', 'table', table_id, 'dev',
+                                      self.dev_e_client], universal_newlines=True)
+        # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
+        self.assertRegex(out, r'10\.0\.0\.0/8 via 11\.0\.0\.1 proto static[^\n]* onlink')
+
     @unittest.skip("fails due to networkd bug setting routes with dhcp")
     def test_routes_v4_with_dhcp(self):
         self.setup_eth(None)
@@ -151,27 +227,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         self.assert_iface_up(self.dev_e_client,
                              ['inet '])
         self.assertIn(b'blackhole 10.10.10.0/24',
-                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
-
-    def test_route_on_link(self):
-        self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  renderer: %(r)s
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-      dhcp4: no
-      addresses: [ "10.20.10.1/24" ]
-      routes:
-        - to: 20.0.0.0/24
-          via: 10.10.10.10
-          on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet '])
-        self.assertIn(b'20.0.0.0/24 via 10.10.10.10 proto static onlink',
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
 
     def test_route_with_policy(self):

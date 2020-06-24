@@ -19,6 +19,6 @@
 
 #include "parse.h"
 
-gboolean write_networkd_conf(net_definition* def, const char* rootdir);
+gboolean write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
 void cleanup_networkd_conf(const char* rootdir);
 void enable_networkd(const char* generator_dir);

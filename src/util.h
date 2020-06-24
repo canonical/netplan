@@ -17,6 +17,12 @@
 
 #pragma once
 
+GHashTable* wifi_frequency_24;
+GHashTable* wifi_frequency_5;
+
 void safe_mkdir_p_dir(const char* file_path);
 void g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
 void unlink_glob(const char* rootdir, const char* _glob);
+
+int wifi_get_freq24(int channel);
+int wifi_get_freq5(int channel);
