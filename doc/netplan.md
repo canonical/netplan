@@ -1010,43 +1010,48 @@ Examples:
 
 Wireguard-specific keys:
 
-    ``private-key`` (scalar)
-    :   Base64-encoded private key. Either this or ``private_key_file`` is required.
+    ``private-key`` (scalar) – since **0.100**
+    :   Base64-encoded private key. Either this or ``private_key_file`` is
+        required.
 
-    ``private-key-file`` (scalar)
-    :   Path to a file with the private key. If the file is readable, the ``private_key`` is ignored.
+    ``private-key-file`` (scalar) – since **0.100**
+    :   Path to a file with the private key. If the file is readable, the
+        ``private_key`` is ignored.
 
-    ``fwmark`` (scalar)
-    :   Firewall mark for outgoing WireGuard packets from this interface, optional.
+    ``fwmark`` (scalar) – since **0.100**
+    :   Firewall mark for outgoing WireGuard packets from this interface,
+        optional.
 
-    ``listen-port`` (scalar)
+    ``listen-port`` (scalar) – since **0.100**
     :   UDP port to listen at or 'auto'. Optional, defaults to 'auto'.
 
-    ``peers`` (sequence of mappings)
+    ``peers`` (sequence of mappings) – since **0.100**
     :   A list of peers, each having keys documented below.
 
-    ``public-key`` (scalar)
+    ``public-key`` (scalar) – since **0.100**
     :   Peer's base64-encoded public key, required.
 
-    ``preshared-key`` (scalar)
+    ``preshared-key`` (scalar) – since **0.100**
     :   Optional preshared key for a peer.
 
-    ``preshared-key-file`` (scalar)
+    ``preshared-key-file`` (scalar) – since **0.100**
     :   Path to a file with an optional preshared key for a peer.
 
-    ``endpoint`` (scalar)
-    :   Endpoint IPv4/IPv6 address or a hostname, followed by a colon, and then a port number.
+    ``endpoint`` (scalar) – since **0.100**
+    :   Endpoint IPv4/IPv6 address or a hostname, followed by a colon, and then
+        a port number.
 
-    ``allowed-ips`` (sequence of scalars)
-    :    A list of IP (v4 or v6) addresses with CIDR masks from which
-         this peer is allowed to send incoming traffic and to which outgoing traffic for this
-         peer is directed. The catch-all 0.0.0.0/0 may be specified for matching all IPv4
-         addresses, and ::/0 may be specified for matching all IPv6 addresses.
+    ``allowed-ips`` (sequence of scalars) – since **0.100**
+    :    A list of IP (v4 or v6) addresses with CIDR masks from which this peer
+         is allowed to send incoming traffic and to which outgoing traffic for
+         this peer is directed. The catch-all 0.0.0.0/0 may be specified for
+         matching all IPv4 addresses, and ::/0 may be specified for matching
+         all IPv6 addresses.
 
-    ``keepalive`` (scalar)
-    :    An interval in seconds, between 1 and 65535 inclusive, of how often to send an
-         authenticated empty packet to the peer for the purpose of keeping a stateful firewall
-         or NAT mapping valid persistently. Optional.
+    ``keepalive`` (scalar) – since **0.100**
+    :    An interval in seconds, between 1 and 65535 inclusive, of how often to
+         send an authenticated empty packet to the peer for the purpose of
+         keeping a stateful firewall or NAT mapping valid persistently. Optional.
 
 
 ## Properties for device type ``vlans:``
