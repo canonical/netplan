@@ -22,7 +22,7 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     fi
 
     # 2. "[blah, ]``blah``[, ``blah2``]: (scalar|bool|...)
-    if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars)" doc/netplan.md > /dev/null; then
+    if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings)" doc/netplan.md > /dev/null; then
         continue
     fi
 
@@ -38,11 +38,6 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
 
     # 5. gratuit_i_ous arp gets a special note
     if [[ $term = "gratuitious-arp" ]]; then
-        continue
-    fi
-
-    # 6. wireguard peers
-    if [[ $term = "peers" ]]; then
         continue
     fi
 
