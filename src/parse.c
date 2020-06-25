@@ -898,7 +898,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
                     goto skip_ip4;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ip4_addresses, s);
-            skip_ip4:;
+skip_ip4:
             continue;
         }
 
@@ -915,7 +915,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
                     goto skip_ip6;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ip6_addresses, s);
-            skip_ip6:;
+skip_ip6:
             continue;
         }
 
@@ -2164,7 +2164,7 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
         component = g_hash_table_lookup(netdefs, scalar(port));
         if (!component) {
             component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
-            if(g_hash_table_remove(missing_id, scalar(port)))
+            if (g_hash_table_remove(missing_id, scalar(port)))
                 missing_ids_found++;
         }
 
@@ -2178,7 +2178,7 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
         component = g_hash_table_lookup(netdefs, scalar(peer));
         if (!component) {
             component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
-            if(g_hash_table_remove(missing_id, scalar(peer)))
+            if (g_hash_table_remove(missing_id, scalar(peer)))
                 missing_ids_found++;
         }
 
