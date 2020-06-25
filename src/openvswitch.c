@@ -131,13 +131,8 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
         g_fprintf(stderr, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
         exit(1);
     }
-    tmp_nd = g_hash_table_lookup(netdefs, def->bridge);
-    if (!tmp_nd || tmp_nd->backend != NETPLAN_BACKEND_OVS) {
-        g_fprintf(stderr, "Bond %s: %s needs to be handled by OpenVSwitch\n", def->id, tmp_nd->id);
-        exit(1);
-    }
 
-    s = g_string_new(OPENVSWITCH_OVS_VSCTL " add-bond");
+    s = g_string_new(OPENVSWITCH_OVS_VSCTL " --may-exist add-bond");
     g_string_append_printf(s, " %s %s", def->bridge, def->id);
 
     g_hash_table_iter_init(&iter, netdefs);
@@ -191,12 +186,13 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
     GHashTableIter iter;
     gchar* key;
 
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " add-br %s", def->id);
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s", def->id);
 
     g_hash_table_iter_init(&iter, netdefs);
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
-        if (!g_strcmp0(def->id, tmp_nd->bridge)) {
-            append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " add-port %s %s", def->id, tmp_nd->id);
+        /* OVS bonds will connect to their OVS bridge and create the interface/port themselves */
+        if (tmp_nd->type != NETPLAN_DEF_TYPE_BOND && !g_strcmp0(def->id, tmp_nd->bridge)) {
+            append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s", def->id, tmp_nd->id);
             append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s %s", def->id, tmp_nd->id);
         }
     }
@@ -243,7 +239,6 @@ check_ovs_ssl(gchar* target)
 static void
 write_ovs_bridge_controller_targets(const NetplanOVSController* controller, const gchar* bridge, GString* cmds)
 {
-    g_autofree gchar* ssl = "";
     gchar* target = g_array_index(controller->addresses, char*, 0);
     gboolean needs_ssl = check_ovs_ssl(target);
     GString* s = g_string_new(target);
@@ -255,14 +250,7 @@ write_ovs_bridge_controller_targets(const NetplanOVSController* controller, cons
         g_string_append_printf(s, " %s", target);
     }
 
-    if (needs_ssl) {
-        ssl = g_strdup_printf(" --private-key %s --certificate %s --ca-cert %s",
-                              ovs_settings_global.ssl.client_key,
-                              ovs_settings_global.ssl.client_certificate,
-                              ovs_settings_global.ssl.ca_certificate);
-    }
-
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL "%s set-controller %s %s", ssl, bridge, s->str);
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-controller %s %s", bridge, s->str);
     g_string_free(s, TRUE);
 }
 
@@ -276,7 +264,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* cmds = g_string_new(NULL);
     g_autofree gchar* id_escaped = NULL;
-    g_autofree gchar* dependency = NULL;
+    gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
 
@@ -326,11 +314,19 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 }
                 break;
 
-            // LCOV_EXCL_START
-            default:
-                g_assert_not_reached();
-                //break;
-            // LCOV_EXCL_STOP
+            case NETPLAN_DEF_TYPE_PORT:
+                g_assert(def->peer);
+                dependency = def->bridge?: def->bond;
+                if (!dependency) {
+                    g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
+                    exit(1);
+                }
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
+                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
+                break;
+
+            default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
 
         /* Try writing out a base config */
@@ -381,6 +377,14 @@ write_ovs_conf_finish(const char* rootdir)
 
     if (ovs_settings_global.protocols && ovs_settings_global.protocols->len > 0) {
         write_ovs_protocols(&ovs_settings_global, NULL, cmds);
+    }
+
+    if (ovs_settings_global.ssl.client_key && ovs_settings_global.ssl.client_certificate &&
+        ovs_settings_global.ssl.ca_certificate) {
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-ssl %s %s %s",
+                           ovs_settings_global.ssl.client_key,
+                           ovs_settings_global.ssl.client_certificate,
+                           ovs_settings_global.ssl.ca_certificate);
     }
 
     /* TODO: Add any additional base OVS config we might need */
