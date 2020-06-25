@@ -106,7 +106,6 @@ validate_ovs_target(gboolean host_first, gchar* s) {
                 host = g_strjoinv("", split);
                 g_strfreev(split);
             }
-            g_assert(vec[2] == NULL);
             g_strfreev(vec);
         }
     }
