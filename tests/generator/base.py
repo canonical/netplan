@@ -51,6 +51,11 @@ Requires=sys-subsystem-net-devices-%(iface)s.device\nAfter=sys-subsystem-net-dev
 Wants=network.target\n%(extra)s'
 OVS_VIRTUAL = '[Unit]\nDescription=OpenVSwitch configuration for %(iface)s\nDefaultDependencies=no\nBefore=network.target\n\
 Wants=network.target\n%(extra)s'
+OVS_BR_EMPTY = '[Unit]\nDescription=OpenVSwitch configuration for %(iface)s\nDefaultDependencies=no\nBefore=network.target\n\
+Wants=network.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\n\
+ExecStop=/usr/bin/ovs-vsctl del-br %(iface)s\nExecStart=/usr/bin/ovs-vsctl set Port %(iface)s external-ids:netplan=true\n\
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode %(iface)s standalone\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s \
+mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s rstp_enable=false\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
 
@@ -188,6 +193,9 @@ class TestBase(unittest.TestCase):
             return
 
         self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
+        ovs_systemd_dir = set(os.listdir(systemd_dir))
+        ovs_systemd_dir.remove('systemd-networkd.service.wants')
+        self.assertEqual(ovs_systemd_dir, {'netplan-ovs-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
             fname = 'netplan-ovs-' + fname
             with open(os.path.join(systemd_dir, fname)) as f:
