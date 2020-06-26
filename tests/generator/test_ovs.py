@@ -946,8 +946,7 @@ ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
       link: br0
       openvswitch: {}
 ''')
-        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
-                        '''
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
 RemainAfterExit=yes
@@ -959,7 +958,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
 '''},
                          'br0.100.service': OVS_VIRTUAL % {'iface': 'br0.100', 'extra':
-                        '''Requires=netplan-ovs-br0.service
+                                                           '''Requires=netplan-ovs-br0.service
 After=netplan-ovs-br0.service
 
 [Service]
@@ -971,4 +970,4 @@ ExecStart=/usr/bin/ovs-vsctl set Port br0.100 external-ids:netplan=true
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
-                              'br0.100.network': ND_EMPTY % ('br0.100', 'ipv6'),})
+                              'br0.100.network': ND_EMPTY % ('br0.100', 'ipv6')})
