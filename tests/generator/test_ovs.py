@@ -932,3 +932,43 @@ ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
                               'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'no'),
                               'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'no')})
+
+    def test_fake_vlan_bridge_setup(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      addresses: [192.168.1.1/24]
+      openvswitch: {}
+  vlans:
+    br0.100:
+      id: 100
+      link: br0
+      openvswitch: {}
+''')
+        self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra':
+                        '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
+ExecStop=/usr/bin/ovs-vsctl del-br br0
+ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
+'''},
+                         'br0.100.service': OVS_VIRTUAL % {'iface': 'br0.100', 'extra':
+                        '''Requires=netplan-ovs-br0.service
+After=netplan-ovs-br0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
+ExecStop=/usr/bin/ovs-vsctl del-br br0.100
+ExecStart=/usr/bin/ovs-vsctl set Port br0.100 external-ids:netplan=true
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
+                              'br0.100.network': ND_EMPTY % ('br0.100', 'ipv6'),})

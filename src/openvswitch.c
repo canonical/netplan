@@ -326,6 +326,15 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
                 break;
 
+            case NETPLAN_DEF_TYPE_VLAN:
+                g_assert(def->vlan_link);
+                dependency = def->vlan_link->id;
+                /* Create a fake VLAN bridge */
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
+                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-br %s", def->id);
+                write_ovs_tag_netplan(def->id, cmds);
+                break;
+
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
 
