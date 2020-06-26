@@ -932,3 +932,14 @@ ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
                               'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'no'),
                               'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'no')})
+
+    def test_invalid_device_type(self):
+        err = self.generate('''network:
+    version: 2
+    ethernets:
+        eth0:
+            openvswitch: {}
+''', expect_fail=True)
+        self.assertIn('eth0: This device type is not supported with the OpenVSwitch backend', err)
+        self.assert_ovs({})
+        self.assert_networkd({})
