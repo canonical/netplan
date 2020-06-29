@@ -377,8 +377,8 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
 '''}})
         # Confirm that the networkd config is still sane
-        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\n',
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24')})
 
     def test_bridge_external_ids_other_config(self):
@@ -440,8 +440,8 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
 '''}})
         # Confirm that the networkd config is still sane
-        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\n',
-                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\n',
+        self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
+                              'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24')})
 
     def test_bridge_fail_mode_invalid(self):
