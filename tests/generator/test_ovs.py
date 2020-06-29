@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL
+from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL, OVS_BR_EMPTY
 
 
 class TestOpenVSwitch(TestBase):
@@ -150,7 +150,8 @@ ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id=myhostname
-'''}})
+'''},
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -215,7 +216,8 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=active
-'''}})
+'''},
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -280,7 +282,8 @@ ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=balance-tcp
-'''}})
+'''},
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -317,7 +320,8 @@ ExecStop=/usr/bin/ovs-vsctl del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
-'''}})
+'''},
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -932,3 +936,14 @@ ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
                               'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'no'),
                               'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'no')})
+
+    def test_invalid_device_type(self):
+        err = self.generate('''network:
+    version: 2
+    ethernets:
+        eth0:
+            openvswitch: {}
+''', expect_fail=True)
+        self.assertIn('eth0: This device type is not supported with the OpenVSwitch backend', err)
+        self.assert_ovs({})
+        self.assert_networkd({})
