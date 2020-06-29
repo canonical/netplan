@@ -567,17 +567,14 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
-        NetplanNetDefinition* bridge = g_hash_table_lookup(netdefs, def->bridge);
-        if (bridge && bridge->backend != NETPLAN_BACKEND_OVS) {
-            g_string_append_printf(network, "Bridge=%s\n", def->bridge);
+        g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
-            if (def->bridge_params.path_cost || def->bridge_params.port_priority)
-                g_string_append_printf(network, "\n[Bridge]\n");
-            if (def->bridge_params.path_cost)
-                g_string_append_printf(network, "Cost=%u\n", def->bridge_params.path_cost);
-            if (def->bridge_params.port_priority)
-                g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
-        }
+        if (def->bridge_params.path_cost || def->bridge_params.port_priority)
+            g_string_append_printf(network, "\n[Bridge]\n");
+        if (def->bridge_params.path_cost)
+            g_string_append_printf(network, "Cost=%u\n", def->bridge_params.path_cost);
+        if (def->bridge_params.port_priority)
+            g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
     }
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
