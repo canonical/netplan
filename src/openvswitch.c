@@ -335,7 +335,10 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 write_ovs_tag_netplan(def->id, cmds);
                 break;
 
-            default: g_assert_not_reached(); // LCOV_EXCL_LINE
+            default:
+                g_fprintf(stderr, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
+                exit(1);
+                break;
         }
 
         /* Try writing out a base config */

@@ -139,6 +139,42 @@ class _CommonTests():
         self.assert_iface('br0', ['inet 192.168.1.1/24'])
         self.assert_iface('br1', ['inet 192.168.2.1/24'])
 
+    def test_bridge_vlan(self):
+        self.setup_eth(None, True)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s' % self.dev_e_client])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-data'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    ethernets:
+        %(ec)s:
+            mtu: 9000
+    bridges:
+        br-%(ec)s:
+            dhcp4: true
+            mtu: 9000
+            interfaces: [%(ec)s]
+            openvswitch: {}
+        br-data:
+            openvswitch: {}
+            addresses: [192.168.20.1/16]
+#    vlans:
+#        br-%(ec)s.100:
+#            id: 100
+#            link: br-%(ec)s
+#            openvswitch: {}''' % {'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Basic verification that the interfaces/ports are set up in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge br-%b' % self.dev_e_client.encode(), out)
+        self.assertIn(b'''        Port %(ec)b
+            Interface %(ec)b''' % {b'ec': self.dev_e_client.encode()}, out)
+        self.assertIn(b'    Bridge br-data', out)
+        self.assert_iface('br-%s' % self.dev_e_client,
+                          ['inet 192.168.5.[0-9]+/16', 'mtu 9000'])  # from DHCP
+        self.assert_iface('br-data', ['inet 192.168.20.1/16'])
+        self.assert_iface(self.dev_e_client, ['mtu 9000', 'master ovs-system'])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
