@@ -143,6 +143,12 @@ Virtual devices
      If openvswitch is not available on the system, netplan treats the presence of
      openvswitch configuration as an error.
 
+     Any supported network device that is declared with the ``openvswitch`` mapping
+     (or any bond/bridge that includes an interface with an openvswitch configuration)
+     will be created in openvswitch instead of the defined renderer.
+     In the case of a ``vlan`` definition declared the same way, netplan will create
+     a fake VLAN bridge in openvswitch with the requested vlan properties.
+
      ``external-ids`` (mapping) – since **0.100**
      :   Passed-through directly to OpenVSwitch
 
