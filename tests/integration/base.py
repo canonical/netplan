@@ -94,7 +94,7 @@ class IntegrationTestsBase(unittest.TestCase):
 
     def tearDown(self):
         subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd', 'netplan-wpa-*',
-                                              'systemd-networkd.socket'])
+                         'netplan-ovs-*', 'systemd-networkd.socket'])
         # NM has KillMode=process and leaks dhclient processes
         subprocess.call(['systemctl', 'kill', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager', 'systemd-networkd'],

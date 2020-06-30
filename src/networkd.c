@@ -583,7 +583,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
             g_string_append_printf(network, "PrimarySlave=true\n");
     }
 
-    if (def->has_vlans) {
+    if (def->has_vlans && def->backend != NETPLAN_BACKEND_OVS) {
         /* iterate over all netdefs to find VLANs attached to us */
         GList *l = netdefs_ordered;
         const NetplanNetDefinition* nd;
