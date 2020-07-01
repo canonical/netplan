@@ -43,8 +43,8 @@ configuration files. Their primary purpose is to serve as anchor names for
 composite devices, for example to enumerate the members of a bridge that is
 currently being defined.
 
-If an interface is defined with an ID in a configuration file; it will be
-brought up by the applicable renderer. To not have netplan touch an interface
+(Since 0.97) If an interface is defined with an ID in a configuration file; it will
+be brought up by the applicable renderer. To not have netplan touch an interface
 at all, it should be completely omitted from the netplan configuration files.
 
 There are two physically/structurally different classes of device definitions,
@@ -89,8 +89,8 @@ Virtual devices
      :   Current interface name. Globs are supported, and the primary use case
          for matching on names, as selecting one fixed name can be more easily
          achieved with having no ``match:`` at all and just using the ID (see
-         above). Note that currently only networkd supports globbing,
-         NetworkManager does not.
+         above).
+         (``NetworkManager``: as of v1.14.0)
 
      ``macaddress`` (scalar)
      :   Device's MAC address in the form "XX:XX:XX:XX:XX:XX". Globs are not
@@ -133,7 +133,7 @@ Virtual devices
 
 :    Enable wake on LAN. Off by default.
 
-``emit-lldp`` (bool)
+``emit-lldp`` (bool) – since **0.99**
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
@@ -217,10 +217,10 @@ Virtual devices
     in ``network:``, for a device type (in e. g. ``ethernets:``) or
     for a particular device definition. Default is ``networkd``.
 
-    The ``renderer`` property has one additional acceptable value for vlan objects
-    (i. e. defined in ``vlans:``): ``sriov``. If a vlan is defined with the ``sriov``
-    renderer for an SR-IOV Virtual Function interface, this causes netplan to set
-    up a hardware VLAN filter for it. There can be only one defined per VF.
+    (Since 0.99) The ``renderer`` property has one additional acceptable value for vlan
+    objects (i. e. defined in ``vlans:``): ``sriov``. If a vlan is defined with the
+    ``sriov`` renderer for an SR-IOV Virtual Function interface, this causes netplan to
+    set up a hardware VLAN filter for it. There can be only one defined per VF.
 
 ``dhcp4`` (bool)
 
@@ -242,7 +242,7 @@ Virtual devices
     Note that **``rdnssd``**(8) is required to use RDNSS with networkd. No extra
     software is required for NetworkManager.
 
-``ipv6-mtu`` (scalar)
+``ipv6-mtu`` (scalar) – since **0.98**
 :   Set the IPv6 MTU (only supported with `networkd` backend). Note
     that needing to set this is an unusual requirement.
 
@@ -314,7 +314,7 @@ Virtual devices
 
     Example: ``addresses: [192.168.14.2/24, "2001:1::1/64"]``
 
-``ipv6-address-generation`` (scalar)
+``ipv6-address-generation`` (scalar) – since **0.99**
 
 :   Configure method for creating the address for use with RFC4862 IPv6
     Stateless Address Autoconfiguration (only supported with `NetworkManager`
@@ -481,7 +481,7 @@ client processes as specified in the netplan YAML.
           on a preferred interface. Available for both the ``networkd`` and
           ``NetworkManager`` backends.
 
-     ``use-domains`` (scalar)
+     ``use-domains`` (scalar) – since **0.98**
      :    Takes a boolean, or the special value "route". When true, the domain 
           name received from the DHCP server will be used as DNS search domain
           over this link, similar to the effect of the Domains= setting. If set
@@ -510,6 +510,7 @@ These options are available for all types of interfaces.
 
      ``from`` (scalar)
      :    Set a source IP address for traffic going through the route.
+          (``NetworkManager``: as of v1.8.0)
 
      ``to`` (scalar)
      :    Destination address for the route.
@@ -520,6 +521,7 @@ These options are available for all types of interfaces.
      ``on-link`` (bool)
      :    When set to "true", specifies that the route is directly connected
           to the interface.
+          (``NetworkManager``: as of v1.12.0 for IPv4 and v1.18.0 for IPv6)
 
      ``metric`` (scalar)
      :    The relative priority of the route. Must be a positive integer value.
@@ -530,7 +532,8 @@ These options are available for all types of interfaces.
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
-          values are "global", "link", or "host".
+          values are "global", "link", or "host". ``NetworkManager`` does
+          not support setting a scope.
 
      ``table`` (scalar)
      :    The table number to use for the route. In some scenarios, it may be
@@ -539,6 +542,7 @@ These options are available for all types of interfaces.
           parameter. Allowed values are positive integers starting from 1.
           Some values are already in use to refer to specific routing tables:
           see ``/etc/iproute2/rt_tables``.
+          (``NetworkManager``: as of v1.10.0)
 
 ``routing-policy`` (mapping)
 
@@ -627,7 +631,7 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
      :    Password to use to decrypt the private key specified in
           ``client-key`` if it is encrypted.
 
-     ``phase2-auth`` (scalar)
+     ``phase2-auth`` (scalar) – since **0.99**
      :    Phase 2 authentication mechanism.
 
 
@@ -635,7 +639,7 @@ interfaces, as well as individual wifi networks, by means of the ``auth`` block.
 Ethernet device definitions, beyond common ones described above, also support
 some additional properties that can be used for SR-IOV devices.
 
-``link`` (scalar)
+``link`` (scalar) – since **0.99**
 
 :    (SR-IOV devices only) The ``link`` property declares the device as a
      Virtual Function of the selected Physical Function device, as identified
@@ -648,7 +652,7 @@ Example:
       enp1s16f1:
         link: enp1
 
-``virtual-function-count`` (scalar)
+``virtual-function-count`` (scalar) – since **0.99**
 
 :    (SR-IOV devices only) In certain special cases VFs might need to be
      configured outside of netplan. For such configurations ``virtual-function-count``
@@ -665,56 +669,56 @@ backend. ``systemd-networkd`` does not support modems.
 
 **Requires feature: modems**
 
-``apn`` (scalar)
+``apn`` (scalar) – since **0.99**
 
 :    Set the carrier APN (Access Point Name). This can be omitted if
      ``auto-config`` is enabled.
 
-``auto-config`` (bool)
+``auto-config`` (bool) – since **0.99**
 
 :    Specify whether to try and autoconfigure the modem by doing a lookup of
      the carrier against the Mobile Broadband Provider database. This may not
      work for all carriers.
 
-``device-id`` (scalar)
+``device-id`` (scalar) – since **0.99**
 
 :    Specify the device ID (as given by the WWAN management service) of the
      modem to match. This can be found using ``mmcli``.
 
-``network-id`` (scalar)
+``network-id`` (scalar) – since **0.99**
 
 :    Specify the Network ID (GSM LAI format). If this is specified, the device
      will not roam networks.
 
-``number`` (scalar)
+``number`` (scalar) – since **0.99**
 
 :    The number to dial to establish the connection to the mobile broadband
      network. (Deprecated for GSM)
 
-``password`` (scalar)
+``password`` (scalar) – since **0.99**
 
 :    Specify the password used to authenticate with the carrier network. This
      can be omitted if ``auto-config`` is enabled.
 
-``pin`` (scalar)
+``pin`` (scalar) – since **0.99**
 
 :    Specify the SIM PIN to allow it to operate if a PIN is set.
 
-``sim-id`` (scalar)
+``sim-id`` (scalar) – since **0.99**
 
 :    Specify the SIM unique identifier (as given by the WWAN management service)
      which this connection applies to. If given, the connection will apply to
      any device also allowed by ``device-id`` which contains a SIM card matching
      the given identifier.
 
-``sim-operator-id`` (scalar)
+``sim-operator-id`` (scalar) – since **0.99**
 
 :    Specify the MCC/MNC string (such as "310260" or "21601") which identifies
      the carrier that this connection should apply to. If given, the connection
      will apply to any device also allowed by ``device-id`` and ``sim-id``
      which contains a SIM card provisioned by the given operator.
 
-``username`` (scalar)
+``username`` (scalar) – since **0.99**
 
 :    Specify the username used to authentiate with the carrier network. This
      can be omitted if ``auto-config`` is enabled.
@@ -749,27 +753,27 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           and ``adhoc`` (peer to peer networks without a central access point).
           ``ap`` is only supported with NetworkManager.
 
-     ``bssid`` (scalar)
+     ``bssid`` (scalar) – since **0.99**
      :    If specified, directs the device to only associate with the given
           access point.
 
-     ``band`` (scalar)
+     ``band`` (scalar) – since **0.99**
      :    Possible bands are ``5GHz`` (for 5GHz 802.11a) and ``2.4GHz``
           (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
           network if unset (the default).
 
-     ``channel`` (scalar)
+     ``channel`` (scalar) – since **0.99**
      :    Wireless channel to use for the Wi-Fi connection. Because channel
           numbers overlap between bands, this property takes effect only if
           the ``band`` property is also set.
 
-     ``hidden`` (bool)
+     ``hidden`` (bool) – since **0.100**
      :    Set to ``true`` to change the SSID scan technique for connecting to 
           hidden WiFi networks. Note this may have slower performance compared
           to ``false`` (the default) when connecting to publicly broadcast
           SSIDs.
 
-``wakeonwlan`` (sequence of scalars)
+``wakeonwlan`` (sequence of scalars) – since **0.99**
 
 :    This enables WakeOnWLan on supported devices. Not all drivers support all
      options. May be any combination of ``any``, ``disconnect``, ``magic_pkt``,
@@ -1109,24 +1113,24 @@ backends may require to record some of their own parameters in netplan,
 especially if the netplan definitions are generated automatically by the
 consumer of that backend. Currently, this is only used with ``NetworkManager``.
 
-``networkmanager`` (mapping)
+``networkmanager`` (mapping) – since **0.99**
 
 :    Keeps the NetworkManager-specific configuration parameters used by the
      daemon to recognize connections.
 
-     ``name`` (scalar)
+     ``name`` (scalar) – since **0.99**
      :    Set the display name for the connection.
 
-     ``uuid`` (scalar)
+     ``uuid`` (scalar) – since **0.99**
      :    Defines the UUID (unique identifier) for this connection, as
           generated by NetworkManager itself.
 
-     ``stable-id`` (scalar)
+     ``stable-id`` (scalar) – since **0.99**
      :    Defines the stable ID (a different form of a connection name) used
           by NetworkManager in case the name of the connection might otherwise
           change, such as when sharing connections between users.
 
-     ``device`` (scalar)
+     ``device`` (scalar) – since **0.99**
      :    Defines the interface name for which this connection applies.
 
 
@@ -1214,7 +1218,6 @@ This is a complex example which shows most available features:
         switchports:
           # all cards on second PCI bus unconfigured by
           # themselves, will be added to br0 below
-          # note: globbing is not supported by NetworkManager
           match:
             name: enp2*
           mtu: 1280

@@ -201,23 +201,14 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                 exit(1);
             }
 
-            if (cur_route->scope && g_ascii_strcasecmp(cur_route->scope, "global") != 0) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager only supports global scoped routes\n", def->id);
-                exit(1);
-            }
-
-            if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support non-default routing tables\n", def->id);
-                exit(1);
-            }
-
-            if (cur_route->from) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support routes with 'from'\n", def->id);
-                exit(1);
-            }
-
-            if (cur_route->onlink) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support on-link routes\n", def->id);
+            if (!g_strcmp0(cur_route->scope, "global")) {
+                /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
+                 * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
+                 * ("link" for addresses without gateway, "global" for addresses with next-hop). */
+                g_debug("%s: NetworkManager does not support setting a scope for routes, it will auto-detect them.", def->id);
+            } else if (cur_route->scope) {
+                /* Error out if scope is not set to its default value of 'global' */
+                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support setting a scope for routes\n", def->id);
                 exit(1);
             }
 
@@ -226,6 +217,21 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
             if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
                 g_string_append_printf(s, ",%d", cur_route->metric);
             g_string_append(s, "\n");
+
+            if (   cur_route->onlink
+                || cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC
+                || cur_route->from) {
+                g_string_append_printf(s, "route%d_options=", j);
+                if (cur_route->onlink) {
+                    /* onlink for IPv6 addresses is only supported since nm-1.18.0. */
+                    g_string_append_printf(s, "onlink=true,");
+                }
+                if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC)
+                    g_string_append_printf(s, "table=%u,", cur_route->table);
+                if (cur_route->from)
+                    g_string_append_printf(s, "src=%s,", cur_route->from);
+                s->str[s->len - 1] = '\n';
+            }
             j++;
         }
     }
@@ -437,6 +443,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     g_autofree char* conf_path = NULL;
     mode_t orig_umask;
     char uuidstr[37];
+    const char *match_interface_name = NULL;
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
         g_assert(ap);
@@ -472,12 +479,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         else if (!def->has_match)
             g_string_append_printf(s, "interface-name=%s\n", def->id);
         else if (def->match.original_name) {
-            /* NM does not support interface name globbing */
-            if (strpbrk(def->match.original_name, "*[]?")) {
-                g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support name globbing\n", def->id);
-                exit(1);
-            }
-            g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
+            if (strpbrk(def->match.original_name, "*[]?"))
+                match_interface_name = def->match.original_name;
+            else
+                g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
         }
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
@@ -611,6 +616,11 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
 
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         write_tunnel_params(def, s);
+
+    if (match_interface_name) {
+        g_string_append(s, "\n[match]\n");
+        g_string_append_printf(s, "interface-name=%s;\n", match_interface_name);
+    }
 
     g_string_append(s, "\n[ipv4]\n");
 

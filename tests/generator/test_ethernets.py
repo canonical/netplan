@@ -646,16 +646,30 @@ method=ignore
         self.assert_nm_udev(None)
 
     def test_eth_match_name_glob(self):
-        err = self.generate('''network:
+        self.generate('''network:
   version: 2
   renderer: NetworkManager
   ethernets:
     def1:
       match: {name: "en*"}
-      dhcp4: true''', expect_fail=True)
-        self.assertIn('def1: NetworkManager definitions do not support name globbing', err)
+      dhcp4: true''')
 
-        self.assert_nm({})
+        self.assert_nm({'def1': '''[connection]
+id=netplan-def1
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[match]
+interface-name=en*;
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})
         self.assert_networkd({})
 
     def test_eth_match_all(self):

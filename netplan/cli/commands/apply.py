@@ -75,7 +75,9 @@ class NetplanApply(utils.NetplanCommand):
 
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_files_ovs = bool(glob.glob('/run/systemd/system/netplan-ovs-*'))
-        old_files_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
+        old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
+        nm_ifaces = utils.nm_interfaces(old_nm_glob)
+        old_files_nm = bool(old_nm_glob)
 
         generator_call = []
         generate_out = None
@@ -106,7 +108,10 @@ class NetplanApply(utils.NetplanCommand):
         if not restart_ovs and old_files_ovs:
             # OVS is managed via systemd units
             restart_networkd = True
-        restart_nm = bool(glob.glob('/run/NetworkManager/system-connections/netplan-*'))
+
+        restart_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
+        nm_ifaces += utils.nm_interfaces(restart_nm_glob)
+        restart_nm = bool(restart_nm_glob)
         if not restart_nm and old_files_nm:
             restart_nm = True
 
@@ -133,6 +138,8 @@ class NetplanApply(utils.NetplanCommand):
             if utils.nm_running():
                 # restarting NM does not cause new config to be applied, need to shut down devices first
                 for device in devices:
+                    if device not in nm_ifaces:
+                        continue  # do not touch this interface
                     # ignore failures here -- some/many devices might not be managed by NM
                     try:
                         utils.nmcli(['device', 'disconnect', device])
@@ -255,6 +262,9 @@ class NetplanApply(utils.NetplanCommand):
                 continue
 
             driver_name = utils.get_interface_driver_name(interface, only_down=True)
+            if not driver_name:
+                # don't allow up interfaces to match by mac
+                continue
             macaddress = utils.get_interface_macaddress(interface)
             if driver_name in matches['by-driver']:
                 new_name = matches['by-driver'][driver_name]
