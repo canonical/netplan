@@ -76,6 +76,27 @@ class _CommonTests():
         subprocess.check_call(['ip', 'link', 'set', self.dev_e2_client,
                                'address', self.dev_e2_client_mac])
 
+    def test_eth_glob(self):
+        '''Supposed to fail if tested against NetworkManager < 1.14
+
+        Interface globbing was introduced as of NM 1.14+'''
+        self.setup_eth(None)
+        self.start_dnsmasq(None, self.dev_e2_ap)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    englob:
+      match: {name: "eth?2"}
+      addresses: ["172.16.42.99/18", "1234:FFFF::42/64"]
+''' % {'r': self.backend}) # globbing match on "eth42", i.e. self.dev_e_client
+        self.generate_and_settle()
+        self.assert_iface_up(self.dev_e_client, ['inet 172.16.42.99/18', 'inet6 1234:ffff::42/64'])
+        out = subprocess.check_output(['ip', 'a', 'show', 'dev', self.dev_e_client],
+                                      universal_newlines=True)
+        self.assertIn('inet 172.16.42.99/18', out)
+        self.assertIn('inet6 1234:ffff::42/64', out)
+
     def test_manual_addresses(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
@@ -156,6 +177,8 @@ class _CommonTests():
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.start_dnsmasq(None, self.dev_e2_ap)
         self.generate_and_settle()
+        if self.backend == 'NetworkManager':
+            self.nm_online_full(self.dev_e2_client)
         self.assert_iface_up(self.dev_e_client,
                              ['inet 172.16.5.3/20'],
                              ['inet 192.168.5',   # old DHCP
