@@ -43,7 +43,7 @@ libnetplan.so.$(NETPLAN_SOVER): parse.o util.o validation.o error.o
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 
 #generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
-generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o generate.o
+generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o generate.o sriov.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 netplan-dbus: src/dbus.c src/_features.h
@@ -128,10 +128,6 @@ install: default
 	install -m 755 netplan-dbus $(DESTDIR)/$(ROOTLIBEXECDIR)/netplan/
 	install -m 644 dbus/io.netplan.Netplan.conf $(DESTDIR)/$(DATADIR)/dbus-1/system.d/
 	install -m 644 dbus/io.netplan.Netplan.service $(DESTDIR)/$(DATADIR)/dbus-1/system-services/
-	# systemd
-	mkdir -p $(DESTDIR)/lib/systemd/system $(DESTDIR)/lib/systemd/system/systemd-udevd-settle.service.wants
-	install -m 644 systemd/netplan-sriov-setup.service $(DESTDIR)/lib/systemd/system/
-	ln -sf ../netplan-sriov-setup.service $(DESTDIR)/lib/systemd/system/systemd-udevd-settle.service.wants/
 
 %.service: %.service.in
 	sed -e "s#@ROOTLIBEXECDIR@#$(ROOTLIBEXECDIR)#" $< > $@

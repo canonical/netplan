@@ -35,13 +35,14 @@ def _get_target_interface(interfaces, config_manager, pf_link, pfs):
         if pf_match:
             # now here it's a bit tricky
             set_name = pf_dev.get('set-name')
-            if set_name:
+            if set_name and set_name in interfaces:
                 # if we had a match: stanza and set-name: this means we should
                 # assume that, if found, the interface has already been
                 # renamed - use the new name
                 pfs[pf_link] = set_name
             else:
-                # no set-name, so we need to do the matching ourselves
+                # no set-name (or interfaces not yet renamed) so we need to do
+                # the matching ourselves
                 by_name = pf_match.get('name')
                 by_mac = pf_match.get('macaddress')
                 by_driver = pf_match.get('driver')
@@ -328,5 +329,6 @@ def apply_sriov_config(config_manager):
                 raise ConfigurationError(
                     'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, link, vlan))
 
+            # TODO: make sure that we don't apply the filter twice
             apply_vlan_filter_for_vf(pf, vf, vlan, vlan_id)
             filtered_vlans_set.add(vf)
