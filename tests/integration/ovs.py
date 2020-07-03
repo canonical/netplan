@@ -187,6 +187,36 @@ class _CommonTests():
         self.assert_iface('br0', ['inet 192.168.1.1/24'])
         self.assert_iface('br1', ['inet 192.168.2.1/24'])
 
+    def test_bridge_non_ovs_bond(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs-br'])
+        self.addCleanup(subprocess.call, ['ip', 'link', 'del', 'non-ovs-bond'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    ethernets:
+        %(ec)s: {}
+        %(e2c)s: {}
+    bonds:
+        non-ovs-bond:
+            interfaces: [%(ec)s, %(e2c)s]
+    bridges:
+        ovs-br:
+            interfaces: [non-ovs-bond]
+            openvswitch: {}''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        # Basic verification that the interfaces/ports are set up in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'], universal_newlines=True)
+        self.assertIn('    Bridge ovs-br', out)
+        self.assertIn('''        Port non-ovs-bond
+            Interface non-ovs-bond''', out)
+        self.assertIn('''        Port ovs-br
+            Interface ovs-br
+                type: internal''', out)
+        self.assert_iface('non-ovs-bond', ['master ovs-system'])
+        self.assert_iface(self.dev_e_client, ['master non-ovs-bond'])
+        self.assert_iface(self.dev_e2_client, ['master non-ovs-bond'])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
