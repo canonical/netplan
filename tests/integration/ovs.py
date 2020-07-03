@@ -71,11 +71,10 @@ class _CommonTests():
                           ['inet 192.168.5.[0-9]+/16', 'mtu 9000'])  # from DHCP
         self.assert_iface('br-data', ['inet 192.168.20.1/16'])
         self.assert_iface(self.dev_e_client, ['mtu 9000', 'master ovs-system'])
-        vid = subprocess.check_output(['ovs-vsctl', 'br-to-vlan',
-                                       'br-%s.100' % self.dev_e_client])
-        self.assertIn(b'100', vid)
-        parent = subprocess.check_output(['ovs-vsctl', 'br-to-parent',
-                                          'br-%s.100' % self.dev_e_client])
+        self.assertIn(b'100', subprocess.check_output(['ovs-vsctl', 'br-to-vlan',
+                      'br-%s.100' % self.dev_e_client]))
+        self.assertIn(b'br-%b' % self.dev_e_client.encode(), subprocess.check_output(
+                      ['ovs-vsctl', 'br-to-parent', 'br-%s.100' % self.dev_e_client]))
         self.assertIn(b'br-%b' % self.dev_e_client.encode(), out)
 
     def test_bridge_base(self):
