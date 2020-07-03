@@ -986,3 +986,39 @@ ExecStart=/usr/bin/ovs-vsctl set Port br0.100 external-ids:netplan=true
         self.assertIn('eth0: This device type is not supported with the OpenVSwitch backend', err)
         self.assert_ovs({})
         self.assert_networkd({})
+
+    def test_bridge_non_ovs_bond(self):
+        self.generate('''network:
+    version: 2
+    ethernets:
+        eth0: {}
+        eth1: {}
+    bonds:
+        non-ovs-bond:
+            interfaces: [eth0, eth1]
+    bridges:
+        ovs-br:
+            interfaces: [non-ovs-bond]
+            openvswitch: {}
+''')
+        self.assert_ovs({'ovs\\x2dbr.service': OVS_VIRTUAL % {'iface': 'ovs\\x2dbr', 'extra': '''
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs-br
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
+ExecStop=/usr/bin/ovs-vsctl del-port ovs-br non-ovs-bond
+ExecStop=/usr/bin/ovs-vsctl del-br ovs-br
+ExecStart=/usr/bin/ovs-vsctl set Port ovs-br external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set-fail-mode ovs-br standalone
+ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br mcast_snooping_enable=false
+ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br rstp_enable=false
+'''}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'non-ovs-bond.network': ND_EMPTY % ('non-ovs-bond', 'no') + 'Bridge=ovs-br\n',
+                              'eth1.network': (ND_EMPTY % ('eth1', 'no')).replace('ConfigureWithoutCarrier=yes',
+                              'Bond=non-ovs-bond'),
+                              'eth0.network': (ND_EMPTY % ('eth0', 'no')).replace('ConfigureWithoutCarrier=yes',
+                              'Bond=non-ovs-bond'),
+                              'ovs\\x2dbr.network': ND_EMPTY % ('ovs-br', 'ipv6'),
+                              'non-ovs-bond.netdev': '[NetDev]\nName=non-ovs-bond\nKind=bond\n'})
