@@ -56,6 +56,7 @@ typedef enum {
     NETPLAN_BACKEND_NONE,
     NETPLAN_BACKEND_NETWORKD,
     NETPLAN_BACKEND_NM,
+    NETPLAN_BACKEND_IFUPDOWN2,
     NETPLAN_BACKEND_MAX_,
 } NetplanBackend;
 
@@ -63,6 +64,7 @@ static const char* const netplan_backend_to_name[NETPLAN_BACKEND_MAX_] = {
         [NETPLAN_BACKEND_NONE] = "none",
         [NETPLAN_BACKEND_NETWORKD] = "networkd",
         [NETPLAN_BACKEND_NM] = "NetworkManager",
+        [NETPLAN_BACKEND_IFUPDOWN2] = "ifupdown2",
 };
 
 typedef enum {

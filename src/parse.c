@@ -677,6 +677,8 @@ parse_renderer(yaml_node_t* node, NetplanBackend* backend, GError** error)
         *backend = NETPLAN_BACKEND_NETWORKD;
     else if (strcmp(scalar(node), "NetworkManager") == 0)
         *backend = NETPLAN_BACKEND_NM;
+    else if (strcmp(scalar(node), "ifupdown2") == 0)
+        *backend = NETPLAN_BACKEND_IFUPDOWN2;
     else
         return yaml_error(node, error, "unknown renderer '%s'", scalar(node));
     return TRUE;
