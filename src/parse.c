@@ -459,7 +459,9 @@ handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 
 /**
  * Generic handler for setting a cur_netdef ID/iface name field referring to an
- * existing ID from a scalar node
+ * existing ID from a scalar node. This handler also includes a special case
+ * handler for OVS VLANs, switching the backend implicitly to OVS for such
+ * interfaces
  * @data: offset into NetplanNetDefinition where the NetplanNetDefinition* field to write is
  *        located
  */
@@ -474,6 +476,11 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
         add_missing_node(node);
     } else {
         *((NetplanNetDefinition**) ((void*) cur_netdef + offset)) = ref;
+
+        if (cur_netdef->type == NETPLAN_DEF_TYPE_VLAN && ref->backend == NETPLAN_BACKEND_OVS) {
+            g_debug("%s: VLAN defined for openvswitch interface, choosing OVS backend", cur_netdef->id);
+            cur_netdef->backend = NETPLAN_BACKEND_OVS;
+        }
     }
     return TRUE;
 }
