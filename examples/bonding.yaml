@@ -1,6 +1,11 @@
 network:
   version: 2
   renderer: networkd
+  ethernets:
+    enp3s0:
+      dhcp4: no
+    enp4s0:
+      dhcp4: no
   bonds:
     bond0:
       dhcp4: yes
