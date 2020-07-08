@@ -18,7 +18,7 @@
 
 import os
 
-from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE
+from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, UDEV_SRIOV_RULE
 
 
 class TestNetworkd(TestBase):
@@ -104,7 +104,7 @@ Name=enp1s16f1
 [Network]
 LinkLocalAddressing=ipv6
 '''})
-        self.assert_networkd_udev(None)
+        self.assert_additional_udev({'999-netplan-sriov-setup.rules': UDEV_SRIOV_RULE})
 
     def test_eth_sriov_virtual_functions(self):
         self.generate('''network:
@@ -119,7 +119,7 @@ Name=enp1
 [Network]
 LinkLocalAddressing=ipv6
 '''})
-        self.assert_networkd_udev(None)
+        self.assert_additional_udev({'999-netplan-sriov-setup.rules': UDEV_SRIOV_RULE})
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -405,6 +405,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
+        self.assert_additional_udev({'999-netplan-sriov-setup.rules': UDEV_SRIOV_RULE})
 
     def test_eth_sriov_virtual_functions(self):
         self.generate('''network:
@@ -430,6 +431,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
+        self.assert_additional_udev({'999-netplan-sriov-setup.rules': UDEV_SRIOV_RULE})
 
     def test_eth_set_mac(self):
         self.generate('''network:

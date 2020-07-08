@@ -202,7 +202,7 @@ class TestSRIOV(unittest.TestCase):
       macaddress: 01:02:03:04:05:00
 ''', file=fd)
         self.configmanager.parse()
-        interfaces = ['enp1', 'enp8']
+        interfaces = ['pf1', 'enp8']
         vf_counts = defaultdict(int)
         vfs = {}
         pfs = {}
@@ -215,14 +215,14 @@ class TestSRIOV(unittest.TestCase):
         # names here
         self.assertDictEqual(
             vf_counts,
-            {'pf1': 1, 'pf2': 7})
+            {'pf1': 1, 'enp8': 7})
         # also check if the vfs and pfs dictionaries got properly set
         self.assertDictEqual(
             vfs,
             {'enp1s16f1': None})
         self.assertDictEqual(
             pfs,
-            {'enp1': 'pf1', 'enp8': 'pf2'})
+            {'enp1': 'pf1', 'enp8': 'enp8'})
 
     @patch('netplan.cli.utils.get_interface_driver_name')
     @patch('netplan.cli.utils.get_interface_macaddress')
