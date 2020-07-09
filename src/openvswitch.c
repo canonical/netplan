@@ -36,6 +36,9 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     GString* s = g_string_new("[Unit]\n");
     g_string_append_printf(s, "Description=OpenVSwitch configuration for %s\n", id);
     g_string_append(s, "DefaultDependencies=no\n");
+    /* run any ovs-netplan unit only after openvswitch-switch.service is ready */
+    g_string_append_printf(s, "Requires=openvswitch-switch.service\n");
+    g_string_append_printf(s, "After=openvswitch-switch.service\n");
     if (physical) {
         g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id);
         g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id);
