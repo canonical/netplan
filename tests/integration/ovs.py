@@ -218,6 +218,58 @@ class _CommonTests():
         self.assert_iface(self.dev_e_client, ['master non-ovs-bond'])
         self.assert_iface(self.dev_e2_client, ['master non-ovs-bond'])
 
+    def test_vlan_maas(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    bridges:
+        ovs0:
+            addresses:
+            - 10.5.48.11/20
+            interfaces:
+            - %(ec)s.21
+            macaddress: 00:1f:16:15:78:6f
+            mtu: 1500
+            nameservers:
+                addresses:
+                - 10.5.32.99
+                search:
+                - maas
+            openvswitch: {}
+            parameters:
+                forward-delay: 15
+                stp: false
+    ethernets:
+        %(ec)s:
+            addresses:
+            - 10.5.32.26/20
+            gateway4: 10.5.32.1
+            mtu: 1500
+            nameservers:
+                addresses:
+                - 10.5.32.99
+                search:
+                - maas
+    vlans:
+        %(ec)s.21:
+            id: 21
+            link: %(ec)s
+            mtu: 1500''' % {'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Basic verification that the interfaces/ports are set up in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'], universal_newlines=True)
+        self.assertIn('    Bridge ovs0', out)
+        self.assertIn('''        Port %(ec)s.21
+            Interface %(ec)s.21''' % {'ec': self.dev_e_client}, out)
+        self.assertIn('''        Port ovs0
+            Interface ovs0
+                type: internal''', out)
+        self.assert_iface('ovs0', ['inet 10.5.48.11/20'])
+        self.assert_iface_up(self.dev_e_client, ['inet 10.5.32.26/20'])
+        self.assert_iface_up('%s.21' % self.dev_e_client, ['%(ec)s.21@%(ec)s' % {'ec': self.dev_e_client}])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
