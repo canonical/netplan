@@ -53,9 +53,9 @@ After=sys-subsystem-net-devices-%(iface)s.device\nBefore=network.target\nWants=n
 OVS_VIRTUAL = _OVS_BASE + 'Before=network.target\nWants=network.target\n%(extra)s'
 OVS_BR_EMPTY = _OVS_BASE + 'Before=network.target\nWants=network.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\n\
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\nExecStop=/usr/bin/ovs-vsctl del-br %(iface)s\n\
-ExecStart=/usr/bin/ovs-vsctl set Port %(iface)s external-ids:netplan=true\nExecStart=/usr/bin/ovs-vsctl set-fail-mode %(iface)s \
-standalone\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set \
-Bridge %(iface)s rstp_enable=false\n'
+ExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan=true\nExecStart=/usr/bin/ovs-vsctl set-fail-mode \
+%(iface)s standalone\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s mcast_snooping_enable=false\n\
+ExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s rstp_enable=false\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
 

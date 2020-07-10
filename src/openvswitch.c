@@ -158,11 +158,11 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
 }
 
 static void
-write_ovs_tag_netplan(const gchar* id, GString* cmds)
+write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
 {
     /* Mark this port as created by netplan */
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s external-ids:netplan=true",
-                       id);
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s external-ids:netplan=true",
+                       type, id);
 }
 
 static void
@@ -284,7 +284,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:
                 dependency = write_ovs_bond_interfaces(def, cmds);
-                write_ovs_tag_netplan(def->id, cmds);
+                write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set LACP mode, default to "off" */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s lacp=%s",
                                    def->id, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
@@ -295,7 +295,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
             case NETPLAN_DEF_TYPE_BRIDGE:
                 write_ovs_bridge_interfaces(def, cmds);
-                write_ovs_tag_netplan(def->id, cmds);
+                write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set fail-mode, default to "standalone" */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-fail-mode %s %s",
                                    def->id, def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone");
@@ -328,6 +328,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
                 append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
+                write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
             case NETPLAN_DEF_TYPE_VLAN:
@@ -336,7 +337,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 /* Create a fake VLAN bridge */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
                 append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-br %s", def->id);
-                write_ovs_tag_netplan(def->id, cmds);
+                /* This is an OVS fake VLAN bridge, not a VLAN interface */
+                write_ovs_tag_netplan(def->id, "Bridge", cmds);
                 break;
 
             default:

@@ -371,7 +371,7 @@ ExecStop=/usr/bin/ovs-vsctl del-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -398,7 +398,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -434,7 +434,7 @@ ExecStop=/usr/bin/ovs-vsctl del-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-port br0 eth2
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 secure
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
@@ -489,7 +489,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -541,7 +541,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -750,7 +750,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -811,7 +811,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -824,7 +824,7 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br1 patchx
 ExecStop=/usr/bin/ovs-vsctl del-port br1 patchx
 ExecStop=/usr/bin/ovs-vsctl del-br br1
-ExecStart=/usr/bin/ovs-vsctl set Port br1 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br1 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 rstp_enable=false
@@ -851,6 +851,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx options:peer=patchy
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchx
+ExecStart=/usr/bin/ovs-vsctl set Interface patchx external-ids:netplan=true
 '''},
                          'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
                                                           '''Requires=netplan-ovs-bond0.service
@@ -862,6 +863,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy options:peer=patchx
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchy
+ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan=true
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '2001:FFfe::1/64'),
@@ -892,7 +894,7 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 patch0-1
 ExecStop=/usr/bin/ovs-vsctl del-port br0 patch0-1
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -905,7 +907,7 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br1 patch1-0
 ExecStop=/usr/bin/ovs-vsctl del-port br1 patch1-0
 ExecStop=/usr/bin/ovs-vsctl del-br br1
-ExecStart=/usr/bin/ovs-vsctl set Port br1 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br1 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 rstp_enable=false
@@ -920,6 +922,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
+ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 external-ids:netplan=true
 '''},
                          'patch1\\x2d0.service': OVS_VIRTUAL % {'iface': 'patch1\\x2d0', 'extra':
                                                                 '''Requires=netplan-ovs-br1.service
@@ -931,6 +934,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
+ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 external-ids:netplan=true
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
@@ -956,7 +960,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -970,7 +974,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
 ExecStop=/usr/bin/ovs-vsctl del-br br0.100
-ExecStart=/usr/bin/ovs-vsctl set Port br0.100 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
@@ -996,7 +1000,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStop=/usr/bin/ovs-vsctl del-br br0
-ExecStart=/usr/bin/ovs-vsctl set Port br0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
@@ -1010,7 +1014,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
 ExecStop=/usr/bin/ovs-vsctl del-br br0.100
-ExecStart=/usr/bin/ovs-vsctl set Port br0.100 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
 '''}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
@@ -1049,7 +1053,7 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs-br
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
 ExecStop=/usr/bin/ovs-vsctl del-port ovs-br non-ovs-bond
 ExecStop=/usr/bin/ovs-vsctl del-br ovs-br
-ExecStart=/usr/bin/ovs-vsctl set Port ovs-br external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode ovs-br standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br rstp_enable=false
