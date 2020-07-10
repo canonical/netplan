@@ -52,10 +52,11 @@ class _CommonTests():
             openvswitch: {}
             addresses: [192.168.20.1/16]
     vlans:
+        #implicitly handled by OVS because of its link
         br-%(ec)s.100:
             id: 100
             link: br-%(ec)s
-            openvswitch: {}''' % {'ec': self.dev_e_client})
+''' % {'ec': self.dev_e_client})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
