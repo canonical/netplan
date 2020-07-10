@@ -52,7 +52,7 @@ OVS_PHYSICAL = _OVS_BASE + 'Requires=sys-subsystem-net-devices-%(iface)s.device\
 After=sys-subsystem-net-devices-%(iface)s.device\nBefore=network.target\nWants=network.target\n%(extra)s'
 OVS_VIRTUAL = _OVS_BASE + 'Before=network.target\nWants=network.target\n%(extra)s'
 OVS_BR_EMPTY = _OVS_BASE + 'Before=network.target\nWants=network.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\n\
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\nExecStop=/usr/bin/ovs-vsctl del-br %(iface)s\n\
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\nExecStop=/usr/bin/ovs-vsctl --if-exists del-br %(iface)s\n\
 ExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan=true\nExecStart=/usr/bin/ovs-vsctl set-fail-mode \
 %(iface)s standalone\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s mcast_snooping_enable=false\n\
 ExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s rstp_enable=false\n'

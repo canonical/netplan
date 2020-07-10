@@ -152,7 +152,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
     }
 
     append_systemd_cmd(cmds, s->str, def->bridge, def->id);
-    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s", def->id);
+    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
     g_string_free(s, TRUE);
     return def->bridge;
 }
@@ -197,11 +197,11 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
         if ((tmp_nd->type != NETPLAN_DEF_TYPE_BOND || tmp_nd->backend != NETPLAN_BACKEND_OVS)
             && !g_strcmp0(def->id, tmp_nd->bridge)) {
             append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s", def->id, tmp_nd->id);
-            append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-port %s %s", def->id, tmp_nd->id);
+            append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s %s", def->id, tmp_nd->id);
         }
     }
 
-    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-br %s", def->id);
+    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-br %s", def->id);
 }
 
 static void
@@ -336,7 +336,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = def->vlan_link->id;
                 /* Create a fake VLAN bridge */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
-                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " del-br %s", def->id);
+                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-br %s", def->id);
                 /* This is an OVS fake VLAN bridge, not a VLAN interface */
                 write_ovs_tag_netplan(def->id, "Bridge", cmds);
                 break;
