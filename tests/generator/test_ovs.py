@@ -912,8 +912,8 @@ ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 rstp_enable=false
 '''},
-                         'patch0\\x2d1.service': OVS_VIRTUAL % {'iface': 'patch0\\x2d1', 'extra':
-                                                                '''Requires=netplan-ovs-br0.service
+                         'patch0-1.service': OVS_VIRTUAL % {'iface': 'patch0-1', 'extra':
+                                                            '''Requires=netplan-ovs-br0.service
 After=netplan-ovs-br0.service
 
 [Service]
@@ -924,8 +924,8 @@ ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 external-ids:netplan=true
 '''},
-                         'patch1\\x2d0.service': OVS_VIRTUAL % {'iface': 'patch1\\x2d0', 'extra':
-                                                                '''Requires=netplan-ovs-br1.service
+                         'patch1-0.service': OVS_VIRTUAL % {'iface': 'patch1-0', 'extra':
+                                                            '''Requires=netplan-ovs-br1.service
 After=netplan-ovs-br1.service
 
 [Service]
@@ -938,8 +938,8 @@ ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 external-ids:netplan=true
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
-                              'patch0\\x2d1.network': ND_EMPTY % ('patch0-1', 'no'),
-                              'patch1\\x2d0.network': ND_EMPTY % ('patch1-0', 'no')})
+                              'patch0-1.network': ND_EMPTY % ('patch0-1', 'no'),
+                              'patch1-0.network': ND_EMPTY % ('patch1-0', 'no')})
 
     def test_fake_vlan_bridge_setup(self):
         self.generate('''network:
@@ -1045,7 +1045,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
             interfaces: [non-ovs-bond]
             openvswitch: {}
 ''')
-        self.assert_ovs({'ovs\\x2dbr.service': OVS_VIRTUAL % {'iface': 'ovs\\x2dbr', 'extra': '''
+        self.assert_ovs({'ovs-br.service': OVS_VIRTUAL % {'iface': 'ovs-br', 'extra': '''
 [Service]
 Type=oneshot
 RemainAfterExit=yes
@@ -1064,5 +1064,5 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br rstp_enable=false
                               'Bond=non-ovs-bond'),
                               'eth0.network': (ND_EMPTY % ('eth0', 'no')).replace('ConfigureWithoutCarrier=yes',
                               'Bond=non-ovs-bond'),
-                              'ovs\\x2dbr.network': ND_EMPTY % ('ovs-br', 'ipv6'),
+                              'ovs-br.network': ND_EMPTY % ('ovs-br', 'ipv6'),
                               'non-ovs-bond.netdev': '[NetDev]\nName=non-ovs-bond\nKind=bond\n'})

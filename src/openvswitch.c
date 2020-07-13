@@ -30,6 +30,7 @@
 static void
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, const char* dependency)
 {
+    g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", id, ".service", NULL);
 
@@ -40,8 +41,9 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     g_string_append_printf(s, "Requires=openvswitch-switch.service\n");
     g_string_append_printf(s, "After=openvswitch-switch.service\n");
     if (physical) {
-        g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id);
-        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id);
+        id_escaped = systemd_escape((char*) id);
+        g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id_escaped);
+        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id_escaped);
     }
     g_string_append(s, "Before=network.target\nWants=network.target\n");
     if (dependency) {
@@ -267,12 +269,9 @@ void
 write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* cmds = g_string_new(NULL);
-    g_autofree gchar* id_escaped = NULL;
     gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
-
-    id_escaped = systemd_escape(def->id);
 
     /* TODO: error out on non-existing ovs-vsctl tool */
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
@@ -348,7 +347,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
         }
 
         /* Try writing out a base config */
-        base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", id_escaped, NULL);
+        base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
         write_network_file(def, rootdir, base_config_path);
     } else {
         g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
@@ -370,7 +369,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     /* If we need to configure anything for this netdef, write the required systemd unit */
     if (cmds->len > 0)
-        write_ovs_systemd_unit(id_escaped, cmds, rootdir, netplan_type_is_physical(def->type), dependency);
+        write_ovs_systemd_unit(def->id, cmds, rootdir, netplan_type_is_physical(def->type), dependency);
     g_string_free(cmds, TRUE);
 }
 
