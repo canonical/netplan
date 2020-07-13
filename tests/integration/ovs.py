@@ -29,9 +29,7 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
-    # FIXME: Why does this test need to run first in order to pass?
-    #   We must leave some dirty state somewhere in the other tests
-    def test_1_bridge_vlan(self):
+    def test_bridge_vlan(self):
         self.setup_eth(None, True)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s' % self.dev_e_client])
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-data'])

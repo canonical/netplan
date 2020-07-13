@@ -31,6 +31,8 @@ from netplan.cli.sriov import apply_sriov_config
 
 import netifaces
 
+OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
+
 
 class NetplanApply(utils.NetplanCommand):
 
@@ -129,6 +131,23 @@ class NetplanApply(utils.NetplanCommand):
             if utils.systemctl_is_active('netplan-wpa@*.service'):
                 wpa_services.insert(0, 'netplan-wpa@*.service')
             utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services + ovs_services)
+
+            # Tear down the (old) OVS interfaces, as they cannot be stopped by
+            # 'systemctl stop netplan-ovs-*.service' after the corresponding
+            # service units have been deleted via 'netplan generate'. (Systemd
+            # cannot read or execute the ExecStop= command anymore!)
+            # XXX: only for old_files_ovs, which are not part of restart_ovs
+            # XXX: what about patch-ports (OVS "Interfaces")
+            if old_files_ovs and os.path.isfile(OPENVSWITCH_OVS_VSCTL):
+                for t in [['Port', 'del-port'], ['Bridge', 'del-br']]:
+                    out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
+                                                  '-f', 'csv', '-d', 'bare', 'list', t[0]], universal_newlines=True)
+                    for line in out.split('\n'):
+                        if 'netplan=true' in line:
+                            iface = line.split(',')[0]
+                            subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
+            elif old_files_ovs:
+                logging.warning('ovs-vsctl is missing, cannot tear down OVS interfaces')
 
         else:
             logging.debug('no netplan generated networkd configuration exists')
