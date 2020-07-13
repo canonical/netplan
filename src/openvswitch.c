@@ -88,6 +88,7 @@ netplan_type_to_table_name(const NetplanDefType type)
         case NETPLAN_DEF_TYPE_BRIDGE:
             return "Bridge";
         case NETPLAN_DEF_TYPE_BOND:
+        case NETPLAN_DEF_TYPE_PORT:
             return "Port";
         default: /* For regular interfaces and others */
             return "Interface";

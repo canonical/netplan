@@ -851,7 +851,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx options:peer=patchy
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchx
-ExecStart=/usr/bin/ovs-vsctl set Interface patchx external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan=true
 '''},
                          'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
                                                           '''Requires=netplan-ovs-bond0.service
@@ -863,7 +863,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy options:peer=patchx
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchy
-ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port patchy external-ids:netplan=true
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '2001:FFfe::1/64'),
@@ -922,7 +922,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
-ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port patch0-1 external-ids:netplan=true
 '''},
                          'patch1-0.service': OVS_VIRTUAL % {'iface': 'patch1-0', 'extra':
                                                             '''Requires=netplan-ovs-br1.service
@@ -934,7 +934,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
 ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
-ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan=true
 '''}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
