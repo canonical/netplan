@@ -163,7 +163,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
 static void
 write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
 {
-    /* Mark this port as created by netplan */
+    /* Mark this bridge/port/interface as created by netplan */
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s external-ids:netplan=true",
                        type, id);
 }
@@ -279,7 +279,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     /* For other, more OVS specific settings, we expect the backend to be set to OVS.
      * The OVS backend is implicitly set, if an interface contains an empty "openvswitch: {}"
-     * key, or an "openvswitch:" key containing only "external-ids" or "other-config". */
+     * key, or an "openvswitch:" key, containing more than "external-ids" and/or "other-config". */
     if (def->backend == NETPLAN_BACKEND_OVS) {
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:

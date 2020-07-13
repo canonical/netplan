@@ -137,7 +137,6 @@ class NetplanApply(utils.NetplanCommand):
             # service units have been deleted via 'netplan generate'. (Systemd
             # cannot read or execute the ExecStop= command anymore!)
             # XXX: only for old_files_ovs, which are not part of restart_ovs
-            # XXX: what about patch-ports (OVS "Interfaces")
             if old_files_ovs and os.path.isfile(OPENVSWITCH_OVS_VSCTL):
                 for t in [['Port', 'del-port'], ['Bridge', 'del-br']]:
                     out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
