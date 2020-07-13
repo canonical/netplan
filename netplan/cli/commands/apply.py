@@ -193,7 +193,7 @@ class NetplanApply(utils.NetplanCommand):
         # (re)start backends
         if restart_networkd:
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
-            netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netpalan-ovs-*.service')]
+            netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')]
             utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa + netplan_ovs)
         if restart_nm:
             utils.systemctl_network_manager('start', sync=sync)
