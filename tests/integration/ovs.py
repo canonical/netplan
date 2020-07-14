@@ -268,6 +268,26 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e_client, ['inet 10.5.32.26/20'])
         self.assert_iface_up('%s.21' % self.dev_e_client, ['%(ec)s.21@%(ec)s' % {'ec': self.dev_e_client}])
 
+    def test_missing_ovs_tools(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['mv', '/usr/bin/ovs-vsctl.bak', '/usr/bin/ovs-vsctl'])
+        subprocess.check_call(['mv', '/usr/bin/ovs-vsctl', '/usr/bin/ovs-vsctl.bak'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    bridges:
+      ovs0:
+        interfaces: [%(ec)s]
+        openvswitch: {}
+    ethernets:
+      %(ec)s: {}
+''' % {'ec': self.dev_e_client})
+        p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, universal_newlines=True)
+        (out, err) = p.communicate()
+        self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
+        self.assertNotEqual(p.returncode, 0)
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")

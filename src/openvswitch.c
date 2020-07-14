@@ -277,8 +277,14 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
 
-    /* TODO: error out on non-existing ovs-vsctl tool */
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
+    // LCOV_EXCL_START
+    if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
+        /* Tested via integration test */
+        g_fprintf(stderr, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.\n", def->id);
+        exit(1);
+    }
+    // LCOV_EXCL_STOP
 
     /* For other, more OVS specific settings, we expect the backend to be set to OVS.
      * The OVS backend is implicitly set, if an interface contains an empty "openvswitch: {}"
