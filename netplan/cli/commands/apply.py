@@ -140,7 +140,7 @@ class NetplanApply(utils.NetplanCommand):
             # 'systemctl stop netplan-ovs-*.service' after the corresponding
             # service units have been deleted via 'netplan generate'. (Systemd
             # cannot read or execute the ExecStop= command anymore!)
-            if old_files_ovs and os.path.isfile(OPENVSWITCH_OVS_VSCTL):
+            if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
                 for t in [['Port', 'del-port'], ['Bridge', 'del-br']]:
                     out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
                                                   '-f', 'csv', '-d', 'bare', 'list', t[0]], universal_newlines=True)
@@ -148,11 +148,12 @@ class NetplanApply(utils.NetplanCommand):
                         if 'netplan=true' in line:
                             iface = line.split(',')[0]
                             # Skip cleanup if this OVS interface is part of the current netplan OVS config
-                            if config_manager.interfaces.get(iface, default={}).get('openvswitch') is not None:
+                            if config_manager.interfaces.get(iface, {}).get('openvswitch') is not None:
                                 continue
                             subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
-            elif old_files_ovs:
-                logging.warning('ovs-vsctl is missing, cannot tear down OVS interfaces')
+            # Show the warning only if we have been working with OVS service units
+            elif old_files_ovs or restart_ovs:
+                logging.warning('ovs-vsctl is missing, cannot tear down old OpenVSwitch interfaces')
 
         else:
             logging.debug('no netplan generated networkd configuration exists')
