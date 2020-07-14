@@ -126,7 +126,7 @@ class NetplanApply(utils.NetplanCommand):
             if run_generate:
                 utils.systemctl_daemon_reload()
             # Stop OVS service units to clear 'RemainAfterExit=yes' state, so we can re-start the services
-            # This will also cleanly shutdown OVS interfaces, which were part of the old and new config. Thsoe
+            # This will also cleanly shutdown OVS interfaces, which were part of the old and new config. Those
             # will be re-started via systemmctl_networkd('start', ...) below.
             ovs_services = ['netplan-ovs-*.service']
             wpa_services = ['netplan-wpa-*.service']
@@ -136,7 +136,7 @@ class NetplanApply(utils.NetplanCommand):
                 wpa_services.insert(0, 'netplan-wpa@*.service')
             utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services + ovs_services)
 
-            # Tear down the (old) OVS interfaces, as they cannot be stopped by
+            # Tear down the old OVS interfaces, as they cannot be stopped by
             # 'systemctl stop netplan-ovs-*.service' after the corresponding
             # service units have been deleted via 'netplan generate'. (Systemd
             # cannot read or execute the ExecStop= command anymore!)

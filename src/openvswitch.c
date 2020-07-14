@@ -286,7 +286,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     }
     // LCOV_EXCL_STOP
 
-    /* For other, more OVS specific settings, we expect the backend to be set to OVS.
+    /* For OVS specific settings, we expect the backend to be set to OVS.
      * The OVS backend is implicitly set, if an interface contains an empty "openvswitch: {}"
      * key, or an "openvswitch:" key, containing more than "external-ids" and/or "other-config". */
     if (def->backend == NETPLAN_BACKEND_OVS) {

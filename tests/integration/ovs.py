@@ -53,8 +53,7 @@ class _CommonTests():
         #implicitly handled by OVS because of its link
         br-%(ec)s.100:
             id: 100
-            link: br-%(ec)s
-''' % {'ec': self.dev_e_client})
+            link: br-%(ec)s''' % {'ec': self.dev_e_client})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
@@ -280,8 +279,7 @@ class _CommonTests():
         interfaces: [%(ec)s]
         openvswitch: {}
     ethernets:
-      %(ec)s: {}
-''' % {'ec': self.dev_e_client})
+      %(ec)s: {}''' % {'ec': self.dev_e_client})
         p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, universal_newlines=True)
         (out, err) = p.communicate()
