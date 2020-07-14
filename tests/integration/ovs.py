@@ -218,42 +218,39 @@ class _CommonTests():
     def test_vlan_maas(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', '%s.21' % self.dev_e_client], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
     version: 2
     bridges:
         ovs0:
-            addresses:
-            - 10.5.48.11/20
-            interfaces:
-            - %(ec)s.21
+            addresses: [10.5.48.11/20]
+            interfaces: [%(ec)s.21]
             macaddress: 00:1f:16:15:78:6f
             mtu: 1500
             nameservers:
-                addresses:
-                - 10.5.32.99
-                search:
-                - maas
+                addresses: [10.5.32.99]
+                search: [maas]
             openvswitch: {}
             parameters:
                 forward-delay: 15
                 stp: false
     ethernets:
         %(ec)s:
-            addresses:
-            - 10.5.32.26/20
+            addresses: [10.5.32.26/20]
             gateway4: 10.5.32.1
+            match:
+                macaddress: %(e_mac)s
             mtu: 1500
             nameservers:
-                addresses:
-                - 10.5.32.99
-                search:
-                - maas
+                addresses: [10.5.32.99]
+                search: [maas]
+            set-name: %(ec)s
     vlans:
         %(ec)s.21:
             id: 21
             link: %(ec)s
-            mtu: 1500''' % {'ec': self.dev_e_client})
+            mtu: 1500''' % {'ec': self.dev_e_client, 'e_mac': self.dev_e_client_mac})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'], universal_newlines=True)
