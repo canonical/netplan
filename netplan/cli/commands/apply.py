@@ -95,6 +95,7 @@ class NetplanApply(utils.NetplanCommand):
                 raise ConfigurationError("the configuration could not be generated")
 
         config_manager = ConfigManager()
+        config_manager.parse()
         devices = netifaces.interfaces()
 
         # Re-start service when
@@ -124,6 +125,9 @@ class NetplanApply(utils.NetplanCommand):
             # so let's make sure we only run it iff we're willing to run 'netplan generate'
             if run_generate:
                 utils.systemctl_daemon_reload()
+            # Stop OVS service units to clear 'RemainAfterExit=yes' state, so we can re-start the services
+            # This will also cleanly shutdown OVS interfaces, which were part of the old and new config. Thsoe
+            # will be re-started via systemmctl_networkd('start', ...) below.
             ovs_services = ['netplan-ovs-*.service']
             wpa_services = ['netplan-wpa-*.service']
             # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
@@ -136,7 +140,6 @@ class NetplanApply(utils.NetplanCommand):
             # 'systemctl stop netplan-ovs-*.service' after the corresponding
             # service units have been deleted via 'netplan generate'. (Systemd
             # cannot read or execute the ExecStop= command anymore!)
-            # XXX: only for old_files_ovs, which are not part of restart_ovs
             if old_files_ovs and os.path.isfile(OPENVSWITCH_OVS_VSCTL):
                 for t in [['Port', 'del-port'], ['Bridge', 'del-br']]:
                     out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
@@ -144,6 +147,9 @@ class NetplanApply(utils.NetplanCommand):
                     for line in out.split('\n'):
                         if 'netplan=true' in line:
                             iface = line.split(',')[0]
+                            # Skip cleanup if this OVS interface is part of the current netplan OVS config
+                            if config_manager.interfaces.get(iface, default={}).get('openvswitch') is not None:
+                                continue
                             subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
             elif old_files_ovs:
                 logging.warning('ovs-vsctl is missing, cannot tear down OVS interfaces')

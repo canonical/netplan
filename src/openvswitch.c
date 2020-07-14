@@ -52,6 +52,9 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     }
 
     g_string_append(s, "\n[Service]\nType=oneshot\n");
+    /* RemainAfterExist=yes keeps the service units active after executing all ExecStart= commands.
+     * It will cleanly shutdown the service units and the interfaces/configs it created at shutdown
+     * or reboot via the ExecStop= commands specified. */
     g_string_append(s, "RemainAfterExit=yes\n");
     g_string_append(s, cmds->str);
 
