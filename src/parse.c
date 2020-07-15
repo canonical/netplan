@@ -31,11 +31,12 @@
 #include "validation.h"
 
 /* convenience macro to put the offset of a NetplanNetDefinition field into "void* data" */
+#define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
+#define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
+#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(NetplanNetDefinition, field))
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
-#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
-#define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
-#define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
+#define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(wireguard_peer, field))
 
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
@@ -1767,7 +1768,6 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* d
     return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
 }
 
-#define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(wireguard_peer, field))
 const mapping_entry_handler wireguard_peer_handlers[] = {
     {"public-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
     {"preshared-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
@@ -1775,7 +1775,6 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
     {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
     {"allowed-ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
-
     {NULL}
 };
 
@@ -1978,7 +1977,6 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"fwmark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.fwmark)},
     {"listen-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
     {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
-
     {NULL}
 };
 

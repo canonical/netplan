@@ -138,10 +138,11 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
                  */
                 case NETPLAN_TUNNEL_MODE_ISATAP:
                     return yaml_error(node, error,
-                                    "%s: %s tunnel mode is not supported by networkd",
-                                    nd->id,
-                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                                      "%s: %s tunnel mode is not supported by networkd",
+                                      nd->id,
+                                      g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
+
                 default:
                     if (nd->tunnel.input_key)
                         return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
@@ -161,9 +162,9 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
                 case NETPLAN_TUNNEL_MODE_IP6GRETAP:
                 case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     return yaml_error(node, error,
-                                    "%s: %s tunnel mode is not supported by NetworkManager",
-                                    nd->id,
-                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                                      "%s: %s tunnel mode is not supported by NetworkManager",
+                                      nd->id,
+                                      g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
 
                 default:
@@ -175,10 +176,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
             }
             break;
 
-        // LCOV_EXCL_START
-        default:
-            break;
-        // LCOV_EXCL_STOP
+        default: break; //LCOV_EXCL_LINE
     }
 
     return TRUE;

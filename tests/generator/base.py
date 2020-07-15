@@ -45,6 +45,7 @@ ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\
 ND_DHCPYES_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
+ND_WITHIPGW = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=%s\nGateway=%s\nConfigureWithoutCarrier=yes\n'
 
 
 class TestBase(unittest.TestCase):

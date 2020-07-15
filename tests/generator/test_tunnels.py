@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase
+from .base import TestBase, ND_WITHIPGW
 
 
 def prepare_config_for_mode(renderer, mode, key=None):
@@ -58,6 +58,34 @@ def prepare_config_for_mode(renderer, mode, key=None):
         output: {}
 """.format(key['input'], key['output'])
 
+    return config
+
+
+def prepare_wg_config(listen=None, privkey=None, privfile=None, fwmark=None, peers=[]):
+    config = '''network:
+  version: 2
+  renderer: networkd
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [ 15.15.15.15/24 ]
+      gateway4: 20.20.20.21
+'''
+    if privkey is not None:
+        config += '      private-key: {}\n'.format(privkey)
+    if privfile is not None:
+        config += '      private-key-file: {}\n'.format(privfile)
+    if fwmark is not None:
+        config += '      fwmark: {}\n'.format(fwmark)
+    if listen is not None:
+        config += '      listen-port: {}\n'.format(listen)
+    if len(peers) > 0:
+        config += '      peers:\n'
+    for peer in peers:
+        pfx = '        - '
+        for k, v in peer.items():
+            config += '{}{}: {}\n'.format(pfx, k, v)
+            pfx = '          '
     return config
 
 
@@ -920,34 +948,6 @@ class TestConfigErrors(TestBase):
         self.assertIn("Error in network definition: tun0: 'output-key' is not required for this tunnel type", out)
 
 
-def prepare_wg_config(listen=None, privkey=None, privfile=None, fwmark=None, peers=[]):
-    config = '''network:
-  version: 2
-  renderer: networkd
-  tunnels:
-    wg0:
-      mode: wireguard
-      addresses: [ 15.15.15.15/24 ]
-      gateway4: 20.20.20.21
-'''
-    if privkey is not None:
-        config += '      private-key: {}\n'.format(privkey)
-    if privfile is not None:
-        config += '      private-key-file: {}\n'.format(privfile)
-    if fwmark is not None:
-        config += '      fwmark: {}\n'.format(fwmark)
-    if listen is not None:
-        config += '      listen-port: {}\n'.format(listen)
-    if len(peers) > 0:
-        config += '      peers:\n'
-    for peer in peers:
-        pfx = '        - '
-        for k, v in peer.items():
-            config += '{}{}: {}\n'.format(pfx, k, v)
-            pfx = '          '
-    return config
-
-
 class TestWireGuard(TestBase):
     def test_simple(self):
         """[networkd] [wireguard] Validate generation of simple wireguard config"""
@@ -971,15 +971,7 @@ AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 ''',
-                              'wg0.network': '''[Match]
-Name=wg0
-
-[Network]
-LinkLocalAddressing=ipv6
-Address=15.15.15.15/24
-Gateway=20.20.20.21
-ConfigureWithoutCarrier=yes
-'''})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
 
     def test_2peers(self):
         """[networkd] [wireguard] Validate generation of wireguard config with two peers"""
@@ -1013,15 +1005,7 @@ AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 ''',
-                              'wg0.network': '''[Match]
-Name=wg0
-
-[Network]
-LinkLocalAddressing=ipv6
-Address=15.15.15.15/24
-Gateway=20.20.20.21
-ConfigureWithoutCarrier=yes
-'''})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
 
     def test_privatekeyfile(self):
         """[networkd] [wireguard] Validate generation of another simple wireguard config"""
@@ -1050,15 +1034,7 @@ Endpoint=1.2.3.4:5
 PresharedKey=test_preshared_key
 PresharedKeyFile=test_preshared_key_file
 ''',
-                              'wg0.network': '''[Match]
-Name=wg0
-
-[Network]
-LinkLocalAddressing=ipv6
-Address=15.15.15.15/24
-Gateway=20.20.20.21
-ConfigureWithoutCarrier=yes
-'''})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
 
     def test_ipv6_endpoint(self):
         """[networkd] [wireguard] Validate generation of wireguard config with v6 endpoint"""
@@ -1082,15 +1058,7 @@ AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 ''',
-                              'wg0.network': '''[Match]
-Name=wg0
-
-[Network]
-LinkLocalAddressing=ipv6
-Address=15.15.15.15/24
-Gateway=20.20.20.21
-ConfigureWithoutCarrier=yes
-'''})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
 
     def test_fail_keepalive_2big(self):
         """[networkd] [wireguard] Show an error if keepalive is too big"""

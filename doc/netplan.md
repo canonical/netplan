@@ -1016,7 +1016,7 @@ Wireguard-specific keys:
 
     ``private-key-file`` (scalar) – since **0.100**
     :   Path to a file with the private key. If the file is readable, the
-        ``private_key`` is ignored.
+        ``private_key`` setting is ignored.
 
     ``fwmark`` (scalar) – since **0.100**
     :   Firewall mark for outgoing WireGuard packets from this interface,
