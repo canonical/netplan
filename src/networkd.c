@@ -373,9 +373,8 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                 case NETPLAN_TUNNEL_MODE_VTI:
                 case NETPLAN_TUNNEL_MODE_VTI6:
                 case NETPLAN_TUNNEL_MODE_WIREGUARD:
-                    g_string_append_printf(s,
-                                          "Kind=%s\n",
-                                          tunnel_mode_to_string(def->tunnel.mode));
+                    g_string_append_printf(s, "Kind=%s\n",
+                                           tunnel_mode_to_string(def->tunnel.mode));
                     break;
 
                 case NETPLAN_TUNNEL_MODE_IP6IP6:
@@ -388,20 +387,13 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                     g_assert_not_reached();
                 // LCOV_EXCL_STOP
             }
-            switch (def->tunnel.mode) {
-                case NETPLAN_TUNNEL_MODE_WIREGUARD:
-                    write_wireguard_params(s, def);
-                    break;
-                default:
-                    write_tunnel_params(s, def);
-                    break;
-            }
+            if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
+                write_wireguard_params(s, def);
+            else
+                write_tunnel_params(s, def);
             break;
 
-        // LCOV_EXCL_START
-        default:
-            g_assert_not_reached();
-        // LCOV_EXCL_STOP
+        default: g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 
     /* these do not contain secrets and need to be readable by
