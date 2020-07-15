@@ -271,7 +271,6 @@ struct net_definition {
     NetplanWifiWowlanFlag wowlan;
     gboolean emit_lldp;
 
-
     /* these properties are only valid for NETPLAN_DEF_TYPE_WIFI */
     GHashTable* access_points; /* SSID → NetplanWifiAccessPoint* */
 

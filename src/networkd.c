@@ -171,7 +171,7 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     g_string_free(params, TRUE);
 
     for (guint i = 0; i < def->wireguard_peers->len; i++) {
-        NetplanWireguardPeer *peer = &g_array_index (def->wireguard_peers, NetplanWireguardPeer, i);
+        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
         GString *peer_s = g_string_sized_new(200);
 
         g_string_append_printf(peer_s, "PublicKey=%s\n", peer->public_key);

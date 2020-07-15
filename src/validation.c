@@ -79,7 +79,7 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
             return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
         for (guint i = 0; i < nd->wireguard_peers->len; i++) {
-            NetplanWireguardPeer *peer = &g_array_index (nd->wireguard_peers, NetplanWireguardPeer, i);
+            NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
 
             if (!peer->public_key)
                 return yaml_error(node, error, "%s: public_key is required.", nd->id);
