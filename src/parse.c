@@ -36,7 +36,7 @@
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(NetplanNetDefinition, field))
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
-#define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(wireguard_peer, field))
+#define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(NetplanWireguardPeer, field))
 
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
@@ -1650,7 +1650,7 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
 }
 
 /**
- * Handler for setting a wireguard_peer string field from a scalar node
+ * Handler for setting a NetplanWireguardPeer string field from a scalar node
  * @data: pointer to the const char* field to write
  */
 static gboolean
@@ -1663,7 +1663,7 @@ handle_wireguard_peer_str(yaml_document_t* doc, yaml_node_t* node, const void* d
 }
 
 /**
- * Handler for setting a wireguard_peer string field from a scalar node
+ * Handler for setting a NetplanWireguardPeer string field from a scalar node
  * @data: pointer to the guint field to write
  */
 static gboolean
@@ -1684,7 +1684,7 @@ handle_wireguard_peer_guint(yaml_document_t* doc, yaml_node_t* node, const void*
 static gboolean
 handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    const wireguard_peer* peer = data;
+    const NetplanWireguardPeer* peer = data;
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
@@ -1735,7 +1735,7 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* d
     char* port;
     char* address;
     guint64 port_num;
-    const wireguard_peer* peer = data;
+    const NetplanWireguardPeer* peer = data;
 
     endpoint = g_strdup(scalar(node));
     /* absolute minimal length of endpoint is 3 chars: 'h:8' */
@@ -1779,7 +1779,7 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
 };
 
 static gboolean
-process_wireguard_peer(yaml_document_t* doc, yaml_node_t* node, wireguard_peer *peer, GError** error)
+process_wireguard_peer(yaml_document_t* doc, yaml_node_t* node, NetplanWireguardPeer* peer, GError** error)
 {
     for (yaml_node_pair_t *entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
@@ -1804,13 +1804,13 @@ process_wireguard_peer(yaml_document_t* doc, yaml_node_t* node, wireguard_peer *
 static gboolean
 handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(wireguard_peer));
+    cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer));
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_MAPPING_NODE);
 
-        wireguard_peer peer = {0};
+        NetplanWireguardPeer peer = {0};
         peer.allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
 
         gboolean ret = process_wireguard_peer(doc, entry, &peer, error);

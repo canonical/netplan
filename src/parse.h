@@ -377,8 +377,7 @@ typedef struct {
     char *preshared_key_file;
     GArray *allowed_ips;
     guint keepalive;
-} wireguard_peer;
-
+} NetplanWireguardPeer;
 
 typedef enum {
     NETPLAN_WIFI_BAND_DEFAULT,
