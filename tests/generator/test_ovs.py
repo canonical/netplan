@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL, OVS_BR_EMPTY
+from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, OVS_PHYSICAL, OVS_VIRTUAL, OVS_BR_EMPTY, OVS_CLEANUP
 
 
 class TestOpenVSwitch(TestBase):
@@ -43,16 +43,15 @@ class TestOpenVSwitch(TestBase):
         self.assert_ovs({'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band=true
 '''},
                          'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0',
                               'eth1.network': ND_DHCP4 % 'eth1'})
@@ -72,10 +71,10 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=fal
         self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
 
@@ -91,9 +90,9 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band=tru
         self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-ofctl -O OpenFlow10,OpenFlow11,OpenFlow12
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
 
@@ -117,7 +116,7 @@ ExecStart=/usr/bin/ovs-ofctl -O OpenFlow10,OpenFlow11,OpenFlow12
     eth0:
       dhcp4: yes
 ''')
-        self.assert_ovs(None)
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
 
     def test_bond_setup(self):
@@ -144,14 +143,13 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id=myhostname
 '''},
-                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -211,13 +209,12 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=active
 '''},
-                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -276,14 +273,13 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=balance-tcp
 '''},
-                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -314,14 +310,13 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
 '''},
-                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'}})
+                         'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
@@ -364,18 +359,15 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
                         '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth1
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br0 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
@@ -395,16 +387,15 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id=myhostname
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the bridge has been only configured for OVS
         self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
 
@@ -427,18 +418,15 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band=true
                         '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth1
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br0 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 secure
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'eth1.network': '[Match]\nName=eth1\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'eth2.network': '[Match]\nName=eth2\n\n[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
@@ -486,15 +474,14 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
                         '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,OpenFlow15
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
 
@@ -538,9 +525,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,Open
                         '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
@@ -552,9 +537,9 @@ ExecStart=/usr/bin/ovs-vsctl set controller br0 connection-mode=out-of-band
                          'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_EMPTY % ('br0', 'ipv6')})
 
@@ -648,9 +633,9 @@ ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
         self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({})
 
@@ -747,9 +732,7 @@ ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
@@ -761,12 +744,11 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
                               'bond0.network': ND_EMPTY % ('bond0', 'no'),
                               'eth1.network':
@@ -808,9 +790,7 @@ Bond=bond0
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
@@ -819,11 +799,8 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
                          'br1.service': OVS_VIRTUAL % {'iface': 'br1', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br1 patchx
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br1 patchx
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br1
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
@@ -835,9 +812,7 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 patchy eth0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port bond0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 '''},
@@ -847,10 +822,8 @@ After=netplan-ovs-br1.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx options:peer=patchy
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchx
 ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan=true
 '''},
                          'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
@@ -859,12 +832,11 @@ After=netplan-ovs-bond0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy options:peer=patchx
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patchy
 ExecStart=/usr/bin/ovs-vsctl set Port patchy external-ids:netplan=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '2001:FFfe::1/64'),
                               'bond0.network': ND_EMPTY % ('bond0', 'no'),
@@ -889,11 +861,8 @@ ExecStart=/usr/bin/ovs-vsctl set Port patchy external-ids:netplan=true
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 patch0-1
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br0 patch0-1
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
@@ -902,11 +871,8 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=false
                          'br1.service': OVS_VIRTUAL % {'iface': 'br1', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br1 patch1-0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port br1 patch1-0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br1
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br1 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br1 mcast_snooping_enable=false
@@ -918,10 +884,8 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch0-1
 ExecStart=/usr/bin/ovs-vsctl set Port patch0-1 external-ids:netplan=true
 '''},
                          'patch1-0.service': OVS_VIRTUAL % {'iface': 'patch1-0', 'extra':
@@ -930,12 +894,11 @@ After=netplan-ovs-br1.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port patch1-0
 ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '192.168.1.2/24'),
                               'patch0-1.network': ND_EMPTY % ('patch0-1', 'no'),
@@ -957,9 +920,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan=true
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
@@ -971,11 +932,10 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0.100
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
                               'br0.100.network': ND_EMPTY % ('br0.100', 'ipv6')})
@@ -997,9 +957,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
         self.assert_ovs({'br0.service': OVS_VIRTUAL % {'iface': 'br0', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=false
@@ -1011,11 +969,10 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br br0.100
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
                               'br0.100.network': ND_EMPTY % ('br0.100', 'ipv6')})
@@ -1048,16 +1005,14 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
         self.assert_ovs({'ovs-br.service': OVS_VIRTUAL % {'iface': 'ovs-br', 'extra': '''
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs-br
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-port ovs-br non-ovs-bond
-ExecStop=/usr/bin/ovs-vsctl --if-exists del-br ovs-br
 ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br external-ids:netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode ovs-br standalone
 ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br mcast_snooping_enable=false
 ExecStart=/usr/bin/ovs-vsctl set Bridge ovs-br rstp_enable=false
-'''}})
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
         self.assert_networkd({'non-ovs-bond.network': ND_EMPTY % ('non-ovs-bond', 'no') + 'Bridge=ovs-br\n',
                               'eth1.network': (ND_EMPTY % ('eth1', 'no')).replace('ConfigureWithoutCarrier=yes',

@@ -359,7 +359,7 @@ class IntegrationTestsBase(unittest.TestCase):
         subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
         if self.is_active('systemd-networkd.service'):
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=50']) != 0:
+            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=20']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
                 st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
                 st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],

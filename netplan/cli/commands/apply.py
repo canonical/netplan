@@ -31,8 +31,6 @@ from netplan.cli.sriov import apply_sriov_config
 
 import netifaces
 
-OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
-
 
 class NetplanApply(utils.NetplanCommand):
 
@@ -95,7 +93,6 @@ class NetplanApply(utils.NetplanCommand):
                 raise ConfigurationError("the configuration could not be generated")
 
         config_manager = ConfigManager()
-        config_manager.parse()
         devices = netifaces.interfaces()
 
         # Re-start service when
@@ -125,36 +122,14 @@ class NetplanApply(utils.NetplanCommand):
             # so let's make sure we only run it iff we're willing to run 'netplan generate'
             if run_generate:
                 utils.systemctl_daemon_reload()
-            # Stop OVS service units to clear 'RemainAfterExit=yes' state, so we can re-start the services
-            # This will also cleanly shutdown OVS interfaces, which were part of the old and new config. Those
-            # will be re-started via systemmctl_networkd('start', ...) below.
-            ovs_services = ['netplan-ovs-*.service']
             wpa_services = ['netplan-wpa-*.service']
+            ovs_cleanup = ['netplan-ovs-cleanup.service']
             # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
             # upgraded system, we need to make sure to stop those.
             if utils.systemctl_is_active('netplan-wpa@*.service'):
                 wpa_services.insert(0, 'netplan-wpa@*.service')
-            utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services + ovs_services)
-
-            # Tear down the old OVS interfaces, as they cannot be stopped by
-            # 'systemctl stop netplan-ovs-*.service' after the corresponding
-            # service units have been deleted via 'netplan generate'. (Systemd
-            # cannot read or execute the ExecStop= command anymore!)
-            if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
-                for t in [['Port', 'del-port'], ['Bridge', 'del-br']]:
-                    out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
-                                                  '-f', 'csv', '-d', 'bare', 'list', t[0]], universal_newlines=True)
-                    for line in out.split('\n'):
-                        if 'netplan=true' in line:
-                            iface = line.split(',')[0]
-                            # Skip cleanup if this OVS interface is part of the current netplan OVS config
-                            if config_manager.interfaces.get(iface, {}).get('openvswitch') is not None:
-                                continue
-                            subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
-            # Show the warning only if we have been working with OVS service units
-            elif old_files_ovs or restart_ovs:
-                logging.warning('ovs-vsctl is missing, cannot tear down old OpenVSwitch interfaces')
-
+            utils.systemctl_networkd('start', sync=sync, extra_services=ovs_cleanup)
+            utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services)
         else:
             logging.debug('no netplan generated networkd configuration exists')
 

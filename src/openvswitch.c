@@ -28,7 +28,7 @@
 #include "util.h"
 
 static void
-write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, const char* dependency)
+write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency)
 {
     g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
@@ -45,6 +45,8 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
         g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id_escaped);
         g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id_escaped);
     }
+    if (!cleanup)
+        g_string_append_printf(s, "After=netplan-ovs-cleanup.service\n");
     g_string_append(s, "Before=network.target\nWants=network.target\n");
     if (dependency) {
         g_string_append_printf(s, "Requires=netplan-ovs-%s.service\n", dependency);
@@ -52,10 +54,6 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     }
 
     g_string_append(s, "\n[Service]\nType=oneshot\n");
-    /* RemainAfterExist=yes keeps the service units active after executing all ExecStart= commands.
-     * It will cleanly shutdown the service units and the interfaces/configs it created at shutdown
-     * or reboot via the ExecStop= commands specified. */
-    g_string_append(s, "RemainAfterExit=yes\n");
     g_string_append(s, cmds->str);
 
     g_string_free_to_file(s, rootdir, path, NULL);
@@ -74,12 +72,6 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
 #define append_systemd_cmd(s, command, ...) \
 { \
     g_string_append(s, "ExecStart="); \
-    g_string_append_printf(s, command, __VA_ARGS__); \
-    g_string_append(s, "\n"); \
-}
-#define append_systemd_stop(s, command, ...) \
-{ \
-    g_string_append(s, "ExecStop="); \
     g_string_append_printf(s, command, __VA_ARGS__); \
     g_string_append(s, "\n"); \
 }
@@ -158,7 +150,6 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
     }
 
     append_systemd_cmd(cmds, s->str, def->bridge, def->id);
-    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
     g_string_free(s, TRUE);
     return def->bridge;
 }
@@ -203,11 +194,8 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
         if ((tmp_nd->type != NETPLAN_DEF_TYPE_BOND || tmp_nd->backend != NETPLAN_BACKEND_OVS)
             && !g_strcmp0(def->id, tmp_nd->bridge)) {
             append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s", def->id, tmp_nd->id);
-            append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s %s", def->id, tmp_nd->id);
         }
     }
-
-    append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-br %s", def->id);
 }
 
 static void
@@ -336,7 +324,6 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 }
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
-                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-port %s", def->id);
                 write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
@@ -345,7 +332,6 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = def->vlan_link->id;
                 /* Create a fake VLAN bridge */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
-                append_systemd_stop(cmds, OPENVSWITCH_OVS_VSCTL " --if-exists del-br %s", def->id);
                 /* This is an OVS fake VLAN bridge, not a VLAN interface */
                 write_ovs_tag_netplan(def->id, "Bridge", cmds);
                 break;
@@ -379,7 +365,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     /* If we need to configure anything for this netdef, write the required systemd unit */
     if (cmds->len > 0)
-        write_ovs_systemd_unit(def->id, cmds, rootdir, netplan_type_is_physical(def->type), dependency);
+        write_ovs_systemd_unit(def->id, cmds, rootdir, netplan_type_is_physical(def->type), FALSE, dependency);
     g_string_free(cmds, TRUE);
 }
 
@@ -414,10 +400,20 @@ write_ovs_conf_finish(const char* rootdir)
                            ovs_settings_global.ssl.ca_certificate);
     }
 
-    /* TODO: Add any additional base OVS config we might need */
-
     if (cmds->len > 0)
-        write_ovs_systemd_unit("global", cmds, rootdir, FALSE, NULL);
+        write_ovs_systemd_unit("global", cmds, rootdir, FALSE, FALSE, NULL);
+    g_string_free(cmds, TRUE);
+
+    /* TODO: Only clear OVS interfaces, which are *not* part of the current YAML/netdefs,
+     *    e.g. by writing those interfaces into a systemd ENV variable and excluding them
+     *    from the shell script below. */
+    /* Clear all netplan=true tagged ports and bridges */
+    cmds = g_string_new(NULL);
+    append_systemd_cmd(cmds, "/bin/sh -c '" OPENVSWITCH_OVS_VSCTL " --column=name,external-ids -f csv -d bare --no-headings list %s"
+                       " | grep netplan=true | cut -d, -f1 | xargs -I {} " OPENVSWITCH_OVS_VSCTL " --if-exists %s {}'", "Port", "del-port");
+    append_systemd_cmd(cmds, "/bin/sh -c '" OPENVSWITCH_OVS_VSCTL " --column=name,external-ids -f csv -d bare --no-headings list %s"
+                       " | grep netplan=true | cut -d, -f1 | xargs -I {} " OPENVSWITCH_OVS_VSCTL " --if-exists %s {}'", "Bridge", "del-br");
+    write_ovs_systemd_unit("cleanup", cmds, rootdir, FALSE, TRUE, NULL);
     g_string_free(cmds, TRUE);
 }
 
