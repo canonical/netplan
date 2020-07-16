@@ -29,6 +29,45 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
+    # FIXME: Why does this test need to run first, in order to pass?
+    def test_1_cleanup_interfaces(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch0-1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch1-0'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  bridges:
+    ovs0: {interfaces: [patch0-1]}
+    ovs1: {interfaces: [patch1-0]}''')
+        self.generate_and_settle()
+        # Basic verification that the bridges/ports/interfaces are there in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge ovs0', out)
+        self.assertIn(b'        Port patch0-1', out)
+        self.assertIn(b'            Interface patch0-1', out)
+        self.assertIn(b'    Bridge ovs1', out)
+        self.assertIn(b'        Port patch1-0', out)
+        self.assertIn(b'            Interface patch1-0', out)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  ethernets:
+    %(ec)s: {addresses: ['1.2.3.4/24']}''' % {'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify that the netplan=true tagged bridges/ports have been cleaned up
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertNotIn(b'Bridge ovs0', out)
+        self.assertNotIn(b'Port patch0-1', out)
+        self.assertNotIn(b'Interface patch0-1', out)
+        self.assertNotIn(b'Bridge ovs1', out)
+        self.assertNotIn(b'Port patch1-0', out)
+        self.assertNotIn(b'Interface patch1-0', out)
+        self.assert_iface_up(self.dev_e_client, ['inet 1.2.3.4/24'])
+
     def test_bridge_vlan(self):
         self.setup_eth(None, True)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s' % self.dev_e_client])
@@ -282,44 +321,6 @@ class _CommonTests():
         (out, err) = p.communicate()
         self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
         self.assertNotEqual(p.returncode, 0)
-
-    def test_cleanup_interfaces(self):
-        self.setup_eth(None, False)
-        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
-        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
-        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch0-1'])
-        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch1-0'])
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  openvswitch:
-    ports:
-      - [patch0-1, patch1-0]
-  bridges:
-    ovs0: {interfaces: [patch0-1]}
-    ovs1: {interfaces: [patch1-0]}''')
-        self.generate_and_settle()
-        # Basic verification that the bridges/ports/interfaces are there in OVS
-        out = subprocess.check_output(['ovs-vsctl', 'show'])
-        self.assertIn(b'    Bridge ovs0', out)
-        self.assertIn(b'        Port patch0-1', out)
-        self.assertIn(b'            Interface patch0-1', out)
-        self.assertIn(b'    Bridge ovs1', out)
-        self.assertIn(b'        Port patch1-0', out)
-        self.assertIn(b'            Interface patch1-0', out)
-        with open(self.config, 'w') as f:
-            f.write('''network:
-  ethernets:
-    %(ec)s: {addresses: ['1.2.3.4/24']}''' % {'ec': self.dev_e_client})
-        self.generate_and_settle()
-        # Verify that the netplan=true tagged bridges/ports have been cleaned up
-        out = subprocess.check_output(['ovs-vsctl', 'show'])
-        self.assertNotIn(b'Bridge ovs0', out)
-        self.assertNotIn(b'Port patch0-1', out)
-        self.assertNotIn(b'Interface patch0-1', out)
-        self.assertNotIn(b'Bridge ovs1', out)
-        self.assertNotIn(b'Port patch1-0', out)
-        self.assertNotIn(b'Interface patch1-0', out)
-        self.assert_iface_up(self.dev_e_client, ['inet 1.2.3.4/24'])
 
 
 @unittest.skipIf("networkd" not in test_backends,
