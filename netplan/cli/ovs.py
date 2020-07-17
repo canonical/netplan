@@ -22,7 +22,7 @@ import subprocess
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
 
 
-def apply_ovs_cleanup(config_manager, ovs_old, ovs_current, ovs_only):  # pragma: nocover (covered in autopkgtest)
+def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover (covered in autopkgtest)
     """
     Query OpenVSwitch state through 'ovs-vsctl' and filter for netplan=true
     tagged ports/bonds and bridges. Delete interfaces which are not defined
@@ -44,5 +44,5 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current, ovs_only):  # pragma
                         continue
                     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
     # Show the warning only if we are or have been working with OVS definitions
-    elif ovs_old or ovs_current or ovs_only:
+    elif ovs_old or ovs_current:
         logging.warning('ovs-vsctl is missing, cannot tear down old OpenVSwitch interfaces')

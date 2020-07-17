@@ -38,15 +38,19 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     g_string_append_printf(s, "Description=OpenVSwitch configuration for %s\n", id);
     g_string_append(s, "DefaultDependencies=no\n");
     /* run any ovs-netplan unit only after openvswitch-switch.service is ready */
-    g_string_append_printf(s, "Requires=openvswitch-switch.service\n");
-    g_string_append_printf(s, "After=openvswitch-switch.service\n");
     if (physical) {
         id_escaped = systemd_escape((char*) id);
         g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id_escaped);
         g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id_escaped);
     }
-    if (!cleanup)
+    if (!cleanup) {
+        g_string_append_printf(s, "Requires=openvswitch-switch.service\n");
+        g_string_append_printf(s, "After=openvswitch-switch.service\n");
         g_string_append_printf(s, "After=netplan-ovs-cleanup.service\n");
+    } else {
+        /* The netplan-ovs-cleanup unit might run on systems where openvswitch is not installed. */
+        g_string_append(s, "ConditionFileIsExecutable=" OPENVSWITCH_OVS_VSCTL "\n");
+    }
     g_string_append(s, "Before=network.target\nWants=network.target\n");
     if (dependency) {
         g_string_append_printf(s, "Requires=netplan-ovs-%s.service\n", dependency);
@@ -67,8 +71,6 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     }
 }
 
-#define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
-#define OPENVSWITCH_OVS_OFCTL "/usr/bin/ovs-ofctl"
 #define append_systemd_cmd(s, command, ...) \
 { \
     g_string_append(s, "ExecStart="); \
@@ -266,13 +268,6 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     g_autofree char* base_config_path = NULL;
 
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
-    // LCOV_EXCL_START
-    if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
-        /* Tested via integration test */
-        g_fprintf(stderr, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.\n", def->id);
-        exit(1);
-    }
-    // LCOV_EXCL_STOP
 
     /* For OVS specific settings, we expect the backend to be set to OVS.
      * The OVS backend is implicitly set, if an interface contains an empty "openvswitch: {}"

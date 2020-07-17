@@ -25,6 +25,7 @@
 
 #include "parse.h"
 #include "error.h"
+#include "util.h"
 
 
 /* Check sanity for address types */
@@ -265,6 +266,15 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         valid = validate_tunnel_grammar(nd, node, error);
         if (!valid)
             goto netdef_grammar_error;
+    }
+
+    if (nd->backend == NETPLAN_BACKEND_OVS) {
+        // LCOV_EXCL_START
+        if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
+            /* Tested via integration test */
+            return yaml_error(node, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
+        }
+        // LCOV_EXCL_STOP
     }
 
     valid = TRUE;
