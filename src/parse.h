@@ -338,7 +338,7 @@ struct net_definition {
     /* netplan-feature: sriov */
     struct net_definition* sriov_link;
     gboolean sriov_vlan_filter;
-    gint sriov_explicit_vf_count;
+    guint sriov_explicit_vf_count;
 
     union {
         struct NetplanNMSettings {

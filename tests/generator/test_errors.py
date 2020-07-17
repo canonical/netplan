@@ -431,12 +431,6 @@ class TestConfigErrors(TestBase):
     ena: {id: 1, link: en1, renderer: foo}''', expect_fail=True)
         self.assertIn("unknown renderer 'foo'", err)
 
-    def test_sriov_invalid_vf_count(self):
-        err = self.generate('''network:
-  version: 2
-  ethernets: {en1: {virtual-function-count: -1}}''', expect_fail=True)
-        self.assertIn("invalid SR-IOV explicit VF count value '-1'", err)
-
     def test_device_bad_route_to(self):
         self.generate('''network:
   version: 2

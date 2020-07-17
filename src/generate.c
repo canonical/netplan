@@ -59,7 +59,7 @@ nd_iterator_list(gpointer value, gpointer user_data)
     if (write_networkd_conf(def, (const char*) user_data))
         any_networkd = TRUE;
     write_nm_conf(def, (const char*) user_data);
-    if (def->sriov_explicit_vf_count >= 0 || def->sriov_link)
+    if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
         any_sriov = TRUE;
 }
 

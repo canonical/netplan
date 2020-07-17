@@ -423,21 +423,6 @@ handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, G
 }
 
 static gboolean
-handle_netdef_sriov_explicit_vf_count(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    guint offset = GPOINTER_TO_UINT(data);
-    gint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXINT || v < 0)
-        return yaml_error(node, error, "invalid SR-IOV explicit VF count value '%s'", scalar(node));
-
-    *((gint*) ((void*) cur_netdef + offset)) = (gint) v;
-    return TRUE;
-}
-
-static gboolean
 handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -1745,7 +1730,7 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     PHYSICAL_LINK_HANDLERS,
     {"auth", YAML_MAPPING_NODE, handle_auth},
     {"link", YAML_SCALAR_NODE, handle_netdef_id_ref, NULL, netdef_offset(sriov_link)},
-    {"virtual-function-count", YAML_SCALAR_NODE, handle_netdef_sriov_explicit_vf_count, NULL, netdef_offset(sriov_explicit_vf_count)},
+    {"virtual-function-count", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(sriov_explicit_vf_count)},
     {NULL}
 };
 
@@ -1903,7 +1888,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
             netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
             cur_netdef->sriov_vlan_filter = FALSE;
-            cur_netdef->sriov_explicit_vf_count = -1;
+            cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
 
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);

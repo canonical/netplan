@@ -28,13 +28,13 @@ write_sriov_conf_finish(const char* rootdir)
 {
     /* For now we execute apply --sriov-only everytime there is a new
        SR-IOV device appearing, which is fine as it's relatively fast */
-    GString *udev_rule = g_string_new("ACTION==\"add\", SUBSYSTEM==\"net\", ATTRS{sriov_totalvfs}==\"?*\", RUN+=\"/sbin/netplan apply --sriov-only\"\n");
-    g_string_free_to_file(udev_rule, rootdir, "run/udev/rules.d/999-netplan-sriov-setup.rules", NULL);
+    GString *udev_rule = g_string_new("ACTION==\"add\", SUBSYSTEM==\"net\", ATTRS{sriov_totalvfs}==\"?*\", RUN+=\"/usr/sbin/netplan apply --sriov-only\"\n");
+    g_string_free_to_file(udev_rule, rootdir, "run/udev/rules.d/99-sriov-netplan-setup.rules", NULL);
 }
 
 void
 cleanup_sriov_conf(const char* rootdir)
 {
-    g_autofree char* rulepath = g_strjoin(NULL, rootdir ?: "", "/run/udev/rules.d/999-netplan-sriov-setup.rules", NULL);
+    g_autofree char* rulepath = g_strjoin(NULL, rootdir ?: "", "/run/udev/rules.d/99-sriov-netplan-setup.rules", NULL);
     unlink(rulepath);
 }
