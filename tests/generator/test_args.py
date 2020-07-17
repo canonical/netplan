@@ -38,7 +38,7 @@ class TestConfigArgs(TestBase):
         self.assert_networkd_udev(None)
         self.assert_nm(None)
         self.assert_nm_udev(None)
-        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup', 'pfilter': '', 'bfilter': ''}})
 
     def test_empty_config(self):
         self.generate('')
@@ -48,7 +48,7 @@ class TestConfigArgs(TestBase):
         self.assert_networkd_udev(None)
         self.assert_nm(None)
         self.assert_nm_udev(None)
-        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup', 'pfilter': '', 'bfilter': ''}})
 
     def test_file_args(self):
         conf = os.path.join(self.workdir.name, 'config')

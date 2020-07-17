@@ -27,6 +27,33 @@
 #include "parse.h"
 #include "util.h"
 
+/* Arrays to store the current netplan=true tagged OVS interfaces */
+static GArray* _ovs_bridges = NULL;
+static GArray* _ovs_ports = NULL;
+
+static gchar*
+_prepare_ovs_interface_filter(GArray* interfaces) {
+    GString* filter = g_string_new("");
+    gchar* res = NULL;
+
+    /* Cleanup all old, netplan=true tagged OVS interfaces, which are not in the current config.
+       This is done by piping all "netplan=true" tagged ports/bridges through an inverse egrep. */
+    if (interfaces && interfaces->len > 0) {
+        g_string_append(filter, " | egrep -v \"(");
+        for (unsigned i = 0; i < interfaces->len; ++i) {
+            if (i > 0)
+                g_string_append(filter, "|");
+            g_string_append_printf(filter, "%s", g_array_index(interfaces, char*, i));
+        }
+        g_string_append(filter, "),\"");
+    }
+    res = g_string_free(filter, FALSE);
+    /* Replace "." -> "\.", to avoid "." matching any char in the egrep RegEx.
+       Escaped to "\\.", to pass it through systemd "ExecStart=". */
+    res = g_strjoinv("\\\\.", g_strsplit(res, ".", -1));
+    return res;
+}
+
 static void
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency)
 {
@@ -160,6 +187,16 @@ write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
     /* Mark this bridge/port/interface as created by netplan */
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s external-ids:netplan=true",
                        type, id);
+    /* Remember netplan=true tagged interfaces, which should be kept in OVS */
+    if (!g_strcmp0(type, "Bridge")) {
+        if (!_ovs_bridges)
+            _ovs_bridges = g_array_new(FALSE, FALSE, sizeof(char*));
+        g_array_append_val(_ovs_bridges, id);
+    } else if (!g_strcmp0(type, "Port")) {
+        if (!_ovs_ports)
+            _ovs_ports = g_array_new(FALSE, FALSE, sizeof(char*));
+        g_array_append_val(_ovs_ports, id);
+    }
 }
 
 static void
@@ -376,6 +413,7 @@ void
 write_ovs_conf_finish(const char* rootdir)
 {
     GString* cmds = g_string_new(NULL);
+    gchar* filter = NULL;
 
     /* Global external-ids and other-config settings */
     if (ovs_settings_global.external_ids && g_hash_table_size(ovs_settings_global.external_ids) > 0) {
@@ -404,15 +442,19 @@ write_ovs_conf_finish(const char* rootdir)
         write_ovs_systemd_unit("global", cmds, rootdir, FALSE, FALSE, NULL);
     g_string_free(cmds, TRUE);
 
-    /* TODO: Only clear OVS interfaces, which are *not* part of the current YAML/netdefs,
-     *    e.g. by writing those interfaces into a systemd ENV variable and excluding them
-     *    from the shell script below. */
     /* Clear all netplan=true tagged ports and bridges */
     cmds = g_string_new(NULL);
-    append_systemd_cmd(cmds, "/bin/sh -c '" OPENVSWITCH_OVS_VSCTL " --column=name,external-ids -f csv -d bare --no-headings list %s"
-                       " | grep netplan=true | cut -d, -f1 | xargs -I {} " OPENVSWITCH_OVS_VSCTL " --if-exists %s {}'", "Port", "del-port");
-    append_systemd_cmd(cmds, "/bin/sh -c '" OPENVSWITCH_OVS_VSCTL " --column=name,external-ids -f csv -d bare --no-headings list %s"
-                       " | grep netplan=true | cut -d, -f1 | xargs -I {} " OPENVSWITCH_OVS_VSCTL " --if-exists %s {}'", "Bridge", "del-br");
+
+    filter = _prepare_ovs_interface_filter(_ovs_ports);
+    append_systemd_cmd(cmds, "/bin/sh -c '" OPENVSWITCH_OVS_VSCTL " --column=name,external-ids -f csv -d bare --no-headings list Port"
+                       " | grep netplan=true%s | cut -d, -f1 | xargs -I {} " OPENVSWITCH_OVS_VSCTL " --if-exists del-port {}'", filter);
+    g_free(filter);
+
+    filter = _prepare_ovs_interface_filter(_ovs_bridges);
+    append_systemd_cmd(cmds, "/bin/sh -c '" OPENVSWITCH_OVS_VSCTL " --column=name,external-ids -f csv -d bare --no-headings list Bridge"
+                       " | grep netplan=true%s | cut -d, -f1 | xargs -I {} " OPENVSWITCH_OVS_VSCTL " --if-exists del-br {}'", filter);
+    g_free(filter);
+
     write_ovs_systemd_unit("cleanup", cmds, rootdir, FALSE, TRUE, NULL);
     g_string_free(cmds, TRUE);
 }
