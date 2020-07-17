@@ -55,11 +55,8 @@ OVS_BR_EMPTY = _OVS_BASE + 'After=netplan-ovs-cleanup.service\nBefore=network.ta
 Type=oneshot\nExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s \
 external-ids:netplan=true\nExecStart=/usr/bin/ovs-vsctl set-fail-mode %(iface)s standalone\nExecStart=/usr/bin/ovs-vsctl set \
 Bridge %(iface)s mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s rstp_enable=false\n'
-OVS_CLEANUP = _OVS_BASE + 'Before=network.target\nWants=network.target\n\n[Service]\nType=oneshot\nExecStart=/bin/sh -c \
-\'/usr/bin/ovs-vsctl --column=name,external-ids -f csv -d bare --no-headings list Port | grep netplan=true%(pfilter)s | \
-cut -d, -f1 | xargs -I {} /usr/bin/ovs-vsctl --if-exists del-port {}\'\nExecStart=/bin/sh -c \'/usr/bin/ovs-vsctl \
---column=name,external-ids -f csv -d bare --no-headings list Bridge | grep netplan=true%(bfilter)s | cut -d, -f1 | \
-xargs -I {} /usr/bin/ovs-vsctl --if-exists del-br {}\'\n'
+OVS_CLEANUP = _OVS_BASE + 'Before=network.target\nWants=network.target\n\n[Service]\nType=oneshot\nExecStart=/usr/sbin/netplan \
+apply --ovs-only\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
 
