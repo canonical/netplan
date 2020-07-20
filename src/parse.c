@@ -325,10 +325,11 @@ handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
  * Handler for setting a boolean field from a scalar node, inside a given struct
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
-*/
+ */
 static gboolean
 handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
+    g_assert(entryptr);
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
 
@@ -346,6 +347,61 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
         return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
 
     *((gboolean*) ((void*) entryptr + offset)) = v;
+    return TRUE;
+}
+
+/*
+ * Handler for setting an array of IP addresses from a sequence node, inside a given struct
+ * @entryptr: pointer to the beginning of the do-be-modified data structure
+ * @data: offset into entryptr struct where the array to write is located
+ */
+static gboolean
+handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check_zero_prefix, GArray** ip4, GArray** ip6, GError** error)
+{
+    g_assert(ip4);
+    g_assert(ip6);
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* addr = NULL;
+        char* prefix_len;
+        guint64 prefix_len_num;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        /* split off /prefix_len */
+        addr = g_strdup(scalar(entry));
+        prefix_len = strrchr(addr, '/');
+        if (!prefix_len)
+            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
+        *prefix_len = '\0';
+        prefix_len++; /* skip former '/' into first char of prefix */
+        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
+
+        /* is it an IPv4 address? */
+        if (is_ip4_address(addr)) {
+            if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 32)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
+            if (!*ip4)
+                *ip4 = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(*ip4, s);
+            continue;
+        }
+
+        /* is it an IPv6 address? */
+        if (is_ip6_address(addr)) {
+            if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 128)
+                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+            if (!*ip6)
+                *ip6 = g_array_new(FALSE, FALSE, sizeof(char*));
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(*ip6, s);
+            continue;
+        }
+
+        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+    }
+
     return TRUE;
 }
 
@@ -778,49 +834,7 @@ handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** err
 static gboolean
 handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        g_autofree char* addr = NULL;
-        char* prefix_len;
-        guint64 prefix_len_num;
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
-
-        /* split off /prefix_len */
-        addr = g_strdup(scalar(entry));
-        prefix_len = strrchr(addr, '/');
-        if (!prefix_len)
-            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
-        *prefix_len = '\0';
-        prefix_len++; /* skip former '/' into first char of prefix */
-        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
-
-        /* is it an IPv4 address? */
-        if (is_ip4_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 32)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
-            if (!cur_netdef->ip4_addresses)
-                cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip4_addresses, s);
-            continue;
-        }
-
-        /* is it an IPv6 address? */
-        if (is_ip6_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 128)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-            if (!cur_netdef->ip6_addresses)
-                cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip6_addresses, s);
-            continue;
-        }
-
-        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
-    }
-
-    return TRUE;
+    return handle_generic_addresses(doc, node, TRUE, &(cur_netdef->ip4_addresses), &(cur_netdef->ip6_addresses), error);
 }
 
 static gboolean
@@ -1677,46 +1691,7 @@ handle_wireguard_peer_guint(yaml_document_t* doc, yaml_node_t* node, const void*
 static gboolean
 handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        g_autofree char* addr = NULL;
-        char* prefix_len;
-        guint64 prefix_len_num;
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
-
-        /* split off /prefix_len */
-        addr = g_strdup(scalar(entry));
-        prefix_len = strrchr(addr, '/');
-        if (!prefix_len)
-            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
-        *prefix_len = '\0';
-        prefix_len++; /* skip former '/' into first char of prefix */
-        prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
-
-        /* is it an IPv4 address? */
-        if (is_ip4_address(addr)) {
-            if (prefix_len_num > 32)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_wireguard_peer->allowed_ips, s);
-            continue;
-        }
-
-        /* is it an IPv6 address? */
-        if (is_ip6_address(addr)) {
-            if (prefix_len_num > 128)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_wireguard_peer->allowed_ips, s);
-            continue;
-        }
-
-        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
-    }
-
-    return TRUE;
+    return handle_generic_addresses(doc, node, FALSE, &(cur_wireguard_peer->allowed_ips), &(cur_wireguard_peer->allowed_ips), error);
 }
 
 static gboolean
