@@ -164,8 +164,11 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
         g_string_append_printf(params, "PrivateKeyFile=%s\n", def->wireguard.private_key_file);
     if (def->wireguard.listen_port)
         g_string_append_printf(params, "ListenPort=%u\n", def->wireguard.listen_port);
+    /* This is called FirewallMark= as of systemd v243, but we keep calling it FwMark= for
+       backwards compatibility. FwMark= is still supported, but deprecated:
+       https://github.com/systemd/systemd/pull/12478 */
     if (def->wireguard.fwmark)
-        g_string_append_printf(params, "FWMark=%u\n", def->wireguard.fwmark);
+        g_string_append_printf(params, "FwMark=%u\n", def->wireguard.fwmark);
 
     g_string_append_printf(s, "\n[WireGuard]\n%s", params->str);
     g_string_free(params, TRUE);

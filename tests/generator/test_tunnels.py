@@ -1055,7 +1055,7 @@ Kind=wireguard
 [WireGuard]
 PrivateKeyFile=/tmp/test_private_key
 ListenPort=12345
-FWMark=23
+FwMark=23
 
 [WireGuardPeer]
 PublicKey=test_public_key
