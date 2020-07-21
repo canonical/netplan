@@ -1028,6 +1028,21 @@ Wireguard-specific keys:
     ``peers`` (sequence of mappings) – since **0.100**
     :   A list of peers, each having keys documented below.
 
+    Example:
+
+    tunnels:
+        wireguard0:
+            mode: wireguard
+            peers:
+                - public-key: /some/public.key
+                  allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
+                  keepalive: 23
+                  remote: 1.2.3.4:5
+                - public-key: /other/public.key
+                  allowed-ips: [0.0.0.0/0, "10.10.10.20/24"]
+                  keepalive: 22
+                  remote: 5.4.3.2:1
+
     ``public-key`` (scalar) – since **0.100**
     :   Peer's base64-encoded public key, required.
 
