@@ -1022,8 +1022,8 @@ Wireguard-specific keys:
     :   Firewall mark for outgoing WireGuard packets from this interface,
         optional.
 
-    ``listen-port`` (scalar) – since **0.100**
-    :   UDP port to listen at or 'auto'. Optional, defaults to 'auto'.
+    ``port`` (scalar) – since **0.100**
+    :   UDP port to listen at or ``auto``. Optional, defaults to ``auto``.
 
     ``peers`` (sequence of mappings) – since **0.100**
     :   A list of peers, each having keys documented below.

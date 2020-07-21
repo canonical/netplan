@@ -1939,7 +1939,7 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"private-key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key)},
     {"private-key-file", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key_file)},
     {"fwmark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.fwmark)},
-    {"listen-port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
+    {"port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
     {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
     {NULL}
 };
