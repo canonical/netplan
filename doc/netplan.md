@@ -1037,9 +1037,9 @@ Wireguard-specific keys:
     ``preshared-key-file`` (scalar) – since **0.100**
     :   Path to a file with an optional preshared key for a peer.
 
-    ``endpoint`` (scalar) – since **0.100**
-    :   Endpoint IPv4/IPv6 address or a hostname, followed by a colon, and then
-        a port number.
+    ``remote`` (scalar) – since **0.100**
+    :   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon
+        and a port number.
 
     ``allowed-ips`` (sequence of scalars) – since **0.100**
     :    A list of IP (v4 or v6) addresses with CIDR masks from which this peer

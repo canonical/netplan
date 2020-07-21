@@ -1716,13 +1716,13 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
     endpoint = g_strdup(scalar(node));
     /* absolute minimal length of endpoint is 3 chars: 'h:8' */
     if (strlen(endpoint) < 3) {
-        return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+        return yaml_error(node, error, "invalid remote address or hostname '%s'", scalar(node));
     }
     if (endpoint[0] == '[') {
         /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
         char *endbrace = strrchr(endpoint, ']');
         if (!endbrace)
-            return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+            return yaml_error(node, error, "invalid address in remote '%s'", scalar(node));
         address = endpoint + 1;
         *endbrace = '\0';
         port = strrchr(endbrace + 1, ':');
@@ -1732,16 +1732,16 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
     }
     /* split off :port */
     if (!port)
-        return yaml_error(node, error, "endpoint '%s' is missing :port", scalar(node));
+        return yaml_error(node, error, "remote '%s' is missing :port", scalar(node));
     *port = '\0';
     port++; /* skip former ':' into first char of port */
     port_num = g_ascii_strtoull(port, NULL, 10);
     if (port_num > 65535)
-        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
+        return yaml_error(node, error, "invalid port in remote '%s'", scalar(node));
     if (is_ip4_address(address) || is_ip6_address(address) || is_hostname(address)) {
         return handle_wireguard_peer_str(doc, node, wireguard_peer_offset(endpoint), error);
     }
-    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+    return yaml_error(node, error, "invalid remote address or hostname '%s'", scalar(node));
 }
 
 const mapping_entry_handler wireguard_peer_handlers[] = {
@@ -1749,7 +1749,8 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
     {"preshared-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
     {"preshared-key-file", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key_file)},
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
-    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
+    {"remote", YAML_SCALAR_NODE, handle_wireguard_endpoint},
+    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint}, /* Alias for NetplanWireguardPeer.remote */
     {"allowed-ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
     {NULL}
 };
