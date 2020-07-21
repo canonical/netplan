@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase, ND_WITHIPGW
+from .base import TestBase, ND_WITHIPGW, ND_EMPTY
 
 
 def prepare_config_for_mode(renderer, mode, key=None):
@@ -68,7 +68,7 @@ def prepare_wg_config(listen=None, privkey=None, privfile=None, fwmark=None, pee
   tunnels:
     wg0:
       mode: wireguard
-      addresses: [ 15.15.15.15/24 ]
+      addresses: [15.15.15.15/24, 2001:de:ad:be:ef:ca:fe:1/128]
       gateway4: 20.20.20.21
 '''
     if privkey is not None:
@@ -971,7 +971,37 @@ AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 ''',
-                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                            '20.20.20.21')})
+
+    def test_simple_multi_pass(self):
+        """[networkd] [wireguard] Validate generation of a wireguard config, which is parsed multiple times"""
+        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+                                   peers=[{'public-key': 'test_public_key',
+                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
+                                           'keepalive': 23,
+                                           'endpoint': '1.2.3.4:5'}])
+        config = config.replace('tunnels:', 'bridges: {br0: {interfaces: [wg0]}}\n  tunnels:')
+        self.generate(config)
+        self.assert_networkd({'wg0.netdev': '''[NetDev]
+Name=wg0
+Kind=wireguard
+
+[WireGuard]
+PrivateKey=test_private_key
+ListenPort=12345
+
+[WireGuardPeer]
+PublicKey=test_public_key
+AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
+PersistentKeepalive=23
+Endpoint=1.2.3.4:5
+''',
+                              'wg0.network': (ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                             '20.20.20.21') + 'Bridge=br0\n')
+                              .replace('LinkLocalAddressing=ipv6', 'LinkLocalAddressing=no'),
+                              'br0.network': ND_EMPTY % ('br0', 'ipv6'),
+                              'br0.netdev': '''[NetDev]\nName=br0\nKind=bridge\n'''})
 
     def test_2peers(self):
         """[networkd] [wireguard] Validate generation of wireguard config with two peers"""
@@ -1005,7 +1035,8 @@ AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 ''',
-                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                            '20.20.20.21')})
 
     def test_privatekeyfile(self):
         """[networkd] [wireguard] Validate generation of another simple wireguard config"""
@@ -1034,7 +1065,8 @@ Endpoint=1.2.3.4:5
 PresharedKey=test_preshared_key
 PresharedKeyFile=test_preshared_key_file
 ''',
-                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                            '20.20.20.21')})
 
     def test_ipv6_endpoint(self):
         """[networkd] [wireguard] Validate generation of wireguard config with v6 endpoint"""
@@ -1058,7 +1090,8 @@ AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 ''',
-                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '20.20.20.21')})
+                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                            '20.20.20.21')})
 
     def test_fail_keepalive_2big(self):
         """[networkd] [wireguard] Show an error if keepalive is too big"""

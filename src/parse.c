@@ -1757,6 +1757,17 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
 static gboolean
 handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
+    if (!cur_netdef->wireguard_peers)
+        cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer*));
+
+    /* Avoid adding the same peers in a 2nd parsing pass by comparing
+       the array size to the YAML sequence size. Skip if they are equal. */
+    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    if (cur_netdef->wireguard_peers->len == item_count) {
+        g_debug("%s: all wireguard peers have already been added", cur_netdef->id);
+        return TRUE;
+    }
+
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
@@ -1767,18 +1778,7 @@ handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, G
         cur_wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
         g_debug("%s: adding new wireguard peer", cur_netdef->id);
 
-        if (!cur_netdef->wireguard_peers)
-            cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer*));
-        //XXX: fix coverage and do multi-pass testing!
-        if (!g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer)) {
-            /* Even in the error case, NULL out cur_wireguard_peer. Otherwise we
-             * have an assert failure if we do a multi-pass parse. */
-            gboolean ret;
-            ret = yaml_error(entry, error, "%s: Cannot append wireguard peer", cur_netdef->id);
-            cur_wireguard_peer = NULL;
-            return ret;
-        }
-
+        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
         if (!process_mapping(doc, entry, wireguard_peer_handlers, error)) {
             cur_wireguard_peer = NULL;
             return FALSE;
