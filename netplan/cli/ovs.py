@@ -36,7 +36,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
                                            '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t[0]],
                                           universal_newlines=True)
-            for line in out.split('\n'):
+            for line in out.splitlines():
                 if 'netplan=true' in line:
                     iface = line.split(',')[0]
                     # Skip cleanup if this OVS interface is part of the current netplan OVS config
