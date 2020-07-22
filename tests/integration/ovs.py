@@ -29,9 +29,46 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
-    # FIXME: Why does this test need to run first in order to pass?
-    #   We must leave some dirty state somewhere in the other tests
-    def test_1_bridge_vlan(self):
+    # FIXME: Why does this test need to run first, in order to pass?
+    def test_1_cleanup_interfaces(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch0-1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch1-0'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  bridges:
+    ovs0: {interfaces: [patch0-1]}
+    ovs1: {interfaces: [patch1-0]}''')
+        self.generate_and_settle()
+        # Basic verification that the bridges/ports/interfaces are there in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge ovs0', out)
+        self.assertIn(b'        Port patch0-1', out)
+        self.assertIn(b'            Interface patch0-1', out)
+        self.assertIn(b'    Bridge ovs1', out)
+        self.assertIn(b'        Port patch1-0', out)
+        self.assertIn(b'            Interface patch1-0', out)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  ethernets:
+    %(ec)s: {addresses: ['1.2.3.4/24']}''' % {'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify that the netplan=true tagged bridges/ports have been cleaned up
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertNotIn(b'Bridge ovs0', out)
+        self.assertNotIn(b'Port patch0-1', out)
+        self.assertNotIn(b'Interface patch0-1', out)
+        self.assertNotIn(b'Bridge ovs1', out)
+        self.assertNotIn(b'Port patch1-0', out)
+        self.assertNotIn(b'Interface patch1-0', out)
+        self.assert_iface_up(self.dev_e_client, ['inet 1.2.3.4/24'])
+
+    def test_bridge_vlan(self):
         self.setup_eth(None, True)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s' % self.dev_e_client])
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-data'])
@@ -52,10 +89,10 @@ class _CommonTests():
             openvswitch: {}
             addresses: [192.168.20.1/16]
     vlans:
+        #implicitly handled by OVS because of its link
         br-%(ec)s.100:
             id: 100
-            link: br-%(ec)s
-            openvswitch: {}''' % {'ec': self.dev_e_client})
+            link: br-%(ec)s''' % {'ec': self.dev_e_client})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
@@ -110,8 +147,8 @@ class _CommonTests():
         self.assertIn(b'        Port %(ec)b\n            Interface %(ec)b' % {b'ec': self.dev_e_client.encode()}, out)
         self.assertIn(b'        Port %(e2c)b\n            Interface %(e2c)b' % {b'e2c': self.dev_e2_client.encode()}, out)
         # Verify the bridge was tagged 'netplan:true' correctly
-        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', 'list', 'Port'])
-        self.assertIn(b'ovsbr\nexternal_ids        : {netplan="true"}', out)
+        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', '-f', 'csv', '-d', 'bare', 'list', 'Bridge'])
+        self.assertIn(b'ovsbr,netplan=true', out)
         self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
 
     def test_bond_base(self):
@@ -142,8 +179,8 @@ class _CommonTests():
         self.assertIn(b'            Interface %b' % self.dev_e_client.encode(), out)
         self.assertIn(b'            Interface %b' % self.dev_e2_client.encode(), out)
         # Verify the bond was tagged 'netplan:true' correctly
-        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', 'list', 'Port'])
-        self.assertIn(b'mybond\nexternal_ids        : {netplan="true"}', out)
+        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', '-f', 'csv', '-d', 'bare', 'list', 'Port'])
+        self.assertIn(b'mybond,netplan=true', out)
         # Verify bond params
         out = subprocess.check_output(['ovs-appctl', 'bond/show', 'mybond'])
         self.assertIn(b'---- mybond ----', out)
@@ -216,6 +253,74 @@ class _CommonTests():
         self.assert_iface('non-ovs-bond', ['master ovs-system'])
         self.assert_iface(self.dev_e_client, ['master non-ovs-bond'])
         self.assert_iface(self.dev_e2_client, ['master non-ovs-bond'])
+
+    def test_vlan_maas(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', '%s.21' % self.dev_e_client], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    bridges:
+        ovs0:
+            addresses: [10.5.48.11/20]
+            interfaces: [%(ec)s.21]
+            macaddress: 00:1f:16:15:78:6f
+            mtu: 1500
+            nameservers:
+                addresses: [10.5.32.99]
+                search: [maas]
+            openvswitch: {}
+            parameters:
+                forward-delay: 15
+                stp: false
+    ethernets:
+        %(ec)s:
+            addresses: [10.5.32.26/20]
+            gateway4: 10.5.32.1
+            match:
+                macaddress: %(e_mac)s
+            mtu: 1500
+            nameservers:
+                addresses: [10.5.32.99]
+                search: [maas]
+            set-name: %(ec)s
+    vlans:
+        %(ec)s.21:
+            id: 21
+            link: %(ec)s
+            mtu: 1500''' % {'ec': self.dev_e_client, 'e_mac': self.dev_e_client_mac})
+        self.generate_and_settle()
+        # Basic verification that the interfaces/ports are set up in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'], universal_newlines=True)
+        self.assertIn('    Bridge ovs0', out)
+        self.assertIn('''        Port %(ec)s.21
+            Interface %(ec)s.21''' % {'ec': self.dev_e_client}, out)
+        self.assertIn('''        Port ovs0
+            Interface ovs0
+                type: internal''', out)
+        self.assert_iface('ovs0', ['inet 10.5.48.11/20'])
+        self.assert_iface_up(self.dev_e_client, ['inet 10.5.32.26/20'])
+        self.assert_iface_up('%s.21' % self.dev_e_client, ['%(ec)s.21@%(ec)s' % {'ec': self.dev_e_client}])
+
+    def test_missing_ovs_tools(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['mv', '/usr/bin/ovs-vsctl.bak', '/usr/bin/ovs-vsctl'])
+        subprocess.check_call(['mv', '/usr/bin/ovs-vsctl', '/usr/bin/ovs-vsctl.bak'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    bridges:
+      ovs0:
+        interfaces: [%(ec)s]
+        openvswitch: {}
+    ethernets:
+      %(ec)s: {}''' % {'ec': self.dev_e_client})
+        p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, universal_newlines=True)
+        (out, err) = p.communicate()
+        self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
+        self.assertNotEqual(p.returncode, 0)
 
 
 @unittest.skipIf("networkd" not in test_backends,
