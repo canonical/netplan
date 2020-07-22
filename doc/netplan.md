@@ -156,7 +156,7 @@ Virtual devices
      :   Passed-through directly to OpenVSwitch
 
      ``lacp`` (scalar) – since **0.100**
-     :   Valid for bond interfaces. Accepts ``active``, ``passive` or ``off`` (the default).
+     :   Valid for bond interfaces. Accepts ``active``, ``passive`` or ``off`` (the default).
 
      ``fail-mode`` (scalar) – since **0.100**
      :   Valid for bridge interfaces. Accepts ``secure`` or ``standalone`` (the default).
