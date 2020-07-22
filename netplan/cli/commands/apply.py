@@ -43,7 +43,7 @@ class NetplanApply(utils.NetplanCommand):
         self.ovs_only = False
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
-        self.parser.add_argument('--ovs-only', action='store_true',
+        self.parser.add_argument('--only-ovs-cleanup', action='store_true',
                                  help='Only clean up old OpenVSwitch interfaces and exit')
 
         self.func = self.command_apply

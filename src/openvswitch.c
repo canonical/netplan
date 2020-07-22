@@ -399,9 +399,9 @@ write_ovs_conf_finish(const char* rootdir)
         write_ovs_systemd_unit("global", cmds, rootdir, FALSE, FALSE, NULL);
     g_string_free(cmds, TRUE);
 
-    /* Clear all netplan=true tagged ports/bonds and bridges, via 'netplan apply --ovs-only' */
+    /* Clear all netplan=true tagged ports/bonds and bridges, via 'netplan apply --only-ovs-cleanup' */
     cmds = g_string_new(NULL);
-    append_systemd_cmd(cmds, "/usr/sbin/netplan apply %s", "--ovs-only");
+    append_systemd_cmd(cmds, "/usr/sbin/netplan apply %s", "--only-ovs-cleanup");
     write_ovs_systemd_unit("cleanup", cmds, rootdir, FALSE, TRUE, NULL);
     g_string_free(cmds, TRUE);
 }
