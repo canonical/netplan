@@ -32,7 +32,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
 
     # Tear down old OVS interfacess, not defined in the current config
     if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
-        for t in [['Port', 'del-port'], ['Bridge', 'del-br']]:
+        for t in (('Port', 'del-port'), ('Bridge', 'del-br')):
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
                                            '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t[0]],
                                           universal_newlines=True)
