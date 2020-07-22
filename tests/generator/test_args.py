@@ -33,7 +33,7 @@ class TestConfigArgs(TestBase):
     def test_no_configs(self):
         self.generate('network:\n  version: 2')
         # should not write any files
-        self.assertEqual(os.listdir(self.workdir.name), ['etc', 'run'])
+        self.assertCountEqual(os.listdir(self.workdir.name), ['etc', 'run'])
         self.assert_networkd(None)
         self.assert_networkd_udev(None)
         self.assert_nm(None)
@@ -43,7 +43,7 @@ class TestConfigArgs(TestBase):
     def test_empty_config(self):
         self.generate('')
         # should not write any files
-        self.assertEqual(os.listdir(self.workdir.name), ['etc', 'run'])
+        self.assertCountEqual(os.listdir(self.workdir.name), ['etc', 'run'])
         self.assert_networkd(None)
         self.assert_networkd_udev(None)
         self.assert_nm(None)
