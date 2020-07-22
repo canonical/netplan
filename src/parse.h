@@ -372,7 +372,6 @@ typedef struct {
     char *endpoint;
     char *public_key;
     char *preshared_key;
-    char *preshared_key_file;
     GArray *allowed_ips;
     guint keepalive;
 } NetplanWireguardPeer;

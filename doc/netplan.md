@@ -1042,11 +1042,9 @@ Wireguard-specific keys:
     ``public-key`` (scalar) – since **0.100**
     :   Peer's base64-encoded public key, required.
 
-    ``preshared-key`` (scalar) – since **0.100**
-    :   Optional preshared key for a peer.
-
-    ``preshared-key-file`` (scalar) – since **0.100**
-    :   Path to a file with an optional preshared key for a peer.
+    ``shared-key`` (scalar) – since **0.100**
+    :   Optional base64-encoded pre shared key for a peer, prefixed with
+        ``base64:``. Or an absolute path to a file with a pre shared key.
 
     ``remote`` (scalar) – since **0.100**
     :   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon

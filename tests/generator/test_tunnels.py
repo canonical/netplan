@@ -953,6 +953,7 @@ class TestWireGuard(TestBase):
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
+                                           'shared-key': 'base64:preshared/base64/key',
                                            'remote': '1.2.3.4:5'}])
         self.generate(config)
         self.assert_networkd({'wg0.netdev': '''[NetDev]
@@ -968,6 +969,7 @@ PublicKey=test_public_key
 AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5
+PresharedKey=preshared/base64/key
 ''',
                               'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
                                                             '20.20.20.21')})
@@ -1067,8 +1069,7 @@ Endpoint=1.2.3.4:5
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'preshared-key': 'test_preshared_key',
-                                           'preshared-key-file': 'test_preshared_key_file',
+                                           'shared-key': '/tmp/test_preshared_key',
                                            'remote': '1.2.3.4:5'}])
         self.generate(config)
         self.assert_networkd({'wg0.netdev': '''[NetDev]
@@ -1085,8 +1086,7 @@ PublicKey=test_public_key
 AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5
-PresharedKey=test_preshared_key
-PresharedKeyFile=test_preshared_key_file
+PresharedKeyFile=/tmp/test_preshared_key
 ''',
                               'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
                                                             '20.20.20.21')})
@@ -1311,6 +1311,18 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
         out = self.generate(config, expect_fail=True)
         self.assertIn("wg0: invalid private key definition", out)
+
+    def test_fail_invalid_shared_key(self):
+        """[networkd] [wireguard] Show an error for an invalid pre shared key"""
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
+                                   peers=[{'public-key': 'test_public_key',
+                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
+                                           'keepalive': 14,
+                                           'shared-key': 'preshared/base64/key',
+                                           'remote': '1.2.3.4:1005'}])
+
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("wg0: invalid shared key definition", out)
 
     def test_fail_no_peers(self):
         """[networkd] [wireguard] Show an error for missing peers"""

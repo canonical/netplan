@@ -1746,8 +1746,7 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
 
 const mapping_entry_handler wireguard_peer_handlers[] = {
     {"public-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
-    {"preshared-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
-    {"preshared-key-file", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key_file)},
+    {"shared-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
     {"remote", YAML_SCALAR_NODE, handle_wireguard_endpoint},
     {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint}, /* Alias for NetplanWireguardPeer.remote */

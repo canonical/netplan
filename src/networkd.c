@@ -199,10 +199,18 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
             g_string_append_printf(peer_s, "PersistentKeepalive=%d\n", peer->keepalive);
         if (peer->endpoint)
             g_string_append_printf(peer_s, "Endpoint=%s\n", peer->endpoint);
-        if (peer->preshared_key)
-            g_string_append_printf(peer_s, "PresharedKey=%s\n", peer->preshared_key);
-        if (peer->preshared_key_file)
-            g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", peer->preshared_key_file);
+        if (peer->preshared_key) {
+            gchar** split = g_strsplit(peer->preshared_key, "base64:", 2);
+            if (!g_strcmp0(split[0], ""))
+                g_string_append_printf(peer_s, "PresharedKey=%s\n", split[1]);
+            else if (*split[0] == '/')
+                g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", split[0]);
+            else {
+                g_fprintf(stderr, "%s: invalid shared key definition\n", def->id);
+                exit(1);
+            }
+            g_strfreev(split);
+        }
 
         g_string_append_printf(s, "\n[WireGuardPeer]\n%s", peer_s->str);
         g_string_free(peer_s, TRUE);
