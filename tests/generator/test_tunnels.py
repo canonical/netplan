@@ -61,7 +61,7 @@ def prepare_config_for_mode(renderer, mode, key=None):
     return config
 
 
-def prepare_wg_config(listen=None, privkey=None, privfile=None, fwmark=None, peers=[]):
+def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[]):
     config = '''network:
   version: 2
   renderer: networkd
@@ -73,8 +73,6 @@ def prepare_wg_config(listen=None, privkey=None, privfile=None, fwmark=None, pee
 '''
     if privkey is not None:
         config += '      private-key: {}\n'.format(privkey)
-    if privfile is not None:
-        config += '      private-key-file: {}\n'.format(privfile)
     if fwmark is not None:
         config += '      fwmark: {}\n'.format(fwmark)
     if listen is not None:
@@ -951,7 +949,7 @@ class TestConfigErrors(TestBase):
 class TestWireGuard(TestBase):
     def test_simple(self):
         """[networkd] [wireguard] Validate generation of simple wireguard config"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -962,7 +960,7 @@ Name=wg0
 Kind=wireguard
 
 [WireGuard]
-PrivateKey=test_private_key
+PrivateKey=test/base64/key=
 ListenPort=12345
 
 [WireGuardPeer]
@@ -976,7 +974,7 @@ Endpoint=1.2.3.4:5
 
     def test_simple_multi_pass(self):
         """[networkd] [wireguard] Validate generation of a wireguard config, which is parsed multiple times"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -988,7 +986,7 @@ Name=wg0
 Kind=wireguard
 
 [WireGuard]
-PrivateKey=test_private_key
+PrivateKey=test/base64/key=
 ListenPort=12345
 
 [WireGuardPeer]
@@ -1005,7 +1003,7 @@ Endpoint=1.2.3.4:5
 
     def test_remote_endpoint_alias(self):
         """[networkd] [wireguard] Accept 'endpoint' field as alias of 'remote' in peers"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1016,7 +1014,7 @@ Name=wg0
 Kind=wireguard
 
 [WireGuard]
-PrivateKey=test_private_key
+PrivateKey=test/base64/key=
 ListenPort=12345
 
 [WireGuardPeer]
@@ -1030,7 +1028,7 @@ Endpoint=1.2.3.4:5
 
     def test_2peers(self):
         """[networkd] [wireguard] Validate generation of wireguard config with two peers"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1045,7 +1043,7 @@ Name=wg0
 Kind=wireguard
 
 [WireGuard]
-PrivateKey=test_private_key
+PrivateKey=test/base64/key=
 ListenPort=12345
 
 [WireGuardPeer]
@@ -1065,7 +1063,7 @@ Endpoint=1.2.3.4:5
 
     def test_privatekeyfile(self):
         """[networkd] [wireguard] Validate generation of another simple wireguard config"""
-        config = prepare_wg_config(listen=12345, privfile='/tmp/test_private_key', fwmark=23,
+        config = prepare_wg_config(listen=12345, privkey='/tmp/test_private_key', fwmark=23,
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1095,7 +1093,7 @@ PresharedKeyFile=test_preshared_key_file
 
     def test_ipv6_remote(self):
         """[networkd] [wireguard] Validate generation of wireguard config with v6 remote endpoint"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1106,7 +1104,7 @@ Name=wg0
 Kind=wireguard
 
 [WireGuard]
-PrivateKey=test_private_key
+PrivateKey=test/base64/key=
 ListenPort=12345
 
 [WireGuardPeer]
@@ -1120,7 +1118,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_keepalive_2big(self):
         """[networkd] [wireguard] Show an error if keepalive is too big"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 100500,
@@ -1131,7 +1129,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_keepalive_bogus(self):
         """[networkd] [wireguard] Show an error if keepalive is not an int"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 'bogus',
@@ -1142,7 +1140,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_allowed_ips_prefix4(self):
         """[networkd] [wireguard] Show an error if ipv4 prefix is too big"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/200, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1153,7 +1151,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_allowed_ips_prefix6(self):
         """[networkd] [wireguard] Show an error if ipv6 prefix too big"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/224"]',
                                            'keepalive': 14,
@@ -1164,7 +1162,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_allowed_ips_noprefix4(self):
         """[networkd] [wireguard] Show an error if ipv4 prefix is missing"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1175,7 +1173,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_allowed_ips_noprefix6(self):
         """[networkd] [wireguard] Show an error if ipv6 prefix is missing"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1"]',
                                            'keepalive': 14,
@@ -1186,7 +1184,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 
     def test_fail_allowed_ips_bogus(self):
         """[networkd] [wireguard] Show an error if the address is completely bogus"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[302.302.302.302/24, "2001:fe:ad:de:ad:be:ef:1"]',
                                            'keepalive': 14,
@@ -1198,7 +1196,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_remote_no_port4(self):
         """[networkd] [wireguard] Show an error if ipv4 remote endpoint lacks a port"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1209,7 +1207,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_remote_no_port6(self):
         """[networkd] [wireguard] Show an error if ipv6 remote endpoint lacks a port"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1220,7 +1218,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_remote_no_port_hn(self):
         """[networkd] [wireguard] Show an error if fqdn remote endpoint lacks a port"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1231,7 +1229,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_remote_big_port4(self):
         """[networkd] [wireguard] Show an error if ipv4 remote endpoint port is too big"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1242,7 +1240,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_ipv6_remote_noport(self):
         """[networkd] [wireguard] Show an error for v6 remote endpoint without port"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1252,7 +1250,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_ipv6_remote_nobrace(self):
         """[networkd] [wireguard] Show an error for v6 remote endpoint without closing brace"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1262,7 +1260,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_ipv6_remote_malformed(self):
         """[networkd] [wireguard] Show an error for malformed-v6 remote endpoint"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1272,7 +1270,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_short_remote(self):
         """[networkd] [wireguard] Show an error for too-short remote endpoint"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
@@ -1282,7 +1280,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_bogus_peer_key(self):
         """[networkd] [wireguard] Show an error for a bogus key in a peer"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
@@ -1301,7 +1299,18 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                            'remote': '1.2.3.4:1005'}])
 
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: private_key or private_key_file is required.", out)
+        self.assertIn("Error in network definition: wg0: missing 'private-key' property for wireguard", out)
+
+    def test_fail_invalid_private_key(self):
+        """[networkd] [wireguard] Show an error for an invalid private key"""
+        config = prepare_wg_config(listen=12345, privkey='test/base64/key=',
+                                   peers=[{'public-key': 'test_public_key',
+                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
+                                           'keepalive': 14,
+                                           'remote': '1.2.3.4:1005'}])
+
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("wg0: invalid private key definition", out)
 
     def test_fail_no_peers(self):
         """[networkd] [wireguard] Show an error for missing peers"""
@@ -1311,7 +1320,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_no_public_key(self):
         """[networkd] [wireguard] Show an error for missing public_key"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
                                            'remote': '1.2.3.4:1005'}])
@@ -1321,7 +1330,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_no_allowed_ips(self):
         """[networkd] [wireguard] Show an error for a missing allowed_ips"""
-        config = prepare_wg_config(listen=12345, privkey='test_private_key',
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
                                    peers=[{'public-key': 'test_public_key',
                                            'keepalive': 14,
                                            'remote': '1.2.3.4:1005'}])

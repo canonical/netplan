@@ -1011,12 +1011,8 @@ Examples:
 Wireguard-specific keys:
 
     ``private-key`` (scalar) – since **0.100**
-    :   Base64-encoded private key. Either this or ``private_key_file`` is
-        required.
-
-    ``private-key-file`` (scalar) – since **0.100**
-    :   Path to a file with the private key. If the file is readable, the
-        ``private_key`` setting is ignored.
+    :   Base64-encoded private key, prefixed with ``base64:``. Or an absolute
+        path to a file with the private key.
 
     ``fwmark`` (scalar) – since **0.100**
     :   Firewall mark for outgoing WireGuard packets from this interface,

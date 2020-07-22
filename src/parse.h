@@ -334,7 +334,6 @@ struct net_definition {
 
     struct {
         char *private_key;
-        char *private_key_file;
         guint fwmark;
         guint listen_port;
     } wireguard;

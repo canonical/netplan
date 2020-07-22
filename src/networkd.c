@@ -157,11 +157,20 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     GString *params = NULL;
     params = g_string_sized_new(200);
 
-    if (def->wireguard.private_key)
-        g_string_append_printf(params, "PrivateKey=%s\n", def->wireguard.private_key);
-    /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+ */
-    if (def->wireguard.private_key_file)
-        g_string_append_printf(params, "PrivateKeyFile=%s\n", def->wireguard.private_key_file);
+    g_assert(def->wireguard.private_key);
+    /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+
+     * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory. */
+    gchar** split = g_strsplit(def->wireguard.private_key, "base64:", 2);
+    if (!g_strcmp0(split[0], ""))
+        g_string_append_printf(params, "PrivateKey=%s\n", split[1]);
+    else if (*split[0] == '/')
+        g_string_append_printf(params, "PrivateKeyFile=%s\n", split[0]);
+    else {
+        g_fprintf(stderr, "%s: invalid private key definition\n", def->id);
+        exit(1);
+    }
+    g_strfreev(split);
+
     if (def->wireguard.listen_port)
         g_string_append_printf(params, "ListenPort=%u\n", def->wireguard.listen_port);
     /* This is called FirewallMark= as of systemd v243, but we keep calling it FwMark= for

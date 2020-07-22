@@ -74,8 +74,8 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
 
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
-        if (!nd->wireguard.private_key && !nd->wireguard.private_key_file)
-            return yaml_error(node, error, "%s: private_key or private_key_file is required.", nd->id);
+        if (!nd->wireguard.private_key)
+            return yaml_error(node, error, "%s: missing 'private-key' property for wireguard", nd->id);
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
             return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
         for (guint i = 0; i < nd->wireguard_peers->len; i++) {
