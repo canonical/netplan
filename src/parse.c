@@ -1888,6 +1888,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
             netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
             cur_netdef->sriov_vlan_filter = FALSE;
+            cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
 
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);

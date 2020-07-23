@@ -80,7 +80,7 @@ class NetplanTry(utils.NetplanCommand):
             self.backup()
             self.setup()
 
-            NetplanApply.command_apply(run_generate=True, sync=True, exit_on_error=False)
+            NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False)
 
             self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
@@ -114,7 +114,7 @@ class NetplanTry(utils.NetplanCommand):
 
     def revert(self):  # pragma: nocover (requires user input)
         self.config_manager.revert()
-        NetplanApply.command_apply(run_generate=False, sync=True, exit_on_error=False)
+        NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False)
         for ifname in self.new_interfaces:
             if ifname not in self.config_manager.bonds and \
                ifname not in self.config_manager.bridges and \

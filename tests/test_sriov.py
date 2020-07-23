@@ -177,6 +177,55 @@ class TestSRIOV(unittest.TestCase):
 
     @patch('netplan.cli.utils.get_interface_driver_name')
     @patch('netplan.cli.utils.get_interface_macaddress')
+    def test_get_vf_count_and_functions_set_name(self, gim, gidn):
+        # we mock-out get_interface_driver_name and get_interface_macaddress
+        # to return useful values for the test
+        gim.side_effect = lambda x: '00:01:02:03:04:05' if x == 'enp3' else '00:00:00:00:00:00'
+        gidn.side_effect = lambda x: 'foo' if x == 'enp1' else 'bar'
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    renderer: networkd
+    enp1:
+      match:
+        driver: foo
+      set-name: pf1
+    enp8:
+      match:
+        name: enp[3-8]
+      set-name: pf2
+      virtual-function-count: 7
+    enp1s16f1:
+      link: enp1
+      macaddress: 01:02:03:04:05:00
+''', file=fd)
+        self.configmanager.parse()
+        interfaces = ['pf1', 'enp8']
+        vf_counts = defaultdict(int)
+        vfs = {}
+        pfs = {}
+
+        # call the function under test
+        sriov.get_vf_count_and_functions(interfaces, self.configmanager,
+                                         vf_counts, vfs, pfs)
+        # check if the right vf counts have been recorded in vf_counts -
+        # we expect netplan to take into consideration the renamed interface
+        # names here
+        self.assertDictEqual(
+            vf_counts,
+            {'pf1': 1, 'enp8': 7})
+        # also check if the vfs and pfs dictionaries got properly set
+        self.assertDictEqual(
+            vfs,
+            {'enp1s16f1': None})
+        self.assertDictEqual(
+            pfs,
+            {'enp1': 'pf1', 'enp8': 'enp8'})
+
+    @patch('netplan.cli.utils.get_interface_driver_name')
+    @patch('netplan.cli.utils.get_interface_macaddress')
     def test_get_vf_count_and_functions_many_match(self, gim, gidn):
         # we mock-out get_interface_driver_name and get_interface_macaddress
         # to return useful values for the test
@@ -423,8 +472,6 @@ class TestSRIOV(unittest.TestCase):
       id: 16
       link: foobar
 ''', file=fd)
-        self.configmanager.parse()
-        interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
         # set up all the mock objects
         netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
                                'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
@@ -434,8 +481,10 @@ class TestSRIOV(unittest.TestCase):
         gim.return_value = '00:01:02:03:04:05'
 
         # call method under test
-        sriov.apply_sriov_config(interfaces, self.configmanager)
+        sriov.apply_sriov_config(self.configmanager)
 
+        # make sure config_manager.parse() has been called
+        self.assertTrue(self.configmanager.config)
         # check if the config got applied as expected
         # we had 2 PFs, one having two VFs and the other only one
         self.assertEqual(set_numvfs.call_count, 2)
@@ -482,8 +531,6 @@ class TestSRIOV(unittest.TestCase):
       renderer: sriov
       link: customvf1
 ''', file=fd)
-        self.configmanager.parse()
-        interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
         # set up all the mock objects
         netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
                                'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
@@ -494,7 +541,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call method under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.apply_sriov_config(interfaces, self.configmanager)
+            sriov.apply_sriov_config(self.configmanager)
 
         self.assertIn('no id property defined for SR-IOV vlan vf1.15',
                       str(e.exception))
@@ -539,8 +586,6 @@ class TestSRIOV(unittest.TestCase):
       id: 16
       link: customvf1
 ''', file=fd)
-        self.configmanager.parse()
-        interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
         # set up all the mock objects
         netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
                                'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
@@ -551,7 +596,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call method under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.apply_sriov_config(interfaces, self.configmanager)
+            sriov.apply_sriov_config(self.configmanager)
 
         self.assertIn('interface enp2s16f1 for netplan device customvf1 (vf1.16) already has an SR-IOV vlan defined',
                       str(e.exception))
@@ -587,8 +632,6 @@ class TestSRIOV(unittest.TestCase):
         name: enp*s16f[1-4]
       link: enpx
 ''', file=fd)
-        self.configmanager.parse()
-        interfaces = ['enp1', 'enp2', 'enp5', 'wlp6s0']
         # set up all the mock objects
         netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
                                'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
@@ -599,7 +642,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call method under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.apply_sriov_config(interfaces, self.configmanager)
+            sriov.apply_sriov_config(self.configmanager)
 
         self.assertIn('matched more than one interface for a VF device: customvf1',
                       str(e.exception))
