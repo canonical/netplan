@@ -215,6 +215,7 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
     cur_netdef->linklocal.ipv6 = TRUE;
     cur_netdef->sriov_vlan_filter = FALSE;
+    cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
 
     /* DHCP override defaults */
     initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);

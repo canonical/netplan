@@ -61,6 +61,7 @@ OVS_CLEANUP = _OVS_BASE + 'ConditionFileIsExecutable=/usr/bin/ovs-vsctl\nBefore=
 [Service]\nType=oneshot\nExecStart=/usr/sbin/netplan apply --only-ovs-cleanup\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
+UDEV_SRIOV_RULE = 'ACTION=="add", SUBSYSTEM=="net", ATTRS{sriov_totalvfs}=="?*", RUN+="/usr/sbin/netplan apply --sriov-only"\n'
 
 
 class TestBase(unittest.TestCase):
@@ -121,6 +122,12 @@ class TestBase(unittest.TestCase):
                          {'10-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
             with open(os.path.join(networkd_dir, '10-netplan-' + fname)) as f:
+                self.assertEqual(f.read(), contents)
+
+    def assert_additional_udev(self, file_contents_map):
+        udev_dir = os.path.join(self.workdir.name, 'run', 'udev', 'rules.d')
+        for fname, contents in file_contents_map.items():
+            with open(os.path.join(udev_dir, fname)) as f:
                 self.assertEqual(f.read(), contents)
 
     def assert_networkd_udev(self, file_contents_map):

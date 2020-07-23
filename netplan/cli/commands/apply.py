@@ -40,9 +40,12 @@ class NetplanApply(utils.NetplanCommand):
         super().__init__(command_id='apply',
                          description='Apply current netplan config to running system',
                          leaf=True)
+        self.sriov_only = False
         self.ovs_only = False
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
+        self.parser.add_argument('--sriov-only', action='store_true',
+                                 help='Only apply SR-IOV related configuration and exit')
         self.parser.add_argument('--only-ovs-cleanup', action='store_true',
                                  help='Only clean up old OpenVSwitch interfaces and exit')
 
@@ -55,8 +58,12 @@ class NetplanApply(utils.NetplanCommand):
         config_manager = ConfigManager()
 
         # For certain use-cases, we might want to only apply specific configuration.
+        # If we only need SR-IOV configuration, do that and exit early.
+        if self.sriov_only:
+            NetplanApply.process_sriov_config(config_manager, exit_on_error)
+            return
         # If we only need OpenVSwitch cleanup, do that and exit early.
-        if self.ovs_only:
+        elif self.ovs_only:
             NetplanApply.process_ovs_cleanup(config_manager, False, False, exit_on_error)
             return
 
@@ -176,14 +183,6 @@ class NetplanApply(utils.NetplanCommand):
         config_manager.parse()
         changes = NetplanApply.process_link_changes(devices, config_manager)
 
-        # apply any SR-IOV related changes, if applicable
-        try:
-            apply_sriov_config(devices, config_manager)
-        except (ConfigurationError, RuntimeError) as e:
-            logging.error(str(e))
-            if exit_on_error:
-                sys.exit(1)
-
         # if the interface is up, we can still apply some .link file changes
         devices = netifaces.interfaces()
         for device in devices:
@@ -207,6 +206,9 @@ class NetplanApply(utils.NetplanCommand):
                                       stderr=subprocess.DEVNULL)
 
         subprocess.check_call(['udevadm', 'settle'])
+
+        # apply any SR-IOV related changes, if applicable
+        NetplanApply.process_sriov_config(config_manager, exit_on_error)
 
         # (re)start backends
         if restart_networkd:
@@ -297,6 +299,15 @@ class NetplanApply(utils.NetplanCommand):
 
         logging.debug(changes)
         return changes
+
+    @staticmethod
+    def process_sriov_config(config_manager, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+        try:
+            apply_sriov_config(config_manager)
+        except (ConfigurationError, RuntimeError) as e:
+            logging.error(str(e))
+            if exit_on_error:
+                sys.exit(1)
 
     @staticmethod
     def process_ovs_cleanup(config_manager, ovs_old, ovs_current, exit_on_error=True):  # pragma: nocover (autopkgtest)
