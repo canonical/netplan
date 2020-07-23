@@ -61,16 +61,16 @@ def prepare_config_for_mode(renderer, mode, key=None):
     return config
 
 
-def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[]):
+def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[], renderer="networkd"):
     config = '''network:
   version: 2
-  renderer: networkd
+  renderer: %s
   tunnels:
     wg0:
       mode: wireguard
       addresses: [15.15.15.15/24, 2001:de:ad:be:ef:ca:fe:1/128]
       gateway4: 20.20.20.21
-'''
+''' % renderer
     if privkey is not None:
         config += '      private-key: {}\n'.format(privkey)
     if fwmark is not None:
@@ -87,7 +87,63 @@ def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[]):
     return config
 
 
-class TestNetworkd(TestBase):
+class _CommonTests():
+
+    def test_simple(self):
+        """[wireguard] Validate generation of simple wireguard config"""
+        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
+                                   peers=[{'public-key': 'test_public_key',
+                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
+                                           'keepalive': 23,
+                                           'shared-key': 'base64:preshared/base64/key',
+                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
+        self.generate(config)
+        if self.backend == 'networkd':
+            self.assert_networkd({'wg0.netdev': '''[NetDev]
+Name=wg0
+Kind=wireguard
+
+[WireGuard]
+PrivateKey=test/base64/key=
+ListenPort=12345
+
+[WireGuardPeer]
+PublicKey=test_public_key
+AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
+PersistentKeepalive=23
+Endpoint=1.2.3.4:5
+PresharedKey=preshared/base64/key
+''',
+                                  'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                                '20.20.20.21')})
+        elif self.backend == 'NetworkManager':
+            self.assert_nm({'wg0.nmconnection': '''[connection]
+id=netplan-wg0
+type=ip-tunnel
+interface-name=wg0
+
+[wireguard]
+private-key=test/base64/key=
+listen-port=12345
+
+[wireguard-peer.test_public_key]
+endpoint=1.2.3.4:5
+preshared-key=preshared/base64/key
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24
+
+[ipv4]
+method=manual
+address1=15.15.15.15/24
+gateway=20.20.20.21
+
+[ipv6]
+method=manual
+address1=2001:de:ad:be:ef:ca:fe:1/128
+'''})
+
+
+class TestNetworkd(TestBase, _CommonTests):
+    backend = 'networkd'
 
     def test_sit(self):
         """[networkd] Validate generation of SIT tunnels"""
@@ -442,7 +498,8 @@ ConfigureWithoutCarrier=yes
 '''})
 
 
-class TestNetworkManager(TestBase):
+class TestNetworkManager(TestBase, _CommonTests):
+    backend = 'NetworkManager'
 
     def test_isatap(self):
         """[NetworkManager] Validate ISATAP tunnel generation"""
@@ -947,33 +1004,6 @@ class TestConfigErrors(TestBase):
 
 
 class TestWireGuard(TestBase):
-    def test_simple(self):
-        """[networkd] [wireguard] Validate generation of simple wireguard config"""
-        config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',
-                                   peers=[{'public-key': 'test_public_key',
-                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
-                                           'keepalive': 23,
-                                           'shared-key': 'base64:preshared/base64/key',
-                                           'remote': '1.2.3.4:5'}])
-        self.generate(config)
-        self.assert_networkd({'wg0.netdev': '''[NetDev]
-Name=wg0
-Kind=wireguard
-
-[WireGuard]
-PrivateKey=test/base64/key=
-ListenPort=12345
-
-[WireGuardPeer]
-PublicKey=test_public_key
-AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
-PersistentKeepalive=23
-Endpoint=1.2.3.4:5
-PresharedKey=preshared/base64/key
-''',
-                              'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
-                                                            '20.20.20.21')})
-
     def test_simple_multi_pass(self):
         """[networkd] [wireguard] Validate generation of a wireguard config, which is parsed multiple times"""
         config = prepare_wg_config(listen=12345, privkey='base64:test/base64/key=',

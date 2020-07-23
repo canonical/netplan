@@ -328,6 +328,55 @@ write_bridge_params(const NetplanNetDefinition* def, GString *s)
 }
 
 static void
+write_wireguard_params(const NetplanNetDefinition* def, GString *s)
+{
+    g_assert(def->wireguard.private_key);
+    g_string_append(s, "\n[wireguard]\n");
+
+    gchar** split = g_strsplit(def->wireguard.private_key, "base64:", 2);
+    if (!g_strcmp0(split[0], ""))
+        g_string_append_printf(s, "private-key=%s\n", split[1]);
+    else {
+        g_fprintf(stderr, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
+        exit(1);
+    }
+    g_strfreev(split);
+
+    if (def->wireguard.listen_port)
+        g_string_append_printf(s, "listen-port=%u\n", def->wireguard.listen_port);
+    if (def->wireguard.fwmark)
+        g_string_append_printf(s, "fwmark=%u\n", def->wireguard.fwmark);
+
+    for (guint i = 0; i < def->wireguard_peers->len; i++) {
+        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
+        g_assert(peer->public_key);
+        g_string_append_printf(s, "\n[wireguard-peer.%s]\n", peer->public_key);
+
+        // TODO: peer->keepalive
+        if (peer->endpoint)
+            g_string_append_printf(s, "endpoint=%s\n", peer->endpoint);
+        if (peer->preshared_key) {
+            gchar** split = g_strsplit(peer->preshared_key, "base64:", 2);
+            if (!g_strcmp0(split[0], ""))
+                g_string_append_printf(s, "preshared-key=%s\n", split[1]);
+            else {
+                g_fprintf(stderr, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
+                exit(1);
+            }
+            g_strfreev(split);
+        }
+        if (peer->allowed_ips && peer->allowed_ips->len > 0) {
+            g_string_append(s, "allowed-ips=");
+            for (guint i = 0; i < peer->allowed_ips->len; ++i) {
+                if (i > 0 ) g_string_append_c(s, ';');
+                g_string_append_printf(s, "%s", g_array_index(peer->allowed_ips, char*, i));
+            }
+            g_string_append_c(s, '\n');
+        }
+    }
+}
+
+static void
 write_tunnel_params(const NetplanNetDefinition* def, GString *s)
 {
     g_string_append(s, "\n[ip-tunnel]\n");
@@ -614,8 +663,12 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->type == NETPLAN_DEF_TYPE_BOND)
         write_bond_parameters(def, s);
 
-    if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
-        write_tunnel_params(def, s);
+    if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {
+        if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
+            write_wireguard_params(def, s);
+        else
+            write_tunnel_params(def, s);
+    }
 
     if (match_interface_name) {
         g_string_append(s, "\n[match]\n");

@@ -156,11 +156,11 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
             switch (nd->tunnel.mode) {
                 case NETPLAN_TUNNEL_MODE_GRE:
                 case NETPLAN_TUNNEL_MODE_IP6GRE:
+                case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     break;
 
                 case NETPLAN_TUNNEL_MODE_GRETAP:
                 case NETPLAN_TUNNEL_MODE_IP6GRETAP:
-                case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     return yaml_error(node, error,
                                       "%s: %s tunnel mode is not supported by NetworkManager",
                                       nd->id,
