@@ -933,7 +933,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -970,7 +970,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0.100 external-ids:netplan=true
+ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane

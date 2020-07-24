@@ -328,7 +328,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 /* Create a fake VLAN bridge */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
                 /* This is an OVS fake VLAN bridge, not a VLAN interface */
-                write_ovs_tag_netplan(def->id, "Bridge", cmds);
+                write_ovs_tag_netplan(def->id, "Interface", cmds);
                 break;
 
             default:
