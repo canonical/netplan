@@ -407,7 +407,7 @@ client processes as specified in the netplan YAML.
 
      ``route-metric`` (scalar)
      :    Use this value for default metric for automatically-added routes.
-          Use this to prioritize routes for devices by setting a higher metric
+          Use this to prioritize routes for devices by setting a lower metric
           on a preferred interface. Available for both the ``networkd`` and
           ``NetworkManager`` backends.
 
