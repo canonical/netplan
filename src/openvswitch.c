@@ -306,7 +306,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     write_ovs_bridge_controller_targets(&(def->ovs_settings.controller), def->id, cmds);
                     /* Set controller connection mode, only applicable if at least one controller target address was set */
                     if (def->ovs_settings.controller.connection_mode)
-                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s", def->id, def->ovs_settings.controller.connection_mode);
+                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s",
+                                           def->id, def->ovs_settings.controller.connection_mode);
                 }
                 break;
 
