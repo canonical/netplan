@@ -318,8 +318,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
                     exit(1);
                 }
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch -- set Interface %s options:peer=%s",
+                                   def->id, def->id, def->peer);
                 write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
