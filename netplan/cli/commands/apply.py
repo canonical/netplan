@@ -41,7 +41,7 @@ class NetplanApply(utils.NetplanCommand):
                          description='Apply current netplan config to running system',
                          leaf=True)
         self.sriov_only = False
-        self.ovs_only = False
+        self.only_ovs_cleanup = False
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
         self.parser.add_argument('--sriov-only', action='store_true',
@@ -63,7 +63,7 @@ class NetplanApply(utils.NetplanCommand):
             NetplanApply.process_sriov_config(config_manager, exit_on_error)
             return
         # If we only need OpenVSwitch cleanup, do that and exit early.
-        elif self.ovs_only:
+        elif self.only_ovs_cleanup:
             NetplanApply.process_ovs_cleanup(config_manager, False, False, exit_on_error)
             return
 
