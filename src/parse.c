@@ -1198,85 +1198,40 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 static gboolean
 handle_ip_rule_prio(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid priority value '%s'", scalar(node));
-
-    cur_ip_rule->priority = (guint) v;
-    return TRUE;
+    return handle_generic_guint(doc, node, cur_ip_rule, data, error);
 }
 
 static gboolean
 handle_ip_rule_tos(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > 255)
+    gboolean ret = handle_generic_guint(doc, node, cur_ip_rule, data, error);
+    if (cur_ip_rule->tos > 255)
         return yaml_error(node, error, "invalid ToS (must be between 0 and 255): %s", scalar(node));
-
-    cur_ip_rule->tos = (guint) v;
-    return TRUE;
+    return ret;
 }
 
 static gboolean
 handle_routes_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid routing table '%s'", scalar(node));
-
-    cur_route->table = (guint) v;
-    return TRUE;
+    return handle_generic_guint(doc, node, cur_route, data, error);
 }
 
 static gboolean
 handle_ip_rule_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid routing table '%s'", scalar(node));
-
-    cur_ip_rule->table = (guint) v;
-    return TRUE;
+    return handle_generic_guint(doc, node, cur_ip_rule, data, error);
 }
 
 static gboolean
 handle_ip_rule_fwmark(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid fwmark value '%s'", scalar(node));
-
-    cur_ip_rule->fwmark = (guint) v;
-    return TRUE;
+    return handle_generic_guint(doc, node, cur_ip_rule, data, error);
 }
 
 static gboolean
-handle_routes_metric(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_routes_metric(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(node));
-
-    cur_route->metric = (guint) v;
-    return TRUE;
+    return handle_generic_guint(doc, node, cur_route, data, error);
 }
 
 /****************************************************
@@ -1384,11 +1339,11 @@ static const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
-    {"table", YAML_SCALAR_NODE, handle_routes_table},
+    {"table", YAML_SCALAR_NODE, handle_routes_table, NULL, route_offset(table)},
     {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
-    {"metric", YAML_SCALAR_NODE, handle_routes_metric},
+    {"metric", YAML_SCALAR_NODE, handle_routes_metric, NULL, route_offset(metric)},
     {NULL}
 };
 
@@ -1433,11 +1388,11 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 
 static const mapping_entry_handler ip_rules_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(from)},
-    {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark},
-    {"priority", YAML_SCALAR_NODE, handle_ip_rule_prio},
-    {"table", YAML_SCALAR_NODE, handle_ip_rule_table},
+    {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark, NULL, ip_rule_offset(fwmark)},
+    {"priority", YAML_SCALAR_NODE, handle_ip_rule_prio, NULL, ip_rule_offset(priority)},
+    {"table", YAML_SCALAR_NODE, handle_ip_rule_table, NULL, ip_rule_offset(table)},
     {"to", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(to)},
-    {"type-of-service", YAML_SCALAR_NODE, handle_ip_rule_tos},
+    {"type-of-service", YAML_SCALAR_NODE, handle_ip_rule_tos, NULL, ip_rule_offset(tos)},
     {NULL}
 };
 
