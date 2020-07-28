@@ -62,6 +62,11 @@ GList* netdefs_ordered;
  * existing definition */
 static GHashTable* ids_in_file;
 
+/* Global variables, defined in this file */
+int missing_ids_found;
+const char* current_file;
+GHashTable* missing_id;
+
 /**
  * Load YAML file name into a yaml_document_t.
  *
