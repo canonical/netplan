@@ -1014,7 +1014,7 @@ Wireguard-specific keys:
     :   Base64-encoded private key, prefixed with ``base64:``. Or an absolute
         path to a file with the private key.
 
-    ``fwmark`` (scalar) – since **0.100**
+    ``mark`` (scalar) – since **0.100**
     :   Firewall mark for outgoing WireGuard packets from this interface,
         optional.
 

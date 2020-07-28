@@ -74,7 +74,7 @@ def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[]):
     if privkey is not None:
         config += '      private-key: {}\n'.format(privkey)
     if fwmark is not None:
-        config += '      fwmark: {}\n'.format(fwmark)
+        config += '      mark: {}\n'.format(fwmark)
     if listen is not None:
         config += '      port: {}\n'.format(listen)
     if len(peers) > 0:
