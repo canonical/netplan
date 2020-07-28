@@ -121,6 +121,7 @@ class _CommonTests():
     def test_bridge_base(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovsbr'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', 'del-ssl'])
         with open(self.config, 'w') as f:
             f.write('''network:
   ethernets:
@@ -325,6 +326,14 @@ class _CommonTests():
         (out, err) = p.communicate()
         self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
         self.assertNotEqual(p.returncode, 0)
+
+    @unittest.skip("For debugging only")
+    def test_zzz_ovs_debugging(self):  # Runs as the last test, to collect all logs
+        """Display OVS logs of the previous tests"""
+        out = subprocess.check_output(['cat', '/var/log/openvswitch/ovs-vswitchd.log'], universal_newlines=True)
+        print(out)
+        out = subprocess.check_output(['ovsdb-tool', 'show-log'], universal_newlines=True)
+        print(out)
 
 
 @unittest.skipIf("networkd" not in test_backends,
