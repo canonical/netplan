@@ -822,8 +822,7 @@ After=netplan-ovs-br1.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch
-ExecStart=/usr/bin/ovs-vsctl set Interface patchx options:peer=patchy
+ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch -- set Interface patchx options:peer=patchy
 ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan=true
 '''},
                          'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
@@ -832,8 +831,7 @@ After=netplan-ovs-bond0.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch
-ExecStart=/usr/bin/ovs-vsctl set Interface patchy options:peer=patchx
+ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch -- set Interface patchy options:peer=patchx
 ExecStart=/usr/bin/ovs-vsctl set Port patchy external-ids:netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
@@ -884,8 +882,7 @@ After=netplan-ovs-br0.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch
-ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 options:peer=patch1-0
+ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch -- set Interface patch0-1 options:peer=patch1-0
 ExecStart=/usr/bin/ovs-vsctl set Port patch0-1 external-ids:netplan=true
 '''},
                          'patch1-0.service': OVS_VIRTUAL % {'iface': 'patch1-0', 'extra':
@@ -894,8 +891,7 @@ After=netplan-ovs-br1.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch
-ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 options:peer=patch0-1
+ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch -- set Interface patch1-0 options:peer=patch0-1
 ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})

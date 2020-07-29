@@ -29,8 +29,7 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
-    # FIXME: Why does this test need to run first, in order to pass?
-    def test_1_cleanup_interfaces(self):
+    def test_cleanup_interfaces(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
@@ -38,12 +37,17 @@ class _CommonTests():
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch1-0'])
         with open(self.config, 'w') as f:
             f.write('''network:
+  ethernets:
+    # Add a normal interface, to avoid networkd-wait-online.service timeout.
+    # If we have just OVS interfaces/ports networkd/networkctl will not be
+    # aware that our network is ready.
+    %(ec)s: {addresses: [10.10.10.20/24]}
   openvswitch:
     ports:
       - [patch0-1, patch1-0]
   bridges:
     ovs0: {interfaces: [patch0-1]}
-    ovs1: {interfaces: [patch1-0]}''')
+    ovs1: {interfaces: [patch1-0]}''' % {'ec': self.dev_e_client})
         self.generate_and_settle()
         # Basic verification that the bridges/ports/interfaces are there in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
@@ -117,6 +121,7 @@ class _CommonTests():
     def test_bridge_base(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovsbr'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', 'del-ssl'])
         with open(self.config, 'w') as f:
             f.write('''network:
   ethernets:
@@ -321,6 +326,14 @@ class _CommonTests():
         (out, err) = p.communicate()
         self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
         self.assertNotEqual(p.returncode, 0)
+
+    @unittest.skip("For debugging only")
+    def test_zzz_ovs_debugging(self):  # Runs as the last test, to collect all logs
+        """Display OVS logs of the previous tests"""
+        out = subprocess.check_output(['cat', '/var/log/openvswitch/ovs-vswitchd.log'], universal_newlines=True)
+        print(out)
+        out = subprocess.check_output(['ovsdb-tool', 'show-log'], universal_newlines=True)
+        print(out)
 
 
 @unittest.skipIf("networkd" not in test_backends,

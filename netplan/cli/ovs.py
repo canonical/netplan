@@ -31,8 +31,9 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     config_manager.parse()
 
     # Tear down old OVS interfacess, not defined in the current config
+    # Use 'del-br' on the Interface table, to delete any netplan created VLAN fake bridges
     if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
-        for t in (('Port', 'del-port'), ('Bridge', 'del-br')):
+        for t in (('Port', 'del-port'), ('Bridge', 'del-br'), ('Interface', 'del-br')):
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
                                            '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t[0]],
                                           universal_newlines=True)

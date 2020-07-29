@@ -41,7 +41,7 @@ class NetplanApply(utils.NetplanCommand):
                          description='Apply current netplan config to running system',
                          leaf=True)
         self.sriov_only = False
-        self.ovs_only = False
+        self.only_ovs_cleanup = False
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
         self.parser.add_argument('--sriov-only', action='store_true',
@@ -63,7 +63,7 @@ class NetplanApply(utils.NetplanCommand):
             NetplanApply.process_sriov_config(config_manager, exit_on_error)
             return
         # If we only need OpenVSwitch cleanup, do that and exit early.
-        elif self.ovs_only:
+        elif self.only_ovs_cleanup:
             NetplanApply.process_ovs_cleanup(config_manager, False, False, exit_on_error)
             return
 
@@ -214,7 +214,9 @@ class NetplanApply(utils.NetplanCommand):
         if restart_networkd:
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
             netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')]
-            utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa + netplan_ovs)
+            # Run 'systemctl start' command synchronously, to avoid race conditions
+            # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
+            utils.systemctl_networkd('start', sync=True, extra_services=netplan_wpa + netplan_ovs)
         if restart_nm:
             utils.systemctl_network_manager('start', sync=sync)
 

@@ -306,7 +306,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     write_ovs_bridge_controller_targets(&(def->ovs_settings.controller), def->id, cmds);
                     /* Set controller connection mode, only applicable if at least one controller target address was set */
                     if (def->ovs_settings.controller.connection_mode)
-                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s", def->id, def->ovs_settings.controller.connection_mode);
+                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set controller %s connection-mode=%s",
+                                           def->id, def->ovs_settings.controller.connection_mode);
                 }
                 break;
 
@@ -317,8 +318,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
                     exit(1);
                 }
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch", def->id);
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s options:peer=%s", def->id, def->peer);
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch -- set Interface %s options:peer=%s",
+                                   def->id, def->id, def->peer);
                 write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
@@ -327,8 +328,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = def->vlan_link->id;
                 /* Create a fake VLAN bridge */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
-                /* This is an OVS fake VLAN bridge, not a VLAN interface */
-                write_ovs_tag_netplan(def->id, "Interface", cmds);
+                write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
             default:
