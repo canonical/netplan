@@ -955,9 +955,9 @@ more general information about tunnels.
 ``mode`` (scalar)
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
-    ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
-    the ``networkd`` backend also supports ``gretap``, ``ip6gretap``
-    and ``wireguard`` modes.
+    ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, ``vti6`` and ``wireguard``.
+    Additionally, the ``networkd`` backend also supports ``gretap`` and
+    ``ip6gretap`` modes.
     In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
 
 ``local`` (scalar)

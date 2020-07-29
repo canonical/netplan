@@ -111,6 +111,8 @@ type_str(const NetplanNetDefinition* def)
         case NETPLAN_DEF_TYPE_VLAN:
             return "vlan";
         case NETPLAN_DEF_TYPE_TUNNEL:
+            if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
+                return "wireguard";
             return "ip-tunnel";
         // LCOV_EXCL_START
         default:
@@ -352,7 +354,8 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
         g_assert(peer->public_key);
         g_string_append_printf(s, "\n[wireguard-peer.%s]\n", peer->public_key);
 
-        // TODO: peer->keepalive
+        if (peer->keepalive)
+            g_string_append_printf(s, "persistent-keepalive=%d\n", peer->keepalive);
         if (peer->endpoint)
             g_string_append_printf(s, "endpoint=%s\n", peer->endpoint);
         if (peer->preshared_key) {
