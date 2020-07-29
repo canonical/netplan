@@ -64,11 +64,23 @@ is_hostname(const char *hostname)
     return g_regex_match_simple(pattern, hostname, G_REGEX_CASELESS, G_REGEX_MATCH_NOTEMPTY);
 }
 
+gboolean
+is_wireguard_key(const char* key)
+{
+    /* Check if this is (most likely) a 265bit, base64 encoded wireguard key */
+    if (strlen(key) == 44 && key[43] == '=' && key[42] != '=') {
+        static const gchar *pattern = "^(?:[A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=)+$";
+        return g_regex_match_simple(pattern, key, 0, G_REGEX_MATCH_NOTEMPTY);
+    }
+    return FALSE;
+}
+
 /************************************************
  * Validation for grammar and backend rules.
  ************************************************/
 static gboolean
-validate_tunnel_key(yaml_node_t* node, gchar* key, GError** error) {
+validate_tunnel_key(yaml_node_t* node, gchar* key, GError** error)
+{
     /* Tunnel key should be a number or dotted quad, except for wireguard. */
     gchar* endptr;
     guint64 v = g_ascii_strtoull(key, &endptr, 10);
@@ -89,6 +101,8 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
         if (!nd->tunnel.input_key)
             return yaml_error(node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
+        if (nd->tunnel.input_key[0] != '/' && !is_wireguard_key(nd->tunnel.input_key))
+            return yaml_error(node, error, "%s: invalid wireguard private key", nd->id);
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
             return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
         for (guint i = 0; i < nd->wireguard_peers->len; i++) {
@@ -96,6 +110,10 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
 
             if (!peer->public_key)
                 return yaml_error(node, error, "%s: public_key is required.", nd->id);
+            if (!is_wireguard_key(peer->public_key))
+                return yaml_error(node, error, "%s: invalid wireguard public key", nd->id);
+            if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
+                return yaml_error(node, error, "%s: invalid wireguard shared key", nd->id);
             if (!peer->allowed_ips || peer->allowed_ips->len == 0)
                 return yaml_error(node, error, "%s: allowed_ips is required.", nd->id);
             if (peer->keepalive > 65535)

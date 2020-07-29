@@ -28,6 +28,7 @@
 #include "networkd.h"
 #include "parse.h"
 #include "util.h"
+#include "validation.h"
 
 /**
  * Append WiFi frequencies to wpa_supplicant's freq_list=
@@ -154,24 +155,21 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
 static void
 write_wireguard_params(GString* s, const NetplanNetDefinition* def)
 {
-    /* XXX: Find a better way to distinguish base64: key and key-file from absolute
-         path (e.g. length, first char, # bits, base64 regex) */
     GString *params = NULL;
     params = g_string_sized_new(200);
 
     g_assert(def->tunnel.input_key);
     /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+
-     * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory. */
-    gchar** split = g_strsplit(def->tunnel.input_key, "base64:", 2);
-    if (!g_strcmp0(split[0], ""))
-        g_string_append_printf(params, "PrivateKey=%s\n", split[1]);
-    else if (*split[0] == '/')
-        g_string_append_printf(params, "PrivateKeyFile=%s\n", split[0]);
-    else {
-        g_fprintf(stderr, "%s: invalid private key definition\n", def->id);
-        exit(1);
-    }
-    g_strfreev(split);
+     * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory.
+     *
+     * The key was already validated via validate_tunnel_grammar(), but we need
+     * to differentiate between base64 key VS absolute path key-file. And a base64
+     * string could (theoretically) start with '/', so we use is_wireguard_key()
+     * as well to check for more specific characteristics (if needed). */
+    if (def->tunnel.input_key[0] == '/' && !is_wireguard_key(def->tunnel.input_key))
+        g_string_append_printf(params, "PrivateKeyFile=%s\n", def->tunnel.input_key);
+    else
+        g_string_append_printf(params, "PrivateKey=%s\n", def->tunnel.input_key);
 
     if (def->tunnel.port)
         g_string_append_printf(params, "ListenPort=%u\n", def->tunnel.port);
@@ -201,17 +199,15 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
             g_string_append_printf(peer_s, "PersistentKeepalive=%d\n", peer->keepalive);
         if (peer->endpoint)
             g_string_append_printf(peer_s, "Endpoint=%s\n", peer->endpoint);
+        /* The key was already validated via validate_tunnel_grammar(), but we need
+         * to differentiate between base64 key VS absolute path key-file. And a base64
+         * string could (theoretically) start with '/', so we use is_wireguard_key()
+         * as well to check for more specific characteristics (if needed). */
         if (peer->preshared_key) {
-            gchar** split = g_strsplit(peer->preshared_key, "base64:", 2);
-            if (!g_strcmp0(split[0], ""))
-                g_string_append_printf(peer_s, "PresharedKey=%s\n", split[1]);
-            else if (*split[0] == '/')
-                g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", split[0]);
-            else {
-                g_fprintf(stderr, "%s: invalid shared key definition\n", def->id);
-                exit(1);
-            }
-            g_strfreev(split);
+            if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key))
+                g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", peer->preshared_key);
+            else
+                g_string_append_printf(peer_s, "PresharedKey=%s\n", peer->preshared_key);
         }
 
         g_string_append_printf(s, "\n[WireGuardPeer]\n%s", peer_s->str);

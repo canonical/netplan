@@ -28,6 +28,7 @@
 #include "nm.h"
 #include "parse.h"
 #include "util.h"
+#include "validation.h"
 
 GString* udev_rules;
 
@@ -337,14 +338,15 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
     g_assert(def->tunnel.input_key);
     g_string_append(s, "\n[wireguard]\n");
 
-    gchar** split = g_strsplit(def->tunnel.input_key, "base64:", 2);
-    if (!g_strcmp0(split[0], ""))
-        g_string_append_printf(s, "private-key=%s\n", split[1]);
-    else {
+    /* The key was already validated via validate_tunnel_grammar(), but we need
+    * to differentiate between base64 key VS absolute path key-file. And a base64
+    * string could (theoretically) start with '/', so we use is_wireguard_key()
+    * as well to check for more specific characteristics (if needed). */
+    if (def->tunnel.input_key[0] == '/' && !is_wireguard_key(def->tunnel.input_key)) {
         g_fprintf(stderr, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
         exit(1);
-    }
-    g_strfreev(split);
+    } else
+        g_string_append_printf(s, "private-key=%s\n", def->tunnel.input_key);
 
     if (def->tunnel.port)
         g_string_append_printf(s, "listen-port=%u\n", def->tunnel.port);
@@ -360,15 +362,16 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
             g_string_append_printf(s, "persistent-keepalive=%d\n", peer->keepalive);
         if (peer->endpoint)
             g_string_append_printf(s, "endpoint=%s\n", peer->endpoint);
+        /* The key was already validated via validate_tunnel_grammar(), but we need
+         * to differentiate between base64 key VS absolute path key-file. And a base64
+         * string could (theoretically) start with '/', so we use is_wireguard_key()
+         * as well to check for more specific characteristics (if needed). */
         if (peer->preshared_key) {
-            gchar** split = g_strsplit(peer->preshared_key, "base64:", 2);
-            if (!g_strcmp0(split[0], ""))
-                g_string_append_printf(s, "preshared-key=%s\n", split[1]);
-            else {
+            if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key)) {
                 g_fprintf(stderr, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
                 exit(1);
-            }
-            g_strfreev(split);
+            }else
+                g_string_append_printf(s, "preshared-key=%s\n", peer->preshared_key);
         }
         if (peer->allowed_ips && peer->allowed_ips->len > 0) {
             g_string_append(s, "allowed-ips=");
