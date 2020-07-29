@@ -330,13 +330,9 @@ struct net_definition {
         char *remote_ip;
         char *input_key;
         char *output_key;
-    } tunnel;
-
-    struct {
-        char *private_key;
         guint fwmark;
-        guint listen_port;
-    } wireguard;
+        guint port;
+    } tunnel;
 
     GArray *wireguard_peers;
 

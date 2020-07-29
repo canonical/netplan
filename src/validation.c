@@ -68,14 +68,27 @@ is_hostname(const char *hostname)
  * Validation for grammar and backend rules.
  ************************************************/
 static gboolean
+validate_tunnel_key(yaml_node_t* node, gchar* key, GError** error) {
+    /* Tunnel key should be a number or dotted quad, except for wireguard. */
+    gchar* endptr;
+    guint64 v = g_ascii_strtoull(key, &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT) {
+        /* Not a simple uint, try for a dotted quad */
+        if (!is_ip4_address(key))
+            return yaml_error(node, error, "invalid tunnel key '%s'", key);
+    }
+    return TRUE;
+}
+
+static gboolean
 validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
         return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
 
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
-        if (!nd->wireguard.private_key)
-            return yaml_error(node, error, "%s: missing 'private-key' property for wireguard", nd->id);
+        if (!nd->tunnel.input_key)
+            return yaml_error(node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
             return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
         for (guint i = 0; i < nd->wireguard_peers->len; i++) {
@@ -89,6 +102,11 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
                 return yaml_error(node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
         }
         return TRUE;
+    } else {
+        if (nd->tunnel.input_key && !validate_tunnel_key(node, nd->tunnel.input_key, error))
+            return FALSE;
+        if (nd->tunnel.output_key && !validate_tunnel_key(node, nd->tunnel.output_key, error))
+            return FALSE;
     }
 
     /* Validate local/remote IPs */

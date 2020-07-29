@@ -157,10 +157,10 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     GString *params = NULL;
     params = g_string_sized_new(200);
 
-    g_assert(def->wireguard.private_key);
+    g_assert(def->tunnel.input_key);
     /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+
      * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory. */
-    gchar** split = g_strsplit(def->wireguard.private_key, "base64:", 2);
+    gchar** split = g_strsplit(def->tunnel.input_key, "base64:", 2);
     if (!g_strcmp0(split[0], ""))
         g_string_append_printf(params, "PrivateKey=%s\n", split[1]);
     else if (*split[0] == '/')
@@ -171,13 +171,13 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     }
     g_strfreev(split);
 
-    if (def->wireguard.listen_port)
-        g_string_append_printf(params, "ListenPort=%u\n", def->wireguard.listen_port);
+    if (def->tunnel.port)
+        g_string_append_printf(params, "ListenPort=%u\n", def->tunnel.port);
     /* This is called FirewallMark= as of systemd v243, but we keep calling it FwMark= for
        backwards compatibility. FwMark= is still supported, but deprecated:
        https://github.com/systemd/systemd/pull/12478 */
-    if (def->wireguard.fwmark)
-        g_string_append_printf(params, "FwMark=%u\n", def->wireguard.fwmark);
+    if (def->tunnel.fwmark)
+        g_string_append_printf(params, "FwMark=%u\n", def->tunnel.fwmark);
 
     g_string_append_printf(s, "\n[WireGuard]\n%s", params->str);
     g_string_free(params, TRUE);

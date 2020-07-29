@@ -971,9 +971,11 @@ more general information about tunnels.
 ``key``  (scalar or mapping)
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted
-    quad (an IPv4 address). It is used for identification of IP transforms.
-    This is only required for ``vti`` and ``vti6`` when using the networkd
-    backend, and for ``gre`` or ``ip6gre`` tunnels when using the
+    quad (an IPv4 address). For ``wireguard`` it can be a base64-encoded
+    private key, prefixed with ``base64:`` or an absolute path to a file,
+    containing the private key (since 0.100). It is used for identification
+    of IP transforms. This is only required for ``vti`` and ``vti6`` when using
+    the networkd backend, and for ``gre`` or ``ip6gre`` tunnels when using the
     NetworkManager backend.
 
     This field may be used as a scalar (meaning that a single key is
@@ -1004,15 +1006,19 @@ Examples:
         remote: ...
         key: 59568549
 
+    tunnels:
+      wg0:
+        mode: wireguard
+        addresses: [...]
+        peers: ...
+        key: base64:mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
+
+
 ``keys`` (scalar or mapping)
 
 :   Alternate name for the ``key`` field. See above.
 
 Wireguard-specific keys:
-
-    ``private-key`` (scalar) – since **0.100**
-    :   Base64-encoded private key, prefixed with ``base64:``. Or an absolute
-        path to a file with the private key.
 
     ``mark`` (scalar) – since **0.100**
     :   Firewall mark for outgoing WireGuard packets from this interface,

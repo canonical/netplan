@@ -330,10 +330,10 @@ write_bridge_params(const NetplanNetDefinition* def, GString *s)
 static void
 write_wireguard_params(const NetplanNetDefinition* def, GString *s)
 {
-    g_assert(def->wireguard.private_key);
+    g_assert(def->tunnel.input_key);
     g_string_append(s, "\n[wireguard]\n");
 
-    gchar** split = g_strsplit(def->wireguard.private_key, "base64:", 2);
+    gchar** split = g_strsplit(def->tunnel.input_key, "base64:", 2);
     if (!g_strcmp0(split[0], ""))
         g_string_append_printf(s, "private-key=%s\n", split[1]);
     else {
@@ -342,10 +342,10 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
     }
     g_strfreev(split);
 
-    if (def->wireguard.listen_port)
-        g_string_append_printf(s, "listen-port=%u\n", def->wireguard.listen_port);
-    if (def->wireguard.fwmark)
-        g_string_append_printf(s, "fwmark=%u\n", def->wireguard.fwmark);
+    if (def->tunnel.port)
+        g_string_append_printf(s, "listen-port=%u\n", def->tunnel.port);
+    if (def->tunnel.fwmark)
+        g_string_append_printf(s, "fwmark=%u\n", def->tunnel.fwmark);
 
     for (guint i = 0; i < def->wireguard_peers->len; i++) {
         NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);

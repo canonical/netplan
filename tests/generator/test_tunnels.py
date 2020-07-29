@@ -72,7 +72,7 @@ def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[], renderer
       gateway4: 20.20.20.21
 ''' % renderer
     if privkey is not None:
-        config += '      private-key: {}\n'.format(privkey)
+        config += '      key: {}\n'.format(privkey)
     if fwmark is not None:
         config += '      mark: {}\n'.format(fwmark)
     if listen is not None:
@@ -294,7 +294,7 @@ ConfigureWithoutCarrier=yes
 
     def test_vti_invalid_key(self):
         """[networkd] Validate VTI tunnel generation key handling"""
-        config = prepare_config_for_mode('networkd', 'vti', key='invalid')
+        config = prepare_config_for_mode('networkd', 'vti', key={'input': 42, 'output': 'invalid'})
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: invalid tunnel key 'invalid'", out)
 
@@ -1329,7 +1329,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                            'remote': '1.2.3.4:1005'}])
 
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: missing 'private-key' property for wireguard", out)
+        self.assertIn("Error in network definition: wg0: missing 'key' property (private key) for wireguard", out)
 
     def test_fail_invalid_private_key(self):
         """[networkd] [wireguard] Show an error for an invalid private key"""

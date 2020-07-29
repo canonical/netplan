@@ -1580,31 +1580,9 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     return yaml_error(node, error, "%s: tunnel mode '%s' is not supported", cur_netdef->id, key);
 }
 
-static gboolean
-handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    /* Tunnel key should be a number or dotted quad. */
-    guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT) {
-        /* Not a simple uint, try for a dotted quad */
-        if (!is_ip4_address(scalar(node)))
-            return yaml_error(node, error, "invalid tunnel key '%s'", scalar(node));
-    }
-
-    g_free(*dest);
-    *dest = g_strdup(scalar(node));
-
-    return TRUE;
-}
-
 static const mapping_entry_handler tunnel_keys_handlers[] = {
-    {"input", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
-    {"output", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
+    {"input", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.input_key)},
+    {"output", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.output_key)},
     {NULL}
 };
 
@@ -1618,9 +1596,9 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
      * or a mapping where one can specify each.
      */
     if (node->type == YAML_SCALAR_NODE) {
-        ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.input_key), error);
+        ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
         if (ret)
-            ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.output_key), error);
+            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
     }
     else if (node->type == YAML_MAPPING_NODE) {
         ret = process_mapping(doc, node, tunnel_keys_handlers, error);
@@ -1890,9 +1868,8 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
 
     /* wireguard */
-    {"private-key", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(wireguard.private_key)},
-    {"mark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.fwmark)},
-    {"port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(wireguard.listen_port)},
+    {"mark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.fwmark)},
+    {"port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.port)},
     {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
     {NULL}
 };
