@@ -70,6 +70,60 @@ class _CommonTests():
         self.generate_and_settle()
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
+    def test_tunnel_wireguard(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg0'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg1'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+    ethb2:
+      match: {name: %(e2c)s}
+  tunnels:
+    wg0: #server
+      mode: wireguard
+      addresses: [10.10.10.20/24]
+      gateway4: 10.10.10.21
+      key: base64:4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
+      mark: 42
+      port: 51820
+      peers:
+        - public-key: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+          shared-key: base64:7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
+          allowed-ips: [0.0.0.0/0]
+    wg1: #client
+      mode: wireguard
+      addresses: [20.20.20.10/24]
+      gateway4: 20.20.20.11
+      key: base64:KPt9BzQjejRerEv8RMaFlpsD675gNexELOQRXt/AcH0=
+      peers:
+        - remote: 10.10.10.20:51820
+          allowed-ips: [0.0.0.0/0]
+          public-key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+          shared-key: base64:7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
+          keepalive: 21
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        # TODO: Verify peers/preshared-keys/allowed-ips/persistent-keepalive/...
+        # Verify server
+        out = subprocess.check_output(['wg', 'show', 'wg0'], universal_newlines=True)
+        self.assertIn("public key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=", out)
+        self.assertIn("listening port: 51820", out)
+        self.assertIn("fwmark: 0x2a", out)
+        out = subprocess.check_output(['wg', 'show', 'wg0', 'private-key'], universal_newlines=True)
+        self.assertIn("4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=", out)
+        self.assert_iface('wg0', ['inet 10.10.10.20/24'])
+        # Verify client
+        out = subprocess.check_output(['wg', 'show', 'wg1'], universal_newlines=True)
+        self.assertIn("public key: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=", out)
+        out = subprocess.check_output(['wg', 'show', 'wg1', 'private-key'], universal_newlines=True)
+        self.assertIn("KPt9BzQjejRerEv8RMaFlpsD675gNexELOQRXt/AcH0=", out)
+        self.assert_iface('wg1', ['inet 20.20.20.10/24'])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")

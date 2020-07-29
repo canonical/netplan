@@ -154,6 +154,8 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
 static void
 write_wireguard_params(GString* s, const NetplanNetDefinition* def)
 {
+    /* XXX: Find a better way to distinguish base64: key and key-file from absolute
+         path (e.g. length, first char, # bits, base64 regex) */
     GString *params = NULL;
     params = g_string_sized_new(200);
 
