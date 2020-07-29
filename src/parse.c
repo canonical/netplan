@@ -836,6 +836,13 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
             if (!cur_netdef->address_options)
                 cur_netdef->address_options = g_array_new(FALSE, FALSE, sizeof(NetplanAddressOptions*));
 
+            for (unsigned i = 0; i < cur_netdef->address_options->len; ++i) {
+                NetplanAddressOptions* opts = g_array_index(cur_netdef->address_options, NetplanAddressOptions*, i);
+                /* check for multi-pass parsing, return early if options for this address already exist */
+                if (!g_strcmp0(scalar(key), opts->address))
+                    return TRUE;
+            }
+
             cur_addr_option = g_new0(NetplanAddressOptions, 1);
             cur_addr_option->address = g_strdup(scalar(key));
 
