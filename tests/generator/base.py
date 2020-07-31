@@ -46,14 +46,12 @@ ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n
 ND_DHCP6_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
 ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
 ND_DHCPYES_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
-_OVS_BASE = '[Unit]\nDescription=OpenVSwitch configuration for %(iface)s\nDefaultDependencies=no\n'
+_OVS_BASE = '[Unit]\nDescription=OpenVSwitch configuration for %(iface)s\nDefaultDependencies=no\n\
+Requires=openvswitch-switch.service\nAfter=openvswitch-switch.service\n'
 OVS_PHYSICAL = _OVS_BASE + 'Requires=sys-subsystem-net-devices-%(iface)s.device\nAfter=sys-subsystem-net-devices-%(iface)s\
-.device\nRequires=openvswitch-switch.service\nAfter=openvswitch-switch.service\nAfter=netplan-ovs-cleanup.service\n\
-Before=network.target\nWants=network.target\n%(extra)s'
-OVS_VIRTUAL = _OVS_BASE + 'Requires=openvswitch-switch.service\nAfter=openvswitch-switch.service\n\
-After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n%(extra)s'
-OVS_BR_EMPTY = _OVS_BASE + 'Requires=openvswitch-switch.service\nAfter=openvswitch-switch.service\n\
-After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n\n[Service]\n\
+.device\nAfter=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n%(extra)s'
+OVS_VIRTUAL = _OVS_BASE + 'After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n%(extra)s'
+OVS_BR_EMPTY = _OVS_BASE + 'After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n\n[Service]\n\
 Type=oneshot\nExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s \
 external-ids:netplan=true\nExecStart=/usr/bin/ovs-vsctl set-fail-mode %(iface)s standalone\nExecStart=/usr/bin/ovs-vsctl set \
 Bridge %(iface)s mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s rstp_enable=false\n'

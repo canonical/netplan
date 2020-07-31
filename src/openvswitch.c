@@ -38,17 +38,17 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     g_string_append_printf(s, "Description=OpenVSwitch configuration for %s\n", id);
     g_string_append(s, "DefaultDependencies=no\n");
     /* run any ovs-netplan unit only after openvswitch-switch.service is ready */
+    g_string_append_printf(s, "Requires=openvswitch-switch.service\n");
+    g_string_append_printf(s, "After=openvswitch-switch.service\n");
     if (physical) {
         id_escaped = systemd_escape((char*) id);
         g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id_escaped);
         g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id_escaped);
     }
     if (!cleanup) {
-        g_string_append_printf(s, "Requires=openvswitch-switch.service\n");
-        g_string_append_printf(s, "After=openvswitch-switch.service\n");
         g_string_append_printf(s, "After=netplan-ovs-cleanup.service\n");
     } else {
-        /* The netplan-ovs-cleanup unit might run on systems where openvswitch is not installed. */
+        /* The netplan-ovs-cleanup unit shall not run on systems where openvswitch is not installed. */
         g_string_append(s, "ConditionFileIsExecutable=" OPENVSWITCH_OVS_VSCTL "\n");
     }
     g_string_append(s, "Before=network.target\nWants=network.target\n");
