@@ -760,6 +760,11 @@ write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
         exit(1);
     }
 
+    if (def->address_options) {
+        g_fprintf(stderr, "ERROR: %s: NetworkManager does not support address options\n", def->id);
+        exit(1);
+    }
+
     /* for wifi we need to create a separate connection file for every SSID */
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
         GHashTableIter iter;

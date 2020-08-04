@@ -25,14 +25,14 @@
 
 
 /* file that is currently being processed, for useful error messages */
-const char* current_file;
+extern const char* current_file;
 
 /* List of "seen" ids not found in netdefs yet by the parser.
  * These are removed when it exists in this list and we reach the point of
  * creating a netdef for that id; so by the time we're done parsing the yaml
  * document it should be empty. */
-GHashTable *missing_id;
-int missing_ids_found;
+extern GHashTable *missing_id;
+extern int missing_ids_found;
 
 /****************************************************
  * Parsed definitions
@@ -245,6 +245,7 @@ struct net_definition {
     NetplanRAMode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
+    GArray* address_options;
     gboolean ip6_privacy;
     guint ip6_addr_gen_mode;
     char* gateway4;
@@ -391,6 +392,12 @@ typedef enum {
     NETPLAN_WIFI_BAND_5,
     NETPLAN_WIFI_BAND_24
 } NetplanWifiBand;
+
+typedef struct {
+    char* address;
+    char* lifetime;
+    char* label;
+} NetplanAddressOptions;
 
 typedef struct {
     NetplanWifiMode mode;
