@@ -967,6 +967,7 @@ write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI || def->has_auth) {
         g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", def->id, ".service", NULL);
+        g_autofree char* link_target = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/netplan.target.wants/netplan-wpa-", def->id, ".service", NULL);
         g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", def->id, ".service", NULL);
         if (def->type == NETPLAN_DEF_TYPE_WIFI && def->has_match) {
             g_fprintf(stderr, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
@@ -981,14 +982,20 @@ write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
 
         g_debug("Creating wpa_supplicant service enablement link %s", link);
         safe_mkdir_p_dir(link);
-
         if (symlink(slink, link) < 0 && errno != EEXIST) {
             // LCOV_EXCL_START
             g_fprintf(stderr, "failed to create enablement symlink: %m\n");
             exit(1);
             // LCOV_EXCL_STOP
         }
-
+        g_debug("Creating wpa_supplicant service enablement link %s", link_target);
+        safe_mkdir_p_dir(link_target);
+        if (symlink(slink, link_target) < 0 && errno != EEXIST) {
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+            exit(1);
+            // LCOV_EXCL_STOP
+        }
     }
 
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
@@ -1006,6 +1013,7 @@ cleanup_networkd_conf(const char* rootdir)
     unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
     unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
     unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-*.service");
+    unlink_glob(rootdir, "/run/systemd/system/netplan.target.wants/netplan-wpa-*.service");
     unlink_glob(rootdir, "/run/systemd/system/netplan-wpa-*.service");
     unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an

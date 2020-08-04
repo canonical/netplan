@@ -136,6 +136,8 @@ network={
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan.target.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_upgrade(self):
         # pretend an old 'netplan-wpa@*.service' link still exists on an upgraded system
@@ -171,6 +173,8 @@ ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%I.conf -i%I''')
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan.target.wants/netplan-wpa-wl0.service')))
         # old files/links
         self.assertTrue(os.path.isfile(os.path.join(
             self.workdir.name, 'lib/systemd/system/netplan-wpa@.service')))
@@ -196,6 +200,8 @@ ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%I.conf -i%I''')
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl1.service')))
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl1.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan.target.wants/netplan-wpa-wl1.service')))
         # old files/links
         self.assertTrue(os.path.isfile(os.path.join(
             self.workdir.name, 'lib/systemd/system/netplan-wpa@.service')))
@@ -207,6 +213,8 @@ ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%I.conf -i%I''')
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertFalse(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+        self.assertFalse(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan.target.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_route(self):
         self.generate('''network:
@@ -309,6 +317,8 @@ network={
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan.target.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_wowlan_default(self):
         self.generate('''network:
@@ -344,6 +354,8 @@ network={
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            self.workdir.name, 'run/systemd/system/netplan.target.wants/netplan-wpa-wl0.service')))
 
 
 class TestNetworkManager(TestBase):
