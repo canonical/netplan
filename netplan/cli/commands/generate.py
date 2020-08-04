@@ -51,11 +51,4 @@ class NetplanGenerate(utils.NetplanCommand):
             argv += ['--mapping', self.mapping]
         logging.debug('command generate: running %s', argv)
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
-        ret = subprocess.call(argv)
-        # Simulate cloud-init calling 'systemctl start netplan.target' after calling
-        # 'netplan generate' during the sytemd boot transaction (after generator stage)
-        # netplan.target and its dependencies (created by 'netplan generate'), will be
-        # lazy loaded and started.
-        # Requires systemd v246 (https://github.com/systemd/systemd/pull/16371)
-        subprocess.check_call(['systemctl', 'start', 'netplan.target'])
-        sys.exit(ret)
+        sys.exit(subprocess.call(argv))
