@@ -348,6 +348,45 @@ class TestConfigErrors(TestBase):
       ipv6-address-generation: eui64''', expect_fail=True)
         self.assertIn("ERROR: engreen: ipv6-address-generation is not supported by networkd", err)
 
+    def test_invalid_address_node_type(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [[192.168.1.15]]''', expect_fail=True)
+        self.assertIn("expected either scalar or mapping (check indentation)", err)
+
+    def test_invalid_address_option_value(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 0.0.0.0.0/24:
+          lifetime: 0''', expect_fail=True)
+        self.assertIn("malformed address '0.0.0.0.0/24', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", err)
+
+    def test_invalid_address_option_lifetime(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 192.168.1.15/24:
+          lifetime: 1''', expect_fail=True)
+        self.assertIn("invalid lifetime value '1'", err)
+
+    def test_invalid_nm_options(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses:
+      - 192.168.1.15/24:
+          lifetime: 0''', expect_fail=True)
+        self.assertIn('NetworkManager does not support address options', err)
+
     def test_invalid_gateway4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
             err = self.generate('''network:

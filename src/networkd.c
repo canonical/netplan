@@ -402,6 +402,19 @@ write_ip_rule(NetplanIPRule* r, GString* s)
         g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
 }
 
+static void
+write_addr_option(NetplanAddressOptions* o, GString* s)
+{
+    g_string_append_printf(s, "\n[Address]\n");
+    g_assert(o->address);
+    g_string_append_printf(s, "Address=%s\n", o->address);
+
+    if (o->lifetime)
+        g_string_append_printf(s, "PreferredLifetime=%s\n", o->lifetime);
+    if (o->label)
+        g_string_append_printf(s, "Label=%s\n", o->label);
+}
+
 #define DHCP_OVERRIDES_ERROR                                            \
     "ERROR: %s: networkd requires that %s has the same value in both "  \
     "dhcp4_overrides and dhcp6_overrides\n"
@@ -601,6 +614,13 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         for (unsigned i = 0; i < def->ip_rules->len; ++i) {
             NetplanIPRule* cur_rule = g_array_index (def->ip_rules, NetplanIPRule*, i);
             write_ip_rule(cur_rule, network);
+        }
+    }
+
+    if (def->address_options) {
+        for (unsigned i = 0; i < def->address_options->len; ++i) {
+            NetplanAddressOptions* opts = g_array_index(def->address_options, NetplanAddressOptions*, i);
+            write_addr_option(opts, network);
         }
     }
 
