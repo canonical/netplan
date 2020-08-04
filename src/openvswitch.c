@@ -32,6 +32,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
 {
     g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
+    g_autofree char* link_target = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/netplan.target.wants/netplan-ovs-", id, ".service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", id, ".service", NULL);
 
     GString* s = g_string_new("[Unit]\n");
@@ -64,6 +65,13 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
 
     safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+        exit(1);
+        // LCOV_EXCL_STOP
+    }
+    safe_mkdir_p_dir(link_target);
+    if (symlink(path, link_target) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to create enablement symlink: %m\n");
         exit(1);
@@ -413,5 +421,6 @@ void
 cleanup_ovs_conf(const char* rootdir)
 {
     unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-*.service");
+    unlink_glob(rootdir, "/run/systemd/system/netplan.target.wants/netplan-ovs-*.service");
     unlink_glob(rootdir, "/run/systemd/system/netplan-ovs-*.service");
 }

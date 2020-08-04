@@ -1,0 +1,4 @@
+[Unit]
+Description=This target can be lazy loaded by systemd to start all the netplan-*.service units. It depends on systemd v246 (https://github.com/systemd/systemd/pull/16371). Dependencies for all service units are put in place as symlinks during runtime (netplan generate).
+Conflicts=shutdown.target
+

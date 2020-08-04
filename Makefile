@@ -122,6 +122,7 @@ install: default
 	install -m 644 examples/*.yaml $(DESTDIR)/$(DOCDIR)/netplan/examples/
 	install -m 644 doc/*.5 $(DESTDIR)/$(MANDIR)/man5/
 	install -m 644 doc/*.8 $(DESTDIR)/$(MANDIR)/man8/
+	install -D -m 644 src/netplan.target $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/netplan.target
 	install -T -D -m 644 netplan.completions $(DESTDIR)/$(BASH_COMPLETIONS_DIR)/netplan
 	# dbus
 	mkdir -p $(DESTDIR)/$(DATADIR)/dbus-1/system.d $(DESTDIR)/$(DATADIR)/dbus-1/system-services
