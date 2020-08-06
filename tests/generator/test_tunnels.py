@@ -362,6 +362,7 @@ PresharedKey=7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8='''),
 persistent-keepalive=23
 endpoint=1.2.3.4:5
 preshared-key=7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
+preshared-key-flags=0
 allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
 
     def test_simple_multi_pass(self):

@@ -368,8 +368,10 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
             if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key)) {
                 g_fprintf(stderr, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
                 exit(1);
-            }else
+            } else {
                 g_string_append_printf(s, "preshared-key=%s\n", peer->preshared_key);
+                g_string_append(s, "preshared-key-flags=0\n");
+            }
         }
         if (peer->allowed_ips && peer->allowed_ips->len > 0) {
             g_string_append(s, "allowed-ips=");
