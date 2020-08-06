@@ -19,7 +19,7 @@
 import os
 import textwrap
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES
+from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, ND_EMPTY
 
 
 class TestNetworkd(TestBase):
@@ -290,6 +290,105 @@ Address=2001:FFfe::1/64
 RouteMetric=100
 UseMTU=true
 '''})
+
+    def test_eth_address_option_lifetime_zero(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            lifetime: 0
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/64
+
+[Address]
+Address=192.168.14.2/24
+PreferredLifetime=0
+'''})
+
+    def test_eth_address_option_lifetime_forever(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            lifetime: forever
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/64
+
+[Address]
+Address=192.168.14.2/24
+PreferredLifetime=forever
+'''})
+
+    def test_eth_address_option_label(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            label: test-label
+        - 2001:FFfe::1/64''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/64
+
+[Address]
+Address=192.168.14.2/24
+Label=test-label
+'''})
+
+    def test_eth_address_option_multi_pass(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: [engreen]
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+            label: test-label
+        - 2001:FFfe::1/64:
+            label: ip6''')
+
+        self.assert_networkd({
+            'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=no
+Bridge=br0
+
+[Address]
+Address=192.168.14.2/24
+Label=test-label
+
+[Address]
+Address=2001:FFfe::1/64
+Label=ip6
+''',
+            'br0.network': ND_EMPTY % ('br0', 'ipv6'),
+            'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n'})
 
     def test_dhcp_critical_true(self):
         self.generate('''network:

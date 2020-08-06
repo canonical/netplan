@@ -43,7 +43,7 @@ libnetplan.so.$(NETPLAN_SOVER): parse.o util.o validation.o error.o
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 
 #generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
-generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o generate.o
+generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o generate.o sriov.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 netplan-dbus: src/dbus.c src/_features.h

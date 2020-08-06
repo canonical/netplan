@@ -32,6 +32,7 @@
 
 /* convenience macro to put the offset of a NetplanNetDefinition field into "void* data" */
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
+#define addr_option_offset(field) GUINT_TO_POINTER(offsetof(NetplanAddressOptions, field))
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define netdef_offset(field) GUINT_TO_POINTER(offsetof(NetplanNetDefinition, field))
@@ -50,6 +51,8 @@ static NetplanAuthenticationSettings* cur_auth;
 /* NetplanWireguardPeer that is currently being processed */
 static NetplanWireguardPeer* cur_wireguard_peer;
 
+static NetplanAddressOptions* cur_addr_option;
+
 static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
 
@@ -65,6 +68,11 @@ GList* netdefs_ordered;
  * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
  * existing definition */
 static GHashTable* ids_in_file;
+
+/* Global variables, defined in this file */
+int missing_ids_found;
+const char* current_file;
+GHashTable* missing_id;
 
 /**
  * Load YAML file name into a yaml_document_t.
@@ -350,6 +358,28 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
     return TRUE;
 }
 
+static gboolean
+handle_address_option_lifetime(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_ascii_strcasecmp(scalar(node), "0") != 0 &&
+        g_ascii_strcasecmp(scalar(node), "forever") != 0) {
+        return yaml_error(node, error, "invalid lifetime value '%s'", scalar(node));
+    }
+    return handle_generic_str(doc, node, cur_addr_option, data, error);
+}
+
+static gboolean
+handle_address_option_label(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_str(doc, node, cur_addr_option, data, error);
+}
+
+const mapping_entry_handler address_option_handlers[] = {
+    {"lifetime", YAML_SCALAR_NODE, handle_address_option_lifetime, NULL, addr_option_offset(lifetime)},
+    {"label", YAML_SCALAR_NODE, handle_address_option_label, NULL, addr_option_offset(label)},
+    {NULL}
+};
+
 /*
  * Handler for setting an array of IP addresses from a sequence node, inside a given struct
  * @entryptr: pointer to the beginning of the do-be-modified data structure
@@ -365,6 +395,17 @@ handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check
         char* prefix_len;
         guint64 prefix_len_num;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *key, *value = NULL;
+
+        if (entry->type != YAML_SCALAR_NODE && entry->type != YAML_MAPPING_NODE) {
+            return yaml_error(entry, error, "expected either scalar or mapping (check indentation)");
+        }
+
+        if (entry->type == YAML_MAPPING_NODE) {
+            key = yaml_document_get_node(doc, entry->data.mapping.pairs.start->key);
+            value = yaml_document_get_node(doc, entry->data.mapping.pairs.start->value);
+            entry = key;
+        }
         assert_type(entry, YAML_SCALAR_NODE);
 
         /* split off /prefix_len */
@@ -376,10 +417,35 @@ handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check
         prefix_len++; /* skip former '/' into first char of prefix */
         prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
 
+        if (value) {
+            if (!is_ip4_address(addr) && !is_ip6_address(addr))
+                return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+
+            if (!cur_netdef->address_options)
+                cur_netdef->address_options = g_array_new(FALSE, FALSE, sizeof(NetplanAddressOptions*));
+
+            for (unsigned i = 0; i < cur_netdef->address_options->len; ++i) {
+                NetplanAddressOptions* opts = g_array_index(cur_netdef->address_options, NetplanAddressOptions*, i);
+                /* check for multi-pass parsing, return early if options for this address already exist */
+                if (!g_strcmp0(scalar(key), opts->address))
+                    return TRUE;
+            }
+
+            cur_addr_option = g_new0(NetplanAddressOptions, 1);
+            cur_addr_option->address = g_strdup(scalar(key));
+
+            if (!process_mapping(doc, value, address_option_handlers, error))
+                return FALSE;
+
+            g_array_append_val(cur_netdef->address_options, cur_addr_option);
+            continue;
+        }
+
         /* is it an IPv4 address? */
         if (is_ip4_address(addr)) {
             if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 32)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+
             if (!*ip4)
                 *ip4 = g_array_new(FALSE, FALSE, sizeof(char*));
 
@@ -1966,6 +2032,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
             netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
             cur_netdef->sriov_vlan_filter = FALSE;
+            cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
 
             /* DHCP override defaults */
             initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);

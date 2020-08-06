@@ -46,6 +46,7 @@ ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\
 ND_DHCPYES_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
+UDEV_SRIOV_RULE = 'ACTION=="add", SUBSYSTEM=="net", ATTRS{sriov_totalvfs}=="?*", RUN+="/usr/sbin/netplan apply --sriov-only"\n'
 ND_WITHIPGW = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=%s\nAddress=%s\nGateway=%s\n\
 ConfigureWithoutCarrier=yes\n'
 NM_WG = '[connection]\nid=netplan-wg0\ntype=wireguard\ninterface-name=wg0\n\n[wireguard]\nprivate-key=%s\nlisten-port=%s\n%s\
@@ -112,6 +113,12 @@ class TestBase(unittest.TestCase):
                          {'10-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
             with open(os.path.join(networkd_dir, '10-netplan-' + fname)) as f:
+                self.assertEqual(f.read(), contents)
+
+    def assert_additional_udev(self, file_contents_map):
+        udev_dir = os.path.join(self.workdir.name, 'run', 'udev', 'rules.d')
+        for fname, contents in file_contents_map.items():
+            with open(os.path.join(udev_dir, fname)) as f:
                 self.assertEqual(f.read(), contents)
 
     def assert_networkd_udev(self, file_contents_map):
