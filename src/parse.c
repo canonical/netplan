@@ -835,20 +835,12 @@ handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 static gboolean
 handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "y") == 0)
+    gboolean ret = handle_generic_bool(doc, node, cur_netdef, data, error);
+    if (cur_netdef->accept_ra)
         cur_netdef->accept_ra = NETPLAN_RA_MODE_ENABLED;
-    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "n") == 0)
-        cur_netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
     else
-        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
-
-    return TRUE;
+        cur_netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
+    return ret;
 }
 
 static gboolean
@@ -1829,7 +1821,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS                                                                  \
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},                                        \
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra, NULL, netdef_offset(accept_ra)},        \
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},                                      \
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},        \
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},              \
@@ -1839,7 +1831,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},                   \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                          \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                          \
-    {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                               \
+    {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                     \
     {"ipv6-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(ipv6_mtubytes)},  \
     {"ipv6-privacy", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ip6_privacy)}, \
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                                    \
@@ -1852,15 +1844,15 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                            \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
 
-#define COMMON_BACKEND_HANDLERS							\
+#define COMMON_BACKEND_HANDLERS							                                      \
     {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}
 
 /* Handlers for physical links */
-#define PHYSICAL_LINK_HANDLERS                                                           \
-    {"match", YAML_MAPPING_NODE, handle_match},                                          \
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
-    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},       \
+#define PHYSICAL_LINK_HANDLERS                                                                \
+    {"match", YAML_MAPPING_NODE, handle_match},                                               \
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},         \
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},    \
+    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},           \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
