@@ -994,11 +994,10 @@ more general information about tunnels.
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted
     quad (an IPv4 address). For ``wireguard`` it can be a base64-encoded
-    private key, prefixed with ``base64:`` or an absolute path to a file,
-    containing the private key (since 0.100). It is used for identification
-    of IP transforms. This is only required for ``vti`` and ``vti6`` when using
-    the networkd backend, and for ``gre`` or ``ip6gre`` tunnels when using the
-    NetworkManager backend.
+    private key or an absolute path to a file, containing the private key
+    (since 0.100). It is used for identification of IP transforms. This is only
+    required for ``vti`` and ``vti6`` when using the networkd backend, and for
+    ``gre`` or ``ip6gre`` tunnels when using the NetworkManager backend.
 
     This field may be used as a scalar (meaning that a single key is
     specified and to be used for both input and output key), or as a mapping,
@@ -1033,7 +1032,7 @@ Examples:
         mode: wireguard
         addresses: [...]
         peers: ...
-        key: base64:mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
+        key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
 
 
 ``keys`` (scalar or mapping)
@@ -1071,8 +1070,8 @@ Wireguard-specific keys:
     :   Peer's base64-encoded public key, required.
 
     ``shared-key`` (scalar) – since **0.100**
-    :   Optional base64-encoded pre shared key for a peer, prefixed with
-        ``base64:``. Or an absolute path to a file with a pre shared key.
+    :   Optional base64-encoded pre shared key for a peer. Or an absolute path
+        to a file with a pre shared key.
 
     ``remote`` (scalar) – since **0.100**
     :   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon

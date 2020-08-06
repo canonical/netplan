@@ -333,8 +333,6 @@ write_bridge_params(const NetplanNetDefinition* def, GString *s)
 static void
 write_wireguard_params(const NetplanNetDefinition* def, GString *s)
 {
-    /* XXX: Find a better way to distinguish base64: key and key-file from absolute
-         path (e.g. length, first char, # bits, base64 regex) */
     g_assert(def->tunnel.input_key);
     g_string_append(s, "\n[wireguard]\n");
 
