@@ -1638,36 +1638,6 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     return yaml_error(node, error, "%s: tunnel mode '%s' is not supported", cur_netdef->id, key);
 }
 
-static const mapping_entry_handler tunnel_keys_handlers[] = {
-    {"input", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.input_key)},
-    {"output", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.output_key)},
-    {NULL}
-};
-
-static gboolean
-handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
-{
-    gboolean ret = FALSE;
-
-    /* We overload the key 'key' for tunnels; such that it can either be a
-     * single scalar with the same key to use for both input and output keys,
-     * or a mapping where one can specify each.
-     */
-    if (node->type == YAML_SCALAR_NODE) {
-        ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
-        if (ret)
-            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
-    }
-    else if (node->type == YAML_MAPPING_NODE) {
-        ret = process_mapping(doc, node, tunnel_keys_handlers, error);
-    }
-    else {
-        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
-    }
-
-    return ret;
-}
-
 /**
  * Handler for setting a NetplanWireguardPeer string field from a scalar node
  * @data: pointer to the const char* field to write
@@ -1735,9 +1705,45 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
     return yaml_error(node, error, "invalid remote address or hostname '%s'", scalar(node));
 }
 
+static const mapping_entry_handler tunnel_keys_handlers[] = {
+    {"input", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.input_key)},
+    {"output", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.output_key)},
+    {"public", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
+    {"shared", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
+    {NULL}
+};
+
+static gboolean
+handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret = FALSE;
+
+    /* We overload the key 'key' for tunnels; such that it can either be a
+     * single scalar with the same key to use for both input and output keys,
+     * or a mapping where one can specify each.
+     */
+    if (node->type == YAML_SCALAR_NODE) {
+        if (cur_wireguard_peer != NULL)
+            ret = handle_wireguard_peer_str(doc, node, wireguard_peer_offset(public_key), error);
+        else {
+            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
+            if (ret)
+                ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
+        }
+    } else if (node->type == YAML_MAPPING_NODE) {
+        ret = process_mapping(doc, node, tunnel_keys_handlers, error);
+    } else {
+        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
+    }
+
+    return ret;
+}
+
 const mapping_entry_handler wireguard_peer_handlers[] = {
-    {"public-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
-    {"shared-key", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
+    /* Handle key/keys for clarity in config: this can be either a scalar or
+     * mapping of multiple keys (public and shared) */
+    {"key", YAML_NO_NODE, handle_tunnel_key_mapping},
+    {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
     {"remote", YAML_SCALAR_NODE, handle_wireguard_endpoint},
     {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint}, /* Alias for NetplanWireguardPeer.remote */

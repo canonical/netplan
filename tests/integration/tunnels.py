@@ -92,8 +92,9 @@ class _CommonTests():
       mark: 42
       port: 51820
       peers:
-        - public-key: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
-          shared-key: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
+        - keys:
+            public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+            shared: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
           allowed-ips: [20.20.20.10/24]
     wg1: #client
       mode: wireguard
@@ -103,8 +104,9 @@ class _CommonTests():
       peers:
         - remote: 10.10.10.20:51820
           allowed-ips: [0.0.0.0/0]
-          public-key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
-          shared-key: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
+          keys:
+            public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+            shared: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
           keepalive: 21
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()

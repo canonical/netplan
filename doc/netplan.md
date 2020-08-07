@@ -1000,14 +1000,22 @@ more general information about tunnels.
     ``gre`` or ``ip6gre`` tunnels when using the NetworkManager backend.
 
     This field may be used as a scalar (meaning that a single key is
-    specified and to be used for both input and output key), or as a mapping,
-    where you can then further specify ``input`` and ``output``.
+    specified and to be used for both input and output key, respectively just
+    the public key of a wireguard peer), or as a mapping, where you can then
+    further specify ``input``/``output`` or ``public``/``shared`` (wireguard).
 
     ``input`` (scalar)
     :    The input key for the tunnel
 
     ``output`` (scalar)
     :    The output key for the tunnel
+
+    ``public`` (scalar) – since **0.100**
+    :    A base64-encoded public key, requried for wireguard peers.
+
+    ``shared`` (scalar) – since **0.100**
+    :    A base64-encoded preshared key or absolute path to a file containing a
+         preshared key. Optional for wireguard peers.
 
 Examples:
 
@@ -1031,7 +1039,11 @@ Examples:
       wg0:
         mode: wireguard
         addresses: [...]
-        peers: ...
+        peers:
+          - keys:
+              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+              shared: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
+            ...
         key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
 
 
@@ -1054,24 +1066,19 @@ Wireguard-specific keys:
     Example:
 
     tunnels:
-        wireguard0:
+        wg0:
             mode: wireguard
             peers:
-                - public-key: /some/public.key
+                - key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
                   allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
                   keepalive: 23
                   remote: 1.2.3.4:5
-                - public-key: /other/public.key
-                  allowed-ips: [0.0.0.0/0, "10.10.10.20/24"]
+                - keys:
+                      public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+                      shared: /some/shared.key
+                  allowed-ips: [10.10.10.20/24]
                   keepalive: 22
                   remote: 5.4.3.2:1
-
-    ``public-key`` (scalar) – since **0.100**
-    :   Peer's base64-encoded public key, required.
-
-    ``shared-key`` (scalar) – since **0.100**
-    :   Optional base64-encoded pre shared key for a peer. Or an absolute path
-        to a file with a pre shared key.
 
     ``remote`` (scalar) – since **0.100**
     :   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon
