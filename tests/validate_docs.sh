@@ -41,11 +41,6 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
         continue
     fi
 
-    # 6. endpoint is an alias for WireguardPeer.remote
-    if [[ $term = "endpoint" ]]; then
-        continue
-    fi
-
     echo ERROR: The key "$term" is defined in the parser but not documented.
     exit 1
 done

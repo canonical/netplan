@@ -365,14 +365,6 @@ typedef enum {
     NETPLAN_WIFI_MODE_AP
 } NetplanWifiMode;
 
-typedef struct {
-    char *endpoint;
-    char *public_key;
-    char *preshared_key;
-    GArray *allowed_ips;
-    guint keepalive;
-} NetplanWireguardPeer;
-
 typedef enum {
     NETPLAN_WIFI_BAND_DEFAULT,
     NETPLAN_WIFI_BAND_5,
@@ -418,6 +410,13 @@ typedef struct {
     /* valid metrics are valid positive integers.
      * invalid metrics are represented by METRIC_UNSPEC */
     guint metric;
+
+    /* wireguard (crypto-key routing) specific fields */
+    //char *endpoint; //via
+    char *public_key;
+    char *preshared_key;
+    GArray *allowed_ips; //to
+    guint keepalive;
 } NetplanIPRoute;
 
 typedef struct {

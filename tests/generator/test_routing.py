@@ -21,6 +21,30 @@ from .base import TestBase
 
 class TestNetworkd(TestBase):
 
+    def test_route_malformed_to(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: {key: value}
+          via: 192.168.14.20''', expect_fail=True)
+        self.assertIn("invalid type, needs to be sequence or scalar", err)
+
+    def test_malformed_keys(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          keys:
+            - input: 1234''', expect_fail=True)
+        self.assertIn("Error in network definition: expected mapping (check indentation)", err)
+
     def test_route_v4_single(self):
         self.generate('''network:
   version: 2

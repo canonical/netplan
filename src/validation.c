@@ -103,13 +103,31 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
             return yaml_error(node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
         if (nd->tunnel.input_key[0] != '/' && !is_wireguard_key(nd->tunnel.input_key))
             return yaml_error(node, error, "%s: invalid wireguard private key", nd->id);
-        if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
+        if (!nd->routes || nd->routes->len == 0)
             return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
-        for (guint i = 0; i < nd->wireguard_peers->len; i++) {
-            NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
-
-            if (!peer->public_key)
-                return yaml_error(node, error, "%s: public_key is required.", nd->id);
+        else if (nd->routes && nd->routes->len > 0) {
+            gboolean contains_peers = FALSE;
+            for(unsigned i = 0; i < nd->routes->len; ++i) {
+                NetplanIPRoute *peer = g_array_index(nd->routes, NetplanIPRoute*, i);
+                if (!g_ascii_strcasecmp(peer->type, "wireguard")) {
+                    contains_peers = TRUE;
+                    break;
+                }
+            }
+            if (!contains_peers)
+                return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
+        }
+        for (guint i = 0; i < nd->routes->len; i++) {
+            NetplanIPRoute *peer = g_array_index (nd->routes, NetplanIPRoute*, i);
+            if (peer->via) {
+                char* endpoint = peer->via;
+                char* port = strrchr(endpoint, ':');
+                if (!port || is_ip6_address(endpoint))
+                    return yaml_error(node, error, "via '%s' is missing :port", endpoint);
+                /* skip former ':' into first char of port */
+                if (g_ascii_strtoull(++port, NULL, 10) > 65535)
+                    return yaml_error(node, error, "invalid port in via '%s'", endpoint);
+            }
             if (!is_wireguard_key(peer->public_key))
                 return yaml_error(node, error, "%s: invalid wireguard public key", nd->id);
             if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))

@@ -91,19 +91,21 @@ class _CommonTests():
       key: 4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
       mark: 42
       port: 51820
-      peers:
-        - keys:
+      routes:
+        - type: wireguard
+          keys:
             public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
             shared: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
-          allowed-ips: [20.20.20.10/24]
+          to: [20.20.20.10/24]
     wg1: #client
       mode: wireguard
       addresses: [20.20.20.10/24]
       gateway4: 20.20.20.11
       key: KPt9BzQjejRerEv8RMaFlpsD675gNexELOQRXt/AcH0=
-      peers:
-        - remote: 10.10.10.20:51820
-          allowed-ips: [0.0.0.0/0]
+      routes:
+        - via: 10.10.10.20:51820
+          to: [0.0.0.0/0]
+          type: wireguard
           keys:
             public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
             shared: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=

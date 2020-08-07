@@ -78,22 +78,28 @@ def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[], renderer
     if listen is not None:
         config += '      port: {}\n'.format(listen)
     if len(peers) > 0:
-        config += '      peers:\n'
+        config += '      routes:\n'
     for peer in peers:
+        config += '        - type: wireguard\n'
+        # map (allowed-ips -> to) and (endpoint -> via)
+        for k, v in {'allowed-ips': 'to', 'endpoint': 'via'}.items():
+            val = peer.get(k)
+            if val:
+                peer.pop(k, None)
+                peer[v] = val
+
         public_key = peer.get('public-key')
         peer.pop('public-key', None)
         shared_key = peer.get('shared-key')
         peer.pop('shared-key', None)
-        pfx = '        - '
         for k, v in peer.items():
-            config += '{}{}: {}\n'.format(pfx, k, v)
-            pfx = '          '
+            config += '          {}: {}\n'.format(k, v)
         if public_key and shared_key:
-            config += '{}keys:\n'.format(pfx)
+            config += '          keys:\n'
             config += '            public: {}\n'.format(public_key)
             config += '            shared: {}\n'.format(shared_key)
         elif public_key:
-            config += '{}key: {}\n'.format(pfx, public_key)
+            config += '          key: {}\n'.format(public_key)
     return config
 
 
@@ -105,8 +111,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: invalid wireguard private key", out)
 
@@ -116,8 +121,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': '/invalid.key',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: invalid wireguard public key", out)
 
@@ -128,8 +132,7 @@ class _CommonParserErrors():
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
                                            'shared-key': 'invalid.key',
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: invalid wireguard shared key", out)
 
@@ -139,8 +142,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 100500,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: keepalive must be 0-65535 inclusive.", out)
 
@@ -150,8 +152,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 'bogus',
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: invalid unsigned int value 'bogus'", out)
 
@@ -161,8 +162,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/200, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: invalid prefix length in address", out)
 
@@ -172,8 +172,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/224"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: invalid prefix length in address", out)
 
@@ -183,8 +182,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: address \'0.0.0.0\' is missing /prefixlength", out)
 
@@ -194,8 +192,7 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: address '2001:fe:ad:de:ad:be:ef:1' is missing /prefixlength", out)
 
@@ -205,95 +202,90 @@ class _CommonParserErrors():
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[302.302.302.302/24, "2001:fe:ad:de:ad:be:ef:1"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: malformed address \'302.302.302.302/24\', \
 must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
 
     def test_fail_remote_no_port4(self):
-        """[wireguard] Show an error if ipv4 remote endpoint lacks a port"""
+        """[wireguard] Show an error if ipv4 endpoint lacks a port"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: remote '1.2.3.4' is missing :port", out)
+        self.assertIn("Error in network definition: via '1.2.3.4' is missing :port", out)
 
     def test_fail_remote_no_port6(self):
-        """[wireguard] Show an error if ipv6 remote endpoint lacks a port"""
+        """[wireguard] Show an error if ipv6 endpoint lacks a port"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': "2001:fe:ad:de:ad:be:ef:1"}], renderer=self.backend)
-
+                                           'endpoint': "2001:fe:ad:de:ad:be:ef:1"}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: invalid remote address or hostname", out)
+        self.assertIn("Error in network definition: via '2001:fe:ad:de:ad:be:ef:1' is missing :port", out)
 
     def test_fail_remote_no_port_hn(self):
-        """[wireguard] Show an error if fqdn remote endpoint lacks a port"""
+        """[wireguard] Show an error if fqdn endpoint lacks a port"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': 'fq.dn'}], renderer=self.backend)
-
+                                           'endpoint': 'fq.dn'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: remote 'fq.dn' is missing :port", out)
+        self.assertIn("Error in network definition: via 'fq.dn' is missing :port", out)
 
     def test_fail_remote_big_port4(self):
-        """[wireguard] Show an error if ipv4 remote endpoint port is too big"""
+        """[wireguard] Show an error if ipv4 endpoint port is too big"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:100500'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:100500'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: invalid port in remote '1.2.3.4:100500", out)
+        self.assertIn("Error in network definition: invalid port in via '1.2.3.4:100500", out)
 
     def test_fail_ipv6_remote_noport(self):
-        """[wireguard] Show an error for v6 remote endpoint without port"""
+        """[wireguard] Show an error for v6 endpoint without port"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '"[2001:fe:ad:de:ad:be:ef:11]"'}], renderer=self.backend)
+                                           'endpoint': '"[2001:fe:ad:de:ad:be:ef:11]"'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("remote \'[2001:fe:ad:de:ad:be:ef:11]\' is missing :port", out)
+        self.assertIn("via \'[2001:fe:ad:de:ad:be:ef:11]\' is missing :port", out)
 
     def test_fail_ipv6_remote_nobrace(self):
-        """[wireguard] Show an error for v6 remote endpoint without closing brace"""
+        """[wireguard] Show an error for v6 endpoint without closing brace"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '"[2001:fe:ad:de:ad:be:ef:11"'}], renderer=self.backend)
+                                           'endpoint': '"[2001:fe:ad:de:ad:be:ef:11"'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("invalid address in remote '[2001:fe:ad:de:ad:be:ef:11'", out)
+        self.assertIn("invalid address in via '[2001:fe:ad:de:ad:be:ef:11'", out)
 
     def test_fail_ipv6_remote_malformed(self):
-        """[wireguard] Show an error for malformed-v6 remote endpoint"""
+        """[wireguard] Show an error for malformed-v6 endpoint"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '"[2001:fe:badfilinad:be:ef]:11"'}], renderer=self.backend)
+                                           'endpoint': '"[2001:fe:badfilinad:be:ef]:11"'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("invalid remote address or hostname '[2001:fe:badfilinad:be:ef]:11", out)
+        self.assertIn("invalid via address or hostname '[2001:fe:badfilinad:be:ef]:11", out)
 
     def test_fail_short_remote(self):
-        """[wireguard] Show an error for too-short remote endpoint"""
+        """[wireguard] Show an error for too-short endpoint"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': 'ab'}], renderer=self.backend)
+                                           'endpoint': 'ab'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: invalid remote address or hostname 'ab'", out)
+        self.assertIn("Error in network definition: invalid via address or hostname 'ab'", out)
 
     def test_fail_bogus_peer_key(self):
         """[wireguard] Show an error for a bogus key in a peer"""
@@ -302,8 +294,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
                                            'bogus': 'true',
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: unknown key 'bogus'", out)
 
@@ -313,8 +304,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: missing 'key' property (private key) for wireguard", out)
 
@@ -329,20 +319,34 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: public_key is required.", out)
+        self.assertIn("Error in network definition: wireguard routes/peers must specify a (public) 'key'", out)
 
     def test_fail_no_allowed_ips(self):
         """[wireguard] Show an error for a missing allowed_ips"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
-
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: allowed_ips is required.", out)
+
+    def test_fail_no_wireguard_peer_routes(self):
+        """[wireguard] Show an error if no wireguard peer routes are specified"""
+        out = self.generate('''network:
+  version: 2
+  renderer: %s
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [0.0.0.0/24]
+      key: 4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
+      routes:
+        - via: 1.2.3.4/24
+          to: 10.10.10.10/24
+''' % self.backend, expect_fail=True)
+        self.assertIn("Error in network definition: wg0: at least one peer is required.", out)
 
 
 class _CommonTests():
@@ -354,7 +358,7 @@ class _CommonTests():
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
                                            'shared-key': '7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=',
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         self.generate(config)
         if self.backend == 'networkd':
             self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
@@ -377,15 +381,16 @@ allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
 
     def test_simple_multi_pass(self):
         """[wireguard] Validate generation of a wireguard config, which is parsed multiple times"""
-        config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
+        config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', fwmark=25,
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         config = config.replace('tunnels:', 'bridges: {br0: {interfaces: [wg0]}}\n  tunnels:')
         self.generate(config)
         if self.backend == 'networkd':
-            self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
+            self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''FwMark=25
+
 [WireGuardPeer]
 PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
 AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
@@ -407,6 +412,7 @@ master=br0
 [wireguard]
 private-key=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
 listen-port=12345
+fwmark=25
 
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
@@ -434,43 +440,17 @@ method=link-local
 method=ignore
 '''})
 
-    def test_remote_endpoint_alias(self):
-        """[wireguard] Accept 'endpoint' field as alias of 'remote' in peers"""
-        config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', fwmark=25,
-                                   peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
-                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
-                                           'keepalive': 23,
-                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
-        self.generate(config)
-        if self.backend == 'networkd':
-            self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''FwMark=25
-
-[WireGuardPeer]
-PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
-AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
-PersistentKeepalive=23
-Endpoint=1.2.3.4:5'''),
-                                  'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
-                                                                '20.20.20.21')})
-        elif self.backend == 'NetworkManager':
-            self.assert_nm({'wg0.nmconnection': NM_WG % ('4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''fwmark=25
-
-[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
-persistent-keepalive=23
-endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
-
     def test_2peers(self):
         """[wireguard] Validate generation of wireguard config with two peers"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '1.2.3.4:5'}, {
-                                           'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
+                                           'endpoint': '1.2.3.4:5'}, {
+                                           'public-key': 'rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         self.generate(config)
         if self.backend == 'networkd':
             self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
@@ -481,7 +461,7 @@ PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 
 [WireGuardPeer]
-PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+PublicKey=rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
 AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5'''),
@@ -494,7 +474,7 @@ persistent-keepalive=23
 endpoint=1.2.3.4:5
 allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24
 
-[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+[wireguard-peer.rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
 allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
@@ -506,7 +486,7 @@ allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
                                            'shared-key': '/tmp/test_preshared_key',
-                                           'remote': '1.2.3.4:5'}], renderer=self.backend)
+                                           'endpoint': '1.2.3.4:5'}], renderer=self.backend)
         if self.backend == 'networkd':
             self.generate(config)
             self.assert_networkd({'wg0.netdev': ND_WG % ('File=/tmp/test_private_key', '12345', '''
@@ -523,12 +503,12 @@ PresharedKeyFile=/tmp/test_preshared_key'''),
             self.assertIn('wg0: private key needs to be base64 encoded when using the NM backend', err)
 
     def test_ipv6_remote(self):
-        """[wireguard] Validate generation of wireguard config with v6 remote endpoint"""
+        """[wireguard] Validate generation of wireguard config with v6 endpoint"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
-                                           'remote': '"[2001:fe:ad:de:ad:be:ef:11]:5"'}], renderer=self.backend)
+                                           'endpoint': '"[2001:fe:ad:de:ad:be:ef:11]:5"'}], renderer=self.backend)
         self.generate(config)
         if self.backend == 'networkd':
             self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
@@ -913,7 +893,7 @@ class TestNetworkManager(TestBase, _CommonTests):
                                    peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
 
         out = self.generate(config, expect_fail=True)
         self.assertIn("wg0: private key needs to be base64 encoded when using the NM backend", out)
@@ -925,7 +905,7 @@ class TestNetworkManager(TestBase, _CommonTests):
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 14,
                                            'shared-key': '/invalid.key',
-                                           'remote': '1.2.3.4:1005'}], renderer=self.backend)
+                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
 
         out = self.generate(config, expect_fail=True)
         self.assertIn("wg0: shared key needs to be base64 encoded when using the NM backend", out)
