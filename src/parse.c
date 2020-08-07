@@ -1271,7 +1271,6 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
     return yaml_error(node, error, "invalid via address or hostname '%s'", scalar(node));
 }
 
-
 static gboolean
 handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {

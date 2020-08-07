@@ -340,9 +340,9 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
     g_string_append(s, "\n[wireguard]\n");
 
     /* The key was already validated via validate_tunnel_grammar(), but we need
-    * to differentiate between base64 key VS absolute path key-file. And a base64
-    * string could (theoretically) start with '/', so we use is_wireguard_key()
-    * as well to check for more specific characteristics (if needed). */
+     * to differentiate between base64 key VS absolute path key-file. And a base64
+     * string could (theoretically) start with '/', so we use is_wireguard_key()
+     * as well to check for more specific characteristics (if needed). */
     if (def->tunnel.input_key[0] == '/' && !is_wireguard_key(def->tunnel.input_key)) {
         g_fprintf(stderr, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
         exit(1);

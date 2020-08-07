@@ -330,7 +330,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                            'keepalive': 14,
                                            'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: allowed_ips is required.", out)
+        self.assertIn("Error in network definition: wg0: 'to' is required to define the allowed IPs.", out)
 
     def test_fail_no_wireguard_peer_routes(self):
         """[wireguard] Show an error if no wireguard peer routes are specified"""
@@ -378,6 +378,41 @@ endpoint=1.2.3.4:5
 preshared-key=7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
 preshared-key-flags=0
 allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+
+    def test_wg_different_routes(self):
+        """[wireguard] Validate generation of wireguard config with non-wireguard-peer routes"""
+        self.generate('''network:
+  version: 2
+  renderer: %s
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [6.6.6.6/24]
+      key: 4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
+      port: 12345
+      routes:
+        - via: 1.2.3.4/24
+          to: 10.10.10.10/24
+        - type: wireguard
+          to: [0.0.0.0/0]
+          key: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=''' % self.backend)
+        if self.backend == 'networkd':
+            self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
+[WireGuardPeer]
+PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+AllowedIPs=0.0.0.0/0'''),
+                                  'wg0.network': (ND_WITHIPGW % ('wg0', '6.6.6.6/24', '', ''))
+                                  .replace('Address=\nGateway=\n', '') + '''
+[Route]
+Destination=10.10.10.10/24
+Gateway=1.2.3.4/24
+'''})
+        elif self.backend == 'NetworkManager':
+            self.assert_nm({'wg0.nmconnection': (NM_WG % ('4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+allowed-ips=0.0.0.0/0'''))
+                            .replace('15.15.15.15/24\ngateway=20.20.20.21', '6.6.6.6/24\nroute1=10.10.10.10/24,1.2.3.4/24')
+                            .replace('method=manual\naddress1=2001:de:ad:be:ef:ca:fe:1/128', 'method=ignore')})
 
     def test_simple_multi_pass(self):
         """[wireguard] Validate generation of a wireguard config, which is parsed multiple times"""

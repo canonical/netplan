@@ -119,6 +119,10 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         }
         for (guint i = 0; i < nd->routes->len; i++) {
             NetplanIPRoute *peer = g_array_index (nd->routes, NetplanIPRoute*, i);
+            /* Verify only wireguard peer routes */
+            if (!!g_ascii_strcasecmp(peer->type, "wireguard"))
+                continue;
+
             if (peer->via) {
                 char* endpoint = peer->via;
                 char* port = strrchr(endpoint, ':');
@@ -133,7 +137,7 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
             if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
                 return yaml_error(node, error, "%s: invalid wireguard shared key", nd->id);
             if (!peer->allowed_ips || peer->allowed_ips->len == 0)
-                return yaml_error(node, error, "%s: allowed_ips is required.", nd->id);
+                return yaml_error(node, error, "%s: 'to' is required to define the allowed IPs.", nd->id);
             if (peer->keepalive > 65535)
                 return yaml_error(node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
         }

@@ -513,8 +513,8 @@ These options are available for all types of interfaces.
     ``keys`` (mapping) – since **0.100**
     :    Define keys to use for the routes, specifically the Wireguard peers.
 
-         This field can be used as a mapping, where you have to further specify
-         the ``public`` or ``shared`` keys.
+         This field can be used as a mapping, where you can further specify the
+         ``public`` and ``shared`` keys.
 
          ``public`` (scalar) – since **0.100**
          :    A base64-encoded public key, requried for Wireguard peers.
@@ -1031,8 +1031,8 @@ more general information about tunnels.
     NetworkManager backend.
 
     This field may be used as a scalar (meaning that a single key is
-    specified and to be used for both input and output key, or as a mapping,
-    where you can then further specify ``input`` or ``output``.
+    specified and to be used for both input and output key), or as a mapping,
+    where you can then further specify ``input`` and ``output``.
 
     ``input`` (scalar)
     :    The input key for the tunnel

@@ -335,8 +335,6 @@ struct net_definition {
         guint port;
     } tunnel;
 
-    GArray *wireguard_peers;
-
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
 
@@ -403,7 +401,7 @@ typedef struct {
 
     char* from;
     char* to;
-    char* via;
+    char* via; /* can contain wireguard endpoint */
 
     gboolean onlink;
 
@@ -412,10 +410,9 @@ typedef struct {
     guint metric;
 
     /* wireguard (crypto-key routing) specific fields */
-    //char *endpoint; //via
     char *public_key;
     char *preshared_key;
-    GArray *allowed_ips; //to
+    GArray *allowed_ips; /* assigned via "routes.to" sequence */
     guint keepalive;
 } NetplanIPRoute;
 
