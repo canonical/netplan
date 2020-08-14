@@ -373,7 +373,18 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
         base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
         write_network_file(def, rootdir, base_config_path);
     } else {
-        g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
+        /* Other interfaces must be part of an OVS bridge or bond to carry additional data */
+        if (   (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0)
+            || (def->ovs_settings.other_config && g_hash_table_size(def->ovs_settings.other_config) > 0)) {
+            dependency = def->bridge?: def->bond;
+            if (!dependency) {
+                g_fprintf(stderr, "%s: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config\n", def->id);
+                exit(1);
+            }
+        } else {
+            g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
+            return;
+        }
     }
 
     /* Set "external-ids" and "other-config" after NETPLAN_BACKEND_OVS interfaces, as bonds,

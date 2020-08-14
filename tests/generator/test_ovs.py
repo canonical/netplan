@@ -42,8 +42,22 @@ class TestOpenVSwitch(TestBase):
       openvswitch:
         other-config:
           disable-in-band: false
+  bridges:
+    ovs0:
+      interfaces: [eth0, eth1]
+      openvswitch: {}
 ''')
-        self.assert_ovs({'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''
+        self.assert_ovs({'ovs0.service': OVS_VIRTUAL % {'iface': 'ovs0', 'extra': '''
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs0
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth1
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth0
+''' + OVS_BR_DEFAULT % {'iface': 'ovs0'}},
+                         'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''\
+Requires=netplan-ovs-ovs0.service
+After=netplan-ovs-ovs0.service
+
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:iface-id=myhostname
@@ -51,7 +65,10 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/external-id
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band=true
 ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/other-config/disable-in-band=true
 '''},
-                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''
+                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''\
+Requires=netplan-ovs-ovs0.service
+After=netplan-ovs-ovs0.service
+
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
@@ -59,8 +76,23 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 external-ids:netplan/other-confi
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
-        self.assert_networkd({'eth0.network': ND_DHCP6 % 'eth0',
-                              'eth1.network': ND_DHCP4 % 'eth1'})
+        self.assert_networkd({'ovs0.network': ND_EMPTY % ('ovs0', 'ipv6'),
+                              'eth0.network': (ND_DHCP6 % 'eth0')
+                              .replace('LinkLocalAddressing=ipv6', 'LinkLocalAddressing=no\nBridge=ovs0'),
+                              'eth1.network': (ND_DHCP4 % 'eth1')
+                              .replace('LinkLocalAddressing=ipv6', 'LinkLocalAddressing=no\nBridge=ovs0')})
+
+    def test_interface_invalid_external_ids_other_config(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      openvswitch:
+        external-ids:
+          iface-id: myhostname
+        other-config:
+          disable-in-band: true''', expect_fail=True)
+        self.assertIn('eth0: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config', err)
 
     def test_global_external_ids_other_config(self):
         self.generate('''network:
