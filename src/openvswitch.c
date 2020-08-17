@@ -157,6 +157,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
         if (!g_strcmp0(def->id, tmp_nd->bond)) {
             /* Append and count bond interfaces */
+            /* TODO: create patch ports atomically */
             g_string_append_printf(s, " %s", tmp_nd->id);
             i++;
         }
@@ -177,7 +178,6 @@ write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
     /* Mark this bridge/port/interface as created by netplan */
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s external-ids:netplan=true",
                        type, id);
-    write_ovs_tag_setting(id, type, "external-ids", "netplan", "true", cmds);
 }
 
 static void
@@ -212,6 +212,7 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
         /* OVS bonds will connect to their OVS bridge and create the interface/port themselves */
         if ((tmp_nd->type != NETPLAN_DEF_TYPE_BOND || tmp_nd->backend != NETPLAN_BACKEND_OVS)
             && !g_strcmp0(def->id, tmp_nd->bridge)) {
+            /* TODO: create patch ports atomically */
             append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s", def->id, tmp_nd->id);
         }
     }
@@ -232,6 +233,7 @@ write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge,
         write_ovs_tag_setting(bridge, "Bridge", "protocols", NULL, s->str, cmds);
     }
     else {
+        /* FIXME: this seems to be broken: "ovs-ofctl: missing command name" */
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_OFCTL " -O %s", s->str);
     }
 
@@ -350,9 +352,9 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 }
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch -- set Interface %s options:peer=%s",
                                    def->id, def->id, def->peer);
-                write_ovs_tag_netplan(def->id, type, cmds);
-                write_ovs_tag_setting(def->id, "Interface", "type", NULL, "patch", cmds);
-                write_ovs_tag_setting(def->id, "Interface", "options", "peer", def->peer, cmds);
+                /* FIXME: There seems to be a race condition if we assign the tag(s) to type=Port */
+                //append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " wait-until Port %s", def->id);
+                write_ovs_tag_netplan(def->id, "Interface", cmds);
                 break;
 
             case NETPLAN_DEF_TYPE_VLAN:
@@ -437,7 +439,7 @@ write_ovs_conf_finish(const char* rootdir)
                            ovs_settings_global.ssl.client_certificate,
                            ovs_settings_global.ssl.ca_certificate);
         GString* value = g_string_new(NULL);
-        g_string_printf(value, "%s;%s;%s",
+        g_string_printf(value, "%s,%s,%s",
                         ovs_settings_global.ssl.client_key,
                         ovs_settings_global.ssl.client_certificate,
                         ovs_settings_global.ssl.ca_certificate);

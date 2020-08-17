@@ -29,6 +29,37 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
+    def _collect_ovs_settings(self, bridge0):
+        d = {}
+        d['show'] = subprocess.check_output(['ovs-vsctl', 'show'])
+        d['ssl'] = subprocess.check_output(['ovs-vsctl', 'get-ssl'])
+        # TODO: Controller -> connection-mode
+        # TODO: global protocols
+        # Get external-ids
+        for tbl in ('Open_vSwitch',):  #: TODO: Controller
+            d['external-ids-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=external-ids', '-f', 'csv', '-d',
+                                                                  'bare', '--no-headings', 'list', tbl])
+        for tbl in ('Bridge', 'Port', 'Interface'):
+            d['external-ids-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', '-f', 'csv', '-d',
+                                                                  'bare', '--no-headings',  'list', tbl])
+        # Get other-config
+        for tbl in ('Open_vSwitch',):  #: TODO: Controller
+            d['other-config-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=other-config', '-f', 'csv', '-d',
+                                                                  'bare', '--no-headings',  'list', tbl])
+        for tbl in ('Bridge', 'Port', 'Interface'):
+            d['other-config-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=name,other-config', '-f', 'csv', '-d',
+                                                                  'bare', '--no-headings',  'list', tbl])
+        # Get bond settings
+        for col in ('bond_mode', 'lacp'):
+            d['%s-Bond' % col] = subprocess.check_output(['ovs-vsctl', '--columns=name,%s' % col, '-f', 'csv', '-d', 'bare',
+                                                           '--no-headings', 'list', 'Port'])
+        # Get bridge settings
+        d['set-fail-mode-Bridge'] = subprocess.check_output(['ovs-vsctl', 'get-fail-mode', bridge0])
+        for col in ('mcast_snooping_enable', 'rstp_enable', 'protocols'):
+            d['%s-Bridge' % col] = subprocess.check_output(['ovs-vsctl', '--columns=name,%s' % col, '-f', 'csv', '-d', 'bare',
+                                                             '--no-headings', 'list', 'Bridge'])
+        return d
+
     def test_cleanup_interfaces(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
@@ -326,6 +357,131 @@ class _CommonTests():
         (out, err) = p.communicate()
         self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
         self.assertNotEqual(p.returncode, 0)
+
+    def test_settings_tag_cleanup(self):
+        self.setup_eth(None, False)
+        #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'bond0'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  openvswitch:
+    # FIXME: global protocols are broken?!
+    #protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
+    ports:
+      - [patch0-1, patch1-0]
+    ssl:
+      ca-cert: /some/ca-cert.pem
+      certificate: /another/cert.pem
+      private-key: /private/key.pem
+    external-ids:
+      somekey: somevalue
+    other-config:
+      key: value
+  ethernets:
+    %(ec)s:
+      addresses: [10.5.32.26/20]
+      openvswitch:
+        external-ids:
+          iface-id: mylocaliface
+        other-config:
+          disable-in-band: false
+    %(e2c)s: {}
+  bonds:
+    bond0:
+      interfaces: [patch1-0, %(e2c)s]
+      openvswitch:
+        lacp: passive
+      parameters:
+        mode: balance-tcp
+  bridges:
+    ovs0:
+      addresses: [10.5.48.11/20]
+      interfaces: [patch0-1, %(ec)s, bond0]
+      openvswitch:
+        protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
+        # TODO: validate controllers
+        #controller:
+        #  addresses: [tcp:127.0.0.1, "pssl:1337:[::1]", unix:/some/socket]
+        fail-mode: secure
+        mcast-snooping: true
+        external-ids:
+          iface-id: myhostname
+        other-config:
+          disable-in-band: true
+    ovs1:
+      openvswitch:
+        # Add ovs1 as rstp cannot be used if bridge contains a bond interface
+        rstp: true
+
+''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle()
+        before = self._collect_ovs_settings('ovs0')
+        subprocess.check_call(['netplan', 'apply', '--only-ovs-cleanup'])
+        after = self._collect_ovs_settings('ovs0')
+
+        #for k, v in before.items():
+        #    print(k)
+        #    print(v.decode('utf-8'))
+        #print('==========')
+        #for k, v in after.items():
+        #    print(k)
+        #    print(v.decode('utf-8'))
+
+        # Verify interfaces
+        for data in (before['show'], after['show']):
+            self.assertIn(b'Bridge ovs0', data)
+            self.assertIn(b'Port ovs0', data)
+            self.assertIn(b'Interface ovs0', data)
+            self.assertIn(b'Port patch0-1', data)
+            self.assertIn(b'Interface patch0-1', data)
+            self.assertIn(b'Port eth42', data)
+            self.assertIn(b'Interface eth42', data)
+            self.assertIn(b'Bridge ovs1', data)
+            self.assertIn(b'Port ovs1', data)
+            self.assertIn(b'Interface ovs1', data)
+            self.assertIn(b'Port bond0', data)
+            self.assertIn(b'Interface eth42', data)
+            self.assertIn(b'Interface patch1-0', data)
+        # Verify all settings tags have been removed
+        for tbl in ('Open_vSwitch', 'Bridge', 'Port', 'Interface'):
+            self.assertNotIn(b'netplan/', after['external-ids-%s' % tbl])
+        # Verify SSL
+        for s in (b'Private key: /private/key.pem', b'Certificate: /another/cert.pem', b'CA Certificate: /some/ca-cert.pem'):
+            self.assertIn(s, before['ssl'])
+            self.assertNotIn(s, after['ssl'])
+        # Verify Bond
+        self.assertIn(b'bond0,balance-tcp\n', before['bond_mode-Bond'])
+        self.assertIn(b'bond0,\n', after['bond_mode-Bond'])
+        self.assertIn(b'bond0,passive\n', before['lacp-Bond'])
+        self.assertIn(b'bond0,\n', after['lacp-Bond'])
+        # Verify Bridge
+        self.assertIn(b'secure', before['set-fail-mode-Bridge'])
+        self.assertNotIn(b'secure', after['set-fail-mode-Bridge'])
+        self.assertIn(b'ovs0,true\n', before['mcast_snooping_enable-Bridge'])
+        self.assertIn(b'ovs0,false\n', after['mcast_snooping_enable-Bridge'])
+        self.assertIn(b'ovs1,true\n', before['rstp_enable-Bridge'])
+        self.assertIn(b'ovs1,false\n', after['rstp_enable-Bridge'])
+        self.assertIn(b'ovs0,OpenFlow10 OpenFlow11 OpenFlow12\n', before['protocols-Bridge'])
+        self.assertIn(b'ovs0,\n', after['protocols-Bridge'])
+        # Verify other-config
+        self.assertIn(b'key=value', before['other-config-Open_vSwitch'])
+        self.assertNotIn(b'key=value', after['other-config-Open_vSwitch'])
+        self.assertIn(b'ovs0,disable-in-band=true\n', before['other-config-Bridge'])
+        self.assertIn(b'ovs0,\n', after['other-config-Bridge'])
+        self.assertIn(b'eth42,disable-in-band=false\n', before['other-config-Interface'])
+        self.assertIn(b'eth42,\n', after['other-config-Interface'])
+        # Verify external-ids
+        self.assertIn(b'somekey=somevalue', before['external-ids-Open_vSwitch'])
+        self.assertNotIn(b'somekey=somevalue', after['external-ids-Open_vSwitch'])
+        self.assertIn(b'iface-id=myhostname', before['external-ids-Bridge'])
+        self.assertNotIn(b'iface-id=myhostname', after['external-ids-Bridge'])
+        self.assertIn(b'iface-id=mylocaliface', before['external-ids-Interface'])
+        self.assertNotIn(b'iface-id=mylocaliface', after['external-ids-Interface'])
+        for tbl in ('Bridge', 'Port', 'Interface'):
+            # The netplan=true tag shall be kept unitl the interface is deleted
+            self.assertIn(b'netplan=true', before['external-ids-%s' % tbl])
+            self.assertIn(b'netplan=true', after['external-ids-%s' % tbl])
 
     @unittest.skip("For debugging only")
     def test_zzz_ovs_debugging(self):  # Runs as the last test, to collect all logs

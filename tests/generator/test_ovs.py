@@ -185,7 +185,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id=myhostname
@@ -254,7 +253,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=active
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=active
 '''},
@@ -320,7 +318,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=balance-tcp
@@ -360,7 +357,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
@@ -468,7 +464,6 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth1
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 secure
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/global/set-fail-mode=secure
 ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
@@ -587,7 +582,7 @@ ExecStart=/usr/bin/ovs-vsctl set Controller br0 external-ids:netplan/connection-
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path;/some/path;/another/path
+ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path,/some/path,/another/path
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -684,7 +679,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path;/some/path;/another/path
+ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path,/some/path,/another/path
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -789,7 +784,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=off
 '''},
@@ -847,7 +841,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 patchy eth0
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
 ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=off
 '''},
@@ -859,7 +852,6 @@ After=netplan-ovs-br1.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx type=patch -- set Interface patchx options:peer=patchy
 ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx external-ids:netplan/type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchx external-ids:netplan/options/peer=patchy
 '''},
@@ -871,7 +863,6 @@ After=netplan-ovs-bond0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy type=patch -- set Interface patchy options:peer=patchx
 ExecStart=/usr/bin/ovs-vsctl set Port patchy external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port patchy external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan/type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan/options/peer=patchx
 '''},
@@ -917,7 +908,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 type=patch -- set Interface patch0-1 options:peer=patch1-0
 ExecStart=/usr/bin/ovs-vsctl set Port patch0-1 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port patch0-1 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 external-ids:netplan/type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch0-1 external-ids:netplan/options/peer=patch1-0
 '''},
@@ -929,7 +919,6 @@ After=netplan-ovs-br1.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 type=patch -- set Interface patch1-0 options:peer=patch0-1
 ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan/external-ids/netplan=true
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 external-ids:netplan/type=patch
 ExecStart=/usr/bin/ovs-vsctl set Interface patch1-0 external-ids:netplan/options/peer=patch0-1
 '''},
@@ -965,7 +954,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
 ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan/external-ids/netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -995,7 +983,6 @@ After=netplan-ovs-br0.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
 ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan=true
-ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan/external-ids/netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
