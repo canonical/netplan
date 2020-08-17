@@ -910,7 +910,8 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         char* prefix_len;
         guint64 prefix_len_num;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        yaml_node_t *key, *value = NULL;
+        yaml_node_t *key = NULL;
+        yaml_node_t *value = NULL;
 
         if (entry->type != YAML_SCALAR_NODE && entry->type != YAML_MAPPING_NODE) {
             return yaml_error(entry, error, "expected either scalar or mapping (check indentation)");
