@@ -29,9 +29,17 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     in the current configuration.
     """
     config_manager.parse()
+    ovs_ifaces = []
+    for k, v in config_manager.interfaces.items():
+        if v.get('openvswitch') is not None:
+            # This is an explicit OVS interface
+            ovs_ifaces.append(k)
+            if v.get('interfaces') is not None:
+                # Those are implicit OVS interfaces
+                ovs_ifaces += v.get('interfaces')
 
-    # Tear down old OVS interfacess, not defined in the current config
-    # Use 'del-br' on the Interface table, to delete any netplan created VLAN fake bridges
+    # Tear down old OVS interfaces, not defined in the current config.
+    # Use 'del-br' on the Interface table, to delete any netplan created VLAN fake bridges.
     if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
         for t in (('Port', 'del-port'), ('Bridge', 'del-br'), ('Interface', 'del-br')):
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
@@ -41,7 +49,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                 if 'netplan=true' in line:
                     iface = line.split(',')[0]
                     # Skip cleanup if this OVS interface is part of the current netplan OVS config
-                    if config_manager.interfaces.get(iface, {}).get('openvswitch') is not None:
+                    if iface in ovs_ifaces:
                         continue
                     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
     # Show the warning only if we are or have been working with OVS definitions
