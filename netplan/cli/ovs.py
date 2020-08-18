@@ -34,7 +34,7 @@ GLOBALS = {
 }
 
 
-def del_col(type, iface, column, value):
+def del_col(type, iface, column, value):  # pragma: nocover (covered in autopkgtest)
     """Cleanup values from a column (i.e. "column=value")"""
     default = DEFAULTS.get(column)
     if default is None:
@@ -45,13 +45,13 @@ def del_col(type, iface, column, value):
         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'set', type, iface, '%s=%s' % (column, default)])
 
 
-def del_dict(type, iface, column, key, value):
+def del_dict(type, iface, column, key, value):  # pragma: nocover (covered in autopkgtest)
     """Cleanup values from a dictionary (i.e. "column:key=value")"""
     # removes the exact value only if it was set by netplan
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, value])
 
 
-def del_global(type, iface, key, value):
+def del_global(type, iface, key, value):  # pragma: nocover (covered in autopkgtest)
     """Cleanup commands from the global namespace"""
     cmd = GLOBALS.get(key)
     # TODO: do noting if values are the same
@@ -63,7 +63,7 @@ def del_global(type, iface, key, value):
         raise Exception('Reset command unkown for:', key)
 
 
-def clear_setting(type, iface, setting, value):
+def clear_setting(type, iface, setting, value):  # pragma: nocover (covered in autopkgtest)
     """Check if this setting is in a dict or a colum and delete accordingly"""
     split = setting.split('/', 2)
     col = split[1]
@@ -77,6 +77,17 @@ def clear_setting(type, iface, setting, value):
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, 'external-ids', setting])
 
 
+def is_ovs_interface(iface, interfaces):  # pragma: nocover (covered in autopkgtest)
+    if interfaces[iface].get('openvswitch') is not None:
+        return True
+    else:
+        contains_ovs_interfaces = False
+        sub_interfaces = interfaces[iface].get('interfaces', [])
+        for i in sub_interfaces:
+            contains_ovs_interfaces |= is_ovs_interface(i, interfaces)
+        return contains_ovs_interfaces
+
+
 def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover (covered in autopkgtest)
     """
     Query OpenVSwitch state through 'ovs-vsctl' and filter for netplan=true
@@ -86,14 +97,10 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     in external-ids and clear them if they have been set by netplan.
     """
     config_manager.parse()
-    ovs_ifaces = []
-    for k, v in config_manager.interfaces.items():
-        if v.get('openvswitch') is not None:
-            # This is an explicit OVS interface
-            ovs_ifaces.append(k)
-            if v.get('interfaces') is not None:
-                # Those are implicit OVS interfaces
-                ovs_ifaces += v.get('interfaces')
+    ovs_ifaces = set()
+    for i in config_manager.interfaces.keys():
+        if (is_ovs_interface(i, config_manager.interfaces)):
+            ovs_ifaces.add(i)
 
     # Tear down old OVS interfaces, not defined in the current config.
     # Use 'del-br' on the Interface table, to delete any netplan created VLAN fake bridges.

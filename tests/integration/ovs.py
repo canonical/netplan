@@ -103,6 +103,56 @@ class _CommonTests():
         self.assertNotIn(b'Interface patch1-0', out)
         self.assert_iface_up(self.dev_e_client, ['inet 1.2.3.4/24'])
 
+    def test_cleanup_patch_ports(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch0-1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patchy'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'bond0'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  ethernets:
+    %(ec)s: {addresses: [10.10.10.20/24]}
+  openvswitch:
+    ports: [[patch0-1, patch1-0]]
+  bonds:
+    bond0: {interfaces: [patch1-0, %(ec)s]}
+  bridges:
+    ovs0: {interfaces: [patch0-1, bond0]}''' % {'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Basic verification that the bridges/ports/interfaces are there in OVS
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge ovs0', out)
+        self.assertIn(b'        Port patch0-1\n            Interface patch0-1\n                type: patch', out)
+        self.assertIn(b'        Port bond0', out)
+        self.assertIn(b'            Interface patch1-0\n                type: patch', out)
+        self.assertIn(b'            Interface eth42', out)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  ethernets:
+    %(ec)s: {addresses: [10.10.10.20/24]}
+  openvswitch:
+    ports: [[patchx, patchy]]
+  bonds:
+    bond0: {interfaces: [patchx, %(ec)s]}
+  bridges:
+    ovs1: {interfaces: [patchy, bond0]}''' % {'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify that the netplan=true tagged patch ports have been cleaned up
+        # even though the containing bond0 port still exists (with new patch ports)
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge ovs1', out)
+        self.assertIn(b'        Port patchy\n            Interface patchy\n                type: patch', out)
+        self.assertIn(b'        Port bond0', out)
+        self.assertIn(b'            Interface patchx\n                type: patch', out)
+        self.assertIn(b'            Interface eth42', out)
+        self.assertNotIn(b'Bridge ovs0', out)
+        self.assertNotIn(b'Port patch0-1', out)
+        self.assertNotIn(b'Interface patch0-1', out)
+        self.assertNotIn(b'Port patch1-0', out)
+        self.assertNotIn(b'Interface patch1-0', out)
+
     def test_bridge_vlan(self):
         self.setup_eth(None, True)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s' % self.dev_e_client])
