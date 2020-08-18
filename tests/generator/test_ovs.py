@@ -123,18 +123,20 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/other-confi
   version: 2
   openvswitch:
     protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
-  ethernets:
-    eth0:
-      dhcp4: yes
-''')
-        self.assert_ovs({'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
+  bridges:
+    ovs0:
+      openvswitch: {}''')
+        self.assert_ovs({'ovs0.service': OVS_VIRTUAL % {'iface': 'ovs0', 'extra': '''
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-ofctl -O OpenFlow10,OpenFlow11,OpenFlow12
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs0
+''' + OVS_BR_DEFAULT % {'iface': 'ovs0'} + '''\
+ExecStart=/usr/bin/ovs-vsctl set Bridge ovs0 protocols=OpenFlow10,OpenFlow11,OpenFlow12
+ExecStart=/usr/bin/ovs-vsctl set Bridge ovs0 external-ids:netplan/protocols=OpenFlow10,OpenFlow11,OpenFlow12
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
-        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
+        self.assert_networkd({'ovs0.network': ND_EMPTY % ('ovs0', 'ipv6')})
 
     def test_duplicate_map_entry(self):
         err = self.generate('''network:

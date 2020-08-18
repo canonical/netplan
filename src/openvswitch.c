@@ -241,22 +241,14 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
 static void
 write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge, GString* cmds)
 {
+    g_assert(bridge);
     GString* s = g_string_new(g_array_index(ovs_settings->protocols, char*, 0));
 
     for (unsigned i = 1; i < ovs_settings->protocols->len; ++i)
         g_string_append_printf(s, ",%s", g_array_index(ovs_settings->protocols, char*, i));
 
-    /* This is typically done per-bridge, but OVS also allows setting protocols
-       for when establishing an OpenFlow session. */
-    if (bridge) {
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s protocols=%s", bridge, s->str);
-        write_ovs_tag_setting(bridge, "Bridge", "protocols", NULL, s->str, cmds);
-    }
-    else {
-        /* FIXME: this seems to be broken: "ovs-ofctl: missing command name" */
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_OFCTL " -O %s", s->str);
-    }
-
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s protocols=%s", bridge, s->str);
+    write_ovs_tag_setting(bridge, "Bridge", "protocols", NULL, s->str, cmds);
     g_string_free(s, TRUE);
 }
 
@@ -349,6 +341,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 /* Set protocols */
                 if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
                     write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
+                } else if (ovs_settings_global.protocols && ovs_settings_global.protocols->len > 0) {
+                    write_ovs_protocols(&(ovs_settings_global), def->id, cmds);
                 }
                 /* Set controller target addresses */
                 if (def->ovs_settings.controller.addresses && def->ovs_settings.controller.addresses->len > 0) {
@@ -448,10 +442,6 @@ write_ovs_conf_finish(const char* rootdir)
     if (ovs_settings_global.other_config && g_hash_table_size(ovs_settings_global.other_config) > 0) {
         write_ovs_additional_data(ovs_settings_global.other_config, "open_vswitch",
                                   ".", cmds, "other-config");
-    }
-
-    if (ovs_settings_global.protocols && ovs_settings_global.protocols->len > 0) {
-        write_ovs_protocols(&ovs_settings_global, NULL, cmds);
     }
 
     if (ovs_settings_global.ssl.client_key && ovs_settings_global.ssl.client_certificate &&

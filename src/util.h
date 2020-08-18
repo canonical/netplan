@@ -30,4 +30,3 @@ int wifi_get_freq5(int channel);
 gchar* systemd_escape(char* string);
 
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
-#define OPENVSWITCH_OVS_OFCTL "/usr/bin/ovs-ofctl"
