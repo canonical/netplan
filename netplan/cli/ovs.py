@@ -44,10 +44,12 @@ def del_col(type, iface, column, value):
         # reset to default, if its not the default already
         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'set', type, iface, '%s=%s' % (column, default)])
 
+
 def del_dict(type, iface, column, key, value):
     """Cleanup values from a dictionary (i.e. "column:key=value")"""
     # removes the exact value only if it was set by netplan
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, value])
+
 
 def del_global(type, iface, key, value):
     """Cleanup commands from the global namespace"""
@@ -60,6 +62,7 @@ def del_global(type, iface, key, value):
     else:
         raise Exception('Reset command unkown for:', key)
 
+
 def clear_setting(type, iface, setting, value):
     """Check if this setting is in a dict or a colum and delete accordingly"""
     split = setting.split('/', 2)
@@ -70,8 +73,9 @@ def clear_setting(type, iface, setting, value):
         del_dict(type, iface, split[1], split[2], value)
     else:
         del_col(type, iface, split[1], value)
-    #Cleanup the tag itself (i.e. "netplan/column[/key]")
+    # Cleanup the tag itself (i.e. "netplan/column[/key]")
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, 'external-ids', setting])
+
 
 def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover (covered in autopkgtest)
     """

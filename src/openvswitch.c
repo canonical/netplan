@@ -136,6 +136,18 @@ write_ovs_additional_data(GHashTable *data, const char* type, const gchar* id, G
     }
 }
 
+static void
+setup_patch_port(GString* s, const NetplanNetDefinition* def)
+{
+    /* Execute the setup commands to create an OVS patch port atomically within
+     * the same command where this virtual interface is created. Either as a
+     * Port+Interface of an OVS bridge or as a Interface of an OVS bond. This
+     * avoids delays in the PatchPort creation and thus potential races. */
+    g_assert(def->type == NETPLAN_DEF_TYPE_PORT);
+    g_string_append_printf(s, " -- set Interface %s type=patch options:peer=%s",
+                           def->id, def->peer);
+}
+
 static char*
 write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
 {
@@ -144,6 +156,7 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
     gchar* key;
     guint i = 0;
     GString* s = NULL;
+    GString* patch_ports = g_string_new("");
 
     if (!def->bridge) {
         g_fprintf(stderr, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
@@ -157,9 +170,10 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
         if (!g_strcmp0(def->id, tmp_nd->bond)) {
             /* Append and count bond interfaces */
-            /* TODO: create patch ports atomically */
             g_string_append_printf(s, " %s", tmp_nd->id);
             i++;
+            if (tmp_nd->type == NETPLAN_DEF_TYPE_PORT)
+                setup_patch_port(patch_ports, tmp_nd);
         }
     }
     if (i < 2) {
@@ -167,6 +181,8 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
         exit(1);
     }
 
+    g_string_append(s, patch_ports->str);
+    g_string_free(patch_ports, TRUE);
     append_systemd_cmd(cmds, s->str, def->bridge, def->id);
     g_string_free(s, TRUE);
     return def->bridge;
@@ -212,8 +228,12 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
         /* OVS bonds will connect to their OVS bridge and create the interface/port themselves */
         if ((tmp_nd->type != NETPLAN_DEF_TYPE_BOND || tmp_nd->backend != NETPLAN_BACKEND_OVS)
             && !g_strcmp0(def->id, tmp_nd->bridge)) {
-            /* TODO: create patch ports atomically */
-            append_systemd_cmd(cmds,  OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s", def->id, tmp_nd->id);
+            GString * patch_ports = g_string_new("");
+            if (tmp_nd->type == NETPLAN_DEF_TYPE_PORT)
+                setup_patch_port(patch_ports, tmp_nd);
+            append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s%s",
+                               def->id, tmp_nd->id, patch_ports->str);
+            g_string_free(patch_ports, TRUE);
         }
     }
 }
@@ -350,11 +370,11 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
                     exit(1);
                 }
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Interface %s type=patch -- set Interface %s options:peer=%s",
-                                   def->id, def->id, def->peer);
-                /* FIXME: There seems to be a race condition if we assign the tag(s) to type=Port */
-                //append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " wait-until Port %s", def->id);
-                write_ovs_tag_netplan(def->id, "Interface", cmds);
+                /* There is not OVS Port which we could tag netplan=true if
+                 * this patch port is assigned as an OVS bond interface. */
+                /* TODO: How can we tag/handle/clean those bond interfaces? */
+                if (!def->bond)
+                    write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
             case NETPLAN_DEF_TYPE_VLAN:

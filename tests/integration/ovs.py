@@ -478,7 +478,7 @@ class _CommonTests():
         self.assertNotIn(b'iface-id=myhostname', after['external-ids-Bridge'])
         self.assertIn(b'iface-id=mylocaliface', before['external-ids-Interface'])
         self.assertNotIn(b'iface-id=mylocaliface', after['external-ids-Interface'])
-        for tbl in ('Bridge', 'Port', 'Interface'):
+        for tbl in ('Bridge', 'Port'):
             # The netplan=true tag shall be kept unitl the interface is deleted
             self.assertIn(b'netplan=true', before['external-ids-%s' % tbl])
             self.assertIn(b'netplan=true', after['external-ids-%s' % tbl])
