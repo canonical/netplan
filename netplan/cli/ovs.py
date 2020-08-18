@@ -97,6 +97,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
 
     # Tear down old OVS interfaces, not defined in the current config.
     # Use 'del-br' on the Interface table, to delete any netplan created VLAN fake bridges.
+    # Use 'del-bond-iface' on the Interface table, to delete netplan created patch port interfaces
     if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
         # Step 1: Delete all interfaces, which are not part of the current OVS config
         for t in (('Port', 'del-port'), ('Bridge', 'del-br'), ('Interface', 'del-br')):
@@ -109,7 +110,10 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                     # Skip cleanup if this OVS interface is part of the current netplan OVS config
                     if iface in ovs_ifaces:
                         continue
-                    subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
+                    if t[0] == 'Interface' and subprocess.run([OPENVSWITCH_OVS_VSCTL, 'iface-to-br', iface]).returncode > 0:
+                        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', 'del-bond-iface', iface])
+                    else:
+                        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
 
         # Step 2: Clean up the settings of the remaining interfaces
         for t in ('Port', 'Bridge', 'Interface', 'open_vswitch'):  # TODO: , 'Controller'):

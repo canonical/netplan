@@ -371,9 +371,11 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     exit(1);
                 }
                 /* There is not OVS Port which we could tag netplan=true if
-                 * this patch port is assigned as an OVS bond interface. */
-                /* TODO: How can we tag/handle/clean those bond interfaces? */
-                if (!def->bond)
+                 * this patch port is assigned as an OVS bond interface.
+                 * Tag the Interface instead, to clean it up from a bond. */
+                if (def->bond)
+                    write_ovs_tag_netplan(def->id, "Interface", cmds);
+                else
                     write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 

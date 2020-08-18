@@ -852,6 +852,14 @@ After=netplan-ovs-br1.service
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan=true
 '''},
+                         'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
+                                                          '''Requires=netplan-ovs-bond0.service
+After=netplan-ovs-bond0.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan=true
+'''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
                               'br1.network': ND_WITHIP % ('br1', '2001:FFfe::1/64'),
