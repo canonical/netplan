@@ -520,8 +520,9 @@ These options are available for all types of interfaces.
          :    A base64-encoded public key, requried for Wireguard peers.
 
          ``shared`` (scalar) – since **0.100**
-         :    A base64-encoded preshared key or absolute path to a file containing a
-              preshared key. Optional for Wireguard peers.
+         :    A base64-encoded preshared key. Optional for Wireguard peers.
+              When the ``systemd-networkd`` backend (v242+) is used, this can
+              also be an absolute path to a file containing the preshared key.
 
      ``key`` (scalar) – since **0.100**
      :   Short form of the ``keys`` field where a single key is specified to be
@@ -1035,7 +1036,10 @@ more general information about tunnels.
     where you can then further specify ``input`` and ``output``.
 
     ``input`` (scalar)
-    :    The input key for the tunnel
+    :    The input key for the tunnel. Or a base64-encoded private key required
+         for Wireguard routes. When the ``systemd-networkd`` backend (v242+) is
+         used, this can also be an absolute path to a file containing the
+         private key.
 
     ``output`` (scalar)
     :    The output key for the tunnel
