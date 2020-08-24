@@ -1285,6 +1285,9 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
             char** dest = (char**) ((void*) cur_route + offset);
             g_free(*dest);
 
+            if (family < 0)
+                return yaml_error(node, error, "invalid IP family '%d'", family);
+
             if (!check_and_set_family(family, &cur_route->family))
                 return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 

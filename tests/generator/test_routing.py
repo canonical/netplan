@@ -32,6 +32,17 @@ class TestNetworkd(TestBase):
           via: 192.168.14.20''', expect_fail=True)
         self.assertIn("invalid type, needs to be sequence or scalar", err)
 
+    def test_route_invalid_family_to(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: abc/24
+          via: 192.168.14.20''', expect_fail=True)
+        self.assertIn("Error in network definition: invalid IP family '-1'", err)
+
     def test_malformed_keys(self):
         err = self.generate('''network:
   version: 2
