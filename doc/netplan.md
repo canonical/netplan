@@ -1037,8 +1037,8 @@ more general information about tunnels.
 
     ``input`` (scalar)
     :    The input key for the tunnel. Or a base64-encoded private key required
-         for Wireguard routes. When the ``systemd-networkd`` backend (v242+) is
-         used, this can also be an absolute path to a file containing the
+         for Wireguard tunnels. When the ``systemd-networkd`` backend (v242+)
+         is used, this can also be an absolute path to a file containing the
          private key.
 
     ``output`` (scalar)
