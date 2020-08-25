@@ -33,21 +33,21 @@ class _CommonTests():
         d = {}
         d['show'] = subprocess.check_output(['ovs-vsctl', 'show'])
         d['ssl'] = subprocess.check_output(['ovs-vsctl', 'get-ssl'])
-        # TODO: Controller -> connection-mode
-        # TODO: global protocols
         # Get external-ids
-        for tbl in ('Open_vSwitch',):  #: TODO: Controller
-            d['external-ids-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=external-ids', '-f', 'csv', '-d',
+        for tbl in ('Open_vSwitch', 'Controller', 'Bridge', 'Port', 'Interface'):
+            cols = 'name,external-ids'
+            if tbl == 'Open_vSwitch':
+                cols = 'external-ids'
+            elif tbl == 'Controller':
+                cols = '_uuid,external-ids'
+            d['external-ids-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=%s' % cols, '-f', 'csv', '-d',
                                                                   'bare', '--no-headings', 'list', tbl])
-        for tbl in ('Bridge', 'Port', 'Interface'):
-            d['external-ids-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', '-f', 'csv', '-d',
-                                                                  'bare', '--no-headings',  'list', tbl])
         # Get other-config
-        for tbl in ('Open_vSwitch',):  #: TODO: Controller
-            d['other-config-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=other-config', '-f', 'csv', '-d',
-                                                                  'bare', '--no-headings',  'list', tbl])
-        for tbl in ('Bridge', 'Port', 'Interface'):
-            d['other-config-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=name,other-config', '-f', 'csv', '-d',
+        for tbl in ('Open_vSwitch', 'Bridge', 'Port', 'Interface'):
+            cols = 'name,other-config'
+            if tbl == 'Open_vSwitch':
+                cols = 'other-config'
+            d['other-config-%s' % tbl] = subprocess.check_output(['ovs-vsctl', '--columns=%s' % cols, '-f', 'csv', '-d',
                                                                   'bare', '--no-headings',  'list', tbl])
         # Get bond settings
         for col in ('bond_mode', 'lacp'):
@@ -58,6 +58,11 @@ class _CommonTests():
         for col in ('mcast_snooping_enable', 'rstp_enable', 'protocols'):
             d['%s-Bridge' % col] = subprocess.check_output(['ovs-vsctl', '--columns=name,%s' % col, '-f', 'csv', '-d', 'bare',
                                                              '--no-headings', 'list', 'Bridge'])
+        # Get controller settings
+        d['set-controller-Bridge'] = subprocess.check_output(['ovs-vsctl', 'get-controller', bridge0])
+        for col in ('connection_mode',):
+            d['%s-Controller' % col] = subprocess.check_output(['ovs-vsctl', '--columns=_uuid,%s' % col, '-f', 'csv', '-d',
+                                                                'bare', '--no-headings', 'list', 'Controller'])
         return d
 
     def test_cleanup_interfaces(self):
@@ -411,13 +416,13 @@ class _CommonTests():
     def test_settings_tag_cleanup(self):
         self.setup_eth(None, False)
         #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
         #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'bond0'])
         with open(self.config, 'w') as f:
             f.write('''network:
   version: 2
   openvswitch:
-    # FIXME: global protocols are broken?!
-    #protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
+    protocols: [OpenFlow13, OpenFlow14, OpenFlow15]
     ports:
       - [patch0-1, patch1-0]
     ssl:
@@ -450,9 +455,9 @@ class _CommonTests():
       interfaces: [patch0-1, %(ec)s, bond0]
       openvswitch:
         protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
-        # TODO: validate controllers
-        #controller:
-        #  addresses: [tcp:127.0.0.1, "pssl:1337:[::1]", unix:/some/socket]
+        controller:
+          addresses: [unix:/var/run/openvswitch/ovs0.mgmt]
+          connection-mode: out-of-band
         fail-mode: secure
         mcast-snooping: true
         external-ids:
@@ -494,7 +499,7 @@ class _CommonTests():
             self.assertIn(b'Interface eth42', data)
             self.assertIn(b'Interface patch1-0', data)
         # Verify all settings tags have been removed
-        for tbl in ('Open_vSwitch', 'Bridge', 'Port', 'Interface'):
+        for tbl in ('Open_vSwitch', 'Controller', 'Bridge', 'Port', 'Interface'):
             self.assertNotIn(b'netplan/', after['external-ids-%s' % tbl])
         # Verify SSL
         for s in (b'Private key: /private/key.pem', b'Certificate: /another/cert.pem', b'CA Certificate: /some/ca-cert.pem'):
@@ -514,6 +519,16 @@ class _CommonTests():
         self.assertIn(b'ovs1,false\n', after['rstp_enable-Bridge'])
         self.assertIn(b'ovs0,OpenFlow10 OpenFlow11 OpenFlow12\n', before['protocols-Bridge'])
         self.assertIn(b'ovs0,\n', after['protocols-Bridge'])
+        # Verify global protocols
+        self.assertIn(b'ovs1,OpenFlow13 OpenFlow14 OpenFlow15\n', before['protocols-Bridge'])
+        self.assertIn(b'ovs1,\n', after['protocols-Bridge'])
+        # Verify Controller
+        self.assertIn(b'Controller "unix:/var/run/openvswitch/ovs0.mgmt"', before['show'])
+        self.assertNotIn(b'Controller', after['show'])
+        self.assertIn(b'unix:/var/run/openvswitch/ovs0.mgmt', before['set-controller-Bridge'])
+        self.assertIn(b',out-of-band', before['connection_mode-Controller'])
+        self.assertEqual(b'', after['set-controller-Bridge'])
+        self.assertEqual(b'', after['connection_mode-Controller'])
         # Verify other-config
         self.assertIn(b'key=value', before['other-config-Open_vSwitch'])
         self.assertNotIn(b'key=value', after['other-config-Open_vSwitch'])

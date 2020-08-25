@@ -31,6 +31,7 @@ GLOBALS = {
     # Global commands:
     'set-fail-mode': 'del-fail-mode',
     'set-ssl': 'del-ssl',
+    'set-controller': 'del-controller',
 }
 
 
@@ -57,7 +58,7 @@ def del_global(type, iface, key, value):  # pragma: nocover (covered in autopkgt
     # TODO: do noting if values are the same
     if cmd == 'del-ssl':
         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, cmd])
-    elif cmd == 'del-fail-mode':
+    elif cmd is not None:
         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, cmd, iface])
     else:
         raise Exception('Reset command unkown for:', key)
@@ -123,8 +124,12 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
 
         # Step 2: Clean up the settings of the remaining interfaces
-        for t in ('Port', 'Bridge', 'Interface', 'open_vswitch'):  # TODO: , 'Controller'):
-            cols = 'external-ids' if t == 'open_vswitch' else 'name,external-ids'
+        for t in ('Port', 'Bridge', 'Interface', 'Open_vSwitch', 'Controller'):
+            cols = 'name,external-ids'
+            if t == 'Open_vSwitch':
+                cols = 'external-ids'
+            elif t == 'Controller':
+                cols = '_uuid,external-ids'  # handle _uuid as if it would be the iface 'name'
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=%s' % cols,
                                            '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t],
                                           universal_newlines=True)
@@ -132,7 +137,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                 if 'netplan/' in line:
                     iface = '.'
                     extids = line
-                    if t != 'open_vswitch':
+                    if t != 'Open_vSwitch':
                         iface, extids = line.split(',', 1)
 
                     # TODO: Make sure our values do not contain (white-)spaces!
