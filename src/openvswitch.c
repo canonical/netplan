@@ -372,9 +372,9 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
                     exit(1);
                 }
-                /* There is not OVS Port which we could tag netplan=true if
-                 * this patch port is assigned as an OVS bond interface.
-                 * Tag the Interface instead, to clean it up from a bond. */
+                /* There is no OVS Port which we could tag netplan=true if this
+                 * patch port is assigned as an OVS bond interface. Tag the
+                 * Interface instead, to clean it up from a bond. */
                 if (def->bond)
                     write_ovs_tag_netplan(def->id, "Interface", cmds);
                 else

@@ -64,11 +64,21 @@ def _del_global(type, iface, key, value):
         if iface:
             args_get.append(iface)
             args_del.append(iface)
+        # Check the current value of a global command and compare it to the tag-value, e.g.:
+        # * get-ssl: netplan/global/set-ssl=/private/key.pem,/another/cert.pem,/some/ca-cert.pem
+        # Private key: /private/key.pem
+        # Certificate: /another/cert.pem
+        # CA Certificate: /some/ca-cert.pem
+        # Bootstrap: false
+        # * get-fail-mode: netplan/global/set-fail-mode=secure
+        # secure
+        # * get-controller: netplan/global/set-controller=tcp:127.0.0.1:1337,unix:/some/socket
+        # tcp:127.0.0.1:1337
+        # unix:/some/socket
         out = subprocess.check_output(args_get, universal_newlines=True)
-        is_same = all(item in out for item in value.split(','))
         # Clean it only if the exact same value(s) were set by netplan.
         # Don't touch it if other values were set by another integration.
-        if is_same:
+        if all(item in out for item in value.split(',')):
             subprocess.check_call(args_del)
     else:
         raise Exception('Reset command unkown for:', key)
@@ -145,8 +155,9 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                     extids = line
                     if t != 'Open_vSwitch':
                         iface, extids = line.split(',', 1)
-
-                    # TODO: Make sure our values do not contain (white-)spaces!
+                    # Check each line (interface) if it contains any netplan tagged settings, e.g.:
+                    # ovs0,"iface-id=myhostname netplan=true netplan/external-ids/iface-id=myhostname"
+                    # ovs1,"netplan=true netplan/global/set-fail-mode=standalone netplan/mcast_snooping_enable=false"
                     for entry in extids.strip('"').split(' '):
                         if entry.startswith('netplan/') and '=' in entry:
                             setting, val = entry.split('=', 1)

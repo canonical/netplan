@@ -416,9 +416,9 @@ class _CommonTests():
 
     def test_settings_tag_cleanup(self):
         self.setup_eth(None, False)
-        #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
-        #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
-        #self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'bond0'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs0'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovs1'])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'bond0'])
         with open(self.config, 'w') as f:
             f.write('''network:
   version: 2
@@ -475,14 +475,6 @@ class _CommonTests():
         before = self._collect_ovs_settings('ovs0')
         subprocess.check_call(['netplan', 'apply', '--only-ovs-cleanup'])
         after = self._collect_ovs_settings('ovs0')
-
-        #for k, v in before.items():
-        #    print(k)
-        #    print(v.decode('utf-8'))
-        #print('==========')
-        #for k, v in after.items():
-        #    print(k)
-        #    print(v.decode('utf-8'))
 
         # Verify interfaces
         for data in (before['show'], after['show']):
