@@ -238,8 +238,9 @@ class _CommonTests():
         self.assertIn(b'        Port %(ec)b\n            Interface %(ec)b' % {b'ec': self.dev_e_client.encode()}, out)
         self.assertIn(b'        Port %(e2c)b\n            Interface %(e2c)b' % {b'e2c': self.dev_e2_client.encode()}, out)
         # Verify the bridge was tagged 'netplan:true' correctly
-        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', '-f', 'csv', '-d', 'bare', 'list', 'Bridge'])
-        self.assertIn(b'ovsbr,netplan=true', out)
+        out = subprocess.check_output(['ovs-vsctl', '--columns=name,external-ids', '-f', 'csv', '-d', 'bare',
+                                       'list', 'Bridge', 'ovsbr'])
+        self.assertIn(b'netplan=true', out)
         self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
 
     def test_bond_base(self):
