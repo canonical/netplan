@@ -1517,6 +1517,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(metric)},
+    {"mtu", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(mtubytes)},
     {NULL}
 };
 

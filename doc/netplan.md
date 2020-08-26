@@ -574,6 +574,10 @@ These options are available for all types of interfaces.
           see ``/etc/iproute2/rt_tables``.
           (``NetworkManager``: as of v1.10.0)
 
+    ``mtu`` (scalar) – since **0.101**
+     :    The MTU to be used for the route, in bytes. Must be a positive integer
+          value.
+
 ``routing-policy`` (mapping)
 
 :    The ``routing-policy`` block defines extra routing policy for a network,

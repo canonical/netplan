@@ -442,6 +442,8 @@ write_route(NetplanIPRoute* r, GString* s)
         g_string_append_printf(s, "Metric=%d\n", r->metric);
     if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         g_string_append_printf(s, "Table=%d\n", r->table);
+    if (r->mtubytes != NETPLAN_MTU_UNSPEC)
+        g_string_append_printf(s, "MTUBytes=%u\n", r->mtubytes);
 }
 
 static void
@@ -568,7 +570,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     }
 
     if (def->mtubytes) {
-        g_string_append_printf(link, "MTUBytes=%d\n", def->mtubytes);
+        g_string_append_printf(link, "MTUBytes=%u\n", def->mtubytes);
     }
 
     if (def->emit_lldp) {

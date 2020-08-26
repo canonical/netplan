@@ -222,6 +222,7 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
             g_string_append(s, "\n");
 
             if (   cur_route->onlink
+                || cur_route->mtubytes
                 || cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC
                 || cur_route->from) {
                 g_string_append_printf(s, "route%d_options=", j);
@@ -229,6 +230,8 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                     /* onlink for IPv6 addresses is only supported since nm-1.18.0. */
                     g_string_append_printf(s, "onlink=true,");
                 }
+                if (cur_route->mtubytes != NETPLAN_MTU_UNSPEC)
+                    g_string_append_printf(s, "mtu=%u,", cur_route->mtubytes);
                 if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC)
                     g_string_append_printf(s, "table=%u,", cur_route->table);
                 if (cur_route->from)
@@ -615,7 +618,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
             g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
         }
         if (def->mtubytes) {
-            g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
+            g_string_append_printf(link_str, "mtu=%u\n", def->mtubytes);
         }
         if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
             g_string_append_printf(link_str, "wake-on-wlan=%u\n", def->wowlan);
@@ -642,7 +645,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
             g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
         }
         if (def->mtubytes) {
-            g_string_append_printf(link_str, "mtu=%d\n", def->mtubytes);
+            g_string_append_printf(link_str, "mtu=%u\n", def->mtubytes);
         }
 
         if (link_str->len > 0) {
