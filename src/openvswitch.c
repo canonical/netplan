@@ -451,7 +451,7 @@ write_ovs_conf_finish(const char* rootdir)
                            ovs_settings_global.ssl.client_certificate,
                            ovs_settings_global.ssl.ca_certificate);
         GString* value = g_string_new(NULL);
-        g_string_printf(value, "%s,%s,%s",
+        g_string_printf(value, "%s %s %s",
                         ovs_settings_global.ssl.client_key,
                         ovs_settings_global.ssl.client_certificate,
                         ovs_settings_global.ssl.ca_certificate);

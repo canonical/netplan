@@ -584,7 +584,7 @@ ExecStart=/usr/bin/ovs-vsctl set Controller br0 external-ids:netplan/connection-
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path,/some/path,/another/path
+ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path /some/path /another/path
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -681,7 +681,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path,/some/path,/another/path
+ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path /some/path /another/path
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
