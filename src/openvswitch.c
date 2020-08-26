@@ -110,11 +110,19 @@ write_ovs_tag_setting(const gchar* id, const char* type, const char* col, const 
 {
     g_assert(col);
     g_assert(value);
+    g_autofree char *clean_value = g_strdup(value);
+    /* Replace " " -> "," if value contains spaces */
+    if (strstr(value, " ")) {
+        char **split = g_strsplit(value, " ", -1);
+        clean_value = g_strjoinv(",", split);
+        g_strfreev(split);
+    }
+
     GString* s = g_string_new("external-ids:netplan/");
     g_string_append_printf(s, "%s", col);
     if (key)
         g_string_append_printf(s, "/%s", key);
-    g_string_append_printf(s, "=%s", value);
+    g_string_append_printf(s, "=%s", clean_value);
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s %s", type, id, s->str);
     g_string_free(s, TRUE);
 }
@@ -451,7 +459,7 @@ write_ovs_conf_finish(const char* rootdir)
                            ovs_settings_global.ssl.client_certificate,
                            ovs_settings_global.ssl.ca_certificate);
         GString* value = g_string_new(NULL);
-        g_string_printf(value, "%s %s %s",
+        g_string_printf(value, "%s,%s,%s",
                         ovs_settings_global.ssl.client_key,
                         ovs_settings_global.ssl.client_certificate,
                         ovs_settings_global.ssl.ca_certificate);

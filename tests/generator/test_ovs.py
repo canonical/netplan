@@ -574,9 +574,9 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'} + '''\
 ExecStart=/usr/bin/ovs-vsctl set-controller br0 ptcp: ptcp:1337 ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] ssl:10.10.10.1 \
 tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] tcp:[fe80::1]:1337 unix:/some/path punix:other/path
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/global/set-controller=ptcp: ptcp:1337 \
-ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] ssl:10.10.10.1 tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] tcp:[fe80::1]:1337 \
-unix:/some/path punix:other/path
+ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/global/set-controller=ptcp:,ptcp:1337,\
+ptcp:1337:[fe80::1234%eth0],pssl:1337:[fe80::1],ssl:10.10.10.1,tcp:127.0.0.1:1337,tcp:[fe80::1234%eth0],tcp:[fe80::1]:1337,\
+unix:/some/path,punix:other/path
 ExecStart=/usr/bin/ovs-vsctl set Controller br0 connection-mode=out-of-band
 ExecStart=/usr/bin/ovs-vsctl set Controller br0 external-ids:netplan/connection-mode=out-of-band
 '''},
@@ -584,7 +584,7 @@ ExecStart=/usr/bin/ovs-vsctl set Controller br0 external-ids:netplan/connection-
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path /some/path /another/path
+ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path,/some/path,/another/path
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -681,7 +681,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path /some/path /another/path
+ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl=/key/path,/some/path,/another/path
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane

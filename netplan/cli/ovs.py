@@ -59,15 +59,17 @@ def _del_global(type, iface, key, value):
         iface = None
 
     if del_cmd:
-        out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, get_cmd], universal_newlines=True)
-        is_same = all(item in out for item in value.split(' '))
+        args_get = [OPENVSWITCH_OVS_VSCTL, get_cmd]
+        args_del = [OPENVSWITCH_OVS_VSCTL, del_cmd]
+        if iface:
+            args_get.append(iface)
+            args_del.append(iface)
+        out = subprocess.check_output(args_get, universal_newlines=True)
+        is_same = all(item in out for item in value.split(','))
         # Clean it only if the exact same value(s) were set by netplan.
         # Don't touch it if other values were set by another integration.
         if is_same:
-            args = [OPENVSWITCH_OVS_VSCTL, del_cmd]
-            if iface:
-                args.append(iface)
-            subprocess.check_call(args)
+            subprocess.check_call(args_del)
     else:
         raise Exception('Reset command unkown for:', key)
 
