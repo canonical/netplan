@@ -21,7 +21,7 @@ import subprocess
 
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
 # Defaults for non-optional settings, as defined here:
-# http://www.openvswitch.org//ovs-vswitchd.conf.db.5.pdf
+# http://www.openvswitch.org/ovs-vswitchd.conf.db.5.pdf
 DEFAULTS = {
     # Mandatory columns:
     'mcast_snooping_enable': 'false',
@@ -29,13 +29,13 @@ DEFAULTS = {
 }
 GLOBALS = {
     # Global commands:
-    'set-fail-mode': 'del-fail-mode',
-    'set-ssl': 'del-ssl',
-    'set-controller': 'del-controller',
+    'set-ssl': ('del-ssl', 'get-ssl'),
+    'set-fail-mode': ('del-fail-mode', 'get-fail-mode'),
+    'set-controller': ('del-controller', 'get-controller'),
 }
 
 
-def del_col(type, iface, column, value):  # pragma: nocover (covered in autopkgtest)
+def _del_col(type, iface, column, value):
     """Cleanup values from a column (i.e. "column=value")"""
     default = DEFAULTS.get(column)
     if default is None:
@@ -46,47 +46,51 @@ def del_col(type, iface, column, value):  # pragma: nocover (covered in autopkgt
         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'set', type, iface, '%s=%s' % (column, default)])
 
 
-def del_dict(type, iface, column, key, value):  # pragma: nocover (covered in autopkgtest)
+def _del_dict(type, iface, column, key, value):
     """Cleanup values from a dictionary (i.e. "column:key=value")"""
     # removes the exact value only if it was set by netplan
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, value])
 
 
-def del_global(type, iface, key, value):  # pragma: nocover (covered in autopkgtest)
+def _del_global(type, iface, key, value):
     """Cleanup commands from the global namespace"""
-    cmd = GLOBALS.get(key)
-    # TODO: do noting if values are the same
-    if cmd == 'del-ssl':
-        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, cmd])
-    elif cmd is not None:
-        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, cmd, iface])
+    del_cmd, get_cmd = GLOBALS.get(key, (None, None))
+    if del_cmd == 'del-ssl':
+        iface = None
+
+    if del_cmd:
+        out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, get_cmd], universal_newlines=True)
+        is_same = all(item in out for item in value.split(' '))
+        # Clean it only if the exact same value(s) were set by netplan.
+        # Don't touch it if other values were set by another integration.
+        if is_same:
+            args = [OPENVSWITCH_OVS_VSCTL, del_cmd]
+            if iface:
+                args.append(iface)
+            subprocess.check_call(args)
     else:
         raise Exception('Reset command unkown for:', key)
 
 
-def clear_setting(type, iface, setting, value):  # pragma: nocover (covered in autopkgtest)
+def clear_setting(type, iface, setting, value):
     """Check if this setting is in a dict or a colum and delete accordingly"""
     split = setting.split('/', 2)
     col = split[1]
     if col == 'global' and len(split) > 2:
-        del_global(type, iface, split[2], value)
+        _del_global(type, iface, split[2], value)
     elif len(split) > 2:
-        del_dict(type, iface, split[1], split[2], value)
+        _del_dict(type, iface, split[1], split[2], value)
     else:
-        del_col(type, iface, split[1], value)
+        _del_col(type, iface, split[1], value)
     # Cleanup the tag itself (i.e. "netplan/column[/key]")
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, 'external-ids', setting])
 
 
-def is_ovs_interface(iface, interfaces):  # pragma: nocover (covered in autopkgtest)
+def is_ovs_interface(iface, interfaces):
     if interfaces[iface].get('openvswitch') is not None:
         return True
     else:
-        contains_ovs_interfaces = False
-        sub_interfaces = interfaces[iface].get('interfaces', [])
-        for i in sub_interfaces:
-            contains_ovs_interfaces |= is_ovs_interface(i, interfaces)
-        return contains_ovs_interfaces
+        return any(is_ovs_interface(i, interfaces) for i in interfaces[iface].get('interfaces', []))
 
 
 def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover (covered in autopkgtest)
