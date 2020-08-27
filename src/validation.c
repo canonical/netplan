@@ -195,6 +195,9 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
             goto netdef_grammar_error;
     }
 
+    if (nd->ip6_addr_gen_mode > NETPLAN_ADDRGEN_EUI64 && nd->ip6_addr_gen_token)
+        return yaml_error(node, error, "%s: ipv6-address-generation and ipv6-address-token-id are mutually exclusive", nd->id);
+
     valid = TRUE;
 
 netdef_grammar_error:
