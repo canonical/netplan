@@ -86,7 +86,7 @@ class NetplanApply(utils.NetplanCommand):
 
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces = utils.nm_interfaces(old_nm_glob)
+        nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
         old_files_nm = bool(old_nm_glob)
 
         generator_call = []
@@ -115,7 +115,7 @@ class NetplanApply(utils.NetplanCommand):
             restart_networkd = True
 
         restart_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces += utils.nm_interfaces(restart_nm_glob)
+        nm_ifaces.update(utils.nm_interfaces(restart_nm_glob, devices))
         restart_nm = bool(restart_nm_glob)
         if not restart_nm and old_files_nm:
             restart_nm = True
@@ -194,6 +194,10 @@ class NetplanApply(utils.NetplanCommand):
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
             utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
         if restart_nm:
+            # Flush all IP addresses of NM managed interfaces, to avoid NM creating
+            # new, non netplan-* connection profiles, using the existing IPs.
+            for iface in utils.nm_interfaces(restart_nm_glob, devices):
+                utils.ip_addr_flush(iface)
             utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
