@@ -541,12 +541,8 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         g_string_append_printf(network, "IPv6Token=static:%s\n", def->ip6_addr_gen_token);
     } else if (def->ip6_addr_gen_mode > NETPLAN_ADDRGEN_EUI64) {
         /* EUI-64 mode is enabled by default, if no IPv6Token= is specified */
-        /* TODO: Figure out how we can configure stable-privacy for networkd.
-         *       IPv6Token= seems to be the corresponding option, but it doesn't do
-         *       exactly what we need and has quite some restrictions, c.f.:
-         *       https://github.com/systemd/systemd/pull/16618
-         *       https://github.com/systemd/systemd/issues/4625
-         *       https://github.com/systemd/systemd/pull/14415 */
+        /* TODO: Enable stable-privacy mode for networkd, once PR#16618 has been released:
+         *       https://github.com/systemd/systemd/pull/16618 */
         g_fprintf(stderr, "ERROR: %s: ipv6-address-generation mode is not supported by networkd\n", def->id);
         exit(1);
     }
