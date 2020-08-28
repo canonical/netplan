@@ -112,8 +112,9 @@ write_ovs_tag_setting(const gchar* id, const char* type, const char* col, const 
     g_assert(value);
     g_autofree char *clean_value = g_strdup(value);
     /* Replace " " -> "," if value contains spaces */
-    if (strstr(value, " ")) {
+    if (strchr(value, ' ')) {
         char **split = g_strsplit(value, " ", -1);
+        g_free(clean_value);
         clean_value = g_strjoinv(",", split);
         g_strfreev(split);
     }
@@ -207,14 +208,15 @@ write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
 static void
 write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds)
 {
+    char* value = NULL;
     /* OVS supports only "active-backup", "balance-tcp" and "balance-slb":
      * http://www.openvswitch.org/support/dist-docs/ovs-vswitchd.conf.db.5.txt */
     if (!strcmp(def->bond_params.mode, "active-backup") ||
         !strcmp(def->bond_params.mode, "balance-tcp") ||
         !strcmp(def->bond_params.mode, "balance-slb")) {
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s bond_mode=%s",
-                           def->id, def->bond_params.mode);
-        write_ovs_tag_setting(def->id, "Port", "bond_mode", NULL, def->bond_params.mode, cmds);
+        value = def->bond_params.mode;
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s bond_mode=%s", def->id, value);
+        write_ovs_tag_setting(def->id, "Port", "bond_mode", NULL, value, cmds);
     } else {
         g_fprintf(stderr, "%s: bond mode '%s' not supported by openvswitch\n",
                   def->id, def->bond_params.mode);
@@ -307,6 +309,7 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
+    char* value = NULL;
 
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
 
@@ -319,10 +322,9 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 dependency = write_ovs_bond_interfaces(def, cmds);
                 write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set LACP mode, default to "off" */
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s lacp=%s",
-                                   def->id, def->ovs_settings.lacp? def->ovs_settings.lacp : "off");
-                write_ovs_tag_setting(def->id, type, "lacp", NULL,
-                                      def->ovs_settings.lacp? def->ovs_settings.lacp : "off", cmds);
+                value = def->ovs_settings.lacp? def->ovs_settings.lacp : "off";
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s lacp=%s", def->id, value);
+                write_ovs_tag_setting(def->id, type, "lacp", NULL, value, cmds);
                 if (def->bond_params.mode) {
                     write_ovs_bond_mode(def, cmds);
                 }
@@ -332,20 +334,17 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 write_ovs_bridge_interfaces(def, cmds);
                 write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set fail-mode, default to "standalone" */
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-fail-mode %s %s",
-                                   def->id, def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone");
-                write_ovs_tag_setting(def->id, type, "global", "set-fail-mode",
-                                      def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone", cmds);
+                value = def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone";
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-fail-mode %s %s", def->id, value);
+                write_ovs_tag_setting(def->id, type, "global", "set-fail-mode", value, cmds);
                 /* Enable/disable mcast-snooping */ 
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s mcast_snooping_enable=%s",
-                                   def->id, def->ovs_settings.mcast_snooping? "true" : "false");
-                write_ovs_tag_setting(def->id, type, "mcast_snooping_enable", NULL,
-                                      def->ovs_settings.mcast_snooping? "true" : "false", cmds);
+                value = def->ovs_settings.mcast_snooping? "true" : "false";
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s mcast_snooping_enable=%s", def->id, value);
+                write_ovs_tag_setting(def->id, type, "mcast_snooping_enable", NULL, value, cmds);
                 /* Enable/disable rstp */
-                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s rstp_enable=%s",
-                                   def->id, def->ovs_settings.rstp? "true" : "false");
-                write_ovs_tag_setting(def->id, type, "rstp_enable", NULL,
-                                      def->ovs_settings.rstp? "true" : "false", cmds);
+                value = def->ovs_settings.rstp? "true" : "false";
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s rstp_enable=%s", def->id, value);
+                write_ovs_tag_setting(def->id, type, "rstp_enable", NULL, value, cmds);
                 /* Set protocols */
                 if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
                     write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
@@ -357,10 +356,9 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                     write_ovs_bridge_controller_targets(&(def->ovs_settings.controller), def->id, cmds);
                     /* Set controller connection mode, only applicable if at least one controller target address was set */
                     if (def->ovs_settings.controller.connection_mode) {
-                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Controller %s connection-mode=%s",
-                                           def->id, def->ovs_settings.controller.connection_mode);
-                        write_ovs_tag_setting(def->id, "Controller", "connection-mode", NULL,
-                                              def->ovs_settings.controller.connection_mode, cmds);
+                        value = def->ovs_settings.controller.connection_mode;
+                        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Controller %s connection-mode=%s", def->id, value);
+                        write_ovs_tag_setting(def->id, "Controller", "connection-mode", NULL, value, cmds);
                     }
                 }
                 break;
@@ -454,15 +452,12 @@ write_ovs_conf_finish(const char* rootdir)
 
     if (ovs_settings_global.ssl.client_key && ovs_settings_global.ssl.client_certificate &&
         ovs_settings_global.ssl.ca_certificate) {
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-ssl %s %s %s",
-                           ovs_settings_global.ssl.client_key,
-                           ovs_settings_global.ssl.client_certificate,
-                           ovs_settings_global.ssl.ca_certificate);
         GString* value = g_string_new(NULL);
-        g_string_printf(value, "%s,%s,%s",
+        g_string_printf(value, "%s %s %s",
                         ovs_settings_global.ssl.client_key,
                         ovs_settings_global.ssl.client_certificate,
                         ovs_settings_global.ssl.ca_certificate);
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-ssl %s", value->str);
         write_ovs_tag_setting(".", "open_vswitch", "global", "set-ssl", value->str, cmds);
         g_string_free(value, TRUE);
     }
