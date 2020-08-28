@@ -44,6 +44,7 @@ class ConfigManager(object):
     @property
     def interfaces(self):
         interfaces = {}
+        interfaces.update(self.ovs_ports)
         interfaces.update(self.ethernets)
         interfaces.update(self.wifis)
         interfaces.update(self.bridges)
@@ -57,6 +58,10 @@ class ConfigManager(object):
         interfaces.update(self.ethernets)
         interfaces.update(self.wifis)
         return interfaces
+
+    @property
+    def ovs_ports(self):
+        return self.network['ovs_ports']
 
     @property
     def ethernets(self):
@@ -101,6 +106,7 @@ class ConfigManager(object):
         files = [names_to_paths[name] for name in sorted(names_to_paths.keys())]
 
         self.config['network'] = {
+            'ovs_ports': {},
             'ethernets': {},
             'wifis': {},
             'bridges': {},
@@ -172,6 +178,29 @@ class ConfigManager(object):
             else:
                 raise
 
+    def _merge_ovs_ports_config(self, orig, new):
+        new_interfaces = set()
+        ports = dict()
+        if 'ports' in new:
+            for p1, p2 in new.get('ports'):
+                # Spoof an interface config for patch ports, which are usually
+                # just strings. Add 'peer' and mark it via 'openvswitch' key.
+                ports[p1] = {'peer': p2, 'openvswitch': {}}
+                ports[p2] = {'peer': p1, 'openvswitch': {}}
+        changed_ifaces = list(ports.keys())
+
+        for ifname in changed_ifaces:
+            iface = ports.pop(ifname)
+            if ifname in orig:
+                logging.debug("{} exists in {}".format(ifname, orig))
+                orig[ifname].update(iface)
+            else:
+                logging.debug("{} not found in {}".format(ifname, orig))
+                orig[ifname] = iface
+                new_interfaces.add(ifname)
+
+        return new_interfaces
+
     def _merge_interface_config(self, orig, new):
         new_interfaces = set()
         changed_ifaces = list(new.keys())
@@ -198,6 +227,9 @@ class ConfigManager(object):
                 if yaml_data is not None:
                     network = yaml_data.get('network')
                 if network:
+                    if 'openvswitch' in network:
+                        new = self._merge_ovs_ports_config(self.ovs_ports, network.get('openvswitch'))
+                        new_interfaces |= new
                     if 'ethernets' in network:
                         new = self._merge_interface_config(self.ethernets, network.get('ethernets'))
                         new_interfaces |= new
