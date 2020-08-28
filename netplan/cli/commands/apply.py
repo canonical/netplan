@@ -99,7 +99,7 @@ class NetplanApply(utils.NetplanCommand):
         old_ovs_glob.remove('/run/systemd/system/netplan-ovs-cleanup.service')
         old_files_ovs = bool(old_ovs_glob)
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces = utils.nm_interfaces(old_nm_glob)
+        nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
         old_files_nm = bool(old_nm_glob)
 
         generator_call = []
@@ -135,7 +135,7 @@ class NetplanApply(utils.NetplanCommand):
             restart_networkd = True
 
         restart_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces += utils.nm_interfaces(restart_nm_glob)
+        nm_ifaces.update(utils.nm_interfaces(restart_nm_glob, devices))
         restart_nm = bool(restart_nm_glob)
         if not restart_nm and old_files_nm:
             restart_nm = True
@@ -218,6 +218,10 @@ class NetplanApply(utils.NetplanCommand):
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
             utils.systemctl_networkd('start', sync=True, extra_services=netplan_wpa + netplan_ovs)
         if restart_nm:
+            # Flush all IP addresses of NM managed interfaces, to avoid NM creating
+            # new, non netplan-* connection profiles, using the existing IPs.
+            for iface in utils.nm_interfaces(restart_nm_glob, devices):
+                utils.ip_addr_flush(iface)
             utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
