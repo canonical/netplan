@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 #
 # Copyright (C) 2020 Canonical, Ltd.
-# Author: Łukas 'slyon' Märdian <lukas.maerdian@canonical.com>
+# Author: Lukas 'slyon' Märdian <lukas.maerdian@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
