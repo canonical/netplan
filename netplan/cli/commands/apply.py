@@ -93,10 +93,12 @@ class NetplanApply(utils.NetplanCommand):
             else:
                 return
 
+        ovs_cleanup_service = '/run/systemd/system/netplan-ovs-cleanup.service'
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
-        # Ignore netplan-ovs-cleanup.service, as it is always there
-        old_ovs_glob.remove('/run/systemd/system/netplan-ovs-cleanup.service')
+        # Ignore netplan-ovs-cleanup.service, as it can always be there
+        if ovs_cleanup_service in old_ovs_glob:
+            old_ovs_glob.remove(ovs_cleanup_service)
         old_files_ovs = bool(old_ovs_glob)
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
         nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
@@ -127,8 +129,9 @@ class NetplanApply(utils.NetplanCommand):
         if not restart_networkd and old_files_networkd:
             restart_networkd = True
         restart_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
-        # Ignore netplan-ovs-cleanup.service, as it is always there
-        restart_ovs_glob.remove('/run/systemd/system/netplan-ovs-cleanup.service')
+        # Ignore netplan-ovs-cleanup.service, as it can always be there
+        if ovs_cleanup_service in restart_ovs_glob:
+            restart_ovs_glob.remove(ovs_cleanup_service)
         restart_ovs = bool(restart_ovs_glob)
         if not restart_ovs and old_files_ovs:
             # OVS is managed via systemd units
