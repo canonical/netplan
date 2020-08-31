@@ -25,6 +25,7 @@
 
 #include "parse.h"
 #include "error.h"
+#include "util.h"
 
 
 /* Check sanity for address types */
@@ -54,6 +55,78 @@ is_ip6_address(const char* address)
     if (ret > 0)
         return TRUE;
 
+    return FALSE;
+}
+
+/* Check sanity of OpenVSwitch controller targets */
+gboolean
+validate_ovs_target(gboolean host_first, gchar* s) {
+    static guint dport = 6653; // the default port
+    g_autofree gchar* host = NULL;
+    g_autofree gchar* port = NULL;
+    gchar** vec = NULL;
+
+    /* Format tcp:host[:port] or ssl:host[:port] */
+    if (host_first) {
+        g_assert(s != NULL);
+        // IP6 host, indicated by bracketed notation ([..IPv6..])
+        if (s[0] == '[') {
+            gchar* tmp = NULL;
+            tmp = s+1; //get rid of leading '['
+            // append default port to unify parsing
+            if (!g_strrstr(tmp, "]:"))
+                vec = g_strsplit(g_strdup_printf("%s:%u", tmp, dport), "]:", 2);
+            else
+                vec = g_strsplit(tmp, "]:", 2);
+        // IP4 host
+        } else {
+            // append default port to unify parsing
+            if (!g_strrstr(s, ":"))
+                vec = g_strsplit(g_strdup_printf("%s:%u", s, dport), ":", 2);
+            else
+                vec = g_strsplit(s, ":", 2);
+        }
+        // host and port are always set
+        host = g_strdup(vec[0]); //set host alias
+        port = g_strdup(vec[1]); //set port alias
+        g_assert(vec[2] == NULL);
+        g_strfreev(vec);
+    /* Format ptcp:[port][:host] or pssl:[port][:host] */
+    } else {
+        // special case: "ptcp:" (no port, no host)
+        if (!g_strcmp0(s, ""))
+            port = g_strdup_printf("%u", dport);
+        else {
+            vec = g_strsplit(s, ":", 2);
+            port = g_strdup(vec[0]);
+            host = g_strdup(vec[1]);
+            // get rid of leading & trailing IPv6 brackets
+            if (host && host[0] == '[') {
+                char **split = g_strsplit_set(host, "[]", 3);
+                g_free(host);
+                host = g_strjoinv("", split);
+                g_strfreev(split);
+            }
+            g_strfreev(vec);
+        }
+    }
+
+    g_assert(port != NULL);
+    // special case where IPv6 notation contains '%iface' name
+    if (host && g_strrstr(host, "%")) {
+        gchar** split = g_strsplit (host, "%", 2);
+        g_free(host);
+        host = g_strdup(split[0]); // designated scope for IPv6 link-level addresses
+        g_assert(split[1] != NULL && split[2] == NULL);
+        g_strfreev(split);
+    }
+
+    if (atoi(port) > 0 && atoi(port) <= 65535) {
+        if (!host)
+            return TRUE;
+        else if (host && (is_ip4_address(host) || is_ip6_address(host)))
+            return TRUE;
+    }
     return FALSE;
 }
 
@@ -193,6 +266,15 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         valid = validate_tunnel_grammar(nd, node, error);
         if (!valid)
             goto netdef_grammar_error;
+    }
+
+    if (nd->backend == NETPLAN_BACKEND_OVS) {
+        // LCOV_EXCL_START
+        if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
+            /* Tested via integration test */
+            return yaml_error(node, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
+        }
+        // LCOV_EXCL_STOP
     }
 
     valid = TRUE;

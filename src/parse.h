@@ -50,12 +50,14 @@ typedef enum {
     NETPLAN_DEF_TYPE_BOND,
     NETPLAN_DEF_TYPE_VLAN,
     NETPLAN_DEF_TYPE_TUNNEL,
+    NETPLAN_DEF_TYPE_PORT,
 } NetplanDefType;
 
 typedef enum {
     NETPLAN_BACKEND_NONE,
     NETPLAN_BACKEND_NETWORKD,
     NETPLAN_BACKEND_NM,
+    NETPLAN_BACKEND_OVS,
     NETPLAN_BACKEND_MAX_,
 } NetplanBackend;
 
@@ -63,6 +65,7 @@ static const char* const netplan_backend_to_name[NETPLAN_BACKEND_MAX_] = {
         [NETPLAN_BACKEND_NONE] = "none",
         [NETPLAN_BACKEND_NETWORKD] = "networkd",
         [NETPLAN_BACKEND_NM] = "NetworkManager",
+        [NETPLAN_BACKEND_OVS] = "OpenVSwitch",
 };
 
 typedef enum {
@@ -196,6 +199,23 @@ typedef struct dhcp_overrides {
     guint metric;
 } NetplanDHCPOverrides;
 
+typedef struct ovs_controller {
+    char* connection_mode;
+    GArray* addresses;
+} NetplanOVSController;
+
+typedef struct ovs_settings {
+    GHashTable* external_ids;
+    GHashTable* other_config;
+    char* lacp;
+    char* fail_mode;
+    gboolean mcast_snooping;
+    GArray* protocols;
+    gboolean rstp;
+    NetplanOVSController controller;
+    NetplanAuthenticationSettings ssl;
+} NetplanOVSSettings;
+
 /**
  * Represent a configuration stanza
  */
@@ -243,6 +263,9 @@ struct net_definition {
     /* master ID for slave devices */
     char* bridge;
     char* bond;
+
+    /* peer ID for OVS patch ports */
+    char* peer;
 
     /* vlan */
     guint vlan_id;
@@ -341,6 +364,10 @@ struct net_definition {
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
 
+    /* these properties are only valid for OpenVSwitch */
+    /* netplan-feature: openvswitch */
+    NetplanOVSSettings ovs_settings;
+
     union {
         struct NetplanNMSettings {
             char *name;
@@ -425,6 +452,7 @@ typedef struct {
 /* Written/updated by parse_yaml(): char* id →  net_definition */
 extern GHashTable* netdefs;
 extern GList* netdefs_ordered;
+extern NetplanOVSSettings ovs_settings_global;
 
 /****************************************************
  * Functions

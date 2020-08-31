@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 Canonical, Ltd.
  * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ *         Lukas Märdian <lukas.maerdian@canonical.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +37,7 @@
 #define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
 #define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
+#define ovs_settings_offset(field) GUINT_TO_POINTER(offsetof(NetplanOVSSettings, field))
 #define addr_option_offset(field) GUINT_TO_POINTER(offsetof(NetplanAddressOptions, field))
 
 /* NetplanNetDefinition that is currently being processed */
@@ -53,6 +55,9 @@ static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
 
 static NetplanBackend backend_global, backend_cur_type;
+
+/* global OpenVSwitch settings */
+NetplanOVSSettings ovs_settings_global;
 
 /* Global ID → NetplanNetDefinition* map for all parsed config files */
 GHashTable* netdefs;
@@ -181,6 +186,57 @@ assert_valid_id(yaml_node_t* node, GError** error)
     return TRUE;
 }
 
+static void
+initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
+{
+    overrides->use_dns = TRUE;
+    overrides->use_domains = NULL;
+    overrides->use_ntp = TRUE;
+    overrides->send_hostname = TRUE;
+    overrides->use_hostname = TRUE;
+    overrides->use_mtu = TRUE;
+    overrides->use_routes = TRUE;
+    overrides->hostname = NULL;
+    overrides->metric = NETPLAN_METRIC_UNSPEC;
+}
+
+static void
+initialize_ovs_settings(NetplanOVSSettings* ovs_settings)
+{
+    ovs_settings->mcast_snooping = FALSE;
+    ovs_settings->rstp = FALSE;
+}
+
+static  NetplanNetDefinition*
+netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
+{
+    /* create new network definition */
+    cur_netdef = g_new0(NetplanNetDefinition, 1);
+    cur_netdef->type = type;
+    cur_netdef->backend = backend ?: NETPLAN_BACKEND_NONE;
+    cur_netdef->id = g_strdup(id);
+
+    /* Set some default values */
+    cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
+    cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
+    cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
+    /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
+    cur_netdef->linklocal.ipv6 = TRUE;
+    cur_netdef->sriov_vlan_filter = FALSE;
+    cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
+
+    /* DHCP override defaults */
+    initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
+    initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
+
+    /* OpenVSwitch defaults */
+    initialize_ovs_settings(&cur_netdef->ovs_settings);
+
+    g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+    netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
+    return cur_netdef;
+}
+
 /****************************************************
  * Data types and functions for interpreting YAML nodes
  ****************************************************/
@@ -224,7 +280,7 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
 static gboolean
-process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, GError** error)
+process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, GList** out_values, GError** error)
 {
     yaml_node_pair_t* entry;
 
@@ -243,10 +299,12 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
         if (!h)
             return yaml_error(key, error, "unknown key '%s'", scalar(key));
         assert_type(value, h->type);
+        if (out_values)
+            *out_values = g_list_prepend(*out_values, g_strdup(scalar(key)));
         if (h->map_handlers) {
             g_assert(h->handler == NULL);
             g_assert(h->type == YAML_MAPPING_NODE);
-            if (!process_mapping(doc, value, h->map_handlers, error))
+            if (!process_mapping(doc, value, h->map_handlers, NULL, error))
                 return FALSE;
         } else {
             if (!h->handler(doc, value, h->data, error))
@@ -353,6 +411,37 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
     return TRUE;
 }
 
+/*
+ * Handler for setting a HashTable field from a mapping node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the boolean field to write is located
+*/
+static gboolean
+handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    GHashTable** map = (GHashTable**) ((void*) entryptr + offset);
+    if (!*map)
+        *map = g_hash_table_new(g_str_hash, g_str_equal);
+
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+
+        key = yaml_document_get_node(doc, entry->key);
+        value = yaml_document_get_node(doc, entry->value);
+
+        assert_type(key, YAML_SCALAR_NODE);
+        assert_type(value, YAML_SCALAR_NODE);
+
+        /* TODO: make sure we free all the memory here */
+        if (!g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value))))
+            return yaml_error(node, error, "duplicate map entry '%s'", scalar(key));
+    }
+
+    return TRUE;
+}
+
+
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -379,7 +468,9 @@ handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 
 /**
  * Generic handler for setting a cur_netdef ID/iface name field referring to an
- * existing ID from a scalar node
+ * existing ID from a scalar node. This handler also includes a special case
+ * handler for OVS VLANs, switching the backend implicitly to OVS for such
+ * interfaces
  * @data: offset into NetplanNetDefinition where the NetplanNetDefinition* field to write is
  *        located
  */
@@ -394,6 +485,11 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
         add_missing_node(node);
     } else {
         *((NetplanNetDefinition**) ((void*) cur_netdef + offset)) = ref;
+
+        if (cur_netdef->type == NETPLAN_DEF_TYPE_VLAN && ref->backend == NETPLAN_BACKEND_OVS) {
+            g_debug("%s: VLAN defined for openvswitch interface, choosing OVS backend", cur_netdef->id);
+            cur_netdef->backend = NETPLAN_BACKEND_OVS;
+        }
     }
     return TRUE;
 }
@@ -501,6 +597,13 @@ handle_netdef_addrgen(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
     else
         return yaml_error(node, error, "unknown ipv6-address-generation '%s'", scalar(node));
     return TRUE;
+}
+
+static gboolean
+handle_netdef_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_netdef);
+    return handle_generic_map(doc, node, cur_netdef, data, error);
 }
 
 
@@ -630,7 +733,7 @@ handle_access_point_auth(yaml_document_t* doc, yaml_node_t* node, const void* _,
     cur_access_point->has_auth = TRUE;
 
     cur_auth = &cur_access_point->auth;
-    ret = process_mapping(doc, node, auth_handlers, error);
+    ret = process_mapping(doc, node, auth_handlers, NULL, error);
     cur_auth = NULL;
 
     return ret;
@@ -726,7 +829,7 @@ static gboolean
 handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     cur_netdef->has_match = TRUE;
-    return process_mapping(doc, node, match_handlers, error);
+    return process_mapping(doc, node, match_handlers, NULL, error);
 }
 
 struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[] = {
@@ -773,7 +876,7 @@ handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** err
     cur_netdef->has_auth = TRUE;
 
     cur_auth = &cur_netdef->auth;
-    ret = process_mapping(doc, node, auth_handlers, error);
+    ret = process_mapping(doc, node, auth_handlers, NULL, error);
     cur_auth = NULL;
 
     return ret;
@@ -807,7 +910,8 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         char* prefix_len;
         guint64 prefix_len_num;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        yaml_node_t *key, *value = NULL;
+        yaml_node_t *key = NULL;
+        yaml_node_t *value = NULL;
 
         if (entry->type != YAML_SCALAR_NODE && entry->type != YAML_MAPPING_NODE) {
             return yaml_error(entry, error, "expected either scalar or mapping (check indentation)");
@@ -846,7 +950,7 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
             cur_addr_option = g_new0(NetplanAddressOptions, 1);
             cur_addr_option->address = g_strdup(scalar(key));
 
-            if (!process_mapping(doc, value, address_option_handlers, error))
+            if (!process_mapping(doc, value, address_option_handlers, NULL, error))
                 return FALSE;
 
             g_array_append_val(cur_netdef->address_options, cur_addr_option);
@@ -857,11 +961,16 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
         if (is_ip4_address(addr)) {
             if (prefix_len_num == 0 || prefix_len_num > 32)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-
             if (!cur_netdef->ip4_addresses)
                 cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            /* Do not append the same IP (on multiple passes), if it is already contained */
+            for (unsigned i = 0; i < cur_netdef->ip4_addresses->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(cur_netdef->ip4_addresses, char*, i)))
+                    goto skip_ip4;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ip4_addresses, s);
+skip_ip4:
             continue;
         }
 
@@ -871,8 +980,14 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
             if (!cur_netdef->ip6_addresses)
                 cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            /* Do not append the same IP (on multiple passes), if it is already contained */
+            for (unsigned i = 0; i < cur_netdef->ip6_addresses->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(cur_netdef->ip6_addresses, char*, i)))
+                    goto skip_ip6;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->ip6_addresses, s);
+skip_ip6:
             continue;
         }
 
@@ -928,7 +1043,7 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
             return ret;
         }
 
-        if (!process_mapping(doc, value, wifi_access_point_handlers, error)) {
+        if (!process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
             cur_access_point = NULL;
             return FALSE;
         }
@@ -962,7 +1077,11 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
             if (component->bond)
                 return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
                                   cur_netdef->id, scalar(entry), component->bond);
-           component->bridge = g_strdup(cur_netdef->id);
+            component->bridge = g_strdup(cur_netdef->id);
+            if (component->backend == NETPLAN_BACKEND_OVS) {
+                g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", cur_netdef->id);
+                cur_netdef->backend = NETPLAN_BACKEND_OVS;
+            }
         }
     }
 
@@ -983,8 +1102,18 @@ handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
         strcmp(scalar(node), "broadcast") == 0 ||
         strcmp(scalar(node), "802.3ad") == 0 ||
         strcmp(scalar(node), "balance-tlb") == 0 ||
-        strcmp(scalar(node), "balance-alb") == 0))
+        strcmp(scalar(node), "balance-alb") == 0 ||
+        strcmp(scalar(node), "balance-tcp") == 0 || // only supported for OVS
+        strcmp(scalar(node), "balance-slb") == 0))  // only supported for OVS
         return yaml_error(node, error, "unknown bond mode '%s'", scalar(node));
+
+    /* Implicitly set NETPLAN_BACKEND_OVS if ovs-only mode selected */
+    if (!strcmp(scalar(node), "balance-tcp") ||
+        !strcmp(scalar(node), "balance-slb")) {
+        g_debug("%s: mode '%s' only supported with openvswitch, choosing this backend",
+                cur_netdef->id, scalar(node));
+        cur_netdef->backend = NETPLAN_BACKEND_OVS;
+    }
 
     return handle_netdef_str(doc, node, data, error);
 }
@@ -1013,6 +1142,10 @@ handle_bond_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data
                 return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
                                   cur_netdef->id, scalar(entry), component->bond);
             component->bond = g_strdup(cur_netdef->id);
+            if (component->backend == NETPLAN_BACKEND_OVS) {
+                g_debug("%s: Bond contains openvswitch interface, choosing OVS backend", cur_netdef->id);
+                cur_netdef->backend = NETPLAN_BACKEND_OVS;
+            }
         }
     }
 
@@ -1407,7 +1540,7 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 {
     cur_netdef->custom_bridging = TRUE;
     cur_netdef->bridge_params.stp = TRUE;
-    return process_mapping(doc, node, bridge_params_handlers, error);
+    return process_mapping(doc, node, bridge_params_handlers, NULL, error);
 }
 
 /****************************************************
@@ -1438,7 +1571,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
 
-        if (process_mapping(doc, entry, routes_handlers, error)) {
+        if (process_mapping(doc, entry, routes_handlers, NULL, error)) {
             if (!cur_netdef->routes) {
                 cur_netdef->routes = g_array_new(FALSE, FALSE, sizeof(NetplanIPRoute*));
             }
@@ -1488,7 +1621,7 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
         cur_ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
         cur_ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 
-        if (process_mapping(doc, entry, ip_rules_handlers, error)) {
+        if (process_mapping(doc, entry, ip_rules_handlers, NULL, error)) {
             if (!cur_netdef->ip_rules) {
                 cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
             }
@@ -1592,7 +1725,7 @@ static const mapping_entry_handler bond_params_handlers[] = {
 static gboolean
 handle_bonding(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    return process_mapping(doc, node, bond_params_handlers, error);
+    return process_mapping(doc, node, bond_params_handlers, NULL, error);
 }
 
 static gboolean
@@ -1702,7 +1835,7 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
             ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.output_key), error);
     }
     else if (node->type == YAML_MAPPING_NODE) {
-        ret = process_mapping(doc, node, tunnel_keys_handlers, error);
+        ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
     }
     else {
         return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
@@ -1722,6 +1855,187 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
     {NULL}
 };
+
+static gboolean
+handle_ovs_bond_lacp(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND)
+        return yaml_error(node, error, "Key 'lacp' is only valid for iterface type 'openvswitch bond'");
+
+    if (g_strcmp0(scalar(node), "active") && g_strcmp0(scalar(node), "passive") && g_strcmp0(scalar(node), "off"))
+        return yaml_error(node, error, "Value of 'lacp' needs to be 'active', 'passive' or 'off");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+static gboolean
+handle_ovs_bridge_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key is only valid for iterface type 'openvswitch bridge'");
+
+    return handle_netdef_bool(doc, node, data, error);
+}
+
+static gboolean
+handle_ovs_bridge_fail_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'fail-mode' is only valid for iterface type 'openvswitch bridge'");
+
+    if (g_strcmp0(scalar(node), "standalone") && g_strcmp0(scalar(node), "secure"))
+        return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+static gboolean
+handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    const char* supported[] = {
+        "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", "OpenFlow16", NULL
+    };
+    unsigned i = 0;
+    guint offset = GPOINTER_TO_UINT(data);
+    GArray** protocols = (GArray**) ((void*) entryptr + offset);
+
+    for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
+        yaml_node_t *entry = yaml_document_get_node(doc, *iter);
+        assert_type(entry, YAML_SCALAR_NODE);
+
+        for (i = 0; supported[i] != NULL; ++i)
+            if (!g_strcmp0(scalar(entry), supported[i]))
+                break;
+
+        if (supported[i] == NULL)
+            return yaml_error(node, error, "Unsupported OVS 'protocol' value: %s", scalar(entry));
+
+        if (!*protocols)
+            *protocols = g_array_new(FALSE, FALSE, sizeof(char*));
+        char* s = g_strdup(scalar(entry));
+        g_array_append_val(*protocols, s);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+handle_ovs_bridge_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'protocols' is only valid for iterface type 'openvswitch bridge'");
+
+    return handle_ovs_protocol(doc, node, cur_netdef, data, error);
+}
+
+static gboolean
+handle_ovs_bridge_controller_connection_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'controller.connection-mode' is only valid for iterface type 'openvswitch bridge'");
+
+    if (g_strcmp0(scalar(node), "in-band") && g_strcmp0(scalar(node), "out-of-band"))
+        return yaml_error(node, error, "Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+static gboolean
+handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(node, error, "Key 'controller.addresses' is only valid for iterface type 'openvswitch bridge'");
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        gchar** vec = NULL;
+        gboolean is_host = FALSE;
+        gboolean is_port = FALSE;
+        gboolean is_unix = FALSE;
+
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_SCALAR_NODE);
+        /* We always need at least one colon */
+        if (!g_strrstr(scalar(entry), ":"))
+            return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
+
+        vec = g_strsplit (scalar(entry), ":", 2);
+
+        is_host = !g_strcmp0(vec[0], "tcp") || !g_strcmp0(vec[0], "ssl");
+        is_port = !g_strcmp0(vec[0], "ptcp") || !g_strcmp0(vec[0], "pssl");
+        is_unix = !g_strcmp0(vec[0], "unix") || !g_strcmp0(vec[0], "punix");
+
+        if (!cur_netdef->ovs_settings.controller.addresses)
+            cur_netdef->ovs_settings.controller.addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+        /* Format: [p]unix:file */
+        if (is_unix && vec[1] != NULL && vec[2] == NULL) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_strfreev(vec);
+            continue;
+        /* Format tcp:host[:port] or ssl:host[:port] */
+        } else if (is_host && validate_ovs_target(TRUE, vec[1])) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_strfreev(vec);
+            continue;
+        /* Format ptcp:[port][:host] or pssl:[port][:host] */
+        } else if (is_port && validate_ovs_target(FALSE, vec[1])) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_strfreev(vec);
+            continue;
+        }
+
+        g_strfreev(vec);
+        return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+static const mapping_entry_handler ovs_controller_handlers[] = {
+    {"addresses", YAML_SEQUENCE_NODE, handle_ovs_bridge_controller_addresses, NULL, netdef_offset(ovs_settings.controller.addresses)},
+    {"connection-mode", YAML_SCALAR_NODE, handle_ovs_bridge_controller_connection_mode, NULL, netdef_offset(ovs_settings.controller.connection_mode)},
+    {NULL},
+};
+
+static const mapping_entry_handler ovs_backend_settings_handlers[] = {
+    {"external-ids", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.external_ids)},
+    {"other-config", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(ovs_settings.other_config)},
+    {"lacp", YAML_SCALAR_NODE, handle_ovs_bond_lacp, NULL, netdef_offset(ovs_settings.lacp)},
+    {"fail-mode", YAML_SCALAR_NODE, handle_ovs_bridge_fail_mode, NULL, netdef_offset(ovs_settings.fail_mode)},
+    {"mcast-snooping", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.mcast_snooping)},
+    {"rstp", YAML_SCALAR_NODE, handle_ovs_bridge_bool, NULL, netdef_offset(ovs_settings.rstp)},
+    {"protocols", YAML_SEQUENCE_NODE, handle_ovs_bridge_protocol, NULL, netdef_offset(ovs_settings.protocols)},
+    {"controller", YAML_MAPPING_NODE, NULL, ovs_controller_handlers},
+    {NULL}
+};
+
+static gboolean
+handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    GList* values = NULL;
+    gboolean ret = process_mapping(doc, node, ovs_backend_settings_handlers, &values, error);
+    guint len = g_list_length(values);
+
+    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND && cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE) {
+        GList *other_config = g_list_find_custom(values, "other-config", (GCompareFunc) strcmp);
+        GList *external_ids = g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp);
+        /* Non-bond/non-bridge interfaces might still be handled by the networkd backend */
+        if (len == 1 && (other_config || external_ids))
+            return ret;
+        else if (len == 2 && other_config && external_ids)
+            return ret;
+    }
+    g_list_free_full(values, g_free);
+
+    /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly.
+     * But only if empty "openvswitch: {}" or "openvswitch:" with more than
+     * "other-config" or "external-ids" keys is given. */
+    cur_netdef->backend = NETPLAN_BACKEND_OVS;
+    return ret;
+}
 
 static const mapping_entry_handler nameservers_handlers[] = {
     {"search", YAML_SEQUENCE_NODE, handle_nameservers_search},
@@ -1776,8 +2090,9 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                            \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
 
-#define COMMON_BACKEND_HANDLERS							\
-    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}
+#define COMMON_BACKEND_HANDLERS                                                \
+    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}, \
+    {"openvswitch", YAML_MAPPING_NODE, handle_ovs_backend}
 
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS                                                           \
@@ -1881,18 +2196,70 @@ handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, 
     return parse_renderer(node, &backend_global, error);
 }
 
-static void
-initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
+static gboolean
+handle_network_ovs_settings_global(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    overrides->use_dns = TRUE;
-    overrides->use_domains = NULL;
-    overrides->use_ntp = TRUE;
-    overrides->send_hostname = TRUE;
-    overrides->use_hostname = TRUE;
-    overrides->use_mtu = TRUE;
-    overrides->use_routes = TRUE;
-    overrides->hostname = NULL;
-    overrides->metric = NETPLAN_METRIC_UNSPEC;
+    return handle_generic_map(doc, node, &ovs_settings_global, data, error);
+}
+
+static gboolean
+handle_network_ovs_settings_global_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_ovs_protocol(doc, node, &ovs_settings_global, data, error);
+}
+
+static gboolean
+handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    yaml_node_t* port = NULL;
+    yaml_node_t* peer = NULL;
+    yaml_node_t* pair = NULL;
+    yaml_node_item_t *item = NULL;
+    NetplanNetDefinition *component = NULL;
+
+    for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
+        pair = yaml_document_get_node(doc, *iter);
+        assert_type(pair, YAML_SEQUENCE_NODE);
+
+        item = pair->data.sequence.items.start;
+        /* A peer port definition must contain exactly 2 ports */
+        if (item+2 != pair->data.sequence.items.top) {
+            return yaml_error(pair, error, "An openvswitch peer port sequence must have exactly two entries");
+        }
+
+        port = yaml_document_get_node(doc, *item);
+        assert_type(port, YAML_SCALAR_NODE);
+        peer = yaml_document_get_node(doc, *(item+1));
+        assert_type(peer, YAML_SCALAR_NODE);
+
+        /* Create port 1 netdef */
+        component = g_hash_table_lookup(netdefs, scalar(port));
+        if (!component) {
+            component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if (g_hash_table_remove(missing_id, scalar(port)))
+                missing_ids_found++;
+        }
+
+        if (component->peer && g_strcmp0(component->peer, scalar(peer)))
+            return yaml_error(port, error, "openvswitch port '%s' is already assigned to peer '%s'",
+                              component->id, component->peer);
+        component->peer = g_strdup(scalar(peer));
+
+        /* Create port 2 (peer) netdef */
+        component = NULL;
+        component = g_hash_table_lookup(netdefs, scalar(peer));
+        if (!component) {
+            component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if (g_hash_table_remove(missing_id, scalar(peer)))
+                missing_ids_found++;
+        }
+
+        if (component->peer && g_strcmp0(component->peer, scalar(port)))
+            return yaml_error(peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
+                              component->id, component->peer);
+        component->peer = g_strdup(scalar(port));
+    }
+    return TRUE;
 }
 
 /**
@@ -1936,28 +2303,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             if (cur_netdef->type != GPOINTER_TO_UINT(data))
                 return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
-            /* create new network definition */
-            cur_netdef = g_new0(NetplanNetDefinition, 1);
-            cur_netdef->type = GPOINTER_TO_UINT(data);
-            cur_netdef->backend = backend_cur_type ?: NETPLAN_BACKEND_NONE;
-            cur_netdef->id = g_strdup(scalar(key));
-
-            /* Set some default values */
-            cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-            cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
-            cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
-            /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
-            cur_netdef->linklocal.ipv6 = TRUE;
-            g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
-            netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
-            cur_netdef->sriov_vlan_filter = FALSE;
-            cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
-
-            /* DHCP override defaults */
-            initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
-            initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
-
-            g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
+            netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
         }
 
         // XXX: breaks multi-pass parsing.
@@ -1975,7 +2321,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
-        if (!process_mapping(doc, value, handlers, error))
+        if (!process_mapping(doc, value, handlers, NULL, error))
             return FALSE;
 
         /* validate definition-level conditions */
@@ -1991,6 +2337,34 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
     return TRUE;
 }
 
+static const mapping_entry_handler ovs_global_ssl_handlers[] = {
+    {"ca-cert", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(ca_certificate)},
+    {"certificate", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_certificate)},
+    {"private-key", YAML_SCALAR_NODE, handle_auth_str, NULL, auth_offset(client_key)},
+    {NULL}
+};
+
+static gboolean
+handle_ovs_global_ssl(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret;
+
+    cur_auth = &(ovs_settings_global.ssl);
+    ret = process_mapping(doc, node, ovs_global_ssl_handlers, NULL, error);
+    cur_auth = NULL;
+
+    return ret;
+}
+
+static const mapping_entry_handler ovs_network_settings_handlers[] = {
+    {"external-ids", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(external_ids)},
+    {"other-config", YAML_MAPPING_NODE, handle_network_ovs_settings_global, NULL, ovs_settings_offset(other_config)},
+    {"protocols", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_protocol, NULL, ovs_settings_offset(protocols)},
+    {"ports", YAML_SEQUENCE_NODE, handle_network_ovs_settings_global_ports},
+    {"ssl", YAML_MAPPING_NODE, handle_ovs_global_ssl},
+    {NULL}
+};
+
 static const mapping_entry_handler network_handlers[] = {
     {"bonds", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BOND)},
     {"bridges", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BRIDGE)},
@@ -2001,6 +2375,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"vlans", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
     {"wifis", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
     {"modems", YAML_MAPPING_NODE, handle_network_type, NULL, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
+    {"openvswitch", YAML_MAPPING_NODE, NULL, ovs_network_settings_handlers},
     {NULL}
 };
 
@@ -2034,7 +2409,7 @@ process_document(yaml_document_t* doc, GError** error)
 
         g_clear_error(error);
 
-        ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, error);
+        ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, NULL, error);
 
         still_missing = g_hash_table_size(missing_id);
 

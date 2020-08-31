@@ -3,6 +3,7 @@
 # Copyright (C) 2018-2020 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
 # Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>
+# Author: Lukas 'slyon' Märdian <lukas.maerdian@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +29,7 @@ import shutil
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
 from netplan.cli.sriov import apply_sriov_config
+from netplan.cli.ovs import apply_ovs_cleanup
 
 import netifaces
 
@@ -39,10 +41,13 @@ class NetplanApply(utils.NetplanCommand):
                          description='Apply current netplan config to running system',
                          leaf=True)
         self.sriov_only = False
+        self.only_ovs_cleanup = False
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
         self.parser.add_argument('--sriov-only', action='store_true',
                                  help='Only apply SR-IOV related configuration and exit')
+        self.parser.add_argument('--only-ovs-cleanup', action='store_true',
+                                 help='Only clean up old OpenVSwitch interfaces and exit')
 
         self.func = self.command_apply
 
@@ -56,6 +61,10 @@ class NetplanApply(utils.NetplanCommand):
         # If we only need SR-IOV configuration, do that and exit early.
         if self.sriov_only:
             NetplanApply.process_sriov_config(config_manager, exit_on_error)
+            return
+        # If we only need OpenVSwitch cleanup, do that and exit early.
+        elif self.only_ovs_cleanup:
+            NetplanApply.process_ovs_cleanup(config_manager, False, False, exit_on_error)
             return
 
         # if we are inside a snap, then call dbus to run netplan apply instead
@@ -84,7 +93,13 @@ class NetplanApply(utils.NetplanCommand):
             else:
                 return
 
+        ovs_cleanup_service = '/run/systemd/system/netplan-ovs-cleanup.service'
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
+        old_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
+        # Ignore netplan-ovs-cleanup.service, as it can always be there
+        if ovs_cleanup_service in old_ovs_glob:
+            old_ovs_glob.remove(ovs_cleanup_service)
+        old_files_ovs = bool(old_ovs_glob)
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
         nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
         old_files_nm = bool(old_nm_glob)
@@ -113,6 +128,14 @@ class NetplanApply(utils.NetplanCommand):
         restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         if not restart_networkd and old_files_networkd:
             restart_networkd = True
+        restart_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
+        # Ignore netplan-ovs-cleanup.service, as it can always be there
+        if ovs_cleanup_service in restart_ovs_glob:
+            restart_ovs_glob.remove(ovs_cleanup_service)
+        restart_ovs = bool(restart_ovs_glob)
+        if not restart_ovs and old_files_ovs:
+            # OVS is managed via systemd units
+            restart_networkd = True
 
         restart_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
         nm_ifaces.update(utils.nm_interfaces(restart_nm_glob, devices))
@@ -127,13 +150,14 @@ class NetplanApply(utils.NetplanCommand):
             # so let's make sure we only run it iff we're willing to run 'netplan generate'
             if run_generate:
                 utils.systemctl_daemon_reload()
+            # Clean up any old netplan related OVS ports/bonds/bridges, if applicable
+            NetplanApply.process_ovs_cleanup(config_manager, old_files_ovs, restart_ovs, exit_on_error)
             wpa_services = ['netplan-wpa-*.service']
             # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
             # upgraded system, we need to make sure to stop those.
             if utils.systemctl_is_active('netplan-wpa@*.service'):
                 wpa_services.insert(0, 'netplan-wpa@*.service')
             utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services)
-
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
@@ -192,7 +216,10 @@ class NetplanApply(utils.NetplanCommand):
         # (re)start backends
         if restart_networkd:
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
-            utils.systemctl_networkd('start', sync=sync, extra_services=netplan_wpa)
+            netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')]
+            # Run 'systemctl start' command synchronously, to avoid race conditions
+            # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
+            utils.systemctl_networkd('start', sync=True, extra_services=netplan_wpa + netplan_ovs)
         if restart_nm:
             # Flush all IP addresses of NM managed interfaces, to avoid NM creating
             # new, non netplan-* connection profiles, using the existing IPs.
@@ -287,6 +314,15 @@ class NetplanApply(utils.NetplanCommand):
         try:
             apply_sriov_config(config_manager)
         except (ConfigurationError, RuntimeError) as e:
+            logging.error(str(e))
+            if exit_on_error:
+                sys.exit(1)
+
+    @staticmethod
+    def process_ovs_cleanup(config_manager, ovs_old, ovs_current, exit_on_error=True):  # pragma: nocover (autopkgtest)
+        try:
+            apply_ovs_cleanup(config_manager, ovs_old, ovs_current)
+        except (OSError, RuntimeError) as e:
             logging.error(str(e))
             if exit_on_error:
                 sys.exit(1)
