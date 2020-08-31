@@ -1744,7 +1744,7 @@ static const mapping_entry_handler nameservers_handlers[] = {
     {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
-    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},       \
+    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},      \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
     {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
@@ -1772,7 +1772,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},                   \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                          \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                          \
-    {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                     \
+    {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                               \
     {"ipv6-address-token", YAML_SCALAR_NODE, handle_netdef_addrtok, NULL, netdef_offset(ip6_addr_gen_token)}, \
     {"ipv6-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(ipv6_mtubytes)},  \
     {"ipv6-privacy", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ip6_privacy)}, \
@@ -1790,11 +1790,11 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}
 
 /* Handlers for physical links */
-#define PHYSICAL_LINK_HANDLERS                                                                \
-    {"match", YAML_MAPPING_NODE, handle_match},                                               \
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},         \
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},    \
-    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},           \
+#define PHYSICAL_LINK_HANDLERS                                                           \
+    {"match", YAML_MAPPING_NODE, handle_match},                                          \
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
+    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},       \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
