@@ -55,10 +55,20 @@ class TestConfigManager(unittest.TestCase):
   bridges:
     br666: {}
 ''', file=fd)
+        with open(os.path.join(self.workdir.name, "ovs_merging.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  openvswitch:
+    ports: [[patchx, patcha], [patchy, patchb]]
+  bridges:
+    ovs0: {openvswitch: {}}
+''', file=fd)
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
   version: 2
   renderer: networkd
+  openvswitch:
+    ports: [[patcha, patchb]]
   ethernets:
     eth0:
       dhcp4: false
@@ -114,6 +124,17 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
         self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp6'))
         self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+
+    def test_parse_merging_ovs(self):
+        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "ovs_merging.yaml")])
+        self.assertIn('eth0', self.configmanager.ethernets)
+        self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
+        self.assertIn('patchx', self.configmanager.ovs_ports)
+        self.assertIn('patchy', self.configmanager.ovs_ports)
+        self.assertIn('ovs0', self.configmanager.bridges)
+        self.assertEqual({}, self.configmanager.ovs_ports['patchx'].get('openvswitch'))
+        self.assertEqual({}, self.configmanager.ovs_ports['patchy'].get('openvswitch'))
+        self.assertEqual({}, self.configmanager.bridges['ovs0'].get('openvswitch'))
 
     def test_parse_emptydict(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_emptydict.yaml")])

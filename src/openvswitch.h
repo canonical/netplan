@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
- * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ * Copyright (C) 2020 Canonical, Ltd.
+ * Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
 
 #include "parse.h"
 
-gboolean write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
-void cleanup_networkd_conf(const char* rootdir);
-void enable_networkd(const char* generator_dir);
-
-void write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path);
+void write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir);
+void write_ovs_conf_finish(const char* rootdir);
+void cleanup_ovs_conf(const char* rootdir);

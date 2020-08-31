@@ -26,3 +26,7 @@ void unlink_glob(const char* rootdir, const char* _glob);
 
 int wifi_get_freq24(int channel);
 int wifi_get_freq5(int channel);
+
+gchar* systemd_escape(char* string);
+
+#define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"

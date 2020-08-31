@@ -472,7 +472,10 @@ combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* co
     }
 }
 
-static void
+/**
+ * Write the needed networkd .network configuration for the selected netplan definition.
+ */
+void
 write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* network = NULL;
@@ -576,7 +579,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
-    if (def->bridge) {
+    if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
@@ -586,14 +589,14 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         if (def->bridge_params.port_priority)
             g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
     }
-    if (def->bond) {
+    if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)
             g_string_append_printf(network, "PrimarySlave=true\n");
     }
 
-    if (def->has_vlans) {
+    if (def->has_vlans && def->backend != NETPLAN_BACKEND_OVS) {
         /* iterate over all netdefs to find VLANs attached to us */
         GList *l = netdefs_ordered;
         const NetplanNetDefinition* nd;
@@ -832,19 +835,8 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdouth = NULL;
-    g_autofree gchar *stderrh = NULL;
-    gint exit_status = 0;
 
-    gchar *argv[] = {"bin" "/" "systemd-escape", def->id, NULL};
-    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdouth, &stderrh, &exit_status, &err);
-    g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to ask systemd to escape %s; exit %d\nstdout: '%s'\nstderr: '%s'", def->id, exit_status, stdouth, stderrh);
-        exit(1);
-        // LCOV_EXCL_STOP
-    }
-    g_strstrip(stdouth);
+    stdouth = systemd_escape(def->id);
 
     GString* s = g_string_new("[Unit]\n");
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", stdouth, ".service", NULL);

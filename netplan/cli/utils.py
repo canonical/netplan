@@ -56,15 +56,16 @@ def nm_running():  # pragma: nocover (covered in autopkgtest)
         return False
 
 
-def nm_interfaces(paths):
+def nm_interfaces(paths, devices):
     pat = re.compile('^interface-name=(.*)$')
-    interfaces = []
+    interfaces = set()
     for path in paths:
         with open(path, 'r') as f:
             for line in f:
                 m = pat.match(line)
                 if m:
-                    interfaces.append(m.group(1))
+                    # Expand/match globbing of interface names, to real devices
+                    interfaces.update(set(fnmatch.filter(devices, m.group(1))))
                     break  # skip to next file
     return interfaces
 
@@ -110,6 +111,11 @@ def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtes
 def systemctl_daemon_reload():  # pragma: nocover (covered in autopkgtest)
     '''Reload systemd unit files from disk and re-calculate its dependencies'''
     subprocess.check_call(['systemctl', 'daemon-reload'])
+
+
+def ip_addr_flush(iface):  # pragma: nocover (covered in autopkgtest)
+    '''Flush all IP addresses of a given interface via iproute2'''
+    subprocess.check_call(['ip', 'addr', 'flush', iface], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (covered in autopkgtest)

@@ -23,6 +23,9 @@ import glob
 import netplan.cli.utils as utils
 
 
+DEVICES = ['eth0', 'eth1', 'ens3', 'ens4', 'br0']
+
+
 class TestUtils(unittest.TestCase):
 
     def setUp(self):
@@ -43,7 +46,28 @@ class TestUtils(unittest.TestCase):
         self._create_nm_keyfile('netplan-test.nmconnection', 'eth0')
         self._create_nm_keyfile('netplan-test2.nmconnection', 'eth1')
         ifaces = utils.nm_interfaces(glob.glob(os.path.join(self.workdir.name,
-                                     'run/NetworkManager/system-connections/*.nmconnection')))
+                                     'run/NetworkManager/system-connections/*.nmconnection')),
+                                     DEVICES)
         self.assertTrue('eth0' in ifaces)
         self.assertTrue('eth1' in ifaces)
         self.assertTrue(len(ifaces) == 2)
+
+    def test_nm_interfaces_globbing(self):
+        self._create_nm_keyfile('netplan-test.nmconnection', 'eth?')
+        ifaces = utils.nm_interfaces(glob.glob(os.path.join(self.workdir.name,
+                                     'run/NetworkManager/system-connections/*.nmconnection')),
+                                     DEVICES)
+        self.assertTrue('eth0' in ifaces)
+        self.assertTrue('eth1' in ifaces)
+        self.assertTrue(len(ifaces) == 2)
+
+    def test_nm_interfaces_globbing2(self):
+        self._create_nm_keyfile('netplan-test.nmconnection', 'e*')
+        ifaces = utils.nm_interfaces(glob.glob(os.path.join(self.workdir.name,
+                                     'run/NetworkManager/system-connections/*.nmconnection')),
+                                     DEVICES)
+        self.assertTrue('eth0' in ifaces)
+        self.assertTrue('eth1' in ifaces)
+        self.assertTrue('ens3' in ifaces)
+        self.assertTrue('ens4' in ifaces)
+        self.assertTrue(len(ifaces) == 4)
