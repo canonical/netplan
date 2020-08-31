@@ -737,7 +737,11 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         if (def->ip6_addresses)
             for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
                 g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
-        if (def->ip6_addr_gen_mode) {
+        if (def->ip6_addr_gen_token) {
+            /* Token implies EUI-64, i.e mode=0 */
+            g_string_append(s, "addr-gen-mode=0\n");
+            g_string_append_printf(s, "token=%s\n", def->ip6_addr_gen_token);
+        } else if (def->ip6_addr_gen_mode) {
             g_string_append_printf(s, "addr-gen-mode=%s\n", addr_gen_mode_str(def->ip6_addr_gen_mode));
         }
         if (def->ip6_privacy)

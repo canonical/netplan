@@ -542,7 +542,10 @@ combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* co
     }
 }
 
-static void
+/**
+ * Write the needed networkd .network configuration for the selected netplan definition.
+ */
+void
 write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* network = NULL;
@@ -607,13 +610,13 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
-    if (def->ip6_addr_gen_mode) {
-        /* TODO: Figure out how we can configure ipv6-address-generation for networkd.
-         *       IPv6Token= seems to be the corresponding option, but it doesn't do
-         *       exactly what we need and has quite some restrictions, c.f.:
-         *       https://github.com/systemd/systemd/issues/4625
-         *       https://github.com/systemd/systemd/pull/14415 */
-        g_fprintf(stderr, "ERROR: %s: ipv6-address-generation is not supported by networkd\n", def->id);
+    if (def->ip6_addr_gen_token) {
+        g_string_append_printf(network, "IPv6Token=static:%s\n", def->ip6_addr_gen_token);
+    } else if (def->ip6_addr_gen_mode > NETPLAN_ADDRGEN_EUI64) {
+        /* EUI-64 mode is enabled by default, if no IPv6Token= is specified */
+        /* TODO: Enable stable-privacy mode for networkd, once PR#16618 has been released:
+         *       https://github.com/systemd/systemd/pull/16618 */
+        g_fprintf(stderr, "ERROR: %s: ipv6-address-generation mode is not supported by networkd\n", def->id);
         exit(1);
     }
     if (def->accept_ra == NETPLAN_RA_MODE_ENABLED)
@@ -646,7 +649,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
-    if (def->bridge) {
+    if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
         if (def->bridge_params.path_cost || def->bridge_params.port_priority)
@@ -656,14 +659,14 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         if (def->bridge_params.port_priority)
             g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
     }
-    if (def->bond) {
+    if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_slave)
             g_string_append_printf(network, "PrimarySlave=true\n");
     }
 
-    if (def->has_vlans) {
+    if (def->has_vlans && def->backend != NETPLAN_BACKEND_OVS) {
         /* iterate over all netdefs to find VLANs attached to us */
         GList *l = netdefs_ordered;
         const NetplanNetDefinition* nd;
@@ -902,19 +905,8 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdouth = NULL;
-    g_autofree gchar *stderrh = NULL;
-    gint exit_status = 0;
 
-    gchar *argv[] = {"bin" "/" "systemd-escape", def->id, NULL};
-    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdouth, &stderrh, &exit_status, &err);
-    g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to ask systemd to escape %s; exit %d\nstdout: '%s'\nstderr: '%s'", def->id, exit_status, stdouth, stderrh);
-        exit(1);
-        // LCOV_EXCL_STOP
-    }
-    g_strstrip(stdouth);
+    stdouth = systemd_escape(def->id);
 
     GString* s = g_string_new("[Unit]\n");
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", stdouth, ".service", NULL);

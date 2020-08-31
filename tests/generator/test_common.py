@@ -613,6 +613,56 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_ip6_addr_gen_mode(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enblue:
+      dhcp6: yes
+      ipv6-address-generation: eui64''')
+        self.assert_networkd({'enblue.network': '''[Match]\nName=enblue\n
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
+    def test_ip6_addr_gen_token(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-token: ::2
+    enblue:
+      dhcp6: yes
+      ipv6-address-token: "::2"''')
+        self.assert_networkd({'engreen.network': '''[Match]\nName=engreen\n
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+IPv6Token=static:::2
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+''',
+                              'enblue.network': '''[Match]\nName=enblue\n
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+IPv6Token=static:::2
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
 
 class TestNetworkManager(TestBase):
 
@@ -863,6 +913,50 @@ method=link-local
 [ipv6]
 method=auto
 addr-gen-mode=0
+'''})
+
+    def test_ip6_addr_gen_token(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-token: ::2
+    enblue:
+      dhcp6: yes
+      ipv6-address-token: "::2"''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=0
+token=::2
+''',
+                        'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=0
+token=::2
 '''})
 
     def test_eth_manual_addresses(self):

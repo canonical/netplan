@@ -345,8 +345,27 @@ class TestConfigErrors(TestBase):
   version: 2
   ethernets:
     engreen:
+      ipv6-address-generation: stable-privacy''', expect_fail=True)
+        self.assertIn("ERROR: engreen: ipv6-address-generation mode is not supported by networkd", err)
+
+    def test_addr_gen_mode_and_addr_gen_token(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-token: "::2"
       ipv6-address-generation: eui64''', expect_fail=True)
-        self.assertIn("ERROR: engreen: ipv6-address-generation is not supported by networkd", err)
+        self.assertIn("engreen: ipv6-address-generation and ipv6-address-token are mutually exclusive", err)
+
+    def test_invalid_addr_gen_token(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-token: INVALID''', expect_fail=True)
+        self.assertIn("invalid ipv6-address-token 'INVALID'", err)
 
     def test_invalid_address_node_type(self):
         err = self.generate('''network:

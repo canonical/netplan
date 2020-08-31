@@ -137,6 +137,76 @@ Virtual devices
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
+``openvswitch`` (mapping) – since **0.100**
+
+:    This provides additional configuration for the network device for openvswitch.
+     If openvswitch is not available on the system, netplan treats the presence of
+     openvswitch configuration as an error.
+
+     Any supported network device that is declared with the ``openvswitch`` mapping
+     (or any bond/bridge that includes an interface with an openvswitch configuration)
+     will be created in openvswitch instead of the defined renderer.
+     In the case of a ``vlan`` definition declared the same way, netplan will create
+     a fake VLAN bridge in openvswitch with the requested vlan properties.
+
+     ``external-ids`` (mapping) – since **0.100**
+     :   Passed-through directly to OpenVSwitch
+
+     ``other-config`` (mapping) – since **0.100**
+     :   Passed-through directly to OpenVSwitch
+
+     ``lacp`` (scalar) – since **0.100**
+     :   Valid for bond interfaces. Accepts ``active``, ``passive`` or ``off`` (the default).
+
+     ``fail-mode`` (scalar) – since **0.100**
+     :   Valid for bridge interfaces. Accepts ``secure`` or ``standalone`` (the default).
+
+     ``mcast-snooping`` (bool) – since **0.100**
+     :   Valid for bridge interfaces. False by default.
+
+     ``protocols`` (sequence of scalars) – since **0.100**
+     :   Valid for bridge interfaces or the network section. List of protocols to be used when
+         negotiating a connection with the controller. Accepts ``OpenFlow10``, ``OpenFlow11``,
+         ``OpenFlow12``, ``OpenFlow13``, ``OpenFlow14``, ``OpenFlow15`` and ``OpenFlow16``.
+
+     ``rstp`` (bool) – since **0.100**
+     :   Valid for bridge interfaces. False by default.
+
+     ``controller`` (mapping) – since **0.100**
+     :   Valid for bridge interfaces. Specify an external OpenFlow controller.
+
+          ``addresses`` (sequence of scalars)
+          :   Set the list of addresses to use for the controller targets. The
+              syntax of these addresses is as defined in ovs-vsctl(8). Example:
+              addresses: ``[tcp:127.0.0.1:6653, "ssl:[fe80::1234%eth0]:6653"]``
+
+          ``connection-mode`` (scalar)
+          :   Set the connection mode for the controller. Supported options are
+              ``in-band`` and ``out-of-band``. The default is ``in-band``.
+
+     ``ports`` (sequence of sequence of scalars) – since **0.100**
+     :   OpenvSwitch patch ports. Each port is declared as a pair of names
+         which can be referenced as interfaces in dependent virtual devices
+         (bonds, bridges).
+
+         Example:
+
+             openvswitch:
+               ports:
+                 - [patch0-1, patch1-0]
+
+     ``ssl`` (mapping) – since **0.100**
+     :   Valid for global ``openvswitch`` settings. Options for configuring SSL
+         server endpoint for the switch.
+
+          ``ca-cert`` (scalar)
+          :   Path to a file containing the CA certificate to be used.
+
+          ``certificate`` (scalar)
+          :   Path to a file containing the server certificate.
+
+          ``private-key`` (scalar)
+          :   Path to a file containing the private key for the server.
 
 ## Common properties for all device types
 
@@ -271,6 +341,12 @@ Virtual devices
 :   Configure method for creating the address for use with RFC4862 IPv6
     Stateless Address Autoconfiguration (only supported with `NetworkManager`
     backend). Possible values are ``eui64`` or ``stable-privacy``.
+
+``ipv6-address-token`` (scalar) – since **0.100**
+
+:   Define an IPv6 address token for creating a static interface identifier for
+    IPv6 Stateless Address Autoconfiguration. This is mutually exclusive with
+    ``ipv6-address-generation``.
 
 ``gateway4``, ``gateway6`` (scalar)
 
@@ -870,6 +946,8 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           ``balance-rr`` (round robin). Possible values are ``balance-rr``,
           ``active-backup``, ``balance-xor``, ``broadcast``, ``802.3ad``,
           ``balance-tlb``, and ``balance-alb``.
+          For OpenVSwitch ``active-backup`` and the additional modes
+          ``balance-tcp`` and ``balance-slb`` are supported.
 
      ``lacp-rate`` (scalar)
      :    Set the rate at which LACPDUs are transmitted. This is only useful
