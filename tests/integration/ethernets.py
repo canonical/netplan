@@ -223,7 +223,7 @@ class _CommonTests():
     %(ec)s:
       dhcp6: yes
       accept-ra: yes
-      ipv6-address-token-id: ::42
+      ipv6-address-token: ::42
     %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])

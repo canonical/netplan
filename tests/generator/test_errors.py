@@ -354,9 +354,9 @@ class TestConfigErrors(TestBase):
   renderer: NetworkManager
   ethernets:
     engreen:
-      ipv6-address-token-id: "::2"
-      ipv6-address-generation: stable-privacy''', expect_fail=True)
-        self.assertIn("engreen: ipv6-address-generation and ipv6-address-token-id are mutually exclusive", err)
+      ipv6-address-token: "::2"
+      ipv6-address-generation: eui64''', expect_fail=True)
+        self.assertIn("engreen: ipv6-address-generation and ipv6-address-token are mutually exclusive", err)
 
     def test_invalid_addr_gen_token(self):
         err = self.generate('''network:
@@ -364,8 +364,8 @@ class TestConfigErrors(TestBase):
   renderer: NetworkManager
   ethernets:
     engreen:
-      ipv6-address-token-id: INVALID''', expect_fail=True)
-        self.assertIn("invalid ipv6-address-token-id 'INVALID'", err)
+      ipv6-address-token: INVALID''', expect_fail=True)
+        self.assertIn("invalid ipv6-address-token 'INVALID'", err)
 
     def test_invalid_address_node_type(self):
         err = self.generate('''network:

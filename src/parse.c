@@ -509,9 +509,7 @@ handle_netdef_addrtok(yaml_document_t* doc, yaml_node_t* node, const void* data,
     g_assert(cur_netdef);
     gboolean ret = handle_netdef_str(doc, node, data, error);
     if (!is_ip6_address(cur_netdef->ip6_addr_gen_token))
-        return yaml_error(node, error, "invalid ipv6-address-token-id '%s'", scalar(node));
-    /* Setting a static token implies eui64 */
-    cur_netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
+        return yaml_error(node, error, "invalid ipv6-address-token '%s'", scalar(node));
     return ret;
 }
 
@@ -1775,7 +1773,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                          \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                          \
     {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                     \
-    {"ipv6-address-token-id", YAML_SCALAR_NODE, handle_netdef_addrtok, NULL, netdef_offset(ip6_addr_gen_token)}, \
+    {"ipv6-address-token", YAML_SCALAR_NODE, handle_netdef_addrtok, NULL, netdef_offset(ip6_addr_gen_token)}, \
     {"ipv6-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(ipv6_mtubytes)},  \
     {"ipv6-privacy", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ip6_privacy)}, \
     {"link-local", YAML_SEQUENCE_NODE, handle_link_local},                                    \

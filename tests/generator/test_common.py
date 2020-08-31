@@ -638,11 +638,10 @@ UseMTU=true
   ethernets:
     engreen:
       dhcp6: yes
-      ipv6-address-token-id: ::2
+      ipv6-address-token: ::2
     enblue:
       dhcp6: yes
-      ipv6-address-generation: eui64
-      ipv6-address-token-id: "::2"''')
+      ipv6-address-token: "::2"''')
         self.assert_networkd({'engreen.network': '''[Match]\nName=engreen\n
 [Network]
 DHCP=ipv6
@@ -923,11 +922,10 @@ addr-gen-mode=0
   ethernets:
     engreen:
       dhcp6: yes
-      ipv6-address-token-id: ::2
+      ipv6-address-token: ::2
     enblue:
       dhcp6: yes
-      ipv6-address-generation: eui64
-      ipv6-address-token-id: "::2"''')
+      ipv6-address-token: "::2"''')
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
 type=ethernet
