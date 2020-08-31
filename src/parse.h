@@ -248,6 +248,7 @@ struct net_definition {
     GArray* address_options;
     gboolean ip6_privacy;
     guint ip6_addr_gen_mode;
+    char* ip6_addr_gen_token;
     char* gateway4;
     char* gateway6;
     GArray* ip4_nameservers;

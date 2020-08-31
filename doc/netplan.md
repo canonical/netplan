@@ -342,6 +342,12 @@ Virtual devices
     Stateless Address Autoconfiguration (only supported with `NetworkManager`
     backend). Possible values are ``eui64`` or ``stable-privacy``.
 
+``ipv6-address-token`` (scalar) – since **0.100**
+
+:   Define an IPv6 address token for creating a static interface identifier for
+    IPv6 Stateless Address Autoconfiguration. This is mutually exclusive with
+    ``ipv6-address-generation``.
+
 ``gateway4``, ``gateway6`` (scalar)
 
 :   Set default gateway for IPv4/6, for manual address configuration. This
