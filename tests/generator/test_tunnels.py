@@ -88,12 +88,12 @@ def prepare_wg_config(listen=None, privkey=None, fwmark=None, peers=[], renderer
         for k, v in peer.items():
             config += '{}{}: {}\n'.format(pfx, k, v)
             pfx = '          '
-        if public_key and shared_key:
+        if public_key or shared_key:
             config += '{}keys:\n'.format(pfx)
-            config += '            public: {}\n'.format(public_key)
-            config += '            shared: {}\n'.format(shared_key)
-        elif public_key:
-            config += '{}key: {}\n'.format(pfx, public_key)
+            if public_key:
+                config += '            public: {}\n'.format(public_key)
+            if shared_key:
+                config += '            shared: {}\n'.format(shared_key)
     return config
 
 

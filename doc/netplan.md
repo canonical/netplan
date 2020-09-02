@@ -572,30 +572,6 @@ These options are available for all types of interfaces.
           see ``/etc/iproute2/rt_tables``.
           (``NetworkManager``: as of v1.10.0)
 
-    ``keepalive`` (scalar) – since **0.100**
-    :    An interval in seconds, between 1 and 65535 inclusive, of how often to
-         send an authenticated empty packet to the Wireguard peer for the
-         purpose of keeping a stateful firewall or NAT mapping valid
-         persistently. Optional.
-
-    ``keys`` (mapping) – since **0.100**
-    :    Define keys to use for the routes, specifically the Wireguard peers.
-
-         This field can be used as a mapping, where you can further specify the
-         ``public`` and ``shared`` keys.
-
-         ``public`` (scalar) – since **0.100**
-         :    A base64-encoded public key, requried for Wireguard peers.
-
-         ``shared`` (scalar) – since **0.100**
-         :    A base64-encoded preshared key. Optional for Wireguard peers.
-              When the ``systemd-networkd`` backend (v242+) is used, this can
-              also be an absolute path to a file containing the preshared key.
-
-     ``key`` (scalar) – since **0.100**
-     :   Short form of the ``keys`` field where a single key is specified to be
-         used as the public key of a Wireguard peer.
-
 
 ``routing-policy`` (mapping)
 
@@ -1156,7 +1132,8 @@ Examples:
         mode: wireguard
         addresses: [...]
         peers:
-          - key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+          - keys:
+              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
             ...
         keys:
           private: /path/to/priv.key
@@ -1183,7 +1160,8 @@ Wireguard specific keys:
             mark: 42
             port: 5182
             peers:
-                - key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+                - keys:
+                      public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
                   allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
                   keepalive: 23
                   endpoint: 1.2.3.4:5
@@ -1210,6 +1188,19 @@ Wireguard specific keys:
          send an authenticated empty packet to the peer for the purpose of
          keeping a stateful firewall or NAT mapping valid persistently. Optional.
 
+    ``keys`` (mapping) – since **0.100**
+    :    Define keys to use for the Wireguard peers.
+
+         This field can be used as a mapping, where you can further specify the
+         ``public`` and ``shared`` keys.
+
+         ``public`` (scalar) – since **0.100**
+         :    A base64-encoded public key, requried for Wireguard peers.
+
+         ``shared`` (scalar) – since **0.100**
+         :    A base64-encoded preshared key. Optional for Wireguard peers.
+              When the ``systemd-networkd`` backend (v242+) is used, this can
+              also be an absolute path to a file containing the preshared key.
 
 ## Properties for device type ``vlans:``
 

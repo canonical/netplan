@@ -1865,22 +1865,11 @@ static const mapping_entry_handler wireguard_peer_keys_handlers[] = {
 static gboolean
 handle_wireguard_peer_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    gboolean ret = FALSE;
-    /* We overload the key 'key[s]' for wireguard peers; such that it can either
-     * be a single scalar, defining only the public_key, or a mapping where one
-     * can specify public and shared keys. */
-    if (node->type == YAML_SCALAR_NODE)
-        ret = handle_wireguard_peer_str(doc, node, wireguard_peer_offset(public_key), error);
-    else
-        ret = process_mapping(doc, node, wireguard_peer_keys_handlers, NULL, error);
-    return ret;
+    return process_mapping(doc, node, wireguard_peer_keys_handlers, NULL, error);
 }
 
 const mapping_entry_handler wireguard_peer_handlers[] = {
-    /* Handle key/keys for clarity in config: this can be either a scalar or
-     * mapping of multiple keys (public and shared) */
-    {"key", YAML_NO_NODE, handle_wireguard_peer_key_mapping},
-    {"keys", YAML_NO_NODE, handle_wireguard_peer_key_mapping},
+    {"keys", YAML_MAPPING_NODE, handle_wireguard_peer_key_mapping},
     {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
     {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
     {"allowed-ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
