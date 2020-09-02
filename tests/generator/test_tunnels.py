@@ -1325,7 +1325,7 @@ class TestConfigErrors(TestBase):
         - input: 1234
 '''
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: invalid type for 'keys'", out)
+        self.assertIn("Error in network definition: invalid type for 'key[s]': must be a scalar or mapping", out)
 
     def test_networkd_invalid_input_key_use(self):
         """[networkd] Show an error if input-key is used for a mode that does not support it"""

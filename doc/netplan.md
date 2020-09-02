@@ -1108,7 +1108,7 @@ more general information about tunnels.
     mapping, where you can further specify ``input``/``output``/``private``.
 
     ``input`` (scalar)
-    :    The input key for the tunnel.
+    :    The input key for the tunnel
 
     ``output`` (scalar)
     :    The output key for the tunnel

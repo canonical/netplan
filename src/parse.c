@@ -1388,6 +1388,7 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 static gboolean
 handle_ip_rule_prio(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_ip_rule);
     return handle_generic_guint(doc, node, cur_ip_rule, data, error);
 }
 
@@ -1403,24 +1404,28 @@ handle_ip_rule_tos(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
 static gboolean
 handle_routes_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_route);
     return handle_generic_guint(doc, node, cur_route, data, error);
 }
 
 static gboolean
 handle_ip_rule_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_ip_rule);
     return handle_generic_guint(doc, node, cur_ip_rule, data, error);
 }
 
 static gboolean
 handle_ip_rule_fwmark(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_ip_rule);
     return handle_generic_guint(doc, node, cur_ip_rule, data, error);
 }
 
 static gboolean
 handle_routes_metric(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_route);
     return handle_generic_guint(doc, node, cur_route, data, error);
 }
 
@@ -2121,7 +2126,7 @@ static const mapping_entry_handler nameservers_handlers[] = {
     {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
-    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},      \
+    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},       \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
     {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
@@ -2253,11 +2258,10 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
             ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
         if (ret)
             ret = handle_netdef_str(doc, node, netdef_offset(tunnel.private_key), error);
-    } else if (node->type == YAML_MAPPING_NODE) {
+    } else if (node->type == YAML_MAPPING_NODE)
         ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
-    } else {
-        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
-    }
+    else
+        return yaml_error(node, error, "invalid type for 'key[s]': must be a scalar or mapping");
 
     return ret;
 }
