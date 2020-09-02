@@ -258,6 +258,7 @@ struct net_definition {
     GArray* search_domains;
     GArray* routes;
     GArray* ip_rules;
+    GArray* wireguard_peers;
     struct {
         gboolean ipv4;
         gboolean ipv6;
@@ -355,6 +356,7 @@ struct net_definition {
         char *remote_ip;
         char *input_key;
         char *output_key;
+        char *private_key; /* used for wireguard */
         guint fwmark;
         guint port;
     } tunnel;
@@ -390,6 +392,14 @@ typedef enum {
     NETPLAN_WIFI_MODE_ADHOC,
     NETPLAN_WIFI_MODE_AP
 } NetplanWifiMode;
+
+typedef struct {
+    char *endpoint;
+    char *public_key;
+    char *preshared_key;
+    GArray *allowed_ips;
+    guint keepalive;
+} NetplanWireguardPeer;
 
 typedef enum {
     NETPLAN_WIFI_BAND_DEFAULT,
@@ -429,19 +439,13 @@ typedef struct {
 
     char* from;
     char* to;
-    char* via; /* can contain wireguard endpoint */
+    char* via;
 
     gboolean onlink;
 
     /* valid metrics are valid positive integers.
      * invalid metrics are represented by METRIC_UNSPEC */
     guint metric;
-
-    /* wireguard (crypto-key routing) specific fields */
-    char *public_key;
-    char *preshared_key;
-    GArray *allowed_ips; /* assigned via "routes.to" sequence */
-    guint keepalive;
 } NetplanIPRoute;
 
 typedef struct {

@@ -158,7 +158,7 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     GString *params = NULL;
     params = g_string_sized_new(200);
 
-    g_assert(def->tunnel.input_key);
+    g_assert(def->tunnel.private_key);
     /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+
      * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory.
      *
@@ -166,10 +166,10 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
      * to differentiate between base64 key VS absolute path key-file. And a base64
      * string could (theoretically) start with '/', so we use is_wireguard_key()
      * as well to check for more specific characteristics (if needed). */
-    if (def->tunnel.input_key[0] == '/' && !is_wireguard_key(def->tunnel.input_key))
-        g_string_append_printf(params, "PrivateKeyFile=%s\n", def->tunnel.input_key);
+    if (def->tunnel.private_key[0] == '/' && !is_wireguard_key(def->tunnel.private_key))
+        g_string_append_printf(params, "PrivateKeyFile=%s\n", def->tunnel.private_key);
     else
-        g_string_append_printf(params, "PrivateKey=%s\n", def->tunnel.input_key);
+        g_string_append_printf(params, "PrivateKey=%s\n", def->tunnel.private_key);
 
     if (def->tunnel.port)
         g_string_append_printf(params, "ListenPort=%u\n", def->tunnel.port);
@@ -182,11 +182,8 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     g_string_append_printf(s, "\n[WireGuard]\n%s", params->str);
     g_string_free(params, TRUE);
 
-    for (guint i = 0; i < def->routes->len; i++) {
-        NetplanIPRoute *peer = g_array_index (def->routes, NetplanIPRoute*, i);
-        /* Routes which are not of "type: wireguard" are not for us */
-        if (!!g_ascii_strcasecmp(peer->type, "wireguard")) continue;
-
+    for (guint i = 0; i < def->wireguard_peers->len; i++) {
+        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
         GString *peer_s = g_string_sized_new(200);
 
         g_string_append_printf(peer_s, "PublicKey=%s\n", peer->public_key);
@@ -200,8 +197,8 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
 
         if (peer->keepalive)
             g_string_append_printf(peer_s, "PersistentKeepalive=%d\n", peer->keepalive);
-        if (peer->via)
-            g_string_append_printf(peer_s, "Endpoint=%s\n", peer->via);
+        if (peer->endpoint)
+            g_string_append_printf(peer_s, "Endpoint=%s\n", peer->endpoint);
         /* The key was already validated via validate_tunnel_grammar(), but we need
          * to differentiate between base64 key VS absolute path key-file. And a base64
          * string could (theoretically) start with '/', so we use is_wireguard_key()
@@ -427,10 +424,6 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
 static void
 write_route(NetplanIPRoute* r, GString* s)
 {
-    /* Routes of "type: wireguard" are actually Wireguard Peers
-     * and handled by write_wireguard_params(...) */
-    if (!g_ascii_strcasecmp(r->type, "wireguard")) return;
-
     g_string_append_printf(s, "\n[Route]\n");
 
     g_string_append_printf(s, "Destination=%s\n", r->to);

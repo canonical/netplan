@@ -50,6 +50,9 @@ static NetplanWifiAccessPoint* cur_access_point;
 /* NetplanAuthenticationSettings that are currently being processed */
 static NetplanAuthenticationSettings* cur_auth;
 
+/* NetplanWireguardPeer that is currently being processed */
+static NetplanWireguardPeer* cur_wireguard_peer;
+
 static NetplanAddressOptions* cur_addr_option;
 
 static NetplanIPRoute* cur_route;
@@ -1306,28 +1309,6 @@ check_and_set_family(int family, guint* dest)
 
 /* TODO: (cyphermox) Refactor the functions below. There's a lot of room for reuse. */
 
-/**
- * Handler for setting a NetplanIPRoute guint field from a scalar node
- * @data: pointer to the guint field to write
- */
-static gboolean
-handle_routes_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    g_assert(cur_route);
-    return handle_generic_guint(doc, node, cur_route, data, error);
-}
-
-/**
- * Handler for setting a NetplanIPRoute string field from a scalar node
- * @data: pointer to the const char* field to write
- */
-static gboolean
-handle_routes_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    g_assert(cur_route);
-    return handle_generic_str(doc, node, cur_route, data, error);
-}
-
 static gboolean
 handle_routes_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
@@ -1360,76 +1341,29 @@ handle_routes_type(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     if (g_ascii_strcasecmp(cur_route->type, "unicast") == 0 ||
         g_ascii_strcasecmp(cur_route->type, "unreachable") == 0 ||
         g_ascii_strcasecmp(cur_route->type, "blackhole") == 0 ||
-        g_ascii_strcasecmp(cur_route->type, "prohibit") == 0 ||
-        g_ascii_strcasecmp(cur_route->type, "wireguard") == 0)
+        g_ascii_strcasecmp(cur_route->type, "prohibit") == 0)
         return TRUE;
 
     return yaml_error(node, error, "invalid route type '%s'", cur_route->type);
 }
 
 static gboolean
-handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
-{
-    g_autofree char* endpoint = NULL;
-    char* address;
-    char* port;
-
-    endpoint = g_strdup(scalar(node));
-    /* absolute minimal length of endpoint is 3 chars: 'h:8' */
-    if (strlen(endpoint) < 3)
-        return yaml_error(node, error, "invalid via address or hostname '%s'", scalar(node));
-
-    if (endpoint[0] == '[') {
-        /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
-        char *endbrace = strrchr(endpoint, ']');
-        if (!endbrace)
-            return yaml_error(node, error, "invalid address in via '%s'", scalar(node));
-        address = endpoint + 1;
-        *endbrace = '\0';
-        port = strrchr(endbrace + 1, ':');
-    } else {
-        address = endpoint;
-        port = strrchr(endpoint, ':');
-    }
-    /* split off :port */
-    if (!port)
-        return yaml_error(node, error, "via '%s' is missing :port", scalar(node));
-    *port = '\0';
-
-    if (is_ip4_address(address) || is_ip6_address(address) || is_hostname(address))
-        return handle_routes_str(doc, node, route_offset(via), error);
-
-    return yaml_error(node, error, "invalid via address or hostname '%s'", scalar(node));
-}
-
-static gboolean
 handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    /* If a sequence node is given, it defines the allowed_ips for a wireguard route/peer */
-    if (node->type == YAML_SEQUENCE_NODE)
-        return handle_generic_addresses(doc, node, FALSE, &(cur_route->allowed_ips), &(cur_route->allowed_ips), error);
-    else if (node->type == YAML_SCALAR_NODE) {
-        /* if this is IP4/IP6 address in 'addr' or 'addr/prefixlen' format */
-        if (is_ip4_address(scalar(node)) || is_ip6_address(scalar(node)) || strrchr(scalar(node), '/')) {
-            guint offset = GPOINTER_TO_UINT(data);
-            int family = get_ip_family(scalar(node));
-            char** dest = (char**) ((void*) cur_route + offset);
-            g_free(*dest);
+    guint offset = GPOINTER_TO_UINT(data);
+    int family = get_ip_family(scalar(node));
+    char** dest = (char**) ((void*) cur_route + offset);
+    g_free(*dest);
 
-            if (family < 0)
-                return yaml_error(node, error, "invalid IP family '%d'", family);
+    if (family < 0)
+        return yaml_error(node, error, "invalid IP family '%d'", family);
 
-            if (!check_and_set_family(family, &cur_route->family))
-                return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+    if (!check_and_set_family(family, &cur_route->family))
+        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
-            *dest = g_strdup(scalar(node));
+    *dest = g_strdup(scalar(node));
 
-            return TRUE;
-        } else {
-            return handle_wireguard_endpoint(doc, node, data, error);
-        }
-    }
-    return yaml_error(node, error, "invalid type, needs to be sequence or scalar.", scalar(node));
+    return TRUE;
 }
 
 static gboolean
@@ -1591,40 +1525,15 @@ handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
  * Grammar and handlers for network config "routes" entry
  ****************************************************/
 
-static const mapping_entry_handler routes_keys_handlers[] = {
-    {"public", YAML_SCALAR_NODE, handle_routes_str, NULL, route_offset(public_key)},
-    {"shared", YAML_SCALAR_NODE, handle_routes_str, NULL, route_offset(preshared_key)},
-    {NULL}
-};
-
-static gboolean
-handle_routes_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
-{
-    gboolean ret = FALSE;
-    /* We overload the key 'key[s]' for (wireguard) routes; such that it can either
-     * be a single scalar, defining only the public_key, or a mapping where one
-     * can specify public and shared keys. */
-    if (node->type == YAML_SCALAR_NODE)
-        ret = handle_routes_str(doc, node, route_offset(public_key), error);
-    else
-        ret = process_mapping(doc, node, routes_keys_handlers, NULL, error);
-    return ret;
-}
-
 static const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
     {"table", YAML_SCALAR_NODE, handle_routes_table, NULL, route_offset(table)},
-    {"to", YAML_NO_NODE, handle_routes_ip, NULL, route_offset(to)},
+    {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, handle_routes_metric, NULL, route_offset(metric)},
-    /* Handle key/keys for clarity in config: this can be either a scalar or
-     * mapping of multiple keys (public and shared) */
-    {"key", YAML_SCALAR_NODE, handle_routes_key_mapping},
-    {"keys", YAML_MAPPING_NODE, handle_routes_key_mapping},
-    {"keepalive", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(keepalive)},
     {NULL}
 };
 
@@ -1634,11 +1543,11 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
     if (!cur_netdef->routes)
         cur_netdef->routes = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
 
-    /* Avoid adding the same peers in a 2nd parsing pass by comparing
-       the array size to the YAML sequence size. Skip if they are equal. */
+    /* Avoid adding the same routes in a 2nd parsing pass by comparing
+     * the array size to the YAML sequence size. Skip if they are equal. */
     guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
     if (cur_netdef->routes->len == item_count) {
-        g_debug("%s: all routes/peers have already been added", cur_netdef->id);
+        g_debug("%s: all routes have already been added", cur_netdef->id);
         return TRUE;
     }
 
@@ -1652,29 +1561,22 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
-        cur_route->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*)); /* used for wireguard */
-        g_debug("%s: adding new route / wireguard peer", cur_netdef->id);
+        g_debug("%s: adding new route", cur_netdef->id);
 
         if (process_mapping(doc, entry, routes_handlers, NULL, error))
             g_array_append_val(cur_netdef->routes, cur_route);
 
-        /* Check if this is a wireguard peer */
-        if (g_ascii_strcasecmp(cur_route->type, "wireguard") == 0 && !cur_route->public_key) {
-            cur_route = NULL;
-            return yaml_error(node, error, "wireguard routes/peers must specify a (public) 'key'");
-        } else if (   (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
-                       || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
-                   && !cur_route->to) {
+        if (       (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
+                    || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
+                && !cur_route->to) {
             cur_route = NULL;
             return yaml_error(node, error, "link and host routes must specify a 'to' IP");
-        } else if (   g_ascii_strcasecmp(cur_route->type, "unicast") == 0
-                   && g_ascii_strcasecmp(cur_route->scope, "global") == 0
-                   && (!cur_route->to || !cur_route->via)) {
+        } else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
+                && g_ascii_strcasecmp(cur_route->scope, "global") == 0
+                && (!cur_route->to || !cur_route->via)) {
             cur_route = NULL;
-            return yaml_error(node, error, "link and host routes must specify a 'to' IP");
-        } else if (   g_ascii_strcasecmp(cur_route->type, "unicast") != 0
-                   && g_ascii_strcasecmp(cur_route->type, "wireguard") != 0
-                   && !cur_route->to) {
+            return yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
+        } else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to) {
             cur_route = NULL;
             return yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
         }
@@ -1881,32 +1783,137 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     return yaml_error(node, error, "%s: tunnel mode '%s' is not supported", cur_netdef->id, key);
 }
 
-static const mapping_entry_handler tunnel_keys_handlers[] = {
-    {"input", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.input_key)},
-    {"output", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.output_key)},
+/**
+ * Handler for setting a NetplanWireguardPeer string field from a scalar node
+ * @data: pointer to the const char* field to write
+ */
+static gboolean
+handle_wireguard_peer_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_wireguard_peer);
+    return handle_generic_str(doc, node, cur_wireguard_peer, data, error);
+}
+
+/**
+ * Handler for setting a NetplanWireguardPeer string field from a scalar node
+ * @data: pointer to the guint field to write
+ */
+static gboolean
+handle_wireguard_peer_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_wireguard_peer);
+    return handle_generic_guint(doc, node, cur_wireguard_peer, data, error);
+}
+
+static gboolean
+handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return handle_generic_addresses(doc, node, FALSE, &(cur_wireguard_peer->allowed_ips),
+                                    &(cur_wireguard_peer->allowed_ips), error);
+}
+
+static gboolean
+handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_autofree char* endpoint = NULL;
+    char* port;
+    char* address;
+    guint64 port_num;
+
+    endpoint = g_strdup(scalar(node));
+    /* absolute minimal length of endpoint is 3 chars: 'h:8' */
+    if (strlen(endpoint) < 3) {
+        return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+    }
+    if (endpoint[0] == '[') {
+        /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
+        char *endbrace = strrchr(endpoint, ']');
+        if (!endbrace)
+            return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+        address = endpoint + 1;
+        *endbrace = '\0';
+        port = strrchr(endbrace + 1, ':');
+    } else {
+        address = endpoint;
+        port = strrchr(endpoint, ':');
+    }
+    /* split off :port */
+    if (!port)
+        return yaml_error(node, error, "endpoint '%s' is missing :port", scalar(node));
+    *port = '\0';
+    port++; /* skip former ':' into first char of port */
+    port_num = g_ascii_strtoull(port, NULL, 10);
+    if (port_num > 65535)
+        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
+    if (is_ip4_address(address) || is_ip6_address(address) || is_hostname(address)) {
+        return handle_wireguard_peer_str(doc, node, wireguard_peer_offset(endpoint), error);
+    }
+    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+}
+
+static const mapping_entry_handler wireguard_peer_keys_handlers[] = {
+    {"public", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
+    {"shared", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
     {NULL}
 };
 
 static gboolean
-handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_wireguard_peer_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     gboolean ret = FALSE;
+    /* We overload the key 'key[s]' for wireguard peers; such that it can either
+     * be a single scalar, defining only the public_key, or a mapping where one
+     * can specify public and shared keys. */
+    if (node->type == YAML_SCALAR_NODE)
+        ret = handle_wireguard_peer_str(doc, node, wireguard_peer_offset(public_key), error);
+    else
+        ret = process_mapping(doc, node, wireguard_peer_keys_handlers, NULL, error);
+    return ret;
+}
 
-    /* We overload the key 'key' for tunnels; such that it can either be a
-     * single scalar with the same key to use for both input and output keys,
-     * or a mapping where one can specify each.
-     */
-    if (node->type == YAML_SCALAR_NODE) {
-        ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
-        if (ret)
-            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
-    } else if (node->type == YAML_MAPPING_NODE) {
-        ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
-    } else {
-        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
+const mapping_entry_handler wireguard_peer_handlers[] = {
+    /* Handle key/keys for clarity in config: this can be either a scalar or
+     * mapping of multiple keys (public and shared) */
+    {"key", YAML_NO_NODE, handle_wireguard_peer_key_mapping},
+    {"keys", YAML_NO_NODE, handle_wireguard_peer_key_mapping},
+    {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
+    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
+    {"allowed-ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
+    {NULL}
+};
+
+static gboolean
+handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    if (!cur_netdef->wireguard_peers)
+        cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer*));
+
+    /* Avoid adding the same peers in a 2nd parsing pass by comparing
+     * the array size to the YAML sequence size. Skip if they are equal. */
+    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    if (cur_netdef->wireguard_peers->len == item_count) {
+        g_debug("%s: all wireguard peers have already been added", cur_netdef->id);
+        return TRUE;
     }
 
-    return ret;
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* addr = NULL;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_MAPPING_NODE);
+
+        g_assert(cur_wireguard_peer == NULL);
+        cur_wireguard_peer = g_new0(NetplanWireguardPeer, 1);
+        cur_wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
+        g_debug("%s: adding new wireguard peer", cur_netdef->id);
+
+        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
+        if (!process_mapping(doc, entry, wireguard_peer_handlers, NULL, error)) {
+            cur_wireguard_peer = NULL;
+            return FALSE;
+        }
+        cur_wireguard_peer = NULL;
+    }
+    return TRUE;
 }
 
 /****************************************************
@@ -2225,6 +2232,36 @@ static const mapping_entry_handler modem_def_handlers[] = {
     {"username", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.username)},
 };
 
+static const mapping_entry_handler tunnel_keys_handlers[] = {
+    {"input", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.input_key)},
+    {"output", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.output_key)},
+    {"private", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.private_key)},
+    {NULL}
+};
+
+static gboolean
+handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret = FALSE;
+
+    /* We overload the 'key[s]' setting for tunnels; such that it can either be a
+     * single scalar with the same key to use for both input, output and private
+     * keys, or a mapping where one can specify each. */
+    if (node->type == YAML_SCALAR_NODE) {
+        ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
+        if (ret)
+            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
+        if (ret)
+            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.private_key), error);
+    } else if (node->type == YAML_MAPPING_NODE) {
+        ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
+    } else {
+        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
+    }
+
+    return ret;
+}
+
 static const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
@@ -2241,6 +2278,7 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     /* wireguard */
     {"mark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.fwmark)},
     {"port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.port)},
+    {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
     {NULL}
 };
 

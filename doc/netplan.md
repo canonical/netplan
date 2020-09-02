@@ -531,28 +531,20 @@ These options are available for all types of interfaces.
 ``routes`` (mapping)
 
 :    The ``routes`` block defines standard static routes for an interface.
-     At least ``to`` and ``via`` must be specified, except for Wireguard peers.
+     At least ``to`` and ``via`` must be specified.
 
      For ``from``, ``to``, and ``via``, both IPv4 and IPv6 addresses are
-     recognized, and must be in the form ``addr/prefixlen`` or ``addr``. If
-     type is ``wireguard`` (peer), ``to`` specifies the list of allowed IPs
-     and ``via`` describes the endpoint with port number (since 0.100).
+     recognized, and must be in the form ``addr/prefixlen`` or ``addr``.
 
      ``from`` (scalar)
      :    Set a source IP address for traffic going through the route.
           (``NetworkManager``: as of v1.8.0)
 
      ``to`` (scalar)
-     :    Destination address for the route. Or a list of allowed IP (v4/v6)
-          addresses with CIDR masks to which outgoing traffic for a Wireguard
-          peer is directed; the catch-all 0.0.0.0/0 may be specified for
-          matching all IPv4 addresses and ::/0 may be specified for matching
-          all IPv6 addresses (since 0.100).
+     :    Destination address for the route.
 
      ``via`` (scalar)
-     :    Address to the gateway to use for this route. Or a Wireguard remote
-          endpoint as IPv4/IPv6 address or hostname, followed by a colon and a
-          port number (since 0.100).
+     :    Address to the gateway to use for this route.
 
      ``on-link`` (bool)
      :    When set to "true", specifies that the route is directly connected
@@ -564,7 +556,7 @@ These options are available for all types of interfaces.
 
      ``type`` (scalar)
      :    The type of route. Valid options are "unicast" (default),
-          "unreachable", "blackhole",  "prohibit" or "wireguard".
+          "unreachable", "blackhole" or "prohibit".
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
@@ -1104,28 +1096,31 @@ more general information about tunnels.
 ``key``  (scalar or mapping)
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted
-    quad (an IPv4 address). It is used for identification of IP transforms.
-    This is only required for ``vti`` and ``vti6`` when using the networkd
-    backend, and for ``gre`` or ``ip6gre`` tunnels when using the
-    NetworkManager backend.
+    quad (an IPv4 address). For ``wireguard`` it can be a base64-encoded
+    private key or (as of ``networkd`` v242+) an absolute path to a file,
+    containing the private key (since 0.100).
+    It is used for identification of IP transforms. This is only required
+    for ``vti`` and ``vti6`` when using the networkd backend, and for
+    ``gre`` or ``ip6gre`` tunnels when using the NetworkManager backend.
 
     This field may be used as a scalar (meaning that a single key is
-    specified and to be used for both input and output key), or as a mapping,
-    where you can then further specify ``input`` and ``output``.
+    specified and to be used for input, output and private key), or as a
+    mapping, where you can further specify ``input``/``output``/``private``.
 
     ``input`` (scalar)
-    :    The input key for the tunnel. Or a base64-encoded private key required
-         for Wireguard tunnels. When the ``systemd-networkd`` backend (v242+)
-         is used, this can also be an absolute path to a file containing the
-         private key.
+    :    The input key for the tunnel.
 
     ``output`` (scalar)
     :    The output key for the tunnel
 
+    ``private`` (scalar) – since **0.100**
+    :    A base64-encoded private key required for Wireguard tunnels. When the
+         ``systemd-networkd`` backend (v242+) is used, this can also be an
+         absolute path to a file containing the private key.
+
 ``keys`` (scalar or mapping)
 
 :   Alternate name for the ``key`` field. See above.
-
 
 Examples:
 
@@ -1149,10 +1144,22 @@ Examples:
       wg0:
         mode: wireguard
         addresses: [...]
-        key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
-        routes:
-          - type: wireguard
+        peers:
+          - keys:
+              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+              shared: /path/to/shared.key
             ...
+        key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
+
+    tunnels:
+      wg0:
+        mode: wireguard
+        addresses: [...]
+        peers:
+          - key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+            ...
+        keys:
+          private: /path/to/priv.key
 
 
 Wireguard specific keys:
@@ -1164,29 +1171,44 @@ Wireguard specific keys:
     ``port`` (scalar) – since **0.100**
     :   UDP port to listen at or ``auto``. Optional, defaults to ``auto``.
 
+    ``peers`` (sequence of mappings) – since **0.100**
+    :   A list of peers, each having keys documented below.
+
     Example:
 
     tunnels:
         wg0:
             mode: wireguard
-            addresses: [10.10.10.20/24]
-            gateway4: 10.10.10.21
-            key: 4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
+            key: /path/to/private.key
             mark: 42
-            port: 51820
-            routes:
-                - type: wireguard
-                  key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
-                  to: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
+            port: 5182
+            peers:
+                - key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+                  allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
                   keepalive: 23
-                  via: 1.2.3.4:5
+                  endpoint: 1.2.3.4:5
                 - keys:
                       public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
                       shared: /some/shared.key
-                  to: [10.10.10.20/24]
+                  allowed-ips: [10.10.10.20/24]
                   keepalive: 22
-                  via: 5.4.3.2:1
-                  type: wireguard
+                  endpoint: 5.4.3.2:1
+
+    ``endpoint`` (scalar) – since **0.100**
+    :   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon
+        and a port number.
+
+    ``allowed-ips`` (sequence of scalars) – since **0.100**
+    :    A list of IP (v4 or v6) addresses with CIDR masks from which this peer
+         is allowed to send incoming traffic and to which outgoing traffic for
+         this peer is directed. The catch-all 0.0.0.0/0 may be specified for
+         matching all IPv4 addresses, and ::/0 may be specified for matching
+         all IPv6 addresses.
+
+    ``keepalive`` (scalar) – since **0.100**
+    :    An interval in seconds, between 1 and 65535 inclusive, of how often to
+         send an authenticated empty packet to the peer for the purpose of
+         keeping a stateful firewall or NAT mapping valid persistently. Optional.
 
 
 ## Properties for device type ``vlans:``
