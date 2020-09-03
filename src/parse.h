@@ -114,6 +114,7 @@ typedef enum {
     /* systemd-only, apparently? */
     NETPLAN_TUNNEL_MODE_GRETAP      = 101,
     NETPLAN_TUNNEL_MODE_IP6GRETAP   = 102,
+    NETPLAN_TUNNEL_MODE_WIREGUARD   = 103,
 
     NETPLAN_TUNNEL_MODE_MAX_,
 } NetplanTunnelMode;
@@ -133,6 +134,7 @@ netplan_tunnel_mode_table[NETPLAN_TUNNEL_MODE_MAX_] = {
 
     [NETPLAN_TUNNEL_MODE_GRETAP] = "gretap",
     [NETPLAN_TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+    [NETPLAN_TUNNEL_MODE_WIREGUARD] = "wireguard",
 };
 
 typedef enum {
@@ -256,6 +258,7 @@ struct net_definition {
     GArray* search_domains;
     GArray* routes;
     GArray* ip_rules;
+    GArray* wireguard_peers;
     struct {
         gboolean ipv4;
         gboolean ipv6;
@@ -293,7 +296,6 @@ struct net_definition {
     gboolean wake_on_lan;
     NetplanWifiWowlanFlag wowlan;
     gboolean emit_lldp;
-
 
     /* these properties are only valid for NETPLAN_DEF_TYPE_WIFI */
     GHashTable* access_points; /* SSID → NetplanWifiAccessPoint* */
@@ -354,6 +356,9 @@ struct net_definition {
         char *remote_ip;
         char *input_key;
         char *output_key;
+        char *private_key; /* used for wireguard */
+        guint fwmark;
+        guint port;
     } tunnel;
 
     NetplanAuthenticationSettings auth;
@@ -387,6 +392,14 @@ typedef enum {
     NETPLAN_WIFI_MODE_ADHOC,
     NETPLAN_WIFI_MODE_AP
 } NetplanWifiMode;
+
+typedef struct {
+    char *endpoint;
+    char *public_key;
+    char *preshared_key;
+    GArray *allowed_ips;
+    guint keepalive;
+} NetplanWireguardPeer;
 
 typedef enum {
     NETPLAN_WIFI_BAND_DEFAULT,

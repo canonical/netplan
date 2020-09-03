@@ -28,6 +28,7 @@
 #include "nm.h"
 #include "parse.h"
 #include "util.h"
+#include "validation.h"
 
 GString* udev_rules;
 
@@ -111,6 +112,8 @@ type_str(const NetplanNetDefinition* def)
         case NETPLAN_DEF_TYPE_VLAN:
             return "vlan";
         case NETPLAN_DEF_TYPE_TUNNEL:
+            if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
+                return "wireguard";
             return "ip-tunnel";
         // LCOV_EXCL_START
         default:
@@ -324,6 +327,60 @@ write_bridge_params(const NetplanNetDefinition* def, GString *s)
         g_string_append_printf(s, "\n[bridge]\n%s", params->str);
 
         g_string_free(params, TRUE);
+    }
+}
+
+static void
+write_wireguard_params(const NetplanNetDefinition* def, GString *s)
+{
+    g_assert(def->tunnel.private_key);
+    g_string_append(s, "\n[wireguard]\n");
+
+    /* The key was already validated via validate_tunnel_grammar(), but we need
+     * to differentiate between base64 key VS absolute path key-file. And a base64
+     * string could (theoretically) start with '/', so we use is_wireguard_key()
+     * as well to check for more specific characteristics (if needed). */
+    if (def->tunnel.private_key[0] == '/' && !is_wireguard_key(def->tunnel.private_key)) {
+        g_fprintf(stderr, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
+        exit(1);
+    } else
+        g_string_append_printf(s, "private-key=%s\n", def->tunnel.private_key);
+
+    if (def->tunnel.port)
+        g_string_append_printf(s, "listen-port=%u\n", def->tunnel.port);
+    if (def->tunnel.fwmark)
+        g_string_append_printf(s, "fwmark=%u\n", def->tunnel.fwmark);
+
+    for (guint i = 0; i < def->wireguard_peers->len; i++) {
+        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
+        g_assert(peer->public_key);
+        g_string_append_printf(s, "\n[wireguard-peer.%s]\n", peer->public_key);
+
+        if (peer->keepalive)
+            g_string_append_printf(s, "persistent-keepalive=%d\n", peer->keepalive);
+        if (peer->endpoint)
+            g_string_append_printf(s, "endpoint=%s\n", peer->endpoint);
+        /* The key was already validated via validate_tunnel_grammar(), but we need
+         * to differentiate between base64 key VS absolute path key-file. And a base64
+         * string could (theoretically) start with '/', so we use is_wireguard_key()
+         * as well to check for more specific characteristics (if needed). */
+        if (peer->preshared_key) {
+            if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key)) {
+                g_fprintf(stderr, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
+                exit(1);
+            } else {
+                g_string_append_printf(s, "preshared-key=%s\n", peer->preshared_key);
+                g_string_append(s, "preshared-key-flags=0\n");
+            }
+        }
+        if (peer->allowed_ips && peer->allowed_ips->len > 0) {
+            g_string_append(s, "allowed-ips=");
+            for (guint i = 0; i < peer->allowed_ips->len; ++i) {
+                if (i > 0 ) g_string_append_c(s, ';');
+                g_string_append_printf(s, "%s", g_array_index(peer->allowed_ips, char*, i));
+            }
+            g_string_append_c(s, '\n');
+        }
     }
 }
 
@@ -614,8 +671,12 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->type == NETPLAN_DEF_TYPE_BOND)
         write_bond_parameters(def, s);
 
-    if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
-        write_tunnel_params(def, s);
+    if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {
+        if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
+            write_wireguard_params(def, s);
+        else
+            write_tunnel_params(def, s);
+    }
 
     if (match_interface_name) {
         g_string_append(s, "\n[match]\n");

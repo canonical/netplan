@@ -58,6 +58,24 @@ is_ip6_address(const char* address)
     return FALSE;
 }
 
+gboolean
+is_hostname(const char *hostname)
+{
+    static const gchar *pattern = "^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$";
+    return g_regex_match_simple(pattern, hostname, G_REGEX_CASELESS, G_REGEX_MATCH_NOTEMPTY);
+}
+
+gboolean
+is_wireguard_key(const char* key)
+{
+    /* Check if this is (most likely) a 265bit, base64 encoded wireguard key */
+    if (strlen(key) == 44 && key[43] == '=' && key[42] != '=') {
+        static const gchar *pattern = "^(?:[A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=)+$";
+        return g_regex_match_simple(pattern, key, 0, G_REGEX_MATCH_NOTEMPTY);
+    }
+    return FALSE;
+}
+
 /* Check sanity of OpenVSwitch controller targets */
 gboolean
 validate_ovs_target(gboolean host_first, gchar* s) {
@@ -134,10 +152,53 @@ validate_ovs_target(gboolean host_first, gchar* s) {
  * Validation for grammar and backend rules.
  ************************************************/
 static gboolean
+validate_tunnel_key(yaml_node_t* node, gchar* key, GError** error)
+{
+    /* Tunnel key should be a number or dotted quad, except for wireguard. */
+    gchar* endptr;
+    guint64 v = g_ascii_strtoull(key, &endptr, 10);
+    if (*endptr != '\0' || v > G_MAXUINT) {
+        /* Not a simple uint, try for a dotted quad */
+        if (!is_ip4_address(key))
+            return yaml_error(node, error, "invalid tunnel key '%s'", key);
+    }
+    return TRUE;
+}
+
+static gboolean
 validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
         return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
+
+    if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
+        if (!nd->tunnel.private_key)
+            return yaml_error(node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
+        if (nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key))
+            return yaml_error(node, error, "%s: invalid wireguard private key", nd->id);
+        if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
+            return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
+        for (guint i = 0; i < nd->wireguard_peers->len; i++) {
+            NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
+
+            if (!peer->public_key)
+                return yaml_error(node, error, "%s: keys.public is required.", nd->id);
+            if (!is_wireguard_key(peer->public_key))
+                return yaml_error(node, error, "%s: invalid wireguard public key", nd->id);
+            if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
+                return yaml_error(node, error, "%s: invalid wireguard shared key", nd->id);
+            if (!peer->allowed_ips || peer->allowed_ips->len == 0)
+                return yaml_error(node, error, "%s: 'to' is required to define the allowed IPs.", nd->id);
+            if (peer->keepalive > 65535)
+                return yaml_error(node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
+        }
+        return TRUE;
+    } else {
+        if (nd->tunnel.input_key && !validate_tunnel_key(node, nd->tunnel.input_key, error))
+            return FALSE;
+        if (nd->tunnel.output_key && !validate_tunnel_key(node, nd->tunnel.output_key, error))
+            return FALSE;
+    }
 
     /* Validate local/remote IPs */
     if (!nd->tunnel.local_ip)
@@ -177,6 +238,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
             switch (nd->tunnel.mode) {
                 case NETPLAN_TUNNEL_MODE_VTI:
                 case NETPLAN_TUNNEL_MODE_VTI6:
+                case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     break;
 
                 /* TODO: Remove this exception and fix ISATAP handling with the
@@ -185,9 +247,9 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
                  */
                 case NETPLAN_TUNNEL_MODE_ISATAP:
                     return yaml_error(node, error,
-                                    "%s: %s tunnel mode is not supported by networkd",
-                                    nd->id,
-                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                                      "%s: %s tunnel mode is not supported by networkd",
+                                      nd->id,
+                                      g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
 
                 default:
@@ -203,14 +265,15 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
             switch (nd->tunnel.mode) {
                 case NETPLAN_TUNNEL_MODE_GRE:
                 case NETPLAN_TUNNEL_MODE_IP6GRE:
+                case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     break;
 
                 case NETPLAN_TUNNEL_MODE_GRETAP:
                 case NETPLAN_TUNNEL_MODE_IP6GRETAP:
                     return yaml_error(node, error,
-                                    "%s: %s tunnel mode is not supported by NetworkManager",
-                                    nd->id,
-                                    g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                                      "%s: %s tunnel mode is not supported by NetworkManager",
+                                      nd->id,
+                                      g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
                     break;
 
                 default:
@@ -222,10 +285,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
             }
             break;
 
-        // LCOV_EXCL_START
-        default:
-            break;
-        // LCOV_EXCL_STOP
+        default: break; //LCOV_EXCL_LINE
     }
 
     return TRUE;

@@ -28,6 +28,7 @@
 #include "networkd.h"
 #include "parse.h"
 #include "util.h"
+#include "validation.h"
 
 /**
  * Append WiFi frequencies to wpa_supplicant's freq_list=
@@ -149,6 +150,69 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
 
     g_string_append_printf(s, "\n[Tunnel]\n%s", params->str);
     g_string_free(params, TRUE);
+}
+
+static void
+write_wireguard_params(GString* s, const NetplanNetDefinition* def)
+{
+    GString *params = NULL;
+    params = g_string_sized_new(200);
+
+    g_assert(def->tunnel.private_key);
+    /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+
+     * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory.
+     *
+     * The key was already validated via validate_tunnel_grammar(), but we need
+     * to differentiate between base64 key VS absolute path key-file. And a base64
+     * string could (theoretically) start with '/', so we use is_wireguard_key()
+     * as well to check for more specific characteristics (if needed). */
+    if (def->tunnel.private_key[0] == '/' && !is_wireguard_key(def->tunnel.private_key))
+        g_string_append_printf(params, "PrivateKeyFile=%s\n", def->tunnel.private_key);
+    else
+        g_string_append_printf(params, "PrivateKey=%s\n", def->tunnel.private_key);
+
+    if (def->tunnel.port)
+        g_string_append_printf(params, "ListenPort=%u\n", def->tunnel.port);
+    /* This is called FirewallMark= as of systemd v243, but we keep calling it FwMark= for
+       backwards compatibility. FwMark= is still supported, but deprecated:
+       https://github.com/systemd/systemd/pull/12478 */
+    if (def->tunnel.fwmark)
+        g_string_append_printf(params, "FwMark=%u\n", def->tunnel.fwmark);
+
+    g_string_append_printf(s, "\n[WireGuard]\n%s", params->str);
+    g_string_free(params, TRUE);
+
+    for (guint i = 0; i < def->wireguard_peers->len; i++) {
+        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
+        GString *peer_s = g_string_sized_new(200);
+
+        g_string_append_printf(peer_s, "PublicKey=%s\n", peer->public_key);
+        g_string_append(peer_s, "AllowedIPs=");
+        for (guint i = 0; i < peer->allowed_ips->len; ++i) {
+            if (i > 0 )
+                g_string_append_c(peer_s, ',');
+            g_string_append_printf(peer_s, "%s", g_array_index(peer->allowed_ips, char*, i));
+        }
+        g_string_append_c(peer_s, '\n');
+
+        if (peer->keepalive)
+            g_string_append_printf(peer_s, "PersistentKeepalive=%d\n", peer->keepalive);
+        if (peer->endpoint)
+            g_string_append_printf(peer_s, "Endpoint=%s\n", peer->endpoint);
+        /* The key was already validated via validate_tunnel_grammar(), but we need
+         * to differentiate between base64 key VS absolute path key-file. And a base64
+         * string could (theoretically) start with '/', so we use is_wireguard_key()
+         * as well to check for more specific characteristics (if needed). */
+        if (peer->preshared_key) {
+            if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key))
+                g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", peer->preshared_key);
+            else
+                g_string_append_printf(peer_s, "PresharedKey=%s\n", peer->preshared_key);
+        }
+
+        g_string_append_printf(s, "\n[WireGuardPeer]\n%s", peer_s->str);
+        g_string_free(peer_s, TRUE);
+    }
 }
 
 static void
@@ -326,9 +390,9 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                 case NETPLAN_TUNNEL_MODE_SIT:
                 case NETPLAN_TUNNEL_MODE_VTI:
                 case NETPLAN_TUNNEL_MODE_VTI6:
-                    g_string_append_printf(s,
-                                          "Kind=%s\n",
-                                          tunnel_mode_to_string(def->tunnel.mode));
+                case NETPLAN_TUNNEL_MODE_WIREGUARD:
+                    g_string_append_printf(s, "Kind=%s\n",
+                                           tunnel_mode_to_string(def->tunnel.mode));
                     break;
 
                 case NETPLAN_TUNNEL_MODE_IP6IP6:
@@ -341,14 +405,13 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                     g_assert_not_reached();
                 // LCOV_EXCL_STOP
             }
-
-            write_tunnel_params(s, def);
+            if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
+                write_wireguard_params(s, def);
+            else
+                write_tunnel_params(s, def);
             break;
 
-        // LCOV_EXCL_START
-        default:
-            g_assert_not_reached();
-        // LCOV_EXCL_STOP
+        default: g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 
     /* these do not contain secrets and need to be readable by

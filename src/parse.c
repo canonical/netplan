@@ -32,13 +32,14 @@
 #include "validation.h"
 
 /* convenience macro to put the offset of a NetplanNetDefinition field into "void* data" */
-#define netdef_offset(field) GUINT_TO_POINTER(offsetof(NetplanNetDefinition, field))
-#define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
-#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
-#define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
-#define ovs_settings_offset(field) GUINT_TO_POINTER(offsetof(NetplanOVSSettings, field))
 #define addr_option_offset(field) GUINT_TO_POINTER(offsetof(NetplanAddressOptions, field))
+#define auth_offset(field) GUINT_TO_POINTER(offsetof(NetplanAuthenticationSettings, field))
+#define ip_rule_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRule, field))
+#define netdef_offset(field) GUINT_TO_POINTER(offsetof(NetplanNetDefinition, field))
+#define ovs_settings_offset(field) GUINT_TO_POINTER(offsetof(NetplanOVSSettings, field))
+#define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
+#define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(NetplanWireguardPeer, field))
 
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
@@ -46,8 +47,11 @@ static NetplanNetDefinition* cur_netdef;
 /* NetplanWifiAccessPoint that is currently being processed */
 static NetplanWifiAccessPoint* cur_access_point;
 
-/* authentication options that are currently being processed */
+/* NetplanAuthenticationSettings that are currently being processed */
 static NetplanAuthenticationSettings* cur_auth;
+
+/* NetplanWireguardPeer that is currently being processed */
+static NetplanWireguardPeer* cur_wireguard_peer;
 
 static NetplanAddressOptions* cur_addr_option;
 
@@ -387,10 +391,11 @@ handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
  * Handler for setting a boolean field from a scalar node, inside a given struct
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
-*/
+ */
 static gboolean
 handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
+    g_assert(entryptr);
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
 
@@ -440,7 +445,6 @@ handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
 
     return TRUE;
 }
-
 
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
@@ -818,20 +822,12 @@ handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 static gboolean
 handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "y") == 0)
+    gboolean ret = handle_generic_bool(doc, node, cur_netdef, data, error);
+    if (cur_netdef->accept_ra)
         cur_netdef->accept_ra = NETPLAN_RA_MODE_ENABLED;
-    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "n") == 0)
-        cur_netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
     else
-        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
-
-    return TRUE;
+        cur_netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
+    return ret;
 }
 
 static gboolean
@@ -891,7 +887,8 @@ handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** err
     return ret;
 }
 
-static gboolean handle_address_option_lifetime(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+static gboolean
+handle_address_option_lifetime(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_ascii_strcasecmp(scalar(node), "0") != 0 &&
         g_ascii_strcasecmp(scalar(node), "forever") != 0) {
@@ -900,7 +897,8 @@ static gboolean handle_address_option_lifetime(yaml_document_t* doc, yaml_node_t
     return handle_generic_str(doc, node, cur_addr_option, data, error);
 }
 
-static gboolean handle_address_option_label(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+static gboolean
+handle_address_option_label(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_str(doc, node, cur_addr_option, data, error);
 }
@@ -911,9 +909,16 @@ const mapping_entry_handler address_option_handlers[] = {
     {NULL}
 };
 
+/*
+ * Handler for setting an array of IP addresses from a sequence node, inside a given struct
+ * @entryptr: pointer to the beginning of the do-be-modified data structure
+ * @data: offset into entryptr struct where the array to write is located
+ */
 static gboolean
-handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check_zero_prefix, GArray** ip4, GArray** ip6, GError** error)
 {
+    g_assert(ip4);
+    g_assert(ip6);
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
         char* prefix_len;
@@ -968,34 +973,35 @@ handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError*
 
         /* is it an IPv4 address? */
         if (is_ip4_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 32)
+            if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 32)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-            if (!cur_netdef->ip4_addresses)
-                cur_netdef->ip4_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+            if (!*ip4)
+                *ip4 = g_array_new(FALSE, FALSE, sizeof(char*));
 
             /* Do not append the same IP (on multiple passes), if it is already contained */
-            for (unsigned i = 0; i < cur_netdef->ip4_addresses->len; ++i)
-                if (!g_strcmp0(scalar(entry), g_array_index(cur_netdef->ip4_addresses, char*, i)))
+            for (unsigned i = 0; i < (*ip4)->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(*ip4, char*, i)))
                     goto skip_ip4;
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip4_addresses, s);
+            g_array_append_val(*ip4, s);
 skip_ip4:
             continue;
         }
 
         /* is it an IPv6 address? */
         if (is_ip6_address(addr)) {
-            if (prefix_len_num == 0 || prefix_len_num > 128)
+            if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 128)
                 return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
-            if (!cur_netdef->ip6_addresses)
-                cur_netdef->ip6_addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+            if (!*ip6)
+                *ip6 = g_array_new(FALSE, FALSE, sizeof(char*));
 
             /* Do not append the same IP (on multiple passes), if it is already contained */
-            for (unsigned i = 0; i < cur_netdef->ip6_addresses->len; ++i)
-                if (!g_strcmp0(scalar(entry), g_array_index(cur_netdef->ip6_addresses, char*, i)))
+            for (unsigned i = 0; i < (*ip6)->len; ++i)
+                if (!g_strcmp0(scalar(entry), g_array_index(*ip6, char*, i)))
                     goto skip_ip6;
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip6_addresses, s);
+            g_array_append_val(*ip6, s);
 skip_ip6:
             continue;
         }
@@ -1004,6 +1010,12 @@ skip_ip6:
     }
 
     return TRUE;
+}
+
+static gboolean
+handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return handle_generic_addresses(doc, node, TRUE, &(cur_netdef->ip4_addresses), &(cur_netdef->ip6_addresses), error);
 }
 
 static gboolean
@@ -1299,6 +1311,7 @@ check_and_set_family(int family, guint* dest)
 static gboolean
 handle_routes_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(cur_route);
     return handle_generic_bool(doc, node, cur_route, data, error);
 }
 
@@ -1372,87 +1385,26 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 }
 
 static gboolean
-handle_ip_rule_prio(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ip_rule_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
+    g_assert(cur_ip_rule);
+    return handle_generic_guint(doc, node, cur_ip_rule, data, error);
+}
 
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid priority value '%s'", scalar(node));
-
-    cur_ip_rule->priority = (guint) v;
-    return TRUE;
+static gboolean
+handle_routes_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_route);
+    return handle_generic_guint(doc, node, cur_route, data, error);
 }
 
 static gboolean
 handle_ip_rule_tos(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > 255)
+    gboolean ret = handle_generic_guint(doc, node, cur_ip_rule, data, error);
+    if (cur_ip_rule->tos > 255)
         return yaml_error(node, error, "invalid ToS (must be between 0 and 255): %s", scalar(node));
-
-    cur_ip_rule->tos = (guint) v;
-    return TRUE;
-}
-
-static gboolean
-handle_routes_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid routing table '%s'", scalar(node));
-
-    cur_route->table = (guint) v;
-    return TRUE;
-}
-
-static gboolean
-handle_ip_rule_table(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid routing table '%s'", scalar(node));
-
-    cur_ip_rule->table = (guint) v;
-    return TRUE;
-}
-
-static gboolean
-handle_ip_rule_fwmark(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid fwmark value '%s'", scalar(node));
-
-    cur_ip_rule->fwmark = (guint) v;
-    return TRUE;
-}
-
-static gboolean
-handle_routes_metric(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
-{
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(node));
-
-    cur_route->metric = (guint) v;
-    return TRUE;
+    return ret;
 }
 
 /****************************************************
@@ -1560,44 +1512,57 @@ static const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
-    {"table", YAML_SCALAR_NODE, handle_routes_table},
+    {"table", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(table)},
     {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
-    {"metric", YAML_SCALAR_NODE, handle_routes_metric},
+    {"metric", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(metric)},
     {NULL}
 };
 
 static gboolean
 handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
+    if (!cur_netdef->routes)
+        cur_netdef->routes = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
+
+    /* Avoid adding the same routes in a 2nd parsing pass by comparing
+     * the array size to the YAML sequence size. Skip if they are equal. */
+    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    if (cur_netdef->routes->len == item_count) {
+        g_debug("%s: all routes have already been added", cur_netdef->id);
+        return TRUE;
+    }
+
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_MAPPING_NODE);
 
+        g_assert(cur_route == NULL);
         cur_route = g_new0(NetplanIPRoute, 1);
         cur_route->type = g_strdup("unicast");
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        g_debug("%s: adding new route", cur_netdef->id);
 
-        if (process_mapping(doc, entry, routes_handlers, NULL, error)) {
-            if (!cur_netdef->routes) {
-                cur_netdef->routes = g_array_new(FALSE, FALSE, sizeof(NetplanIPRoute*));
-            }
-
+        if (process_mapping(doc, entry, routes_handlers, NULL, error))
             g_array_append_val(cur_netdef->routes, cur_route);
-        }
 
         if (       (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
                     || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
-                && !cur_route->to)
+                && !cur_route->to) {
+            cur_route = NULL;
             return yaml_error(node, error, "link and host routes must specify a 'to' IP");
-        else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
+        } else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
                 && g_ascii_strcasecmp(cur_route->scope, "global") == 0
-                && (!cur_route->to || !cur_route->via))
+                && (!cur_route->to || !cur_route->via)) {
+            cur_route = NULL;
             return yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
-        else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to)
+        } else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to) {
+            cur_route = NULL;
             return yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
+        }
 
         cur_route = NULL;
 
@@ -1609,11 +1574,11 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
 
 static const mapping_entry_handler ip_rules_handlers[] = {
     {"from", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(from)},
-    {"mark", YAML_SCALAR_NODE, handle_ip_rule_fwmark},
-    {"priority", YAML_SCALAR_NODE, handle_ip_rule_prio},
-    {"table", YAML_SCALAR_NODE, handle_ip_rule_table},
+    {"mark", YAML_SCALAR_NODE, handle_ip_rule_guint, NULL, ip_rule_offset(fwmark)},
+    {"priority", YAML_SCALAR_NODE, handle_ip_rule_guint, NULL, ip_rule_offset(priority)},
+    {"table", YAML_SCALAR_NODE, handle_ip_rule_guint, NULL, ip_rule_offset(table)},
     {"to", YAML_SCALAR_NODE, handle_ip_rule_ip, NULL, ip_rule_offset(to)},
-    {"type-of-service", YAML_SCALAR_NODE, handle_ip_rule_tos},
+    {"type-of-service", YAML_SCALAR_NODE, handle_ip_rule_tos, NULL, ip_rule_offset(tos)},
     {NULL}
 };
 
@@ -1801,31 +1766,10 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     return yaml_error(node, error, "%s: tunnel mode '%s' is not supported", cur_netdef->id, key);
 }
 
-static gboolean
-handle_tunnel_key(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
-{
-    /* Tunnel key should be a number or dotted quad. */
-    guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
-    guint64 v;
-    gchar* endptr;
-
-    v = g_ascii_strtoull(scalar(node), &endptr, 10);
-    if (*endptr != '\0' || v > G_MAXUINT) {
-        /* Not a simple uint, try for a dotted quad */
-        if (!is_ip4_address(scalar(node)))
-            return yaml_error(node, error, "invalid tunnel key '%s'", scalar(node));
-    }
-
-    g_free(*dest);
-    *dest = g_strdup(scalar(node));
-
-    return TRUE;
-}
-
 static const mapping_entry_handler tunnel_keys_handlers[] = {
-    {"input", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.input_key)},
-    {"output", YAML_SCALAR_NODE, handle_tunnel_key, NULL, netdef_offset(tunnel.output_key)},
+    {"input", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.input_key)},
+    {"output", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.output_key)},
+    {"private", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(tunnel.private_key)},
     {NULL}
 };
 
@@ -1834,23 +1778,143 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
 {
     gboolean ret = FALSE;
 
-    /* We overload the key 'key' for tunnels; such that it can either be a
-     * single scalar with the same key to use for both input and output keys,
-     * or a mapping where one can specify each.
-     */
+    /* We overload the 'key[s]' setting for tunnels; such that it can either be a
+     * single scalar with the same key to use for both input, output and private
+     * keys, or a mapping where one can specify each. */
     if (node->type == YAML_SCALAR_NODE) {
-        ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.input_key), error);
+        ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
         if (ret)
-            ret = handle_tunnel_key(doc, node, netdef_offset(tunnel.output_key), error);
-    }
-    else if (node->type == YAML_MAPPING_NODE) {
+            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
+        if (ret)
+            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.private_key), error);
+    } else if (node->type == YAML_MAPPING_NODE)
         ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
-    }
-    else {
-        return yaml_error(node, error, "invalid type for 'keys': must be a scalar or mapping");
-    }
+    else
+        return yaml_error(node, error, "invalid type for 'key[s]': must be a scalar or mapping");
 
     return ret;
+}
+
+/**
+ * Handler for setting a NetplanWireguardPeer string field from a scalar node
+ * @data: pointer to the const char* field to write
+ */
+static gboolean
+handle_wireguard_peer_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_wireguard_peer);
+    return handle_generic_str(doc, node, cur_wireguard_peer, data, error);
+}
+
+/**
+ * Handler for setting a NetplanWireguardPeer string field from a scalar node
+ * @data: pointer to the guint field to write
+ */
+static gboolean
+handle_wireguard_peer_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_wireguard_peer);
+    return handle_generic_guint(doc, node, cur_wireguard_peer, data, error);
+}
+
+static gboolean
+handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return handle_generic_addresses(doc, node, FALSE, &(cur_wireguard_peer->allowed_ips),
+                                    &(cur_wireguard_peer->allowed_ips), error);
+}
+
+static gboolean
+handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    g_autofree char* endpoint = NULL;
+    char* port;
+    char* address;
+    guint64 port_num;
+
+    endpoint = g_strdup(scalar(node));
+    /* absolute minimal length of endpoint is 3 chars: 'h:8' */
+    if (strlen(endpoint) < 3) {
+        return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+    }
+    if (endpoint[0] == '[') {
+        /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
+        char *endbrace = strrchr(endpoint, ']');
+        if (!endbrace)
+            return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+        address = endpoint + 1;
+        *endbrace = '\0';
+        port = strrchr(endbrace + 1, ':');
+    } else {
+        address = endpoint;
+        port = strrchr(endpoint, ':');
+    }
+    /* split off :port */
+    if (!port)
+        return yaml_error(node, error, "endpoint '%s' is missing :port", scalar(node));
+    *port = '\0';
+    port++; /* skip former ':' into first char of port */
+    port_num = g_ascii_strtoull(port, NULL, 10);
+    if (port_num > 65535)
+        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
+    if (is_ip4_address(address) || is_ip6_address(address) || is_hostname(address)) {
+        return handle_wireguard_peer_str(doc, node, wireguard_peer_offset(endpoint), error);
+    }
+    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+}
+
+static const mapping_entry_handler wireguard_peer_keys_handlers[] = {
+    {"public", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(public_key)},
+    {"shared", YAML_SCALAR_NODE, handle_wireguard_peer_str, NULL, wireguard_peer_offset(preshared_key)},
+    {NULL}
+};
+
+static gboolean
+handle_wireguard_peer_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    return process_mapping(doc, node, wireguard_peer_keys_handlers, NULL, error);
+}
+
+const mapping_entry_handler wireguard_peer_handlers[] = {
+    {"keys", YAML_MAPPING_NODE, handle_wireguard_peer_key_mapping},
+    {"keepalive", YAML_SCALAR_NODE, handle_wireguard_peer_guint, NULL, wireguard_peer_offset(keepalive)},
+    {"endpoint", YAML_SCALAR_NODE, handle_wireguard_endpoint},
+    {"allowed-ips", YAML_SEQUENCE_NODE, handle_wireguard_allowed_ips},
+    {NULL}
+};
+
+static gboolean
+handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+{
+    if (!cur_netdef->wireguard_peers)
+        cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer*));
+
+    /* Avoid adding the same peers in a 2nd parsing pass by comparing
+     * the array size to the YAML sequence size. Skip if they are equal. */
+    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    if (cur_netdef->wireguard_peers->len == item_count) {
+        g_debug("%s: all wireguard peers have already been added", cur_netdef->id);
+        return TRUE;
+    }
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* addr = NULL;
+        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        assert_type(entry, YAML_MAPPING_NODE);
+
+        g_assert(cur_wireguard_peer == NULL);
+        cur_wireguard_peer = g_new0(NetplanWireguardPeer, 1);
+        cur_wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
+        g_debug("%s: adding new wireguard peer", cur_netdef->id);
+
+        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
+        if (!process_mapping(doc, entry, wireguard_peer_handlers, NULL, error)) {
+            cur_wireguard_peer = NULL;
+            return FALSE;
+        }
+        cur_wireguard_peer = NULL;
+    }
+    return TRUE;
 }
 
 /****************************************************
@@ -2058,7 +2122,7 @@ static const mapping_entry_handler nameservers_handlers[] = {
     {"route-metric", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(overrides.metric)},         \
     {"send-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.send_hostname)},  \
     {"use-dns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_dns)},              \
-    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},      \
+    {"use-domains", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(overrides.use_domains)},       \
     {"use-hostname", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_hostname)},    \
     {"use-mtu", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_mtu)},              \
     {"use-ntp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(overrides.use_ntp)},              \
@@ -2076,7 +2140,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS                                                                  \
-    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra},                                        \
+    {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra, NULL, netdef_offset(accept_ra)},        \
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},                                      \
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},        \
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},              \
@@ -2086,7 +2150,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp6-overrides", YAML_MAPPING_NODE, NULL, dhcp6_overrides_handlers},                   \
     {"gateway4", YAML_SCALAR_NODE, handle_gateway4},                                          \
     {"gateway6", YAML_SCALAR_NODE, handle_gateway6},                                          \
-    {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                               \
+    {"ipv6-address-generation", YAML_SCALAR_NODE, handle_netdef_addrgen},                     \
     {"ipv6-address-token", YAML_SCALAR_NODE, handle_netdef_addrtok, NULL, netdef_offset(ip6_addr_gen_token)}, \
     {"ipv6-mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(ipv6_mtubytes)},  \
     {"ipv6-privacy", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ip6_privacy)}, \
@@ -2100,16 +2164,16 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"routes", YAML_SEQUENCE_NODE, handle_routes},                                            \
     {"routing-policy", YAML_SEQUENCE_NODE, handle_ip_rules}
 
-#define COMMON_BACKEND_HANDLERS                                                \
-    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers}, \
+#define COMMON_BACKEND_HANDLERS                                                               \
+    {"networkmanager", YAML_MAPPING_NODE, NULL, nm_backend_settings_handlers},                \
     {"openvswitch", YAML_MAPPING_NODE, handle_ovs_backend}
 
 /* Handlers for physical links */
-#define PHYSICAL_LINK_HANDLERS                                                           \
-    {"match", YAML_MAPPING_NODE, handle_match},                                          \
-    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},    \
-    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)}, \
-    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},       \
+#define PHYSICAL_LINK_HANDLERS                                                                \
+    {"match", YAML_MAPPING_NODE, handle_match},                                               \
+    {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},         \
+    {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},    \
+    {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},           \
     {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
@@ -2181,6 +2245,11 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
      */
     {"key", YAML_NO_NODE, handle_tunnel_key_mapping},
     {"keys", YAML_NO_NODE, handle_tunnel_key_mapping},
+
+    /* wireguard */
+    {"mark", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.fwmark)},
+    {"port", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.port)},
+    {"peers", YAML_SEQUENCE_NODE, handle_wireguard_peers},
     {NULL}
 };
 

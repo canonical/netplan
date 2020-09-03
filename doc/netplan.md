@@ -431,11 +431,11 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             dhcp6: true
             optional-addresses: [ ipv4-ll, dhcp6 ]
 
-``routes`` (mapping)
+``routes`` (sequence of mappings)
 
 :   Configure static routing for the device; see the ``Routing`` section below.
 
-``routing-policy`` (mapping)
+``routing-policy`` (sequence of mappings)
 
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
@@ -510,10 +510,10 @@ client processes as specified in the netplan YAML.
           ``NetworkManager`` backends.
 
      ``use-domains`` (scalar) – since **0.98**
-     :    Takes a boolean, or the special value "route". When true, the domain 
+     :    Takes a boolean, or the special value "route". When true, the domain
           name received from the DHCP server will be used as DNS search domain
           over this link, similar to the effect of the Domains= setting. If set
-          to "route", the domain name received from the DHCP server will be 
+          to "route", the domain name received from the DHCP server will be
           used for routing DNS queries only, but not for searching, similar to
           the effect of the Domains= setting when the argument is prefixed with
           "~".
@@ -1055,8 +1055,9 @@ more general information about tunnels.
 ``mode`` (scalar)
 
 :   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
-    ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, and ``vti6``. Additionally,
-    the ``networkd`` backend also supports ``gretap`` and ``ip6gretap`` modes.
+    ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, ``vti6`` and ``wireguard``.
+    Additionally, the ``networkd`` backend also supports ``gretap`` and
+    ``ip6gretap`` modes.
     In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
 
 ``local`` (scalar)
@@ -1070,20 +1071,31 @@ more general information about tunnels.
 ``key``  (scalar or mapping)
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted
-    quad (an IPv4 address). It is used for identification of IP transforms.
-    This is only required for ``vti`` and ``vti6`` when using the networkd
-    backend, and for ``gre`` or ``ip6gre`` tunnels when using the
-    NetworkManager backend.
+    quad (an IPv4 address). For ``wireguard`` it can be a base64-encoded
+    private key or (as of ``networkd`` v242+) an absolute path to a file,
+    containing the private key (since 0.100).
+    It is used for identification of IP transforms. This is only required
+    for ``vti`` and ``vti6`` when using the networkd backend, and for
+    ``gre`` or ``ip6gre`` tunnels when using the NetworkManager backend.
 
     This field may be used as a scalar (meaning that a single key is
-    specified and to be used for both input and output key), or as a mapping,
-    where you can then further specify ``input`` and ``output``.
+    specified and to be used for input, output and private key), or as a
+    mapping, where you can further specify ``input``/``output``/``private``.
 
     ``input`` (scalar)
     :    The input key for the tunnel
 
     ``output`` (scalar)
     :    The output key for the tunnel
+
+    ``private`` (scalar) – since **0.100**
+    :    A base64-encoded private key required for Wireguard tunnels. When the
+         ``systemd-networkd`` backend (v242+) is used, this can also be an
+         absolute path to a file containing the private key.
+
+``keys`` (scalar or mapping)
+
+:   Alternate name for the ``key`` field. See above.
 
 Examples:
 
@@ -1103,10 +1115,91 @@ Examples:
         remote: ...
         key: 59568549
 
-``keys`` (scalar or mapping)
+    tunnels:
+      wg0:
+        mode: wireguard
+        addresses: [...]
+        peers:
+          - keys:
+              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+              shared: /path/to/shared.key
+            ...
+        key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
 
-:   Alternate name for the ``key`` field. See above.
+    tunnels:
+      wg0:
+        mode: wireguard
+        addresses: [...]
+        peers:
+          - keys:
+              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+            ...
+        keys:
+          private: /path/to/priv.key
 
+
+Wireguard specific keys:
+
+    ``mark`` (scalar) – since **0.100**
+    :   Firewall mark for outgoing WireGuard packets from this interface,
+        optional.
+
+    ``port`` (scalar) – since **0.100**
+    :   UDP port to listen at or ``auto``. Optional, defaults to ``auto``.
+
+    ``peers`` (sequence of mappings) – since **0.100**
+    :   A list of peers, each having keys documented below.
+
+    Example:
+
+    tunnels:
+        wg0:
+            mode: wireguard
+            key: /path/to/private.key
+            mark: 42
+            port: 5182
+            peers:
+                - keys:
+                      public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+                  allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
+                  keepalive: 23
+                  endpoint: 1.2.3.4:5
+                - keys:
+                      public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+                      shared: /some/shared.key
+                  allowed-ips: [10.10.10.20/24]
+                  keepalive: 22
+                  endpoint: 5.4.3.2:1
+
+    ``endpoint`` (scalar) – since **0.100**
+    :   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon
+        and a port number.
+
+    ``allowed-ips`` (sequence of scalars) – since **0.100**
+    :    A list of IP (v4 or v6) addresses with CIDR masks from which this peer
+         is allowed to send incoming traffic and to which outgoing traffic for
+         this peer is directed. The catch-all 0.0.0.0/0 may be specified for
+         matching all IPv4 addresses, and ::/0 may be specified for matching
+         all IPv6 addresses.
+
+    ``keepalive`` (scalar) – since **0.100**
+    :    An interval in seconds, between 1 and 65535 inclusive, of how often to
+         send an authenticated empty packet to the peer for the purpose of
+         keeping a stateful firewall or NAT mapping valid persistently. Optional.
+
+    ``keys`` (mapping) – since **0.100**
+    :    Define keys to use for the Wireguard peers.
+
+         This field can be used as a mapping, where you can further specify the
+         ``public`` and ``shared`` keys.
+
+         ``public`` (scalar) – since **0.100**
+         :    A base64-encoded public key, requried for Wireguard peers.
+
+         ``shared`` (scalar) – since **0.100**
+         :    A base64-encoded preshared key. Optional for Wireguard peers.
+              When the ``systemd-networkd`` backend (v242+) is used, this can
+              also be an absolute path to a file containing the preshared key.
 
 ## Properties for device type ``vlans:``
 

@@ -21,6 +21,17 @@ from .base import TestBase
 
 class TestNetworkd(TestBase):
 
+    def test_route_invalid_family_to(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: abc/24
+          via: 192.168.14.20''', expect_fail=True)
+        self.assertIn("Error in network definition: invalid IP family '-1'", err)
+
     def test_route_v4_single(self):
         self.generate('''network:
   version: 2
@@ -44,6 +55,40 @@ Address=192.168.14.2/24
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
 Metric=100
+'''})
+
+    def test_route_v4_single_mulit_parse(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0: {interfaces: [engreen]}
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=no
+Address=192.168.14.2/24
+Bridge=br0
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=100
+''',
+                              'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '''[Match]\nName=br0\n
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
 '''})
 
     def test_route_v4_multiple(self):
