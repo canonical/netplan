@@ -22,6 +22,7 @@
 
 import sys
 import subprocess
+import time
 import unittest
 
 from base import IntegrationTestsBase, test_backends
@@ -110,6 +111,7 @@ class _CommonTests():
           keepalive: 21
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
+        time.sleep(2)  # Give some time for handshake/connection between client & server
         # Verify server
         out = subprocess.check_output(['wg', 'show', 'wg0', 'private-key'], universal_newlines=True)
         self.assertIn("4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=", out)
@@ -121,7 +123,7 @@ class _CommonTests():
         self.assertIn("fwmark: 0x2a", out)
         self.assertIn("peer: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=", out)
         self.assertIn("allowed ips: 20.20.20.0/24", out)
-        self.assertRegex(out, r'latest handshake: \d+ seconds ago')
+        self.assertRegex(out, r'latest handshake: \d+ seconds? ago')
         self.assertRegex(out, r'transfer: \d+ B received, \d+ B sent')
         self.assert_iface('wg0', ['inet 10.10.10.20/24'])
         # Verify client
@@ -135,7 +137,7 @@ class _CommonTests():
         self.assertIn("endpoint: 10.10.10.20:51820", out)
         self.assertIn("allowed ips: 0.0.0.0/0", out)
         self.assertIn("persistent keepalive: every 21 seconds", out)
-        self.assertRegex(out, r'latest handshake: \d+ seconds ago')
+        self.assertRegex(out, r'latest handshake: \d+ seconds? ago')
         self.assertRegex(out, r'transfer: \d+ B received, \d+ B sent')
         self.assert_iface('wg1', ['inet 20.20.20.10/24'])
 
