@@ -572,7 +572,6 @@ These options are available for all types of interfaces.
           see ``/etc/iproute2/rt_tables``.
           (``NetworkManager``: as of v1.10.0)
 
-
 ``routing-policy`` (mapping)
 
 :    The ``routing-policy`` block defines extra routing policy for a network,
