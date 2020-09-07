@@ -53,6 +53,24 @@ reload_udevd(void)
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 
+static gboolean
+check_called_just_in_time()
+{
+    if (rootdir != NULL)
+        return FALSE;
+    const gchar *argv[] = { "/bin/systemctl", "is-system-running", NULL };
+    gchar *output = NULL;
+    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &output, NULL, NULL, NULL);
+    return output != NULL && strstr(output, "initializing") != NULL;
+};
+
+static void
+start_unit_jit(gchar *unit)
+{
+    const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", unit, NULL };
+    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
+};
+
 static void
 nd_iterator_list(gpointer value, gpointer user_data)
 {
@@ -162,6 +180,8 @@ int main(int argc, char** argv)
     /* are we being called as systemd generator? */
     gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
     g_autofree char* generator_run_stamp = NULL;
+    glob_t gl;
+    int rc;
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
@@ -206,8 +226,6 @@ int main(int argc, char** argv)
         g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
         g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
         g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
-        glob_t gl;
-        int rc;
         /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
         g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
         g_autoptr(GList) config_keys = NULL;
@@ -292,6 +310,27 @@ int main(int argc, char** argv)
         FILE* f = fopen(generator_run_stamp, "w");
         g_assert(f != NULL);
         fclose(f);
+    } else if (check_called_just_in_time()) {
+        /* When booting with cloud-init, network configuration
+         * might be provided just-in-time. Specifically after
+         * system-generators were executed, but before
+         * network.target is started. In such case, auxiliary
+         * units that netplan enables have not been included in
+         * the initial boot transaction. Detect such scenario and
+         * add all netplan units to the initial boot transaction.
+         */
+        if (any_networkd) {
+            start_unit_jit("systemd-networkd.socket");
+            start_unit_jit("systemd-networkd-wait-online.service");
+            start_unit_jit("systemd-networkd.service");
+        }
+        if (!glob("/run/systemd/system/netplan-*.service", 0, NULL, &gl)) {
+            for (size_t i = 0; i < gl.gl_pathc; ++i) {
+                gchar *unit_name = g_path_get_basename(gl.gl_pathv[i]);
+                start_unit_jit(unit_name);
+                g_free(unit_name);
+            }
+        }
     }
 
     return 0;
