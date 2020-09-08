@@ -689,4 +689,111 @@ class TestIp(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
 
 
+class TestSet(unittest.TestCase):
+    '''Test netplan set'''
+    def setUp(self):
+        self.workdir = tempfile.TemporaryDirectory()
+        self.file = '00-netplan-set.yaml'
+        self.path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
+        os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
+
+    def _exec(self, args, check=True):
+        args.insert(0, 'set')
+        return subprocess.run(exe_cli + args + ['--root-dir', self.workdir.name],
+                              stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
+                              text=True, check=check)
+
+    def test_set_basic(self):
+        self._exec(['ethernets.eth0.dhcp4=true'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'true\'', f.read())
+
+    def test_set_invalid_hint(self):
+        ret = self._exec(['ethernets.eth0.dhcp4=true', '--origin-hint=some-file.yml'], check=False)
+        self.assertEqual(1, ret.returncode)
+        self.assertIn('needs to be a .yaml file!', ret.stdout)
+        self.assertFalse(os.path.isfile(self.path))
+
+    def test_set_invalid(self):
+        ret = self._exec(['xxx.yyy=abc'], check=False)
+        self.assertEqual(1, ret.returncode)
+        self.assertIn('unknown key \'xxx\'\n  xxx:\n', ret.stdout)
+        self.assertFalse(os.path.isfile(self.path))
+
+    def test_invalid_yaml_read(self):
+        with open(self.path, 'w') as f:
+            f.write('''network: {}}''')
+        r = self._exec(['ethernets.eth0.dhcp4=true'], check=False)
+        self.assertEqual(r.returncode, 2)
+        self.assertTrue(os.path.isfile(self.path))
+        self.assertIn('expected <block end>, but found \'}\'', r.stdout)
+
+    def test_set_append(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens3: {dhcp4: yes}''')
+        self._exec(['ethernets.eth0.dhcp4=true'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  ethernets:\n', out)
+            self.assertIn('    ens3:\n      dhcp4: true', out)
+            self.assertIn('    eth0:\n      dhcp4: \'true\'', out)
+            self.assertIn('  version: 2', out)
+
+    def test_set_overwrite_eq(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    ens3: {dhcp4: "yes"}''')
+        self._exec(['ethernets.ens3.dhcp4=yes'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  ethernets:\n', out)
+            self.assertIn('    ens3:\n      dhcp4: \'yes\'', out)
+
+    def test_set_overwrite(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    ens3: {dhcp4: "yes"}''')
+        self._exec(['ethernets.ens3.dhcp4=true'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  ethernets:\n', out)
+            self.assertIn('    ens3:\n      dhcp4: \'true\'', out)
+
+    def test_set_delete(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:\n  version: 2\n  renderer: NetworkManager
+  ethernets:
+    ens3: {dhcp4: yes, dhcp6: yes}
+    eth0: {addresses: [1.2.3.4]}''')
+        self._exec(['ethernets.eth0.addresses=NULL'])
+        self._exec(['ethernets.ens3.dhcp6=NULL'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  ethernets:\n', out)
+            self.assertIn('  version: 2', out)
+            self.assertIn('    ens3:\n      dhcp4: true', out)
+            self.assertNotIn('dhcp6: true', out)
+            self.assertNotIn('addresses:', out)
+            self.assertNotIn('eth0:', out)
+
+    def test_set_delete_file(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    ens3: {dhcp4: yes}''')
+        self._exec(['ethernets.ens3.dhcp4=NULL'])
+        # The file should be deleted if this was the last/only key left
+        self.assertFalse(os.path.isfile(self.path))
+
+
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
