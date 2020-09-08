@@ -56,20 +56,21 @@ reload_udevd(void)
 static gboolean
 check_called_just_in_time()
 {
-    if (rootdir != NULL)
-        return FALSE;
     const gchar *argv[] = { "/bin/systemctl", "is-system-running", NULL };
     gchar *output = NULL;
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &output, NULL, NULL, NULL);
     return output != NULL && strstr(output, "initializing") != NULL;
 };
 
+// LCOV_EXCL_START
+/* covered via 'cloud-init' integration test */
 static void
 start_unit_jit(gchar *unit)
 {
     const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", unit, NULL };
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
 };
+// LCOV_EXCL_END
 
 static void
 nd_iterator_list(gpointer value, gpointer user_data)
@@ -319,18 +320,23 @@ int main(int argc, char** argv)
          * the initial boot transaction. Detect such scenario and
          * add all netplan units to the initial boot transaction.
          */
+        // LCOV_EXCL_START
+        /* covered via 'cloud-init' integration test */
         if (any_networkd) {
             start_unit_jit("systemd-networkd.socket");
             start_unit_jit("systemd-networkd-wait-online.service");
             start_unit_jit("systemd-networkd.service");
         }
-        if (!glob("/run/systemd/system/netplan-*.service", 0, NULL, &gl)) {
+        g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S,
+                                              "run/systemd/system/netplan-*.service", NULL);
+        if (!glob(glob_run, 0, NULL, &gl)) {
             for (size_t i = 0; i < gl.gl_pathc; ++i) {
                 gchar *unit_name = g_path_get_basename(gl.gl_pathv[i]);
                 start_unit_jit(unit_name);
                 g_free(unit_name);
             }
         }
+        // LCOV_EXCL_END
     }
 
     return 0;
