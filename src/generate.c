@@ -312,6 +312,7 @@ int main(int argc, char** argv)
         g_assert(f != NULL);
         fclose(f);
     } else if (check_called_just_in_time()) {
+        /* netplan-feature: generate-just-in-time */
         /* When booting with cloud-init, network configuration
          * might be provided just-in-time. Specifically after
          * system-generators were executed, but before
