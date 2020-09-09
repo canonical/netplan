@@ -67,7 +67,7 @@ check_called_just_in_time()
 static void
 start_unit_jit(gchar *unit)
 {
-    const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", unit, NULL };
+    const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", "--no-ask-password", unit, NULL };
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 // LCOV_EXCL_END
