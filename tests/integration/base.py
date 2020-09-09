@@ -4,9 +4,10 @@
 # Wifi (mac80211-hwsim). These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2020 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <lukas.maerdian@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -407,3 +408,12 @@ class IntegrationTestsBase(unittest.TestCase):
         p = subprocess.Popen(['systemctl', 'is-active', unit], stdout=subprocess.PIPE)
         out = p.communicate()[0]
         return p.returncode == 0 or out.startswith(b'activating')
+
+
+class IntegrationTestReboot(IntegrationTestsBase):
+
+    def tearDown(self):
+        # Do not tearDown in the middle of a reboot test
+        # Only after the 2nd part of the test ran (after reboot)
+        if os.getenv('AUTOPKGTEST_REBOOT_MARK'):
+            super().tearDown()
