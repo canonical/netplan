@@ -53,17 +53,26 @@ reload_udevd(void)
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 
+// LCOV_EXCL_START
+/* covered via 'cloud-init' integration test */
 static gboolean
 check_called_just_in_time()
 {
     const gchar *argv[] = { "/bin/systemctl", "is-system-running", NULL };
     gchar *output = NULL;
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &output, NULL, NULL, NULL);
-    return output != NULL && strstr(output, "initializing") != NULL;
+    if (output != NULL && strstr(output, "initializing") != NULL) {
+        g_free(output);
+        const gchar *argv2[] = { "/bin/systemctl", "is-active", "network.target", NULL };
+        gint exit_code = 0;
+        g_spawn_sync(NULL, (gchar**)argv2, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &exit_code, NULL);
+        /* return TRUE, if network.target is not yet active */
+        return !g_spawn_check_exit_status(exit_code, NULL);
+    }
+    g_free(output);
+    return FALSE;
 };
 
-// LCOV_EXCL_START
-/* covered via 'cloud-init' integration test */
 static void
 start_unit_jit(gchar *unit)
 {
