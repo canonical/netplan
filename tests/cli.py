@@ -703,11 +703,35 @@ class TestSet(unittest.TestCase):
                               stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
                               text=True, check=check)
 
-    def test_set_basic(self):
+    def test_set_scalar(self):
         self._exec(['ethernets.eth0.dhcp4=true'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'true\'', f.read())
+
+    def test_set_scalar2(self):
+        self._exec(['ethernets.eth0.dhcp4="yes"'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'yes\'', f.read())
+
+    def test_set_sequence(self):
+        self._exec(['ethernets.eth0.addresses=[1.2.3.4/24, \'5.6.7.8/24\']'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('''network:\n  ethernets:\n    eth0:
+      addresses:
+      - 1.2.3.4/24
+      - 5.6.7.8/24''', f.read())
+
+    def test_set_sequence2(self):
+        self._exec(['ethernets.eth0.addresses="1.2.3.4/24",5.6.7.8/24'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('''network:\n  ethernets:\n    eth0:
+      addresses:
+      - 1.2.3.4/24
+      - 5.6.7.8/24''', f.read())
 
     def test_set_invalid_hint(self):
         ret = self._exec(['ethernets.eth0.dhcp4=true', '--origin-hint=some-file.yml'], check=False)

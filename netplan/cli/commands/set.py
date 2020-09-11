@@ -53,9 +53,20 @@ class NetplanSet(utils.NetplanCommand):
         root = self.root_dir if self.root_dir else '/'
         split = self.key_value.split('=', 1)
         key, value = (split[0], None)
-        if len(split) > 1 and split[1] != 'NULL':
+        if len(split) > 1:
             value = split[1]
         self.write_file(key, value, self.origin_hint, root)
+
+    def format_value(self, val_str):
+        # Clear/Delete
+        if val_str.strip(' "\'') == 'NULL':
+            return None
+        # Sequence
+        elif ',' in val_str:
+            arr = [x.strip('][ "\'') for x in val_str.split(',')]
+            return arr
+        # Scalar
+        return val_str.strip(' "\'')
 
     def parse_key(self, key, value):
         # TODO: beware of dots in key/interface-names
@@ -81,12 +92,9 @@ class NetplanSet(utils.NetplanCommand):
                     self.merge(a[key], b[key], path + [str(key)])
                 elif b[key] is None:
                     del a[key]
-                elif a[key] == b[key]:
-                    # XXX: do we need this check?
-                    pass  # same leaf value
                 else:
+                    # Overwrite existing key with new key/value from 'set' command
                     a[key] = b[key]
-                    # raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
             else:
                 a[key] = b[key]
         return a
@@ -120,7 +128,7 @@ class NetplanSet(utils.NetplanCommand):
                     logging.error(str(e))
                     sys.exit(2)
 
-        new_tree = self.merge(config, self.parse_key(key, value))
+        new_tree = self.merge(config, self.parse_key(key, self.format_value(value)))
         stripped = self.strip(new_tree)
         if 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)
