@@ -820,4 +820,61 @@ class TestSet(unittest.TestCase):
         self.assertFalse(os.path.isfile(self.path))
 
 
+class TestGet(unittest.TestCase):
+    '''Test netplan get'''
+    def setUp(self):
+        self.workdir = tempfile.TemporaryDirectory()
+        self.file = '00-config.yaml'
+        self.path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
+        os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
+
+    def _get(self, args, check=True):
+        args.insert(0, 'get')
+        return subprocess.run(exe_cli + args + ['--root-dir', self.workdir.name],
+                              stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
+                              text=True, check=check)
+
+    def test_get_scalar(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens3: {dhcp4: yes}''')
+        r = self._get(['ethernets.ens3.dhcp4'])
+        self.assertIn('true', r.stdout)
+
+    def test_get_mapping(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens3:
+      dhcp4: yes
+      addresses: [1.2.3.4/24, 5.6.7.8/24]''')
+        r = self._get(['ethernets'])
+        self.assertIn('''ens3:
+  addresses:
+  - 1.2.3.4/24
+  - 5.6.7.8/24
+  dhcp4: true''', r.stdout)
+
+    def test_get_sequence(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens3: {addresses: [1.2.3.4/24, 5.6.7.8/24]}''')
+        r = self._get(['ethernets.ens3.addresses'])
+        self.assertIn('- 1.2.3.4/24\n- 5.6.7.8/24', r.stdout)
+
+    def test_get_null(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens3: {dhcp4: yes}''')
+        r = self._get(['ethernets.eth0.dhcp4'])
+        self.assertIn('null', r.stdout)
+
+
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
