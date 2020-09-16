@@ -19,7 +19,6 @@
 
 import os
 import yaml
-import sys
 import logging
 import subprocess
 import tempfile
@@ -126,7 +125,7 @@ class NetplanSet(utils.NetplanCommand):
                 except yaml.YAMLError as e:
                     # FIXME: improve error message
                     logging.error(str(e))
-                    sys.exit(2)
+                    raise e
 
         new_tree = self.merge(config, self.parse_key(key, self.format_value(value)))
         stripped = self.strip(new_tree)
@@ -145,7 +144,7 @@ class NetplanSet(utils.NetplanCommand):
                 os.replace(tmpp, absp)  # Valid, move it to final destination
             else:
                 logging.error(ret.stdout)
-                sys.exit(1)
+                raise Exception(ret.stdout)
         else:
             # Clear file if the last/only key got removed
             os.remove(absp)
