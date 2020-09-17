@@ -19,9 +19,8 @@
 
 import os
 import yaml
-import logging
-import subprocess
 import tempfile
+import shutil
 
 import netplan.cli.utils as utils
 
@@ -109,7 +108,7 @@ class NetplanSet(utils.NetplanCommand):
         return new_data
 
     def write_file(self, key, value, name=None, rootdir='/', path='etc/netplan/'):
-        tmproot = tempfile.TemporaryDirectory()
+        tmproot = tempfile.TemporaryDirectory(prefix='netplan-set_')
         os.makedirs(os.path.join(tmproot.name, 'etc', 'netplan'))
 
         fname = name if name else self.origin_hint
@@ -120,12 +119,7 @@ class NetplanSet(utils.NetplanCommand):
         absp = os.path.join(rootdir, path, name)
         if os.path.isfile(absp):
             with open(absp, 'r') as f:
-                try:
-                    config = yaml.safe_load(f)
-                except yaml.YAMLError as e:
-                    # FIXME: improve error message
-                    logging.error(str(e))
-                    raise e
+                config = yaml.safe_load(f)
 
         new_tree = self.merge(config, self.parse_key(key, self.format_value(value)))
         stripped = self.strip(new_tree)
@@ -134,17 +128,14 @@ class NetplanSet(utils.NetplanCommand):
             with open(tmpp, 'w+') as f:
                 new_yaml = yaml.dump(stripped, indent=2, default_flow_style=False)
                 f.write(new_yaml)
-
-            # XXX: use netplan.cli.commands.generate instead of subprocess
-            # XXX: or validate via libnetplan parser (CPyhton)
-            # Validate the newly created file, by passing it through 'netplan generate'
-            ret = subprocess.run(['netplan', 'generate', '--root-dir', tmproot.name],
-                                 stderr=subprocess.STDOUT, stdout=subprocess.PIPE, text=True)
-            if not ret.returncode:
-                os.replace(tmpp, absp)  # Valid, move it to final destination
-            else:
-                logging.error(ret.stdout)
-                raise Exception(ret.stdout)
+            try:
+                # Validate the newly created file, by parsing it via libnetplan
+                utils.netplan_parse(tmpp)
+                # Valid, move it to final destination
+                os.replace(tmpp, absp)
+            finally:
+                shutil.rmtree(os.path.join(tmproot.name, 'etc', 'netplan'))
         else:
             # Clear file if the last/only key got removed
             os.remove(absp)
+        shutil.rmtree(tmproot.name)

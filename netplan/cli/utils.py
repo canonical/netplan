@@ -24,9 +24,34 @@ import argparse
 import subprocess
 import netifaces
 import re
+import ctypes
+import ctypes.util
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
+
+
+class _GError(ctypes.Structure):
+    _fields_ = [("domain", ctypes.c_uint32), ("code", ctypes.c_int), ("message", ctypes.c_char_p)]
+
+
+lib = ctypes.CDLL('libnetplan.so')
+lib.netplan_parse_yaml.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.POINTER(_GError))]
+
+
+def netplan_parse(path):
+    # Clear old NetplanNetDefinitions from libnetplan memory
+    lib.netplan_clear_netdefs()
+    # TODO: possibly parse all files from /{lib,etc,run}/netplan/*.yaml
+    #       in order, tmpp having the highest priority?
+    err = ctypes.POINTER(_GError)()
+    ret = bool(lib.netplan_parse_yaml(path.encode(), ctypes.byref(err)))
+    if not ret:
+        raise Exception(err.contents.message.decode('utf-8'))
+    lib.netplan_finish_parse(ctypes.byref(err))
+    if err:
+        raise Exception(err.contents.message.decode('utf-8'))
+    return True
 
 
 def get_generator_path():
