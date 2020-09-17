@@ -2592,3 +2592,19 @@ netplan_get_global_backend()
 {
     return backend_global;
 }
+
+/**
+ * Clear NetplanNetDefinition hashtable
+ */
+guint
+netplan_clear_netdefs()
+{
+    guint n = 0;
+    if(netdefs) {
+        n = g_hash_table_size(netdefs);
+        /* FIXME: make sure that any dynamically allocated netdef data is freed */
+        if (n > 0)
+            g_hash_table_remove_all(netdefs);
+	}
+    return n;
+}
