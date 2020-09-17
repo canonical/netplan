@@ -27,10 +27,6 @@ import shutil
 from contextlib import redirect_stdout
 from netplan.cli.core import Netplan
 
-# Make sure we can import our development netplan.
-# os.environ.update({'PYTHONPATH': '.'})
-# os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
-
 
 def _call_cli(args):
     old_sys_argv = sys.argv
