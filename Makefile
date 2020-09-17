@@ -71,7 +71,7 @@ clean:
 
 check: default linting
 	tests/cli.py
-	$(NOSETESTS3) -v --with-coverage
+	LD_LIBRARY_PATH=. $(NOSETESTS3) -v --with-coverage
 	tests/validate_docs.sh
 
 linting:

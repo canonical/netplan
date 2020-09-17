@@ -22,6 +22,7 @@ import sys
 import unittest
 import tempfile
 import io
+import shutil
 
 from contextlib import redirect_stdout
 from netplan.cli.core import Netplan
@@ -48,10 +49,13 @@ def _call_cli(args):
 class TestSet(unittest.TestCase):
     '''Test netplan set'''
     def setUp(self):
-        self.workdir = tempfile.TemporaryDirectory()
+        self.workdir = tempfile.TemporaryDirectory(prefix='netplan_')
         self.file = '00-netplan-set.yaml'
         self.path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
         os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir.name)
 
     def _set(self, args):
         args.insert(0, 'set')
@@ -98,6 +102,24 @@ class TestSet(unittest.TestCase):
         self.assertIsInstance(err, Exception)
         self.assertIn('unknown key \'xxx\'\n  xxx:\n', str(err))
         self.assertFalse(os.path.isfile(self.path))
+
+    def test_set_invalid_validation(self):
+        err = self._set(['ethernets.eth0.set-name=myif0'])
+        self.assertIsInstance(err, Exception)
+        self.assertIn('eth0: \'set-name:\' requires \'match:\' properties', str(err))
+        self.assertFalse(os.path.isfile(self.path))
+
+    def test_set_invalid_validation2(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  tunnels:
+    tun0:
+      mode: sit
+      local: 1.2.3.4
+      remote: 5.6.7.8''')
+        err = self._set(['tunnels.tun0.keys.input=12345'])
+        self.assertIsInstance(err, Exception)
+        self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(err))
 
     def test_invalid_yaml_read(self):
         with open(self.path, 'w') as f:
