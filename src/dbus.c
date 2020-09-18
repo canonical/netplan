@@ -89,10 +89,40 @@ static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
     return sd_bus_send(NULL, reply, NULL);
 }
 
+static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar *stdout = NULL;
+    g_autofree gchar *stderr = NULL;
+    gint exit_status = 0;
+    char *key;
+
+    if (sd_bus_message_read_basic(m, 's', &key) < 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract setting key");
+
+    gchar *argv[] = {SBINDIR "/" "netplan", "get", key, NULL};
+
+    // for tests only: allow changing what netplan to run
+    if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0) {
+       argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
+    }
+
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
+    if (err != NULL) {
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan get %s: %s", key, err->message);
+    }
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL) {
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan get failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
+    }
+
+    return sd_bus_reply_method_return(m, "s", stdout);
+}
+
 static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
+    SD_BUS_METHOD("Get", "s", "s", method_get, 0),
     SD_BUS_VTABLE_END
 };
 

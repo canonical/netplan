@@ -64,6 +64,10 @@ printf '\\0' >> %(log)s
             calls.append(call.split("\0"))
         return calls
 
+    def set_output(self, output):
+        with open(self.path, "a") as fp:
+            fp.write("cat << EOF\n%s\nEOF" % output)
+
 
 class TestNetplanDBus(unittest.TestCase):
 
@@ -169,6 +173,25 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         output = subprocess.check_output(BUSCTL_NETPLAN_INFO)
         self.assertIn("Features", output.decode("utf-8"))
+
+    def test_netplan_dbus_get(self):
+        self.mock_netplan_cmd.set_output("""ens3:
+  addresses:
+  - 1.2.3.4/24
+  - 5.6.7.8/24
+  dhcp4: true""")
+        BUSCTL_NETPLAN_GET = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Get", "s", "ethernets"
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        self.assertIn(r's "ens3:\n  addresses:\n  - 1.2.3.4/24\n  - 5.6.7.8/24\n  dhcp4: true\n"', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "get", "ethernets"],
+        ])
 
     def test_netplan_dbus_no_such_command(self):
         p = subprocess.Popen(
