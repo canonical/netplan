@@ -185,12 +185,32 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "Get", "s", "ethernets"
+            "Get", "sa{ss}", "ethernets", "0"
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
         self.assertIn(r's "ens3:\n  addresses:\n  - 1.2.3.4/24\n  - 5.6.7.8/24\n  dhcp4: true\n"', out)
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "get", "ethernets"],
+        ])
+
+    def test_netplan_dbus_get2(self):
+        self.mock_netplan_cmd.set_output("""ens3:
+  addresses:
+  - 1.2.3.4/24
+  - 5.6.7.8/24
+  dhcp4: true""")
+        BUSCTL_NETPLAN_GET = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Get", "sa{ss}", "ethernets",
+            "1", "root-dir", "/tmp"
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        self.assertIn(r's "ens3:\n  addresses:\n  - 1.2.3.4/24\n  - 5.6.7.8/24\n  dhcp4: true\n"', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "get", "ethernets", "--root-dir=/tmp"],
         ])
 
     def test_netplan_dbus_set(self):

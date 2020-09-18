@@ -89,17 +89,47 @@ static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
     return sd_bus_send(NULL, reply, NULL);
 }
 
+/* Call via busctl as:
+ * busctl call io.netplan.Netplan /io/netplan/Netplan io.netplan.Netplan Get sa{ss} ethernets.ens3 0 */
 static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
+    g_autofree gchar* root_dir = NULL;
+    g_autofree gchar* root = NULL;
     gint exit_status = 0;
     char *key;
+    char *arg;
+    char* value;
 
     if (sd_bus_message_read_basic(m, 's', &key) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract setting key");
 
-    gchar *argv[] = {SBINDIR "/" "netplan", "get", key, NULL};
+    int r = sd_bus_message_enter_container(m, 'a', "{ss}");
+    if (r > 0) {
+        for (;;) {
+            r = sd_bus_message_enter_container(m, 'e', "ss");
+            if (r <= 0)
+                break;
+            else {
+                if (sd_bus_message_read(m, "ss", &arg, &value) >= 0) {
+                    if (!strcmp(arg, "root-dir"))
+                        root_dir = g_strdup(value);
+                    else
+                        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "unknown argument: %s (%s)", key, value);
+                }
+                sd_bus_message_exit_container(m);
+            }
+        }
+        sd_bus_message_exit_container(m);
+    }
+
+    if (root_dir)
+        root = g_strdup_printf("--root-dir=%s", root_dir);
+    else
+        root = g_strdup("");
+
+    gchar *argv[] = {SBINDIR "/" "netplan", "get", key, root, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0) {
@@ -189,7 +219,7 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
-    SD_BUS_METHOD("Get", "s", "s", method_get, 0),
+    SD_BUS_METHOD("Get", "sa{ss}", "s", method_get, 0),
     SD_BUS_METHOD("Set", "ssa{ss}", "b", method_set, 0),
     SD_BUS_VTABLE_END
 };
