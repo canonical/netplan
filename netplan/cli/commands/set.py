@@ -55,17 +55,6 @@ class NetplanSet(utils.NetplanCommand):
             value = split[1]
         self.write_file(key, value, self.origin_hint, root)
 
-    def format_value(self, val_str):
-        # Clear/Delete
-        if val_str.strip(' "\'') == 'NULL':
-            return None
-        # Sequence
-        elif ',' in val_str:
-            arr = [x.strip('][ "\'') for x in val_str.split(',')]
-            return arr
-        # Scalar
-        return val_str.strip(' "\'')
-
     def parse_key(self, key, value):
         # TODO: beware of dots in key/interface-names
         split = ('network.' + key).split('.')
@@ -121,7 +110,7 @@ class NetplanSet(utils.NetplanCommand):
             with open(absp, 'r') as f:
                 config = yaml.safe_load(f)
 
-        new_tree = self.merge(config, self.parse_key(key, self.format_value(value)))
+        new_tree = self.merge(config, self.parse_key(key, yaml.safe_load(value)))
         stripped = self.strip(new_tree)
         if 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)

@@ -61,7 +61,7 @@ class TestSet(unittest.TestCase):
         self._set(['ethernets.eth0.dhcp4=true'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'true\'', f.read())
+            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: true', f.read())
 
     def test_set_scalar2(self):
         self._set(['ethernets.eth0.dhcp4="yes"'])
@@ -79,13 +79,22 @@ class TestSet(unittest.TestCase):
       - 5.6.7.8/24''', f.read())
 
     def test_set_sequence2(self):
-        self._set(['ethernets.eth0.addresses="1.2.3.4/24",5.6.7.8/24'])
+        self._set(['ethernets.eth0.addresses=["1.2.3.4/24", 5.6.7.8/24]'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
             self.assertIn('''network:\n  ethernets:\n    eth0:
       addresses:
       - 1.2.3.4/24
       - 5.6.7.8/24''', f.read())
+
+    def test_set_mapping(self):
+        self._set(['ethernets.eth0={addresses: [1.2.3.4/24], dhcp4: true}'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('''network:\n  ethernets:\n    eth0:
+      addresses:
+      - 1.2.3.4/24
+      dhcp4: true''', f.read())
 
     def test_set_invalid_hint(self):
         err = self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=some-file.yml'])
@@ -137,7 +146,7 @@ class TestSet(unittest.TestCase):
             out = f.read()
             self.assertIn('network:\n  ethernets:\n', out)
             self.assertIn('    ens3:\n      dhcp4: true', out)
-            self.assertIn('    eth0:\n      dhcp4: \'true\'', out)
+            self.assertIn('    eth0:\n      dhcp4: true', out)
             self.assertIn('  version: 2', out)
 
     def test_set_overwrite_eq(self):
@@ -150,7 +159,7 @@ class TestSet(unittest.TestCase):
         with open(self.path, 'r') as f:
             out = f.read()
             self.assertIn('network:\n  ethernets:\n', out)
-            self.assertIn('    ens3:\n      dhcp4: \'yes\'', out)
+            self.assertIn('    ens3:\n      dhcp4: true', out)
 
     def test_set_overwrite(self):
         with open(self.path, 'w') as f:
@@ -162,7 +171,7 @@ class TestSet(unittest.TestCase):
         with open(self.path, 'r') as f:
             out = f.read()
             self.assertIn('network:\n  ethernets:\n', out)
-            self.assertIn('    ens3:\n      dhcp4: \'true\'', out)
+            self.assertIn('    ens3:\n      dhcp4: true', out)
 
     def test_set_delete(self):
         with open(self.path, 'w') as f:
