@@ -119,27 +119,55 @@ static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
 }
 
 /* Call via busctl as:
- * busctl call io.netplan.Netplan /io/netplan/Netplan io.netplan.Netplan Set ssa{ss} ethernets.ens3 "{addresses: [5.6.7.8/24], dhcp4: false}" 0 */
+ * busctl call io.netplan.Netplan /io/netplan/Netplan io.netplan.Netplan Set ssa{ss} ethernets.ens3 "{addresses: [5.6.7.8/24], dhcp4: false}" 1 "origin-hint" "90-test" */
 static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
     g_autofree gchar* key_value = NULL;
+    g_autofree gchar* origin_hint = NULL;
+    g_autofree gchar* origin = NULL;
+    g_autofree gchar* root_dir = NULL;
+    g_autofree gchar* root = NULL;
     gint exit_status = 0;
     char* key;
     char* value;
 
-    /* TODO: use a{ss} arguments as optional parameters, like 'origin-hin', 'root-dir', ... */
-
-    if (sd_bus_message_read_basic(m, 's', &key) < 0)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract setting key");
-
-    if (sd_bus_message_read_basic(m, 's', &value) < 0)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract setting value");
-
+    if (sd_bus_message_read(m, "ss", &key, &value) < 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract setting key/value");
     key_value = g_strdup_printf("%s=%s", key, value);
 
-    gchar *argv[] = {SBINDIR "/" "netplan", "set", key_value, NULL};
+    int r = sd_bus_message_enter_container(m, 'a', "{ss}");
+    if (r > 0) {
+        for (;;) {
+            r = sd_bus_message_enter_container(m, 'e', "ss");
+            if (r <= 0)
+                break;
+            else {
+                if (sd_bus_message_read(m, "ss", &key, &value) >= 0) {
+                    if (!strcmp(key, "origin-hint"))
+                        origin_hint = g_strdup(value);
+                    else if (!strcmp(key, "root-dir"))
+                        root_dir = g_strdup(value);
+                    else
+                        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "unknown argument: %s (%s)", key, value);
+                }
+                sd_bus_message_exit_container(m);
+            }
+        }
+        sd_bus_message_exit_container(m);
+    }
+
+    if (root_dir)
+        root = g_strdup_printf("--root-dir=%s", root_dir);
+    else
+        root = g_strdup("");
+    if (origin_hint)
+        origin = g_strdup_printf("--origin-hint=%s", origin_hint);
+    else
+        origin = g_strdup("");
+
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", key_value, root, origin, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0)
