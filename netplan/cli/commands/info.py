@@ -25,7 +25,7 @@ class NetplanInfo(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='info',
-                         description='Show current netplan version and available features',
+                         description='Show available features',
                          leaf=True)
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
