@@ -271,4 +271,13 @@ pin: 1234''', out)
   ethernets:
     ens3: {dhcp4: yes}''')
         out = self._get(['ethernets.eth0.dhcp4'])
-        self.assertIn('null', out)
+        self.assertEqual('null\n', out)
+
+    def test_get_escaped_dot(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0.123: {dhcp4: yes}''')
+        out = self._get([r'ethernets.eth0\.123.dhcp4'])
+        self.assertEquals('true\n', out)

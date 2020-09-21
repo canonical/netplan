@@ -18,6 +18,7 @@
 '''netplan get command line'''
 
 import yaml
+import re
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
@@ -27,15 +28,12 @@ class NetplanGet(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='get',
-                         description='Get a setting by specifying some.nested.key',
+                         description='Get a setting by specifying a nested key like ethernets.eth0.addresses',
                          leaf=True)
 
     def run(self):
-        self.parser.add_argument('key',
-                                 type=str,
-                                 help='The setting as some.nested.key')
-        self.parser.add_argument('--root-dir',
-                                 help='Overwrite configuration files in this root directory instead of /')
+        self.parser.add_argument('key', type=str, help='The nested key in dotted format')
+        self.parser.add_argument('--root-dir', help='Read configuration files from this root directory instead of /')
 
         self.func = self.command_get
 
@@ -46,9 +44,10 @@ class NetplanGet(utils.NetplanCommand):
         root = self.root_dir if self.root_dir else '/'
         config_manager = ConfigManager(prefix=root)
         config_manager.parse()
-        tree = config_manager.network  # XXX: consider .config
-        # TODO: beware of dots in key/interface-names
-        for k in self.key.split('.'):
+        tree = config_manager.network
+        # Split at '.' but not at '\.' via negative lookbehind expression
+        for k in re.split(r'(?<!\\)\.', self.key):
+            k = k.replace('\\.', '.')  # Unescape interface-ids, containing dots
             if k in tree.keys():
                 tree = tree[k]
                 if not isinstance(tree, dict):
@@ -57,4 +56,7 @@ class NetplanGet(utils.NetplanCommand):
                 tree = None
                 break
 
-        print(yaml.dump(tree, default_flow_style=False))
+        out = yaml.dump(tree, default_flow_style=False)[:-1]  # Remove trailing '\n'
+        if not isinstance(tree, dict) and not isinstance(tree, list):
+            out = out[:-4]  # Remove yaml.dump's '\n...' on primitive values
+        print(out)
