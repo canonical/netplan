@@ -46,7 +46,7 @@ class TestSet(unittest.TestCase):
     '''Test netplan set'''
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory(prefix='netplan_')
-        self.file = '00-netplan-set.yaml'
+        self.file = '90-netplan-set.yaml'
         self.path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
         os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
 
@@ -96,11 +96,12 @@ class TestSet(unittest.TestCase):
       - 1.2.3.4/24
       dhcp4: true''', f.read())
 
-    def test_set_invalid_hint(self):
-        err = self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=some-file.yml'])
-        self.assertIsInstance(err, Exception)
-        self.assertIn('needs to be a .yaml file!', str(err))
-        self.assertFalse(os.path.isfile(self.path))
+    def test_set_origin_hint(self):
+        self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=99_snapd'])
+        p = os.path.join(self.workdir.name, 'etc', 'netplan', '99_snapd.yaml')
+        self.assertTrue(os.path.isfile(p))
+        with open(p, 'r') as f:
+            self.assertEquals('network:\n  ethernets:\n    eth0:\n      dhcp4: true\n', f.read())
 
     def test_set_invalid(self):
         err = self._set(['xxx.yyy=abc'])
@@ -126,7 +127,7 @@ class TestSet(unittest.TestCase):
         self.assertIsInstance(err, Exception)
         self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(err))
 
-    def test_invalid_yaml_read(self):
+    def test_set_invalid_yaml_read(self):
         with open(self.path, 'w') as f:
             f.write('''network: {}}''')
         err = self._set(['ethernets.eth0.dhcp4=true'])
@@ -199,6 +200,12 @@ class TestSet(unittest.TestCase):
         self._set(['ethernets.ens3.dhcp4=NULL'])
         # The file should be deleted if this was the last/only key left
         self.assertFalse(os.path.isfile(self.path))
+
+    def test_set_escaped_dot(self):
+        self._set([r'ethernets.eth0\.123.dhcp4=false'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
 
 
 class TestGet(unittest.TestCase):

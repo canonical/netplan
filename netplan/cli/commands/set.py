@@ -21,6 +21,7 @@ import os
 import yaml
 import tempfile
 import shutil
+import re
 
 import netplan.cli.utils as utils
 
@@ -29,16 +30,14 @@ class NetplanSet(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='set',
-                         description='Set a new setting via a some.nested.key=value pair',
+                         description='Add new setting by specifying a dotted key=value pair like ethernets.eth0.dhcp4=true',
                          leaf=True)
 
     def run(self):
-        self.parser.add_argument('key_value',
-                                 type=str,
-                                 help='The setting as some.nested.key=value pair')
+        self.parser.add_argument('key_value', type=str, help='The nested key=value pair in dotted format')
         self.parser.add_argument('--origin-hint',
-                                 type=str, default='00-netplan-set.yaml',
-                                 help='Can be used to help choosing a name for the overwrite YAML file')
+                                 type=str, default='90-netplan-set',
+                                 help='Can be used to help choose a name for the overwrite YAML file')
         self.parser.add_argument('--root-dir',
                                  help='Overwrite configuration files in this root directory instead of /')
 
@@ -53,15 +52,16 @@ class NetplanSet(utils.NetplanCommand):
         key, value = (split[0], None)
         if len(split) > 1:
             value = split[1]
-        self.write_file(key, value, self.origin_hint, root)
+        self.write_file(key, value, self.origin_hint + '.yaml', root)
 
     def parse_key(self, key, value):
-        # TODO: beware of dots in key/interface-names
-        split = ('network.' + key).split('.')
+        # Split at '.' but not at '\.' via negative lookbehind expression
+        split = re.split(r'(?<!\\)\.', 'network.' + key)
         tree = {}
         i = 1
         t = tree
         for part in split:
+            part = part.replace('\\.', '.')  # Unescape interface-ids, containing dots
             val = {}
             if i == len(split):
                 val = value
@@ -96,13 +96,9 @@ class NetplanSet(utils.NetplanCommand):
                 new_data[k] = v
         return new_data
 
-    def write_file(self, key, value, name=None, rootdir='/', path='etc/netplan/'):
+    def write_file(self, key, value, name, rootdir='/', path='etc/netplan/'):
         tmproot = tempfile.TemporaryDirectory(prefix='netplan-set_')
         os.makedirs(os.path.join(tmproot.name, 'etc', 'netplan'))
-
-        fname = name if name else self.origin_hint
-        if not fname.endswith('.yaml'):
-            raise Exception('needs to be a .yaml file!')
 
         config = {'network': {}}
         absp = os.path.join(rootdir, path, name)
