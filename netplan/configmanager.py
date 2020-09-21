@@ -46,9 +46,11 @@ class ConfigManager(object):
         interfaces = {}
         interfaces.update(self.ovs_ports)
         interfaces.update(self.ethernets)
+        interfaces.update(self.modems)
         interfaces.update(self.wifis)
         interfaces.update(self.bridges)
         interfaces.update(self.bonds)
+        interfaces.update(self.tunnels)
         interfaces.update(self.vlans)
         return interfaces
 
@@ -56,6 +58,7 @@ class ConfigManager(object):
     def physical_interfaces(self):
         interfaces = {}
         interfaces.update(self.ethernets)
+        interfaces.update(self.modems)
         interfaces.update(self.wifis)
         return interfaces
 
@@ -68,6 +71,10 @@ class ConfigManager(object):
         return self.network['ethernets']
 
     @property
+    def modems(self):
+        return self.network['modems']
+
+    @property
     def wifis(self):
         return self.network['wifis']
 
@@ -78,6 +85,10 @@ class ConfigManager(object):
     @property
     def bonds(self):
         return self.network['bonds']
+
+    @property
+    def tunnels(self):
+        return self.network['tunnels']
 
     @property
     def vlans(self):
@@ -108,9 +119,11 @@ class ConfigManager(object):
         self.config['network'] = {
             'ovs_ports': {},
             'ethernets': {},
+            'modems': {},
             'wifis': {},
             'bridges': {},
             'bonds': {},
+            'tunnels': {},
             'vlans': {}
         }
         for yaml_file in files:
@@ -233,6 +246,9 @@ class ConfigManager(object):
                     if 'ethernets' in network:
                         new = self._merge_interface_config(self.ethernets, network.get('ethernets'))
                         new_interfaces |= new
+                    if 'modems' in network:
+                        new = self._merge_interface_config(self.modems, network.get('modems'))
+                        new_interfaces |= new
                     if 'wifis' in network:
                         new = self._merge_interface_config(self.wifis, network.get('wifis'))
                         new_interfaces |= new
@@ -241,6 +257,9 @@ class ConfigManager(object):
                         new_interfaces |= new
                     if 'bonds' in network:
                         new = self._merge_interface_config(self.bonds, network.get('bonds'))
+                        new_interfaces |= new
+                    if 'tunnels' in network:
+                        new = self._merge_interface_config(self.tunnels, network.get('tunnels'))
                         new_interfaces |= new
                     if 'vlans' in network:
                         new = self._merge_interface_config(self.vlans, network.get('vlans'))

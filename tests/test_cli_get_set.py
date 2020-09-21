@@ -237,6 +237,24 @@ class TestGet(unittest.TestCase):
   - 5.6.7.8/24
   dhcp4: true''', out)
 
+    def test_get_modems(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  modems:
+    wwan0:
+      apn: internet
+      pin: 1234
+      dhcp4: yes
+      addresses: [1.2.3.4/24, 5.6.7.8/24]''')
+        out = self._get(['modems.wwan0'])
+        self.assertIn('''addresses:
+- 1.2.3.4/24
+- 5.6.7.8/24
+apn: internet
+dhcp4: true
+pin: 1234''', out)
+
     def test_get_sequence(self):
         with open(self.path, 'w') as f:
             f.write('''network:
