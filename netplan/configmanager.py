@@ -67,6 +67,10 @@ class ConfigManager(object):
         return self.network['ovs_ports']
 
     @property
+    def openvswitch(self):
+        return self.network['openvswitch']
+
+    @property
     def ethernets(self):
         return self.network['ethernets']
 
@@ -94,6 +98,14 @@ class ConfigManager(object):
     def vlans(self):
         return self.network['vlans']
 
+    @property
+    def version(self):
+        return self.network['version']
+
+    @property
+    def renderer(self):
+        return self.network['renderer']
+
     def parse(self, extra_config=[]):
         """
         Parse all our config files to return an object that describes the system's
@@ -118,13 +130,16 @@ class ConfigManager(object):
 
         self.config['network'] = {
             'ovs_ports': {},
+            'openvswitch': {},
             'ethernets': {},
             'modems': {},
             'wifis': {},
             'bridges': {},
             'bonds': {},
             'tunnels': {},
-            'vlans': {}
+            'vlans': {},
+            'version': None,
+            'renderer': None
         }
         for yaml_file in files:
             self._merge_yaml_config(yaml_file)
@@ -243,6 +258,7 @@ class ConfigManager(object):
                     if 'openvswitch' in network:
                         new = self._merge_ovs_ports_config(self.ovs_ports, network.get('openvswitch'))
                         new_interfaces |= new
+                        self.network['openvswitch'] = network.get('openvswitch')
                     if 'ethernets' in network:
                         new = self._merge_interface_config(self.ethernets, network.get('ethernets'))
                         new_interfaces |= new
@@ -264,6 +280,10 @@ class ConfigManager(object):
                     if 'vlans' in network:
                         new = self._merge_interface_config(self.vlans, network.get('vlans'))
                         new_interfaces |= new
+                    if 'version' in network:
+                        self.network['version'] = network.get('version')
+                    if 'renderer' in network:
+                        self.network['renderer'] = network.get('renderer')
             return new_interfaces
         except (IOError, yaml.YAMLError):  # pragma: nocover (filesystem failures/invalid YAML)
             logging.error('Error while loading {}, aborting.'.format(yaml_file))

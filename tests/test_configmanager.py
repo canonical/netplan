@@ -69,6 +69,8 @@ class TestConfigManager(unittest.TestCase):
   renderer: networkd
   openvswitch:
     ports: [[patcha, patchb]]
+    other-config:
+      disable-in-band: true
   ethernets:
     eth0:
       dhcp4: false
@@ -137,6 +139,10 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('he-ipv6', self.configmanager.tunnels)
         self.assertNotIn('he-ipv6', self.configmanager.physical_interfaces)
         self.assertIn('remote', self.configmanager.tunnels.get('he-ipv6'))
+        self.assertIn('other-config', self.configmanager.openvswitch)
+        self.assertIn('ports', self.configmanager.openvswitch)
+        self.assertEquals(2, self.configmanager.version)
+        self.assertEquals('networkd', self.configmanager.renderer)
 
     def test_parse_merging(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])
