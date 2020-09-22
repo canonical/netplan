@@ -268,7 +268,7 @@ pin: 1234''', out)
   version: 2
   ethernets:
     ens3: {addresses: [1.2.3.4/24, 5.6.7.8/24]}''')
-        out = self._get(['ethernets.ens3.addresses'])
+        out = self._get(['network.ethernets.ens3.addresses'])
         self.assertIn('- 1.2.3.4/24\n- 5.6.7.8/24', out)
 
     def test_get_null(self):
@@ -288,3 +288,16 @@ pin: 1234''', out)
     eth0.123: {dhcp4: yes}''')
         out = self._get([r'ethernets.eth0\.123.dhcp4'])
         self.assertEquals('true\n', out)
+
+    def test_get_all(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0: {dhcp4: yes}''')
+        out = self._get([])
+        self.assertEquals('''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+  version: 2\n''', out)

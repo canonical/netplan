@@ -28,11 +28,11 @@ class NetplanGet(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='get',
-                         description='Get a setting by specifying a nested key like ethernets.eth0.addresses',
+                         description='Get a setting by specifying a nested key like "ethernets.eth0.addresses", or "all"',
                          leaf=True)
 
     def run(self):
-        self.parser.add_argument('key', type=str, help='The nested key in dotted format')
+        self.parser.add_argument('key', type=str, nargs='?', default='all', help='The nested key in dotted format')
         self.parser.add_argument('--root-dir', help='Read configuration files from this root directory instead of /')
 
         self.func = self.command_get
@@ -44,17 +44,22 @@ class NetplanGet(utils.NetplanCommand):
         root = self.root_dir if self.root_dir else '/'
         config_manager = ConfigManager(prefix=root)
         config_manager.parse()
-        tree = config_manager.network
-        # Split at '.' but not at '\.' via negative lookbehind expression
-        for k in re.split(r'(?<!\\)\.', self.key):
-            k = k.replace('\\.', '.')  # Unescape interface-ids, containing dots
-            if k in tree.keys():
-                tree = tree[k]
-                if not isinstance(tree, dict):
+        tree = config_manager.tree
+
+        if self.key != 'all':
+            # The 'network.' prefix is optional for netsted keys, its always assumed to be there
+            if not self.key.startswith('network'):
+                self.key = 'network.' + self.key
+            # Split at '.' but not at '\.' via negative lookbehind expression
+            for k in re.split(r'(?<!\\)\.', self.key):
+                k = k.replace('\\.', '.')  # Unescape interface-ids, containing dots
+                if k in tree.keys():
+                    tree = tree[k]
+                    if not isinstance(tree, dict):
+                        break
+                else:
+                    tree = None
                     break
-            else:
-                tree = None
-                break
 
         out = yaml.dump(tree, default_flow_style=False)[:-1]  # Remove trailing '\n'
         if not isinstance(tree, dict) and not isinstance(tree, list):
