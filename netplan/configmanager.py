@@ -106,6 +106,21 @@ class ConfigManager(object):
     def renderer(self):
         return self.network['renderer']
 
+    @property
+    def tree(self):
+        return self.strip_tree(self.config)
+
+    @staticmethod
+    def strip_tree(data):
+        '''clear empty branches'''
+        new_data = {}
+        for k, v in data.items():
+            if isinstance(v, dict):
+                v = ConfigManager.strip_tree(v)
+            if v not in (u'', None, {}):
+                new_data[k] = v
+        return new_data
+
     def parse(self, extra_config=[]):
         """
         Parse all our config files to return an object that describes the system's
@@ -147,7 +162,7 @@ class ConfigManager(object):
         for yaml_file in extra_config:
             self.new_interfaces |= self._merge_yaml_config(yaml_file)
 
-        logging.debug("Merged config:\n{}".format(yaml.dump(self.config, default_flow_style=False)))
+        logging.debug("Merged config:\n{}".format(yaml.dump(self.tree, default_flow_style=False)))
 
     def add(self, config_dict):
         for config_file in config_dict:
