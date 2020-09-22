@@ -49,6 +49,8 @@ class NetplanSet(utils.NetplanCommand):
 
     def command_set(self):
         root = self.root_dir if self.root_dir else '/'
+        if len(self.origin_hint) == 0:
+            raise Exception('Invalid/empty origin-hint')
         split = self.key_value.split('=', 1)
         key, value = (split[0], None)
         if len(split) > 1:

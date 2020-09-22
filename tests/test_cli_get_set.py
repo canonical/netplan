@@ -103,6 +103,11 @@ class TestSet(unittest.TestCase):
         with open(p, 'r') as f:
             self.assertEquals('network:\n  ethernets:\n    eth0:\n      dhcp4: true\n', f.read())
 
+    def test_set_empty_origin_hint(self):
+        err = self._set(['ethernets.eth0.dhcp4=true', '--origin-hint='])
+        self.assertIsInstance(err, Exception)
+        self.assertIn('Invalid/empty origin-hint', str(err))
+
     def test_set_invalid(self):
         err = self._set(['xxx.yyy=abc'])
         self.assertIsInstance(err, Exception)
