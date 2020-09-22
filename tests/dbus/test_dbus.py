@@ -200,10 +200,9 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "Set", "ssa{ss}",
-            "ethernets.eth0",
-            "{addresses: [5.6.7.8/24], dhcp4: false}",
-            "0",
+            "Set", "ss",
+            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+            ""
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
         self.assertEqual(out, "b true\n")
@@ -211,22 +210,21 @@ class TestNetplanDBus(unittest.TestCase):
                 ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}"],
         ])
 
-    def test_netplan_dbus_set2(self):
+    def test_netplan_dbus_set_origin(self):
         BUSCTL_NETPLAN_GET = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "Set", "ssa{ss}",
-            "ethernets.eth0",
-            "{addresses: [5.6.7.8/24], dhcp4: false}",
-            "2", "origin-hint", "90-test", "root-dir", "/tmp"
+            "Set", "ss",
+            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+            "99_snapd"
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
         self.assertEqual(out, "b true\n")
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-                 "--root-dir=/tmp", "--origin-hint=90-test"],
+                 "--origin-hint=99_snapd"],
         ])
 
     def test_netplan_dbus_no_such_command(self):

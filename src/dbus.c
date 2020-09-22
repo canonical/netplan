@@ -112,69 +112,36 @@ static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     return sd_bus_reply_method_return(m, "s", stdout);
 }
 
-/* Call via busctl as:
- * busctl call io.netplan.Netplan /io/netplan/Netplan io.netplan.Netplan Set ssa{ss} ethernets.ens3 "{addresses: [5.6.7.8/24], dhcp4: false}" 1 "origin-hint" "90-test" */
 static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
-    g_autofree gchar* key_value = NULL;
-    g_autofree gchar* origin_hint = NULL;
     g_autofree gchar* origin = NULL;
-    g_autofree gchar* root_dir = NULL;
-    g_autofree gchar* root = NULL;
     gint exit_status = 0;
-    char* key;
-    char* value;
+    char* config_delta = NULL;
+    char* origin_hint = NULL;
 
-    if (sd_bus_message_read(m, "ss", &key, &value) < 0)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract setting key/value");
-    key_value = g_strdup_printf("%s=%s", key, value);
+    if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint");
 
-    int r = sd_bus_message_enter_container(m, 'a', "{ss}");
-    if (r > 0) {
-        for (;;) {
-            r = sd_bus_message_enter_container(m, 'e', "ss");
-            if (r <= 0)
-                break;
-            else {
-                if (sd_bus_message_read(m, "ss", &key, &value) >= 0) {
-                    if (!strcmp(key, "origin-hint"))
-                        origin_hint = g_strdup(value);
-                    else if (!strcmp(key, "root-dir"))
-                        root_dir = g_strdup(value);
-                    else
-                        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "unknown argument: %s (%s)", key, value);
-                }
-                sd_bus_message_exit_container(m);
-            }
-        }
-        sd_bus_message_exit_container(m);
-    }
-
-    if (root_dir)
-        root = g_strdup_printf("--root-dir=%s", root_dir);
-    else
-        root = g_strdup("");
-    if (origin_hint)
+    if (!!strcmp(origin_hint, ""))
         origin = g_strdup_printf("--origin-hint=%s", origin_hint);
     else
         origin = g_strdup("");
 
-    gchar *argv[] = {SBINDIR "/" "netplan", "set", key_value, root, origin, NULL};
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, origin, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
-    if (err != NULL) {
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", key_value, err->message);
-    }
+    if (err != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message);
+
     g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL) {
+    if (err != NULL)
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
-    }
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -184,7 +151,7 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
     SD_BUS_METHOD("Get", "", "s", method_get, 0),
-    SD_BUS_METHOD("Set", "ssa{ss}", "b", method_set, 0),
+    SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_VTABLE_END
 };
 
