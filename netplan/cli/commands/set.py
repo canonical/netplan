@@ -53,6 +53,8 @@ class NetplanSet(utils.NetplanCommand):
         key, value = (split[0], None)
         if len(split) > 1:
             value = split[1]
+        if key.startswith('network.'):
+            key = key[8:]
         self.write_file(key, value, self.origin_hint + '.yaml', root)
 
     def parse_key(self, key, value):

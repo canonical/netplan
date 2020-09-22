@@ -197,7 +197,7 @@ class TestSet(unittest.TestCase):
             f.write('''network:
   ethernets:
     ens3: {dhcp4: yes}''')
-        self._set(['ethernets.ens3.dhcp4=NULL'])
+        self._set(['network.ethernets.ens3.dhcp4=NULL'])
         # The file should be deleted if this was the last/only key left
         self.assertFalse(os.path.isfile(self.path))
 
