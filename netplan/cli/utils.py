@@ -42,8 +42,6 @@ lib.netplan_parse_yaml.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.POINTE
 def netplan_parse(path):
     # Clear old NetplanNetDefinitions from libnetplan memory
     lib.netplan_clear_netdefs()
-    # TODO: possibly parse all files from /{lib,etc,run}/netplan/*.yaml
-    #       in order, tmpp having the highest priority?
     err = ctypes.POINTER(_GError)()
     ret = bool(lib.netplan_parse_yaml(path.encode(), ctypes.byref(err)))
     if not ret:

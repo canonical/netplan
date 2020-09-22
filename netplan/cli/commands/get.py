@@ -33,7 +33,8 @@ class NetplanGet(utils.NetplanCommand):
 
     def run(self):
         self.parser.add_argument('key', type=str, nargs='?', default='all', help='The nested key in dotted format')
-        self.parser.add_argument('--root-dir', help='Read configuration files from this root directory instead of /')
+        self.parser.add_argument('--root-dir', default='/',
+                                 help='Read configuration files from this root directory instead of /')
 
         self.func = self.command_get
 
@@ -41,8 +42,7 @@ class NetplanGet(utils.NetplanCommand):
         self.run_command()
 
     def command_get(self):
-        root = self.root_dir if self.root_dir else '/'
-        config_manager = ConfigManager(prefix=root)
+        config_manager = ConfigManager(prefix=self.root_dir)
         config_manager.parse()
         tree = config_manager.tree
 

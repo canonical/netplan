@@ -36,10 +36,9 @@ class NetplanSet(utils.NetplanCommand):
 
     def run(self):
         self.parser.add_argument('key_value', type=str, help='The nested key=value pair in dotted format')
-        self.parser.add_argument('--origin-hint',
-                                 type=str, default='90-netplan-set',
+        self.parser.add_argument('--origin-hint', type=str, default='90-netplan-set',
                                  help='Can be used to help choose a name for the overwrite YAML file')
-        self.parser.add_argument('--root-dir',
+        self.parser.add_argument('--root-dir', default='/',
                                  help='Overwrite configuration files in this root directory instead of /')
 
         self.func = self.command_set
@@ -48,7 +47,6 @@ class NetplanSet(utils.NetplanCommand):
         self.run_command()
 
     def command_set(self):
-        root = self.root_dir if self.root_dir else '/'
         if len(self.origin_hint) == 0:
             raise Exception('Invalid/empty origin-hint')
         split = self.key_value.split('=', 1)
@@ -57,7 +55,7 @@ class NetplanSet(utils.NetplanCommand):
             value = split[1]
         if key.startswith('network.'):
             key = key[8:]
-        self.write_file(key, value, self.origin_hint + '.yaml', root)
+        self.write_file(key, value, self.origin_hint + '.yaml', self.root_dir)
 
     def parse_key(self, key, value):
         # Split at '.' but not at '\.' via negative lookbehind expression
