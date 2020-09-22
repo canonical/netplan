@@ -24,6 +24,7 @@ import shutil
 import re
 
 import netplan.cli.utils as utils
+from netplan.configmanager import ConfigManager
 
 
 class NetplanSet(utils.NetplanCommand):
@@ -86,16 +87,6 @@ class NetplanSet(utils.NetplanCommand):
                 a[key] = b[key]
         return a
 
-    def strip(self, data):
-        "clear empty branches"
-        new_data = {}
-        for k, v in data.items():
-            if isinstance(v, dict):
-                v = self.strip(v)
-            if v not in (u'', None, {}):
-                new_data[k] = v
-        return new_data
-
     def write_file(self, key, value, name, rootdir='/', path='etc/netplan/'):
         tmproot = tempfile.TemporaryDirectory(prefix='netplan-set_')
         os.makedirs(os.path.join(tmproot.name, 'etc', 'netplan'))
@@ -107,7 +98,7 @@ class NetplanSet(utils.NetplanCommand):
                 config = yaml.safe_load(f)
 
         new_tree = self.merge(config, self.parse_key(key, yaml.safe_load(value)))
-        stripped = self.strip(new_tree)
+        stripped = ConfigManager.strip_tree(new_tree)
         if 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)
             with open(tmpp, 'w+') as f:
