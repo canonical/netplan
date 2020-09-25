@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -151,52 +152,28 @@ static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
 
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
-    const char *key1 = NULL, *key2 = NULL;
-    char *val1 = NULL, *val2 = NULL;
-    gchar *config_file = NULL;
-    gchar *timeout = NULL;
+    g_autofree gchar *timeout = NULL;
+    guint seconds = 0;
 
-    /* Read optional arguments: "timeout" and/or "config-file" */
-    sd_bus_message_read (m, "a{ss}", 2, &key1, &val1, &key2, &val2);
-    if (!g_strcmp0(key1, "timeout"))
-        timeout = val1;
-    else if (!g_strcmp0(key1, "config-file"))
-        config_file = val1;
-
-    if (!g_strcmp0(key2, "timeout"))
-        timeout = val2;
-    else if (!g_strcmp0(key2, "config-file"))
-        config_file = val2;
-
-    gchar *argv[] = {SBINDIR "/" "netplan", "try", NULL, NULL, NULL, NULL, NULL};
-
-    /* Fill the NULLs with optional args */
-    unsigned i = 2;
-    if (timeout != NULL) {
-        argv[i++] = "--timeout";
-        argv[i++] = timeout;
-    }
-    if (config_file != NULL) {
-        argv[i++] = "--config-file";
-        argv[i++] = config_file;
-    }
+    sd_bus_message_read_basic (m, 'u', &seconds);
+    if (seconds > 0)
+        timeout = g_strdup_printf("--timeout=%u", seconds);
+    gchar *argv[] = {SBINDIR "/" "netplan", "try", timeout, NULL};
 
     // for tests only: allow changing what netplan to run
-    if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0) {
+    if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
-    }
 
     // TODO: stdout & stderr to /dev/null flags
     g_spawn_async_with_pipes("/", argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &_try_child_pid, &_try_child_stdin, NULL, NULL, &err);
-    if (err != NULL) {
+    if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: %s", err->message);
-    }
 
-    // TODO: return child_pid and child_stdin
+    // TODO: possibly return child PID
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int method_try_commit(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     GError *error = NULL;
     GIOChannel *stdin = NULL;
     int status = -1;
@@ -207,25 +184,39 @@ static int method_try_commit(sd_bus_message *m, void *userdata, sd_bus_error *re
         return sd_bus_reply_method_return(m, "b", false);
     }
 
-    /* Create input channel and send carriage return (i.e. "ENTER") */
-    stdin = g_io_channel_unix_new (_try_child_stdin);
-    g_io_channel_write_chars (stdin, "\n", 1, NULL, &error);
-    if (error != NULL) {
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot COMMIT netplan try: %s", error->message);
-    }
-    g_io_channel_shutdown (stdin, TRUE, &error);
-    if (error != NULL) {
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot COMMIT netplan try: %s", error->message);
-    }
+    kill(_try_child_pid, SIGINT);
 
     waitpid (_try_child_pid, &status, 0);
     g_spawn_check_exit_status(status, &error);
-    if (error != NULL) {
+    if (error != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
-    }
-    if (!WIFEXITED(status)) {
+    if (!WIFEXITED(status))
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", "IFEXITED");
+    printf("Child exited with status code %d\n", WEXITSTATUS(status));
+
+    g_spawn_close_pid (_try_child_pid);
+
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
+static int method_try_confirm(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    GError *error = NULL;
+    int status = -1;
+
+    // TODO: consume child_pid and child_stdin as args instead of global var
+    if (_try_child_pid < 0 || waitpid (_try_child_pid, &status, WNOHANG) < 0) {
+        /* Child does not exist or already exited ... */
+        return sd_bus_reply_method_return(m, "b", false);
     }
+
+    kill(_try_child_pid, SIGUSR1);
+
+    waitpid(_try_child_pid, &status, 0);
+    g_spawn_check_exit_status(status, &error);
+    if (error != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
+    if (!WIFEXITED(status))
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", "IFEXITED");
     printf("Child exited with status code %d\n", WEXITSTATUS(status));
 
     g_spawn_close_pid (_try_child_pid);
@@ -239,8 +230,9 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
     SD_BUS_METHOD("Get", "", "s", method_get, 0),
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
-    SD_BUS_METHOD("Try", "a{ss}", "b", method_try, 0),
-    SD_BUS_METHOD("TryCommit", "", "b", method_try_commit, 0),
+    SD_BUS_METHOD("Try", "u", "b", method_try, 0),
+    SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
+    SD_BUS_METHOD("Confirm", "", "b", method_try_confirm, 0),
     SD_BUS_VTABLE_END
 };
 
