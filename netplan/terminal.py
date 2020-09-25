@@ -38,18 +38,16 @@ class Terminal(object):
         self.save()
 
     def enable_echo(self):
-        if sys.stdin.isatty():
-            attrs = termios.tcgetattr(self.fd)
-            attrs[3] = attrs[3] | termios.ICANON
-            attrs[3] = attrs[3] | termios.ECHO
-            termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+        attrs = termios.tcgetattr(self.fd)
+        attrs[3] = attrs[3] | termios.ICANON
+        attrs[3] = attrs[3] | termios.ECHO
+        termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
 
     def disable_echo(self):
-        if sys.stdin.isatty():
-            attrs = termios.tcgetattr(self.fd)
-            attrs[3] = attrs[3] & ~termios.ICANON
-            attrs[3] = attrs[3] & ~termios.ECHO
-            termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+        attrs = termios.tcgetattr(self.fd)
+        attrs[3] = attrs[3] & ~termios.ICANON
+        attrs[3] = attrs[3] & ~termios.ECHO
+        termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
 
     def enable_nonblocking_io(self):
         flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
@@ -117,10 +115,7 @@ class Terminal(object):
             - dest: if set, save settings to this dict
         """
         orig_flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
-        if sys.stdin.isatty():
-            orig_term = termios.tcgetattr(self.fd)
-        else:
-            orig_term = None
+        orig_term = termios.tcgetattr(self.fd)
         if dest is not None:
             dest.update({'flags': orig_flags,
                          'term': orig_term})
@@ -143,8 +138,7 @@ class Terminal(object):
         else:
             orig_term = self.orig_term
             orig_flags = self.orig_flags
-        if sys.stdin.isatty():
-            termios.tcsetattr(self.fd, termios.TCSAFLUSH, orig_term)
+        termios.tcsetattr(self.fd, termios.TCSAFLUSH, orig_term)
         fcntl.fcntl(self.fd, fcntl.F_SETFL, orig_flags)
 
 
