@@ -76,6 +76,7 @@ class NetplanTry(utils.NetplanCommand):
 
             # we really don't want to be interrupted while doing backup/revert operations
             signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGUSR1, self._signal_handler)
 
             self.backup()
             self.setup()
@@ -175,6 +176,9 @@ class NetplanTry(utils.NetplanCommand):
             return False
         return True
 
-    def _signal_handler(self, signal, frame):  # pragma: nocover (requires user input)
-        if self.configuration_changed:
-            raise netplan.terminal.InputRejected()
+    def _signal_handler(self, sig, frame):  # pragma: nocover (requires user input)
+        if sig == signal.SIGUSR1:
+            raise netplan.terminal.InputAccepted()
+        else:
+            if self.configuration_changed:
+                raise netplan.terminal.InputRejected()
