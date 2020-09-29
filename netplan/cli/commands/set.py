@@ -72,7 +72,9 @@ class NetplanSet(utils.NetplanCommand):
         return tree
 
     def merge(self, a, b, path=None):
-        "merges b into a"
+        """
+        Merges tree/dict 'b' into tree/dict 'a'
+        """
         if path is None:
             path = []
         for key in b:
