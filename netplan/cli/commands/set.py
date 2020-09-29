@@ -20,7 +20,6 @@
 import os
 import yaml
 import tempfile
-import shutil
 import re
 
 import netplan.cli.utils as utils
@@ -106,14 +105,10 @@ class NetplanSet(utils.NetplanCommand):
             with open(tmpp, 'w+') as f:
                 new_yaml = yaml.dump(stripped, indent=2, default_flow_style=False)
                 f.write(new_yaml)
-            try:
-                # Validate the newly created file, by parsing it via libnetplan
-                utils.netplan_parse(tmpp)
-                # Valid, move it to final destination
-                os.replace(tmpp, absp)
-            finally:
-                shutil.rmtree(os.path.join(tmproot.name, 'etc', 'netplan'))
+            # Validate the newly created file, by parsing it via libnetplan
+            utils.netplan_parse(tmpp)
+            # Valid, move it to final destination
+            os.replace(tmpp, absp)
         else:
             # Clear file if the last/only key got removed
             os.remove(absp)
-        shutil.rmtree(tmproot.name)
