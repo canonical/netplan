@@ -186,7 +186,7 @@ class TestSet(unittest.TestCase):
     ens3: {dhcp4: yes, dhcp6: yes}
     eth0: {addresses: [1.2.3.4]}''')
         self._set(['ethernets.eth0.addresses=NULL'])
-        self._set(['ethernets.ens3.dhcp6=NULL'])
+        self._set(['ethernets.ens3.dhcp6=null'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
             out = f.read()
@@ -205,6 +205,15 @@ class TestSet(unittest.TestCase):
         self._set(['network.ethernets.ens3.dhcp4=NULL'])
         # The file should be deleted if this was the last/only key left
         self.assertFalse(os.path.isfile(self.path))
+
+    def test_set_invalid_delete(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:\n  version: 2\n  renderer: NetworkManager
+  ethernets:
+    eth0: {addresses: [1.2.3.4]}''')
+        err = self._set(['ethernets.eth0.addresses'])
+        self.assertIsInstance(err, Exception)
+        self.assertEquals('Invalid value specified', str(err))
 
     def test_set_escaped_dot(self):
         self._set([r'ethernets.eth0\.123.dhcp4=false'])

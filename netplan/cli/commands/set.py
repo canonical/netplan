@@ -34,7 +34,8 @@ class NetplanSet(utils.NetplanCommand):
                          leaf=True)
 
     def run(self):
-        self.parser.add_argument('key_value', type=str, help='The nested key=value pair in dotted format')
+        self.parser.add_argument('key_value', type=str,
+                                 help='The nested key=value pair in dotted format. Value can be NULL to delete a key.')
         self.parser.add_argument('--origin-hint', type=str, default='90-netplan-set',
                                  help='Can be used to help choose a name for the overwrite YAML file. \
                                        A .yaml suffix will be appended automatically.')
@@ -50,16 +51,18 @@ class NetplanSet(utils.NetplanCommand):
         if len(self.origin_hint) == 0:
             raise Exception('Invalid/empty origin-hint')
         split = self.key_value.split('=', 1)
-        key, value = (split[0], None)
-        if len(split) > 1:
-            value = split[1]
-        if key.startswith('network.'):
-            key = key[8:]
-        self.write_file(key, value, self.origin_hint + '.yaml', self.root_dir)
+        if len(split) != 2:
+            raise Exception('Invalid value specified')
+        key, value = split
+        set_tree = self.parse_key(key, yaml.safe_load(value))
+        self.write_file(set_tree, self.origin_hint + '.yaml', self.root_dir)
 
     def parse_key(self, key, value):
+        # The 'network.' prefix is optional for netsted keys, its always assumed to be there
+        if not key.startswith('network.'):
+            key = 'network.' + key
         # Split at '.' but not at '\.' via negative lookbehind expression
-        split = re.split(r'(?<!\\)\.', 'network.' + key)
+        split = re.split(r'(?<!\\)\.', key)
         tree = {}
         i = 1
         t = tree
@@ -91,7 +94,7 @@ class NetplanSet(utils.NetplanCommand):
                 a[key] = b[key]
         return a
 
-    def write_file(self, key, value, name, rootdir='/'):
+    def write_file(self, set_tree, name, rootdir='/'):
         tmproot = tempfile.TemporaryDirectory(prefix='netplan-set_')
         path = os.path.join('etc', 'netplan')
         os.makedirs(os.path.join(tmproot.name, path))
@@ -102,7 +105,7 @@ class NetplanSet(utils.NetplanCommand):
             with open(absp, 'r') as f:
                 config = yaml.safe_load(f)
 
-        new_tree = self.merge(config, self.parse_key(key, yaml.safe_load(value)))
+        new_tree = self.merge(config, set_tree)
         stripped = ConfigManager.strip_tree(new_tree)
         if 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)
