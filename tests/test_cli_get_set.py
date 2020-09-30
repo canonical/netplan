@@ -221,6 +221,11 @@ class TestSet(unittest.TestCase):
         with open(self.path, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
 
+    def test_set_invalid_input(self):
+        err = self._set([r'ethernets.eth0={dhcp4:false}'])
+        self.assertIsInstance(err, Exception)
+        self.assertEquals('Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}', str(err))
+
 
 class TestGet(unittest.TestCase):
     '''Test netplan get'''

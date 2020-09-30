@@ -116,6 +116,8 @@ class NetplanSet(utils.NetplanCommand):
             utils.netplan_parse(tmpp)
             # Valid, move it to final destination
             os.replace(tmpp, absp)
-        else:
+        elif os.path.isfile(absp):
             # Clear file if the last/only key got removed
             os.remove(absp)
+        else:
+            raise Exception('Invalid input: {}'.format(set_tree))
