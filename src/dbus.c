@@ -89,10 +89,69 @@ static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
     return sd_bus_send(NULL, reply, NULL);
 }
 
+static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar *stdout = NULL;
+    g_autofree gchar *stderr = NULL;
+    gint exit_status = 0;
+
+    gchar *argv[] = {SBINDIR "/" "netplan", "get", "all", NULL};
+
+    // for tests only: allow changing what netplan to run
+    if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0)
+       argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
+
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
+    if (err != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan get: %s", err->message);
+
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL)
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan get failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
+
+    return sd_bus_reply_method_return(m, "s", stdout);
+}
+
+static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar *stdout = NULL;
+    g_autofree gchar *stderr = NULL;
+    g_autofree gchar* origin = NULL;
+    gint exit_status = 0;
+    char* config_delta = NULL;
+    char* origin_hint = NULL;
+
+    if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint");
+
+    if (!!strcmp(origin_hint, ""))
+        origin = g_strdup_printf("--origin-hint=%s", origin_hint);
+    else
+        origin = g_strdup("");
+
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, origin, NULL};
+
+    // for tests only: allow changing what netplan to run
+    if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0)
+       argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
+
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
+    if (err != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message);
+
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL)
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
+
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
 static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
+    SD_BUS_METHOD("Get", "", "s", method_get, 0),
+    SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_VTABLE_END
 };
 

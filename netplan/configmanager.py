@@ -46,9 +46,11 @@ class ConfigManager(object):
         interfaces = {}
         interfaces.update(self.ovs_ports)
         interfaces.update(self.ethernets)
+        interfaces.update(self.modems)
         interfaces.update(self.wifis)
         interfaces.update(self.bridges)
         interfaces.update(self.bonds)
+        interfaces.update(self.tunnels)
         interfaces.update(self.vlans)
         return interfaces
 
@@ -56,6 +58,7 @@ class ConfigManager(object):
     def physical_interfaces(self):
         interfaces = {}
         interfaces.update(self.ethernets)
+        interfaces.update(self.modems)
         interfaces.update(self.wifis)
         return interfaces
 
@@ -64,8 +67,16 @@ class ConfigManager(object):
         return self.network['ovs_ports']
 
     @property
+    def openvswitch(self):
+        return self.network['openvswitch']
+
+    @property
     def ethernets(self):
         return self.network['ethernets']
+
+    @property
+    def modems(self):
+        return self.network['modems']
 
     @property
     def wifis(self):
@@ -80,8 +91,35 @@ class ConfigManager(object):
         return self.network['bonds']
 
     @property
+    def tunnels(self):
+        return self.network['tunnels']
+
+    @property
     def vlans(self):
         return self.network['vlans']
+
+    @property
+    def version(self):
+        return self.network['version']
+
+    @property
+    def renderer(self):
+        return self.network['renderer']
+
+    @property
+    def tree(self):
+        return self.strip_tree(self.config)
+
+    @staticmethod
+    def strip_tree(data):
+        '''clear empty branches'''
+        new_data = {}
+        for k, v in data.items():
+            if isinstance(v, dict):
+                v = ConfigManager.strip_tree(v)
+            if v not in (u'', None, {}):
+                new_data[k] = v
+        return new_data
 
     def parse(self, extra_config=[]):
         """
@@ -107,11 +145,16 @@ class ConfigManager(object):
 
         self.config['network'] = {
             'ovs_ports': {},
+            'openvswitch': {},
             'ethernets': {},
+            'modems': {},
             'wifis': {},
             'bridges': {},
             'bonds': {},
-            'vlans': {}
+            'tunnels': {},
+            'vlans': {},
+            'version': None,
+            'renderer': None
         }
         for yaml_file in files:
             self._merge_yaml_config(yaml_file)
@@ -119,7 +162,7 @@ class ConfigManager(object):
         for yaml_file in extra_config:
             self.new_interfaces |= self._merge_yaml_config(yaml_file)
 
-        logging.debug("Merged config:\n{}".format(yaml.dump(self.config, default_flow_style=False)))
+        logging.debug("Merged config:\n{}".format(yaml.dump(self.tree, default_flow_style=False)))
 
     def add(self, config_dict):
         for config_file in config_dict:
@@ -230,8 +273,12 @@ class ConfigManager(object):
                     if 'openvswitch' in network:
                         new = self._merge_ovs_ports_config(self.ovs_ports, network.get('openvswitch'))
                         new_interfaces |= new
+                        self.network['openvswitch'] = network.get('openvswitch')
                     if 'ethernets' in network:
                         new = self._merge_interface_config(self.ethernets, network.get('ethernets'))
+                        new_interfaces |= new
+                    if 'modems' in network:
+                        new = self._merge_interface_config(self.modems, network.get('modems'))
                         new_interfaces |= new
                     if 'wifis' in network:
                         new = self._merge_interface_config(self.wifis, network.get('wifis'))
@@ -242,9 +289,16 @@ class ConfigManager(object):
                     if 'bonds' in network:
                         new = self._merge_interface_config(self.bonds, network.get('bonds'))
                         new_interfaces |= new
+                    if 'tunnels' in network:
+                        new = self._merge_interface_config(self.tunnels, network.get('tunnels'))
+                        new_interfaces |= new
                     if 'vlans' in network:
                         new = self._merge_interface_config(self.vlans, network.get('vlans'))
                         new_interfaces |= new
+                    if 'version' in network:
+                        self.network['version'] = network.get('version')
+                    if 'renderer' in network:
+                        self.network['renderer'] = network.get('renderer')
             return new_interfaces
         except (IOError, yaml.YAMLError):  # pragma: nocover (filesystem failures/invalid YAML)
             logging.error('Error while loading {}, aborting.'.format(yaml_file))

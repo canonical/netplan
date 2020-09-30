@@ -64,6 +64,10 @@ printf '\\0' >> %(log)s
             calls.append(call.split("\0"))
         return calls
 
+    def set_output(self, output):
+        with open(self.path, "a") as fp:
+            fp.write("cat << EOF\n%s\nEOF" % output)
+
 
 class TestNetplanDBus(unittest.TestCase):
 
@@ -169,6 +173,59 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         output = subprocess.check_output(BUSCTL_NETPLAN_INFO)
         self.assertIn("Features", output.decode("utf-8"))
+
+    def test_netplan_dbus_get(self):
+        self.mock_netplan_cmd.set_output("""network:
+  ens3:
+    addresses:
+    - 1.2.3.4/24
+    - 5.6.7.8/24
+    dhcp4: true""")
+        BUSCTL_NETPLAN_GET = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Get"
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        self.assertIn(r's "network:\n  ens3:\n    addresses:\n    - 1.2.3.4/24\n    - 5.6.7.8/24\n    dhcp4: true\n"', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "get", "all"],
+        ])
+
+    def test_netplan_dbus_set(self):
+        BUSCTL_NETPLAN_GET = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Set", "ss",
+            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+            ""
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        self.assertEqual(out, "b true\n")
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}"],
+        ])
+
+    def test_netplan_dbus_set_origin(self):
+        BUSCTL_NETPLAN_GET = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Set", "ss",
+            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+            "99_snapd"
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        self.assertEqual(out, "b true\n")
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+                 "--origin-hint=99_snapd"],
+        ])
 
     def test_netplan_dbus_no_such_command(self):
         p = subprocess.Popen(
