@@ -91,9 +91,10 @@ class NetplanSet(utils.NetplanCommand):
                 a[key] = b[key]
         return a
 
-    def write_file(self, key, value, name, rootdir='/', path='etc/netplan/'):
+    def write_file(self, key, value, name, rootdir='/'):
         tmproot = tempfile.TemporaryDirectory(prefix='netplan-set_')
-        os.makedirs(os.path.join(tmproot.name, 'etc', 'netplan'))
+        path = os.path.join('etc', 'netplan')
+        os.makedirs(os.path.join(tmproot.name, path))
 
         config = {'network': {}}
         absp = os.path.join(rootdir, path, name)
