@@ -137,7 +137,7 @@ class _CommonTests():
         self.assertIn("endpoint: 10.10.10.20:51820", out)
         self.assertIn("allowed ips: 0.0.0.0/0", out)
         self.assertIn("persistent keepalive: every 21 seconds", out)
-        self.assertRegex(out, r'latest handshake: \d+ seconds? ago')
+        self.assertRegex(out, r'latest handshake: (\d+ seconds? ago|Now)')
         self.assertRegex(out, r'transfer: \d+ B received, \d+ B sent')
         self.assert_iface('wg1', ['inet 20.20.20.10/24'])
 
