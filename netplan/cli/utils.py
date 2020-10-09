@@ -35,7 +35,7 @@ class _GError(ctypes.Structure):
     _fields_ = [("domain", ctypes.c_uint32), ("code", ctypes.c_int), ("message", ctypes.c_char_p)]
 
 
-lib = ctypes.CDLL('libnetplan.so')
+lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_parse_yaml.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.POINTER(_GError))]
 
 
