@@ -370,18 +370,15 @@ class _CommonTests():
         %(ec)s:
             addresses: [10.5.32.26/20]
             gateway4: 10.5.32.1
-            match:
-                macaddress: %(e_mac)s
             mtu: 1500
             nameservers:
                 addresses: [10.5.32.99]
                 search: [maas]
-            set-name: %(ec)s
     vlans:
         %(ec)s.21:
             id: 21
             link: %(ec)s
-            mtu: 1500''' % {'ec': self.dev_e_client, 'e_mac': self.dev_e_client_mac})
+            mtu: 1500''' % {'ec': self.dev_e_client})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'], universal_newlines=True)
