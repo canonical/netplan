@@ -40,7 +40,6 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     /* run any ovs-netplan unit only after openvswitch-switch.service is ready */
     g_string_append_printf(s, "Wants=ovsdb-server.service\n");
     g_string_append_printf(s, "After=ovsdb-server.service\n");
-    g_string_append_printf(s, "Before=systemd-networkd.service\n");
     if (physical) {
         id_escaped = systemd_escape((char*) id);
         g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id_escaped);
