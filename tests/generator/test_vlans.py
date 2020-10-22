@@ -20,7 +20,7 @@ import os
 import re
 import unittest
 
-from .base import TestBase
+from .base import TestBase, ND_VLAN, ND_EMPTY
 
 
 class TestNetworkd(TestBase):
@@ -148,6 +148,48 @@ UseMTU=true
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
+        self.assert_nm_udev(None)
+
+    # see LP: #1888726
+    def test_vlan_parent_match(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    lan:
+      match: {macaddress: "11:22:33:44:55:66"}
+      set-name: lan
+      mtu: 9000
+  vlans:
+    vlan20: {id: 20, link: lan}''')
+
+        self.assert_networkd({'lan.network': '''[Match]
+MACAddress=11:22:33:44:55:66
+Name=lan
+Type=!vlan bond bridge
+
+[Link]
+MTUBytes=9000
+
+[Network]
+LinkLocalAddressing=ipv6
+VLAN=vlan20
+''',
+                              'lan.link': '''[Match]
+MACAddress=11:22:33:44:55:66
+Type=!vlan bond bridge
+
+[Link]
+Name=lan
+WakeOnLan=off
+MTUBytes=9000
+''',
+                              'vlan20.network': ND_EMPTY % ('vlan20', 'ipv6'),
+                              'vlan20.netdev': ND_VLAN % ('vlan20', 20)})
+
+        self.assert_nm(None, '''[keyfile]
+# devices managed by networkd
+unmanaged-devices+=mac:11:22:33:44:55:66,interface-name:vlan20,''')
         self.assert_nm_udev(None)
 
 
