@@ -20,7 +20,7 @@ import os
 import re
 import unittest
 
-from .base import TestBase, ND_VLAN, ND_EMPTY
+from .base import TestBase, ND_VLAN, ND_EMPTY, ND_WITHIP, ND_DHCP6_WOCARRIER
 
 
 class TestNetworkd(TestBase):
@@ -51,20 +51,8 @@ VLAN=enblue
 VLAN=enred
 VLAN=engreen
 ''',
-                              'enblue.netdev': '''[NetDev]
-Name=enblue
-Kind=vlan
-
-[VLAN]
-Id=1
-''',
-                              'engreen.netdev': '''[NetDev]
-Name=engreen
-Kind=vlan
-
-[VLAN]
-Id=2
-''',
+                              'enblue.netdev': ND_VLAN % ('enblue', 1),
+                              'engreen.netdev': ND_VLAN % ('engreen', 2),
                               'enred.netdev': '''[NetDev]
 Name=enred
 MACAddress=aa:bb:cc:dd:ee:11
@@ -73,33 +61,10 @@ Kind=vlan
 [VLAN]
 Id=3
 ''',
-                              'enblue.network': '''[Match]
-Name=enblue
+                              'enblue.network': ND_WITHIP % ('enblue', '1.2.3.4/24'),
+                              'enred.network': ND_EMPTY % ('enred', 'ipv6'),
+                              'engreen.network': (ND_DHCP6_WOCARRIER % 'engreen')})
 
-[Network]
-LinkLocalAddressing=ipv6
-Address=1.2.3.4/24
-ConfigureWithoutCarrier=yes
-''',
-                              'enred.network': '''[Match]
-Name=enred
-
-[Network]
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-''',
-                              'engreen.network': '''[Match]
-Name=engreen
-
-[Network]
-DHCP=ipv6
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-
-[DHCP]
-RouteMetric=100
-UseMTU=true
-'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:enred,interface-name:engreen,''')
@@ -126,25 +91,9 @@ Name=en1
 LinkLocalAddressing=ipv6
 VLAN=engreen
 ''',
-                              'engreen.netdev': '''[NetDev]
-Name=engreen
-Kind=vlan
+                              'engreen.netdev': ND_VLAN % ('engreen', 2),
+                              'engreen.network': (ND_DHCP6_WOCARRIER % 'engreen')})
 
-[VLAN]
-Id=2
-''',
-                              'engreen.network': '''[Match]
-Name=engreen
-
-[Network]
-DHCP=ipv6
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-
-[DHCP]
-RouteMetric=100
-UseMTU=true
-'''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
 unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')

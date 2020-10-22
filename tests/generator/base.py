@@ -39,13 +39,15 @@ os.environ['G_DEBUG'] = 'fatal-criticals'
 # common patterns for expected output
 ND_EMPTY = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=%s\nConfigureWithoutCarrier=yes\n'
 ND_WITHIP = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=%s\nConfigureWithoutCarrier=yes\n'
-ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
-ND_DHCP4_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
 ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=600\nUseMTU=true\n'
-ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
-ND_DHCP6_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
-ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
-ND_DHCPYES_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
+ND_DHCP = '[Match]\nName=%s\n\n[Network]\nDHCP=%s\nLinkLocalAddressing=ipv6%s\n\n[DHCP]\nRouteMetric=100\nUseMTU=%s\n'
+ND_DHCP4 = ND_DHCP % ('%s', 'ipv4', '', 'true')
+ND_DHCP4_NOMTU = ND_DHCP % ('%s', 'ipv4', '', 'false')
+ND_DHCP6 = ND_DHCP % ('%s', 'ipv6', '', 'true')
+ND_DHCP6_NOMTU = ND_DHCP % ('%s', 'ipv6', '', 'false')
+ND_DHCP6_WOCARRIER = ND_DHCP % ('%s', 'ipv6', '\nConfigureWithoutCarrier=yes', 'true')
+ND_DHCPYES = ND_DHCP % ('%s', 'yes', '', 'true')
+ND_DHCPYES_NOMTU = ND_DHCP % ('%s', 'yes', '', 'false')
 _OVS_BASE = '[Unit]\nDescription=OpenVSwitch configuration for %(iface)s\nDefaultDependencies=no\n\
 Wants=ovsdb-server.service\nAfter=ovsdb-server.service\n'
 OVS_PHYSICAL = _OVS_BASE + 'Requires=sys-subsystem-net-devices-%(iface)s.device\nAfter=sys-subsystem-net-devices-%(iface)s\
