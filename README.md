@@ -1,8 +1,7 @@
 # netplan - Backend-agnostic network configuration in YAML
 
-[![Build Status](https://semaphoreci.com/api/v1/cyphermox/netplan/branches/master/badge.svg)](https://semaphoreci.com/cyphermox/netplan)
-[![codecov](https://codecov.io/gh/CanonicalLtd/netplan/branch/master/graph/badge.svg)](https://codecov.io/gh/CanonicalLtd/netplan)
-[![Snap Status](https://build.snapcraft.io/badge/CanonicalLtd/netplan.svg)](https://build.snapcraft.io/user/CanonicalLtd/netplan)
+[![Build](https://github.com/CanonicalLtd/netplan/workflows/Build/badge.svg?branch=master)](https://github.com/CanonicalLtd/netplan/actions?query=branch%3Amaster+workflow%3ABuild)
+[![Codecov](https://codecov.io/gh/CanonicalLtd/netplan/branch/master/graph/badge.svg)](https://codecov.io/gh/CanonicalLtd/netplan)
 
 
 # Website
