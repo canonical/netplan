@@ -1,0 +1,41 @@
+name: Unit tests & Coverage
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Installs the build dependencies
+      - name: Install build depends
+        run: |
+          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
+          sudo apt update
+          sudo apt install lcov python3-coverage curl
+          sudo apt build-dep netplan.io
+
+      # Runs the unit tests with coverage
+      - name: Run unit tests
+        run: make coverage
+
+      # Checks the coverage diff to the master branch
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          name: check-coverage
+          fail_ci_if_error: true
+          verbose: true
