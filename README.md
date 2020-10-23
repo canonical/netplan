@@ -1,6 +1,6 @@
 # netplan - Backend-agnostic network configuration in YAML
 
-[![Build](https://github.com/CanonicalLtd/netplan/workflows/Build/badge.svg?branch=master)](https://github.com/CanonicalLtd/netplan/actions)
+[![Build](https://github.com/CanonicalLtd/netplan/workflows/Build/badge.svg?branch=master)](https://github.com/CanonicalLtd/netplan/actions?query=branch%3Amaster)
 [![Codecov](https://codecov.io/gh/CanonicalLtd/netplan/branch/master/graph/badge.svg)](https://codecov.io/gh/CanonicalLtd/netplan)
 [![Snap Status](https://build.snapcraft.io/badge/CanonicalLtd/netplan.svg)](https://build.snapcraft.io/user/CanonicalLtd/netplan)
 
