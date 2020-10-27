@@ -117,10 +117,9 @@ class Terminal(object):
             - dest: if set, save settings to this dict
         """
         orig_flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+        orig_term = None
         if sys.stdin.isatty():
             orig_term = termios.tcgetattr(self.fd)
-        else:
-            orig_term = None
         if dest is not None:
             dest.update({'flags': orig_flags,
                          'term': orig_term})
