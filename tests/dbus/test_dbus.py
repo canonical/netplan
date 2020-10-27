@@ -233,7 +233,7 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "TryCommit",
+            "Confirm",
         ]
         BUSCTL_NETPLAN_TRY = [
             "busctl", "call", "--system",
@@ -241,43 +241,20 @@ class TestNetplanDBus(unittest.TestCase):
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
             "Try",
-            "a{ss}", "0",
-        ]
-        BUSCTL_NETPLAN_TRY1 = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Try",
-            "a{ss}", "1", "timeout", "10",
-        ]
-        BUSCTL_NETPLAN_TRY2 = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Try",
-            "a{ss}", "2", "config-file", "./config.yaml", "timeout", "10",
+            "u", "1",
         ]
 
-        # TODO: verify TryCommit returns "true" after a dbus call to "netplan try"
         output = subprocess.check_output(BUSCTL_NETPLAN_TRY_COMMIT)
         self.assertEqual("b false\n", output.decode("utf-8"))
 
         output = subprocess.check_output(BUSCTL_NETPLAN_TRY)
         self.assertEqual("b true\n", output.decode("utf-8"))
 
-        output = subprocess.check_output(BUSCTL_NETPLAN_TRY1)
-        self.assertEqual("b true\n", output.decode("utf-8"))
-
-        output = subprocess.check_output(BUSCTL_NETPLAN_TRY2)
-        self.assertEqual("b true\n", output.decode("utf-8"))
+        # TODO: verify Confirm/Apply returns "true" after a dbus call to "netplan try"
 
         # FIXME: verify call stack
         # self.assertEquals(self.mock_netplan_cmd.calls(), [
-        #         ["netplan", "try"],
-        #         ["netplan", "try", "--timeout", "10"],
-        #         ["netplan", "try", "--config-file", "./config.yaml", "--timeout", "10"],
+        #         ["netplan", "try", "--timeout", "1"],
         # ])
 
     def test_netplan_dbus_no_such_command(self):
