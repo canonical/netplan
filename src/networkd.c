@@ -86,19 +86,18 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
             g_string_append_printf(s, "Name=%s\n", def->match.original_name);
     }
 
-    /* Workaround for bug LP: #1804861: something outputs netplan config
-     * that includes using the MAC of the first phy member of a bond as
-     * default value for the MAC of the bond device itself. This is
-     * evil, it's an optional field and networkd knows what to do if
-     * the MAC isn't specified; but work around this by adding an
-     * arbitrary additional match condition on Path= for the phys.
-     * This way, hopefully setting a MTU on the phy does not bleed over
-     * to bond/bridge and any further virtual devices (VLANs?) on top of
-     * it.
+    /* Workaround for bugs LP: #1804861 and LP: #1888726: something outputs
+     * netplan config that includes using the MAC of the first phy member of a
+     * bond as default value for the MAC of the bond device itself. This is
+     * evil, it's an optional field and networkd knows what to do if the MAC
+     * isn't specified; but work around this by adding an arbitrary additional
+     * match condition on Path= for the phys. This way, hopefully setting a MTU
+     * on the phy does not bleed over to bond/bridge and any further virtual
+     * devices (VLANs?) on top of it.
      * Make sure to add the extra match only if we're matching by MAC
-     * already and dealing with a bond or bridge.
+     * already and dealing with a bond, bridge or vlan.
      */
-    if (def->bond || def->bridge) {
+    if (def->bond || def->bridge || def->has_vlans) {
         /* update if we support new device types */
         if (def->match.mac)
             g_string_append(s, "Type=!vlan bond bridge\n");

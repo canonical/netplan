@@ -39,13 +39,15 @@ os.environ['G_DEBUG'] = 'fatal-criticals'
 # common patterns for expected output
 ND_EMPTY = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=%s\nConfigureWithoutCarrier=yes\n'
 ND_WITHIP = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=%s\nConfigureWithoutCarrier=yes\n'
-ND_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
-ND_DHCP4_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
 ND_WIFI_DHCP4 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=600\nUseMTU=true\n'
-ND_DHCP6 = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
-ND_DHCP6_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=ipv6\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
-ND_DHCPYES = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=true\n'
-ND_DHCPYES_NOMTU = '[Match]\nName=%s\n\n[Network]\nDHCP=yes\nLinkLocalAddressing=ipv6\n\n[DHCP]\nRouteMetric=100\nUseMTU=false\n'
+ND_DHCP = '[Match]\nName=%s\n\n[Network]\nDHCP=%s\nLinkLocalAddressing=ipv6%s\n\n[DHCP]\nRouteMetric=100\nUseMTU=%s\n'
+ND_DHCP4 = ND_DHCP % ('%s', 'ipv4', '', 'true')
+ND_DHCP4_NOMTU = ND_DHCP % ('%s', 'ipv4', '', 'false')
+ND_DHCP6 = ND_DHCP % ('%s', 'ipv6', '', 'true')
+ND_DHCP6_NOMTU = ND_DHCP % ('%s', 'ipv6', '', 'false')
+ND_DHCP6_WOCARRIER = ND_DHCP % ('%s', 'ipv6', '\nConfigureWithoutCarrier=yes', 'true')
+ND_DHCPYES = ND_DHCP % ('%s', 'yes', '', 'true')
+ND_DHCPYES_NOMTU = ND_DHCP % ('%s', 'yes', '', 'false')
 _OVS_BASE = '[Unit]\nDescription=OpenVSwitch configuration for %(iface)s\nDefaultDependencies=no\n\
 Wants=ovsdb-server.service\nAfter=ovsdb-server.service\n'
 OVS_PHYSICAL = _OVS_BASE + 'Requires=sys-subsystem-net-devices-%(iface)s.device\nAfter=sys-subsystem-net-devices-%(iface)s\
@@ -69,6 +71,7 @@ NM_WG = '[connection]\nid=netplan-wg0\ntype=wireguard\ninterface-name=wg0\n\n[wi
 \n\n[ipv4]\nmethod=manual\naddress1=15.15.15.15/24\ngateway=20.20.20.21\n\n[ipv6]\nmethod=manual\naddress1=\
 2001:de:ad:be:ef:ca:fe:1/128\n'
 ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListenPort=%s\n%s\n'
+ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 
 
 class TestBase(unittest.TestCase):
