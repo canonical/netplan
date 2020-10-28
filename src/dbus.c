@@ -9,6 +9,7 @@
 
 #include <glib.h>
 #include <systemd/sd-bus.h>
+#include <systemd/sd-event.h>
 
 #include "_features.h"
 
@@ -19,6 +20,8 @@
  * correctly capture tests being run over a DBus bus.
  */
 
+static sd_bus *bus = NULL;
+static sd_event_source *_try_child_es = NULL;
 static gint _try_child_stdin = -1;
 static GPid _try_child_pid = -1;
 
@@ -171,6 +174,39 @@ _netplan_try_is_child_alive(sd_bus_message *m, sd_bus_error *ret_error)
     return 0;
 }
 
+static void _try_child_clear() {
+    /* Cleanup current 'netplan try' child process */
+    sd_event_source_set_enabled(_try_child_es, SD_EVENT_OFF);
+    sd_event_source_unref(_try_child_es);
+    _try_child_es = NULL;
+    //_try_child_stdin = -1;
+    //_try_child_pid = -1;
+}
+
+static int _config_changed_signal(sd_bus *bus) {
+    sd_bus_message *msg = NULL;
+    int r;
+
+    r = sd_bus_message_new_signal(bus, &msg,
+                                  "/io/netplan/Netplan",
+                                  "io.netplan.Netplan",
+                                  "Changed");
+    if (r < 0)
+        return r;
+
+    r = sd_bus_send(bus, msg, NULL);
+    sd_bus_message_unrefp(&msg);
+    return r;
+}
+
+static int _try_child_handler(sd_event_source *es, const siginfo_t *si, void* userdata) {
+    printf("HELLO from child handler\n"); //XXX: remove debugging output
+    _try_child_clear();
+    _try_child_stdin = -1;
+    _try_child_pid = -1;
+    return _config_changed_signal(bus);
+}
+
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
@@ -203,8 +239,15 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: %s", err->message);
 
-    // TODO: set a timer (via event-loop) to send a Changed() signal via DBus
-    //       And cancel/cleanup the try command (i.e. _try_child_pid = -1)
+    // TODO: get bus from sd_bus_message->bus istead of static global variable
+    sd_event *e = sd_bus_get_event(bus);
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+    r = sd_event_add_child(e, &_try_child_es, _try_child_pid, WEXITED, _try_child_handler, NULL);
+    if (r < 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot watch 'netplan try' child: %s", strerror(-r));
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -213,6 +256,7 @@ static int method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *re
     GError *error = NULL;
     GIOChannel *stdin = NULL;
     int status = -1;
+    _try_child_clear();
     int r = _netplan_try_is_child_alive(m, ret_error);
 
     if (r != 0)
@@ -244,6 +288,7 @@ static int method_try_confirm(sd_bus_message *m, void *userdata, sd_bus_error *r
     // TODO: move this into Apply()
     GError *error = NULL;
     int status = -1;
+    _try_child_clear();
     int r = _netplan_try_is_child_alive(m, ret_error);
 
     if (r != 0)
@@ -285,7 +330,7 @@ static const sd_bus_vtable netplan_vtable[] = {
 
 int main(int argc, char *argv[]) {
     sd_bus_slot *slot = NULL;
-    sd_bus *bus = NULL;
+    sd_event *event = NULL;
     int r;
    
     r = sd_bus_open_system(&bus);
@@ -311,23 +356,22 @@ int main(int argc, char *argv[]) {
         goto finish;
     }
 
-    for (;;) {
-        r = sd_bus_process(bus, NULL);
-        if (r < 0) {
-            fprintf(stderr, "Failed to process bus: %s\n", strerror(-r));
-            goto finish;
-        }
-        if (r > 0)
-            continue;
-
-        /* Wait for the next request to process */
-        r = sd_bus_wait(bus, (uint64_t) -1);
-        if (r < 0) {
-            fprintf(stderr, "Failed to wait on bus: %s\n", strerror(-r));
-            goto finish;
-        }
+    r = sd_event_new(&event);
+    if (r < 0) {
+        fprintf(stderr, "Failed to create event loop: %s\n", strerror(-r));
+        goto finish;
     }
 
+    r = sd_bus_attach_event(bus, event, SD_EVENT_PRIORITY_NORMAL);
+    if (r < 0) {
+        fprintf(stderr, "Failed to attach event loop: %s\n", strerror(-r));
+        goto finish;
+    }
+
+    /* Start the event loop, wait for requests */
+    r = sd_event_loop(event);
+    if (r < 0)
+        fprintf(stderr, "Failed main loop: %s\n", strerror(-r));
 finish:
     sd_bus_slot_unref(slot);
     sd_bus_unref(bus);
