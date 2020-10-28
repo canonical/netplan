@@ -352,7 +352,9 @@ Virtual devices
 
 :   Set default gateway for IPv4/6, for manual address configuration. This
     requires setting ``addresses`` too. Gateway IPs must be in a form
-    recognized by **``inet_pton``**(3).
+    recognized by **``inet_pton``**(3). There should only be a single gateway
+    set in your global config, to make it unambiguous. If you need multiple
+    default routes, please define them via ``routing-policy``.
 
     Example for IPv4: ``gateway4: 172.16.0.1``
     Example for IPv6: ``gateway6: "2001:4::1"``
