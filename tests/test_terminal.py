@@ -25,7 +25,6 @@ import unittest
 import netplan.terminal
 
 
-@unittest.skipUnless(sys.__stdin__.isatty(), "not supported when run from a script")
 class TestTerminal(unittest.TestCase):
 
     def setUp(self):
