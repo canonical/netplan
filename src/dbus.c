@@ -20,9 +20,12 @@
  * correctly capture tests being run over a DBus bus.
  */
 
-static sd_event_source *_try_child_es = NULL;
-static gint _try_child_stdin = -1;
-static GPid _try_child_pid = -1;
+typedef struct netplan_data {
+    sd_bus *bus; //XXX: can we remove this?
+    sd_event *event; //XXX: remove, use sd_event_source_get_event() instead
+    sd_event_source *try_es;
+    GPid try_pid;
+} NetplanData;
 
 static int method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
@@ -152,44 +155,28 @@ static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int
-_netplan_try_is_child_alive(sd_bus_message *m, sd_bus_error *ret_error)
+static void
+_clear_try_child(int status, NetplanData *d)
 {
-    int status = -1;
-    int r = -1;
+    if (!WIFEXITED(status))
+        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
 
-    if (_try_child_pid < 0)
-        return sd_bus_reply_method_return(m, "b", false);
-        //XXX: return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "Invalid netplan try PID");
-
-    r = (int)waitpid(_try_child_pid, &status, WNOHANG);
-    if (r > 0 && status == 0) {
-        /* The child already exited. Cannot send signal. Cleanup. */
-        _try_child_pid = -1;
-        return sd_bus_reply_method_return(m, "b", false);
-    }
-    //TODO: handle error cases
-
-    return 0;
-}
-
-static void _try_child_clear() {
+    printf("Child exited with status code %d\n", status); //XXX: remove debugging output
     /* Cleanup current 'netplan try' child process */
-    sd_event_source_set_enabled(_try_child_es, SD_EVENT_OFF);
-    sd_event_source_unref(_try_child_es);
-    _try_child_es = NULL;
-    //_try_child_stdin = -1;
-    //_try_child_pid = -1;
+    sd_event_source_unref(d->try_es);
+    d->try_es = NULL;
+    g_spawn_close_pid (d->try_pid);
+    d->try_pid = -1;
 }
 
-static int _config_changed_signal(sd_bus *bus) {
+static int
+_config_changed_signal(sd_bus *bus)
+{
     sd_bus_message *msg = NULL;
-    int r;
-
-    r = sd_bus_message_new_signal(bus, &msg,
-                                  "/io/netplan/Netplan",
-                                  "io.netplan.Netplan",
-                                  "Changed");
+    int r = sd_bus_message_new_signal(bus, &msg,
+                                      "/io/netplan/Netplan",
+                                      "io.netplan.Netplan",
+                                      "Changed");
     if (r < 0)
         return r;
 
@@ -198,27 +185,63 @@ static int _config_changed_signal(sd_bus *bus) {
     return r;
 }
 
-static int _try_child_handler(sd_event_source *es, const siginfo_t *si, void* userdata) {
-    printf("HELLO from child handler\n"); //XXX: remove debugging output
-    _try_child_clear();
-    _try_child_stdin = -1;
-    _try_child_pid = -1;
-    return _config_changed_signal(userdata);
+static int
+handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
+{
+    NetplanData *d = userdata;
+    printf("HELLO from child handler %p %d\n",  userdata, d->try_pid); //XXX: remove debugging output
+    _clear_try_child(si->si_status, d);
+    d->try_pid = -1;
+    return _config_changed_signal(d->bus);
+}
+
+static int
+_try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_error)
+{
+    GError *error = NULL;
+    int status = -1;
+    int signal = SIGUSR1;
+    if (!accept) signal = SIGINT;
+
+    /* Child does not exist or exited already ... */
+    if (d->try_pid < 0)
+        return sd_bus_reply_method_return(m, "b", false);
+    /* ATTENTION: There might be a race here:
+     * When the accept handler is called at the same time as the 'netplan try'
+     * python process is reverting and closing itself. Not sure what to do about it...
+     * Maybe this needs to be fixed in python code, so that the
+     * 'netplan.terminal.InputRejected' exception (i.e. self-revert) cannot be
+     * interrupted by another exception/signal */
+
+    /* Send confirm (SIGUSR1) or cancel (SIGINT) signal to 'netplan try' process.
+     * Wait for the child process to stop, synchronously.
+     * Check return code/errors. */
+    kill(d->try_pid, signal);
+    waitpid(d->try_pid, &status, 0);
+    g_spawn_check_exit_status(status, &error); //XXX: do we need all of those checks?
+    if (error != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
+
+    _clear_try_child(status, d);
+    return sd_bus_reply_method_return(m, "b", true);
 }
 
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
+    gint child_stdin = -1; //XXX: do we need this?
     guint seconds = 0;
     int status = -1;
     int r = -1;
+    NetplanData *d = userdata;
+    printf("HELLO from try handler %p\n", d); //XXX: remove debugging output
 
     /* There seems to be an old 'netlan try' process... Is it still running? */
-    if (_try_child_pid > 0) {
-        r = (int)waitpid(_try_child_pid, &status, WNOHANG);
+    if (d->try_pid > 0) {
+        r = (int)waitpid(d->try_pid, &status, WNOHANG);
         /* The child already exited. Cleanup. */
         if (r > 0 && status == 0)
-            _try_child_pid = -1;
+            d->try_pid = -1;
         else
             return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: already running");
     }
@@ -234,7 +257,7 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
     g_spawn_async_with_pipes("/", argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD|G_SPAWN_STDOUT_TO_DEV_NULL,
-                             NULL, NULL, &_try_child_pid, &_try_child_stdin, NULL, NULL, &err);
+                             NULL, NULL, &d->try_pid, &child_stdin, NULL, NULL, &err);
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: %s", err->message);
 
@@ -244,75 +267,28 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
-    r = sd_event_add_child(e, &_try_child_es, _try_child_pid, WEXITED, _try_child_handler, bus);
+    r = sd_event_add_child(e, &d->try_es, d->try_pid, WEXITED, handle_netplan_try, bus);
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot watch 'netplan try' child: %s", strerror(-r));
+    if (sd_event_source_set_userdata(d->try_es, d) == NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot set 'netplan try' event data.");
 
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
-    GError *error = NULL;
-    GIOChannel *stdin = NULL;
-    int status = -1;
-    _try_child_clear();
-    int r = _netplan_try_is_child_alive(m, ret_error);
-
-    if (r != 0)
-        return r;
-
-    /* Child does not exist or exited already ... */
-    // XXX: isn't this checked in _netplan_try_is_child_alive() already?
-    if (_try_child_pid < 0 || waitpid (_try_child_pid, &status, WNOHANG) < 0)
-        return sd_bus_reply_method_return(m, "b", false);
-
-    /* Send cancel signal to 'netplan try' process */
-    kill(_try_child_pid, SIGINT);
-    waitpid (_try_child_pid, &status, 0);
-    g_spawn_check_exit_status(status, &error);
-    if (error != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
-    if (!WIFEXITED(status))
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: status code %d (IFEXITED)", WEXITSTATUS(status));
-    //XXX: remove debugging output
-    printf("Child exited with status code %d\n", WEXITSTATUS(status));
-
-    g_spawn_close_pid (_try_child_pid);
-    _try_child_pid = -1;
-
-    return sd_bus_reply_method_return(m, "b", true);
+static int
+method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    printf("HELLO from CANCEL handler %p\n",  userdata); //XXX: remove debugging output
+    return _try_accept(FALSE, m, userdata, ret_error);
 }
 
-static int method_try_confirm(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
-    // TODO: move this into Apply()
-    GError *error = NULL;
-    int status = -1;
-    _try_child_clear();
-    int r = _netplan_try_is_child_alive(m, ret_error);
-
-    if (r != 0)
-        return r;
-
-     /* Child does not exist or exited already ... */
-    // XXX: isn't this checked in _netplan_try_is_child_alive() already?
-    if (_try_child_pid < 0 || waitpid (_try_child_pid, &status, WNOHANG) < 0)
-        return sd_bus_reply_method_return(m, "b", false);
-
-    /* Send confirm signal to 'netplan try' process */
-    kill(_try_child_pid, SIGUSR1);
-    waitpid(_try_child_pid, &status, 0);
-    g_spawn_check_exit_status(status, &error);
-    if (error != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
-    if (!WIFEXITED(status))
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: status code %d (IFEXITED)", WEXITSTATUS(status));
-    //XXX: remove debugging output
-    printf("Child exited with status code %d\n", WEXITSTATUS(status));
-
-    g_spawn_close_pid (_try_child_pid);
-    _try_child_pid = -1;
-
-    return sd_bus_reply_method_return(m, "b", true);
+static int
+method_try_confirm(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    //TODO: move this into method_apply()
+    printf("HELLO from CONFIRM handler %p\n",  userdata); //XXX: remove debugging output
+    return _try_accept(TRUE, m, userdata, ret_error);
 }
 
 static const sd_bus_vtable netplan_vtable[] = {
@@ -331,6 +307,7 @@ int main(int argc, char *argv[]) {
     sd_bus_slot *slot = NULL;
     sd_bus *bus = NULL;
     sd_event *event = NULL;
+    NetplanData *data = g_new0(NetplanData, 1);
     int r;
    
     r = sd_bus_open_system(&bus);
@@ -339,12 +316,24 @@ int main(int argc, char *argv[]) {
         goto finish;
     }
 
+    r = sd_event_new(&event);
+    if (r < 0) {
+        fprintf(stderr, "Failed to create event loop: %s\n", strerror(-r));
+        goto finish;
+    }
+
+    /* Initialize the userdata */
+    data->bus = bus;
+    data->event = event;
+    data->try_pid = -1;
+    printf("HELLO from MAIN %p\n",  data); //XXX: remove debugging output
+
     r = sd_bus_add_object_vtable(bus,
                                      &slot,
                                      "/io/netplan/Netplan",  /* object path */
                                      "io.netplan.Netplan",   /* interface name */
                                      netplan_vtable,
-                                     NULL);
+                                     data);
     if (r < 0) {
         fprintf(stderr, "Failed to issue method call: %s\n", strerror(-r));
         goto finish;
@@ -353,12 +342,6 @@ int main(int argc, char *argv[]) {
     r = sd_bus_request_name(bus, "io.netplan.Netplan", 0);
     if (r < 0) {
         fprintf(stderr, "Failed to acquire service name: %s\n", strerror(-r));
-        goto finish;
-    }
-
-    r = sd_event_new(&event);
-    if (r < 0) {
-        fprintf(stderr, "Failed to create event loop: %s\n", strerror(-r));
         goto finish;
     }
 
@@ -373,6 +356,7 @@ int main(int argc, char *argv[]) {
     if (r < 0)
         fprintf(stderr, "Failed main loop: %s\n", strerror(-r));
 finish:
+    g_free(data);
     sd_bus_slot_unref(slot);
     sd_bus_unref(bus);
 
