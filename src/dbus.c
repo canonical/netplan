@@ -20,7 +20,6 @@
  * correctly capture tests being run over a DBus bus.
  */
 
-static sd_bus *bus = NULL;
 static sd_event_source *_try_child_es = NULL;
 static gint _try_child_stdin = -1;
 static GPid _try_child_pid = -1;
@@ -46,7 +45,7 @@ static int method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_err
     if (err != NULL) {
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
     }
-    
+
     return sd_bus_reply_method_return(m, "b", true);
 }
 
@@ -204,7 +203,7 @@ static int _try_child_handler(sd_event_source *es, const siginfo_t *si, void* us
     _try_child_clear();
     _try_child_stdin = -1;
     _try_child_pid = -1;
-    return _config_changed_signal(bus);
+    return _config_changed_signal(userdata);
 }
 
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
@@ -239,13 +238,13 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: %s", err->message);
 
-    // TODO: get bus from sd_bus_message->bus istead of static global variable
+    sd_bus *bus = sd_bus_message_get_bus(m);
     sd_event *e = sd_bus_get_event(bus);
     sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
-    r = sd_event_add_child(e, &_try_child_es, _try_child_pid, WEXITED, _try_child_handler, NULL);
+    r = sd_event_add_child(e, &_try_child_es, _try_child_pid, WEXITED, _try_child_handler, bus);
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot watch 'netplan try' child: %s", strerror(-r));
 
@@ -330,6 +329,7 @@ static const sd_bus_vtable netplan_vtable[] = {
 
 int main(int argc, char *argv[]) {
     sd_bus_slot *slot = NULL;
+    sd_bus *bus = NULL;
     sd_event *event = NULL;
     int r;
    
