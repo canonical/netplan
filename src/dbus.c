@@ -30,10 +30,8 @@ static int
 send_config_changed_signal(sd_bus *bus)
 {
     sd_bus_message *msg = NULL;
-    int r = sd_bus_message_new_signal(bus, &msg,
-                                      "/io/netplan/Netplan",
-                                      "io.netplan.Netplan",
-                                      "Changed");
+    int r = sd_bus_message_new_signal(bus, &msg, "/io/netplan/Netplan",
+                                      "io.netplan.Netplan", "Changed");
     if (r < 0) {
         fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
         return r;
