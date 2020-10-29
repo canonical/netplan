@@ -26,11 +26,82 @@ typedef struct netplan_data {
     GPid try_pid;
 } NetplanData;
 
+static int
+send_config_changed_signal(sd_bus *bus)
+{
+    sd_bus_message *msg = NULL;
+    int r = sd_bus_message_new_signal(bus, &msg,
+                                      "/io/netplan/Netplan",
+                                      "io.netplan.Netplan",
+                                      "Changed");
+    if (r < 0) {
+        fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
+        return r;
+    }
+
+    r = sd_bus_send(bus, msg, NULL);
+    if (r < 0)
+        fprintf(stderr, "Could not send .Changed() signal: %s\n", strerror(-r));
+    sd_bus_message_unrefp(&msg);
+    return r;
+}
+
+static void
+_clear_try_child(int status, NetplanData *d)
+{
+    if (!WIFEXITED(status))
+        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
+
+    /* Cleanup current 'netplan try' child process */
+    sd_event_source_unref(d->try_es);
+    d->try_es = NULL;
+    g_spawn_close_pid (d->try_pid);
+    d->try_pid = -1;
+}
+
+static int
+_try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_error)
+{
+    GError *error = NULL;
+    int status = -1;
+    int signal = SIGUSR1;
+    if (!accept) signal = SIGINT;
+
+    /* Child does not exist or exited already ... */
+    if (d->try_pid < 0)
+        return sd_bus_reply_method_return(m, "b", false);
+    /* ATTENTION: There might be a race here:
+     * When the accept handler is called at the same time as the 'netplan try'
+     * python process is reverting and closing itself. Not sure what to do about it...
+     * Maybe this needs to be fixed in python code, so that the
+     * 'netplan.terminal.InputRejected' exception (i.e. self-revert) cannot be
+     * interrupted by another exception/signal */
+
+    /* Send confirm (SIGUSR1) or cancel (SIGINT) signal to 'netplan try' process.
+     * Wait for the child process to stop, synchronously.
+     * Check return code/errors. */
+    kill(d->try_pid, signal);
+    waitpid(d->try_pid, &status, 0);
+    g_spawn_check_exit_status(status, &error);
+    if (error != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
+
+    _clear_try_child(status, d);
+    send_config_changed_signal(d->bus);
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
 static int method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
     gint exit_status = 0;
+    NetplanData *d = userdata;
+
+    /* Accept the current 'netplan try', if active.
+     * Otherwise execute 'netplan apply' directly. */
+    if (d->try_pid > 0)
+        return _try_accept(TRUE, m, userdata, ret_error);
 
     gchar *argv[] = {SBINDIR "/" "netplan", "apply", NULL};
 
@@ -154,77 +225,12 @@ static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static void
-_clear_try_child(int status, NetplanData *d)
-{
-    if (!WIFEXITED(status))
-        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
-
-    /* Cleanup current 'netplan try' child process */
-    sd_event_source_unref(d->try_es);
-    d->try_es = NULL;
-    g_spawn_close_pid (d->try_pid);
-    d->try_pid = -1;
-}
-
-static int
-send_config_changed_signal(sd_bus *bus)
-{
-    sd_bus_message *msg = NULL;
-    int r = sd_bus_message_new_signal(bus, &msg,
-                                      "/io/netplan/Netplan",
-                                      "io.netplan.Netplan",
-                                      "Changed");
-    if (r < 0) {
-        fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
-        return r;
-    }
-
-    r = sd_bus_send(bus, msg, NULL);
-    if (r < 0)
-        fprintf(stderr, "Could not send .Changed() signal: %s\n", strerror(-r));
-    sd_bus_message_unrefp(&msg);
-    return r;
-}
-
 static int
 handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
 {
     NetplanData *d = userdata;
     _clear_try_child(si->si_status, d);
     return send_config_changed_signal(d->bus);
-}
-
-static int
-_try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_error)
-{
-    GError *error = NULL;
-    int status = -1;
-    int signal = SIGUSR1;
-    if (!accept) signal = SIGINT;
-
-    /* Child does not exist or exited already ... */
-    if (d->try_pid < 0)
-        return sd_bus_reply_method_return(m, "b", false);
-    /* ATTENTION: There might be a race here:
-     * When the accept handler is called at the same time as the 'netplan try'
-     * python process is reverting and closing itself. Not sure what to do about it...
-     * Maybe this needs to be fixed in python code, so that the
-     * 'netplan.terminal.InputRejected' exception (i.e. self-revert) cannot be
-     * interrupted by another exception/signal */
-
-    /* Send confirm (SIGUSR1) or cancel (SIGINT) signal to 'netplan try' process.
-     * Wait for the child process to stop, synchronously.
-     * Check return code/errors. */
-    kill(d->try_pid, signal);
-    waitpid(d->try_pid, &status, 0);
-    g_spawn_check_exit_status(status, &error);
-    if (error != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
-
-    _clear_try_child(status, d);
-    send_config_changed_signal(d->bus);
-    return sd_bus_reply_method_return(m, "b", true);
 }
 
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
@@ -276,13 +282,6 @@ method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     return _try_accept(FALSE, m, userdata, ret_error);
 }
 
-static int
-method_try_confirm(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
-{
-    //TODO: move this into method_apply()
-    return _try_accept(TRUE, m, userdata, ret_error);
-}
-
 static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
@@ -291,7 +290,6 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
-    SD_BUS_METHOD("Confirm", "", "b", method_try_confirm, 0),
     SD_BUS_VTABLE_END
 };
 
