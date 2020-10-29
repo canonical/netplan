@@ -21,8 +21,7 @@
  */
 
 typedef struct netplan_data {
-    sd_bus *bus; //XXX: can we remove this?
-    sd_event *event; //XXX: remove, use sd_event_source_get_event() instead
+    sd_bus *bus;
     sd_event_source *try_es;
     GPid try_pid;
 } NetplanData;
@@ -161,7 +160,6 @@ _clear_try_child(int status, NetplanData *d)
     if (!WIFEXITED(status))
         fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
 
-    printf("Child exited with status code %d\n", status); //XXX: remove debugging output
     /* Cleanup current 'netplan try' child process */
     sd_event_source_unref(d->try_es);
     d->try_es = NULL;
@@ -170,17 +168,21 @@ _clear_try_child(int status, NetplanData *d)
 }
 
 static int
-_config_changed_signal(sd_bus *bus)
+send_config_changed_signal(sd_bus *bus)
 {
     sd_bus_message *msg = NULL;
     int r = sd_bus_message_new_signal(bus, &msg,
                                       "/io/netplan/Netplan",
                                       "io.netplan.Netplan",
                                       "Changed");
-    if (r < 0)
+    if (r < 0) {
+        fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
         return r;
+    }
 
     r = sd_bus_send(bus, msg, NULL);
+    if (r < 0)
+        fprintf(stderr, "Could not send .Changed() signal: %s\n", strerror(-r));
     sd_bus_message_unrefp(&msg);
     return r;
 }
@@ -189,10 +191,8 @@ static int
 handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
 {
     NetplanData *d = userdata;
-    printf("HELLO from child handler %p %d\n",  userdata, d->try_pid); //XXX: remove debugging output
     _clear_try_child(si->si_status, d);
-    d->try_pid = -1;
-    return _config_changed_signal(d->bus);
+    return send_config_changed_signal(d->bus);
 }
 
 static int
@@ -218,33 +218,26 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
      * Check return code/errors. */
     kill(d->try_pid, signal);
     waitpid(d->try_pid, &status, 0);
-    g_spawn_check_exit_status(status, &error); //XXX: do we need all of those checks?
+    g_spawn_check_exit_status(status, &error);
     if (error != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
 
     _clear_try_child(status, d);
+    send_config_changed_signal(d->bus);
     return sd_bus_reply_method_return(m, "b", true);
 }
 
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
-    gint child_stdin = -1; //XXX: do we need this?
+    gint child_stdin = -1; //Child process needs an input to function correctly
     guint seconds = 0;
-    int status = -1;
     int r = -1;
     NetplanData *d = userdata;
-    printf("HELLO from try handler %p\n", d); //XXX: remove debugging output
 
-    /* There seems to be an old 'netlan try' process... Is it still running? */
-    if (d->try_pid > 0) {
-        r = (int)waitpid(d->try_pid, &status, WNOHANG);
-        /* The child already exited. Cleanup. */
-        if (r > 0 && status == 0)
-            d->try_pid = -1;
-        else
-            return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: already running");
-    }
+    /* Fail if another 'netplan try' process is already running. */
+    if (d->try_pid > 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: already running");
 
     if (sd_bus_message_read_basic (m, 'u', &seconds) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract timeout_seconds");
@@ -256,22 +249,23 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     if (getuid() != 0 && getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
-    g_spawn_async_with_pipes("/", argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD|G_SPAWN_STDOUT_TO_DEV_NULL,
+    /* Launch 'netplan try' child process */
+    g_spawn_async_with_pipes("/", argv, NULL,
+                             G_SPAWN_DO_NOT_REAP_CHILD|G_SPAWN_STDOUT_TO_DEV_NULL,
                              NULL, NULL, &d->try_pid, &child_stdin, NULL, NULL, &err);
     if (err != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: %s", err->message);
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "cannot run netplan try: %s", err->message);
 
-    sd_bus *bus = sd_bus_message_get_bus(m);
-    sd_event *e = sd_bus_get_event(bus);
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGCHLD);
-    sigprocmask(SIG_BLOCK, &mask, NULL);
-    r = sd_event_add_child(e, &d->try_es, d->try_pid, WEXITED, handle_netplan_try, bus);
+    /* Register an event when the child process exits */
+    r = sd_event_add_child(sd_bus_get_event(d->bus), &d->try_es, d->try_pid,
+                           WEXITED, handle_netplan_try, d->bus);
     if (r < 0)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot watch 'netplan try' child: %s", strerror(-r));
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "cannot watch 'netplan try' child: %s", strerror(-r));
     if (sd_event_source_set_userdata(d->try_es, d) == NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot set 'netplan try' event data.");
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "cannot set 'netplan try' event data.");
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -279,7 +273,6 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
 static int
 method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
-    printf("HELLO from CANCEL handler %p\n",  userdata); //XXX: remove debugging output
     return _try_accept(FALSE, m, userdata, ret_error);
 }
 
@@ -287,7 +280,6 @@ static int
 method_try_confirm(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     //TODO: move this into method_apply()
-    printf("HELLO from CONFIRM handler %p\n",  userdata); //XXX: remove debugging output
     return _try_accept(TRUE, m, userdata, ret_error);
 }
 
@@ -308,8 +300,9 @@ int main(int argc, char *argv[]) {
     sd_bus *bus = NULL;
     sd_event *event = NULL;
     NetplanData *data = g_new0(NetplanData, 1);
+    sigset_t mask;
     int r;
-   
+
     r = sd_bus_open_system(&bus);
     if (r < 0) {
         fprintf(stderr, "Failed to connect to system bus: %s\n", strerror(-r));
@@ -324,9 +317,7 @@ int main(int argc, char *argv[]) {
 
     /* Initialize the userdata */
     data->bus = bus;
-    data->event = event;
     data->try_pid = -1;
-    printf("HELLO from MAIN %p\n",  data); //XXX: remove debugging output
 
     r = sd_bus_add_object_vtable(bus,
                                      &slot,
@@ -351,10 +342,15 @@ int main(int argc, char *argv[]) {
         goto finish;
     }
 
+    /* Mask the SIGCHLD signal, so we can listen to it via mainloop */
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
     /* Start the event loop, wait for requests */
     r = sd_event_loop(event);
     if (r < 0)
-        fprintf(stderr, "Failed main loop: %s\n", strerror(-r));
+        fprintf(stderr, "Failed mainloop: %s\n", strerror(-r));
 finish:
     g_free(data);
     sd_bus_slot_unref(slot);
