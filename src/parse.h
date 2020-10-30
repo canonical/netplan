@@ -425,6 +425,7 @@ typedef struct {
     gboolean has_auth;
 } NetplanWifiAccessPoint;
 
+#define NETPLAN_MTU_UNSPEC 0
 #define NETPLAN_METRIC_UNSPEC G_MAXUINT
 #define NETPLAN_ROUTE_TABLE_UNSPEC 0
 #define NETPLAN_IP_RULE_PRIO_UNSPEC G_MAXUINT
@@ -446,6 +447,8 @@ typedef struct {
     /* valid metrics are valid positive integers.
      * invalid metrics are represented by METRIC_UNSPEC */
     guint metric;
+
+    guint mtubytes;
 } NetplanIPRoute;
 
 typedef struct {
