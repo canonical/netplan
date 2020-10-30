@@ -192,6 +192,8 @@ int main(int argc, char** argv)
     g_autofree char* generator_run_stamp = NULL;
     glob_t gl;
     int rc;
+    int test = 42;
+    printf("Test: %d\n", test);
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
