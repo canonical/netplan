@@ -24,6 +24,7 @@ typedef struct netplan_data {
     sd_bus *bus;
     sd_event_source *try_es;
     GPid try_pid;
+    guint config_inc;
 } NetplanData;
 
 static int
@@ -280,6 +281,33 @@ method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     return _try_accept(FALSE, m, userdata, ret_error);
 }
 
+static const sd_bus_vtable config_vtable[] = {
+    SD_BUS_VTABLE_START(0),
+    SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
+    SD_BUS_METHOD("Get", "", "s", method_get, 0),
+    SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
+    SD_BUS_METHOD("Try", "u", "b", method_try, 0),
+    SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
+    SD_BUS_VTABLE_END
+};
+
+static int
+method_try_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    NetplanData *d = userdata;
+    sd_bus_slot *slot = NULL;
+    int r = 0;
+
+    r = sd_bus_add_object_vtable(d->bus, &slot,
+                                 g_strdup_printf("/io/netplan/Netplan/config/%d", d->config_inc++),
+                                 "io.netplan.Netplan.Config", config_vtable, userdata);
+    if (r < 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "Failed to add 'config' object: %s\n", strerror(-r));
+
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
 static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
@@ -288,6 +316,7 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
+    SD_BUS_METHOD("Config", "", "b", method_try_config, 0),
     SD_BUS_VTABLE_END
 };
 
@@ -314,6 +343,7 @@ int main(int argc, char *argv[]) {
     /* Initialize the userdata */
     data->bus = bus;
     data->try_pid = -1;
+    data->config_inc = 0;
 
     r = sd_bus_add_object_vtable(bus,
                                      &slot,
