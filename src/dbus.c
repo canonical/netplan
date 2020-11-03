@@ -349,6 +349,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed mainloop: %s\n", strerror(-r));
 finish:
     g_free(data);
+    sd_event_unref(event);
     sd_bus_slot_unref(slot);
     sd_bus_unref(bus);
 
