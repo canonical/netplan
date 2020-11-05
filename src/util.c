@@ -17,7 +17,6 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <glob.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -88,6 +87,42 @@ unlink_glob(const char* rootdir, const char* _glob)
 
     for (size_t i = 0; i < gl.gl_pathc; ++i)
         unlink(gl.gl_pathv[i]);
+}
+
+/**
+ * Return a glob of all *.yaml files in /{etc,run,lib}/netplan/
+ */
+int find_yaml_glob(const char* rootdir, glob_t* out_glob)
+{
+    int rc;
+    g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
+    g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
+    g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
+    rc = glob(glob_lib, 0, NULL, out_glob);
+    if (rc != 0 && rc != GLOB_NOMATCH) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib);
+        return 1;
+        // LCOV_EXCL_STOP
+    }
+
+    rc = glob(glob_etc, GLOB_APPEND, NULL, out_glob);
+    if (rc != 0 && rc != GLOB_NOMATCH) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc);
+        return 1;
+        // LCOV_EXCL_STOP
+    }
+
+    rc = glob(glob_run, GLOB_APPEND, NULL, out_glob);
+    if (rc != 0 && rc != GLOB_NOMATCH) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run);
+        return 1;
+        // LCOV_EXCL_STOP
+    }
+
+    return 0;
 }
 
 /**

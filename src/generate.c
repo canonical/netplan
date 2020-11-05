@@ -191,7 +191,6 @@ int main(int argc, char** argv)
     gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
     g_autofree char* generator_run_stamp = NULL;
     glob_t gl;
-    int rc;
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
@@ -233,36 +232,11 @@ int main(int argc, char** argv)
          * To do that, we put all found files in a hash table, then sort it by
          * file name, and add the entries from /run after the ones from /etc
          * and those after the ones from /lib. */
-        g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
-        g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
-        g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
+        if (find_yaml_glob(rootdir, &gl) != 0)
+            return 1; // LCOV_EXCL_LINE
         /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
         g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
         g_autoptr(GList) config_keys = NULL;
-
-        rc = glob(glob_lib, 0, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib);
-            return 1;
-            // LCOV_EXCL_STOP
-        }
-
-        rc = glob(glob_etc, GLOB_APPEND, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc);
-            return 1;
-            // LCOV_EXCL_STOP
-        }
-
-        rc = glob(glob_run, GLOB_APPEND, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run);
-            return 1;
-            // LCOV_EXCL_STOP
-        }
 
         for (size_t i = 0; i < gl.gl_pathc; ++i)
             g_hash_table_insert(configs, g_path_get_basename(gl.gl_pathv[i]), gl.gl_pathv[i]);
