@@ -28,7 +28,8 @@ typedef struct netplan_data {
     sd_bus *bus;
     sd_event_source *try_es;
     GPid try_pid;
-    const char *config_id;
+    const char *config_id; /* semaphore */
+    GHashTable *config_slots;
 } NetplanData;
 
 static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
@@ -96,7 +97,9 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int
+method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
@@ -125,6 +128,104 @@ static int method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_err
     }
 
     return sd_bus_reply_method_return(m, "b", true);
+}
+
+static int
+_copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
+{
+    glob_t gl;
+    g_autoptr(GError) err = NULL;
+    int r = find_yaml_glob(src_root, &gl);
+    if (!!r)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "Failed glob for YAML files\n");
+
+    /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
+    GFile *source = NULL;
+    GFile *dest = NULL;
+    gchar *dest_path = NULL;
+    size_t len = strlen(src_root);
+    for (size_t i = 0; i < gl.gl_pathc; ++i) {
+        dest_path = g_strjoin(NULL, dst_root, (gl.gl_pathv[i])+len, NULL);
+        source = g_file_new_for_path(gl.gl_pathv[i]);
+        dest = g_file_new_for_path(dest_path);
+        g_file_copy(source, dest, G_FILE_COPY_OVERWRITE
+                                 |G_FILE_COPY_NOFOLLOW_SYMLINKS
+                                 |G_FILE_COPY_ALL_METADATA,
+                    NULL, NULL, NULL, &err);
+        if (err != NULL) {
+            r = sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                  "Failed to copy file %s -> %s: %s\n",
+                                  g_file_get_path(source), g_file_get_path(dest),
+                                  err->message);
+            g_object_unref(source);
+            g_object_unref(dest);
+            g_free(dest_path);
+            //g_free(path); //FIXME: do we need to clear this?
+            return r;
+        }
+        g_object_unref(source);
+        g_object_unref(dest);
+        g_free(dest_path);
+    }
+    return r;
+}
+
+static bool
+_clear_tmp_state(const char *state_id, NetplanData *d)
+{
+    /* Remove tmp YAML files */
+    char *rootdir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), state_id);
+    unlink_glob(rootdir, "/*/netplan/*.yaml");
+
+    /* Remove tmp state directories */
+    char *subdir = NULL;
+    for (int i = 0; i < 3; i++) {
+        subdir = g_strdup_printf("%s/%s/netplan", rootdir, NETPLAN_SUBDIRS[i]);
+        rmdir(subdir);
+        g_free(subdir);
+        subdir = g_strdup_printf("%s/%s", rootdir, NETPLAN_SUBDIRS[i]);
+        rmdir(subdir);
+        g_free(subdir);
+    }
+    rmdir(rootdir);
+    g_free(rootdir);
+
+    /* TODO: send io.netplan.Netplan.Config.Changed() signal */
+    /* Clear config object from DBus, by unref the appropriate slot */
+    sd_bus_slot *slot = g_hash_table_lookup(d->config_slots, state_id);
+    sd_bus_slot_unref(slot); /* Clear value/slot */
+    g_hash_table_remove(d->config_slots, state_id); /* Clear key */
+    /* TODO: error handling */
+
+    return TRUE;
+}
+
+static int
+method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    NetplanData *d = userdata;
+    int r = 0;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    d->config_id = sd_bus_message_get_path(m) + 27;
+
+    /* Another 'netplan try' process is currently running. Abort. */
+    if (d->try_pid > 0)
+        return sd_bus_reply_method_return(m, "b", false);
+
+    /* Delete GLOBAL state */
+    unlink_glob(NULL, "/*/netplan/*.yaml");
+    /* Copy current config state to GLOBAL */
+    char *state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
+    _copy_yaml_state(state_dir, "/", ret_error);
+    g_free(state_dir);
+
+    r = method_apply(m, d, ret_error);
+    /* TODO: error handling */
+    _clear_tmp_state(d->config_id, d);
+    /* Reset current config_id */
+    d->config_id = NULL;
+    return r;
 }
 
 static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
@@ -315,23 +416,53 @@ method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     return _try_accept(FALSE, m, userdata, ret_error);
 }
 
+static int
+method_config_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    NetplanData *d = userdata;
+    //int r = 0;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    const char *id = sd_bus_message_get_path(m) + 27;
+
+    /* TODO: Backup the GLOBAL state */
+    /* TODO: move tmp state to GLOBAL state */
+    /* TODO: Set permanent d->config_id */
+
+    /* Make sure that we only cancel the 'netplan try' process if it originated from
+     * the current config state (applied via Try() or Apply()), with id d->config_id */
+    /* Cancel the current 'netplan try' process */
+    /*
+    if (d->try_pid > 0 && !g_strcmp0(d->config_id, id)) {
+        r = method_try_cancel(m, d, ret_error);
+    } else
+        return sd_bus_reply_method_return(m, "b", false);
+    */
+
+    /* Play back the backup of GLOBAL state */
+    /* Clear tmp state */
+    /* Re-apply GLOBAL state */
+
+    _clear_tmp_state(id, d);
+
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
 static const sd_bus_vtable config_vtable[] = {
     SD_BUS_VTABLE_START(0),
-    SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
+    SD_BUS_METHOD("Apply", "", "b", method_config_apply, 0),
     SD_BUS_METHOD("Get", "", "s", method_config_get, 0),
     SD_BUS_METHOD("Set", "ss", "b", method_config_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
-    SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
+    SD_BUS_METHOD("Cancel", "", "b", method_config_try_cancel, 0),
     SD_BUS_VTABLE_END
 };
 
 static int
-method_try_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     NetplanData *d = userdata;
     sd_bus_slot *slot = NULL;
     g_autoptr(GError) err = NULL;
-    glob_t gl;
     int r = 0;
 
     /* Create temp. directory, according to "netplan-config-XXXXXX" template */
@@ -348,6 +479,9 @@ method_try_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to add 'config' object: %s\n", strerror(-r));
+    if (!g_hash_table_insert(d->config_slots, g_strdup(id), slot))
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "Failed to add object slot to HashTable\n");
 
     /* Create {etc,run,lib} subdirs with owner r/w permissions */
     char *subdir = NULL;
@@ -360,38 +494,8 @@ method_try_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         g_free(subdir);
     }
 
-    r = find_yaml_glob(NULL, &gl);
-    if (!!r)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
-                                 "Failed glob for YAML files\n");
-
     /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
-    GFile *source = NULL;
-    GFile *dest = NULL;
-    gchar *dest_path = NULL;
-    for (size_t i = 0; i < gl.gl_pathc; ++i) {
-        dest_path = g_strjoin(NULL, path, gl.gl_pathv[i], NULL);
-        source = g_file_new_for_path(gl.gl_pathv[i]);
-        dest = g_file_new_for_path(dest_path);
-        g_file_copy(source, dest, G_FILE_COPY_OVERWRITE
-                                 |G_FILE_COPY_NOFOLLOW_SYMLINKS
-                                 |G_FILE_COPY_ALL_METADATA,
-                    NULL, NULL, NULL, &err);
-        if (err != NULL) {
-            r = sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
-                                  "Failed to copy file %s -> %s: %s\n",
-                                  g_file_get_path(source), g_file_get_path(dest),
-                                  err->message);
-            g_object_unref(source);
-            g_object_unref(dest);
-            g_free(dest_path);
-            g_free(path);
-            return r;
-        }
-        g_object_unref(source);
-        g_object_unref(dest);
-        g_free(dest_path);
-    }
+    _copy_yaml_state("/", path, ret_error);
     g_free(path);
 
     return sd_bus_reply_method_return(m, "o", obj_path);
@@ -405,7 +509,7 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
-    SD_BUS_METHOD("Config", "", "o", method_try_config, 0),
+    SD_BUS_METHOD("Config", "", "o", method_config, 0),
     SD_BUS_VTABLE_END
 };
 
@@ -433,13 +537,14 @@ int main(int argc, char *argv[]) {
     data->bus = bus;
     data->try_pid = -1;
     data->config_id = NULL;
+    /* TODO: define a proper free/cleanup function for sd_bus_slot_unref() */
+    data->config_slots = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
-    r = sd_bus_add_object_vtable(bus,
-                                     &slot,
-                                     "/io/netplan/Netplan",  /* object path */
-                                     "io.netplan.Netplan",   /* interface name */
-                                     netplan_vtable,
-                                     data);
+    r = sd_bus_add_object_vtable(bus, &slot,
+                                 "/io/netplan/Netplan",  /* object path */
+                                 "io.netplan.Netplan",   /* interface name */
+                                 netplan_vtable,
+                                 data);
     if (r < 0) {
         fprintf(stderr, "Failed to issue method call: %s\n", strerror(-r));
         goto finish;
@@ -471,6 +576,7 @@ finish:
     sd_event_unref(event);
     sd_bus_slot_unref(slot);
     sd_bus_unref(bus);
+    /* TODO: unref all slots from HashTable */
 
     return r < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
