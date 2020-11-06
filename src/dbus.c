@@ -35,17 +35,17 @@ typedef struct netplan_data {
 static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
 
 static int
-send_config_changed_signal(sd_bus *bus)
+send_config_changed_signal(NetplanData *d)
 {
     sd_bus_message *msg = NULL;
-    int r = sd_bus_message_new_signal(bus, &msg, "/io/netplan/Netplan",
+    int r = sd_bus_message_new_signal(d->bus, &msg, "/io/netplan/Netplan",
                                       "io.netplan.Netplan", "Changed");
     if (r < 0) {
         fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
         return r;
     }
 
-    r = sd_bus_send(bus, msg, NULL);
+    r = sd_bus_send(d->bus, msg, NULL);
     if (r < 0)
         fprintf(stderr, "Could not send .Changed() signal: %s\n", strerror(-r));
     sd_bus_message_unrefp(&msg);
@@ -68,7 +68,7 @@ _clear_try_child(int status, NetplanData *d)
 static int
 _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_error)
 {
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
     int status = -1;
     int signal = SIGUSR1;
     if (!accept) signal = SIGINT;
@@ -93,7 +93,7 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
 
     _clear_try_child(status, d);
-    send_config_changed_signal(d->bus);
+    send_config_changed_signal(d);
     return sd_bus_reply_method_return(m, "b", true);
 }
 
@@ -364,7 +364,7 @@ handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
 {
     NetplanData *d = userdata;
     _clear_try_child(si->si_status, d);
-    return send_config_changed_signal(d->bus);
+    return send_config_changed_signal(d);
 }
 
 static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
