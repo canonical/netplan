@@ -28,7 +28,7 @@ typedef struct netplan_data {
     sd_bus *bus;
     sd_event_source *try_es;
     GPid try_pid;
-    guint config_inc;
+    const char *config_id;
 } NetplanData;
 
 static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
@@ -174,12 +174,16 @@ static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
 }
 
 static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    NetplanData *d = userdata;
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
+    g_autofree gchar *root_dir = NULL;
     gint exit_status = 0;
 
-    gchar *argv[] = {SBINDIR "/" "netplan", "get", "all", NULL};
+    if (d->config_id)
+        root_dir = g_strdup_printf("--root-dir=%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
+    gchar *argv[] = {SBINDIR "/" "netplan", "get", "all", root_dir, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
@@ -197,13 +201,15 @@ static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
 }
 
 static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    NetplanData *d = userdata;
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
-    g_autofree gchar* origin = NULL;
+    g_autofree gchar *origin = NULL;
+    g_autofree gchar *root_dir = NULL;
     gint exit_status = 0;
-    char* config_delta = NULL;
-    char* origin_hint = NULL;
+    char *config_delta = NULL;
+    char *origin_hint = NULL;
 
     if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint");
@@ -213,7 +219,9 @@ static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     else
         origin = g_strdup("");
 
-    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, origin, NULL};
+    if (d->config_id)
+        root_dir = g_strdup_printf("--root-dir=%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, origin, root_dir, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
@@ -228,6 +236,26 @@ static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
 
     return sd_bus_reply_method_return(m, "b", true);
+}
+
+static int method_config_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    NetplanData *d = userdata;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    d->config_id = sd_bus_message_get_path(m) + 27;
+    int r = method_get(m, userdata, ret_error);
+    /* Reset config_id for next method call */
+    d->config_id = NULL;
+    return r;
+}
+
+static int method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+    NetplanData *d = userdata;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    d->config_id = sd_bus_message_get_path(m) + 27;
+    int r = method_set(m, d, ret_error);
+    /* Reset config_id for next method call */
+    d->config_id = NULL;
+    return r;
 }
 
 static int
@@ -290,8 +318,8 @@ method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 static const sd_bus_vtable config_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
-    SD_BUS_METHOD("Get", "", "s", method_get, 0),
-    SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
+    SD_BUS_METHOD("Get", "", "s", method_config_get, 0),
+    SD_BUS_METHOD("Set", "ss", "b", method_config_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
     SD_BUS_VTABLE_END
@@ -404,7 +432,7 @@ int main(int argc, char *argv[]) {
     /* Initialize the userdata */
     data->bus = bus;
     data->try_pid = -1;
-    data->config_inc = 0;
+    data->config_id = NULL;
 
     r = sd_bus_add_object_vtable(bus,
                                      &slot,
