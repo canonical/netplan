@@ -98,39 +98,6 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
 }
 
 static int
-method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
-{
-    g_autoptr(GError) err = NULL;
-    g_autofree gchar *stdout = NULL;
-    g_autofree gchar *stderr = NULL;
-    gint exit_status = 0;
-    NetplanData *d = userdata;
-
-    /* Accept the current 'netplan try', if active.
-     * Otherwise execute 'netplan apply' directly. */
-    if (d->try_pid > 0)
-        return _try_accept(TRUE, m, userdata, ret_error);
-
-    gchar *argv[] = {SBINDIR "/" "netplan", "apply", NULL};
-
-    // for tests only: allow changing what netplan to run
-    if (getenv("DBUS_TEST_NETPLAN_CMD") != 0) {
-       argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
-    }
-
-    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
-    if (err != NULL) {
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan apply: %s", err->message);
-    }
-    g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL) {
-       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
-    }
-
-    return sd_bus_reply_method_return(m, "b", true);
-}
-
-static int
 _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
 {
     glob_t gl;
@@ -201,34 +168,46 @@ _clear_tmp_state(const char *state_id, NetplanData *d)
     return TRUE;
 }
 
+/**
+ * io.netplan.Netplan methods
+ */
+
 static int
-method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar *stdout = NULL;
+    g_autofree gchar *stderr = NULL;
+    gint exit_status = 0;
     NetplanData *d = userdata;
-    int r = 0;
-    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
-    d->config_id = sd_bus_message_get_path(m) + 27;
 
-    /* Another 'netplan try' process is currently running. Abort. */
+    /* Accept the current 'netplan try', if active.
+     * Otherwise execute 'netplan apply' directly. */
     if (d->try_pid > 0)
-        return sd_bus_reply_method_return(m, "b", false);
+        return _try_accept(TRUE, m, userdata, ret_error);
 
-    /* Delete GLOBAL state */
-    unlink_glob(NULL, "/*/netplan/*.yaml");
-    /* Copy current config state to GLOBAL */
-    char *state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
-    _copy_yaml_state(state_dir, "/", ret_error);
-    g_free(state_dir);
+    gchar *argv[] = {SBINDIR "/" "netplan", "apply", NULL};
 
-    r = method_apply(m, d, ret_error);
-    /* TODO: error handling */
-    _clear_tmp_state(d->config_id, d);
-    /* Reset current config_id */
-    d->config_id = NULL;
-    return r;
+    // for tests only: allow changing what netplan to run
+    if (getenv("DBUS_TEST_NETPLAN_CMD") != 0) {
+       argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
+    }
+
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
+    if (err != NULL) {
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan apply: %s", err->message);
+    }
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL) {
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
+    }
+
+    return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int
+method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
     sd_bus_message *reply = NULL;
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
@@ -274,7 +253,9 @@ static int method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
     return sd_bus_send(NULL, reply, NULL);
 }
 
-static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int
+method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
     NetplanData *d = userdata;
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
@@ -301,7 +282,9 @@ static int method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     return sd_bus_reply_method_return(m, "s", stdout);
 }
 
-static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int
+method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
     NetplanData *d = userdata;
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
@@ -339,26 +322,6 @@ static int method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int method_config_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
-    NetplanData *d = userdata;
-    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
-    d->config_id = sd_bus_message_get_path(m) + 27;
-    int r = method_get(m, userdata, ret_error);
-    /* Reset config_id for next method call */
-    d->config_id = NULL;
-    return r;
-}
-
-static int method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
-    NetplanData *d = userdata;
-    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
-    d->config_id = sd_bus_message_get_path(m) + 27;
-    int r = method_set(m, d, ret_error);
-    /* Reset config_id for next method call */
-    d->config_id = NULL;
-    return r;
-}
-
 static int
 handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
 {
@@ -367,7 +330,9 @@ handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
     return send_config_changed_signal(d);
 }
 
-static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+static int
+method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
     gint child_stdin = -1; //Child process needs an input to function correctly
@@ -411,13 +376,75 @@ static int method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
 }
 
 static int
-method_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     return _try_accept(FALSE, m, userdata, ret_error);
 }
 
+/**
+ * io.netplan.Netplan.Config methods
+ */
+
 static int
-method_config_try_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    NetplanData *d = userdata;
+    int r = 0;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    d->config_id = sd_bus_message_get_path(m) + 27;
+
+    /* Another 'netplan try' process is currently running. Abort. */
+    if (d->try_pid > 0)
+        return sd_bus_reply_method_return(m, "b", false);
+
+    /* Delete GLOBAL state */
+    unlink_glob(NULL, "/*/netplan/*.yaml");
+    /* Copy current config state to GLOBAL */
+    char *state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
+    _copy_yaml_state(state_dir, "/", ret_error);
+    g_free(state_dir);
+
+    r = method_apply(m, d, ret_error);
+    /* TODO: error handling */
+    _clear_tmp_state(d->config_id, d);
+    /* Reset current config_id */
+    d->config_id = NULL;
+    return r;
+}
+
+static int
+method_config_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    NetplanData *d = userdata;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    d->config_id = sd_bus_message_get_path(m) + 27;
+    int r = method_get(m, userdata, ret_error);
+    /* Reset config_id for next method call */
+    d->config_id = NULL;
+    return r;
+}
+
+static int
+method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    NetplanData *d = userdata;
+    /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
+    d->config_id = sd_bus_message_get_path(m) + 27;
+    int r = method_set(m, d, ret_error);
+    /* Reset config_id for next method call */
+    d->config_id = NULL;
+    return r;
+}
+
+static int
+method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    /* TODO */
+    return method_try(m, userdata, ret_error);
+}
+
+static int
+method_config_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     NetplanData *d = userdata;
     //int r = 0;
@@ -452,10 +479,14 @@ static const sd_bus_vtable config_vtable[] = {
     SD_BUS_METHOD("Apply", "", "b", method_config_apply, 0),
     SD_BUS_METHOD("Get", "", "s", method_config_get, 0),
     SD_BUS_METHOD("Set", "ss", "b", method_config_set, 0),
-    SD_BUS_METHOD("Try", "u", "b", method_try, 0),
-    SD_BUS_METHOD("Cancel", "", "b", method_config_try_cancel, 0),
+    SD_BUS_METHOD("Try", "u", "b", method_config_try, 0),
+    SD_BUS_METHOD("Cancel", "", "b", method_config_cancel, 0),
     SD_BUS_VTABLE_END
 };
+
+/**
+ * Link between io.netplan.Netplan and io.netplan.Netplan.Config
+ */
 
 static int
 method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
@@ -508,12 +539,18 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Get", "", "s", method_get, 0),
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
-    SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
+    SD_BUS_METHOD("Cancel", "", "b", method_cancel, 0),
     SD_BUS_METHOD("Config", "", "o", method_config, 0),
     SD_BUS_VTABLE_END
 };
 
-int main(int argc, char *argv[]) {
+/**
+ * DBus setup
+ */
+
+int
+main(int argc, char *argv[])
+{
     sd_bus_slot *slot = NULL;
     sd_bus *bus = NULL;
     sd_event *event = NULL;
