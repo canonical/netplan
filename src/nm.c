@@ -530,6 +530,17 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         g_string_append_printf(s, "uuid=%s\n", uuidstr);
     }
 
+    if (def->activation_mode) {
+        /* XXX: For now NetworkManager only supports the "manual" activation
+         * mode */
+        if (g_strcmp0(def->activation_mode, "off") == 0) {
+            g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support activation_mode off\n", def->id);
+            exit(1);
+        }
+        /* "manual" */
+        g_string_append(s, "autoconnect=false\n");
+    }
+
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
         /* physical (existing) devices use matching; driver matching is not
          * supported, MAC matching is done below (different keyfile section),

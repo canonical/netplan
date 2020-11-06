@@ -433,6 +433,23 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             dhcp6: true
             optional-addresses: [ ipv4-ll, dhcp6 ]
 
+``activation-mode`` (scalar) – since **0.101**
+
+:    Allows specifying the management policy of the selected interface. By
+     default, netplan brings up any configured interface if possible. Using the
+     ``activation-mode`` setting users can override that behavior by either
+     specifying "manual", to hand over control over the interface state to the
+     administrator or (for networkd backend *only*) "off" to force the link
+     in a down state at all times.
+
+    Example:
+
+        ethernets:
+          eth1:
+            # this interface will not be put into an UP state automatically
+            dhcp4: true
+            activation-mode: manual
+
 ``routes`` (sequence of mappings)
 
 :   Configure static routing for the device; see the ``Routing`` section below.

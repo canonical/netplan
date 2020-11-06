@@ -237,6 +237,7 @@ struct net_definition {
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
     gboolean critical;
+    char* activation_mode;
 
     /* addresses */
     gboolean dhcp4;
