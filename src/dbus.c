@@ -4,14 +4,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <glob.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #include <glib.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 #include <systemd/sd-bus.h>
 #include <systemd/sd-event.h>
 
 #include "_features.h"
+#include "util.h"
 
 // LCOV_EXCL_START
 /* XXX: (cyphermox)
@@ -26,6 +30,8 @@ typedef struct netplan_data {
     GPid try_pid;
     guint config_inc;
 } NetplanData;
+
+static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
 
 static int
 send_config_changed_signal(sd_bus *bus)
@@ -296,16 +302,71 @@ method_try_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     NetplanData *d = userdata;
     sd_bus_slot *slot = NULL;
+    g_autoptr(GError) err = NULL;
+    glob_t gl;
     int r = 0;
 
-    r = sd_bus_add_object_vtable(d->bus, &slot,
-                                 g_strdup_printf("/io/netplan/Netplan/config/%d", d->config_inc++),
+    /* Create temp. directory, according to "netplan-config-XXXXXX" template */
+    gchar *path = g_dir_make_tmp("netplan-config-XXXXXX", &err);
+    if (err != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "Failed to create temp dir: %s\n", err->message);
+
+    /* Extract the last 6 randomly generated chars (i.e. "XXXXXX" from template) */
+    char *id = path + strlen(path) - 6;
+    const char *obj_path = g_strdup_printf("/io/netplan/Netplan/config/%s", id);
+    r = sd_bus_add_object_vtable(d->bus, &slot, obj_path,
                                  "io.netplan.Netplan.Config", config_vtable, userdata);
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to add 'config' object: %s\n", strerror(-r));
 
-    return sd_bus_reply_method_return(m, "b", true);
+    /* Create {etc,run,lib} subdirs with owner r/w permissions */
+    char *subdir = NULL;
+    for (int i = 0; i < 3; i++) {
+        subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
+        r = g_mkdir_with_parents(subdir, 0600);
+        if (r < 0)
+            return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                    "Failed to create '%s': %s\n", subdir, strerror(errno));
+        g_free(subdir);
+    }
+
+    r = find_yaml_glob(NULL, &gl);
+    if (!!r)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "Failed glob for YAML files\n");
+
+    /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
+    GFile *source = NULL;
+    GFile *dest = NULL;
+    gchar *dest_path = NULL;
+    for (size_t i = 0; i < gl.gl_pathc; ++i) {
+        dest_path = g_strjoin(NULL, path, gl.gl_pathv[i], NULL);
+        source = g_file_new_for_path(gl.gl_pathv[i]);
+        dest = g_file_new_for_path(dest_path);
+        g_file_copy(source, dest, G_FILE_COPY_OVERWRITE
+                                 |G_FILE_COPY_NOFOLLOW_SYMLINKS
+                                 |G_FILE_COPY_ALL_METADATA,
+                    NULL, NULL, NULL, &err);
+        if (err != NULL) {
+            r = sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                  "Failed to copy file %s -> %s: %s\n",
+                                  g_file_get_path(source), g_file_get_path(dest),
+                                  err->message);
+            g_object_unref(source);
+            g_object_unref(dest);
+            g_free(dest_path);
+            g_free(path);
+            return r;
+        }
+        g_object_unref(source);
+        g_object_unref(dest);
+        g_free(dest_path);
+    }
+    g_free(path);
+
+    return sd_bus_reply_method_return(m, "o", obj_path);
 }
 
 static const sd_bus_vtable netplan_vtable[] = {
@@ -316,7 +377,7 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_try_cancel, 0),
-    SD_BUS_METHOD("Config", "", "b", method_try_config, 0),
+    SD_BUS_METHOD("Config", "", "o", method_try_config, 0),
     SD_BUS_VTABLE_END
 };
 
