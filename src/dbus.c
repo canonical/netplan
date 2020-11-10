@@ -24,21 +24,41 @@
  * correctly capture tests being run over a DBus bus.
  */
 
-typedef struct netplan_data {
+typedef struct {
     sd_bus *bus;
     sd_event_source *try_es;
-    GPid try_pid;
-    const char *config_id; /* semaphore */
-    GHashTable *config_slots;
+    GPid try_pid; /* semaphore. There can only be one 'netplan try' child process at a time */
+    const char *config_id; /* current config ID, during any io.netplan.Netplan.Config calls */
+    char *handler_id; /* copy of pending config ID, during io.netplan.Netplan.Config.Try() */
+    GHashTable *config_slots; /* references to the /io/netplan/Netplan/config/<ID> objects */
 } NetplanData;
 
 static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
+static const char* NETPLAN_GLOBAL_CONFIG = "BACKUP";
 
 static int
-send_config_changed_signal(NetplanData *d)
+terminate_try_child_process(int status, NetplanData *d, const char *config_id)
 {
     sd_bus_message *msg = NULL;
-    int r = sd_bus_message_new_signal(d->bus, &msg, "/io/netplan/Netplan",
+    g_autofree gchar *path = NULL;
+    int r = 0;
+
+    if (!WIFEXITED(status))
+        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
+
+    /* Cleanup current 'netplan try' child process */
+    sd_event_source_unref(d->try_es);
+    d->try_es = NULL;
+    g_spawn_close_pid (d->try_pid);
+    d->try_pid = -1; /* unlock semaphore */
+
+    /* Send .Changed() signal on DBus */
+    if (config_id) {
+        path = g_strdup_printf("/io/netplan/Netplan/config/%s", config_id);
+        r = sd_bus_message_new_signal(d->bus, &msg, path,
+                                      "io.netplan.Netplan.Config", "Changed");
+    } else
+        r = sd_bus_message_new_signal(d->bus, &msg, "/io/netplan/Netplan",
                                       "io.netplan.Netplan", "Changed");
     if (r < 0) {
         fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
@@ -52,19 +72,6 @@ send_config_changed_signal(NetplanData *d)
     return r;
 }
 
-static void
-_clear_try_child(int status, NetplanData *d)
-{
-    if (!WIFEXITED(status))
-        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
-
-    /* Cleanup current 'netplan try' child process */
-    sd_event_source_unref(d->try_es);
-    d->try_es = NULL;
-    g_spawn_close_pid (d->try_pid);
-    d->try_pid = -1;
-}
-
 static int
 _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_error)
 {
@@ -76,8 +83,13 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
     /* Child does not exist or exited already ... */
     if (d->try_pid < 0)
         return sd_bus_reply_method_return(m, "b", false);
+
+    /* Do not send the accept/reject signal, if this call is for another config state */
+    if (d->handler_id != NULL && g_strcmp0(d->config_id, d->handler_id))
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "Another 'netplan try' process is already running");
+
     /* ATTENTION: There might be a race here:
-     * When the accept handler is called at the same time as the 'netplan try'
+     * When this accept/reject method is called at the same time as the 'netplan try'
      * python process is reverting and closing itself. Not sure what to do about it...
      * Maybe this needs to be fixed in python code, so that the
      * 'netplan.terminal.InputRejected' exception (i.e. self-revert) cannot be
@@ -92,8 +104,7 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
     if (error != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
 
-    _clear_try_child(status, d);
-    send_config_changed_signal(d);
+    terminate_try_child_process(status, d, d->config_id);
     return sd_bus_reply_method_return(m, "b", true);
 }
 
@@ -107,7 +118,8 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed glob for YAML files\n");
 
-    /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
+    /* Copy all *.yaml files from "/SRC_ROOT/{etc,run,lib}/netplan/" to
+     * "/DST_ROOT/{etc,run,lib}/netplan/" */
     GFile *source = NULL;
     GFile *dest = NULL;
     gchar *dest_path = NULL;
@@ -128,7 +140,6 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
             g_object_unref(source);
             g_object_unref(dest);
             g_free(dest_path);
-            //g_free(path); //FIXME: do we need to clear this?
             return r;
         }
         g_object_unref(source);
@@ -139,11 +150,12 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
 }
 
 static bool
-_clear_tmp_state(const char *state_id, NetplanData *d)
+_clear_tmp_state(const char *config_id, NetplanData *d)
 {
+    g_autofree gchar *rootdir = NULL;
     /* Remove tmp YAML files */
-    char *rootdir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), state_id);
-    unlink_glob(rootdir, "/*/netplan/*.yaml");
+    rootdir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), config_id);
+    unlink_glob(rootdir, "/{etc,run,lib}/netplan/*.yaml");
 
     /* Remove tmp state directories */
     char *subdir = NULL;
@@ -156,14 +168,15 @@ _clear_tmp_state(const char *state_id, NetplanData *d)
         g_free(subdir);
     }
     rmdir(rootdir);
-    g_free(rootdir);
 
-    /* TODO: send io.netplan.Netplan.Config.Changed() signal */
-    /* Clear config object from DBus, by unref the appropriate slot */
-    sd_bus_slot *slot = g_hash_table_lookup(d->config_slots, state_id);
-    sd_bus_slot_unref(slot); /* Clear value/slot */
-    g_hash_table_remove(d->config_slots, state_id); /* Clear key */
-    /* TODO: error handling */
+    /* No cleanup of DBus object needed, if config_id points to NETPLAN_GLOBAL_CONFIG (backup) */
+    if (config_id != NETPLAN_GLOBAL_CONFIG) {
+        /* Clear config object from DBus, by unref the appropriate slot */
+        sd_bus_slot *slot = g_hash_table_lookup(d->config_slots, config_id);
+        sd_bus_slot_unref(slot); /* Clear value/slot */
+        g_hash_table_remove(d->config_slots, config_id); /* Clear key */
+        /* TODO: HashTable error handling */
+    }
 
     return TRUE;
 }
@@ -194,13 +207,14 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     }
 
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
-    if (err != NULL) {
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan apply: %s", err->message);
-    }
+    if (err != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "cannot run netplan apply: %s", err->message);
     g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL) {
-       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
-    }
+    if (err != NULL)
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'",
+                                err->message, stdout, stderr);
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -323,11 +337,28 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
-handle_netplan_try(sd_event_source *es, const siginfo_t *si, void* userdata)
+netplan_try_cancelled_cb(sd_event_source *es, const siginfo_t *si, void* userdata)
 {
     NetplanData *d = userdata;
-    _clear_try_child(si->si_status, d);
-    return send_config_changed_signal(d);
+    g_autofree gchar *state_dir = NULL;
+    int r = 0;
+    if (d->handler_id) {
+        /* Delete GLOBAL state */
+        unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+        /* Restore GLOBAL backup config state to main rootdir */
+        state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
+        _copy_yaml_state(state_dir, "/", NULL);
+
+        /* Clear GLOBAL backup and config state */
+        _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
+        _clear_tmp_state(d->handler_id, d);
+    }
+
+    r = terminate_try_child_process(si->si_status, d, d->handler_id);
+    /* free and reset handler_id, i.e. copy of config state ID */
+    g_free(d->handler_id);
+    d->handler_id = NULL; /* unlock pending config ID */
+    return r;
 }
 
 static int
@@ -335,13 +366,14 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
-    gint child_stdin = -1; //Child process needs an input to function correctly
+    gint child_stdin = -1; /* child process needs an input to function correctly */
     guint seconds = 0;
     int r = -1;
     NetplanData *d = userdata;
 
-    /* Fail if another 'netplan try' process is already running. */
-    if (d->try_pid > 0)
+    /* Fail if another 'netplan try' process is already running.
+     * 'try_pid' can be pre-set to G_MAXINT, if called via method_config_try() */
+    if (d->try_pid > 0 && d->try_pid != G_MAXINT)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: already running");
 
     if (sd_bus_message_read_basic (m, 'u', &seconds) < 0)
@@ -354,23 +386,22 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
-    /* Launch 'netplan try' child process */
+    /* Launch 'netplan try' child process, lock 'try_pid' to real PID */
     g_spawn_async_with_pipes("/", argv, NULL,
                              G_SPAWN_DO_NOT_REAP_CHILD|G_SPAWN_STDOUT_TO_DEV_NULL,
                              NULL, NULL, &d->try_pid, &child_stdin, NULL, NULL, &err);
-    if (err != NULL)
+    if (err)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot run netplan try: %s", err->message);
 
-    /* Register an event when the child process exits */
+    /* Register an event handler, trigged when the child process exits */
+    if (d->config_id)
+        d->handler_id = g_strdup(d->config_id); /* to free in event handler */
     r = sd_event_add_child(sd_bus_get_event(d->bus), &d->try_es, d->try_pid,
-                           WEXITED, handle_netplan_try, d->bus);
+                           WEXITED, netplan_try_cancelled_cb, d);
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot watch 'netplan try' child: %s", strerror(-r));
-    if (sd_event_source_set_userdata(d->try_es, d) == NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
-                                 "cannot set 'netplan try' event data.");
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -389,26 +420,27 @@ static int
 method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     NetplanData *d = userdata;
+    g_autofree gchar *state_dir = NULL;
     int r = 0;
     /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
     d->config_id = sd_bus_message_get_path(m) + 27;
 
-    /* Another 'netplan try' process is currently running. Abort. */
-    if (d->try_pid > 0)
-        return sd_bus_reply_method_return(m, "b", false);
-
-    /* Delete GLOBAL state */
-    unlink_glob(NULL, "/*/netplan/*.yaml");
-    /* Copy current config state to GLOBAL */
-    char *state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
-    _copy_yaml_state(state_dir, "/", ret_error);
-    g_free(state_dir);
+    if (d->try_pid < 0) {
+        /* Delete GLOBAL state */
+        unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+        /* Copy current config state to GLOBAL */
+        state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
+        _copy_yaml_state(state_dir, "/", ret_error);
+        d->handler_id = g_strdup(d->config_id);
+    }
 
     r = method_apply(m, d, ret_error);
-    /* TODO: error handling */
     _clear_tmp_state(d->config_id, d);
-    /* Reset current config_id */
+
+    /* unlock current config ID and handler ID */
     d->config_id = NULL;
+    g_free(d->handler_id);
+    d->handler_id = NULL;
     return r;
 }
 
@@ -439,7 +471,42 @@ method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 static int
 method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
-    /* TODO */
+    NetplanData *d = userdata;
+    g_autofree gchar *path = NULL;
+    g_autofree gchar *state_dir = NULL;
+    if (d->try_pid > 0)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "Another Try() is currently in progress: PID %d\n", d->try_pid);
+
+    int r = 0;
+    /* Lock current child process temporarily until we have a real PID */
+    d->try_pid = G_MAXINT;
+    d->config_id = sd_bus_message_get_path(m) + 27;
+
+    /* Backup GLOBAL state */
+    path = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
+    /* Create {etc,run,lib} subdirs with owner r/w permissions */
+    char *subdir = NULL;
+    for (int i = 0; i < 3; i++) {
+        subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
+        r = g_mkdir_with_parents(subdir, 0600);
+        if (r < 0)
+            return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                    "Failed to create '%s': %s\n", subdir, strerror(errno));
+        g_free(subdir);
+    }
+
+    /* Copy main *.yaml files from /{etc,run,lib}/netplan/ to GLOBAL backup dir */
+    _copy_yaml_state("/", path, ret_error);
+
+    /* Clear main *.yaml files */
+    unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+
+    /* Copy current config *.yaml state to main rootdir (i.e. /etc/netplan/) */
+    state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
+    _copy_yaml_state(state_dir, "/", ret_error);
+
+    /* Exec try */
     return method_try(m, userdata, ret_error);
 }
 
@@ -447,31 +514,36 @@ static int
 method_config_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     NetplanData *d = userdata;
-    //int r = 0;
+    g_autofree gchar *state_dir = NULL;
+    int r = 0;
     /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
-    const char *id = sd_bus_message_get_path(m) + 27;
+    d->config_id = sd_bus_message_get_path(m) + 27;
 
-    /* TODO: Backup the GLOBAL state */
-    /* TODO: move tmp state to GLOBAL state */
-    /* TODO: Set permanent d->config_id */
-
-    /* Make sure that we only cancel the 'netplan try' process if it originated from
-     * the current config state (applied via Try() or Apply()), with id d->config_id */
     /* Cancel the current 'netplan try' process */
-    /*
-    if (d->try_pid > 0 && !g_strcmp0(d->config_id, id)) {
-        r = method_try_cancel(m, d, ret_error);
-    } else
-        return sd_bus_reply_method_return(m, "b", false);
-    */
+    if (d->try_pid > 0)
+        r = method_cancel(m, d, ret_error);
+    else
+        r = sd_bus_reply_method_return(m, "b", true);
 
-    /* Play back the backup of GLOBAL state */
+    if (d->handler_id && !g_strcmp0(d->config_id, d->handler_id)) {
+        /* Delete GLOBAL state */
+        unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+        /* Restore GLOBAL backup config state to main rootdir */
+        state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
+        _copy_yaml_state(state_dir, "/", NULL);
+
+        /* Clear GLOBAL backup and config state */
+        _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
+
+        /* Clear pending Try() handler ID */
+        g_free(d->handler_id);
+        d->handler_id = NULL;
+    }
+
     /* Clear tmp state */
-    /* Re-apply GLOBAL state */
-
-    _clear_tmp_state(id, d);
-
-    return sd_bus_reply_method_return(m, "b", true);
+    _clear_tmp_state(d->config_id, d);
+    d->config_id = NULL;
+    return r;
 }
 
 static const sd_bus_vtable config_vtable[] = {
@@ -494,16 +566,17 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     NetplanData *d = userdata;
     sd_bus_slot *slot = NULL;
     g_autoptr(GError) err = NULL;
+    g_autofree gchar *path = NULL;
     int r = 0;
 
     /* Create temp. directory, according to "netplan-config-XXXXXX" template */
-    gchar *path = g_dir_make_tmp("netplan-config-XXXXXX", &err);
+    path = g_dir_make_tmp("netplan-config-XXXXXX", &err);
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to create temp dir: %s\n", err->message);
 
     /* Extract the last 6 randomly generated chars (i.e. "XXXXXX" from template) */
-    char *id = path + strlen(path) - 6;
+    const char *id = path + strlen(path) - 6;
     const char *obj_path = g_strdup_printf("/io/netplan/Netplan/config/%s", id);
     r = sd_bus_add_object_vtable(d->bus, &slot, obj_path,
                                  "io.netplan.Netplan.Config", config_vtable, userdata);
@@ -527,7 +600,6 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
     _copy_yaml_state("/", path, ret_error);
-    g_free(path);
 
     return sd_bus_reply_method_return(m, "o", obj_path);
 }
@@ -574,6 +646,7 @@ main(int argc, char *argv[])
     data->bus = bus;
     data->try_pid = -1;
     data->config_id = NULL;
+    data->handler_id = NULL;
     /* TODO: define a proper free/cleanup function for sd_bus_slot_unref() */
     data->config_slots = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
