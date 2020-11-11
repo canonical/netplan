@@ -308,18 +308,10 @@ class TestNetplanDBus(unittest.TestCase):
         # Create test YAML
         test_file_lib = os.path.join(self.tmp, 'lib', 'netplan', 'lib_test.yaml')
         with open(test_file_lib, 'w') as f:
-            f.write("""network:
-  version: 2
-  ethernets:
-    ethlib:
-      dhcp4: true""")
+            f.write('TESTING-lib')
         test_file_run = os.path.join(self.tmp, 'run', 'netplan', 'run_test.yaml')
         with open(test_file_run, 'w') as f:
-            f.write("""network:
-  version: 2
-  ethernets:
-    ethrun:
-      dhcp4: true""")
+            f.write('TESTING-run')
         self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')))
         self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'lib_test.yaml')))
         self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'run_test.yaml')))
@@ -422,6 +414,12 @@ class TestNetplanDBus(unittest.TestCase):
     def test_netplan_dbus_config_apply(self):
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        with open(os.path.join(tmpdir, 'etc', 'netplan', 'apply_test.yaml'), 'w') as f:
+            f.write('TESTING-apply')
+        with open(os.path.join(tmpdir, 'lib', 'netplan', 'apply_test.yaml'), 'w') as f:
+            f.write('TESTING-apply')
+        with open(os.path.join(tmpdir, 'run', 'netplan', 'apply_test.yaml'), 'w') as f:
+            f.write('TESTING-apply')
 
         # Verify .Config.Apply() teardown of the config object and state dirs
         BUSCTL_NETPLAN_CMD = [
@@ -435,6 +433,11 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(b'b true\n', out)
         self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "apply"]])
         self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the new YAML files were copied over
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'apply_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'apply_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'apply_test.yaml')))
 
         # Verify the object is gone from the bus
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
