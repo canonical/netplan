@@ -117,6 +117,27 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(p.stdout.read().decode("utf-8"), "")
         return p.stderr.read().decode("utf-8")
 
+    def _new_config_object(self):
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Config",
+        ]
+        # Create new config object / config state
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertIn(b'o "/io/netplan/Netplan/config/', out)
+        cid = out.decode('utf-8').split('/')[-1].replace('"\n', '')
+        # Verify that the state folders were created in /tmp
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.assertTrue(os.path.isdir(tmpdir))
+        self.assertTrue(os.path.isdir(tmpdir + '/etc/netplan'))
+        self.assertTrue(os.path.isdir(tmpdir + '/run/netplan'))
+        self.assertTrue(os.path.isdir(tmpdir + '/lib/netplan'))
+        # Return random config ID
+        return cid
+
     def test_netplan_apply_in_snap_uses_dbus(self):
         p = subprocess.Popen(
             exe_cli + ["apply"],
@@ -281,50 +302,86 @@ class TestNetplanDBus(unittest.TestCase):
         ])
         self.assertIn("Unknown method", err)
 
-    def test_netplan_dbus_config_object_cancel(self):
-        BUSCTL_NETPLAN_CMD = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Config",
-        ]
-        # Create new config object / config state
-        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
-        self.assertIn(b'o "/io/netplan/Netplan/config/', out)
-
-        cid = out.decode('utf-8').split('/')[-1].replace('"\n', '')
-        # Verify that the state folders were created in /tmp
+    def test_netplan_dbus_config_set(self):
+        cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
-        self.assertTrue(os.path.isdir(tmpdir))
-        self.assertTrue(os.path.isdir(tmpdir + '/etc/netplan'))
-        self.assertTrue(os.path.isdir(tmpdir + '/run/netplan'))
-        self.assertTrue(os.path.isdir(tmpdir + '/lib/netplan'))
+        self.addCleanup(shutil.rmtree, tmpdir)
 
-        # Verify that the object was created on the bus, via .Config.Set()
+        # Verify .Config.Set() on the config object
         # No actual YAML file will be created, as the netplan command is mocked
-        BUSCTL_NETPLAN_SET = [
+        BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
             "Set", "ss", "ethernets.eth42.dhcp6=true", "testfile",
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_SET)
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "set", "ethernets.eth42.dhcp6=true",
+            "--origin-hint=testfile", "--root-dir={}".format(tmpdir)
+        ]])
 
-        # Verify teardown of the config object and state dirs
-        BUSCTL_NETPLAN_CMD2 = [
+    def test_netplan_dbus_config_get(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addCleanup(shutil.rmtree, tmpdir)
+
+        # Verify .Config.Get() on the config object
+        self.mock_netplan_cmd.set_output("network:\n  eth42:\n    dhcp6: true")
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Get",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
+        self.assertIn(r's "network:\n  eth42:\n    dhcp6: true\n"', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "get", "all", "--root-dir={}".format(tmpdir)
+        ]])
+
+    def test_netplan_dbus_config_cancel(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+
+        # Verify .Config.Cancel() teardown of the config object and state dirs
+        BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
             "Cancel",
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
         self.assertFalse(os.path.isdir(tmpdir))
 
         # Verify the object is gone from the bus
-        err = self._check_dbus_error(BUSCTL_NETPLAN_SET)
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+    def test_netplan_dbus_config_apply(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+
+        # Verify .Config.Apply() teardown of the config object and state dirs
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "apply"]])
+        self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the object is gone from the bus
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
+        self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+    # TODO: test_netplan_dbus_config_try + extra cases where files are moved around the config/GLOBAL states
