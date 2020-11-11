@@ -35,6 +35,7 @@ typedef struct {
 
 static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
 static const char* NETPLAN_GLOBAL_CONFIG = "BACKUP";
+static char* NETPLAN_ROOT = "/"; /* Can be modified for testing netplan-dbus */
 
 static int
 terminate_try_child_process(int status, NetplanData *d, const char *config_id)
@@ -203,9 +204,8 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     gchar *argv[] = {SBINDIR "/" "netplan", "apply", NULL};
 
     // for tests only: allow changing what netplan to run
-    if (getenv("DBUS_TEST_NETPLAN_CMD") != 0) {
+    if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
-    }
 
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
     if (err != NULL)
@@ -345,10 +345,10 @@ netplan_try_cancelled_cb(sd_event_source *es, const siginfo_t *si, void* userdat
     int r = 0;
     if (d->handler_id) {
         /* Delete GLOBAL state */
-        unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+        unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Restore GLOBAL backup config state to main rootdir */
         state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
-        _copy_yaml_state(state_dir, "/", NULL);
+        _copy_yaml_state(state_dir, NETPLAN_ROOT, NULL);
 
         /* Clear GLOBAL backup and config state */
         _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
@@ -428,10 +428,10 @@ method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     if (d->try_pid < 0) {
         /* Delete GLOBAL state */
-        unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+        unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Copy current config state to GLOBAL */
         state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
-        _copy_yaml_state(state_dir, "/", ret_error);
+        _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
         d->handler_id = g_strdup(d->config_id);
     }
 
@@ -498,14 +498,14 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     }
 
     /* Copy main *.yaml files from /{etc,run,lib}/netplan/ to GLOBAL backup dir */
-    _copy_yaml_state("/", path, ret_error);
+    _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
 
     /* Clear main *.yaml files */
-    unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+    unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
 
     /* Copy current config *.yaml state to main rootdir (i.e. /etc/netplan/) */
     state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
-    _copy_yaml_state(state_dir, "/", ret_error);
+    _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
 
     /* Exec try */
     return method_try(m, userdata, ret_error);
@@ -528,10 +528,10 @@ method_config_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     if (d->handler_id && !g_strcmp0(d->config_id, d->handler_id)) {
         /* Delete GLOBAL state */
-        unlink_glob(NULL, "/{etc,run,lib}/netplan/*.yaml");
+        unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Restore GLOBAL backup config state to main rootdir */
         state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
-        _copy_yaml_state(state_dir, "/", NULL);
+        _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
 
         /* Clear GLOBAL backup and config state */
         _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
@@ -600,7 +600,7 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     }
 
     /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
-    _copy_yaml_state("/", path, ret_error);
+    _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
 
     return sd_bus_reply_method_return(m, "o", obj_path);
 }
@@ -630,6 +630,10 @@ main(int argc, char *argv[])
     NetplanData *data = g_new0(NetplanData, 1);
     sigset_t mask;
     int r;
+
+    // for tests only: allow changing which rootdir to use to copy files around
+    if (getenv("DBUS_TEST_NETPLAN_ROOT") != 0)
+        NETPLAN_ROOT = getenv("DBUS_TEST_NETPLAN_ROOT");
 
     r = sd_bus_open_system(&bus);
     if (r < 0) {
