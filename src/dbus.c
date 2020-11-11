@@ -489,7 +489,7 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     char *subdir = NULL;
     for (int i = 0; i < 3; i++) {
         subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
-        r = g_mkdir_with_parents(subdir, 0600);
+        r = g_mkdir_with_parents(subdir, 0700);
         if (r < 0)
             return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                     "Failed to create '%s': %s\n", subdir, strerror(errno));
@@ -591,7 +591,7 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     char *subdir = NULL;
     for (int i = 0; i < 3; i++) {
         subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
-        r = g_mkdir_with_parents(subdir, 0600);
+        r = g_mkdir_with_parents(subdir, 0700);
         if (r < 0)
             return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                     "Failed to create '%s': %s\n", subdir, strerror(errno));
