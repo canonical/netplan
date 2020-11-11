@@ -77,7 +77,7 @@ unlink_glob(const char* rootdir, const char* _glob)
     int rc;
     g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, _glob, NULL);
 
-    rc = glob(rglob, 0, NULL, &gl);
+    rc = glob(rglob, GLOB_BRACE, NULL, &gl);
     if (rc != 0 && rc != GLOB_NOMATCH) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to glob for %s: %m\n", rglob);
@@ -87,37 +87,20 @@ unlink_glob(const char* rootdir, const char* _glob)
 
     for (size_t i = 0; i < gl.gl_pathc; ++i)
         unlink(gl.gl_pathv[i]);
+    globfree(&gl);
 }
 
 /**
- * Return a glob of all *.yaml files in /{etc,run,lib}/netplan/
+ * Return a glob of all *.yaml files in /{lib,etc,run}/netplan/ (in this order)
  */
 int find_yaml_glob(const char* rootdir, glob_t* out_glob)
 {
     int rc;
-    g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
-    g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
-    g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
-    rc = glob(glob_lib, 0, NULL, out_glob);
+    g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "{lib,etc,run}/netplan/*.yaml", NULL);
+    rc = glob(rglob, GLOB_BRACE, NULL, out_glob);
     if (rc != 0 && rc != GLOB_NOMATCH) {
         // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib);
-        return 1;
-        // LCOV_EXCL_STOP
-    }
-
-    rc = glob(glob_etc, GLOB_APPEND, NULL, out_glob);
-    if (rc != 0 && rc != GLOB_NOMATCH) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc);
-        return 1;
-        // LCOV_EXCL_STOP
-    }
-
-    rc = glob(glob_run, GLOB_APPEND, NULL, out_glob);
-    if (rc != 0 && rc != GLOB_NOMATCH) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run);
+        g_fprintf(stderr, "failed to glob for %s: %m\n", rglob);
         return 1;
         // LCOV_EXCL_STOP
     }
