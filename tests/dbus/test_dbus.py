@@ -280,3 +280,51 @@ class TestNetplanDBus(unittest.TestCase):
             "NoSuchCommand"
         ])
         self.assertIn("Unknown method", err)
+
+    def test_netplan_dbus_config_object_cancel(self):
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Config",
+        ]
+        # Create new config object / config state
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertIn(b'o "/io/netplan/Netplan/config/', out)
+
+        cid = out.decode('utf-8').split('/')[-1].replace('"\n', '')
+        # Verify that the state folders were created in /tmp
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.assertTrue(os.path.isdir(tmpdir))
+        self.assertTrue(os.path.isdir(tmpdir + '/etc/netplan'))
+        self.assertTrue(os.path.isdir(tmpdir + '/run/netplan'))
+        self.assertTrue(os.path.isdir(tmpdir + '/lib/netplan'))
+
+        # Verify that the object was created on the bus, via .Config.Set()
+        # No actual YAML file will be created, as the netplan command is mocked
+        BUSCTL_NETPLAN_SET = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth42.dhcp6=true", "testfile",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_SET)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify teardown of the config object and state dirs
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Cancel",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        self.assertEqual(b'b true\n', out)
+        self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the object is gone from the bus
+        err = self._check_dbus_error(BUSCTL_NETPLAN_SET)
+        self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
