@@ -73,6 +73,17 @@ class TestNetplanDBus(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.tmp, "etc", "netplan"), 0o700)
+        os.makedirs(os.path.join(self.tmp, "lib", "netplan"), 0o700)
+        os.makedirs(os.path.join(self.tmp, "run", "netplan"), 0o700)
+        # Create main test YAML in /etc/netplan/
+        test_file = os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')
+        with open(test_file, 'w') as f:
+            f.write("""network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true""")
         self.addCleanup(shutil.rmtree, self.tmp)
         self.mock_netplan_cmd = MockCmd("netplan")
         self._create_mock_system_bus()
@@ -98,6 +109,7 @@ class TestNetplanDBus(unittest.TestCase):
     def _run_netplan_dbus_on_mock_bus(self):
         # run netplan-dbus in a fake system bus
         os.environ["DBUS_TEST_NETPLAN_CMD"] = self.mock_netplan_cmd.path
+        os.environ["DBUS_TEST_NETPLAN_ROOT"] = self.tmp
         p = subprocess.Popen(
             os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus"),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -132,9 +144,9 @@ class TestNetplanDBus(unittest.TestCase):
         # Verify that the state folders were created in /tmp
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
         self.assertTrue(os.path.isdir(tmpdir))
-        self.assertTrue(os.path.isdir(tmpdir + '/etc/netplan'))
-        self.assertTrue(os.path.isdir(tmpdir + '/run/netplan'))
-        self.assertTrue(os.path.isdir(tmpdir + '/lib/netplan'))
+        self.assertTrue(os.path.isdir(os.path.join(tmpdir, 'etc', 'netplan')))
+        self.assertTrue(os.path.isdir(os.path.join(tmpdir, 'run', 'netplan')))
+        self.assertTrue(os.path.isdir(os.path.join(tmpdir, 'lib', 'netplan')))
         # Return random config ID
         return cid
 
@@ -291,6 +303,50 @@ class TestNetplanDBus(unittest.TestCase):
                 ["netplan", "try", "--timeout=5"],
                 ["netplan", "apply"],
         ])
+
+    def test_netplan_dbus_config(self):
+        # Create test YAML
+        test_file_lib = os.path.join(self.tmp, 'lib', 'netplan', 'lib_test.yaml')
+        with open(test_file_lib, 'w') as f:
+            f.write("""network:
+  version: 2
+  ethernets:
+    ethlib:
+      dhcp4: true""")
+        test_file_run = os.path.join(self.tmp, 'run', 'netplan', 'run_test.yaml')
+        with open(test_file_run, 'w') as f:
+            f.write("""network:
+  version: 2
+  ethernets:
+    ethrun:
+      dhcp4: true""")
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'lib_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'run_test.yaml')))
+
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addClassCleanup(shutil.rmtree, tmpdir)
+
+        # Verify the object path has been created, by calling .Config.Get() on that object
+        # it would throw an error if it does not exist
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Get",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
+        self.assertIn(r's ""', out)  # No output as 'netplan get' is actually mocked
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "get", "all", "--root-dir={}".format(tmpdir)
+        ]])
+
+        # Verify all *.yaml files have been copied
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'etc', 'netplan', 'main_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'lib', 'netplan', 'lib_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'run', 'netplan', 'run_test.yaml')))
 
     def test_netplan_dbus_no_such_command(self):
         err = self._check_dbus_error([
