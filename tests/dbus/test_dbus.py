@@ -110,6 +110,13 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
 
+    def _check_dbus_error(self, cmd, returncode=1):
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.wait()
+        self.assertEqual(p.returncode, returncode)
+        self.assertEqual(p.stdout.read().decode("utf-8"), "")
+        return p.stderr.read().decode("utf-8")
+
     def test_netplan_apply_in_snap_uses_dbus(self):
         p = subprocess.Popen(
             exe_cli + ["apply"],
@@ -195,7 +202,7 @@ class TestNetplanDBus(unittest.TestCase):
         ])
 
     def test_netplan_dbus_set(self):
-        BUSCTL_NETPLAN_GET = [
+        BUSCTL_NETPLAN_SET = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
@@ -204,14 +211,14 @@ class TestNetplanDBus(unittest.TestCase):
             "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
             ""
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        out = subprocess.check_output(BUSCTL_NETPLAN_SET, universal_newlines=True)
         self.assertEqual(out, "b true\n")
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}"],
         ])
 
     def test_netplan_dbus_set_origin(self):
-        BUSCTL_NETPLAN_GET = [
+        BUSCTL_NETPLAN_SET = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
@@ -220,7 +227,7 @@ class TestNetplanDBus(unittest.TestCase):
             "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
             "99_snapd"
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+        out = subprocess.check_output(BUSCTL_NETPLAN_SET, universal_newlines=True)
         self.assertEqual(out, "b true\n")
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
@@ -265,14 +272,11 @@ class TestNetplanDBus(unittest.TestCase):
         ])
 
     def test_netplan_dbus_no_such_command(self):
-        p = subprocess.Popen(
-            ["busctl", "call",
-             "io.netplan.Netplan",
-             "/io/netplan/Netplan",
-             "io.netplan.Netplan",
-             "NoSuchCommand"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
-        self.assertEqual(p.returncode, 1)
-        self.assertEqual(p.stdout.read().decode("utf-8"), "")
-        self.assertIn("Unknown method", p.stderr.read().decode("utf-8"))
+        err = self._check_dbus_error([
+            "busctl", "call",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "NoSuchCommand"
+        ])
+        self.assertIn("Unknown method", err)
