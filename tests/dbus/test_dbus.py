@@ -292,13 +292,13 @@ class TestNetplanDBus(unittest.TestCase):
         ])
 
     def test_netplan_dbus_try(self):
-        self.mock_netplan_cmd.set_timeout(5)
+        self.mock_netplan_cmd.set_timeout(2)
         BUSCTL_NETPLAN_TRY = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         BUSCTL_NETPLAN_CANCEL = [
             "busctl", "call", "--system",
@@ -325,7 +325,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual("b true\n", output.decode("utf-8"))
 
         self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "try", "--timeout=5"],
+                ["netplan", "try", "--timeout=2"],
                 # ["netplan", "apply"],  # This should NOT be here, as the current Try() was accepted, not re-applied
         ])
 
@@ -469,7 +469,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
     def test_netplan_dbus_config_try_cancel(self):
-        self.mock_netplan_cmd.set_timeout(5)
+        self.mock_netplan_cmd.set_timeout(2)
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
         backup = '/tmp/netplan-config-BACKUP'
@@ -486,7 +486,7 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
@@ -532,7 +532,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
         # Verify 'netplan try' has been called
-        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=5"]])
+        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=2"]])
 
     def test_netplan_dbus_config_try_cb(self):
         self.mock_netplan_cmd.set_timeout(1)  # self-quit after 1 sec
@@ -575,14 +575,14 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=1"]])
 
     def test_netplan_dbus_config_try_try(self):
-        self.mock_netplan_cmd.set_timeout(5)
+        self.mock_netplan_cmd.set_timeout(2)
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
@@ -592,20 +592,20 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
         self.assertIn('cannot run netplan try: already running', err)
 
     def test_netplan_dbus_config_try_apply(self):
-        self.mock_netplan_cmd.set_timeout(5)
+        self.mock_netplan_cmd.set_timeout(2)
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
@@ -617,19 +617,18 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "Apply",
         ]
-        # FIXME: this seems to be FLAKY, but why?
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
         self.assertIn('Another \'netplan try\' process is already running', err)
 
     def test_netplan_dbus_config_try_config_try(self):
-        self.mock_netplan_cmd.set_timeout(5)
+        self.mock_netplan_cmd.set_timeout(2)
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
@@ -640,7 +639,7 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid2),
             "io.netplan.Netplan.Config",
-            "Try", "u", "5",
+            "Try", "u", "2",
         ]
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
         self.assertIn('Another Try() is currently in progress: PID ', err)

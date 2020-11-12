@@ -515,7 +515,9 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
 
     /* Exec try */
-    return method_try(m, userdata, ret_error);
+    r = method_try(m, userdata, ret_error);
+    d->config_id = NULL;
+    return r;
 }
 
 static int
@@ -589,7 +591,7 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     const char *id = path + strlen(path) - 6;
     const char *obj_path = g_strdup_printf("/io/netplan/Netplan/config/%s", id);
     r = sd_bus_add_object_vtable(d->bus, &slot, obj_path,
-                                 "io.netplan.Netplan.Config", config_vtable, userdata);
+                                 "io.netplan.Netplan.Config", config_vtable, d);
     // LCOV_EXCL_START
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
