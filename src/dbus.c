@@ -17,13 +17,6 @@
 #include "_features.h"
 #include "util.h"
 
-// LCOV_EXCL_START
-/* XXX: (cyphermox)
- * This file  is completely excluded from coverage on purpose. Tests should
- * still include code in here, but sadly coverage does not appear to
- * correctly capture tests being run over a DBus bus.
- */
-
 typedef struct {
     sd_bus *bus;
     sd_event_source *try_es;
@@ -45,7 +38,7 @@ terminate_try_child_process(int status, NetplanData *d, const char *config_id)
     int r = 0;
 
     if (!WIFEXITED(status))
-        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status));
+        fprintf(stderr, "'netplan try' exited with status: %d\n", WEXITSTATUS(status)); // LCOV_EXCL_LINE
 
     /* Cleanup current 'netplan try' child process */
     sd_event_source_unref(d->try_es);
@@ -62,13 +55,15 @@ terminate_try_child_process(int status, NetplanData *d, const char *config_id)
         r = sd_bus_message_new_signal(d->bus, &msg, "/io/netplan/Netplan",
                                       "io.netplan.Netplan", "Changed");
     if (r < 0) {
+        // LCOV_EXCL_START
         fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
         return r;
+        // LCOV_EXCL_STOP
     }
 
     r = sd_bus_send(d->bus, msg, NULL);
     if (r < 0)
-        fprintf(stderr, "Could not send .Changed() signal: %s\n", strerror(-r));
+        fprintf(stderr, "Could not send .Changed() signal: %s\n", strerror(-r)); // LCOV_EXCL_LINE
     sd_bus_message_unrefp(&msg);
     return r;
 }
@@ -103,7 +98,7 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
     waitpid(d->try_pid, &status, 0);
     g_spawn_check_exit_status(status, &error);
     if (error != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message);
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message); // LCOV_EXCL_LINE
 
     terminate_try_child_process(status, d, d->config_id);
     return sd_bus_reply_method_return(m, "b", true);
@@ -116,8 +111,10 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
     g_autoptr(GError) err = NULL;
     int r = find_yaml_glob(src_root, &gl);
     if (!!r)
+        // LCOV_EXCL_START
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed glob for YAML files\n");
+        // LCOV_EXCL_STOP
 
     /* Copy all *.yaml files from "/SRC_ROOT/{etc,run,lib}/netplan/" to
      * "/DST_ROOT/{etc,run,lib}/netplan/" */
@@ -134,6 +131,7 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
                                  |G_FILE_COPY_ALL_METADATA,
                     NULL, NULL, NULL, &err);
         if (err != NULL) {
+            // LCOV_EXCL_START
             r = sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                   "Failed to copy file %s -> %s: %s\n",
                                   g_file_get_path(source), g_file_get_path(dest),
@@ -142,6 +140,7 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
             g_object_unref(dest);
             g_free(dest_path);
             return r;
+            // LCOV_EXCL_STOP
         }
         g_object_unref(source);
         g_object_unref(dest);
@@ -208,6 +207,7 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
+    // LCOV_EXCL_START
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot run netplan apply: %s", err->message);
@@ -216,6 +216,7 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                 "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'",
                                 err->message, stdout, stderr);
+    // LCOV_EXCL_STOP
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -231,39 +232,39 @@ method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     exit_status = sd_bus_message_new_method_return(m, &reply);
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_open_container(reply, 'a', "(sv)");
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_open_container(reply, 'r', "sv");
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_append(reply, "s", "Features");
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_open_container(reply, 'v', "as");
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_append_strv(reply, (char**)feature_flags);
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_close_container(reply);
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_close_container(reply);
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     exit_status = sd_bus_message_close_container(reply);
     if (exit_status < 0)
-       return exit_status;
+       return exit_status; // LCOV_EXCL_LINE
 
     return sd_bus_send(NULL, reply, NULL);
 }
@@ -288,11 +289,11 @@ method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
     if (err != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan get: %s", err->message);
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan get: %s", err->message); // LCOV_EXCL_LINE
 
     g_spawn_check_exit_status(exit_status, &err);
     if (err != NULL)
-       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan get failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan get failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr); // LCOV_EXCL_LINE
 
     return sd_bus_reply_method_return(m, "s", stdout);
 }
@@ -311,7 +312,7 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     char *origin_hint = NULL;
 
     if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint");
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint"); // LCOV_EXCL_LINE
 
     if (!!strcmp(origin_hint, ""))
         origin = g_strdup_printf("--origin-hint=%s", origin_hint);
@@ -328,11 +329,11 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
     if (err != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message);
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message); // LCOV_EXCL_LINE
 
     g_spawn_check_exit_status(exit_status, &err);
     if (err != NULL)
-       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr);
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr); // LCOV_EXCL_LINE
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -378,7 +379,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: already running");
 
     if (sd_bus_message_read_basic (m, 'u', &seconds) < 0)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract timeout_seconds");
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract timeout_seconds"); // LCOV_EXCL_LINE
     if (seconds > 0)
         timeout = g_strdup_printf("--timeout=%u", seconds);
     gchar *argv[] = {SBINDIR "/" "netplan", "try", timeout, NULL};
@@ -392,8 +393,10 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
                              G_SPAWN_DO_NOT_REAP_CHILD|G_SPAWN_STDOUT_TO_DEV_NULL,
                              NULL, NULL, &d->try_pid, &child_stdin, NULL, NULL, &err);
     if (err)
+        // LCOV_EXCL_START
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot run netplan try: %s", err->message);
+        // LCOV_EXCL_STOP
 
     /* Register an event handler, trigged when the child process exits */
     if (d->config_id)
@@ -401,8 +404,10 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     r = sd_event_add_child(sd_bus_get_event(d->bus), &d->try_es, d->try_pid,
                            WEXITED, netplan_try_cancelled_cb, d);
     if (r < 0)
+        // LCOV_EXCL_START
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot watch 'netplan try' child: %s", strerror(-r));
+        // LCOV_EXCL_STOP
 
     return sd_bus_reply_method_return(m, "b", true);
 }
@@ -492,8 +497,10 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
         r = g_mkdir_with_parents(subdir, 0700);
         if (r < 0)
+            // LCOV_EXCL_START
             return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                     "Failed to create '%s': %s\n", subdir, strerror(errno));
+            // LCOV_EXCL_STOP
         g_free(subdir);
     }
 
@@ -573,20 +580,24 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     /* Create temp. directory, according to "netplan-config-XXXXXX" template */
     path = g_dir_make_tmp("netplan-config-XXXXXX", &err);
     if (err != NULL)
+        // LCOV_EXCL_START
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to create temp dir: %s\n", err->message);
+        // LCOV_EXCL_STOP
 
     /* Extract the last 6 randomly generated chars (i.e. "XXXXXX" from template) */
     const char *id = path + strlen(path) - 6;
     const char *obj_path = g_strdup_printf("/io/netplan/Netplan/config/%s", id);
     r = sd_bus_add_object_vtable(d->bus, &slot, obj_path,
                                  "io.netplan.Netplan.Config", config_vtable, userdata);
+    // LCOV_EXCL_START
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to add 'config' object: %s\n", strerror(-r));
     if (!g_hash_table_insert(d->config_slots, g_strdup(id), slot))
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to add object slot to HashTable\n");
+    // LCOV_EXCL_STOP
 
     /* Create {etc,run,lib} subdirs with owner r/w permissions */
     char *subdir = NULL;
@@ -594,8 +605,10 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
         r = g_mkdir_with_parents(subdir, 0700);
         if (r < 0)
+            // LCOV_EXCL_START
             return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                     "Failed to create '%s': %s\n", subdir, strerror(errno));
+            // LCOV_EXCL_STOP
         g_free(subdir);
     }
 
@@ -621,6 +634,14 @@ static const sd_bus_vtable netplan_vtable[] = {
  * DBus setup
  */
 
+static int
+terminate_mainloop_cb(sd_event_source *es, const struct signalfd_siginfo *si, void* userdata) {
+    sd_event *event = userdata;
+    /* Gracefully terminate the mainloop, to write GCOV output */
+    sd_event_exit(event, 0);
+    return 0;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -635,16 +656,21 @@ main(int argc, char *argv[])
     if (getenv("DBUS_TEST_NETPLAN_ROOT") != 0)
         NETPLAN_ROOT = getenv("DBUS_TEST_NETPLAN_ROOT");
 
+    /* TODO: consider sd_bus_default(&bus) for easier testing on session/user bus */
     r = sd_bus_open_system(&bus);
     if (r < 0) {
+        // LCOV_EXCL_START
         fprintf(stderr, "Failed to connect to system bus: %s\n", strerror(-r));
         goto finish;
+        // LCOV_EXCL_STOP
     }
 
     r = sd_event_new(&event);
     if (r < 0) {
+        // LCOV_EXCL_START
         fprintf(stderr, "Failed to create event loop: %s\n", strerror(-r));
         goto finish;
+        // LCOV_EXCL_STOP
     }
 
     /* Initialize the userdata */
@@ -661,8 +687,10 @@ main(int argc, char *argv[])
                                  netplan_vtable,
                                  data);
     if (r < 0) {
+        // LCOV_EXCL_START
         fprintf(stderr, "Failed to issue method call: %s\n", strerror(-r));
         goto finish;
+        // LCOV_EXCL_STOP
     }
 
     r = sd_bus_request_name(bus, "io.netplan.Netplan", 0);
@@ -673,19 +701,23 @@ main(int argc, char *argv[])
 
     r = sd_bus_attach_event(bus, event, SD_EVENT_PRIORITY_NORMAL);
     if (r < 0) {
+        // LCOV_EXCL_START
         fprintf(stderr, "Failed to attach event loop: %s\n", strerror(-r));
         goto finish;
+        // LCOV_EXCL_STOP
     }
 
     /* Mask the SIGCHLD signal, so we can listen to it via mainloop */
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGTERM);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
     /* Start the event loop, wait for requests */
+    sd_event_add_signal(event, NULL, SIGTERM, terminate_mainloop_cb, event);
     r = sd_event_loop(event);
     if (r < 0)
-        fprintf(stderr, "Failed mainloop: %s\n", strerror(-r));
+        fprintf(stderr, "Failed mainloop: %s\n", strerror(-r)); // LCOV_EXCL_LINE
 finish:
     g_free(data);
     sd_event_unref(event);
@@ -695,5 +727,3 @@ finish:
 
     return r < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
-
-// LCOV_EXCL_STOP
