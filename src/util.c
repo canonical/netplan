@@ -63,7 +63,7 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
         // LCOV_EXCL_START
         g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
         exit(1);
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

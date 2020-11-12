@@ -79,7 +79,7 @@ start_unit_jit(gchar *unit)
     const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", "--no-ask-password", unit, NULL };
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
 };
-// LCOV_EXCL_END
+// LCOV_EXCL_STOP
 
 static void
 nd_iterator_list(gpointer value, gpointer user_data)
@@ -320,7 +320,7 @@ int main(int argc, char** argv)
                 g_free(unit_name);
             }
         }
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 
     return 0;
