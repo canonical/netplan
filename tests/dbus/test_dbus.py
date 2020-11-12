@@ -27,6 +27,7 @@ if shutil.which('python3-coverage'):
 
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
+NETPLAN_DBUS_CMD = os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus")
 
 
 class MockCmd:
@@ -110,9 +111,8 @@ class TestNetplanDBus(unittest.TestCase):
         # run netplan-dbus in a fake system bus
         os.environ["DBUS_TEST_NETPLAN_CMD"] = self.mock_netplan_cmd.path
         os.environ["DBUS_TEST_NETPLAN_ROOT"] = self.tmp
-        p = subprocess.Popen(
-            os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus"),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(NETPLAN_DBUS_CMD,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.addCleanup(self._cleanup_netplan_dbus, p)
 
     def _cleanup_netplan_dbus(self, p):
@@ -178,6 +178,11 @@ class TestNetplanDBus(unittest.TestCase):
              "Apply",  # the method
              ],
         ])
+
+    def test_netplan_dbus_noroot(self):
+        r = subprocess.run(NETPLAN_DBUS_CMD, capture_output=True)
+        self.assertEquals(r.returncode, 1)
+        self.assertIn(b'Failed to acquire service name', r.stderr)
 
     def test_netplan_dbus_happy(self):
         BUSCTL_NETPLAN_APPLY = [
