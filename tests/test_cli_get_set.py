@@ -46,7 +46,7 @@ class TestSet(unittest.TestCase):
     '''Test netplan set'''
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory(prefix='netplan_')
-        self.file = '90-netplan-set.yaml'
+        self.file = '70-netplan-set.yaml'
         self.path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
         os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
 
