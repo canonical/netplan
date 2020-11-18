@@ -247,4 +247,3 @@ class TestConfigManager(unittest.TestCase):
             self.configmanager._validate_interface_config("eth0", "")
 
         self.configmanager._validate_interface_config("eth0", {})
-
