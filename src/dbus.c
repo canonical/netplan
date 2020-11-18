@@ -51,9 +51,12 @@ terminate_try_child_process(int status, NetplanData *d, const char *config_id)
         path = g_strdup_printf("/io/netplan/Netplan/config/%s", config_id);
         r = sd_bus_message_new_signal(d->bus, &msg, path,
                                       "io.netplan.Netplan.Config", "Changed");
-    } else
+    }
+    /* Currently disabled in favor of io.netplan.Netplan.Config Changed() signal
+    else
         r = sd_bus_message_new_signal(d->bus, &msg, "/io/netplan/Netplan",
                                       "io.netplan.Netplan", "Changed");
+    */
     if (r < 0) {
         // LCOV_EXCL_START
         fprintf(stderr, "Could not create .Changed() signal: %s\n", strerror(-r));
@@ -77,8 +80,10 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
     if (!accept) signal = SIGINT;
 
     /* Child does not exist or exited already ... */
+    /* Not needed, as io.netplan.Netplan Try() is diabled for now
     if (d->try_pid < 0)
         return sd_bus_reply_method_return(m, "b", false);
+    */
 
     /* Do not send the accept/reject signal, if this call is for another config state */
     if (d->handler_id != NULL && g_strcmp0(d->config_id, d->handler_id))
@@ -317,8 +322,11 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     if (!!strcmp(origin_hint, ""))
         origin = g_strdup_printf("--origin-hint=%s", origin_hint);
+
+    /* Not needed as io.netplan.Netplan methods are disabled
     else
         origin = g_strdup("");
+    */
 
     if (d->config_id)
         root_dir = g_strdup_printf("--root-dir=%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
@@ -375,9 +383,11 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     NetplanData *d = userdata;
 
     /* Fail if another 'netplan try' process is already running.
-     * 'try_pid' can be pre-set to G_MAXINT, if called via method_config_try() */
+     * 'try_pid' can be pre-set to G_MAXINT, if called via method_config_try()
+     * Not needed as io.netplan.Netplan Try() is currently disabled
     if (d->try_pid > 0 && d->try_pid != G_MAXINT)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan try: already running");
+    */
 
     if (sd_bus_message_read_basic (m, 'u', &seconds) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract timeout_seconds"); // LCOV_EXCL_LINE
@@ -625,10 +635,12 @@ static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
+    /* Disabled for now, use methods from io.netplan.Netplan.Config instead
     SD_BUS_METHOD("Get", "", "s", method_get, 0),
     SD_BUS_METHOD("Set", "ss", "b", method_set, 0),
     SD_BUS_METHOD("Try", "u", "b", method_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_cancel, 0),
+    */
     SD_BUS_METHOD("Config", "", "o", method_config, 0),
     SD_BUS_VTABLE_END
 };

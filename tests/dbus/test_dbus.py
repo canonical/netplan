@@ -238,96 +238,96 @@ class TestNetplanDBus(unittest.TestCase):
         output = subprocess.check_output(BUSCTL_NETPLAN_INFO)
         self.assertIn("Features", output.decode("utf-8"))
 
-    def test_netplan_dbus_get(self):
-        self.mock_netplan_cmd.set_output("""network:
-  ens3:
-    addresses:
-    - 1.2.3.4/24
-    - 5.6.7.8/24
-    dhcp4: true""")
-        BUSCTL_NETPLAN_GET = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Get"
-        ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
-        self.assertIn(r's "network:\n  ens3:\n    addresses:\n    - 1.2.3.4/24\n    - 5.6.7.8/24\n    dhcp4: true\n"', out)
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "get", "all"],
-        ])
-
-    def test_netplan_dbus_set(self):
-        BUSCTL_NETPLAN_SET = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Set", "ss",
-            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-            ""
-        ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_SET, universal_newlines=True)
-        self.assertEqual(out, "b true\n")
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}"],
-        ])
-
-    def test_netplan_dbus_set_origin(self):
-        BUSCTL_NETPLAN_SET = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Set", "ss",
-            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-            "99_snapd"
-        ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_SET, universal_newlines=True)
-        self.assertEqual(out, "b true\n")
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-                 "--origin-hint=99_snapd"],
-        ])
-
-    def test_netplan_dbus_try(self):
-        self.mock_netplan_cmd.set_timeout(2)
-        BUSCTL_NETPLAN_TRY = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Try", "u", "2",
-        ]
-        BUSCTL_NETPLAN_CANCEL = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Cancel",
-        ]
-        BUSCTL_NETPLAN_APPLY = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Apply",
-        ]
-
-        output = subprocess.check_output(BUSCTL_NETPLAN_CANCEL)
-        self.assertEqual("b false\n", output.decode("utf-8"))
-
-        output = subprocess.check_output(BUSCTL_NETPLAN_TRY)
-        self.assertEqual("b true\n", output.decode("utf-8"))
-
-        output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
-        self.assertEqual("b true\n", output.decode("utf-8"))
-
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "try", "--timeout=2"],
-                # ["netplan", "apply"],  # This should NOT be here, as the current Try() was accepted, not re-applied
-        ])
+#    def test_netplan_dbus_get(self):
+#        self.mock_netplan_cmd.set_output("""network:
+#  ens3:
+#    addresses:
+#    - 1.2.3.4/24
+#    - 5.6.7.8/24
+#    dhcp4: true""")
+#        BUSCTL_NETPLAN_GET = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Get"
+#        ]
+#        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
+#        self.assertIn(r's "network:\n  ens3:\n    addresses:\n    - 1.2.3.4/24\n    - 5.6.7.8/24\n    dhcp4: true\n"', out)
+#        self.assertEquals(self.mock_netplan_cmd.calls(), [
+#                ["netplan", "get", "all"],
+#        ])
+#
+#    def test_netplan_dbus_set(self):
+#        BUSCTL_NETPLAN_SET = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Set", "ss",
+#            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+#            ""
+#        ]
+#        out = subprocess.check_output(BUSCTL_NETPLAN_SET, universal_newlines=True)
+#        self.assertEqual(out, "b true\n")
+#        self.assertEquals(self.mock_netplan_cmd.calls(), [
+#                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}"],
+#        ])
+#
+#    def test_netplan_dbus_set_origin(self):
+#        BUSCTL_NETPLAN_SET = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Set", "ss",
+#            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+#            "99_snapd"
+#        ]
+#        out = subprocess.check_output(BUSCTL_NETPLAN_SET, universal_newlines=True)
+#        self.assertEqual(out, "b true\n")
+#        self.assertEquals(self.mock_netplan_cmd.calls(), [
+#                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
+#                 "--origin-hint=99_snapd"],
+#        ])
+#
+#    def test_netplan_dbus_try(self):
+#        self.mock_netplan_cmd.set_timeout(2)
+#        BUSCTL_NETPLAN_TRY = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Try", "u", "2",
+#        ]
+#        BUSCTL_NETPLAN_CANCEL = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Cancel",
+#        ]
+#        BUSCTL_NETPLAN_APPLY = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Apply",
+#        ]
+#
+#        output = subprocess.check_output(BUSCTL_NETPLAN_CANCEL)
+#        self.assertEqual("b false\n", output.decode("utf-8"))
+#
+#        output = subprocess.check_output(BUSCTL_NETPLAN_TRY)
+#        self.assertEqual("b true\n", output.decode("utf-8"))
+#
+#        output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
+#        self.assertEqual("b true\n", output.decode("utf-8"))
+#
+#        self.assertEquals(self.mock_netplan_cmd.calls(), [
+#                ["netplan", "try", "--timeout=2"],
+#                # ["netplan", "apply"],  # This should NOT be here, as the current Try() was accepted, not re-applied
+#        ])
 
     def test_netplan_dbus_config(self):
         # Create test YAML
@@ -574,28 +574,28 @@ class TestNetplanDBus(unittest.TestCase):
         # Verify 'netplan try' has been called
         self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=1"]])
 
-    def test_netplan_dbus_config_try_try(self):
-        self.mock_netplan_cmd.set_timeout(2)
-        cid = self._new_config_object()
-        BUSCTL_NETPLAN_CMD = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan/config/{}".format(cid),
-            "io.netplan.Netplan.Config",
-            "Try", "u", "2",
-        ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
-        self.assertEqual(b'b true\n', out)
-
-        BUSCTL_NETPLAN_CMD2 = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Try", "u", "2",
-        ]
-        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
-        self.assertIn('cannot run netplan try: already running', err)
+#    def test_netplan_dbus_config_try_try(self):
+#        self.mock_netplan_cmd.set_timeout(2)
+#        cid = self._new_config_object()
+#        BUSCTL_NETPLAN_CMD = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan/config/{}".format(cid),
+#            "io.netplan.Netplan.Config",
+#            "Try", "u", "2",
+#        ]
+#        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+#        self.assertEqual(b'b true\n', out)
+#
+#        BUSCTL_NETPLAN_CMD2 = [
+#            "busctl", "call", "--system",
+#            "io.netplan.Netplan",
+#            "/io/netplan/Netplan",
+#            "io.netplan.Netplan",
+#            "Try", "u", "2",
+#        ]
+#        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+#        self.assertIn('cannot run netplan try: already running', err)
 
     def test_netplan_dbus_config_try_apply(self):
         self.mock_netplan_cmd.set_timeout(2)
