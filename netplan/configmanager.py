@@ -17,6 +17,7 @@
 
 '''netplan configuration manager'''
 
+import collections.abc
 import glob
 import logging
 import os
@@ -234,6 +235,7 @@ class ConfigManager(object):
 
         for ifname in changed_ifaces:
             iface = ports.pop(ifname)
+            self._validate_interface_config(ifname, iface)
             if ifname in orig:
                 logging.debug("{} exists in {}".format(ifname, orig))
                 orig[ifname].update(iface)
@@ -250,6 +252,7 @@ class ConfigManager(object):
 
         for ifname in changed_ifaces:
             iface = new.pop(ifname)
+            self._validate_interface_config(ifname, iface)
             if ifname in orig:
                 logging.debug("{} exists in {}".format(ifname, orig))
                 orig[ifname].update(iface)
@@ -300,10 +303,24 @@ class ConfigManager(object):
                     if 'renderer' in network:
                         self.network['renderer'] = network.get('renderer')
             return new_interfaces
+        except ConfigurationError as e:  # pragma: nocover (validation YAML)
+            logging.error('Validation config {} failed, aborting. {}'.format(yaml_file, e))
+            sys.exit(1)
         except (IOError, yaml.YAMLError):  # pragma: nocover (filesystem failures/invalid YAML)
             logging.error('Error while loading {}, aborting.'.format(yaml_file))
             sys.exit(1)
+        except Exception as e:  # pragma: nocover (unknown error)
+            logging.debug('Exception raised while loading {}. {0!r}'.format(yaml_file, e))
+            logging.error('Unknown error while loading {}, aborting.'.format(yaml_file))
+            sys.exit(1)
 
+    def _validate_interface_config(self, ifname, iface):
+        """
+        The function do a minimal checking of validity iface.
+        """
+        if not isinstance(iface, collections.abc.Mapping):
+            logging.debug('Config validation error - invalid interface {}'.format(ifname))
+            raise ConfigurationError('Interface {} invalide type {}'.format(ifname, type(iface)))
 
 class ConfigurationError(Exception):
     """
