@@ -139,6 +139,7 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
             g_object_unref(source);
             g_object_unref(dest);
             g_free(dest_path);
+            globfree(&gl);
             return r;
             // LCOV_EXCL_STOP
         }
