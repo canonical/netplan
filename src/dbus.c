@@ -18,17 +18,36 @@
 #include "util.h"
 
 typedef struct {
+    sd_bus_slot *slot;
+    gboolean invalidated;
+} NetplanConfigData;
+
+typedef struct {
     sd_bus *bus;
     sd_event_source *try_es;
     GPid try_pid; /* semaphore. There can only be one 'netplan try' child process at a time */
     const char *config_id; /* current config ID, during any io.netplan.Netplan.Config calls */
     char *handler_id; /* copy of pending config ID, during io.netplan.Netplan.Config.Try() */
-    GHashTable *config_slots; /* references to the /io/netplan/Netplan/config/<ID> objects */
+    char *config_dirty; /* Currently pending Set() config object id */
+    GHashTable *config_data; /* data of to the /io/netplan/Netplan/config/<ID> objects */
 } NetplanData;
 
 static const char* NETPLAN_SUBDIRS[3] = {"etc", "run", "lib"};
 static const char* NETPLAN_GLOBAL_CONFIG = "BACKUP";
 static char* NETPLAN_ROOT = "/"; /* Can be modified for testing netplan-dbus */
+
+static void
+invalidate_other_config(gpointer key, gpointer value, gpointer user_data)
+{
+    const char *id = key;
+    const char *current_config_id = user_data;
+    NetplanConfigData *cd = value;
+
+    if (current_config_id == NULL)
+        cd->invalidated = FALSE;
+    else if (g_strcmp0(id, current_config_id))
+        cd->invalidated = TRUE;
+}
 
 static int
 terminate_try_child_process(int status, NetplanData *d, const char *config_id)
@@ -169,9 +188,11 @@ _clear_tmp_state(const char *config_id, NetplanData *d)
     /* No cleanup of DBus object needed, if config_id points to NETPLAN_GLOBAL_CONFIG (backup) */
     if (config_id != NETPLAN_GLOBAL_CONFIG) {
         /* Clear config object from DBus, by unref the appropriate slot */
-        sd_bus_slot *slot = g_hash_table_lookup(d->config_slots, config_id);
-        sd_bus_slot_unref(slot); /* Clear value/slot */
-        g_hash_table_remove(d->config_slots, config_id); /* Clear key */
+        NetplanConfigData *cd = g_hash_table_lookup(d->config_data, config_id);
+        sd_bus_slot_unref(cd->slot); /* Clear value/slot */
+        g_free(cd); /* Clear value/struct */
+        g_hash_table_remove(d->config_data, config_id); /* Clear key */
+        d->config_dirty = NULL;
         /* TODO: HashTable error handling */
     }
 
@@ -345,6 +366,10 @@ netplan_try_cancelled_cb(sd_event_source *es, const siginfo_t *si, void* userdat
         state_dir = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
         _copy_yaml_state(state_dir, NETPLAN_ROOT, NULL);
 
+        /* Un-invalidate all other current config objects */
+        if (!g_strcmp0(d->handler_id, d->config_dirty))
+            g_hash_table_foreach(d->config_data, invalidate_other_config, NULL);
+
         /* Clear GLOBAL backup and config state */
         _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
         _clear_tmp_state(d->handler_id, d);
@@ -419,6 +444,13 @@ method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     int r = 0;
     /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
     d->config_id = sd_bus_message_get_path(m) + 27;
+    NetplanConfigData *cd = g_hash_table_lookup(d->config_data, d->config_id);
+    if (cd->invalidated)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "This config was invalidated by another config object\n");
+    /* Invalidate all other current config objects */
+    g_hash_table_foreach(d->config_data, invalidate_other_config, (void*)d->config_id);
+    d->config_dirty = g_strdup(d->config_id);
 
     if (d->try_pid < 0) {
         /* Delete GLOBAL state */
@@ -457,7 +489,14 @@ method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     NetplanData *d = userdata;
     /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
     d->config_id = sd_bus_message_get_path(m) + 27;
+    NetplanConfigData *cd = g_hash_table_lookup(d->config_data, d->config_id);
+    if (cd->invalidated)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "This config was invalidated by another config object\n");
     int r = method_set(m, d, ret_error);
+    /* Invalidate all other current config objects */
+    g_hash_table_foreach(d->config_data, invalidate_other_config, (void*)d->config_id);
+    d->config_dirty = g_strdup(d->config_id);
     /* Reset config_id for next method call */
     d->config_id = NULL;
     return r;
@@ -469,14 +508,19 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     NetplanData *d = userdata;
     g_autofree gchar *path = NULL;
     g_autofree gchar *state_dir = NULL;
+    const char *config_id = sd_bus_message_get_path(m) + 27;
     if (d->try_pid > 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Another Try() is currently in progress: PID %d\n", d->try_pid);
+    NetplanConfigData *cd = g_hash_table_lookup(d->config_data, config_id);
+    if (cd->invalidated)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "This config was invalidated by another config object\n");
 
     int r = 0;
     /* Lock current child process temporarily until we have a real PID */
     d->try_pid = G_MAXINT;
-    d->config_id = sd_bus_message_get_path(m) + 27;
+    d->config_id = config_id;
 
     /* Backup GLOBAL state */
     path = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
@@ -517,6 +561,9 @@ method_config_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     int r = 0;
     /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
     d->config_id = sd_bus_message_get_path(m) + 27;
+    if (!g_strcmp0(d->config_id, d->config_dirty))
+        /* Un-invalidate all other current config objects */
+         g_hash_table_foreach(d->config_data, invalidate_other_config, NULL);
 
     /* Cancel the current 'netplan try' process */
     if (d->try_pid > 0)
@@ -585,9 +632,13 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (r < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "Failed to add 'config' object: %s\n", strerror(-r));
-    if (!g_hash_table_insert(d->config_slots, g_strdup(id), slot))
+    NetplanConfigData *cd = g_new0(NetplanConfigData, 1);
+    cd->slot = slot;
+    /* Cannot Set()/Apply() if another Set() is currently pending */
+    cd->invalidated = d->config_dirty ? TRUE : FALSE;
+    if (!g_hash_table_insert(d->config_data, g_strdup(id), cd))
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
-                                 "Failed to add object slot to HashTable\n");
+                                 "Failed to add object data to HashTable\n");
     // LCOV_EXCL_STOP
 
     /* Create {etc,run,lib} subdirs with owner r/w permissions */
@@ -665,8 +716,9 @@ main(int argc, char *argv[])
     data->try_pid = -1;
     data->config_id = NULL;
     data->handler_id = NULL;
+    data->config_dirty = NULL;
     /* TODO: define a proper free/cleanup function for sd_bus_slot_unref() */
-    data->config_slots = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    data->config_data = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
     r = sd_bus_add_object_vtable(bus, &slot,
                                  "/io/netplan/Netplan",  /* object path */

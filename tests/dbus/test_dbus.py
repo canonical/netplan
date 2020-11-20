@@ -529,3 +529,197 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
         self.assertIn('Another Try() is currently in progress: PID ', err)
+
+    def test_netplan_dbus_config_set_invalidate(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=true", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        # Calling Set() on the same config object still works
+        BUSCTL_NETPLAN_CMD1 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=yes", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD1)
+        self.assertEqual(b'b true\n', out)
+
+        cid2 = self._new_config_object()
+        # Calling Set() on another config object fails
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('This config was invalidated by another config object', err)
+        # Calling Try() on another config object fails
+        BUSCTL_NETPLAN_CMD3 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "2",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD3)
+        self.assertIn('This config was invalidated by another config object', err)
+        # Calling Apply() on another config object fails
+        BUSCTL_NETPLAN_CMD4 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD4)
+        self.assertIn('This config was invalidated by another config object', err)
+
+        # Calling Apply() on the same config object still works
+        BUSCTL_NETPLAN_CMD5 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD5)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify that Set()/Apply() was only called by one config object
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "set", "ethernets.eth0.dhcp4=yes", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "apply"]
+        ])
+
+        # Now it works again
+        cid3 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid3),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid3),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+    def test_netplan_dbus_config_set_uninvalidate(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        cid2 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=true", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+        # Calling Set() on another config object fails
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('This config was invalidated by another config object', err)
+
+        # Calling Cancel() clears the dirty state
+        BUSCTL_NETPLAN_CMD3 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Cancel",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD3)
+        self.assertEqual(b'b true\n', out)
+
+        # Calling Set() on the other config object works now
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify the call stack
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "set", "ethernets.eth0.dhcp4=false", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid2)]
+        ])
+
+    def test_netplan_dbus_config_set_uninvalidate_timeout(self):
+        self.mock_netplan_cmd.set_timeout(1)
+        cid = self._new_config_object()
+        cid2 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=true", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+        BUSCTL_NETPLAN_CMD1 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "1",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD1)
+        self.assertEqual(b'b true\n', out)
+
+        # Calling Set() on another config object fails
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('This config was invalidated by another config object', err)
+
+        time.sleep(1.5)  # Wait for the child process to cancel itself
+
+        # Calling Set() on the other config object works now
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify the call stack
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "try", "--timeout=1"],
+            ["netplan", "set", "ethernets.eth0.dhcp4=false", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid2)]
+        ])
