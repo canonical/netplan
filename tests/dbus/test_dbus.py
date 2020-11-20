@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import time
 
 rootdir = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
@@ -27,6 +28,7 @@ if shutil.which('python3-coverage'):
 
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
+NETPLAN_DBUS_CMD = os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus")
 
 
 class MockCmd:
@@ -68,11 +70,39 @@ printf '\\0' >> %(log)s
         with open(self.path, "a") as fp:
             fp.write("cat << EOF\n%s\nEOF" % output)
 
+    def set_timeout(self, timeout=1):
+        with open(self.path, "a") as fp:
+            fp.write("""
+if [[ "$*" == *try* ]]
+then
+    ACTIVE=1
+    trap 'ACTIVE=0' SIGUSR1
+    trap 'ACTIVE=0' SIGINT
+    # timeout * 10 is the specified timeout in seconds (0.1 sec sleep increments)
+    while (( $ACTIVE > 0 )) && (( $ACTIVE <= $(({}*10)) ))
+    do
+        ACTIVE=$(($ACTIVE+1))
+        sleep 0.1
+    done
+fi
+""".format(timeout))
+
 
 class TestNetplanDBus(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.tmp, "etc", "netplan"), 0o700)
+        os.makedirs(os.path.join(self.tmp, "lib", "netplan"), 0o700)
+        os.makedirs(os.path.join(self.tmp, "run", "netplan"), 0o700)
+        # Create main test YAML in /etc/netplan/
+        test_file = os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')
+        with open(test_file, 'w') as f:
+            f.write("""network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true""")
         self.addCleanup(shutil.rmtree, self.tmp)
         self.mock_netplan_cmd = MockCmd("netplan")
         self._create_mock_system_bus()
@@ -98,9 +128,9 @@ class TestNetplanDBus(unittest.TestCase):
     def _run_netplan_dbus_on_mock_bus(self):
         # run netplan-dbus in a fake system bus
         os.environ["DBUS_TEST_NETPLAN_CMD"] = self.mock_netplan_cmd.path
-        p = subprocess.Popen(
-            os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus"),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.environ["DBUS_TEST_NETPLAN_ROOT"] = self.tmp
+        p = subprocess.Popen(NETPLAN_DBUS_CMD,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.addCleanup(self._cleanup_netplan_dbus, p)
 
     def _cleanup_netplan_dbus(self, p):
@@ -109,6 +139,34 @@ class TestNetplanDBus(unittest.TestCase):
         # netplan-dbus does not produce output
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
+
+    def _check_dbus_error(self, cmd, returncode=1):
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.wait()
+        self.assertEqual(p.returncode, returncode)
+        self.assertEqual(p.stdout.read().decode("utf-8"), "")
+        return p.stderr.read().decode("utf-8")
+
+    def _new_config_object(self):
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Config",
+        ]
+        # Create new config object / config state
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertIn(b'o "/io/netplan/Netplan/config/', out)
+        cid = out.decode('utf-8').split('/')[-1].replace('"\n', '')
+        # Verify that the state folders were created in /tmp
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.assertTrue(os.path.isdir(tmpdir))
+        self.assertTrue(os.path.isdir(os.path.join(tmpdir, 'etc', 'netplan')))
+        self.assertTrue(os.path.isdir(os.path.join(tmpdir, 'run', 'netplan')))
+        self.assertTrue(os.path.isdir(os.path.join(tmpdir, 'lib', 'netplan')))
+        # Return random config ID
+        return cid
 
     def test_netplan_apply_in_snap_uses_dbus(self):
         p = subprocess.Popen(
@@ -138,6 +196,12 @@ class TestNetplanDBus(unittest.TestCase):
              "Apply",  # the method
              ],
         ])
+
+    def test_netplan_dbus_noroot(self):
+        # Process should fail instantly, if not: kill it after 1 sec
+        r = subprocess.run(NETPLAN_DBUS_CMD, timeout=1, capture_output=True)
+        self.assertEquals(r.returncode, 1)
+        self.assertIn(b'Failed to acquire service name', r.stderr)
 
     def test_netplan_dbus_happy(self):
         BUSCTL_NETPLAN_APPLY = [
@@ -174,105 +238,488 @@ class TestNetplanDBus(unittest.TestCase):
         output = subprocess.check_output(BUSCTL_NETPLAN_INFO)
         self.assertIn("Features", output.decode("utf-8"))
 
-    def test_netplan_dbus_get(self):
-        self.mock_netplan_cmd.set_output("""network:
-  ens3:
-    addresses:
-    - 1.2.3.4/24
-    - 5.6.7.8/24
-    dhcp4: true""")
-        BUSCTL_NETPLAN_GET = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Get"
-        ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
-        self.assertIn(r's "network:\n  ens3:\n    addresses:\n    - 1.2.3.4/24\n    - 5.6.7.8/24\n    dhcp4: true\n"', out)
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "get", "all"],
-        ])
+    def test_netplan_dbus_config(self):
+        # Create test YAML
+        test_file_lib = os.path.join(self.tmp, 'lib', 'netplan', 'lib_test.yaml')
+        with open(test_file_lib, 'w') as f:
+            f.write('TESTING-lib')
+        test_file_run = os.path.join(self.tmp, 'run', 'netplan', 'run_test.yaml')
+        with open(test_file_run, 'w') as f:
+            f.write('TESTING-run')
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'lib_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'run_test.yaml')))
 
-    def test_netplan_dbus_set(self):
-        BUSCTL_NETPLAN_GET = [
-            "busctl", "call", "--system",
-            "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Set", "ss",
-            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-            ""
-        ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
-        self.assertEqual(out, "b true\n")
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}"],
-        ])
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addClassCleanup(shutil.rmtree, tmpdir)
 
-    def test_netplan_dbus_set_origin(self):
-        BUSCTL_NETPLAN_GET = [
+        # Verify the object path has been created, by calling .Config.Get() on that object
+        # it would throw an error if it does not exist
+        BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
-            "/io/netplan/Netplan",
-            "io.netplan.Netplan",
-            "Set", "ss",
-            "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-            "99_snapd"
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Get",
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_GET, universal_newlines=True)
-        self.assertEqual(out, "b true\n")
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "set", "ethernets.eth0={addresses: [5.6.7.8/24], dhcp4: false}",
-                 "--origin-hint=99_snapd"],
-        ])
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
+        self.assertIn(r's ""', out)  # No output as 'netplan get' is actually mocked
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "get", "all", "--root-dir={}".format(tmpdir)
+        ]])
 
-    def test_netplan_dbus_try(self):
-        BUSCTL_NETPLAN_TRY = [
-            "busctl", "call", "--system",
+        # Verify all *.yaml files have been copied
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'etc', 'netplan', 'main_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'lib', 'netplan', 'lib_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'run', 'netplan', 'run_test.yaml')))
+
+    def test_netplan_dbus_no_such_command(self):
+        err = self._check_dbus_error([
+            "busctl", "call",
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
-            "Try", "u", "5",
+            "NoSuchCommand"
+        ])
+        self.assertIn("Unknown method", err)
+
+    def test_netplan_dbus_config_set(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addCleanup(shutil.rmtree, tmpdir)
+
+        # Verify .Config.Set() on the config object
+        # No actual YAML file will be created, as the netplan command is mocked
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth42.dhcp6=true", "testfile",
         ]
-        BUSCTL_NETPLAN_CANCEL = [
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "set", "ethernets.eth42.dhcp6=true",
+            "--origin-hint=testfile", "--root-dir={}".format(tmpdir)
+        ]])
+
+    def test_netplan_dbus_config_get(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addCleanup(shutil.rmtree, tmpdir)
+
+        # Verify .Config.Get() on the config object
+        self.mock_netplan_cmd.set_output("network:\n  eth42:\n    dhcp6: true")
+        BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
-            "/io/netplan/Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Get",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
+        self.assertIn(r's "network:\n  eth42:\n    dhcp6: true\n"', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "get", "all", "--root-dir={}".format(tmpdir)
+        ]])
+
+    def test_netplan_dbus_config_cancel(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+
+        # Verify .Config.Cancel() teardown of the config object and state dirs
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
             "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
             "Cancel",
         ]
-        BUSCTL_NETPLAN_APPLY = [
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the object is gone from the bus
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
+        self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+    def test_netplan_dbus_config_apply(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        with open(os.path.join(tmpdir, 'etc', 'netplan', 'apply_test.yaml'), 'w') as f:
+            f.write('TESTING-apply')
+        with open(os.path.join(tmpdir, 'lib', 'netplan', 'apply_test.yaml'), 'w') as f:
+            f.write('TESTING-apply')
+        with open(os.path.join(tmpdir, 'run', 'netplan', 'apply_test.yaml'), 'w') as f:
+            f.write('TESTING-apply')
+
+        # Verify .Config.Apply() teardown of the config object and state dirs
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "apply"]])
+        self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the new YAML files were copied over
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'apply_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'apply_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'apply_test.yaml')))
+
+        # Verify the object is gone from the bus
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
+        self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+    def test_netplan_dbus_config_try_cancel(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        backup = '/tmp/netplan-config-BACKUP'
+        with open(os.path.join(tmpdir, 'etc', 'netplan', 'try_test.yaml'), 'w') as f:
+            f.write('TESTING-try')
+        with open(os.path.join(tmpdir, 'lib', 'netplan', 'try_test.yaml'), 'w') as f:
+            f.write('TESTING-try')
+        with open(os.path.join(tmpdir, 'run', 'netplan', 'try_test.yaml'), 'w') as f:
+            f.write('TESTING-try')
+
+        # Verify .Config.Try() setup of the config object and state dirs
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "2",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify the temp state still exists
+        self.assertTrue(os.path.isdir(tmpdir))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'etc', 'netplan', 'try_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'run', 'netplan', 'try_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(tmpdir, 'lib', 'netplan', 'try_test.yaml')))
+
+        # Verify the backup has been created
+        self.assertTrue(os.path.isdir(backup))
+        self.assertTrue(os.path.isfile(os.path.join(backup, 'etc', 'netplan', 'main_test.yaml')))
+
+        # Verify the new YAML files were copied over
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'try_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'try_test.yaml')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'try_test.yaml')))
+
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Cancel",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        self.assertEqual(b'b true\n', out)
+        time.sleep(1)  # Give some time for the 'netplan try' process
+
+        # Verify the backup andconfig state dir are gone
+        self.assertFalse(os.path.isdir(backup))
+        self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the backup has been restored
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')))
+        self.assertFalse(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'try_test.yaml')))
+        self.assertFalse(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'try_test.yaml')))
+        self.assertFalse(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'try_test.yaml')))
+
+        # Verify the config object is gone from the bus
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+        # Verify 'netplan try' has been called
+        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=2"]])
+
+    def test_netplan_dbus_config_try_cb(self):
+        self.mock_netplan_cmd.set_timeout(1)  # self-quit after 1 sec
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        backup = '/tmp/netplan-config-BACKUP'
+        with open(os.path.join(tmpdir, 'etc', 'netplan', 'try_test.yaml'), 'w') as f:
+            f.write('TESTING-try')
+        with open(os.path.join(tmpdir, 'lib', 'netplan', 'try_test.yaml'), 'w') as f:
+            f.write('TESTING-try')
+        with open(os.path.join(tmpdir, 'run', 'netplan', 'try_test.yaml'), 'w') as f:
+            f.write('TESTING-try')
+
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "1",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        time.sleep(1.5)  # Give some time for the timeout to happen
+
+        # Verify the backup andconfig state dir are gone
+        self.assertFalse(os.path.isdir(backup))
+        self.assertFalse(os.path.isdir(tmpdir))
+
+        # Verify the backup has been restored
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')))
+        self.assertFalse(os.path.isfile(os.path.join(self.tmp, 'etc', 'netplan', 'try_test.yaml')))
+        self.assertFalse(os.path.isfile(os.path.join(self.tmp, 'run', 'netplan', 'try_test.yaml')))
+        self.assertFalse(os.path.isfile(os.path.join(self.tmp, 'lib', 'netplan', 'try_test.yaml')))
+
+        # Verify the config object is gone from the bus
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
+        self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+        # Verify 'netplan try' has been called
+        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=1"]])
+
+    def test_netplan_dbus_config_try_apply(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "2",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+        BUSCTL_NETPLAN_CMD2 = [
             "busctl", "call", "--system",
             "io.netplan.Netplan",
             "/io/netplan/Netplan",
             "io.netplan.Netplan",
             "Apply",
         ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('Another \'netplan try\' process is already running', err)
 
-        output = subprocess.check_output(BUSCTL_NETPLAN_CANCEL)
-        self.assertEqual("b false\n", output.decode("utf-8"))
+    def test_netplan_dbus_config_try_config_try(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "2",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
 
-        output = subprocess.check_output(BUSCTL_NETPLAN_TRY)
-        self.assertEqual("b true\n", output.decode("utf-8"))
+        cid2 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "2",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('Another Try() is currently in progress: PID ', err)
 
-        output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
-        self.assertEqual("b true\n", output.decode("utf-8"))
+    def test_netplan_dbus_config_set_invalidate(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=true", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        # Calling Set() on the same config object still works
+        BUSCTL_NETPLAN_CMD1 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=yes", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD1)
+        self.assertEqual(b'b true\n', out)
 
+        cid2 = self._new_config_object()
+        # Calling Set() on another config object fails
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('This config was invalidated by another config object', err)
+        # Calling Try() on another config object fails
+        BUSCTL_NETPLAN_CMD3 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "2",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD3)
+        self.assertIn('This config was invalidated by another config object', err)
+        # Calling Apply() on another config object fails
+        BUSCTL_NETPLAN_CMD4 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD4)
+        self.assertIn('This config was invalidated by another config object', err)
+
+        # Calling Apply() on the same config object still works
+        BUSCTL_NETPLAN_CMD5 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD5)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify that Set()/Apply() was only called by one config object
         self.assertEquals(self.mock_netplan_cmd.calls(), [
-                ["netplan", "try", "--timeout=5"],
-                ["netplan", "apply"],
+            ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "set", "ethernets.eth0.dhcp4=yes", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "apply"]
         ])
 
-    def test_netplan_dbus_no_such_command(self):
-        p = subprocess.Popen(
-            ["busctl", "call",
-             "io.netplan.Netplan",
-             "/io/netplan/Netplan",
-             "io.netplan.Netplan",
-             "NoSuchCommand"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
-        self.assertEqual(p.returncode, 1)
-        self.assertEqual(p.stdout.read().decode("utf-8"), "")
-        self.assertIn("Unknown method", p.stderr.read().decode("utf-8"))
+        # Now it works again
+        cid3 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid3),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid3),
+            "io.netplan.Netplan.Config",
+            "Apply",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+    def test_netplan_dbus_config_set_uninvalidate(self):
+        self.mock_netplan_cmd.set_timeout(2)
+        cid = self._new_config_object()
+        cid2 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=true", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+        # Calling Set() on another config object fails
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('This config was invalidated by another config object', err)
+
+        # Calling Cancel() clears the dirty state
+        BUSCTL_NETPLAN_CMD3 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Cancel",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD3)
+        self.assertEqual(b'b true\n', out)
+
+        # Calling Set() on the other config object works now
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify the call stack
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "set", "ethernets.eth0.dhcp4=false", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid2)]
+        ])
+
+    def test_netplan_dbus_config_set_uninvalidate_timeout(self):
+        self.mock_netplan_cmd.set_timeout(1)
+        cid = self._new_config_object()
+        cid2 = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=true", "70-snapd",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+
+        BUSCTL_NETPLAN_CMD1 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "1",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD1)
+        self.assertEqual(b'b true\n', out)
+
+        # Calling Set() on another config object fails
+        BUSCTL_NETPLAN_CMD2 = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid2),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets.eth0.dhcp4=false", "70-snapd",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
+        self.assertIn('This config was invalidated by another config object', err)
+
+        time.sleep(1.5)  # Wait for the child process to cancel itself
+
+        # Calling Set() on the other config object works now
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD2)
+        self.assertEqual(b'b true\n', out)
+
+        # Verify the call stack
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid)],
+            ["netplan", "try", "--timeout=1"],
+            ["netplan", "set", "ethernets.eth0.dhcp4=false", "--origin-hint=70-snapd",
+             "--root-dir=/tmp/netplan-config-{}".format(cid2)]
+        ])
