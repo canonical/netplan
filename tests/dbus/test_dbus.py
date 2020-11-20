@@ -464,7 +464,7 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
-        time.sleep(2)  # Give some time for the timeout to happen
+        time.sleep(1.5)  # Give some time for the timeout to happen
 
         # Verify the backup andconfig state dir are gone
         self.assertFalse(os.path.isdir(backup))

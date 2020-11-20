@@ -426,12 +426,6 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     return sd_bus_reply_method_return(m, "b", true);
 }
 
-static int
-method_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
-{
-    return _try_accept(FALSE, m, userdata, ret_error);
-}
-
 /**
  * io.netplan.Netplan.Config methods
  */
@@ -567,7 +561,7 @@ method_config_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     /* Cancel the current 'netplan try' process */
     if (d->try_pid > 0)
-        r = method_cancel(m, d, ret_error);
+        r = _try_accept(FALSE, m, d, ret_error);
     else
         r = sd_bus_reply_method_return(m, "b", true);
 
