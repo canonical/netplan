@@ -17,9 +17,9 @@ netplan-set - write netplan YAML configuration snippets to file
 
 # DESCRIPTION
 
-**netplan set [key=value]** writes a given key/value pair or YAML subtree into a YAML file in ``/etc/netplan/*.yaml`` and validates its format.
+**netplan set [key=value]** writes a given key/value pair or YAML subtree into a YAML file in ``/etc/netplan/`` and validates its format.
 
-You can specify a single value as: ``"[network.]ethernets.eth0.dhcp4=[1.2.3.4/24, 5.6.7.8/24]"`` or a full subtree as: ``"[network.]ethernets.eth0={dhcp4: true, dhcp6: true}``.
+You can specify a single value as: ``"[network.]ethernets.eth0.dhcp4=[1.2.3.4/24, 5.6.7.8/24]"`` or a full subtree as: ``"[network.]ethernets.eth0={dhcp4: true, dhcp6: true}"``.
 
 For details of the configuration file format, see **netplan**(5).
 
