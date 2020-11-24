@@ -430,6 +430,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
  * io.netplan.Netplan.Config methods
  */
 
+/* netplan-feature: dbus-config */
 static int
 method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
