@@ -186,6 +186,7 @@ def is_interface_matching_macaddress(interface, match_mac):
 
     return match_mac == macaddress
 
+
 def get_matched_name(key, match):
     name_glob = "*"
     if 'name' in match:
@@ -203,7 +204,8 @@ def get_matched_name(key, match):
     # Filter for macaddress and/or driver glob
     filtered = matched_ifs.items()  # unfiltered list
     if len(filtered) > 1 and 'macaddress' in match:
-        filtered = list(filter(lambda x: x[1]['macaddress'] and x[1]['macaddress'] == '{}\n'.format(match['macaddress'].lower()), filtered))
+        filtered = list(filter(lambda x: x[1]['macaddress'] and x[1]['macaddress'] == match['macaddress'].strip().lower(),
+                               filtered))
     if len(filtered) > 1 and 'driver' in match:
         filtered = list(filter(lambda x: x[1]['driver'] and fnmatch.fnmatch(x[1]['driver'], match['driver']), filtered))
 

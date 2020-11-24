@@ -206,11 +206,12 @@ class NetplanApply(utils.NetplanCommand):
                 if settings.get('_netplan_id'):
                     critical = config_manager.physical_interfaces[settings.get('_netplan_id')].get('critical')
                 if critical:
-                    logging.warning('Cannot rename {} -> {} at runtime, due to being critical'.format(iface, settings.get('name')))
+                    logging.warning('Cannot rename {} -> {} at runtime, due to being critical'
+                                    .format(iface, settings.get('name')))
                     continue
                 subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
-                                    stdout=subprocess.DEVNULL,
-                                    stderr=subprocess.DEVNULL)
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
                 subprocess.check_call(['ip', 'link', 'set',
                                        'dev', iface,
                                        'name', settings.get('name')],
