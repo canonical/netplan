@@ -199,9 +199,18 @@ class NetplanApply(utils.NetplanCommand):
             except subprocess.CalledProcessError:
                 logging.debug('Ignoring device without syspath: %s', device)
 
-        # apply renames to "down" devices
+        # apply renames to "down" devices, or "up" devices which are not defined to be critical
         for iface, settings in changes.items():
             if settings.get('name'):
+                critical = False
+                if settings.get('_netplan_id'):
+                    critical = config_manager.physical_interfaces[settings.get('_netplan_id')].get('critical')
+                if critical:
+                    logging.warning('Cannot rename {} -> {} at runtime, due to being critical'.format(iface, settings.get('name')))
+                    continue
+                subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL)
                 subprocess.check_call(['ip', 'link', 'set',
                                        'dev', iface,
                                        'name', settings.get('name')],
@@ -279,13 +288,20 @@ class NetplanApply(utils.NetplanCommand):
 
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
-        logging.debug('IFS {}'.format(interfaces))
-        logging.debug('PHYS {}'.format(phys))
-        matched_phys = phys.items()
-        matched_phys = list(map(lambda x: x[1]['matched_name'] if 'matched_name' in x[1] else x[0], matched_phys))
-        logging.info('M {}'.format(matched_phys))
+        matched_phys = dict()
+        for phy, settings in phys.items():
+            match = settings.get('match')
+            if not match:
+                matched_phys[phy] = settings
+                continue
+            matched_name = utils.get_matched_name(phy, match)
+            if not matched_name:
+                matched_phys[phy] = settings
+                continue
+            settings['_netplan_id'] = phy
+            matched_phys[matched_name] = settings
+
         for interface in interfaces:
-            logging.info('IF {}'.format(interface))
             if interface not in matched_phys:
                 # do not rename  virtual devices
                 logging.debug('Skipping non-physical interface: %s', interface)
@@ -306,11 +322,15 @@ class NetplanApply(utils.NetplanCommand):
                 logging.debug(new_name)
                 logging.debug(interface)
                 if new_name != interface:
-                    changes.update({interface: {'name': new_name}})
+                    settings = matched_phys.get(interface)
+                    netplan_id = settings.get('_netplan_id')
+                    changes.update({interface: {'name': new_name, '_netplan_id': netplan_id}})
             if macaddress in matches['by-mac']:
                 new_name = matches['by-mac'][macaddress]
                 if new_name != interface:
-                    changes.update({interface: {'name': new_name}})
+                    settings = matched_phys.get(interface)
+                    netplan_id = settings.get('_netplan_id')
+                    changes.update({interface: {'name': new_name, '_netplan_id': netplan_id}})
 
         logging.debug(changes)
         return changes

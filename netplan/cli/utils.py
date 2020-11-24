@@ -18,6 +18,7 @@
 
 import sys
 import os
+import glob
 import logging
 import fnmatch
 import argparse
@@ -184,6 +185,33 @@ def is_interface_matching_macaddress(interface, match_mac):
     macaddress = get_interface_macaddress(interface)
 
     return match_mac == macaddress
+
+def get_matched_name(key, match):
+    name_glob = "*"
+    if 'name' in match:
+        name_glob = match['name']
+    matched_ifs = dict()
+    for iface in glob.glob('/sys/class/net/{}'.format(name_glob)):
+        name = os.path.basename(iface)
+        matched_ifs[name] = {'macaddress': None, 'driver': None}
+        if os.path.isfile(iface + '/address'):
+            with open(iface + '/address', 'r') as f:
+                matched_ifs[name]['macaddress'] = f.read()
+        if os.path.islink(iface + '/device/driver'):
+            matched_ifs[name]['driver'] = os.readlink(iface + '/device/driver').split('/')[-1]
+
+    # Filter for macaddress and/or driver glob
+    filtered = matched_ifs.items()  # unfiltered list
+    if len(filtered) > 1 and 'macaddress' in match:
+        filtered = list(filter(lambda x: x[1]['macaddress'] and x[1]['macaddress'] == '{}\n'.format(match['macaddress'].lower()), filtered))
+    if len(filtered) > 1 and 'driver' in match:
+        filtered = list(filter(lambda x: x[1]['driver'] and fnmatch.fnmatch(x[1]['driver'], match['driver']), filtered))
+
+    # Return current name of unique matched interface, if available
+    if len(filtered) != 1:
+        logging.warning('Cannot find unique matching name for {} out of: {}'.format(key, filtered))
+        return None
+    return filtered[0][0]
 
 
 class NetplanCommand(argparse.Namespace):
