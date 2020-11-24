@@ -18,6 +18,7 @@
 '''netplan configuration manager'''
 
 import glob
+import fnmatch
 import logging
 import os
 import shutil
@@ -244,17 +245,50 @@ class ConfigManager(object):
 
         return new_interfaces
 
-    def _merge_interface_config(self, orig, new):
+    def _get_matched_name(self, key, match):
+        name_glob = "*"
+        if 'name' in match:
+            name_glob = match['name']
+        matched_ifs = dict()
+        for iface in glob.glob('/sys/class/net/{}'.format(name_glob)):
+            name = os.path.basename(iface)
+            matched_ifs[name] = {'macaddress': None, 'driver': None}
+            if os.path.isfile(iface + '/address'):
+                with open(iface + '/address', 'r') as f:
+                    matched_ifs[name]['macaddress'] = f.read()
+            if os.path.islink(iface + '/device/driver'):
+                matched_ifs[name]['driver'] = os.readlink(iface + '/device/driver').split('/')[-1]
+
+        # Filter for macaddress and/or driver glob
+        filtered = matched_ifs.items()  # unfiltered list
+        if len(filtered) > 1 and 'macaddress' in match:
+            filtered = list(filter(lambda x: x[1]['macaddress'] and x[1]['macaddress'] == '{}\n'.format(match['macaddress'].lower()), filtered))
+        if len(filtered) > 1 and 'driver' in match:
+            filtered = list(filter(lambda x: x[1]['driver'] and fnmatch.fnmatch(x[1]['driver'], match['driver']), filtered))
+
+        # Return current name of unique matched interface, if available
+        if len(filtered) != 1:
+            logging.warning('Cannot find unique matching name for {} out of: {}'.format(key, filtered))
+            return None
+        return filtered[0][0]
+
+    def _merge_interface_config(self, orig, new, physical = False):
         new_interfaces = set()
         changed_ifaces = list(new.keys())
 
         for ifname in changed_ifaces:
+            if physical and 'match' in new[ifname]:
+                matched_name = self._get_matched_name(ifname, new[ifname]['match'])
             iface = new.pop(ifname)
             if ifname in orig:
                 logging.debug("{} exists in {}".format(ifname, orig))
+                if matched_name:
+                    iface['matched_name'] = matched_name
                 orig[ifname].update(iface)
             else:
                 logging.debug("{} not found in {}".format(ifname, orig))
+                if matched_name:
+                    iface['matched_name'] = matched_name
                 orig[ifname] = iface
                 new_interfaces.add(ifname)
 
@@ -275,13 +309,13 @@ class ConfigManager(object):
                         new_interfaces |= new
                         self.network['openvswitch'] = network.get('openvswitch')
                     if 'ethernets' in network:
-                        new = self._merge_interface_config(self.ethernets, network.get('ethernets'))
+                        new = self._merge_interface_config(self.ethernets, network.get('ethernets'), True)
                         new_interfaces |= new
                     if 'modems' in network:
-                        new = self._merge_interface_config(self.modems, network.get('modems'))
+                        new = self._merge_interface_config(self.modems, network.get('modems'), True)
                         new_interfaces |= new
                     if 'wifis' in network:
-                        new = self._merge_interface_config(self.wifis, network.get('wifis'))
+                        new = self._merge_interface_config(self.wifis, network.get('wifis'), True)
                         new_interfaces |= new
                     if 'bridges' in network:
                         new = self._merge_interface_config(self.bridges, network.get('bridges'))

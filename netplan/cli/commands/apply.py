@@ -279,8 +279,14 @@ class NetplanApply(utils.NetplanCommand):
 
         # /sys/class/net/ens3/device -> ../../../virtio0
         # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
+        logging.debug('IFS {}'.format(interfaces))
+        logging.debug('PHYS {}'.format(phys))
+        matched_phys = phys.items()
+        matched_phys = list(map(lambda x: x[1]['matched_name'] if 'matched_name' in x[1] else x[0], matched_phys))
+        logging.info('M {}'.format(matched_phys))
         for interface in interfaces:
-            if interface not in phys:
+            logging.info('IF {}'.format(interface))
+            if interface not in matched_phys:
                 # do not rename  virtual devices
                 logging.debug('Skipping non-physical interface: %s', interface)
                 continue
