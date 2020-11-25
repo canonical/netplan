@@ -240,6 +240,29 @@ class _CommonTests():
         # Verify IPv4 and IPv6 link local addresses are there
         self.assert_iface(self.dev_e_client, ['inet6 fe80:', 'inet 169.254.'])
 
+    def test_rename_interfaces(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    idx:
+      match:
+        name: %(ec)s
+      set-name: iface1
+      addresses: [10.10.10.11/24]
+    idy:
+      match:
+        macaddress: %(e2c_mac)s
+      set-name: iface2
+      addresses: [10.10.10.22/24]
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c_mac': self.dev_e2_client_mac})
+        self.generate_and_settle()
+        self.assert_iface('iface1', ['inet 10.10.10.11'])
+        self.assert_iface_up('iface1', ['inet 10.10.10.11'])
+        self.assert_iface('iface2', ['inet 10.10.10.22'])
+        self.assert_iface_up('iface2', ['inet 10.10.10.22'])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
