@@ -193,14 +193,16 @@ def find_matched_name(key, match):
     if 'name' in match:
         name_glob = match['name']
     matched_ifs = dict()
-    for iface in glob.glob('/sys/class/net/{}'.format(name_glob)):
-        name = os.path.basename(iface)
+    for devdir in glob.glob('/sys/class/net/{}'.format(name_glob)):
+        name = os.path.basename(devdir)
         matched_ifs[name] = {'macaddress': None, 'driver': None}
-        if os.path.isfile(iface + '/address'):
-            with open(iface + '/address', 'r') as f:
+        address = os.path.join(devdir, 'address')
+        if os.path.isfile(address):
+            with open(address, 'r') as f:
                 matched_ifs[name]['macaddress'] = f.read().strip()
-        if os.path.islink(iface + '/device/driver'):
-            matched_ifs[name]['driver'] = os.readlink(iface + '/device/driver').split('/')[-1]
+        driver = os.path.realpath(os.path.join(devdir, 'device/driver'))
+        if os.path.islink(driver):
+            matched_ifs[name]['driver'] = os.path.basename(driver)
 
     # Filter for macaddress and/or driver glob
     filtered = matched_ifs.items()  # unfiltered list
