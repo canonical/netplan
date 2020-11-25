@@ -187,20 +187,23 @@ class NetplanApply(utils.NetplanCommand):
         changes = NetplanApply.process_link_changes(devices, config_manager)
 
         # if the interface is up, we can still apply some .link file changes
-        # devices = netifaces.interfaces()
-        # for device in devices:
-        #     logging.debug('netplan triggering .link rules for %s', device)
-        #     try:
-        #         subprocess.check_call(['udevadm', 'test-builtin',
-        #                                'net_setup_link',
-        #                                '/sys/class/net/' + device],
-        #                               stdout=subprocess.DEVNULL,
-        #                               stderr=subprocess.DEVNULL)
-        #     except subprocess.CalledProcessError:
-        #         logging.debug('Ignoring device without syspath: %s', device)
+        # but we cannot apply the interface rename via udev, as it won't touch
+        # the interface name, if it was already renamed once (e.g. during boot)
+        devices = netifaces.interfaces()
+        for device in devices:
+            logging.debug('netplan triggering .link rules for %s', device)
+            try:
+                subprocess.check_call(['udevadm', 'test-builtin',
+                                       'net_setup_link',
+                                       '/sys/class/net/' + device],
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                logging.debug('Ignoring device without syspath: %s', device)
 
+        # apply some more changes manually
         for iface, settings in changes.items():
-            # apply renames to non-critical interfaces
+            # rename non-critical network interfaces
             if settings.get('name'):
                 # bring down the interface, using its current (matched) interface name
                 subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
@@ -213,7 +216,7 @@ class NetplanApply(utils.NetplanCommand):
                                       stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
 
-        # subprocess.check_call(['udevadm', 'settle'])
+        subprocess.check_call(['udevadm', 'settle'])
 
         # apply any SR-IOV related changes, if applicable
         NetplanApply.process_sriov_config(config_manager, exit_on_error)
