@@ -187,7 +187,8 @@ def is_interface_matching_macaddress(interface, match_mac):
     return match_mac == macaddress
 
 
-def get_matched_name(key, match):
+# TODO: make use of or get rid of get_interface_ ...mac/driver...
+def find_matched_name(key, match):
     name_glob = "*"
     if 'name' in match:
         name_glob = match['name']
@@ -197,14 +198,14 @@ def get_matched_name(key, match):
         matched_ifs[name] = {'macaddress': None, 'driver': None}
         if os.path.isfile(iface + '/address'):
             with open(iface + '/address', 'r') as f:
-                matched_ifs[name]['macaddress'] = f.read()
+                matched_ifs[name]['macaddress'] = f.read().strip()
         if os.path.islink(iface + '/device/driver'):
             matched_ifs[name]['driver'] = os.readlink(iface + '/device/driver').split('/')[-1]
 
     # Filter for macaddress and/or driver glob
     filtered = matched_ifs.items()  # unfiltered list
     if len(filtered) > 1 and 'macaddress' in match:
-        filtered = list(filter(lambda x: x[1]['macaddress'] and x[1]['macaddress'] == match['macaddress'].strip().lower(),
+        filtered = list(filter(lambda x: x[1]['macaddress'] and x[1]['macaddress'] == match['macaddress'].lower(),
                                filtered))
     if len(filtered) > 1 and 'driver' in match:
         filtered = list(filter(lambda x: x[1]['driver'] and fnmatch.fnmatch(x[1]['driver'], match['driver']), filtered))

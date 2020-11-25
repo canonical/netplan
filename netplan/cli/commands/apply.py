@@ -187,38 +187,33 @@ class NetplanApply(utils.NetplanCommand):
         changes = NetplanApply.process_link_changes(devices, config_manager)
 
         # if the interface is up, we can still apply some .link file changes
-        devices = netifaces.interfaces()
-        for device in devices:
-            logging.debug('netplan triggering .link rules for %s', device)
-            try:
-                subprocess.check_call(['udevadm', 'test-builtin',
-                                       'net_setup_link',
-                                       '/sys/class/net/' + device],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
-            except subprocess.CalledProcessError:
-                logging.debug('Ignoring device without syspath: %s', device)
+        # devices = netifaces.interfaces()
+        # for device in devices:
+        #     logging.debug('netplan triggering .link rules for %s', device)
+        #     try:
+        #         subprocess.check_call(['udevadm', 'test-builtin',
+        #                                'net_setup_link',
+        #                                '/sys/class/net/' + device],
+        #                               stdout=subprocess.DEVNULL,
+        #                               stderr=subprocess.DEVNULL)
+        #     except subprocess.CalledProcessError:
+        #         logging.debug('Ignoring device without syspath: %s', device)
 
-        # apply renames to "down" devices, or "up" devices which are not defined to be critical
         for iface, settings in changes.items():
+            # apply renames to non-critical interfaces
             if settings.get('name'):
-                critical = False
-                if settings.get('_netplan_id'):
-                    critical = config_manager.physical_interfaces[settings.get('_netplan_id')].get('critical')
-                if critical:
-                    logging.warning('Cannot rename {} -> {} at runtime, due to being critical'
-                                    .format(iface, settings.get('name')))
-                    continue
+                # bring down the interface, using its current (matched) interface name
                 subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
                                       stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
+                # rename the interface to the name given via 'set-name'
                 subprocess.check_call(['ip', 'link', 'set',
                                        'dev', iface,
                                        'name', settings.get('name')],
                                       stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
 
-        subprocess.check_call(['udevadm', 'settle'])
+        # subprocess.check_call(['udevadm', 'settle'])
 
         # apply any SR-IOV related changes, if applicable
         NetplanApply.process_sriov_config(config_manager, exit_on_error)
@@ -244,7 +239,7 @@ class NetplanApply(utils.NetplanCommand):
         interface? (bond, bridge)
         """
         for composite in composites:
-            for id, settings in composite.items():
+            for _, settings in composite.items():
                 members = settings.get('interfaces', [])
                 for iface in members:
                     if iface == phy:
@@ -255,85 +250,42 @@ class NetplanApply(utils.NetplanCommand):
     @staticmethod
     def process_link_changes(interfaces, config_manager):  # pragma: nocover (covered in autopkgtest)
         """
-        Go through the pending changes and pick what needs special
-        handling. Only applies to "down" interfaces which can be safely
-        updated.
+        Go through the pending changes and pick what needs special handling.
+        Only applies to non-critical interfaces which can be safely updated.
         """
 
         changes = {}
         phys = dict(config_manager.physical_interfaces)
         composite_interfaces = [config_manager.bridges, config_manager.bonds]
 
-        # TODO (cyphermox): factor out some of this matching code (and make it
-        # pretty) in its own module.
-        matches = {'by-driver': {},
-                   'by-mac': {},
-                   }
+        # Find physical interfaces which need a rename
+        # But do not rename virtual interfaces
         for phy, settings in phys.items():
-            if not settings:
-                continue
-            if phy == 'renderer':
-                continue
+            if not settings or not isinstance(settings, dict):
+                continue  # Skip special values, like "renderer: ..."
             newname = settings.get('set-name')
             if not newname:
-                continue
+                continue  # Skip if no new name needs to be set
             match = settings.get('match')
             if not match:
-                continue
-            driver = match.get('driver')
-            mac = match.get('macaddress')
-            if driver:
-                matches['by-driver'][driver] = newname
-            if mac:
-                matches['by-mac'][mac] = newname
-
-        # /sys/class/net/ens3/device -> ../../../virtio0
-        # /sys/class/net/ens3/device/driver -> ../../../../bus/virtio/drivers/virtio_net
-        matched_phys = dict()
-        for phy, settings in phys.items():
-            match = settings.get('match')
-            if not match:
-                matched_phys[phy] = settings
-                continue
-            matched_name = utils.get_matched_name(phy, match)
-            if not matched_name:
-                matched_phys[phy] = settings
-                continue
-            settings['_netplan_id'] = phy
-            matched_phys[matched_name] = settings
-
-        for interface in interfaces:
-            if interface not in matched_phys:
-                # do not rename  virtual devices
-                logging.debug('Skipping non-physical interface: %s', interface)
-                continue
-            if NetplanApply.is_composite_member(composite_interfaces, interface):
-                logging.debug('Skipping composite member %s', interface)
+                continue  # Skip if no match for current name is given
+            if NetplanApply.is_composite_member(composite_interfaces, phy):
+                logging.debug('Skipping composite member {}'.format(phy))
                 # do not rename members of virtual devices. MAC addresses
                 # may be the same for all interface members.
                 continue
+            # Find current name of the interface, according to match conditions and globs (name, mac, driver)
+            current_iface_name = utils.find_matched_name(phy, match)
+            if current_iface_name and current_iface_name != newname:
+                critical = settings.get('critical', False)
+                if critical:
+                    # Skip interfaces defined as critical, as we should not take them down in order to rename
+                    logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to being critical'
+                                    .format(phy, current_iface_name, newname))
+                    continue
+                changes[current_iface_name] = {'name': newname}
 
-            driver_name = utils.get_interface_driver_name(interface, only_down=True)
-            if not driver_name:
-                # don't allow up interfaces to match by mac
-                continue
-            macaddress = utils.get_interface_macaddress(interface)
-            if driver_name in matches['by-driver']:
-                new_name = matches['by-driver'][driver_name]
-                logging.debug(new_name)
-                logging.debug(interface)
-                if new_name != interface:
-                    settings = matched_phys.get(interface)
-                    netplan_id = settings.get('_netplan_id')
-                    changes.update({interface: {'name': new_name, '_netplan_id': netplan_id}})
-            if macaddress in matches['by-mac']:
-                new_name = matches['by-mac'][macaddress]
-                if new_name != interface:
-                    settings = matched_phys.get(interface)
-                    netplan_id = settings.get('_netplan_id')
-                    changes.update({interface: {'name': new_name, '_netplan_id': netplan_id}})
-
-        logging.debug(changes)
+        logging.debug('Link changes: {}'.format(changes))
         return changes
 
     @staticmethod
