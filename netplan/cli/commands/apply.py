@@ -278,15 +278,22 @@ class NetplanApply(utils.NetplanCommand):
                 # may be the same for all interface members.
                 continue
             # Find current name of the interface, according to match conditions and globs (name, mac, driver)
-            current_iface_name = utils.find_matched_name(phy, match)
-            if current_iface_name and current_iface_name != newname:
-                critical = settings.get('critical', False)
-                if critical:
-                    # Skip interfaces defined as critical, as we should not take them down in order to rename
-                    logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to being critical'
-                                    .format(phy, current_iface_name, newname))
-                    continue
-                changes[current_iface_name] = {'name': newname}
+            current_iface_name = utils.find_matching_iface(interfaces, match)
+            if not current_iface_name:
+                logging.warning('Cannot find unique matching interface for {}: {}'.format(phy, match))
+                continue
+            if current_iface_name == newname:
+                # Skip interface if it already has the correct name
+                logging.debug('Skipping correctly named interface: {}'.format(newname))
+                continue
+            if settings.get('critical', False):
+                # Skip interfaces defined as critical, as we should not take them down in order to rename
+                logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to being critical'
+                                .format(phy, current_iface_name, newname))
+                continue
+
+            # record the interface rename change
+            changes[current_iface_name] = {'name': newname}
 
         logging.debug('Link changes: {}'.format(changes))
         return changes
