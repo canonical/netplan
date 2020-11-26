@@ -188,7 +188,9 @@ class NetplanApply(utils.NetplanCommand):
 
         # if the interface is up, we can still apply some .link file changes
         # but we cannot apply the interface rename via udev, as it won't touch
-        # the interface name, if it was already renamed once (e.g. during boot)
+        # the interface name, if it was already renamed once (e.g. during boot),
+        # because of the NamePolicy=keep default:
+        # https://www.freedesktop.org/software/systemd/man/systemd.net-naming-scheme.html
         devices = netifaces.interfaces()
         for device in devices:
             logging.debug('netplan triggering .link rules for %s', device)
