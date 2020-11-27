@@ -275,9 +275,9 @@ Virtual devices
 
 ``critical`` (bool)
 
-:   (networkd backend only) Designate the connection as "critical to the
-    system", meaning that special care will be taken by systemd-networkd to
-    not release the assigned IP when the daemon is restarted.
+:   Designate the connection as "critical to the system", meaning that special
+    care will be taken by to not release the assigned IP when the daemon is
+    restarted. (not recognized by NetworkManager)
 
 ``dhcp-identifier`` (scalar)
 
