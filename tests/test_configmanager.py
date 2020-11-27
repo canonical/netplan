@@ -21,7 +21,7 @@ import shutil
 import tempfile
 import unittest
 
-from netplan.configmanager import ConfigManager, ConfigurationError
+from netplan.configmanager import ConfigManager
 
 
 class TestConfigManager(unittest.TestCase):
@@ -241,10 +241,3 @@ class TestConfigManager(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.configmanager._copy_tree(os.path.join(self.workdir.name, "nonexistent"),
                                           os.path.join(self.workdir.name, "nonexistent2"), missing_ok=False)
-
-    def test__validate_interface_config(self):
-        with self.assertRaises(ConfigurationError):
-            self.configmanager._validate_interface_config("eth0", "")
-
-        self.configmanager._validate_interface_config("eth0", {})
-
