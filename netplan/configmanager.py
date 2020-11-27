@@ -310,7 +310,7 @@ class ConfigManager(object):
             logging.error('Error while loading {}, aborting.'.format(yaml_file))
             sys.exit(1)
         except Exception as e:  # pragma: nocover (unknown error)
-            logging.debug('Exception raised while loading {}. {!r}'.format(yaml_file, e))
+            logging.debug('Exception raised while loading {}. {0!r}'.format(yaml_file, e))
             logging.error('Unknown error while loading {}, aborting.'.format(yaml_file))
             sys.exit(1)
 
@@ -321,7 +321,6 @@ class ConfigManager(object):
         if not isinstance(iface, collections.abc.Mapping):
             logging.debug('Config validation error - invalid interface {}'.format(ifname))
             raise ConfigurationError('Interface {} invalide type {}'.format(ifname, type(iface)))
-
 
 class ConfigurationError(Exception):
     """
