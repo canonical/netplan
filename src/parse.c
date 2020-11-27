@@ -1899,7 +1899,6 @@ handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, G
     }
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        g_autofree char* addr = NULL;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
         assert_type(entry, YAML_MAPPING_NODE);
 
