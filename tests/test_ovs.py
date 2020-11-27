@@ -127,3 +127,13 @@ Bootstrap: false'''
         interfaces['ovs0'] = {'interfaces': ['bond0']}
         interfaces['bond0'] = {'interfaces': ['patchx', 'patchy']}
         self.assertTrue(ovs.is_ovs_interface('ovs0', interfaces))
+
+    def test_is_ovs_interface_invalid_key(self):
+        interfaces = dict()
+        interfaces['ovs0'] = {'openvswitch': {'set-fail-mode': 'secure'}}
+        self.assertFalse(ovs.is_ovs_interface('gretap1', interfaces))
+
+    def test_is_ovs_interface_special_key(self):
+        interfaces = dict()
+        interfaces['renderer'] = 'NetworkManager'
+        self.assertFalse(ovs.is_ovs_interface('renderer', interfaces))
