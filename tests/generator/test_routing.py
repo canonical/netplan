@@ -369,6 +369,56 @@ Gateway=192.168.14.20
 MTUBytes=1500
 '''})
 
+    def test_route_v4_initcwnd(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          initcwnd: 16
+        ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+InitialCongestionWindow=16
+'''})
+
+    def test_route_v4_initrwnd(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          initrwnd: 16
+        ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+InitialAdvertisedReceiveWindow=16
+'''})
+
     def test_route_v6_single(self):
         self.generate('''network:
   version: 2
@@ -931,6 +981,73 @@ route1_options=mtu=1500
 method=ignore
 '''})
         self.assert_networkd({})
+
+    def test_route_initcwnd(self):
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          initcwnd: 16
+        ''')
+        self.assertEqual('', out)
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=initcwnd=16
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+
+    def test_route_initrwnd(self):
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          initrwnd: 16
+        ''')
+        self.assertEqual('', out)
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=initrwnd=16
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+
 
     def test_route_options(self):
         out = self.generate('''network:
