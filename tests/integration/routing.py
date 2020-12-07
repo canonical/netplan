@@ -195,6 +195,41 @@ class _CommonTests():
         self.assertIn(b'mtu 777',  # check mtu from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
+    def test_per_route_initcwnd(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+        - 192.168.5.99/24
+      gateway4: 192.168.5.1
+        routes:
+          - to: 10.10.10.0/24
+            via: 192.168.5.254
+            initcwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assertIn(b'initcwnd 16',  # check initcwnd from static route
+                    subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
+
+    def test_per_route_initrwnd(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+         - 192.168.5.99/24
+      gateway4: 192.168.5.1
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.5.254
+          initrwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assertIn(b'mtu 777',  # check mtu from static route
+                    subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
