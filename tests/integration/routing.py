@@ -228,7 +228,7 @@ class _CommonTests():
           via: 192.168.5.254
           initrwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle()
-        self.assertIn(b'mtu 777',  # check mtu from static route
+        self.assertIn(b'initrwnd 16',  # check mtu from static route
                     subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
 @unittest.skipIf("networkd" not in test_backends,
