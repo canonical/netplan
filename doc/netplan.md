@@ -584,7 +584,7 @@ These options are available for all types of interfaces.
           value.
 
     ``initcwnd`` (scalar) – since ****
-     :    The initcwnd to be used for the route, represented bynumber of segments.
+     :    The initcwnd to be used for the route, represented by number of segments.
           Must be a positive integer value.
 
     ``initrwnd`` (scalar) – since ****
