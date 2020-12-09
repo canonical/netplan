@@ -1934,7 +1934,7 @@ static gboolean
 handle_ovs_bond_lacp(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND)
-        return yaml_error(node, error, "Key 'lacp' is only valid for iterface type 'openvswitch bond'");
+        return yaml_error(node, error, "Key 'lacp' is only valid for interface type 'openvswitch bond'");
 
     if (g_strcmp0(scalar(node), "active") && g_strcmp0(scalar(node), "passive") && g_strcmp0(scalar(node), "off"))
         return yaml_error(node, error, "Value of 'lacp' needs to be 'active', 'passive' or 'off");
@@ -1946,7 +1946,7 @@ static gboolean
 handle_ovs_bridge_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key is only valid for iterface type 'openvswitch bridge'");
+        return yaml_error(node, error, "Key is only valid for interface type 'openvswitch bridge'");
 
     return handle_netdef_bool(doc, node, data, error);
 }
@@ -1955,7 +1955,7 @@ static gboolean
 handle_ovs_bridge_fail_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'fail-mode' is only valid for iterface type 'openvswitch bridge'");
+        return yaml_error(node, error, "Key 'fail-mode' is only valid for interface type 'openvswitch bridge'");
 
     if (g_strcmp0(scalar(node), "standalone") && g_strcmp0(scalar(node), "secure"))
         return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
@@ -1997,7 +1997,7 @@ static gboolean
 handle_ovs_bridge_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'protocols' is only valid for iterface type 'openvswitch bridge'");
+        return yaml_error(node, error, "Key 'protocols' is only valid for interface type 'openvswitch bridge'");
 
     return handle_ovs_protocol(doc, node, cur_netdef, data, error);
 }
@@ -2006,7 +2006,7 @@ static gboolean
 handle_ovs_bridge_controller_connection_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'controller.connection-mode' is only valid for iterface type 'openvswitch bridge'");
+        return yaml_error(node, error, "Key 'controller.connection-mode' is only valid for interface type 'openvswitch bridge'");
 
     if (g_strcmp0(scalar(node), "in-band") && g_strcmp0(scalar(node), "out-of-band"))
         return yaml_error(node, error, "Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'");
@@ -2018,7 +2018,7 @@ static gboolean
 handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'controller.addresses' is only valid for iterface type 'openvswitch bridge'");
+        return yaml_error(node, error, "Key 'controller.addresses' is only valid for interface type 'openvswitch bridge'");
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         gchar** vec = NULL;

@@ -1207,7 +1207,7 @@ Example:
     ``public`` and ``shared`` keys.
 
     ``public`` (scalar) – since **0.100**
-    :    A base64-encoded public key, requried for Wireguard peers.
+    :    A base64-encoded public key, required for Wireguard peers.
 
     ``shared`` (scalar) – since **0.100**
     :    A base64-encoded preshared key. Optional for Wireguard peers.
