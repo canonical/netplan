@@ -205,10 +205,10 @@ class _CommonTests():
       addresses:
         - 192.168.5.99/24
       gateway4: 192.168.5.1
-        routes:
-          - to: 10.10.10.0/24
-            via: 192.168.5.254
-            initcwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.5.254
+          initcwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle()
         self.assertIn(b'initcwnd 16',  # check initcwnd from static route
                     subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))

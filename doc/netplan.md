@@ -583,14 +583,13 @@ These options are available for all types of interfaces.
      :    The MTU to be used for the route, in bytes. Must be a positive integer
           value.
 
-    ``initcwnd`` (scalar) – since ****
+    ``initcwnd`` (scalar) – since **0.102**
      :    The initcwnd to be used for the route, represented by number of segments.
           Must be a positive integer value.
 
     ``initrwnd`` (scalar) – since **0.102**
      :    The initrwnd to be used for the route, represented by number of segments. 
           Must be a positive integer value.
-
 
 ``routing-policy`` (mapping)
 
