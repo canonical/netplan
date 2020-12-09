@@ -1519,7 +1519,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {"metric", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(mtubytes)},
     {"initcwnd", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(initcwnd)},
-    {"initrwnd", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(initrwnd)},     
+    {"initrwnd", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(initrwnd)},
     {NULL}
 };
 
