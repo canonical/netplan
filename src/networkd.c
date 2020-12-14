@@ -897,7 +897,6 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
 static void
 write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
-    g_autoptr(GError) err = NULL;
     g_autofree gchar *stdouth = NULL;
 
     stdouth = systemd_escape(def->id);

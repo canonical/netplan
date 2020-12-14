@@ -242,9 +242,6 @@ static int
 method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     sd_bus_message *reply = NULL;
-    g_autoptr(GError) err = NULL;
-    g_autofree gchar *stdout = NULL;
-    g_autofree gchar *stderr = NULL;
     gint exit_status = 0;
 
     exit_status = sd_bus_message_new_method_return(m, &reply);
