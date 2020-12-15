@@ -225,7 +225,8 @@ unmanaged-devices+=interface-name:green,''')
       macaddress: 00:01:02:03:04:05
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': ND_DHCP4 % 'green',
+        self.assert_networkd({'def1.network': (ND_DHCP4 % 'green')
+                              .replace('[Network]', '[Link]\nMACAddress=00:01:02:03:04:05\n\n[Network]'),
                               'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nWakeOnLan=off\nMACAddress=00:01:02:03:04:05\n'
                               })
         self.assert_networkd_udev(None)
