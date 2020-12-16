@@ -372,3 +372,32 @@ method=ignore
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
+
+    def test_modem_nm_integration(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  modems:
+    mobilephone:
+      auto-config: true
+      networkmanager:
+        uuid: b22d8f0f-3f34-46bd-ac28-801fa87f1eb6''')
+        self.assert_nm({'mobilephone': '''[connection]
+id=netplan-mobilephone
+type=gsm
+interface-name=mobilephone
+
+[gsm]
+auto-config=true
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_nm_udev(None)
