@@ -566,15 +566,13 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         }
     }
 
-    if (def->mtubytes) {
+    if (def->mtubytes)
         g_string_append_printf(link, "MTUBytes=%u\n", def->mtubytes);
-    }
     if (def->set_mac)
         g_string_append_printf(link, "MACAddress=%s\n", def->set_mac);
 
-    if (def->emit_lldp) {
+    if (def->emit_lldp)
         g_string_append(network, "EmitLLDP=true\n");
-    }
 
     if (def->dhcp4 && def->dhcp6)
         g_string_append(network, "DHCP=yes\n");
