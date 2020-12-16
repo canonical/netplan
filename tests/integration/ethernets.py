@@ -72,7 +72,7 @@ class _CommonTests():
                              ['master'])
         out = subprocess.check_output(['ip', 'link', 'show', self.dev_e2_client],
                                       universal_newlines=True)
-        self.assertTrue('ether 00:01:02:03:04:05' in out)
+        self.assertIn('ether 00:01:02:03:04:05', out)
         subprocess.check_call(['ip', 'link', 'set', self.dev_e2_client,
                                'address', self.dev_e2_client_mac])
 

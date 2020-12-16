@@ -225,8 +225,8 @@ unmanaged-devices+=interface-name:green,''')
       macaddress: 00:01:02:03:04:05
       dhcp4: true''')
 
-        self.assert_networkd({'def1.network': ND_DHCP4 % 'green',
-                              'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nWakeOnLan=off\nMACAddress=00:01:02:03:04:05\n'
+        self.assert_networkd({'def1.network': (ND_DHCP4 % 'green')
+                              .replace('[Network]', '[Link]\nMACAddress=00:01:02:03:04:05\n\n[Network]')
                               })
         self.assert_networkd_udev(None)
 
@@ -442,13 +442,7 @@ method=ignore
       macaddress: 00:01:02:03:04:05
       dhcp4: true''')
 
-        self.assert_networkd({'eth0.link': '''[Match]
-OriginalName=eth0
-
-[Link]
-WakeOnLan=off
-MACAddress=00:01:02:03:04:05
-'''})
+        self.assert_networkd(None)
 
         self.assert_nm({'eth0': '''[connection]
 id=netplan-eth0

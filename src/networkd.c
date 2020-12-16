@@ -227,7 +227,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
         return;
 
     /* do we need to write a .link file? */
-    if (!def->set_name && !def->wake_on_lan && !def->mtubytes && !def->set_mac)
+    if (!def->set_name && !def->wake_on_lan && !def->mtubytes)
         return;
 
     /* build file contents */
@@ -241,9 +241,6 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "off");
     if (def->mtubytes)
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
-    if (def->set_mac)
-        g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
-
 
     orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".link");
@@ -569,13 +566,13 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         }
     }
 
-    if (def->mtubytes) {
+    if (def->mtubytes)
         g_string_append_printf(link, "MTUBytes=%u\n", def->mtubytes);
-    }
+    if (def->set_mac)
+        g_string_append_printf(link, "MACAddress=%s\n", def->set_mac);
 
-    if (def->emit_lldp) {
+    if (def->emit_lldp)
         g_string_append(network, "EmitLLDP=true\n");
-    }
 
     if (def->dhcp4 && def->dhcp6)
         g_string_append(network, "DHCP=yes\n");
