@@ -221,7 +221,7 @@ class _CommonTests():
   ethernets:
     %(ec)s:
       addresses:
-         - 192.168.5.99/24
+        - 192.168.5.99/24
       gateway4: 192.168.5.1
       routes:
         - to: 10.10.10.0/24
