@@ -133,6 +133,10 @@ Virtual devices
 
 :    Enable wake on LAN. Off by default.
 
+     **Note:** This will not work reliably for devices matched by name
+     only and rendered by networkd, due to interactions with device
+     renaming in udev. Match devices by MAC when setting wake on LAN.
+
 ``emit-lldp`` (bool) – since **0.99**
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
