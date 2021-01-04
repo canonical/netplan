@@ -152,7 +152,7 @@ class _CommonTests():
         elif resolved_in_use():
             sys.stdout.write('[resolved] ')
             sys.stdout.flush()
-            out = subprocess.check_output(['systemd-resolve', '--status'], universal_newlines=True)
+            out = subprocess.check_output(['resolvectl', 'status'], universal_newlines=True)
             self.assertIn('DNS Servers: 172.1.2.3', out)
             self.assertIn('fakesuffix', out)
         else:
