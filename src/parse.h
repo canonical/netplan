@@ -479,3 +479,6 @@ gboolean netplan_parse_yaml(const char* filename, GError** error);
 GHashTable* netplan_finish_parse(GError** error);
 NetplanBackend netplan_get_global_backend();
 const char* tunnel_mode_to_string(NetplanTunnelMode mode);
+
+void process_input_file(const char* f);
+gboolean process_yaml_hierarchy(const char* rootdir);
