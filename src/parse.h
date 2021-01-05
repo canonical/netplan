@@ -481,5 +481,7 @@ GHashTable* netplan_finish_parse(GError** error);
 NetplanBackend netplan_get_global_backend();
 const char* tunnel_mode_to_string(NetplanTunnelMode mode);
 
+gchar* netplan_get_id_from_filename(const char* filename, const char* ssid);
+
 void process_input_file(const char* f);
 gboolean process_yaml_hierarchy(const char* rootdir);
