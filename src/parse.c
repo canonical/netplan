@@ -59,6 +59,9 @@ static NetplanAddressOptions* cur_addr_option;
 static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
 
+/* Filname of the currently parsed YAML file */
+const char* cur_filename;
+
 static NetplanBackend backend_global, backend_cur_type;
 
 /* global OpenVSwitch settings */
@@ -2386,6 +2389,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         } else {
             netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
         }
+        g_assert(cur_filename);
+        cur_netdef->filename = g_strdup(cur_filename);
 
         // XXX: breaks multi-pass parsing.
         //if (!g_hash_table_add(ids_in_file, cur_netdef->id))
@@ -2543,8 +2548,10 @@ netplan_parse_yaml(const char* filename, GError** error)
     g_assert(ids_in_file == NULL);
     ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
+    cur_filename = filename;
     ret = process_document(&doc, error);
 
+    cur_filename = NULL;
     cur_netdef = NULL;
     yaml_document_delete(&doc);
     g_hash_table_destroy(ids_in_file);
