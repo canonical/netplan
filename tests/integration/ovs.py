@@ -278,8 +278,8 @@ class _CommonTests():
         self.assertIn(b'---- mybond ----', out)
         self.assertIn(b'bond_mode: balance-slb', out)
         self.assertIn(b'lacp_status: off', out)
-        self.assertIn(b'slave %b: enabled' % self.dev_e_client.encode(), out)
-        self.assertIn(b'slave %b: enabled' % self.dev_e2_client.encode(), out)
+        self.assertRegex(out, br'(slave|member) %b: enabled' % self.dev_e_client.encode())
+        self.assertRegex(out, br'(slave|member) %b: enabled' % self.dev_e2_client.encode())
         self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
 
     def test_bridge_patch_ports(self):
