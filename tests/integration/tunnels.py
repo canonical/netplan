@@ -123,7 +123,7 @@ class _CommonTests():
         self.assertIn("fwmark: 0x2a", out)
         self.assertIn("peer: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=", out)
         self.assertIn("allowed ips: 20.20.20.0/24", out)
-        self.assertRegex(out, r'latest handshake: \d+ seconds? ago')
+        self.assertRegex(out, r'latest handshake: (\d+ seconds? ago|Now)')
         self.assertRegex(out, r'transfer: \d+ B received, \d+ B sent')
         self.assert_iface('wg0', ['inet 10.10.10.20/24'])
         # Verify client
