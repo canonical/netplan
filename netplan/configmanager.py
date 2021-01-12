@@ -99,6 +99,10 @@ class ConfigManager(object):
         return self.network['vlans']
 
     @property
+    def others(self):
+        return self.network['others']
+
+    @property
     def version(self):
         return self.network['version']
 
@@ -153,6 +157,7 @@ class ConfigManager(object):
             'bonds': {},
             'tunnels': {},
             'vlans': {},
+            'others': {},
             'version': None,
             'renderer': None
         }
@@ -294,6 +299,9 @@ class ConfigManager(object):
                         new_interfaces |= new
                     if 'vlans' in network:
                         new = self._merge_interface_config(self.vlans, network.get('vlans'))
+                        new_interfaces |= new
+                    if 'others' in network:
+                        new = self._merge_interface_config(self.others, network.get('others'))
                         new_interfaces |= new
                     if 'version' in network:
                         self.network['version'] = network.get('version')
