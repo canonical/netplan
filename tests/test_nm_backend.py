@@ -112,3 +112,69 @@ class TestNetworkManagerBackend(TestBase):
         # Verify the file still exists and still contains the other connection
         with open(FILENAME, 'r') as f:
             self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
+
+    def test_render_keyfile(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=ethernet
+uuid={}
+permissions=
+id=myid with spaces
+
+[ipv4]
+method=auto
+dns-search=
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto'''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  ethernets:
+    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        passthrough:
+          connection.type: "ethernet"
+          connection.uuid: "87749f1d-334f-40b2-98d4-55db58965f5f"
+          connection.permissions: ""
+          connection.id: "myid with spaces"
+          ipv4.method: "auto"
+          ipv4.dns-search: ""
+          ipv6.addr-gen-mode: "stable-privacy"
+          ipv6.dns-search: ""
+          ipv6.method: "auto"
+''')
+
+    def test_render_keyfile_missing_uuid(self):
+        file = '[connection]\ntype=ethernets'
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+
+    def test_render_keyfile_missing_type(self):
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '[connection]\nuuid={}'.format(UUID)
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+
+    def test_render_keyfile_type_other(self):
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '[connection]\ntype=dummy\nuuid={}'.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  others:
+    NM-{}:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        passthrough:
+          connection.type: "dummy"
+          connection.uuid: "87749f1d-334f-40b2-98d4-55db58965f5f"
+'''.format(UUID))

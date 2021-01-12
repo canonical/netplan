@@ -51,6 +51,8 @@ typedef enum {
     NETPLAN_DEF_TYPE_VLAN,
     NETPLAN_DEF_TYPE_TUNNEL,
     NETPLAN_DEF_TYPE_PORT,
+    /* Type fallback/passthrough */
+    NETPLAN_DEF_TYPE_OTHER,
     NETPLAN_DEF_TYPE_MAX_
 } NetplanDefType;
 
@@ -65,6 +67,7 @@ static const char* const netplan_def_type_to_str[NETPLAN_DEF_TYPE_MAX_] = {
     [NETPLAN_DEF_TYPE_VLAN] = "vlans",
     [NETPLAN_DEF_TYPE_TUNNEL] = "tunnels",
     [NETPLAN_DEF_TYPE_PORT] = NULL,
+    [NETPLAN_DEF_TYPE_OTHER] = "others",
 };
 
 typedef enum {
