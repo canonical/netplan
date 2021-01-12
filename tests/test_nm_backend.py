@@ -21,50 +21,13 @@ import os
 import shutil
 import ctypes
 import ctypes.util
-import tempfile
 
 from generator.base import TestBase
+from tests.test_utils import MockCmd
 
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
-
-
-# TODO: refactor into base class (not copy from test_dbus.py), or make use of mockproc package
-class MockCmd:
-    """MockCmd will mock a given command name and capture all calls to it"""
-
-    def __init__(self, name):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.name = name
-        self.path = os.path.join(self._tmp.name, name)
-        self.call_log = os.path.join(self._tmp.name, "call.log")
-        with open(self.path, "w") as fp:
-            fp.write("""#!/bin/bash
-printf "%%s" "$(basename "$0")" >> %(log)s
-printf '\\0' >> %(log)s
-
-for arg in "$@"; do
-     printf "%%s" "$arg" >> %(log)s
-     printf '\\0'  >> %(log)s
-done
-
-printf '\\0' >> %(log)s
-""" % {'log': self.call_log})
-        os.chmod(self.path, 0o755)
-
-    def calls(self):
-        """
-        calls() returns the calls to the given mock command in the form of
-        [ ["cmd", "call1-arg1"], ["cmd", "call2-arg1"], ... ]
-        """
-        with open(self.call_log) as fp:
-            b = fp.read()
-        calls = []
-        for raw_call in b.rstrip("\0\0").split("\0\0"):
-            call = raw_call.rstrip("\0")
-            calls.append(call.split("\0"))
-        return calls
 
 
 class TestNetworkManagerBackend(TestBase):
@@ -104,3 +67,15 @@ class TestNetworkManagerBackend(TestBase):
         self.assertEquals(self.mock_netplan_cmd.calls(), [
             ["netplan", "generate", "--root-dir", self.workdir.name],
         ])
+
+    def test_delete_connection(self):
+        FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(FILENAME, 'w') as f:
+            f.write('''network:
+  ethernets:
+    some-netplan-id:
+      dhcp4: true''')
+        self.assertTrue(os.path.isfile(FILENAME))
+        # Parse all YAML and delete 'some-netplan-id' connection file
+        lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode())
+        self.assertFalse(os.path.isfile(FILENAME))

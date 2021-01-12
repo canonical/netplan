@@ -481,6 +481,7 @@ GHashTable* netplan_finish_parse(GError** error);
 NetplanBackend netplan_get_global_backend();
 const char* tunnel_mode_to_string(NetplanTunnelMode mode);
 
+gboolean netplan_delete_connection(const char* id, const char* rootdir);
 gboolean netplan_generate(const char* rootdir);
 
 void process_input_file(const char* f);

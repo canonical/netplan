@@ -2657,6 +2657,33 @@ process_yaml_hierarchy(const char* rootdir)
 }
 
 gboolean
+netplan_delete_connection(const char* id, const char* rootdir)
+{
+    //TODO: error handling
+    int res = 0;
+    g_autofree gchar* filename = NULL;
+    NetplanNetDefinition* nd = NULL;
+
+    // parse all YAML files
+    if (!process_yaml_hierarchy(rootdir))
+        return FALSE; // LCOV_EXCL_LINE
+    netdefs = netplan_finish_parse(NULL); //TODO: error handling
+
+    // find filename for specified netdef ID
+    nd = g_hash_table_lookup(netdefs, id);
+    filename = nd->filename;
+
+    // delete the YAML file
+    // FIXME: there might be multiple netdefs inside a single file!
+    res = g_unlink(filename);
+    if (res != 0)
+        return FALSE; // LCOV_EXCL_LINE
+
+    netplan_clear_netdefs();
+    return TRUE;
+}
+
+gboolean
 netplan_generate(const char* rootdir)
 {
     /* TODO: refactor logic to actually be inside the library instead of spawning another process */
