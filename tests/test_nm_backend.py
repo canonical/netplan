@@ -178,3 +178,93 @@ method=auto'''.format(UUID)
           connection.type: "dummy"
           connection.uuid: "87749f1d-334f-40b2-98d4-55db58965f5f"
 '''.format(UUID))
+
+    def test_fallback_generator(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        passthrough:
+          connection.id: myid with spaces
+          connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+          connection.type: wifi
+          connection.permissions:
+          ipv4.dns-search:
+          ipv4.method: auto
+          ipv6.addr-gen-mode: stable-privacy
+          ipv6.dns-search:
+          ipv6.method: auto''')
+
+        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[ipv4]
+method=auto
+dns-search=
+
+[connection]
+type=wifi
+uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+permissions=
+id=myid with spaces
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+'''})
+
+    def test_fallback_generator_wifi(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+      renderer: NetworkManager
+      access-points:
+        "SOME-SSID":
+          hidden: false
+        "INVALID-IGNORED":
+          hidden: true
+      networkmanager:
+        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        passthrough:
+          connection.id: myid with spaces
+          connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+          connection.type: wifi
+          connection.permissions:
+          wifi.ssid: SOME-SSID
+          ipv4.dns-search:
+          ipv4.method: auto
+          ipv6.addr-gen-mode: stable-privacy
+          ipv6.dns-search:
+          ipv6.method: auto''')
+
+        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f-SOME-SSID': '''[ipv4]
+method=auto
+dns-search=
+
+[connection]
+type=wifi
+permissions=
+uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+id=myid with spaces
+
+[wifi]
+ssid=SOME-SSID
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+'''})
+
+    def test_fallback_generator_other(self):
+        self.generate('''network:
+  others:
+    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+      renderer: NetworkManager
+      networkmanager:
+        passthrough:
+          connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f''')
+
+        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f\n'})
