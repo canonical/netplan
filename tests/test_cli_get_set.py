@@ -206,6 +206,17 @@ class TestSet(unittest.TestCase):
         # The file should be deleted if this was the last/only key left
         self.assertFalse(os.path.isfile(self.path))
 
+    def test_set_delete_file_with_version(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens3: {dhcp4: yes}''')
+        out = self._set(['network.ethernets.ens3=NULL'])
+        print(out, flush=True)
+        # The file should be deleted if only "network: {version: 2}" is left
+        self.assertFalse(os.path.isfile(self.path))
+
     def test_set_invalid_delete(self):
         with open(self.path, 'w') as f:
             f.write('''network:\n  version: 2\n  renderer: NetworkManager
