@@ -2655,3 +2655,17 @@ process_yaml_hierarchy(const char* rootdir)
         process_input_file(g_hash_table_lookup(configs, i->data));
     return TRUE;
 }
+
+gboolean
+netplan_generate(const char* rootdir)
+{
+    /* TODO: refactor logic to actually be inside the library instead of spawning another process */
+    const gchar *argv[] = { "/sbin/netplan", "generate", NULL , NULL, NULL };
+    if (rootdir) {
+        argv[2] = "--root-dir";
+        argv[3] = rootdir;
+    }
+    if (getenv("TEST_NETPLAN_CMD") != 0)
+       argv[0] = getenv("TEST_NETPLAN_CMD");
+    return g_spawn_sync(NULL, (gchar**)argv, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+}
