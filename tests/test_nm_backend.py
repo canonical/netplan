@@ -77,5 +77,29 @@ class TestNetworkManagerBackend(TestBase):
       dhcp4: true''')
         self.assertTrue(os.path.isfile(FILENAME))
         # Parse all YAML and delete 'some-netplan-id' connection file
-        lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode())
+        self.assertTrue(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
         self.assertFalse(os.path.isfile(FILENAME))
+
+    def test_delete_connection_id_not_found(self):
+        FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(FILENAME, 'w') as f:
+            f.write('''network:
+  ethernets:
+    some-netplan-id:
+      dhcp4: true''')
+        self.assertTrue(os.path.isfile(FILENAME))
+        self.assertFalse(lib.netplan_delete_connection('unknown-id'.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(FILENAME))
+
+    def test_delete_connection_two_in_file(self):
+        FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(FILENAME, 'w') as f:
+            f.write('''network:
+  ethernets:
+    some-netplan-id:
+      dhcp4: true
+    other-id:
+      dhcp6: true''')
+        self.assertTrue(os.path.isfile(FILENAME))
+        self.assertFalse(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(FILENAME))

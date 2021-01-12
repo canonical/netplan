@@ -2657,24 +2657,58 @@ process_yaml_hierarchy(const char* rootdir)
 }
 
 gboolean
+ht_filename_predicate(gpointer key, gpointer value, gpointer user_data)
+{
+    NetplanNetDefinition* nd = value;
+    NetplanNetDefinition* data = user_data;
+
+    /* Match if another ID is from the same file, but do not indicate a match for the same ID */
+    if (!!g_strcmp0(key, data->id) && !g_strcmp0(nd->filename, data->filename))
+        return TRUE;
+
+    return FALSE;
+}
+
+gboolean
 netplan_delete_connection(const char* id, const char* rootdir)
 {
-    //TODO: error handling
     int res = 0;
     g_autofree gchar* filename = NULL;
+    g_autoptr(GError) error = NULL;
     NetplanNetDefinition* nd = NULL;
 
-    // parse all YAML files
+    /* parse all YAML files */
     if (!process_yaml_hierarchy(rootdir))
         return FALSE; // LCOV_EXCL_LINE
-    netdefs = netplan_finish_parse(NULL); //TODO: error handling
 
-    // find filename for specified netdef ID
+    netdefs = netplan_finish_parse(&error);
+    if (!netdefs) {
+        // LCOV_EXCL_START
+        fprintf(stderr, "netplan_delete_connection: %s\n", error->message);
+        return FALSE;
+        // LCOV_EXCL_STOP
+    }
+
+    /* find filename for specified netdef ID */
     nd = g_hash_table_lookup(netdefs, id);
+    if (!nd) {
+        fprintf(stderr, "netplan_delete_connection: Cannot delete %s, as this ID does not exist.\n", id);
+        return FALSE;
+    }
+
     filename = nd->filename;
 
+    /* TODO: Handle this situation more gracefully, by modifying the corresponding YAML file instead.
+     *       But we need a proper netplan YAML export for that in our C codebase. */
+    /* XXX: Can we use 'netplan set' to modify this YAML file? */
+    /* check if there is another connection inside the same YAML file */
+    nd = g_hash_table_find(netdefs, ht_filename_predicate, nd);
+    if (nd) {
+        fprintf(stderr, "netplan_delete_connection: Cannot delete %s, as %s contains another connection.\n", nd->id, nd->filename);
+        return FALSE;
+    }
+
     // delete the YAML file
-    // FIXME: there might be multiple netdefs inside a single file!
     res = g_unlink(filename);
     if (res != 0)
         return FALSE; // LCOV_EXCL_LINE
