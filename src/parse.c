@@ -2657,23 +2657,10 @@ process_yaml_hierarchy(const char* rootdir)
 }
 
 gboolean
-ht_filename_predicate(gpointer key, gpointer value, gpointer user_data)
-{
-    NetplanNetDefinition* nd = value;
-    NetplanNetDefinition* data = user_data;
-
-    /* Match if another ID is from the same file, but do not indicate a match for the same ID */
-    if (!!g_strcmp0(key, data->id) && !g_strcmp0(nd->filename, data->filename))
-        return TRUE;
-
-    return FALSE;
-}
-
-gboolean
 netplan_delete_connection(const char* id, const char* rootdir)
 {
-    int res = 0;
     g_autofree gchar* filename = NULL;
+    g_autofree gchar* del = NULL;
     g_autoptr(GError) error = NULL;
     NetplanNetDefinition* nd = NULL;
 
@@ -2696,25 +2683,20 @@ netplan_delete_connection(const char* id, const char* rootdir)
         return FALSE;
     }
 
-    filename = nd->filename;
-
-    /* TODO: Handle this situation more gracefully, by modifying the corresponding YAML file instead.
-     *       But we need a proper netplan YAML export for that in our C codebase. */
-    /* XXX: Can we use 'netplan set' to modify this YAML file? */
-    /* check if there is another connection inside the same YAML file */
-    nd = g_hash_table_find(netdefs, ht_filename_predicate, nd);
-    if (nd) {
-        fprintf(stderr, "netplan_delete_connection: Cannot delete %s, as %s contains another connection.\n", nd->id, nd->filename);
-        return FALSE;
-    }
-
-    // delete the YAML file
-    res = g_unlink(filename);
-    if (res != 0)
-        return FALSE; // LCOV_EXCL_LINE
-
+    filename = g_path_get_basename(nd->filename);
+    filename[strlen(filename) - 5] = '\0'; //stip ".yaml" suffix
+    del = g_strdup_printf("network.%s.%s=NULL", netplan_def_type_to_str[nd->type], id);
     netplan_clear_netdefs();
-    return TRUE;
+
+    /* TODO: refactor logic to actually be inside the library instead of spawning another process */
+    const gchar *argv[] = { "/sbin/netplan", "set", del, "--origin-hint" , filename, NULL, NULL, NULL };
+    if (rootdir) {
+        argv[5] = "--root-dir";
+        argv[6] = rootdir;
+    }
+    if (getenv("TEST_NETPLAN_CMD") != 0)
+       argv[0] = getenv("TEST_NETPLAN_CMD");
+    return g_spawn_sync(NULL, (gchar**)argv, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 gboolean

@@ -25,6 +25,10 @@ import ctypes.util
 from generator.base import TestBase
 from tests.test_utils import MockCmd
 
+rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
+# Make sure we can import our development netplan.
+os.environ.update({'PYTHONPATH': '.'})
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
@@ -69,6 +73,7 @@ class TestNetworkManagerBackend(TestBase):
         ])
 
     def test_delete_connection(self):
+        os.environ["TEST_NETPLAN_CMD"] = exe_cli
         FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
         with open(FILENAME, 'w') as f:
             f.write('''network:
@@ -92,6 +97,7 @@ class TestNetworkManagerBackend(TestBase):
         self.assertTrue(os.path.isfile(FILENAME))
 
     def test_delete_connection_two_in_file(self):
+        os.environ["TEST_NETPLAN_CMD"] = exe_cli
         FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
         with open(FILENAME, 'w') as f:
             f.write('''network:
@@ -101,5 +107,8 @@ class TestNetworkManagerBackend(TestBase):
     other-id:
       dhcp6: true''')
         self.assertTrue(os.path.isfile(FILENAME))
-        self.assertFalse(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(FILENAME))
+        # Verify the file still exists and still contains the other connection
+        with open(FILENAME, 'r') as f:
+            self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
