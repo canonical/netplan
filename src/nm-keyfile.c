@@ -26,7 +26,12 @@ type_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "ethernet") || !g_strcmp0(type_str, "802-3-ethernet"))
         return NETPLAN_DEF_TYPE_ETHERNET;
-
+    else if (!g_strcmp0(type_str, "wifi") || !g_strcmp0(type_str, "802-11-wireless"))
+        return NETPLAN_DEF_TYPE_WIFI;
+    else if (!g_strcmp0(type_str, "gsm") || !g_strcmp0(type_str, "cdma"))
+        return NETPLAN_DEF_TYPE_MODEM;
+    else if (!g_strcmp0(type_str, "bridge"))
+        return NETPLAN_DEF_TYPE_BRIDGE;
     /* Full fallback/passthrough mode */
     return NETPLAN_DEF_TYPE_OTHER;
 }
@@ -37,17 +42,33 @@ type_from_str(const char* type_str)
 gboolean
 netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
 {
+    const gchar *hidden = NULL;
     g_autofree gchar *id = NULL;
     g_autofree gchar *uuid = NULL;
+    g_autofree gchar *ssid = NULL;
     g_autofree gchar *filename = NULL;
     g_autofree gchar *yaml_path = NULL;
     g_autofree gchar *type = NULL;
+    NetplanDefType nd_type = NETPLAN_DEF_TYPE_NONE;
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
     if (!uuid)
         return FALSE;
     type = g_key_file_get_string(kf, "connection", "type", NULL);
     if (!type)
         return FALSE;
+    /* Special handling for WiFi "access-points:" mapping */
+    nd_type = type_from_str(type);
+    if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
+        hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL)? "true" : "false";
+        if (!g_strcmp0(hidden, "false")) /* "wifi" is an alias for "802-11-wireless" */
+            hidden = g_key_file_get_boolean(kf, "802-11-wireless", "hidden", NULL)? "true" : "false";
+
+        ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
+        if (!ssid) /* "wifi" is an alias for "802-11-wireless" */
+            ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
+        if (!ssid)
+            return FALSE;
+    }
     filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
     yaml_path = g_strjoin("/", rootdir? rootdir : "", "etc", "netplan", filename, NULL);
 
@@ -73,14 +94,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "version");
     YAML_SCALAR_PLAIN(event, emitter, "2");
-    switch (type_from_str(type)) {
-        case NETPLAN_DEF_TYPE_ETHERNET:
-            YAML_SCALAR_PLAIN(event, emitter, "ethernets");
-            break;
-        default:
-            YAML_SCALAR_PLAIN(event, emitter, "others"); /* full NM/keyfile fallback mode */
-            break;
-    }
+    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[nd_type]);
     YAML_MAPPING_OPEN(event, emitter);
 
     /* Define the connection profile */
@@ -89,6 +103,16 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "renderer");
     YAML_SCALAR_PLAIN(event, emitter, "NetworkManager");
+    if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
+        YAML_SCALAR_PLAIN(event, emitter, "access-points");
+        YAML_MAPPING_OPEN(event, emitter);
+        YAML_SCALAR_QUOTED(event, emitter, ssid);
+        YAML_MAPPING_OPEN(event, emitter);
+        YAML_SCALAR_PLAIN(event, emitter, "hidden"); // Just to prepare an easy but proper "access-points:" mapping
+        YAML_SCALAR_PLAIN(event, emitter, hidden);
+        YAML_MAPPING_CLOSE(event, emitter);
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
     YAML_SCALAR_PLAIN(event, emitter, "networkmanager"); /* Backend specific configuration */
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "uuid");

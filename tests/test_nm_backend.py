@@ -136,13 +136,13 @@ method=auto'''.format(UUID)
             self.assertEqual(f.read(), '''network:
   version: 2
   ethernets:
-    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+    NM-{}:
       renderer: NetworkManager
       networkmanager:
-        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        uuid: {}
         passthrough:
           connection.type: "ethernet"
-          connection.uuid: "87749f1d-334f-40b2-98d4-55db58965f5f"
+          connection.uuid: "{}"
           connection.permissions: ""
           connection.id: "myid with spaces"
           ipv4.method: "auto"
@@ -150,7 +150,7 @@ method=auto'''.format(UUID)
           ipv6.addr-gen-mode: "stable-privacy"
           ipv6.dns-search: ""
           ipv6.method: "auto"
-''')
+'''.format(UUID, UUID, UUID))
 
     def test_render_keyfile_missing_uuid(self):
         file = '[connection]\ntype=ethernets'
@@ -160,6 +160,87 @@ method=auto'''.format(UUID)
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\nuuid={}'.format(UUID)
         self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+
+    def test_render_keyfile_type_wifi(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=802-11-wireless
+uuid={}
+permissions=
+id=myid with spaces
+
+[802-11-wireless]
+ssid=SOME-SSID
+
+[ipv4]
+method=auto
+dns-search='''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      access-points:
+        "SOME-SSID":
+          hidden: false
+      networkmanager:
+        uuid: {}
+        passthrough:
+          connection.type: "802-11-wireless"
+          connection.uuid: "{}"
+          connection.permissions: ""
+          connection.id: "myid with spaces"
+          802-11-wireless.ssid: "SOME-SSID"
+          ipv4.method: "auto"
+          ipv4.dns-search: ""
+'''.format(UUID, UUID, UUID))
+
+    def test_render_keyfile_type_wifi_missing_ssid(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID)
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+
+    def test_render_keyfile_type_modem(self):
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '[connection]\ntype=gsm\nuuid={}'.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  modems:
+    NM-{}:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: {}
+        passthrough:
+          connection.type: "gsm"
+          connection.uuid: "{}"
+'''.format(UUID, UUID, UUID))
+
+    def test_render_keyfile_type_bridge(self):
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '[connection]\ntype=bridge\nuuid={}'.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  bridges:
+    NM-{}:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: {}
+        passthrough:
+          connection.type: "bridge"
+          connection.uuid: "{}"
+'''.format(UUID, UUID, UUID))
 
     def test_render_keyfile_type_other(self):
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
@@ -173,11 +254,11 @@ method=auto'''.format(UUID)
     NM-{}:
       renderer: NetworkManager
       networkmanager:
-        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        uuid: {}
         passthrough:
           connection.type: "dummy"
-          connection.uuid: "87749f1d-334f-40b2-98d4-55db58965f5f"
-'''.format(UUID))
+          connection.uuid: "{}"
+'''.format(UUID, UUID, UUID))
 
     def test_fallback_generator(self):
         self.generate('''network:
