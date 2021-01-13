@@ -59,7 +59,7 @@ static NetplanAddressOptions* cur_addr_option;
 static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
 
-/* Filname of the currently parsed YAML file */
+/* Filename of the currently parsed YAML file */
 const char* cur_filename;
 
 static NetplanBackend backend_global, backend_cur_type;
