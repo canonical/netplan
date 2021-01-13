@@ -171,18 +171,6 @@ exit_find:
     return ret;
 }
 
-static void
-process_input_file(const char* f)
-{
-    GError* error = NULL;
-
-    g_debug("Processing input file %s..", f);
-    if (!netplan_parse_yaml(f, &error)) {
-        g_fprintf(stderr, "%s\n", error->message);
-        exit(1);
-    }
-}
-
 int main(int argc, char** argv)
 {
     GError* error = NULL;
@@ -225,27 +213,8 @@ int main(int argc, char** argv)
     if (files && !called_as_generator) {
         for (gchar** f = files; f && *f; ++f)
             process_input_file(*f);
-    } else {
-        /* Files with asciibetically higher names override/append settings from
-         * earlier ones (in all config dirs); files in /run/netplan/
-         * shadow files in /etc/netplan/ which shadow files in /lib/netplan/.
-         * To do that, we put all found files in a hash table, then sort it by
-         * file name, and add the entries from /run after the ones from /etc
-         * and those after the ones from /lib. */
-        if (find_yaml_glob(rootdir, &gl) != 0)
-            return 1; // LCOV_EXCL_LINE
-        /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
-        g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
-        g_autoptr(GList) config_keys = NULL;
-
-        for (size_t i = 0; i < gl.gl_pathc; ++i)
-            g_hash_table_insert(configs, g_path_get_basename(gl.gl_pathv[i]), gl.gl_pathv[i]);
-
-        config_keys = g_list_sort(g_hash_table_get_keys(configs), (GCompareFunc) strcmp);
-
-        for (GList* i = config_keys; i != NULL; i = i->next)
-            process_input_file(g_hash_table_lookup(configs, i->data));
-    }
+    } else if (!process_yaml_hierarchy(rootdir))
+        return 1; // LCOV_EXCL_LINE
 
     netdefs = netplan_finish_parse(&error);
     if (error) {
@@ -259,9 +228,8 @@ int main(int argc, char** argv)
     cleanup_ovs_conf(rootdir);
     cleanup_sriov_conf(rootdir);
 
-    if (mapping_iface && netdefs) {
+    if (mapping_iface && netdefs)
         return find_interface(mapping_iface);
-    }
 
     /* Generate backend specific configuration files from merged data. */
     if (netdefs) {
