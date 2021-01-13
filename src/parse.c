@@ -28,6 +28,7 @@
 #include <yaml.h>
 
 #include "parse.h"
+#include "util.h"
 #include "error.h"
 #include "validation.h"
 
@@ -57,6 +58,9 @@ static NetplanAddressOptions* cur_addr_option;
 
 static NetplanIPRoute* cur_route;
 static NetplanIPRule* cur_ip_rule;
+
+/* Filename of the currently parsed YAML file */
+const char* cur_filename;
 
 static NetplanBackend backend_global, backend_cur_type;
 
@@ -2388,6 +2392,8 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         } else {
             netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
         }
+        g_assert(cur_filename);
+        cur_netdef->filename = g_strdup(cur_filename);
 
         // XXX: breaks multi-pass parsing.
         //if (!g_hash_table_add(ids_in_file, cur_netdef->id))
@@ -2545,8 +2551,10 @@ netplan_parse_yaml(const char* filename, GError** error)
     g_assert(ids_in_file == NULL);
     ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
+    cur_filename = filename;
     ret = process_document(&doc, error);
 
+    cur_filename = NULL;
     cur_netdef = NULL;
     yaml_document_delete(&doc);
     g_hash_table_destroy(ids_in_file);
@@ -2611,4 +2619,42 @@ netplan_clear_netdefs()
             g_hash_table_remove_all(netdefs);
 	}
     return n;
+}
+
+void
+process_input_file(const char* f)
+{
+    GError* error = NULL;
+
+    g_debug("Processing input file %s..", f);
+    if (!netplan_parse_yaml(f, &error)) {
+        g_fprintf(stderr, "%s\n", error->message);
+        exit(1);
+    }
+}
+
+gboolean
+process_yaml_hierarchy(const char* rootdir)
+{
+    glob_t gl;
+    /* Files with asciibetically higher names override/append settings from
+     * earlier ones (in all config dirs); files in /run/netplan/
+     * shadow files in /etc/netplan/ which shadow files in /lib/netplan/.
+     * To do that, we put all found files in a hash table, then sort it by
+     * file name, and add the entries from /run after the ones from /etc
+     * and those after the ones from /lib. */
+    if (find_yaml_glob(rootdir, &gl) != 0)
+        return FALSE; // LCOV_EXCL_LINE
+    /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
+    g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    g_autoptr(GList) config_keys = NULL;
+
+    for (size_t i = 0; i < gl.gl_pathc; ++i)
+        g_hash_table_insert(configs, g_path_get_basename(gl.gl_pathv[i]), gl.gl_pathv[i]);
+
+    config_keys = g_list_sort(g_hash_table_get_keys(configs), (GCompareFunc) strcmp);
+
+    for (GList* i = config_keys; i != NULL; i = i->next)
+        process_input_file(g_hash_table_lookup(configs, i->data));
+    return TRUE;
 }
