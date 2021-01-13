@@ -26,7 +26,7 @@ from generator.base import TestBase
 
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
-lib.netplan_get_id_from_filename.restype = ctypes.c_char_p
+lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
 
 class TestNetworkManagerBackend(TestBase):
@@ -41,20 +41,20 @@ class TestNetworkManagerBackend(TestBase):
         super().tearDown()
 
     def test_get_id_from_filename(self):
-        out = lib.netplan_get_id_from_filename(
+        out = lib.netplan_get_id_from_nm_filename(
           '/run/NetworkManager/system-connections/netplan-some-id.nmconnection'.encode(), None)
         self.assertEqual(out, b'some-id')
 
     def test_get_id_from_filename_wifi(self):
-        out = lib.netplan_get_id_from_filename(
+        out = lib.netplan_get_id_from_nm_filename(
           '/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection'.encode(), 'SOME-SSID'.encode())
         self.assertEqual(out, b'some-id')
 
     def test_get_id_from_filename_wifi_invalid_suffix(self):
-        out = lib.netplan_get_id_from_filename(
+        out = lib.netplan_get_id_from_nm_filename(
           '/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID'.encode(), 'SOME-SSID'.encode())
         self.assertEqual(out, None)
 
     def test_get_id_from_filename_invalid_prefix(self):
-        out = lib.netplan_get_id_from_filename('INVALID/netplan-some-id.nmconnection'.encode(), None)
+        out = lib.netplan_get_id_from_nm_filename('INVALID/netplan-some-id.nmconnection'.encode(), None)
         self.assertEqual(out, None)

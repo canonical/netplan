@@ -2655,32 +2655,3 @@ process_yaml_hierarchy(const char* rootdir)
         process_input_file(g_hash_table_lookup(configs, i->data));
     return TRUE;
 }
-
-gchar*
-netplan_get_id_from_filename(const char* filename, const char* ssid)
-{
-    g_autofree gchar* escaped_ssid = NULL;
-    g_autofree gchar* suffix = NULL;
-    const char* nm_prefix = "/run/NetworkManager/system-connections/netplan-";
-    const char* start = filename;
-    const char* end = NULL;
-    gsize id_len = 0;
-
-    if (!g_str_has_prefix(filename, nm_prefix))
-        return NULL;
-
-    if (ssid) {
-        escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-        suffix = g_strdup_printf("-%s.nmconnection", escaped_ssid);
-        end = g_strrstr(filename, suffix);
-    } else
-        end = g_strrstr(filename, ".nmconnection");
-
-    if (!end)
-        return NULL;
-
-    /* Move pointer to start of netplan ID inside filename string */
-    start = start + strlen(nm_prefix);
-    id_len = end - start;
-    return g_strndup(start, id_len);
-}
