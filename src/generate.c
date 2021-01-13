@@ -213,10 +213,8 @@ int main(int argc, char** argv)
     if (files && !called_as_generator) {
         for (gchar** f = files; f && *f; ++f)
             process_input_file(*f);
-    } else {
-        if (!process_yaml_hierarchy(rootdir))
-            return 1; // LCOV_EXCL_LINE
-    }
+    } else if (!process_yaml_hierarchy(rootdir))
+        return 1; // LCOV_EXCL_LINE
 
     netdefs = netplan_finish_parse(&error);
     if (error) {
@@ -230,9 +228,8 @@ int main(int argc, char** argv)
     cleanup_ovs_conf(rootdir);
     cleanup_sriov_conf(rootdir);
 
-    if (mapping_iface && netdefs) {
+    if (mapping_iface && netdefs)
         return find_interface(mapping_iface);
-    }
 
     /* Generate backend specific configuration files from merged data. */
     if (netdefs) {
