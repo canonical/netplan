@@ -43,134 +43,126 @@ gboolean
 netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
 {
     const gchar *hidden = NULL;
-    g_autofree gchar *id = NULL;
+    g_autofree gchar *nd_id = NULL;
     g_autofree gchar *uuid = NULL;
     g_autofree gchar *ssid = NULL;
     g_autofree gchar *filename = NULL;
     g_autofree gchar *yaml_path = NULL;
     g_autofree gchar *type = NULL;
     NetplanDefType nd_type = NETPLAN_DEF_TYPE_NONE;
+    gchar **groups = NULL;
+    gchar **keys = NULL;
+    gchar *group_key = NULL;
+    gchar *value = NULL;
+
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
-    if (!uuid)
+    if (!uuid) {
+        g_warning("netplan: Keyfile: cannot find connection.uuid");
         return FALSE;
+    }
     type = g_key_file_get_string(kf, "connection", "type", NULL);
-    if (!type)
+    if (!type) {
+        g_warning("netplan: Keyfile: cannot find connection.type");
         return FALSE;
+    }
     /* Special handling for WiFi "access-points:" mapping */
     nd_type = type_from_str(type);
     if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
-        hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL)? "true" : "false";
-        if (!g_strcmp0(hidden, "false")) /* "wifi" is an alias for "802-11-wireless" */
-            hidden = g_key_file_get_boolean(kf, "802-11-wireless", "hidden", NULL)? "true" : "false";
-
+        /* "wifi" is an alias for "802-11-wireless" */
+        hidden = (   g_key_file_get_boolean(kf, "wifi", "hidden", NULL)
+                  || g_key_file_get_boolean(kf, "802-11-wireless", "hidden", NULL)) ? "true" : "false";
         ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
-        if (!ssid) /* "wifi" is an alias for "802-11-wireless" */
-            ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
         if (!ssid)
+            ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
+        if (!ssid) {
+            g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
             return FALSE;
+        }
     }
+    /* NetworkManager produces one file per connection profile */
     filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
-    yaml_path = g_strjoin("/", rootdir? rootdir : "", "etc", "netplan", filename, NULL);
+    yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
-    /* YAML emitter */
+    /* Start rendering YAML output */
     yaml_emitter_t emitter;
     yaml_event_t event;
-    yaml_emitter_initialize(&emitter);
-
-    /* set the output file */
     FILE *output = fopen(yaml_path, "wb");
-    yaml_emitter_set_output_file(&emitter, output);
 
-    /* start STREAM and DOCUMENT events */
-    yaml_stream_start_event_initialize(&event, YAML_UTF8_ENCODING);
-    if (!yaml_emitter_emit(&emitter, &event)) goto error;
-
-    yaml_document_start_event_initialize(&event, NULL, NULL, NULL, 1);
-    if (!yaml_emitter_emit(&emitter, &event)) goto error;
-
-    /* build the YAML structure (mappings & scalars) */
-    YAML_MAPPING_OPEN(event, emitter);
+    YAML_OUT_START(event, emitter, output);
+    /* build the netplan boilerplate YAML structure */
     YAML_SCALAR_PLAIN(event, emitter, "network");
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "version");
     YAML_SCALAR_PLAIN(event, emitter, "2");
-    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[nd_type]);
+    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[nd_type]); // ethernets/wifis/modems/others/...
     YAML_MAPPING_OPEN(event, emitter);
-
-    /* Define the connection profile */
-    id = g_strconcat("NM-", uuid, NULL);
-    YAML_SCALAR_PLAIN(event, emitter, id);
+    /* Define the actual connection profile with netdef ID: "NM-<UUID>" */
+    nd_id = g_strconcat("NM-", uuid, NULL);
+    YAML_SCALAR_PLAIN(event, emitter, nd_id);
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "renderer");
-    YAML_SCALAR_PLAIN(event, emitter, "NetworkManager");
-    if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
-        YAML_SCALAR_PLAIN(event, emitter, "access-points");
-        YAML_MAPPING_OPEN(event, emitter);
-        YAML_SCALAR_QUOTED(event, emitter, ssid);
-        YAML_MAPPING_OPEN(event, emitter);
-        YAML_SCALAR_PLAIN(event, emitter, "hidden"); // Just to prepare an easy but proper "access-points:" mapping
-        YAML_SCALAR_PLAIN(event, emitter, hidden);
-        YAML_MAPPING_CLOSE(event, emitter);
-        YAML_MAPPING_CLOSE(event, emitter);
-    }
-    YAML_SCALAR_PLAIN(event, emitter, "networkmanager"); /* Backend specific configuration */
+    YAML_SCALAR_PLAIN(event, emitter, "NetworkManager"); // use "renderer: NetworkManager"
+    /* If this connection is of TYPE_WIFI, we need an "access-points:" mapping,
+     * although the passthrough/fallback mechanism can only handle a single SSID (for now). */
+    if (nd_type == NETPLAN_DEF_TYPE_WIFI)
+        YAML_NETPLAN_WIFI_AP(event, emitter, ssid, hidden);
+    /* Backend specific configuration */
+    YAML_SCALAR_PLAIN(event, emitter, "networkmanager");
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "uuid");
     YAML_SCALAR_PLAIN(event, emitter, uuid);
     YAML_SCALAR_PLAIN(event, emitter, "passthrough");
     YAML_MAPPING_OPEN(event, emitter);
 
-    /* Define the fallback keyfile settings */
-    /* ===== KEYFILE READER START ==== */
-    gchar *group_key = NULL;
-    gchar *value = NULL;
+    /* Pass through the key-value paris from the keyfile */
     gsize klen = 0;
     gsize glen = 0;
-    gchar **groups = g_key_file_get_groups(kf, &glen);
+    groups = g_key_file_get_groups(kf, &glen);
+    if (!groups) goto error;
     for(unsigned i = 0; i < glen; ++i) {
         klen = 0;
-        gchar **keys = g_key_file_get_keys(kf, groups[i], &klen, NULL); //TODO: error handling
+        keys = g_key_file_get_keys(kf, groups[i], &klen, NULL);
+        if (!keys) continue; /* empty group */
         for(unsigned j = 0; j < klen; ++j) {
+            value = g_key_file_get_string(kf, groups[i], keys[j], NULL);
+            if (!value) {
+                // LCOV_EXCL_START
+                g_warning("netplan: Keyfile: cannot read value of %s.%s", groups[i], keys[j]);
+                continue;
+                // LCOV_EXCL_STOP
+            }
             group_key = g_strconcat(groups[i], ".", keys[j], NULL);
-            value = g_key_file_get_string(kf, groups[i], keys[j], NULL); //TODO: error handling
-
-            // TODO: error handling (freeing the variables)
             YAML_SCALAR_PLAIN(event, emitter, group_key);
             YAML_SCALAR_QUOTED(event, emitter, value);
-
             g_free(group_key);
             g_free(value);
         }
         g_strfreev(keys);
     }
     g_strfreev(groups);
-    /* ===== KEYFILE READER END ==== */
 
-    YAML_MAPPING_CLOSE(event, emitter);
+    /* Close remaining mappings */
     YAML_MAPPING_CLOSE(event, emitter);
     YAML_MAPPING_CLOSE(event, emitter);
     YAML_MAPPING_CLOSE(event, emitter);
     YAML_MAPPING_CLOSE(event, emitter);
     YAML_MAPPING_CLOSE(event, emitter);
 
-    /* close DOCUMENT, STREAM and FILE */
-    yaml_document_end_event_initialize(&event, 1);
-    if (!yaml_emitter_emit(&emitter, &event)) goto error;
-
-    yaml_stream_end_event_initialize(&event);
-    if (!yaml_emitter_emit(&emitter, &event)) goto error;
-
-    yaml_emitter_delete(&emitter);
+    /* Tear down the YAML emitter */
+    YAML_OUT_STOP(event, emitter);
     fclose(output);
     return TRUE;
 
     // LCOV_EXCL_START
 error:
-    // TODO: free some more variables
+    g_strfreev(groups);
+    g_strfreev(keys);
+    g_free(group_key);
+    g_free(value);
     yaml_emitter_delete(&emitter);
+    fclose(output);
     return FALSE;
     // LCOV_EXCL_STOP
-
 }
 
 /* For testing only */
