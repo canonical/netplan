@@ -2671,7 +2671,7 @@ netplan_delete_connection(const char* id, const char* rootdir)
     netdefs = netplan_finish_parse(&error);
     if (!netdefs) {
         // LCOV_EXCL_START
-        fprintf(stderr, "netplan_delete_connection: %s\n", error->message);
+        g_fprintf(stderr, "netplan_delete_connection: %s\n", error->message);
         return FALSE;
         // LCOV_EXCL_STOP
     }
@@ -2679,7 +2679,7 @@ netplan_delete_connection(const char* id, const char* rootdir)
     /* find filename for specified netdef ID */
     nd = g_hash_table_lookup(netdefs, id);
     if (!nd) {
-        fprintf(stderr, "netplan_delete_connection: Cannot delete %s, as this ID does not exist.\n", id);
+        g_warning("netplan_delete_connection: Cannot delete %s, does not exist.", id);
         return FALSE;
     }
 
