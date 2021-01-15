@@ -367,6 +367,16 @@ class TestConfigErrors(TestBase):
       ipv6-address-token: INVALID''', expect_fail=True)
         self.assertIn("invalid ipv6-address-token 'INVALID'", err)
 
+    def test_others_missing_passthrough(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  others:
+    engreen:
+      networkmanager:
+        uuid: 123456''', expect_fail=True)
+        self.assertIn("engreen: network type 'others:' needs to provide a 'passthrough", err)
+
     def test_invalid_address_node_type(self):
         err = self.generate('''network:
   version: 2
