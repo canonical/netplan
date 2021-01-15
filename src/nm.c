@@ -179,19 +179,29 @@ addr_gen_mode_str(const NetplanAddrGenMode mode)
 }
 
 static void
-write_search_domains(const NetplanNetDefinition* def, GString *s)
+write_search_domains(const NetplanNetDefinition* def, const char* group, GKeyFile *kf)
 {
     if (def->search_domains) {
-        g_string_append(s, "dns-search=");
+        const gchar* list[def->search_domains->len];
         for (unsigned i = 0; i < def->search_domains->len; ++i)
-            g_string_append_printf(s, "%s;", g_array_index(def->search_domains, char*, i));
-        g_string_append(s, "\n");
+            list[i] = g_array_index(def->search_domains, char*, i);
+        g_key_file_set_string_list(kf, group, "dns-search", list, def->search_domains->len);
     }
 }
 
 static void
-write_routes(const NetplanNetDefinition* def, GString *s, int family)
+write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
 {
+    const gchar* group = NULL;
+    gchar* tmp_key = NULL;
+    GString* tmp_val = NULL;
+
+    if (family == AF_INET)
+        group = "ipv4";
+    else if (family == AF_INET6)
+        group = "ipv6";
+    g_assert(group != NULL);
+
     if (def->routes != NULL) {
         for (unsigned i = 0, j = 1; i < def->routes->len; ++i) {
             const NetplanIPRoute *cur_route = g_array_index(def->routes, NetplanIPRoute*, i);
@@ -215,28 +225,35 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                 exit(1);
             }
 
-            g_string_append_printf(s, "route%d=%s,%s",
-                                   j, cur_route->to, cur_route->via);
+            tmp_key = g_strdup_printf("route%d", j);
+            tmp_val = g_string_new(NULL);
+            g_string_printf(tmp_val, "%s,%s", cur_route->to, cur_route->via);
             if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
-                g_string_append_printf(s, ",%d", cur_route->metric);
-            g_string_append(s, "\n");
+                g_string_append_printf(tmp_val, ",%d", cur_route->metric);
+            g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
+            g_free(tmp_key);
+            g_string_free(tmp_val, TRUE);
 
             if (   cur_route->onlink
                 || cur_route->mtubytes
                 || cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC
                 || cur_route->from) {
-                g_string_append_printf(s, "route%d_options=", j);
+                tmp_key = g_strdup_printf("route%d_options", j);
+                tmp_val = g_string_new(NULL);
                 if (cur_route->onlink) {
                     /* onlink for IPv6 addresses is only supported since nm-1.18.0. */
-                    g_string_append_printf(s, "onlink=true,");
+                    g_string_append_printf(tmp_val, "onlink=true,");
                 }
                 if (cur_route->mtubytes != NETPLAN_MTU_UNSPEC)
-                    g_string_append_printf(s, "mtu=%u,", cur_route->mtubytes);
+                    g_string_append_printf(tmp_val, "mtu=%u,", cur_route->mtubytes);
                 if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC)
-                    g_string_append_printf(s, "table=%u,", cur_route->table);
+                    g_string_append_printf(tmp_val, "table=%u,", cur_route->table);
                 if (cur_route->from)
-                    g_string_append_printf(s, "src=%s,", cur_route->from);
-                s->str[s->len - 1] = '\n';
+                    g_string_append_printf(tmp_val, "src=%s,", cur_route->from);
+                tmp_val->str[tmp_val->len - 1] = '\0'; //remove trailing comma
+                g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
+                g_free(tmp_key);
+                g_string_free(tmp_val, TRUE);
             }
             j++;
         }
@@ -244,100 +261,86 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
 }
 
 static void
-write_bond_parameters(const NetplanNetDefinition* def, GString *s)
+write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
 {
-    GString* params = NULL;
-
-    params = g_string_sized_new(200);
-
+    GString* tmp_val = NULL;
     if (def->bond_params.mode)
-        g_string_append_printf(params, "\nmode=%s", def->bond_params.mode);
+        g_key_file_set_string(kf, "bond", "mode", def->bond_params.mode);
     if (def->bond_params.lacp_rate)
-        g_string_append_printf(params, "\nlacp_rate=%s", def->bond_params.lacp_rate);
+        g_key_file_set_string(kf, "bond", "lacp_rate", def->bond_params.lacp_rate);
     if (def->bond_params.monitor_interval)
-        g_string_append_printf(params, "\nmiimon=%s", def->bond_params.monitor_interval);
+        g_key_file_set_string(kf, "bond", "miimon", def->bond_params.monitor_interval);
     if (def->bond_params.min_links)
-        g_string_append_printf(params, "\nmin_links=%d", def->bond_params.min_links);
+        g_key_file_set_integer(kf, "bond", "min_links", def->bond_params.min_links);
     if (def->bond_params.transmit_hash_policy)
-        g_string_append_printf(params, "\nxmit_hash_policy=%s", def->bond_params.transmit_hash_policy);
+        g_key_file_set_string(kf, "bond", "xmit_hash_policy", def->bond_params.transmit_hash_policy);
     if (def->bond_params.selection_logic)
-        g_string_append_printf(params, "\nad_select=%s", def->bond_params.selection_logic);
+        g_key_file_set_string(kf, "bond", "ad_select", def->bond_params.selection_logic);
     if (def->bond_params.all_slaves_active)
-        g_string_append_printf(params, "\nall_slaves_active=%d", def->bond_params.all_slaves_active);
+        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_slaves_active);
     if (def->bond_params.arp_interval)
-        g_string_append_printf(params, "\narp_interval=%s", def->bond_params.arp_interval);
+        g_key_file_set_string(kf, "bond", "arp_interval", def->bond_params.arp_interval);
     if (def->bond_params.arp_ip_targets) {
-        g_string_append_printf(params, "\narp_ip_target=");
+        tmp_val = g_string_new(NULL);
         for (unsigned i = 0; i < def->bond_params.arp_ip_targets->len; ++i) {
             if (i > 0)
-                g_string_append_printf(params, ",");
-            g_string_append_printf(params, "%s", g_array_index(def->bond_params.arp_ip_targets, char*, i));
+                g_string_append_printf(tmp_val, ",");
+            g_string_append_printf(tmp_val, "%s", g_array_index(def->bond_params.arp_ip_targets, char*, i));
         }
+        g_key_file_set_string(kf, "bond", "arp_ip_target", tmp_val->str);
+        g_string_free(tmp_val, TRUE);
     }
     if (def->bond_params.arp_validate)
-        g_string_append_printf(params, "\narp_validate=%s", def->bond_params.arp_validate);
+        g_key_file_set_string(kf, "bond", "arp_validate", def->bond_params.arp_validate);
     if (def->bond_params.arp_all_targets)
-        g_string_append_printf(params, "\narp_all_targets=%s", def->bond_params.arp_all_targets);
+        g_key_file_set_string(kf, "bond", "arp_all_targets", def->bond_params.arp_all_targets);
     if (def->bond_params.up_delay)
-        g_string_append_printf(params, "\nupdelay=%s", def->bond_params.up_delay);
+        g_key_file_set_string(kf, "bond", "updelay", def->bond_params.up_delay);
     if (def->bond_params.down_delay)
-        g_string_append_printf(params, "\ndowndelay=%s", def->bond_params.down_delay);
+        g_key_file_set_string(kf, "bond", "downdelay", def->bond_params.down_delay);
     if (def->bond_params.fail_over_mac_policy)
-        g_string_append_printf(params, "\nfail_over_mac=%s", def->bond_params.fail_over_mac_policy);
+        g_key_file_set_string(kf, "bond", "fail_over_mac", def->bond_params.fail_over_mac_policy);
     if (def->bond_params.gratuitous_arp) {
-        g_string_append_printf(params, "\nnum_grat_arp=%d", def->bond_params.gratuitous_arp);
+        g_key_file_set_integer(kf, "bond", "num_grat_arp", def->bond_params.gratuitous_arp);
         /* Work around issue in NM where unset unsolicited_na will overwrite num_grat_arp:
          * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
-        g_string_append_printf(params, "\nnum_unsol_na=%d", def->bond_params.gratuitous_arp);
+        g_key_file_set_integer(kf, "bond", "num_unsol_na", def->bond_params.gratuitous_arp);
     }
     if (def->bond_params.packets_per_slave)
-        g_string_append_printf(params, "\npackets_per_slave=%d", def->bond_params.packets_per_slave);
+        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_slave);
     if (def->bond_params.primary_reselect_policy)
-        g_string_append_printf(params, "\nprimary_reselect=%s", def->bond_params.primary_reselect_policy);
+        g_key_file_set_string(kf, "bond", "primary_reselect", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
-        g_string_append_printf(params, "\nresend_igmp=%d", def->bond_params.resend_igmp);
+        g_key_file_set_integer(kf, "bond", "resend_igmp", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
-        g_string_append_printf(params, "\nlp_interval=%s", def->bond_params.learn_interval);
+        g_key_file_set_string(kf, "bond", "lp_interval", def->bond_params.learn_interval);
     if (def->bond_params.primary_slave)
-        g_string_append_printf(params, "\nprimary=%s", def->bond_params.primary_slave);
-
-    if (params->len > 0)
-        g_string_append_printf(s, "\n[bond]%s\n", params->str);
-
-    g_string_free(params, TRUE);
+        g_key_file_set_string(kf, "bond", "primary", def->bond_params.primary_slave);
 }
 
 static void
-write_bridge_params(const NetplanNetDefinition* def, GString *s)
+write_bridge_params(const NetplanNetDefinition* def, GKeyFile *kf)
 {
-    GString* params = NULL;
-
     if (def->custom_bridging) {
-        params = g_string_sized_new(200);
-
         if (def->bridge_params.ageing_time)
-            g_string_append_printf(params, "ageing-time=%s\n", def->bridge_params.ageing_time);
+            g_key_file_set_string(kf, "bridge", "ageing-time", def->bridge_params.ageing_time);
         if (def->bridge_params.priority)
-            g_string_append_printf(params, "priority=%u\n", def->bridge_params.priority);
+            g_key_file_set_uint64(kf, "bridge", "priority", def->bridge_params.priority);
         if (def->bridge_params.forward_delay)
-            g_string_append_printf(params, "forward-delay=%s\n", def->bridge_params.forward_delay);
+            g_key_file_set_string(kf, "bridge", "forward-delay", def->bridge_params.forward_delay);
         if (def->bridge_params.hello_time)
-            g_string_append_printf(params, "hello-time=%s\n", def->bridge_params.hello_time);
+            g_key_file_set_string(kf, "bridge", "hello-time", def->bridge_params.hello_time);
         if (def->bridge_params.max_age)
-            g_string_append_printf(params, "max-age=%s\n", def->bridge_params.max_age);
-        g_string_append_printf(params, "stp=%s\n", def->bridge_params.stp ? "true" : "false");
-
-        g_string_append_printf(s, "\n[bridge]\n%s", params->str);
-
-        g_string_free(params, TRUE);
+            g_key_file_set_string(kf, "bridge", "max-age", def->bridge_params.max_age);
+        g_key_file_set_boolean(kf, "bridge", "stp", def->bridge_params.stp);
     }
 }
 
 static void
-write_wireguard_params(const NetplanNetDefinition* def, GString *s)
+write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf)
 {
+    gchar* tmp_group = NULL;
     g_assert(def->tunnel.private_key);
-    g_string_append(s, "\n[wireguard]\n");
 
     /* The key was already validated via validate_tunnel_grammar(), but we need
      * to differentiate between base64 key VS absolute path key-file. And a base64
@@ -347,22 +350,23 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
         g_fprintf(stderr, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
         exit(1);
     } else
-        g_string_append_printf(s, "private-key=%s\n", def->tunnel.private_key);
+        g_key_file_set_string(kf, "wireguard", "private-key", def->tunnel.private_key);
 
     if (def->tunnel.port)
-        g_string_append_printf(s, "listen-port=%u\n", def->tunnel.port);
+        g_key_file_set_uint64(kf, "wireguard", "listen-port", def->tunnel.port);
     if (def->tunnel.fwmark)
-        g_string_append_printf(s, "fwmark=%u\n", def->tunnel.fwmark);
+        g_key_file_set_uint64(kf, "wireguard", "fwmark", def->tunnel.fwmark);
 
     for (guint i = 0; i < def->wireguard_peers->len; i++) {
         NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
         g_assert(peer->public_key);
-        g_string_append_printf(s, "\n[wireguard-peer.%s]\n", peer->public_key);
+        tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
 
         if (peer->keepalive)
-            g_string_append_printf(s, "persistent-keepalive=%d\n", peer->keepalive);
+            g_key_file_set_integer(kf, tmp_group, "persistent-keepalive", peer->keepalive);
         if (peer->endpoint)
-            g_string_append_printf(s, "endpoint=%s\n", peer->endpoint);
+            g_key_file_set_string(kf, tmp_group, "endpoint", peer->endpoint);
+
         /* The key was already validated via validate_tunnel_grammar(), but we need
          * to differentiate between base64 key VS absolute path key-file. And a base64
          * string could (theoretically) start with '/', so we use is_wireguard_key()
@@ -372,111 +376,92 @@ write_wireguard_params(const NetplanNetDefinition* def, GString *s)
                 g_fprintf(stderr, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
                 exit(1);
             } else {
-                g_string_append_printf(s, "preshared-key=%s\n", peer->preshared_key);
-                g_string_append(s, "preshared-key-flags=0\n");
+                g_key_file_set_value(kf, tmp_group, "preshared-key", peer->preshared_key);
+                g_key_file_set_uint64(kf, tmp_group, "preshared-key-flags", 0);
             }
         }
         if (peer->allowed_ips && peer->allowed_ips->len > 0) {
-            g_string_append(s, "allowed-ips=");
-            for (guint i = 0; i < peer->allowed_ips->len; ++i) {
-                if (i > 0 ) g_string_append_c(s, ';');
-                g_string_append_printf(s, "%s", g_array_index(peer->allowed_ips, char*, i));
-            }
-            g_string_append_c(s, '\n');
+            const gchar* list[peer->allowed_ips->len];
+            for (guint j = 0; j < peer->allowed_ips->len; ++j)
+                list[j] = g_array_index(peer->allowed_ips, char*, j);
+            g_key_file_set_string_list(kf, tmp_group, "allowed-ips", list, peer->allowed_ips->len);
         }
+        g_free(tmp_group);
     }
 }
 
 static void
-write_tunnel_params(const NetplanNetDefinition* def, GString *s)
+write_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
 {
-    g_string_append(s, "\n[ip-tunnel]\n");
-
-    g_string_append_printf(s, "mode=%d\n", def->tunnel.mode);
-    g_string_append_printf(s, "local=%s\n", def->tunnel.local_ip);
-    g_string_append_printf(s, "remote=%s\n", def->tunnel.remote_ip);
+    g_key_file_set_integer(kf, "ip-tunnel", "mode", def->tunnel.mode);
+    g_key_file_set_string(kf, "ip-tunnel", "local", def->tunnel.local_ip);
+    g_key_file_set_string(kf, "ip-tunnel", "remote", def->tunnel.remote_ip);
 
     if (def->tunnel.input_key)
-        g_string_append_printf(s, "input-key=%s\n", def->tunnel.input_key);
+        g_key_file_set_string(kf, "ip-tunnel", "input-key", def->tunnel.input_key);
     if (def->tunnel.output_key)
-        g_string_append_printf(s, "output-key=%s\n", def->tunnel.output_key);
+        g_key_file_set_string(kf, "ip-tunnel", "output-key", def->tunnel.output_key);
 }
 
 static void
-write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GString *s)
+write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *kf)
 {
-    if (auth->eap_method == NETPLAN_AUTH_EAP_NONE) {
+    if (auth->eap_method == NETPLAN_AUTH_EAP_NONE)
         return;
-    }
-
-    g_string_append_printf(s, "\n[802-1x]\n");
 
     switch (auth->eap_method) {
         case NETPLAN_AUTH_EAP_NONE: break; // LCOV_EXCL_LINE
         case NETPLAN_AUTH_EAP_TLS:
-            g_string_append(s, "eap=tls\n");
+            g_key_file_set_string(kf, "802-1x", "eap", "tls");
             break;
         case NETPLAN_AUTH_EAP_PEAP:
-            g_string_append(s, "eap=peap\n");
+            g_key_file_set_string(kf, "802-1x", "eap", "peap");
             break;
         case NETPLAN_AUTH_EAP_TTLS:
-            g_string_append(s, "eap=ttls\n");
+            g_key_file_set_string(kf, "802-1x", "eap", "ttls");
             break;
     }
 
-    if (auth->identity) {
-        g_string_append_printf(s, "identity=%s\n", auth->identity);
-    }
-    if (auth->anonymous_identity) {
-        g_string_append_printf(s, "anonymous-identity=%s\n", auth->anonymous_identity);
-    }
-    if (auth->password && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK) {
-        g_string_append_printf(s, "password=%s\n", auth->password);
-    }
-    if (auth->ca_certificate) {
-        g_string_append_printf(s, "ca-cert=%s\n", auth->ca_certificate);
-    }
-    if (auth->client_certificate) {
-        g_string_append_printf(s, "client-cert=%s\n", auth->client_certificate);
-    }
-    if (auth->client_key) {
-        g_string_append_printf(s, "private-key=%s\n", auth->client_key);
-    }
-    if (auth->client_key_password) {
-        g_string_append_printf(s, "private-key-password=%s\n", auth->client_key_password);
-    }
-    if (auth->phase2_auth) {
-        g_string_append_printf(s, "phase2-auth=%s\n", auth->phase2_auth);
-    }
-
+    if (auth->identity)
+        g_key_file_set_string(kf, "802-1x", "identity", auth->identity);
+    if (auth->anonymous_identity)
+        g_key_file_set_string(kf, "802-1x", "anonymous-identity", auth->anonymous_identity);
+    if (auth->password && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK)
+        g_key_file_set_string(kf, "802-1x", "password", auth->password);
+    if (auth->ca_certificate)
+        g_key_file_set_string(kf, "802-1x", "ca-cert", auth->ca_certificate);
+    if (auth->client_certificate)
+        g_key_file_set_string(kf, "802-1x", "client-cert", auth->client_certificate);
+    if (auth->client_key)
+        g_key_file_set_string(kf, "802-1x", "private-key", auth->client_key);
+    if (auth->client_key_password)
+        g_key_file_set_string(kf, "802-1x", "private-key-password", auth->client_key_password);
+    if (auth->phase2_auth)
+        g_key_file_set_string(kf, "802-1x", "phase2-auth", auth->phase2_auth);
 }
 
 static void
-write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GString *s)
+write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *kf)
 {
-    if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_NONE) {
+    if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_NONE)
         return;
-    }
-
-    g_string_append(s, "\n[wifi-security]\n");
 
     switch (auth->key_management) {
         case NETPLAN_AUTH_KEY_MANAGEMENT_NONE: break; // LCOV_EXCL_LINE
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
-            g_string_append(s, "key-mgmt=wpa-psk\n");
-            if (auth->password) {
-                g_string_append_printf(s, "psk=%s\n", auth->password);
-            }
+            g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-psk");
+            if (auth->password)
+                g_key_file_set_string(kf, "wifi-security", "psk", auth->password);
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
-            g_string_append(s, "key-mgmt=wpa-eap\n");
+            g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-eap");
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
-            g_string_append(s, "key-mgmt=ieee8021x\n");
+            g_key_file_set_string(kf, "wifi-security", "key-mgmt", "ieee8021x");
             break;
     }
 
-    write_dot1x_auth_parameters(auth, s);
+    write_dot1x_auth_parameters(auth, kf);
 }
 
 static void
@@ -499,8 +484,12 @@ maybe_generate_uuid(NetplanNetDefinition* def)
 static void
 write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const NetplanWifiAccessPoint* ap)
 {
-    GString *s = NULL;
-    g_autofree char* conf_path = NULL;
+    g_autoptr(GKeyFile) kf = NULL;
+    g_autoptr(GError) error = NULL;
+    g_autofree gchar* conf_path = NULL;
+    g_autofree gchar* full_path = NULL;
+    g_autofree gchar* nd_nm_id = NULL;
+    gchar* tmp_key = NULL;
     mode_t orig_umask;
     char uuidstr[37];
     const char *match_interface_name = NULL;
@@ -515,11 +504,13 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         return;
     }
 
-    s = g_string_new(NULL);
-    g_string_append_printf(s, "[connection]\nid=netplan-%s", def->id);
+    kf = g_key_file_new();
     if (ap)
-        g_string_append_printf(s, "-%s", ap->ssid);
-    g_string_append_printf(s, "\ntype=%s\n", type_str(def));
+        nd_nm_id = g_strdup_printf("netplan-%s-%s", def->id, ap->ssid);
+    else
+        nd_nm_id = g_strdup_printf("netplan-%s", def->id);
+    g_key_file_set_string(kf, "connection", "id", nd_nm_id);
+    g_key_file_set_string(kf, "connection", "type", type_str(def));
 
     /* VLAN devices refer to us as their parent; if our ID is not a name but we
      * have matches, parent= must be the connection UUID, so put it into the
@@ -527,7 +518,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->has_vlans && def->has_match) {
         maybe_generate_uuid(def);
         uuid_unparse(def->uuid, uuidstr);
-        g_string_append_printf(s, "uuid=%s\n", uuidstr);
+        g_key_file_set_string(kf, "connection", "uuid", uuidstr);
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
@@ -535,69 +526,67 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
          * supported, MAC matching is done below (different keyfile section),
          * so only match names here */
         if (def->set_name)
-            g_string_append_printf(s, "interface-name=%s\n", def->set_name);
+            g_key_file_set_string(kf, "connection", "interface-name", def->set_name);
         else if (!def->has_match)
-            g_string_append_printf(s, "interface-name=%s\n", def->id);
+            g_key_file_set_string(kf, "connection", "interface-name", def->id);
         else if (def->match.original_name) {
             if (strpbrk(def->match.original_name, "*[]?"))
                 match_interface_name = def->match.original_name;
             else
-                g_string_append_printf(s, "interface-name=%s\n", def->match.original_name);
+                g_key_file_set_string(kf, "connection", "interface-name", def->match.original_name);
         }
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
         /* virtual (created) devices set a name */
-        g_string_append_printf(s, "interface-name=%s\n", def->id);
+        g_key_file_set_string(kf, "connection", "interface-name", def->id);
 
         if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
-            write_bridge_params(def, s);
+            write_bridge_params(def, kf);
     }
     if (def->type == NETPLAN_DEF_TYPE_MODEM) {
-        if (modem_is_gsm(def))
-            g_string_append_printf(s, "\n[gsm]\n");
-        else
-            g_string_append_printf(s, "\n[cdma]\n");
+        const char* modem_type = modem_is_gsm(def) ? "gsm" : "cdma";
 
         /* Use NetworkManager's auto configuration feature if no APN, username, or password is specified */
         if (def->modem_params.auto_config || (!def->modem_params.apn &&
                 !def->modem_params.username && !def->modem_params.password)) {
-            g_string_append_printf(s, "auto-config=true\n");
+            g_key_file_set_boolean(kf, modem_type, "auto-config", TRUE);
         } else {
             if (def->modem_params.apn)
-                g_string_append_printf(s, "apn=%s\n", def->modem_params.apn);
+                g_key_file_set_string(kf, modem_type, "apn", def->modem_params.apn);
             if (def->modem_params.password)
-                g_string_append_printf(s, "password=%s\n", def->modem_params.password);
+                g_key_file_set_string(kf, modem_type, "password", def->modem_params.password);
             if (def->modem_params.username)
-                g_string_append_printf(s, "username=%s\n", def->modem_params.username);
+                g_key_file_set_string(kf, modem_type, "username", def->modem_params.username);
         }
 
         if (def->modem_params.device_id)
-            g_string_append_printf(s, "device-id=%s\n", def->modem_params.device_id);
+            g_key_file_set_string(kf, modem_type, "device-id", def->modem_params.device_id);
         if (def->mtubytes)
-            g_string_append_printf(s, "mtu=%u\n", def->mtubytes);
+            g_key_file_set_uint64(kf, modem_type, "mtu", def->mtubytes);
         if (def->modem_params.network_id)
-            g_string_append_printf(s, "network-id=%s\n", def->modem_params.network_id);
+            g_key_file_set_string(kf, modem_type, "network-id", def->modem_params.network_id);
         if (def->modem_params.number)
-            g_string_append_printf(s, "number=%s\n", def->modem_params.number);
+            g_key_file_set_string(kf, modem_type, "number", def->modem_params.number);
         if (def->modem_params.pin)
-            g_string_append_printf(s, "pin=%s\n", def->modem_params.pin);
+            g_key_file_set_string(kf, modem_type, "pin", def->modem_params.pin);
         if (def->modem_params.sim_id)
-            g_string_append_printf(s, "sim-id=%s\n", def->modem_params.sim_id);
+            g_key_file_set_string(kf, modem_type, "sim-id", def->modem_params.sim_id);
         if (def->modem_params.sim_operator_id)
-            g_string_append_printf(s, "sim-operator-id=%s\n", def->modem_params.sim_operator_id);
+            g_key_file_set_string(kf, modem_type, "sim-operator-id", def->modem_params.sim_operator_id);
     }
     if (def->bridge) {
-        g_string_append_printf(s, "slave-type=bridge\nmaster=%s\n", def->bridge);
+        g_key_file_set_string(kf, "connection", "slave-type", "bridge");
+        g_key_file_set_string(kf, "connection", "master", def->bridge);
 
-        if (def->bridge_params.path_cost || def->bridge_params.port_priority)
-            g_string_append_printf(s, "\n[bridge-port]\n");
         if (def->bridge_params.path_cost)
-            g_string_append_printf(s, "path-cost=%u\n", def->bridge_params.path_cost);
+            g_key_file_set_uint64(kf, "bridge-port", "path-cost", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
-            g_string_append_printf(s, "priority=%u\n", def->bridge_params.port_priority);
+            g_key_file_set_uint64(kf, "bridge-port", "priority", def->bridge_params.port_priority);
     }
-    if (def->bond)
-        g_string_append_printf(s, "slave-type=bond\nmaster=%s\n", def->bond);
+    if (def->bond) {
+        g_key_file_set_string(kf, "connection", "slave-type", "bond");
+        g_key_file_set_string(kf, "connection", "master", def->bond);
+    }
 
     if (def->ipv6_mtubytes) {
         g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support ipv6-mtu\n", def->id);
@@ -605,184 +594,168 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
-        GString *link_str = NULL;
+        g_key_file_set_integer(kf, "ethernet", "wake-on-lan", def->wake_on_lan ? 1 : 0);
 
-        link_str = g_string_new(NULL);
-
-        g_string_append_printf(s, "\n[ethernet]\nwake-on-lan=%i\n", def->wake_on_lan ? 1 : 0);
-
-        if (!def->set_name && def->match.mac) {
-            g_string_append_printf(link_str, "mac-address=%s\n", def->match.mac);
-        }
-        if (def->set_mac) {
-            g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
-        }
-        if (def->mtubytes) {
-            g_string_append_printf(link_str, "mtu=%u\n", def->mtubytes);
-        }
-        if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
-            g_string_append_printf(link_str, "wake-on-wlan=%u\n", def->wowlan);
-
-        if (link_str->len > 0) {
-            switch (def->type) {
-                case NETPLAN_DEF_TYPE_WIFI:
-                    g_string_append_printf(s, "\n[802-11-wireless]\n%s", link_str->str);  break;
-                case NETPLAN_DEF_TYPE_MODEM:
-                    /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
-                    break;
-                default:
-                    g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);  break;
-            }
+        const char* con_type = NULL;
+        switch (def->type) {
+            case NETPLAN_DEF_TYPE_WIFI:
+                con_type = "802-11-wireless"; //should we just use "wifi" here?
+            case NETPLAN_DEF_TYPE_MODEM:
+                /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
+                break;
+            default:
+                con_type = "802-3-ethernet"; //should we just use "ethernet" here?
         }
 
-        g_string_free(link_str, TRUE);
+        if (con_type) {
+            if (!def->set_name && def->match.mac)
+                g_key_file_set_string(kf, con_type, "mac-address", def->match.mac);
+            if (def->set_mac)
+                g_key_file_set_string(kf, con_type, "cloned-mac-address", def->set_mac);
+            if (def->mtubytes)
+                g_key_file_set_uint64(kf, con_type, "mtu", def->mtubytes);
+            if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
+                g_key_file_set_uint64(kf, con_type, "wake-on-wlan", def->wowlan);
+        }
     } else {
-        GString *link_str = NULL;
-
-        link_str = g_string_new(NULL);
-
-        if (def->set_mac) {
-            g_string_append_printf(link_str, "cloned-mac-address=%s\n", def->set_mac);
-        }
-        if (def->mtubytes) {
-            g_string_append_printf(link_str, "mtu=%u\n", def->mtubytes);
-        }
-
-        if (link_str->len > 0) {
-            g_string_append_printf(s, "\n[802-3-ethernet]\n%s", link_str->str);
-        }
-
-        g_string_free(link_str, TRUE);
+        /* Should we just use just "ethernet" here? */
+        if (def->set_mac)
+            g_key_file_set_string(kf, "802-3-ethernet", "cloned-mac-address", def->set_mac);
+        if (def->mtubytes)
+            g_key_file_set_uint64(kf, "802-3-ethernet", "mtu", def->mtubytes);
     }
 
     if (def->type == NETPLAN_DEF_TYPE_VLAN) {
         g_assert(def->vlan_id < G_MAXUINT);
         g_assert(def->vlan_link != NULL);
-        g_string_append_printf(s, "\n[vlan]\nid=%u\nparent=", def->vlan_id);
+        g_key_file_set_uint64(kf, "vlan", "id", def->vlan_id);
         if (def->vlan_link->has_match) {
             /* we need to refer to the parent's UUID as we don't have an
              * interface name with match: */
             maybe_generate_uuid(def->vlan_link);
             uuid_unparse(def->vlan_link->uuid, uuidstr);
-            g_string_append_printf(s, "%s\n", uuidstr);
+            g_key_file_set_string(kf, "vlan", "parent", uuidstr);
         } else {
             /* if we have an interface name, use that as parent */
-            g_string_append_printf(s, "%s\n", def->vlan_link->id);
+            g_key_file_set_string(kf, "vlan", "parent", def->vlan_link->id);
         }
     }
 
     if (def->type == NETPLAN_DEF_TYPE_BOND)
-        write_bond_parameters(def, s);
+        write_bond_parameters(def, kf);
 
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {
         if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
-            write_wireguard_params(def, s);
+            write_wireguard_params(def, kf);
         else
-            write_tunnel_params(def, s);
+            write_tunnel_params(def, kf);
     }
 
     if (match_interface_name) {
-        g_string_append(s, "\n[match]\n");
-        g_string_append_printf(s, "interface-name=%s;\n", match_interface_name);
+        const gchar* list[1] = {match_interface_name};
+        g_key_file_set_string_list(kf, "match", "interface-name", list, 1);
     }
 
-    g_string_append(s, "\n[ipv4]\n");
-
     if (ap && ap->mode == NETPLAN_WIFI_MODE_AP)
-        g_string_append(s, "method=shared\n");
+        g_key_file_set_string(kf, "ipv4", "method", "shared");
     else if (def->dhcp4)
-        g_string_append(s, "method=auto\n");
+        g_key_file_set_string(kf, "ipv4", "method", "auto");
     else if (def->ip4_addresses)
         /* This requires adding at least one address (done below) */
-        g_string_append(s, "method=manual\n");
+        g_key_file_set_string(kf, "ipv4", "method", "manual");
     else if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         /* sit tunnels will not start in link-local apparently */
-        g_string_append(s, "method=disabled\n");
+        g_key_file_set_string(kf, "ipv4", "method", "disabled");
     else
         /* Without any address, this is the only available mode */
-        g_string_append(s, "method=link-local\n");
+        g_key_file_set_string(kf, "ipv4", "method", "link-local");
 
-    if (def->ip4_addresses)
-        for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
-            g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip4_addresses, char*, i));
+    if (def->ip4_addresses) {
+        for (unsigned i = 0; i < def->ip4_addresses->len; ++i) {
+            tmp_key = g_strdup_printf("address%i", i+1);
+            g_key_file_set_string(kf, "ipv4", tmp_key, g_array_index(def->ip4_addresses, char*, i));
+            g_free(tmp_key);
+        }
+    }
     if (def->gateway4)
-        g_string_append_printf(s, "gateway=%s\n", def->gateway4);
+        g_key_file_set_string(kf, "ipv4", "gateway", def->gateway4);
     if (def->ip4_nameservers) {
-        g_string_append(s, "dns=");
+        const gchar* list[def->ip4_nameservers->len];
         for (unsigned i = 0; i < def->ip4_nameservers->len; ++i)
-            g_string_append_printf(s, "%s;", g_array_index(def->ip4_nameservers, char*, i));
-        g_string_append(s, "\n");
+            list[i] = g_array_index(def->ip4_nameservers, char*, i);
+        g_key_file_set_string_list(kf, "ipv4", "dns", list, def->ip4_nameservers->len);
     }
 
     /* We can only write search domains and routes if we have an address */
     if (def->ip4_addresses || def->dhcp4) {
-        write_search_domains(def, s);
-        write_routes(def, s, AF_INET);
+        write_search_domains(def, "ipv4", kf);
+        write_routes(def, kf, AF_INET);
     }
 
     if (!def->dhcp4_overrides.use_routes) {
-        g_string_append(s, "ignore-auto-routes=true\n");
-        g_string_append(s, "never-default=true\n");
+        g_key_file_set_boolean(kf, "ipv4", "ignore-auto-routes", TRUE);
+        g_key_file_set_boolean(kf, "ipv4", "never-default", TRUE);
     }
 
     if (def->dhcp4 && def->dhcp4_overrides.metric != NETPLAN_METRIC_UNSPEC)
-        g_string_append_printf(s, "route-metric=%u\n", def->dhcp4_overrides.metric);
+        g_key_file_set_uint64(kf, "ipv4", "route-metric", def->dhcp4_overrides.metric);
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers || def->ip6_addr_gen_mode) {
-        g_string_append(s, "\n[ipv6]\n");
-        g_string_append(s, def->dhcp6 ? "method=auto\n" : "method=manual\n");
-        if (def->ip6_addresses)
-            for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
-                g_string_append_printf(s, "address%i=%s\n", i+1, g_array_index(def->ip6_addresses, char*, i));
+        g_key_file_set_string(kf, "ipv6", "method", def->dhcp6 ? "auto" : "manual");
+
+        if (def->ip6_addresses) {
+            for (unsigned i = 0; i < def->ip6_addresses->len; ++i) {
+                tmp_key = g_strdup_printf("address%i", i+1);
+                g_key_file_set_string(kf, "ipv6", tmp_key, g_array_index(def->ip6_addresses, char*, i));
+                g_free(tmp_key);
+            }
+        }
         if (def->ip6_addr_gen_token) {
             /* Token implies EUI-64, i.e mode=0 */
-            g_string_append(s, "addr-gen-mode=0\n");
-            g_string_append_printf(s, "token=%s\n", def->ip6_addr_gen_token);
-        } else if (def->ip6_addr_gen_mode) {
-            g_string_append_printf(s, "addr-gen-mode=%s\n", addr_gen_mode_str(def->ip6_addr_gen_mode));
-        }
+            g_key_file_set_integer(kf, "ipv6", "addr-gen-mode", 0);
+            g_key_file_set_string(kf, "ipv6", "token", def->ip6_addr_gen_token);
+        } else if (def->ip6_addr_gen_mode)
+            g_key_file_set_string(kf, "ipv6", "addr-gen-mode", addr_gen_mode_str(def->ip6_addr_gen_mode));
         if (def->ip6_privacy)
-            g_string_append(s, "ip6-privacy=2\n");
+            g_key_file_set_integer(kf, "ipv6", "ip6-privacy", 2);
         if (def->gateway6)
-            g_string_append_printf(s, "gateway=%s\n", def->gateway6);
+            g_key_file_set_string(kf, "ipv6", "gateway", def->gateway6);
         if (def->ip6_nameservers) {
-            g_string_append(s, "dns=");
+            const gchar* list[def->ip6_nameservers->len];
             for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
-                g_string_append_printf(s, "%s;", g_array_index(def->ip6_nameservers, char*, i));
-            g_string_append(s, "\n");
+                list[i] = g_array_index(def->ip6_nameservers, char*, i);
+            g_key_file_set_string_list(kf, "ipv6", "dns", list, def->ip6_nameservers->len);
         }
         /* nm-settings(5) specifies search-domain for both [ipv4] and [ipv6] --
          * We need to specify it here for the IPv6-only case - see LP: #1786726 */
-        write_search_domains(def, s);
+        write_search_domains(def, "ipv6", kf);
 
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
-        write_routes(def, s, AF_INET6);
+        write_routes(def, kf, AF_INET6);
 
         if (!def->dhcp6_overrides.use_routes) {
-            g_string_append(s, "ignore-auto-routes=true\n");
-            g_string_append(s, "never-default=true\n");
+            g_key_file_set_boolean(kf, "ipv6", "ignore-auto-routes", TRUE);
+            g_key_file_set_boolean(kf, "ipv6", "never-default", TRUE);
         }
 
         if (def->dhcp6_overrides.metric != NETPLAN_METRIC_UNSPEC)
-            g_string_append_printf(s, "route-metric=%u\n", def->dhcp6_overrides.metric);
+            g_key_file_set_uint64(kf, "ipv6", "route-metric", def->dhcp6_overrides.metric);
     }
-    else {
-        g_string_append(s, "\n[ipv6]\nmethod=ignore\n");
-    }
+    else
+        g_key_file_set_string(kf, "ipv6", "method", "ignore");
 
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
 
-        g_string_append_printf(s, "\n[wifi]\nssid=%s\nmode=%s\n", ap->ssid, wifi_mode_str(ap->mode));
-        if (ap->bssid) {
-            g_string_append_printf(s, "bssid=%s\n", ap->bssid);
-        }
-        if (ap->hidden) {
-            g_string_append(s, "hidden=true\n");
-        }
+        g_key_file_set_string(kf, "wifi", "ssid", ap->ssid);
+        g_key_file_set_string(kf, "wifi", "mode", wifi_mode_str(ap->mode));
+        if (ap->bssid)
+            g_key_file_set_string(kf, "wifi", "bssid", ap->bssid);
+        if (ap->hidden)
+            g_key_file_set_boolean(kf, "wifi", "hidden", TRUE);
         if (ap->band == NETPLAN_WIFI_BAND_5 || ap->band == NETPLAN_WIFI_BAND_24) {
-            g_string_append_printf(s, "band=%s\n", wifi_band_str(ap->band));
+            g_key_file_set_string(kf, "wifi", "band", wifi_band_str(ap->band));
             /* Channel is only unambiguous, if band is set. */
             if (ap->channel) {
                 /* Validate WiFi channel */
@@ -790,22 +763,29 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
                     wifi_get_freq5(ap->channel);
                 else
                     wifi_get_freq24(ap->channel);
-                g_string_append_printf(s, "channel=%u\n", ap->channel);
+                g_key_file_set_uint64(kf, "wifi", "channel", ap->channel);
             }
         }
         if (ap->has_auth) {
-            write_wifi_auth_parameters(&ap->auth, s);
+            write_wifi_auth_parameters(&ap->auth, kf);
         }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
         if (def->has_auth) {
-            write_dot1x_auth_parameters(&def->auth, s);
+            write_dot1x_auth_parameters(&def->auth, kf);
         }
     }
 
     /* NM connection files might contain secrets, and NM insists on tight permissions */
+    full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", conf_path, NULL);
     orig_umask = umask(077);
-    g_string_free_to_file(s, rootdir, conf_path, NULL);
+    safe_mkdir_p_dir(full_path);
+    if (!g_key_file_save_to_file(kf, full_path, &error)) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", full_path, error->message);
+        exit(1);
+        // LCOV_EXCL_STO
+    }
     umask(orig_umask);
 }
 
