@@ -32,6 +32,12 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_MODEM;
     else if (!g_strcmp0(type_str, "bridge"))
         return NETPLAN_DEF_TYPE_BRIDGE;
+    else if (!g_strcmp0(type_str, "bond"))
+        return NETPLAN_DEF_TYPE_BOND;
+    else if (!g_strcmp0(type_str, "vlan"))
+        return NETPLAN_DEF_TYPE_VLAN;
+    else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
+        return NETPLAN_DEF_TYPE_TUNNEL;
     /* Full fallback/passthrough mode */
     return NETPLAN_DEF_TYPE_OTHER;
 }

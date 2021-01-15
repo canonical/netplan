@@ -113,44 +113,54 @@ class TestNetworkManagerBackend(TestBase):
         with open(FILENAME, 'r') as f:
             self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
 
-    def test_render_keyfile(self):
+    def _template_render_keyfile(self, nm_type, nd_type):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
-        file = '''[connection]
-type=ethernet
-uuid={}
-permissions=
-id=myid with spaces
-
-[ipv4]
-method=auto
-dns-search=
-
-[ipv6]
-addr-gen-mode=stable-privacy
-dns-search=
-method=auto'''.format(UUID)
+        file = '[connection]\ntype={}\nuuid={}'.format(nm_type, UUID)
         self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
-  ethernets:
+  {}:
     NM-{}:
       renderer: NetworkManager
       networkmanager:
         uuid: {}
         passthrough:
-          connection.type: "ethernet"
+          connection.type: "{}"
           connection.uuid: "{}"
-          connection.permissions: ""
-          connection.id: "myid with spaces"
-          ipv4.method: "auto"
-          ipv4.dns-search: ""
-          ipv6.addr-gen-mode: "stable-privacy"
-          ipv6.dns-search: ""
-          ipv6.method: "auto"
-'''.format(UUID, UUID, UUID))
+'''.format(nd_type, UUID, UUID, nm_type, UUID))
+
+    def test_render_keyfile_ethernet(self):
+        self._template_render_keyfile('ethernet', 'ethernets')
+
+    def test_render_keyfile_ethernet2(self):
+        self._template_render_keyfile('802-3-ethernet', 'ethernets')
+
+    def test_render_keyfile_type_modem(self):
+        self._template_render_keyfile('gsm', 'modems')
+
+    def test_render_keyfile_type_modem2(self):
+        self._template_render_keyfile('cdma', 'modems')
+
+    def test_render_keyfile_type_bridge(self):
+        self._template_render_keyfile('bridge', 'bridges')
+
+    def test_render_keyfile_type_bond(self):
+        self._template_render_keyfile('bond', 'bonds')
+
+    def test_render_keyfile_type_vlan(self):
+        self._template_render_keyfile('vlan', 'vlans')
+
+    def test_render_keyfile_type_tunnel(self):
+        self._template_render_keyfile('ip-tunnel', 'tunnels')
+
+    def test_render_keyfile_type_wireguard(self):
+        self._template_render_keyfile('wireguard', 'tunnels')
+
+    def test_render_keyfile_type_other(self):
+        self._template_render_keyfile('dummy', 'others')
 
     def test_render_keyfile_missing_uuid(self):
         file = '[connection]\ntype=ethernets'
@@ -205,60 +215,6 @@ dns-search='''.format(UUID)
         file = '''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID)
         self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-
-    def test_render_keyfile_type_modem(self):
-        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
-        file = '[connection]\ntype=gsm\nuuid={}'.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
-        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
-            self.assertEqual(f.read(), '''network:
-  version: 2
-  modems:
-    NM-{}:
-      renderer: NetworkManager
-      networkmanager:
-        uuid: {}
-        passthrough:
-          connection.type: "gsm"
-          connection.uuid: "{}"
-'''.format(UUID, UUID, UUID))
-
-    def test_render_keyfile_type_bridge(self):
-        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
-        file = '[connection]\ntype=bridge\nuuid={}'.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
-        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
-            self.assertEqual(f.read(), '''network:
-  version: 2
-  bridges:
-    NM-{}:
-      renderer: NetworkManager
-      networkmanager:
-        uuid: {}
-        passthrough:
-          connection.type: "bridge"
-          connection.uuid: "{}"
-'''.format(UUID, UUID, UUID))
-
-    def test_render_keyfile_type_other(self):
-        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
-        file = '[connection]\ntype=dummy\nuuid={}'.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
-        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
-            self.assertEqual(f.read(), '''network:
-  version: 2
-  others:
-    NM-{}:
-      renderer: NetworkManager
-      networkmanager:
-        uuid: {}
-        passthrough:
-          connection.type: "dummy"
-          connection.uuid: "{}"
-'''.format(UUID, UUID, UUID))
 
     def test_fallback_generator(self):
         self.generate('''network:
