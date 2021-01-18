@@ -23,7 +23,12 @@ import ctypes
 import ctypes.util
 
 from generator.base import TestBase
+from tests.test_utils import MockCmd
 
+rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
+# Make sure we can import our development netplan.
+os.environ.update({'PYTHONPATH': '.'})
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
@@ -58,3 +63,52 @@ class TestNetworkManagerBackend(TestBase):
     def test_get_id_from_filename_invalid_prefix(self):
         out = lib.netplan_get_id_from_nm_filename('INVALID/netplan-some-id.nmconnection'.encode(), None)
         self.assertEqual(out, None)
+
+    def test_generate(self):
+        self.mock_netplan_cmd = MockCmd("netplan")
+        os.environ["TEST_NETPLAN_CMD"] = self.mock_netplan_cmd.path
+        self.assertTrue(lib.netplan_generate(self.workdir.name.encode()))
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+            ["netplan", "generate", "--root-dir", self.workdir.name],
+        ])
+
+    def test_delete_connection(self):
+        os.environ["TEST_NETPLAN_CMD"] = exe_cli
+        FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(FILENAME, 'w') as f:
+            f.write('''network:
+  ethernets:
+    some-netplan-id:
+      dhcp4: true''')
+        self.assertTrue(os.path.isfile(FILENAME))
+        # Parse all YAML and delete 'some-netplan-id' connection file
+        self.assertTrue(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
+        self.assertFalse(os.path.isfile(FILENAME))
+
+    def test_delete_connection_id_not_found(self):
+        FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(FILENAME, 'w') as f:
+            f.write('''network:
+  ethernets:
+    some-netplan-id:
+      dhcp4: true''')
+        self.assertTrue(os.path.isfile(FILENAME))
+        self.assertFalse(lib.netplan_delete_connection('unknown-id'.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(FILENAME))
+
+    def test_delete_connection_two_in_file(self):
+        os.environ["TEST_NETPLAN_CMD"] = exe_cli
+        FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(FILENAME, 'w') as f:
+            f.write('''network:
+  ethernets:
+    some-netplan-id:
+      dhcp4: true
+    other-id:
+      dhcp6: true''')
+        self.assertTrue(os.path.isfile(FILENAME))
+        self.assertTrue(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(FILENAME))
+        # Verify the file still exists and still contains the other connection
+        with open(FILENAME, 'r') as f:
+            self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
