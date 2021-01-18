@@ -305,3 +305,14 @@ method=auto
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f''')
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f\n'})
+
+    def test_fallback_generator_dotted_group(self):
+        self.generate('''network:
+  others:
+    dotted-group-test:
+      renderer: NetworkManager
+      networkmanager:
+        passthrough:
+          wireguard-peer.some-key.endpoint: 1.2.3.4''')
+
+        self.assert_nm({'dotted-group-test': '[wireguard-peer.some-key]\nendpoint=1.2.3.4\n'})

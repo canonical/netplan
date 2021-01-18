@@ -792,10 +792,16 @@ static void
 write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
-    gchar **group_key = g_strsplit(key, ".", 2);
-    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group_key[0], group_key[1], (char*)value);
+    /* Group name may contain dots, but key name may not */
+    gchar **group_key = g_strsplit(key, ".", -1);
+    guint len = g_strv_length(group_key);
+    g_autofree gchar *k = group_key[len-1];
+    group_key[len-1] = NULL; //remove key from array
+    g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
+
+    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, (char*)value);
     /* Should we use g_key_file_set_comment() to mark fallback keys in the keyfile? */
-    g_key_file_set_string(kf, group_key[0], group_key[1], value);
+    g_key_file_set_string(kf, group, k, value);
     g_strfreev(group_key);
 }
 
