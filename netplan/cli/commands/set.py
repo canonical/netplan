@@ -107,7 +107,10 @@ class NetplanSet(utils.NetplanCommand):
 
         new_tree = self.merge(config, set_tree)
         stripped = ConfigManager.strip_tree(new_tree)
-        if 'network' in stripped:
+        if 'network' in stripped and list(stripped['network'].keys()) == ['version']:
+            # Clear file if only 'network: {version: 2}' is left
+            os.remove(absp)
+        elif 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)
             with open(tmpp, 'w+') as f:
                 new_yaml = yaml.dump(stripped, indent=2, default_flow_style=False)
