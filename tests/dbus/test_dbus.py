@@ -20,6 +20,8 @@ import tempfile
 import unittest
 import time
 
+from tests.test_utils import MockCmd
+
 rootdir = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
 exe_cli = [os.path.join(rootdir, 'src', 'netplan.script')]
@@ -29,62 +31,6 @@ if shutil.which('python3-coverage'):
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
 NETPLAN_DBUS_CMD = os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus")
-
-
-class MockCmd:
-    """MockCmd will mock a given command name and capture all calls to it"""
-
-    def __init__(self, name):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.name = name
-        self.path = os.path.join(self._tmp.name, name)
-        self.call_log = os.path.join(self._tmp.name, "call.log")
-        with open(self.path, "w") as fp:
-            fp.write("""#!/bin/bash
-printf "%%s" "$(basename "$0")" >> %(log)s
-printf '\\0' >> %(log)s
-
-for arg in "$@"; do
-     printf "%%s" "$arg" >> %(log)s
-     printf '\\0'  >> %(log)s
-done
-
-printf '\\0' >> %(log)s
-""" % {'log': self.call_log})
-        os.chmod(self.path, 0o755)
-
-    def calls(self):
-        """
-        calls() returns the calls to the given mock command in the form of
-        [ ["cmd", "call1-arg1"], ["cmd", "call2-arg1"], ... ]
-        """
-        with open(self.call_log) as fp:
-            b = fp.read()
-        calls = []
-        for raw_call in b.rstrip("\0\0").split("\0\0"):
-            call = raw_call.rstrip("\0")
-            calls.append(call.split("\0"))
-        return calls
-
-    def set_output(self, output):
-        with open(self.path, "a") as fp:
-            fp.write("cat << EOF\n%s\nEOF" % output)
-
-    def set_timeout(self, timeout_dsec=10):
-        with open(self.path, "a") as fp:
-            fp.write("""
-if [[ "$*" == *try* ]]
-then
-    ACTIVE=1
-    trap 'ACTIVE=0' SIGUSR1
-    trap 'ACTIVE=0' SIGINT
-    while (( $ACTIVE > 0 )) && (( $ACTIVE <= {} ))
-    do
-        ACTIVE=$(($ACTIVE+1))
-        sleep 0.1
-    done
-fi
-""".format(timeout_dsec))
 
 
 class TestNetplanDBus(unittest.TestCase):
