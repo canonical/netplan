@@ -135,9 +135,6 @@ class TestNetworkManagerBackend(TestBase):
     def test_render_keyfile_ethernet(self):
         self._template_render_keyfile('ethernet', 'ethernets')
 
-    def test_render_keyfile_ethernet2(self):
-        self._template_render_keyfile('802-3-ethernet', 'ethernets')
-
     def test_render_keyfile_type_modem(self):
         self._template_render_keyfile('gsm', 'modems')
 
@@ -175,12 +172,12 @@ class TestNetworkManagerBackend(TestBase):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '''[connection]
-type=802-11-wireless
+type=wifi
 uuid={}
 permissions=
 id=myid with spaces
 
-[802-11-wireless]
+[wifi]
 ssid=SOME-SSID
 
 [ipv4]
@@ -200,11 +197,11 @@ dns-search='''.format(UUID)
       networkmanager:
         uuid: {}
         passthrough:
-          connection.type: "802-11-wireless"
+          connection.type: "wifi"
           connection.uuid: "{}"
           connection.permissions: ""
           connection.id: "myid with spaces"
-          802-11-wireless.ssid: "SOME-SSID"
+          wifi.ssid: "SOME-SSID"
           ipv4.method: "auto"
           ipv4.dns-search: ""
 '''.format(UUID, UUID, UUID))

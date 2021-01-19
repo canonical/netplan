@@ -21,12 +21,20 @@
 #include "nm-keyfile.h"
 #include "parse.h"
 
+/**
+ * NetworkManager writes the alias for '802-3-ethernet' (ethernet),
+ * '802-11-wireless' (wifi) and '802-11-wireless-security' (wifi-security)
+ * by default, so we only need to check for those. See:
+ * https://bugzilla.gnome.org/show_bug.cgi?id=696940
+ * https://gitlab.freedesktop.org/NetworkManager/NetworkManager/-/commit/c36200a225aefb2a3919618e75682646899b82c0
+ * nm_keyfile_plugin_kf_set* from nm-keyfile-utils.c (libnm-core)
+ */
 static const NetplanDefType
 type_from_str(const char* type_str)
 {
-    if (!g_strcmp0(type_str, "ethernet") || !g_strcmp0(type_str, "802-3-ethernet"))
+    if (!g_strcmp0(type_str, "ethernet"))
         return NETPLAN_DEF_TYPE_ETHERNET;
-    else if (!g_strcmp0(type_str, "wifi") || !g_strcmp0(type_str, "802-11-wireless"))
+    else if (!g_strcmp0(type_str, "wifi"))
         return NETPLAN_DEF_TYPE_WIFI;
     else if (!g_strcmp0(type_str, "gsm") || !g_strcmp0(type_str, "cdma"))
         return NETPLAN_DEF_TYPE_MODEM;
@@ -74,12 +82,8 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     /* Special handling for WiFi "access-points:" mapping */
     nd_type = type_from_str(type);
     if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
-        /* "wifi" is an alias for "802-11-wireless" */
-        hidden = (   g_key_file_get_boolean(kf, "wifi", "hidden", NULL)
-                  || g_key_file_get_boolean(kf, "802-11-wireless", "hidden", NULL)) ? "true" : "false";
+        hidden = (g_key_file_get_boolean(kf, "wifi", "hidden", NULL)) ? "true" : "false";
         ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
-        if (!ssid)
-            ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
         if (!ssid) {
             g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
             return FALSE;
