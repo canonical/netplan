@@ -599,12 +599,12 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         const char* con_type = NULL;
         switch (def->type) {
             case NETPLAN_DEF_TYPE_WIFI:
-                con_type = "802-11-wireless"; //should we just use "wifi" here?
+                con_type = "wifi";
             case NETPLAN_DEF_TYPE_MODEM:
                 /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
                 break;
             default:
-                con_type = "802-3-ethernet"; //should we just use "ethernet" here?
+                con_type = "ethernet";
         }
 
         if (con_type) {
@@ -618,11 +618,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
                 g_key_file_set_uint64(kf, con_type, "wake-on-wlan", def->wowlan);
         }
     } else {
-        /* Should we just use just "ethernet" here? */
         if (def->set_mac)
-            g_key_file_set_string(kf, "802-3-ethernet", "cloned-mac-address", def->set_mac);
+            g_key_file_set_string(kf, "ethernet", "cloned-mac-address", def->set_mac);
         if (def->mtubytes)
-            g_key_file_set_uint64(kf, "802-3-ethernet", "mtu", def->mtubytes);
+            g_key_file_set_uint64(kf, "ethernet", "mtu", def->mtubytes);
     }
 
     if (def->type == NETPLAN_DEF_TYPE_VLAN) {
