@@ -113,12 +113,15 @@ class TestNetworkManagerBackend(TestBase):
         with open(FILENAME, 'r') as f:
             self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
 
-    def _template_render_keyfile(self, nm_type, nd_type):
+    def _template_render_keyfile(self, nd_type, nm_type, supported=True):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\ntype={}\nuuid={}'.format(nm_type, UUID)
         self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        t = ''
+        if not supported:
+          t = '\n          connection.type: "{}"'.format(nm_type)
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
@@ -127,37 +130,36 @@ class TestNetworkManagerBackend(TestBase):
       renderer: NetworkManager
       networkmanager:
         uuid: {}
-        passthrough:
-          connection.type: "{}"
+        passthrough:{}
           connection.uuid: "{}"
-'''.format(nd_type, UUID, UUID, nm_type, UUID))
+'''.format(nd_type, UUID, UUID, t, UUID))
 
     def test_render_keyfile_ethernet(self):
-        self._template_render_keyfile('ethernet', 'ethernets')
+        self._template_render_keyfile('ethernets', 'ethernet')
 
     def test_render_keyfile_type_modem(self):
-        self._template_render_keyfile('gsm', 'modems')
+        self._template_render_keyfile('modems', 'gsm', False)
 
     def test_render_keyfile_type_modem2(self):
-        self._template_render_keyfile('cdma', 'modems')
+        self._template_render_keyfile('modems', 'cdma', False)
 
     def test_render_keyfile_type_bridge(self):
-        self._template_render_keyfile('bridge', 'bridges')
+        self._template_render_keyfile('bridges', 'bridge')
 
     def test_render_keyfile_type_bond(self):
-        self._template_render_keyfile('bond', 'bonds')
+        self._template_render_keyfile('bonds', 'bond')
 
     def test_render_keyfile_type_vlan(self):
-        self._template_render_keyfile('vlan', 'vlans')
+        self._template_render_keyfile('vlans', 'vlan')
 
     def test_render_keyfile_type_tunnel(self):
-        self._template_render_keyfile('ip-tunnel', 'tunnels')
+        self._template_render_keyfile('tunnels', 'ip-tunnel', False)
 
     def test_render_keyfile_type_wireguard(self):
-        self._template_render_keyfile('wireguard', 'tunnels')
+        self._template_render_keyfile('tunnels', 'wireguard', False)
 
     def test_render_keyfile_type_other(self):
-        self._template_render_keyfile('dummy', 'others')
+        self._template_render_keyfile('others', 'dummy', False)
 
     def test_render_keyfile_missing_uuid(self):
         file = '[connection]\ntype=ethernets'
@@ -194,16 +196,15 @@ dns-search='''.format(UUID)
       access-points:
         "SOME-SSID":
           hidden: false
-      networkmanager:
-        uuid: {}
-        passthrough:
-          connection.type: "wifi"
-          connection.uuid: "{}"
-          connection.permissions: ""
-          connection.id: "myid with spaces"
-          wifi.ssid: "SOME-SSID"
-          ipv4.method: "auto"
-          ipv4.dns-search: ""
+          networkmanager:
+            uuid: {}
+            passthrough:
+              connection.uuid: "{}"
+              connection.permissions: ""
+              connection.id: "myid with spaces"
+              wifi.ssid: "SOME-SSID"
+              ipv4.method: "auto"
+              ipv4.dns-search: ""
 '''.format(UUID, UUID, UUID))
 
     def test_render_keyfile_type_wifi_missing_ssid(self):
@@ -268,7 +269,6 @@ dns-search=
         passthrough:
           connection.id: myid with spaces
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
-          connection.type: wifi
           connection.permissions:
           wifi.ssid: SOME-SSID
           ipv4.dns-search:
