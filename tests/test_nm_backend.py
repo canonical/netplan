@@ -232,20 +232,24 @@ dns-search='''.format(UUID)
           ipv6.dns-search:
           ipv6.method: auto''')
 
-        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[ipv4]
-method=auto
-dns-search=
-
-[connection]
+        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
+id=myid with spaces
 type=wifi
+interface-name=NM-87749f1d-334f-40b2-98d4-55db58965f5f
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 permissions=
-id=myid with spaces
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+dns-search=
 
 [ipv6]
+method=auto
 addr-gen-mode=stable-privacy
 dns-search=
-method=auto
 '''})
 
     def test_fallback_generator_wifi(self):
@@ -299,9 +303,21 @@ method=auto
       renderer: NetworkManager
       networkmanager:
         passthrough:
-          connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f''')
+          connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+          connection.type: dummy''')
 
-        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f\n'})
+        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
+id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f
+type=dummy
+interface-name=NM-87749f1d-334f-40b2-98d4-55db58965f5f
+uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
 
     def test_fallback_generator_dotted_group(self):
         self.generate('''network:
@@ -312,4 +328,17 @@ method=auto
         passthrough:
           wireguard-peer.some-key.endpoint: 1.2.3.4''')
 
-        self.assert_nm({'dotted-group-test': '[wireguard-peer.some-key]\nendpoint=1.2.3.4\n'})
+        self.assert_nm({'dotted-group-test': '''[connection]
+id=netplan-dotted-group-test
+type=INVALID-netplan-passthrough
+interface-name=dotted-group-test
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wireguard-peer.some-key]
+endpoint=1.2.3.4
+'''})

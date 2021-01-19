@@ -115,6 +115,10 @@ type_str(const NetplanNetDefinition* def)
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
             return "ip-tunnel";
+        case NETPLAN_DEF_TYPE_OTHER:
+            //TODO: error handling
+            /* needs to be overriden by passthrough "connection.type" setting */
+            return "INVALID-netplan-passthrough";
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -472,6 +476,30 @@ maybe_generate_uuid(NetplanNetDefinition* def)
 }
 
 /**
+ * Special handling for passthrough mode: read key-value pairs from
+ * "backend_settings.nm.passthrough" and inject them into the keyfile as-is.
+ */
+static void
+write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
+{
+    GKeyFile *kf = user_data;
+    gchar* val = value;
+    /* Group name may contain dots, but key name may not */
+    gchar **group_key = g_strsplit(key, ".", -1);
+    guint len = g_strv_length(group_key);
+    g_autofree gchar *k = group_key[len-1];
+    group_key[len-1] = NULL; //remove key from array
+    g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
+
+    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
+    /* Should we use g_key_file_set_comment() to mark fallback keys in the keyfile? */
+    if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL)))
+        g_warning("NetworkManager: overwriting %s.%s via passthrough", group, k);
+    g_key_file_set_string(kf, group, k, val);
+    g_strfreev(group_key);
+}
+
+/**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
  * particular NetplanNetDefinition and NetplanWifiAccessPoint, as NM requires a separate
  * connection file for each SSID.
@@ -775,6 +803,13 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         }
     }
 
+    /* This must be last, before writing the file, as it might overwrite some settings via passthrough */
+    if (def->backend_settings.nm.passthrough) {
+        g_debug("NetworkManager: using keyfile passthrough mode");
+        /* Write all key-value pairs from the hashtable into the keyfile */
+        g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+    }
+
     /* NM connection files might contain secrets, and NM insists on tight permissions */
     full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", conf_path, NULL);
     orig_umask = umask(077);
@@ -785,70 +820,6 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         exit(1);
         // LCOV_EXCL_STO
     }
-    umask(orig_umask);
-}
-
-static void
-write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
-{
-    GKeyFile *kf = user_data;
-    /* Group name may contain dots, but key name may not */
-    gchar **group_key = g_strsplit(key, ".", -1);
-    guint len = g_strv_length(group_key);
-    g_autofree gchar *k = group_key[len-1];
-    group_key[len-1] = NULL; //remove key from array
-    g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
-
-    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, (char*)value);
-    /* Should we use g_key_file_set_comment() to mark fallback keys in the keyfile? */
-    g_key_file_set_string(kf, group, k, value);
-    g_strfreev(group_key);
-}
-
-/**
- * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
- * particular NetplanNetDefinition. Special handling for passthrough mode: read
- * key-value pairs from "backend_settings.nm.passthrough" and inject them into
- * the keyfile as-is.
- * @def: The NetplanNetDefinition for which to create a connection
- * @rootdir: If not %NULL, generate configuration in this root directory
- *           (useful for testing).
- * @ap: The access point for which to create a connection. Must be %NULL for
- *      non-wifi types.
- */
-static void
-write_nm_conf_fallback(NetplanNetDefinition* def, const char* rootdir, const NetplanWifiAccessPoint* ap)
-{
-    g_debug("NetworkManager: using keyfile passthrough mode");
-    g_autoptr(GKeyFile) kf = g_key_file_new();
-    g_autoptr(GError) error = NULL;
-    g_autofree char* conf_path = NULL;
-    g_autofree char* full_path = NULL;
-    mode_t orig_umask;
-
-    if (def->access_points && g_hash_table_size(def->access_points) > 1)
-        g_warning("NetworkManager: access-points for %s are ignored in passthrough mode", def->id);
-
-    /* Extract SSID (if available) to prepare the correct filename */
-    const gchar *ssid = g_hash_table_lookup(def->backend_settings.nm.passthrough, "802-11-wireless.ssid");
-    if (!ssid) /* "wifi" is an alias for "802-11-wireless" */
-        ssid = g_hash_table_lookup(def->backend_settings.nm.passthrough, "wifi.ssid");
-
-    if (ssid) {
-        g_autofree char* escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
-    } else
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
-    full_path = g_strjoin("/", rootdir ?: "", conf_path, NULL);
-
-    /* Write all key-value pairs from the hashtable into the keyfile */
-    g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
-
-    /* NM connection files might contain secrets, and NM insists on tight permissions */
-    orig_umask = umask(077);
-    safe_mkdir_p_dir(full_path);
-    if (!g_key_file_save_to_file(kf, full_path, &error))
-        g_error("NetworkManager: cannot write passthrough keyfile: %s", error->message); // LCOV_EXCL_LINE
     umask(orig_umask);
 }
 
@@ -876,18 +847,20 @@ write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
         exit(1);
     }
 
-    /* TODO: Try to parse as many "fallback" keys as possible and handle them via the normal structure/YAML schema. */
-    if (def->backend_settings.nm.passthrough)
-        write_nm_conf_fallback(def, rootdir, NULL);
-    /* for wifi we need to create a separate connection file for every SSID */
-    else if (def->type == NETPLAN_DEF_TYPE_WIFI) {
+    if (def->type == NETPLAN_DEF_TYPE_WIFI) {
         GHashTableIter iter;
         gpointer key;
         const NetplanWifiAccessPoint* ap;
         g_assert(def->access_points);
         g_hash_table_iter_init(&iter, def->access_points);
-        while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
+
+        if (def->backend_settings.nm.passthrough && g_hash_table_size(def->access_points) > 1) {
+            g_warning("NetworkManager: access-points for %s are ignored in passthrough mode", def->id);
+            g_hash_table_iter_next(&iter, &key, (gpointer) &ap); //FIXME: just pass first AP?
             write_nm_conf_access_point(def, rootdir, ap);
+        } else
+            while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
+                write_nm_conf_access_point(def, rootdir, ap);
     } else {
         g_assert(def->access_points == NULL);
         write_nm_conf_access_point(def, rootdir, NULL);

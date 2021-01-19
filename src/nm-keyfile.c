@@ -82,6 +82,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     /* Special handling for WiFi "access-points:" mapping */
     nd_type = type_from_str(type);
     if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
+        //TODO: AP mode!
         hidden = (g_key_file_get_boolean(kf, "wifi", "hidden", NULL)) ? "true" : "false";
         ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
         if (!ssid) {
@@ -93,6 +94,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
     yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
+    //FIXME: interface-name=
     /* Start rendering YAML output */
     yaml_emitter_t emitter;
     yaml_event_t event;
