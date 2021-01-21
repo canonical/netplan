@@ -705,7 +705,7 @@ id=netplan-bond0
 type=bond
 interface-name=bond0
 
-[802-3-ethernet]
+[ethernet]
 mtu=9000
 
 [ipv4]
@@ -723,8 +723,6 @@ master=bond0
 
 [ethernet]
 wake-on-lan=0
-
-[802-3-ethernet]
 mtu=1280
 
 [ipv4]

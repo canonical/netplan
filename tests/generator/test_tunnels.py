@@ -360,7 +360,7 @@ persistent-keepalive=23
 endpoint=1.2.3.4:5
 preshared-key=7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
 preshared-key-flags=0
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
     def test_simple_multi_pass(self):
         """[wireguard] Validate generation of a wireguard config, which is parsed multiple times"""
@@ -398,7 +398,7 @@ listen-port=12345
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;
 
 [ipv4]
 method=manual
@@ -428,7 +428,7 @@ method=ignore
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
                                            'endpoint': '1.2.3.4:5'}, {
-                                           'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
+                                           'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG5=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
                                            'endpoint': '1.2.3.4:5'}], renderer=self.backend)
@@ -442,7 +442,7 @@ PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 
 [WireGuardPeer]
-PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG5=
 AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5'''),
@@ -453,12 +453,12 @@ Endpoint=1.2.3.4:5'''),
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;
 
-[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG5=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
     def test_privatekeyfile(self):
         """[wireguard] Validate generation of another simple wireguard config"""
@@ -505,7 +505,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5'''),
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
 endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
 
 # Execute the _CommonParserErrors only for one backend, to spare some test cycles

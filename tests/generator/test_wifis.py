@@ -530,18 +530,16 @@ type=wifi
 [ethernet]
 wake-on-lan=0
 
-[802-11-wireless]
+[wifi]
 mac-address=11:22:33:44:55:66
+ssid=workplace
+mode=infrastructure
 
 [ipv4]
 method=link-local
 
 [ipv6]
 method=ignore
-
-[wifi]
-ssid=workplace
-mode=infrastructure
 '''})
 
     def test_wifi_match_all(self):
@@ -655,18 +653,16 @@ interface-name=wl0
 [ethernet]
 wake-on-lan=0
 
-[802-11-wireless]
+[wifi]
 wake-on-wlan=330
+ssid=homenet
+mode=infrastructure
 
 [ipv4]
 method=link-local
 
 [ipv6]
 method=ignore
-
-[wifi]
-ssid=homenet
-mode=infrastructure
 '''})
 
     def test_wifi_wowlan_default(self):
