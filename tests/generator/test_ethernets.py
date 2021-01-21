@@ -354,8 +354,6 @@ interface-name=eth1
 
 [ethernet]
 wake-on-lan=0
-
-[802-3-ethernet]
 mtu=1280
 
 [ipv4]
@@ -451,8 +449,6 @@ interface-name=eth0
 
 [ethernet]
 wake-on-lan=0
-
-[802-3-ethernet]
 cloned-mac-address=00:01:02:03:04:05
 
 [ipv4]
@@ -569,8 +565,6 @@ type=ethernet
 
 [ethernet]
 wake-on-lan=0
-
-[802-3-ethernet]
 mac-address=11:22:33:44:55:66
 
 [ipv4]
@@ -709,8 +703,6 @@ interface-name=engreen
 
 [ethernet]
 wake-on-lan=0
-
-[802-3-ethernet]
 mac-address=00:11:22:33:44:55
 
 [ipv4]
