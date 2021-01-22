@@ -99,10 +99,14 @@ def clear_setting(type, iface, setting, value):
 
 
 def is_ovs_interface(iface, interfaces):
-    if interfaces[iface].get('openvswitch') is not None:
+    assert isinstance(interfaces, dict)
+    if not isinstance(interfaces.get(iface), dict):
+        logging.debug('Ignoring special key: {} ({})'.format(iface, interfaces.get(iface)))
+        return False
+    elif interfaces.get(iface, {}).get('openvswitch') is not None:
         return True
     else:
-        return any(is_ovs_interface(i, interfaces) for i in interfaces[iface].get('interfaces', []))
+        return any(is_ovs_interface(i, interfaces) for i in interfaces.get(iface, {}).get('interfaces', []))
 
 
 def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover (covered in autopkgtest)

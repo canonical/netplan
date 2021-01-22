@@ -36,7 +36,7 @@ class NetplanSet(utils.NetplanCommand):
     def run(self):
         self.parser.add_argument('key_value', type=str,
                                  help='The nested key=value pair in dotted format. Value can be NULL to delete a key.')
-        self.parser.add_argument('--origin-hint', type=str, default='90-netplan-set',
+        self.parser.add_argument('--origin-hint', type=str, default='70-netplan-set',
                                  help='Can be used to help choose a name for the overwrite YAML file. \
                                        A .yaml suffix will be appended automatically.')
         self.parser.add_argument('--root-dir', default='/',

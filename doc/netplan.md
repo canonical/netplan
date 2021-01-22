@@ -133,6 +133,10 @@ Virtual devices
 
 :    Enable wake on LAN. Off by default.
 
+     **Note:** This will not work reliably for devices matched by name
+     only and rendered by networkd, due to interactions with device
+     renaming in udev. Match devices by MAC when setting wake on LAN.
+
 ``emit-lldp`` (bool) – since **0.99**
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
@@ -275,9 +279,9 @@ Virtual devices
 
 ``critical`` (bool)
 
-:   (networkd backend only) Designate the connection as "critical to the
-    system", meaning that special care will be taken by systemd-networkd to
-    not release the assigned IP when the daemon is restarted.
+:   Designate the connection as "critical to the system", meaning that special
+    care will be taken by to not release the assigned IP when the daemon is
+    restarted. (not recognized by NetworkManager)
 
 ``dhcp-identifier`` (scalar)
 
@@ -1224,7 +1228,7 @@ Example:
     ``public`` and ``shared`` keys.
 
     ``public`` (scalar) – since **0.100**
-    :    A base64-encoded public key, requried for Wireguard peers.
+    :    A base64-encoded public key, required for Wireguard peers.
 
     ``shared`` (scalar) – since **0.100**
     :    A base64-encoded preshared key. Optional for Wireguard peers.

@@ -72,7 +72,7 @@ class _CommonTests():
                              ['master'])
         out = subprocess.check_output(['ip', 'link', 'show', self.dev_e2_client],
                                       universal_newlines=True)
-        self.assertTrue('ether 00:01:02:03:04:05' in out)
+        self.assertIn('ether 00:01:02:03:04:05', out)
         subprocess.check_call(['ip', 'link', 'set', self.dev_e2_client,
                                'address', self.dev_e2_client_mac])
 
@@ -228,6 +228,41 @@ class _CommonTests():
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
 
+    def test_link_local_all(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      link-local: [ ipv4, ipv6 ]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify IPv4 and IPv6 link local addresses are there
+        self.assert_iface(self.dev_e_client, ['inet6 fe80:', 'inet 169.254.'])
+
+    def test_rename_interfaces(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    idx:
+      match:
+        name: %(ec)s
+      set-name: iface1
+      addresses: [10.10.10.11/24]
+    idy:
+      match:
+        macaddress: %(e2c_mac)s
+      set-name: iface2
+      addresses: [10.10.10.22/24]
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c_mac': self.dev_e2_client_mac})
+        self.generate_and_settle()
+        self.assert_iface('iface1', ['inet 10.10.10.11'])
+        self.assert_iface_up('iface1', ['inet 10.10.10.11'])
+        self.assert_iface('iface2', ['inet 10.10.10.22'])
+        self.assert_iface_up('iface2', ['inet 10.10.10.22'])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
@@ -264,6 +299,47 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
+    # TODO: implement link-local handling in NetworkManager backend and move this test into CommonTests()
+    def test_link_local_ipv4(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      link-local: [ ipv4 ]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify IPv4 link local address is there, while IPv6 is not
+        self.assert_iface(self.dev_e_client, ['inet 169.254.'], ['inet6 fe80:'])
+
+    # TODO: implement link-local handling in NetworkManager backend and move this test into CommonTests()
+    def test_link_local_ipv6(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      link-local: [ ipv6 ]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify IPv6 link local address is there, while IPv4 is not
+        self.assert_iface(self.dev_e_client, ['inet6 fe80:'], ['inet 169.254.'])
+
+    # TODO: implement link-local handling in NetworkManager backend and move this test into CommonTests()
+    def test_link_local_disabled(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: ["172.16.5.3/20", "9876:BBBB::11/70"] # needed to bring up the interface at all
+      link-local: []''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        # Verify IPv4 and IPv6 link local addresses are not there
+        self.assert_iface(self.dev_e_client,
+                          ['inet6 9876:bbbb::11/70', 'inet 172.16.5.3/20'],
+                          ['inet6 fe80:', 'inet 169.254.'])
 
 @unittest.skipIf("NetworkManager" not in test_backends,
                      "skipping as NetworkManager backend tests are disabled")

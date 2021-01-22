@@ -293,7 +293,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=active
       openvswitch:
         lacp: passive
 ''', expect_fail=True)
-        self.assertIn("Key 'lacp' is only valid for iterface type 'openvswitch bond'", err)
+        self.assertIn("Key 'lacp' is only valid for interface type 'openvswitch bond'", err)
 
     def test_bond_mode_implicit_params(self):
         self.generate('''network:
@@ -497,7 +497,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/rstp_enable=tru
       openvswitch:
         fail-mode: glorious
 ''', expect_fail=True)
-        self.assertIn("Key 'fail-mode' is only valid for iterface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'fail-mode' is only valid for interface type 'openvswitch bridge'", err)
 
     def test_rstp_non_bridge(self):
         err = self.generate('''network:
@@ -507,7 +507,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/rstp_enable=tru
       openvswitch:
         rstp: true
 ''', expect_fail=True)
-        self.assertIn("Key is only valid for iterface type 'openvswitch bridge'", err)
+        self.assertIn("Key is only valid for interface type 'openvswitch bridge'", err)
 
     def test_bridge_set_protocols(self):
         self.generate('''network:
@@ -548,7 +548,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/protocols=OpenF
       openvswitch:
         protocols: [OpenFlow10, OpenFlow15]
 ''', expect_fail=True)
-        self.assertIn("Key 'protocols' is only valid for iterface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'protocols' is only valid for interface type 'openvswitch bridge'", err)
 
     def test_bridge_controller(self):
         self.generate('''network:
@@ -651,7 +651,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
         controller:
           connection-mode: in-band
 ''', expect_fail=True)
-        self.assertIn("Key 'controller.connection-mode' is only valid for iterface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'controller.connection-mode' is only valid for interface type 'openvswitch bridge'", err)
         self.assert_ovs({})
         self.assert_networkd({})
 
@@ -664,7 +664,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
         controller:
           addresses: [unix:/some/socket]
 ''', expect_fail=True)
-        self.assertIn("Key 'controller.addresses' is only valid for iterface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'controller.addresses' is only valid for interface type 'openvswitch bridge'", err)
         self.assert_ovs({})
         self.assert_networkd({})
 

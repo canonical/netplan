@@ -20,6 +20,8 @@ import unittest
 import tempfile
 import glob
 
+from unittest.mock import patch
+
 import netplan.cli.utils as utils
 
 
@@ -71,3 +73,26 @@ class TestUtils(unittest.TestCase):
         self.assertTrue('ens3' in ifaces)
         self.assertTrue('ens4' in ifaces)
         self.assertTrue(len(ifaces) == 4)
+
+    def test_find_matching_iface_too_many(self):
+        # too many matches
+        iface = utils.find_matching_iface(DEVICES, {'name': 'e*'})
+        self.assertEqual(iface, None)
+
+    @patch('netplan.cli.utils.get_interface_macaddress')
+    def test_find_matching_iface(self, gim):
+        # we mock-out get_interface_macaddress to return useful values for the test
+        gim.side_effect = lambda x: '00:01:02:03:04:05' if x == 'eth1' else '00:00:00:00:00:00'
+
+        match = {'name': 'e*', 'macaddress': '00:01:02:03:04:05'}
+        iface = utils.find_matching_iface(DEVICES, match)
+        self.assertEqual(iface, 'eth1')
+
+    @patch('netplan.cli.utils.get_interface_driver_name')
+    def test_find_matching_iface_name_and_driver(self, gidn):
+        # we mock-out get_interface_driver_name to return useful values for the test
+        gidn.side_effect = lambda x: 'foo' if x == 'ens4' else 'bar'
+
+        match = {'name': 'ens?', 'driver': 'f*'}
+        iface = utils.find_matching_iface(DEVICES, match)
+        self.assertEqual(iface, 'ens4')

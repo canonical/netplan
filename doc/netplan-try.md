@@ -21,6 +21,9 @@ netplan-try - try a configuration, optionally rolling it back
 automatically rolls it back if the user does not confirm the
 configuration within a time limit.
 
+A configuration can be confirmed or rejected interactively or by sending the
+SIGUSR1 or SIGINT signals.
+
 This may be especially useful on remote systems, to prevent an
 administrator being permanently locked out of systems in the case of a
 network configuration error.

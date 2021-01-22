@@ -17,7 +17,6 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <glob.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -64,7 +63,7 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
         // LCOV_EXCL_START
         g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
         exit(1);
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -78,7 +77,7 @@ unlink_glob(const char* rootdir, const char* _glob)
     int rc;
     g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, _glob, NULL);
 
-    rc = glob(rglob, 0, NULL, &gl);
+    rc = glob(rglob, GLOB_BRACE, NULL, &gl);
     if (rc != 0 && rc != GLOB_NOMATCH) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to glob for %s: %m\n", rglob);
@@ -88,6 +87,25 @@ unlink_glob(const char* rootdir, const char* _glob)
 
     for (size_t i = 0; i < gl.gl_pathc; ++i)
         unlink(gl.gl_pathv[i]);
+    globfree(&gl);
+}
+
+/**
+ * Return a glob of all *.yaml files in /{lib,etc,run}/netplan/ (in this order)
+ */
+int find_yaml_glob(const char* rootdir, glob_t* out_glob)
+{
+    int rc;
+    g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "{lib,etc,run}/netplan/*.yaml", NULL);
+    rc = glob(rglob, GLOB_BRACE, NULL, out_glob);
+    if (rc != 0 && rc != GLOB_NOMATCH) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "failed to glob for %s: %m\n", rglob);
+        return 1;
+        // LCOV_EXCL_STOP
+    }
+
+    return 0;
 }
 
 /**

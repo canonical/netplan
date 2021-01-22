@@ -33,7 +33,7 @@ PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
 PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
 NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
 
-default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8
+default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8 doc/netplan-dbus.8 doc/netplan-get.8 doc/netplan-set.8
 
 %.o: src/%.c
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
@@ -42,12 +42,11 @@ libnetplan.so.$(NETPLAN_SOVER): parse.o util.o validation.o error.o
 	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --libs glib-2.0 gio-2.0 yaml-0.1`
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 
-#generate: src/generate.[hc] src/parse.[hc] src/util.[hc] src/networkd.[hc] src/nm.[hc] src/validation.[hc] src/error.[hc]
 generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o openvswitch.o generate.o sriov.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-netplan-dbus: src/dbus.c src/_features.h
-	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs libsystemd glib-2.0`
+netplan-dbus: src/dbus.c src/_features.h util.o
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(patsubst %.h,,$^) `pkg-config --cflags --libs libsystemd glib-2.0 gio-2.0`
 
 src/_features.h: src/[^_]*.[hc]
 	printf "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {\n" > $@
