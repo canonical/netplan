@@ -566,6 +566,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         }
     }
 
+    /* The ActivationPolicy setting is available in systemd v248+ */
     if (def->activation_mode) {
         char* mode;
         if (g_strcmp0(def->activation_mode, "manual") == 0)
