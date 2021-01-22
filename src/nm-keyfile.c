@@ -107,7 +107,7 @@ error:
 
 /* Adding a simple boolean value below, just to produce a valid "access-points:" mapping */
 static gboolean
-write_access_point(yaml_event_t* event, yaml_emitter_t* emitter, GKeyFile* kf, char* uuid, char* ssid, const char* hidden)
+write_access_point(yaml_event_t* event, yaml_emitter_t* emitter, GKeyFile* kf, char* uuid, char* ssid, char* wifi_mode, const char* hidden)
 {
     YAML_SCALAR_PLAIN(event, emitter, "access-points");
     YAML_MAPPING_OPEN(event, emitter);
@@ -115,10 +115,36 @@ write_access_point(yaml_event_t* event, yaml_emitter_t* emitter, GKeyFile* kf, c
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "hidden");
     YAML_SCALAR_PLAIN(event, emitter, hidden);
+    YAML_SCALAR_PLAIN(event, emitter, "mode");
+    if (wifi_mode && (!g_strcmp0(wifi_mode, "infrastructure") || !g_strcmp0(wifi_mode, "ap") || !g_strcmp0(wifi_mode, "adhoc"))) {
+        YAML_SCALAR_PLAIN(event, emitter, wifi_mode);
+        g_key_file_remove_key(kf, "wifi", "mode", NULL); //handled, remove passthrough
+    } else {
+        YAML_SCALAR_PLAIN(event, emitter, "INVALID-use-fallback");
+    }
+
     if (!write_backend_settings(event, emitter, kf, uuid))
         goto error;
 
     YAML_MAPPING_CLOSE(event, emitter);
+    YAML_MAPPING_CLOSE(event, emitter);
+    return TRUE;
+error:
+    return FALSE;
+}
+
+static gboolean
+write_match(yaml_event_t* event, yaml_emitter_t* emitter, char* interface_name)
+{
+    //FIXME: interface-name=
+    YAML_SCALAR_PLAIN(event, emitter, "match");
+    YAML_MAPPING_OPEN(event, emitter);
+
+    YAML_SCALAR_PLAIN(event, emitter, "name");
+    if (interface_name)
+        YAML_SCALAR_QUOTED(event, emitter, interface_name)
+    else //NM can apply this connection profile to any interface
+        YAML_SCALAR_QUOTED(event, emitter, "*");
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 error:
@@ -138,6 +164,8 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     g_autofree gchar *filename = NULL;
     g_autofree gchar *yaml_path = NULL;
     g_autofree gchar *type = NULL;
+    g_autofree gchar* interface_name = NULL;
+    g_autofree gchar* wifi_mode = NULL;
     NetplanDefType nd_type = NETPLAN_DEF_TYPE_NONE;
 
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
@@ -150,11 +178,13 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         g_warning("netplan: Keyfile: cannot find connection.type");
         return FALSE;
     }
+    interface_name = g_key_file_get_string(kf, "connection", "interface-name", NULL);
     /* Special handling for WiFi "access-points:" mapping */
     nd_type = type_from_str(type);
     if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
         //TODO: AP mode!
         hidden = (g_key_file_get_boolean(kf, "wifi", "hidden", NULL)) ? "true" : "false";
+        wifi_mode = g_key_file_get_string(kf, "wifi", "mode", NULL);
         ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
         if (!ssid) {
             g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
@@ -165,7 +195,6 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
     yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
-    //FIXME: interface-name=
     /* Start rendering YAML output */
     yaml_emitter_t emitter_data;
     yaml_event_t event_data;
@@ -194,10 +223,12 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, "renderer");
     YAML_SCALAR_PLAIN(event, emitter, "NetworkManager"); // use "renderer: NetworkManager"
+    if (!write_match(event, emitter, interface_name)) goto error;
+    g_key_file_remove_key(kf, "connection", "interface-name", NULL); //properly handled, remove passthrough
     /* If this connection is of TYPE_WIFI, we need an "access-points:" mapping,
      * although the passthrough/fallback mechanism can only handle a single SSID (for now). */
     if (nd_type == NETPLAN_DEF_TYPE_WIFI) {
-        write_access_point(event, emitter, kf, uuid, ssid, hidden);
+        write_access_point(event, emitter, kf, uuid, ssid, wifi_mode, hidden);
         g_key_file_remove_key(kf, "wifi", "hidden", NULL); //properly handled, remove passthrough
     } else if (!write_backend_settings(event, emitter, kf, uuid))
         goto error;

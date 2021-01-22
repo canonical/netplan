@@ -121,13 +121,15 @@ class TestNetworkManagerBackend(TestBase):
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         t = ''
         if not supported:
-          t = '\n          connection.type: "{}"'.format(nm_type)
+            t = '\n          connection.type: "{}"'.format(nm_type)
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
   {}:
     NM-{}:
       renderer: NetworkManager
+      match:
+        name: "*"
       networkmanager:
         uuid: {}
         passthrough:{}
@@ -181,6 +183,7 @@ id=myid with spaces
 
 [wifi]
 ssid=SOME-SSID
+mode=infrastructure
 
 [ipv4]
 method=auto
@@ -193,9 +196,12 @@ dns-search='''.format(UUID)
   wifis:
     NM-{}:
       renderer: NetworkManager
+      match:
+        name: "*"
       access-points:
         "SOME-SSID":
           hidden: false
+          mode: infrastructure
           networkmanager:
             uuid: {}
             passthrough:
@@ -220,6 +226,8 @@ dns-search='''.format(UUID)
   ethernets:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
+      match:
+        name: "*"
       networkmanager:
         uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
         passthrough:
@@ -236,12 +244,14 @@ dns-search='''.format(UUID)
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=myid with spaces
 type=wifi
-interface-name=NM-87749f1d-334f-40b2-98d4-55db58965f5f
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 permissions=
 
 [ethernet]
 wake-on-lan=0
+
+[match]
+interface-name=*;
 
 [ipv4]
 method=auto
@@ -259,41 +269,71 @@ dns-search=
   wifis:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
+      match:
+        name: "*"
       access-points:
         "SOME-SSID":
           hidden: false
-        "INVALID-IGNORED":
-          hidden: true
-      networkmanager:
-        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
-        passthrough:
-          connection.id: myid with spaces
-          connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
-          connection.permissions:
-          wifi.ssid: SOME-SSID
-          ipv4.dns-search:
-          ipv4.method: auto
-          ipv6.addr-gen-mode: stable-privacy
-          ipv6.dns-search:
-          ipv6.method: auto''')
+          networkmanager:
+            uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+            passthrough:
+              connection.id: myid with spaces
+              connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+              connection.permissions:
+              wifi.ssid: SOME-SSID
+              ipv4.dns-search:
+              ipv4.method: auto
+              ipv6.addr-gen-mode: stable-privacy
+              ipv6.dns-search:
+              ipv6.method: auto
+        "OTHER-SSID":
+          hidden: true''')
 
-        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f-SOME-SSID': '''[ipv4]
+        self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f-SOME-SSID': '''[connection]
+id=myid with spaces
+type=wifi
+uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+permissions=
+
+[ethernet]
+wake-on-lan=0
+
+[match]
+interface-name=*;
+
+[ipv4]
 method=auto
 dns-search=
 
-[connection]
-type=wifi
-permissions=
-uuid=87749f1d-334f-40b2-98d4-55db58965f5f
-id=myid with spaces
+[ipv6]
+method=auto
+addr-gen-mode=stable-privacy
+dns-search=
 
 [wifi]
 ssid=SOME-SSID
+mode=infrastructure
+''',
+                        'NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID': '''[connection]
+id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID
+type=wifi
+
+[ethernet]
+wake-on-lan=0
+
+[match]
+interface-name=*;
+
+[ipv4]
+method=link-local
 
 [ipv6]
-addr-gen-mode=stable-privacy
-dns-search=
-method=auto
+method=ignore
+
+[wifi]
+ssid=OTHER-SSID
+mode=infrastructure
+hidden=true
 '''})
 
     def test_fallback_generator_other(self):
@@ -301,6 +341,8 @@ method=auto
   others:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
+      match:
+        name: "*"
       networkmanager:
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
@@ -324,6 +366,8 @@ method=ignore
   others:
     dotted-group-test:
       renderer: NetworkManager
+      match:
+        name: "*"
       networkmanager:
         passthrough:
           wireguard-peer.some-key.endpoint: 1.2.3.4''')

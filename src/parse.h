@@ -408,6 +408,7 @@ struct net_definition {
     NetplanBackendSettings backend_settings;
 };
 
+//FIXME: MODE_MESH
 typedef enum {
     NETPLAN_WIFI_MODE_INFRASTRUCTURE,
     NETPLAN_WIFI_MODE_ADHOC,

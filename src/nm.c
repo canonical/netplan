@@ -771,6 +771,12 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     else
         g_key_file_set_string(kf, "ipv6", "method", "ignore");
 
+    if (def->backend_settings.nm.passthrough) {
+        g_debug("NetworkManager: using keyfile passthrough mode");
+        /* Write all key-value pairs from the hashtable into the keyfile */
+        g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+    }
+
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
@@ -796,18 +802,17 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, kf);
         }
+        if (ap->backend_settings.nm.passthrough) {
+            g_debug("NetworkManager: using AP keyfile passthrough mode");
+            g_warning("lkjsdflk");
+            /* Write all key-value pairs from the hashtable into the keyfile */
+            g_hash_table_foreach(ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+        }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
         if (def->has_auth) {
             write_dot1x_auth_parameters(&def->auth, kf);
         }
-    }
-
-    /* This must be last, before writing the file, as it might overwrite some settings via passthrough */
-    if (def->backend_settings.nm.passthrough) {
-        g_debug("NetworkManager: using keyfile passthrough mode");
-        /* Write all key-value pairs from the hashtable into the keyfile */
-        g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
     }
 
     /* NM connection files might contain secrets, and NM insists on tight permissions */
@@ -854,13 +859,8 @@ write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
         g_assert(def->access_points);
         g_hash_table_iter_init(&iter, def->access_points);
 
-        if (def->backend_settings.nm.passthrough && g_hash_table_size(def->access_points) > 1) {
-            g_warning("NetworkManager: access-points for %s are ignored in passthrough mode", def->id);
-            g_hash_table_iter_next(&iter, &key, (gpointer) &ap); //FIXME: just pass first AP?
+        while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
             write_nm_conf_access_point(def, rootdir, ap);
-        } else
-            while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
-                write_nm_conf_access_point(def, rootdir, ap);
     } else {
         g_assert(def->access_points == NULL);
         write_nm_conf_access_point(def, rootdir, NULL);
