@@ -192,9 +192,10 @@ Virtual devices
 
 ``dhcp-identifier`` (scalar)
 
-:   When set to 'mac'; pass that setting over to systemd-networkd to use the
-    device's MAC address as a unique identifier rather than a RFC4361-compliant
-    Client ID. This has no effect when NetworkManager is used as a renderer.
+:   (networkd backend only) Sets the source of DHCPv4 client identifier. If "mac"
+    is specified, the MAC address of the link is used. If this option is omitted,
+    or if "duid" is specified, networkd will generate an RFC4361-compliant client
+    identifier for the interface by combining the link's IAID and DUID.
 
  ``dhcp4-overrides`` (mapping)
 
