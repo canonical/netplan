@@ -152,7 +152,7 @@ class NetplanApply(utils.NetplanCommand):
                 utils.systemctl_daemon_reload()
             # Clean up any old netplan related OVS ports/bonds/bridges, if applicable
             NetplanApply.process_ovs_cleanup(config_manager, old_files_ovs, restart_ovs, exit_on_error)
-            wpa_services = '"netplan-wpa-*.service"'
+            wpa_services = ['"netplan-wpa-*.service"']
             # Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
             # upgraded system, we need to make sure to stop those.
             if utils.systemctl_is_active('netplan-wpa@*.service'):
