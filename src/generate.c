@@ -30,10 +30,13 @@
 #include "parse.h"
 #include "networkd.h"
 #include "nm.h"
+#include "openvswitch.h"
+#include "sriov.h"
 
 static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd;
+static gboolean any_sriov;
 static gchar* mapping_iface;
 
 static GOptionEntry options[] = {
@@ -50,12 +53,45 @@ reload_udevd(void)
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 
+// LCOV_EXCL_START
+/* covered via 'cloud-init' integration test */
+static gboolean
+check_called_just_in_time()
+{
+    const gchar *argv[] = { "/bin/systemctl", "is-system-running", NULL };
+    gchar *output = NULL;
+    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &output, NULL, NULL, NULL);
+    if (output != NULL && strstr(output, "initializing") != NULL) {
+        g_free(output);
+        const gchar *argv2[] = { "/bin/systemctl", "is-active", "network.target", NULL };
+        gint exit_code = 0;
+        g_spawn_sync(NULL, (gchar**)argv2, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &exit_code, NULL);
+        /* return TRUE, if network.target is not yet active */
+        return !g_spawn_check_exit_status(exit_code, NULL);
+    }
+    g_free(output);
+    return FALSE;
+};
+
+static void
+start_unit_jit(gchar *unit)
+{
+    const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", "--no-ask-password", unit, NULL };
+    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
+};
+// LCOV_EXCL_STOP
+
 static void
 nd_iterator_list(gpointer value, gpointer user_data)
 {
-    if (write_networkd_conf((net_definition*) value, (const char*) user_data))
+    NetplanNetDefinition* def = (NetplanNetDefinition*) value;
+    if (write_networkd_conf(def, (const char*) user_data))
         any_networkd = TRUE;
-    write_nm_conf((net_definition*) value, (const char*) user_data);
+
+    write_ovs_conf(def, (const char*) user_data);
+    write_nm_conf(def, (const char*) user_data);
+    if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
+        any_sriov = TRUE;
 }
 
 
@@ -91,7 +127,7 @@ find_interface(gchar* interface)
 
     g_hash_table_iter_init (&iter, netdefs);
     while (g_hash_table_iter_next (&iter, &key, &value)) {
-        net_definition *nd = (net_definition *) value;
+        NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
         if (!g_strcmp0(nd->set_name, interface))
             g_ptr_array_add (found, (gpointer) nd);
         else if (!g_strcmp0(nd->id, interface))
@@ -104,7 +140,7 @@ find_interface(gchar* interface)
         // LCOV_EXCL_START
         g_hash_table_iter_init (&iter, netdefs);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
-            net_definition *nd = (net_definition *) value;
+            NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
             if (!g_strcmp0(nd->match.driver, driver))
                 g_ptr_array_add (found, (gpointer) nd);
         }
@@ -118,10 +154,10 @@ find_interface(gchar* interface)
         goto exit_find;
     }
     else {
-         net_definition *nd = (net_definition *)g_ptr_array_index (found, 0);
+         const NetplanNetDefinition *nd = (NetplanNetDefinition *)g_ptr_array_index (found, 0);
          g_printf("id=%s, backend=%s, set_name=%s, match_name=%s, match_mac=%s, match_driver=%s\n",
              nd->id,
-             netdef_backend_to_name[nd->backend],
+             netplan_backend_to_name[nd->backend],
              nd->set_name,
              nd->match.original_name,
              nd->match.mac,
@@ -141,7 +177,7 @@ process_input_file(const char* f)
     GError* error = NULL;
 
     g_debug("Processing input file %s..", f);
-    if (!parse_yaml(f, &error)) {
+    if (!netplan_parse_yaml(f, &error)) {
         g_fprintf(stderr, "%s\n", error->message);
         exit(1);
     }
@@ -154,6 +190,7 @@ int main(int argc, char** argv)
     /* are we being called as systemd generator? */
     gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
     g_autofree char* generator_run_stamp = NULL;
+    glob_t gl;
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
@@ -195,38 +232,11 @@ int main(int argc, char** argv)
          * To do that, we put all found files in a hash table, then sort it by
          * file name, and add the entries from /run after the ones from /etc
          * and those after the ones from /lib. */
-        g_autofree char* glob_etc = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "etc/netplan/*.yaml", NULL);
-        g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "run/netplan/*.yaml", NULL);
-        g_autofree char* glob_lib = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "lib/netplan/*.yaml", NULL);
-        glob_t gl;
-        int rc;
+        if (find_yaml_glob(rootdir, &gl) != 0)
+            return 1; // LCOV_EXCL_LINE
         /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
         g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
         g_autoptr(GList) config_keys = NULL;
-
-        rc = glob(glob_lib, 0, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_lib);
-            return 1;
-            // LCOV_EXCL_STOP
-        }
-
-        rc = glob(glob_etc, GLOB_APPEND, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_etc);
-            return 1;
-            // LCOV_EXCL_STOP
-        }
-
-        rc = glob(glob_run, GLOB_APPEND, NULL, &gl);
-        if (rc != 0 && rc != GLOB_NOMATCH) {
-            // LCOV_EXCL_START
-            g_fprintf(stderr, "failed to glob for %s: %m\n", glob_run);
-            return 1;
-            // LCOV_EXCL_STOP
-        }
 
         for (size_t i = 0; i < gl.gl_pathc; ++i)
             g_hash_table_insert(configs, g_path_get_basename(gl.gl_pathv[i]), gl.gl_pathv[i]);
@@ -237,11 +247,17 @@ int main(int argc, char** argv)
             process_input_file(g_hash_table_lookup(configs, i->data));
     }
 
-    g_assert(finish_parse(&error));
+    netdefs = netplan_finish_parse(&error);
+    if (error) {
+        g_fprintf(stderr, "%s\n", error->message);
+        exit(1);
+    }
 
     /* Clean up generated config from previous runs */
     cleanup_networkd_conf(rootdir);
     cleanup_nm_conf(rootdir);
+    cleanup_ovs_conf(rootdir);
+    cleanup_sriov_conf(rootdir);
 
     if (mapping_iface && netdefs) {
         return find_interface(mapping_iface);
@@ -252,6 +268,8 @@ int main(int argc, char** argv)
         g_debug("Generating output files..");
         g_list_foreach (netdefs_ordered, nd_iterator_list, rootdir);
         write_nm_conf_finish(rootdir);
+        write_ovs_conf_finish(rootdir);
+        if (any_sriov) write_sriov_conf_finish(rootdir);
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only
          * invalidates cache at most every 3 seconds. Not sure if this
@@ -263,7 +281,7 @@ int main(int argc, char** argv)
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if global renderer is NM */
-    if (get_global_backend() == BACKEND_NM)
+    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM)
         g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
     if (called_as_generator) {
@@ -276,6 +294,33 @@ int main(int argc, char** argv)
         FILE* f = fopen(generator_run_stamp, "w");
         g_assert(f != NULL);
         fclose(f);
+    } else if (check_called_just_in_time()) {
+        /* netplan-feature: generate-just-in-time */
+        /* When booting with cloud-init, network configuration
+         * might be provided just-in-time. Specifically after
+         * system-generators were executed, but before
+         * network.target is started. In such case, auxiliary
+         * units that netplan enables have not been included in
+         * the initial boot transaction. Detect such scenario and
+         * add all netplan units to the initial boot transaction.
+         */
+        // LCOV_EXCL_START
+        /* covered via 'cloud-init' integration test */
+        if (any_networkd) {
+            start_unit_jit("systemd-networkd.socket");
+            start_unit_jit("systemd-networkd-wait-online.service");
+            start_unit_jit("systemd-networkd.service");
+        }
+        g_autofree char* glob_run = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S,
+                                              "run/systemd/system/netplan-*.service", NULL);
+        if (!glob(glob_run, 0, NULL, &gl)) {
+            for (size_t i = 0; i < gl.gl_pathc; ++i) {
+                gchar *unit_name = g_path_get_basename(gl.gl_pathv[i]);
+                start_unit_jit(unit_name);
+                g_free(unit_name);
+            }
+        }
+        // LCOV_EXCL_STOP
     }
 
     return 0;

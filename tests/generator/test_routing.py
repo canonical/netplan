@@ -16,13 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from .base import TestBase
 
 
 class TestNetworkd(TestBase):
+
+    def test_route_invalid_family_to(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: abc/24
+          via: 192.168.14.20''', expect_fail=True)
+        self.assertIn("Error in network definition: invalid IP family '-1'", err)
 
     def test_route_v4_single(self):
         self.generate('''network:
@@ -47,6 +55,40 @@ Address=192.168.14.2/24
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
 Metric=100
+'''})
+
+    def test_route_v4_single_mulit_parse(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0: {interfaces: [engreen]}
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 100
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=no
+Address=192.168.14.2/24
+Bridge=br0
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=100
+''',
+                              'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
+                              'br0.network': '''[Match]\nName=br0\n
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
 '''})
 
     def test_route_v4_multiple(self):
@@ -300,6 +342,31 @@ Destination=10.10.10.0/24
 Gateway=192.168.14.20
 PreferredSource=192.168.14.2
 Metric=100
+'''})
+
+    def test_route_v4_mtu(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          mtu: 1500
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+MTUBytes=1500
 '''})
 
     def test_route_v6_single(self):
@@ -733,8 +800,8 @@ route1=2001:dead:beef::2/64,2001:beef:beef::1,997
 route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 '''})
 
-    def test_route_reject_from(self):
-        err = self.generate('''network:
+    def test_route_from(self):
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -744,14 +811,30 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
         - to: 10.10.10.0/24
           via: 192.168.14.20
           from: 192.168.14.2
-          ''', expect_fail=True)
-        self.assertIn("NetworkManager does not support routes with 'from'", err)
+          ''')
+        self.assertEqual('', out)
 
-        self.assert_nm({})
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.14.20
+route1_options=src=192.168.14.2
+
+[ipv6]
+method=ignore
+'''})
         self.assert_networkd({})
 
-    def test_route_reject_onlink(self):
-        err = self.generate('''network:
+    def test_route_onlink(self):
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -761,14 +844,30 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
         - to: 10.10.10.0/24
           via: 192.168.1.20
           on-link: true
-          ''', expect_fail=True)
-        self.assertIn('NetworkManager does not support on-link routes', err)
+          ''')
+        self.assertEqual('', out)
 
-        self.assert_nm({})
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=onlink=true
+
+[ipv6]
+method=ignore
+'''})
         self.assert_networkd({})
 
-    def test_route_reject_table(self):
-        err = self.generate('''network:
+    def test_route_table(self):
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -778,14 +877,98 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
         - to: 10.10.10.0/24
           via: 192.168.1.20
           table: 31337
-          ''', expect_fail=True)
-        self.assertIn('NetworkManager does not support non-default routing tables', err)
+          ''')
+        self.assertEqual('', out)
 
-        self.assert_nm({})
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=table=31337
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+
+    def test_route_mtu(self):
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          mtu: 1500
+          ''')
+        self.assertEqual('', out)
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=mtu=1500
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+
+    def test_route_options(self):
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      renderer: NetworkManager
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          table: 31337
+          from: 192.168.14.2
+          on-link: true
+          ''')
+        self.assertEqual('', out)
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=onlink=true,table=31337,src=192.168.14.2
+
+[ipv6]
+method=ignore
+'''})
         self.assert_networkd({})
 
     def test_route_reject_scope(self):
-        err = self.generate('''network:
+        out = self.generate('''network:
   version: 2
   ethernets:
     engreen:
@@ -796,7 +979,7 @@ route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
           via: 192.168.1.20
           scope: host
           ''', expect_fail=True)
-        self.assertIn('NetworkManager only supports global scoped routes', err)
+        self.assertIn('ERROR: engreen: NetworkManager does not support setting a scope for routes', out)
 
         self.assert_nm({})
         self.assert_networkd({})

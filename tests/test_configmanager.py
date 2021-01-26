@@ -55,10 +55,22 @@ class TestConfigManager(unittest.TestCase):
   bridges:
     br666: {}
 ''', file=fd)
+        with open(os.path.join(self.workdir.name, "ovs_merging.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  openvswitch:
+    ports: [[patchx, patcha], [patchy, patchb]]
+  bridges:
+    ovs0: {openvswitch: {}}
+''', file=fd)
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
   version: 2
   renderer: networkd
+  openvswitch:
+    ports: [[patcha, patchb]]
+    other-config:
+      disable-in-band: true
   ethernets:
     eth0:
       dhcp4: false
@@ -74,6 +86,12 @@ class TestConfigManager(unittest.TestCase):
     wlan1:
       access-points:
         testAP: {}
+  modems:
+    wwan0:
+      apn: internet
+      pin: 1234
+      dhcp4: yes
+      addresses: [1.2.3.4/24, 5.6.7.8/24]
   vlans:
     vlan2:
       id: 2
@@ -92,6 +110,14 @@ class TestConfigManager(unittest.TestCase):
       interfaces: [ ethbond2 ]
       parameters:
         mode: 802.3ad
+  tunnels:
+    he-ipv6:
+      mode: sit
+      remote: 2.2.2.2
+      local: 1.1.1.1
+      addresses:
+        - "2001:dead:beef::2/64"
+      gateway6: "2001:dead:beef::1"
 ''', file=fd)
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'w') as fd:
             print("pretend .network", file=fd)
@@ -107,6 +133,16 @@ class TestConfigManager(unittest.TestCase):
         self.assertNotIn('bond6', self.configmanager.physical_interfaces)
         self.assertNotIn('parameters', self.configmanager.bonds.get('bond5'))
         self.assertIn('parameters', self.configmanager.bonds.get('bond6'))
+        self.assertIn('wwan0', self.configmanager.modems)
+        self.assertIn('wwan0', self.configmanager.physical_interfaces)
+        self.assertIn('apn', self.configmanager.modems.get('wwan0'))
+        self.assertIn('he-ipv6', self.configmanager.tunnels)
+        self.assertNotIn('he-ipv6', self.configmanager.physical_interfaces)
+        self.assertIn('remote', self.configmanager.tunnels.get('he-ipv6'))
+        self.assertIn('other-config', self.configmanager.openvswitch)
+        self.assertIn('ports', self.configmanager.openvswitch)
+        self.assertEquals(2, self.configmanager.version)
+        self.assertEquals('networkd', self.configmanager.renderer)
 
     def test_parse_merging(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])
@@ -114,6 +150,17 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
         self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp6'))
         self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+
+    def test_parse_merging_ovs(self):
+        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "ovs_merging.yaml")])
+        self.assertIn('eth0', self.configmanager.ethernets)
+        self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
+        self.assertIn('patchx', self.configmanager.ovs_ports)
+        self.assertIn('patchy', self.configmanager.ovs_ports)
+        self.assertIn('ovs0', self.configmanager.bridges)
+        self.assertEqual({}, self.configmanager.ovs_ports['patchx'].get('openvswitch'))
+        self.assertEqual({}, self.configmanager.ovs_ports['patchy'].get('openvswitch'))
+        self.assertEqual({}, self.configmanager.bridges['ovs0'].get('openvswitch'))
 
     def test_parse_emptydict(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_emptydict.yaml")])
@@ -190,7 +237,7 @@ class TestConfigManager(unittest.TestCase):
                                       os.path.join(self.workdir.name, "etc2"))
         self.assertTrue(os.path.exists(os.path.join(self.workdir.name, "etc2/netplan/test.yaml")))
 
-    @unittest.expectedFailure
     def test__copy_tree_missing_source(self):
-        self.configmanager._copy_tree(os.path.join(self.workdir.name, "nonexistent"),
-                                      os.path.join(self.workdir.name, "nonexistent2"), missing_ok=False)
+        with self.assertRaises(FileNotFoundError):
+            self.configmanager._copy_tree(os.path.join(self.workdir.name, "nonexistent"),
+                                          os.path.join(self.workdir.name, "nonexistent2"), missing_ok=False)

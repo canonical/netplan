@@ -25,6 +25,11 @@ configuration.
 You will not normally need to run this directly as it is run by
 **netplan apply**, **netplan try**, or at boot.
 
+Only if executed during the systemd ``initializing`` phase
+(i.e. "Early bootup, before ``basic.target`` is reached"), will
+it attempt to start/apply the newly created service units.
+**Requires feature: generate-just-in-time**
+
 For details of the configuration file format, see **netplan**(5).
 
 # OPTIONS

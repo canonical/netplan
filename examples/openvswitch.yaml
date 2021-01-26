@@ -1,0 +1,45 @@
+network:
+  version: 2
+  openvswitch:
+    protocols: [OpenFlow13, OpenFlow14, OpenFlow15]
+    ports:
+      - [patch0-1, patch1-0]
+    ssl:
+      ca-cert: /some/ca-cert.pem
+      certificate: /another/cert.pem
+      private-key: /private/key.pem
+    external-ids:
+      somekey: somevalue
+    other-config:
+      key: value
+  ethernets:
+    eth0:
+      addresses: [10.5.32.26/20]
+      openvswitch:
+        external-ids:
+          iface-id: mylocaliface
+        other-config:
+          disable-in-band: false
+    eth1: {}
+  bonds:
+    bond0:
+      interfaces: [patch1-0, eth1]
+      openvswitch:
+        lacp: passive
+      parameters:
+        mode: balance-tcp
+  bridges:
+    ovs0:
+      addresses: [10.5.48.11/20]
+      interfaces: [patch0-1, eth0, bond0]
+      openvswitch:
+        protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
+        controller:
+          addresses: [unix:/var/run/openvswitch/ovs0.mgmt]
+          connection-mode: out-of-band
+        fail-mode: secure
+        mcast-snooping: true
+        external-ids:
+          iface-id: myhostname
+        other-config:
+          disable-in-band: true

@@ -1,0 +1,18 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eno1:
+      mtu: 9000
+    enp1s16f1:
+      link: eno1
+      addresses : [ "10.15.98.25/24" ]
+  vlans:
+    vlan1:
+      id: 15
+      link: enp1s16f1
+      addresses: [ "10.3.99.5/24" ]
+    vlan2_hw:
+      id: 10
+      link: enp1s16f1
+      renderer: sriov

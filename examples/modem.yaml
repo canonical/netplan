@@ -1,0 +1,15 @@
+network:
+  version: 2
+  renderer: NetworkManager
+  modems:
+    cdc-wdm1:
+      mtu: 1600
+      apn: ISP.CINGULAR
+      username: ISP@CINGULARGPRS.COM
+      password: CINGULAR1
+      number: "*99#"
+      network-id: 24005
+      device-id: da812de91eec16620b06cd0ca5cbc7ea25245222
+      pin: 2345
+      sim-id: 89148000000060671234
+      sim-operator-id: 310260

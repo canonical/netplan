@@ -76,11 +76,12 @@ class NetplanTry(utils.NetplanCommand):
 
             # we really don't want to be interrupted while doing backup/revert operations
             signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGUSR1, self._signal_handler)
 
             self.backup()
             self.setup()
 
-            NetplanApply.command_apply(run_generate=True, sync=True, exit_on_error=False)
+            NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False)
 
             self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
@@ -114,7 +115,7 @@ class NetplanTry(utils.NetplanCommand):
 
     def revert(self):  # pragma: nocover (requires user input)
         self.config_manager.revert()
-        NetplanApply.command_apply(run_generate=False, sync=True, exit_on_error=False)
+        NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False)
         for ifname in self.new_interfaces:
             if ifname not in self.config_manager.bonds and \
                ifname not in self.config_manager.bridges and \
@@ -175,6 +176,9 @@ class NetplanTry(utils.NetplanCommand):
             return False
         return True
 
-    def _signal_handler(self, signal, frame):  # pragma: nocover (requires user input)
-        if self.configuration_changed:
-            raise netplan.terminal.InputRejected()
+    def _signal_handler(self, sig, frame):  # pragma: nocover (requires user input)
+        if sig == signal.SIGUSR1:
+            raise netplan.terminal.InputAccepted()
+        else:
+            if self.configuration_changed:
+                raise netplan.terminal.InputRejected()

@@ -4,9 +4,9 @@
 # extract the thing in quotes.
 
 # sanity check: make sure none have disappeared, as might happen from a reformat.
-count=$(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/parse.c | sort | uniq | wc -l)
-# 71 is based on the 0.36.1 definitions, and should be updated periodically.
-if [ $count -lt 71 ]; then
+count=$(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/parse.c | sort | wc -l)
+# 144 is based on 0.99+da6f776 definitions, and should be updated periodically.
+if [ $count -lt 144 ]; then
     echo "ERROR: fewer YAML keys defined in src/parse.c than expected!"
     echo "       Has the file been reformatted or refactored? If so, modify"
     echo "       validate_docs.sh appropriately."
@@ -22,7 +22,7 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     fi
 
     # 2. "[blah, ]``blah``[, ``blah2``]: (scalar|bool|...)
-    if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars)" doc/netplan.md > /dev/null; then
+    if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/netplan.md > /dev/null; then
         continue
     fi
 

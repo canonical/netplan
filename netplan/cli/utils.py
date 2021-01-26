@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2020 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>
+# Author: Lukas 'slyon' Märdian <lukas.maerdian@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,11 +19,38 @@
 
 import sys
 import os
+import logging
+import fnmatch
 import argparse
 import subprocess
+import netifaces
+import re
+import ctypes
+import ctypes.util
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
+
+
+class _GError(ctypes.Structure):
+    _fields_ = [("domain", ctypes.c_uint32), ("code", ctypes.c_int), ("message", ctypes.c_char_p)]
+
+
+lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
+lib.netplan_parse_yaml.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.POINTER(_GError))]
+
+
+def netplan_parse(path):
+    # Clear old NetplanNetDefinitions from libnetplan memory
+    lib.netplan_clear_netdefs()
+    err = ctypes.POINTER(_GError)()
+    ret = bool(lib.netplan_parse_yaml(path.encode(), ctypes.byref(err)))
+    if not ret:
+        raise Exception(err.contents.message.decode('utf-8'))
+    lib.netplan_finish_parse(ctypes.byref(err))
+    if err:
+        raise Exception(err.contents.message.decode('utf-8'))
+    return True
 
 
 def get_generator_path():
@@ -49,6 +78,20 @@ def nm_running():  # pragma: nocover (covered in autopkgtest)
         return True
     except (OSError, subprocess.SubprocessError):
         return False
+
+
+def nm_interfaces(paths, devices):
+    pat = re.compile('^interface-name=(.*)$')
+    interfaces = set()
+    for path in paths:
+        with open(path, 'r') as f:
+            for line in f:
+                m = pat.match(line)
+                if m:
+                    # Expand/match globbing of interface names, to real devices
+                    interfaces.update(set(fnmatch.filter(devices, m.group(1))))
+                    break  # skip to next file
+    return interfaces
 
 
 def systemctl_network_manager(action, sync=False):  # pragma: nocover (covered in autopkgtest)
@@ -80,6 +123,90 @@ def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocove
         command.append(service)
 
     subprocess.check_call(command)
+
+
+def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtest)
+    '''Return True if at least one matching unit is running'''
+    if subprocess.call(['systemctl', '--quiet', 'is-active', unit_pattern]) == 0:
+        return True
+    return False
+
+
+def systemctl_daemon_reload():  # pragma: nocover (covered in autopkgtest)
+    '''Reload systemd unit files from disk and re-calculate its dependencies'''
+    subprocess.check_call(['systemctl', 'daemon-reload'])
+
+
+def ip_addr_flush(iface):  # pragma: nocover (covered in autopkgtest)
+    '''Flush all IP addresses of a given interface via iproute2'''
+    subprocess.check_call(['ip', 'addr', 'flush', iface], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (covered in autopkgtest)
+    devdir = os.path.join('/sys/class/net', interface)
+    if only_down:
+        try:
+            with open(os.path.join(devdir, 'operstate')) as f:
+                state = f.read().strip()
+                if state != 'down':
+                    logging.debug('device %s operstate is %s, not changing', interface, state)
+                    return None
+        except IOError as e:
+            logging.error('Cannot determine operstate of %s: %s', interface, str(e))
+            return None
+
+    try:
+        driver = os.path.realpath(os.path.join(devdir, 'device', 'driver'))
+        driver_name = os.path.basename(driver)
+    except IOError as e:
+        logging.debug('Cannot replug %s: cannot read link %s/device: %s', interface, devdir, str(e))
+        return None
+
+    return driver_name
+
+
+def get_interface_macaddress(interface):  # pragma: nocover (covered in autopkgtest)
+    link = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]
+    return link.get('addr')
+
+
+def is_interface_matching_name(interface, match_name):
+    # globs are supported
+    return fnmatch.fnmatchcase(interface, match_name)
+
+
+def is_interface_matching_driver_name(interface, match_driver):
+    driver_name = get_interface_driver_name(interface)
+    # globs are supported
+    return fnmatch.fnmatchcase(driver_name, match_driver)
+
+
+def is_interface_matching_macaddress(interface, match_mac):
+    macaddress = get_interface_macaddress(interface)
+    # exact, case insensitive match. globs are not supported
+    return match_mac.lower() == macaddress.lower()
+
+
+def find_matching_iface(interfaces, match):
+    assert isinstance(match, dict)
+
+    # Filter for match.name glob, fallback to '*'
+    name_glob = match.get('name') if match.get('name', False) else '*'
+    matches = fnmatch.filter(interfaces, name_glob)
+
+    # Filter for match.macaddress (exact match)
+    if len(matches) > 1 and match.get('macaddress'):
+        matches = list(filter(lambda iface: is_interface_matching_macaddress(iface, match.get('macaddress')), matches))
+
+    # Filter for match.driver glob
+    if len(matches) > 1 and match.get('driver'):
+        matches = list(filter(lambda iface: is_interface_matching_driver_name(iface, match.get('driver')), matches))
+
+    # Return current name of unique matched interface, if available
+    if len(matches) != 1:
+        logging.info(matches)
+        return None
+    return matches[0]
 
 
 class NetplanCommand(argparse.Namespace):

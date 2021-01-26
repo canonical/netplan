@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from .base import TestBase
 
 
@@ -213,6 +210,49 @@ class TestConfigErrors(TestBase):
           mode: bogus''', expect_fail=True)
         self.assertIn("unknown wifi mode 'bogus'", err)
 
+    def test_wifi_ap_unknown_band(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: bogus''', expect_fail=True)
+        self.assertIn("unknown wifi band 'bogus'", err)
+
+    def test_wifi_ap_invalid_freq24(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: 2.4GHz
+          channel: 15''', expect_fail=True)
+        self.assertIn("ERROR: invalid 2.4GHz WiFi channel: 15", err)
+
+    def test_wifi_ap_invalid_freq5(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        workplace:
+          band: 5GHz
+          channel: 14''', expect_fail=True)
+        self.assertIn("ERROR: invalid 5GHz WiFi channel: 14", err)
+
+    def test_wifi_invalid_hidden(self):
+        err = self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        hidden:
+          hidden: maybe''', expect_fail=True)
+        self.assertIn("invalid boolean value 'maybe'", err)
+
     def test_invalid_ipv4_address(self):
         err = self.generate('''network:
   version: 2
@@ -291,6 +331,81 @@ class TestConfigErrors(TestBase):
         - 2001::1/''', expect_fail=True)
         self.assertIn("invalid prefix length in address '2001::1/'", err)
 
+    def test_invalid_addr_gen_mode(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-generation: 0''', expect_fail=True)
+        self.assertIn("unknown ipv6-address-generation '0'", err)
+
+    def test_addr_gen_mode_not_supported(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      ipv6-address-generation: stable-privacy''', expect_fail=True)
+        self.assertIn("ERROR: engreen: ipv6-address-generation mode is not supported by networkd", err)
+
+    def test_addr_gen_mode_and_addr_gen_token(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-token: "::2"
+      ipv6-address-generation: eui64''', expect_fail=True)
+        self.assertIn("engreen: ipv6-address-generation and ipv6-address-token are mutually exclusive", err)
+
+    def test_invalid_addr_gen_token(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      ipv6-address-token: INVALID''', expect_fail=True)
+        self.assertIn("invalid ipv6-address-token 'INVALID'", err)
+
+    def test_invalid_address_node_type(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [[192.168.1.15]]''', expect_fail=True)
+        self.assertIn("expected either scalar or mapping (check indentation)", err)
+
+    def test_invalid_address_option_value(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 0.0.0.0.0/24:
+          lifetime: 0''', expect_fail=True)
+        self.assertIn("malformed address '0.0.0.0.0/24', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", err)
+
+    def test_invalid_address_option_lifetime(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 192.168.1.15/24:
+          lifetime: 1''', expect_fail=True)
+        self.assertIn("invalid lifetime value '1'", err)
+
+    def test_invalid_nm_options(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses:
+      - 192.168.1.15/24:
+          lifetime: 0''', expect_fail=True)
+        self.assertIn('NetworkManager does not support address options', err)
+
     def test_invalid_gateway4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
             err = self.generate('''network:
@@ -366,6 +481,14 @@ class TestConfigErrors(TestBase):
     ena: {id: 1, link: en1}''', expect_fail=True)
         self.assertIn("ena: interface 'en1' is not defined", err)
 
+    def test_vlan_unknown_renderer(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets: {en1: {}}
+  vlans:
+    ena: {id: 1, link: en1, renderer: foo}''', expect_fail=True)
+        self.assertIn("unknown renderer 'foo'", err)
+
     def test_device_bad_route_to(self):
         self.generate('''network:
   version: 2
@@ -404,6 +527,21 @@ class TestConfigErrors(TestBase):
       addresses:
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)
+
+    def test_device_bad_route_mtu(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routes:
+        - to: 10.10.0.0/16
+          via: 10.1.1.1
+          mtu: -1
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
+        self.assertIn("invalid unsigned int value '-1'", err)
 
     def test_device_route_family_mismatch_ipv6_to(self):
         self.generate('''network:
@@ -671,4 +809,3 @@ class TestConfigErrors(TestBase):
     engreen:
       dhcp4: *yes''', expect_fail=True)
         self.assertIn("aliases are not supported", err)
-

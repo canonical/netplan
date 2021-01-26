@@ -4,9 +4,10 @@
 # Wifi (mac80211-hwsim). These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2020 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <lukas.maerdian@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +29,10 @@ import subprocess
 import tempfile
 import unittest
 import shutil
+import gi
+
+# make sure we point to libnetplan properly.
+os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
 
 test_backends = "networkd NetworkManager" if "NETPLAN_TEST_BACKENDS" not in os.environ else os.environ["NETPLAN_TEST_BACKENDS"]
 
@@ -56,21 +61,25 @@ class IntegrationTestsBase(unittest.TestCase):
     '''
     @classmethod
     def setUpClass(klass):
-        # ensure we have this so that iw works
-        subprocess.check_call(['modprobe', 'cfg80211'])
-
         # ensure NM can manage our fake eths
         os.makedirs('/run/udev/rules.d', exist_ok=True)
+
         with open('/run/udev/rules.d/99-nm-veth-test.rules', 'w') as f:
             f.write('ENV{ID_NET_DRIVER}=="veth", ENV{INTERFACE}=="eth42|eth43", ENV{NM_UNMANAGED}="0"\n')
         subprocess.check_call(['udevadm', 'control', '--reload'])
 
-        # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
-        out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
-        m = re.match(r'^(?:global\n)?country (\S+):', out)
-        assert m
-        klass.orig_country = m.group(1)
-        subprocess.check_call(['iw', 'reg', 'set', 'EU'])
+        # ensure we have this so that iw works
+        try:
+            subprocess.check_call(['modprobe', 'cfg80211'])
+            # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
+            out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+            m = re.match(r'^(?:global\n)?country (\S+):', out)
+            assert m
+            klass.orig_country = m.group(1)
+            subprocess.check_call(['iw', 'reg', 'set', 'EU'])
+        except Exception:
+            raise unittest.SkipTest("cfg80211 (wireless) is unavailable, can't test")
+
 
     @classmethod
     def tearDownClass(klass):
@@ -85,8 +94,8 @@ class IntegrationTestsBase(unittest.TestCase):
             pass
 
     def tearDown(self):
-        subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd', 'netplan-wpa@*',
-                                              'systemd-networkd.socket'])
+        subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd', 'netplan-wpa-*',
+                         'netplan-ovs-*', 'systemd-networkd.socket'])
         # NM has KillMode=process and leaks dhclient processes
         subprocess.call(['systemctl', 'kill', 'NetworkManager'])
         subprocess.call(['systemctl', 'reset-failed', 'NetworkManager', 'systemd-networkd'],
@@ -128,6 +137,12 @@ class IntegrationTestsBase(unittest.TestCase):
                                       universal_newlines=True)
         klass.dev_e2_client_mac = out.split()[2]
 
+        os.makedirs('/run/NetworkManager/conf.d', exist_ok=True)
+
+        # work around https://launchpad.net/bugs/1615044
+        with open('/run/NetworkManager/conf.d/11-globally-managed-devices.conf', 'w') as f:
+            f.write('[keyfile]\nunmanaged-devices=')
+
         # create virtual wlan devs
         before_wlan = set([c for c in os.listdir('/sys/class/net') if c.startswith('wlan')])
         subprocess.check_call(['modprobe', 'mac80211_hwsim'])
@@ -147,28 +162,26 @@ class IntegrationTestsBase(unittest.TestCase):
         klass.dev_w_client = devs[1]
 
         # don't let NM trample over our fake AP
-        os.makedirs('/run/NetworkManager/conf.d', exist_ok=True)
         with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
             f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=nptestsrv,%s\n' % klass.dev_w_ap)
-        # work around https://launchpad.net/bugs/1615044
-        with open('/run/NetworkManager/conf.d/11-globally-managed-devices.conf', 'w') as f:
-            f.write('[keyfile]\nunmanaged-devices=')
 
     @classmethod
     def shutdown_devices(klass):
-        '''Remove test wlan devices'''
+        '''Remove test devices'''
 
-        subprocess.check_call(['rmmod', 'mac80211_hwsim'])
         subprocess.check_call(['ip', 'link', 'del', 'dev', klass.dev_e_ap])
         subprocess.check_call(['ip', 'link', 'del', 'dev', klass.dev_e2_ap])
-        subprocess.call(['ip', 'link', 'del', 'dev', 'mybr'],
-                        stderr=subprocess.PIPE)
-        klass.dev_w_ap = None
-        klass.dev_w_client = None
         klass.dev_e_ap = None
         klass.dev_e_client = None
         klass.dev_e2_ap = None
         klass.dev_e2_client = None
+        klass.dev_w_ap = None
+        klass.dev_w_client = None
+
+        subprocess.call(['ip', 'link', 'del', 'dev', 'mybr'],
+                        stderr=subprocess.PIPE)
+
+        subprocess.check_call(['rmmod', 'mac80211_hwsim'])
 
     def setUp(self):
         '''Create test devices and workdir'''
@@ -193,6 +206,7 @@ class IntegrationTestsBase(unittest.TestCase):
 
         This is torn down automatically at the end of the test.
         '''
+
         # give our AP an IP
         subprocess.check_call(['ip', 'a', 'flush', 'dev', self.dev_w_ap])
         if ipv6_mode is not None:
@@ -266,7 +280,7 @@ class IntegrationTestsBase(unittest.TestCase):
                              stdout=subprocess.PIPE)
         self.addCleanup(p.wait)
         self.addCleanup(p.terminate)
-        self.poll_text(log, '' + self.dev_w_ap + ': AP-ENABLED')
+        self.poll_text(log, '' + self.dev_w_ap + ': AP-ENABLED', 500)
 
     def start_dnsmasq(self, ipv6_mode, iface):
         '''Start dnsmasq.
@@ -339,12 +353,14 @@ class IntegrationTestsBase(unittest.TestCase):
         '''Generate config, launch and settle NM and networkd'''
 
         # regenerate netplan config
-        subprocess.check_call(['netplan', 'apply'])
+        out = subprocess.check_output(['netplan', 'apply'], universal_newlines=True)
+        if 'Run \'systemctl daemon-reload\' to reload units.' in out:
+            self.fail('systemd units changed without reload')
         # start NM so that we can verify that it does not manage anything
         subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
         # wait until networkd is done
         if self.is_active('systemd-networkd.service'):
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=50']) != 0:
+            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=20']) != 0:
                 subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
                 st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
                 st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
@@ -353,8 +369,25 @@ class IntegrationTestsBase(unittest.TestCase):
                                                 stderr=subprocess.PIPE, universal_newlines=True)
                 self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
 
-        if subprocess.call(['nm-online', '--quiet', '--timeout=120', '--wait-for-startup']) != 0:
+        if subprocess.call(['nm-online', '--quiet', '--timeout=240', '--wait-for-startup']) != 0:
             self.fail('timed out waiting for NetworkManager to settle down')
+
+    def nm_online_full(self, iface, timeout=60):
+        '''Wait for NetworkManager connection to be completed (incl. IP4 & DHCP)'''
+
+        gi.require_version('NM', '1.0')
+        from gi.repository import NM
+        for t in range(timeout):
+            c = NM.Client.new(None)
+            con = c.get_device_by_iface(iface).get_active_connection()
+            if not con:
+                self.fail('no active connection for %s by NM' % iface)
+            flags = NM.utils_enum_to_str(NM.ActivationStateFlags, con.get_state_flags())
+            if "ip4-ready" in flags:
+                break
+            time.sleep(1)
+        else:
+            self.fail('timed out waiting for %s to get ready by NM' % iface)
 
     def nm_wait_connected(self, iface, timeout):
         for t in range(timeout):
