@@ -215,7 +215,7 @@ initialize_ovs_settings(NetplanOVSSettings* ovs_settings)
     ovs_settings->rstp = FALSE;
 }
 
-static  NetplanNetDefinition*
+NetplanNetDefinition*
 netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
 {
     /* create new network definition */

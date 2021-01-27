@@ -121,7 +121,7 @@ class TestNetworkManagerBackend(TestBase):
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         t = ''
         if not supported:
-            t = '\n          connection.type: "{}"'.format(nm_type)
+            t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type)
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
@@ -131,10 +131,8 @@ class TestNetworkManagerBackend(TestBase):
       match:
         name: "*"
       networkmanager:
-        uuid: {}
-        passthrough:{}
-          connection.uuid: "{}"
-'''.format(nd_type, UUID, UUID, t, UUID))
+        uuid: {}{}
+'''.format(nd_type, UUID, UUID, t))
 
     def test_render_keyfile_ethernet(self):
         self._template_render_keyfile('ethernets', 'ethernet')
@@ -180,10 +178,12 @@ type=wifi
 uuid={}
 permissions=
 id=myid with spaces
+interface-name=eth0
 
 [wifi]
 ssid=SOME-SSID
 mode=infrastructure
+hidden=true
 
 [ipv4]
 method=auto
@@ -197,21 +197,65 @@ dns-search='''.format(UUID)
     NM-{}:
       renderer: NetworkManager
       match:
-        name: "*"
+        name: "eth0"
       access-points:
         "SOME-SSID":
-          hidden: false
+          hidden: true
           mode: infrastructure
           networkmanager:
             uuid: {}
+            name: "myid with spaces"
             passthrough:
-              connection.uuid: "{}"
-              connection.permissions: ""
-              connection.id: "myid with spaces"
-              wifi.ssid: "SOME-SSID"
               ipv4.method: "auto"
               ipv4.dns-search: ""
-'''.format(UUID, UUID, UUID))
+              connection.permissions: ""
+'''.format(UUID, UUID))
+
+    def _template_render_keyfile_type_wifi(self, nd_mode, nm_mode):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=wifi
+uuid={}
+id=myid with spaces
+
+[wifi]
+ssid=SOME-SSID
+mode={}
+
+[ipv4]
+method=auto'''.format(UUID, nm_mode)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        wifi_mode = ''
+        if nm_mode != nd_mode:
+            wifi_mode = '\n              wifi.mode: "{}"'.format(nm_mode)
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "*"
+      access-points:
+        "SOME-SSID":
+          mode: {}
+          networkmanager:
+            uuid: {}
+            name: "myid with spaces"
+            passthrough:
+              ipv4.method: "auto"{}
+'''.format(UUID, nd_mode, UUID, wifi_mode))
+
+    def test_render_keyfile_type_wifi_ap(self):
+        self._template_render_keyfile_type_wifi('ap', 'ap')
+
+    def test_render_keyfile_type_wifi_adhoc(self):
+        self._template_render_keyfile_type_wifi('adhoc', 'adhoc')
+
+    def test_render_keyfile_type_wifi_unkonwn(self):
+        self._template_render_keyfile_type_wifi('infrastructure', 'mesh')
 
     def test_render_keyfile_type_wifi_missing_ssid(self):
         self.maxDiff = None
@@ -220,6 +264,7 @@ dns-search='''.format(UUID)
         self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
 
+    # FIXME: move generator tests into tests/generate/
     def test_fallback_generator(self):
         self.generate('''network:
   version: 2
@@ -273,7 +318,6 @@ dns-search=
         name: "*"
       access-points:
         "SOME-SSID":
-          hidden: false
           networkmanager:
             uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
             passthrough:
