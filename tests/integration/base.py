@@ -124,15 +124,20 @@ class IntegrationTestsBase(unittest.TestCase):
         klass.dev_e_client = 'eth42'
         klass.dev_e_ap_ip4 = '192.168.5.1/24'
         klass.dev_e_ap_ip6 = '2600::1/64'
-        out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth42'],
-                                      universal_newlines=True)
-        klass.dev_e_client_mac = out.split()[2]
         subprocess.check_call(['ip', 'link', 'add', 'name', 'eth43', 'type',
                                'veth', 'peer', 'name', 'veth43'])
         klass.dev_e2_ap = 'veth43'
         klass.dev_e2_client = 'eth43'
         klass.dev_e2_ap_ip4 = '192.168.6.1/24'
         klass.dev_e2_ap_ip6 = '2601::1/64'
+        # Creation of the veths introduces a race with newer versions of
+        # systemd, as it  will change the initial MAC address after the device
+        # was created and networkd took control. Give it some time, so we read
+        # the correct MAC address
+        time.sleep(0.1)
+        out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth42'],
+                                      universal_newlines=True)
+        klass.dev_e_client_mac = out.split()[2]
         out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth43'],
                                       universal_newlines=True)
         klass.dev_e2_client_mac = out.split()[2]
