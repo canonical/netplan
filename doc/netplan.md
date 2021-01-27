@@ -285,9 +285,9 @@ Virtual devices
 
 ``dhcp-identifier`` (scalar)
 
-:   (networkd backend only) Sets the source of DHCPv4 client identifier. If "mac"
+:   (networkd backend only) Sets the source of DHCPv4 client identifier. If ``mac``
     is specified, the MAC address of the link is used. If this option is omitted,
-    or if "duid" is specified, networkd will generate an RFC4361-compliant client
+    or if ``duid`` is specified, networkd will generate an RFC4361-compliant client
     identifier for the interface by combining the link's IAID and DUID.
 
  ``dhcp4-overrides`` (mapping)
