@@ -442,8 +442,8 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 :    Allows specifying the management policy of the selected interface. By
      default, netplan brings up any configured interface if possible. Using the
      ``activation-mode`` setting users can override that behavior by either
-     specifying "manual", to hand over control over the interface state to the
-     administrator or (for networkd backend *only*) "off" to force the link
+     specifying ``manual``, to hand over control over the interface state to the
+     administrator or (for networkd backend *only*) ``off`` to force the link
      in a down state at all times.
      Supported officially as of ``networkd`` v248+.
 
