@@ -533,8 +533,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     if (def->activation_mode) {
         /* XXX: For now NetworkManager only supports the "manual" activation
          * mode */
-        if (g_strcmp0(def->activation_mode, "off") == 0) {
-            g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support activation_mode off\n", def->id);
+        if (!!g_strcmp0(def->activation_mode, "manual")) {
+            g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support activation-mode %s\n", def->id, def->activation_mode);
             exit(1);
         }
         /* "manual" */
