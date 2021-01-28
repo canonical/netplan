@@ -232,6 +232,19 @@ typedef struct ovs_settings {
     NetplanAuthenticationSettings ssl;
 } NetplanOVSSettings;
 
+typedef union {
+    struct NetplanNMSettings {
+        char *name;
+        char *uuid;
+        char *stable_id;
+        char *device;
+        GHashTable* passthrough;
+    } nm;
+    struct NetplanNetworkdSettings {
+        char *unit;
+    } networkd;
+} NetplanBackendSettings;
+
 /**
  * Represent a configuration stanza
  */
@@ -389,17 +402,7 @@ struct net_definition {
     /* netplan-feature: openvswitch */
     NetplanOVSSettings ovs_settings;
 
-    union {
-        struct NetplanNMSettings {
-            char *name;
-            char *uuid;
-            char *stable_id;
-            char *device;
-        } nm;
-        struct NetplanNetworkdSettings {
-            char *unit;
-        } networkd;
-    } backend_settings;
+    NetplanBackendSettings backend_settings;
 };
 
 typedef enum {
@@ -447,6 +450,8 @@ typedef struct {
 
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
+
+    NetplanBackendSettings backend_settings;
 } NetplanWifiAccessPoint;
 
 #define NETPLAN_MTU_UNSPEC 0
