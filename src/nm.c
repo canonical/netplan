@@ -116,9 +116,8 @@ type_str(const NetplanNetDefinition* def)
                 return "wireguard";
             return "ip-tunnel";
         case NETPLAN_DEF_TYPE_OTHER:
-            //TODO: error handling
             /* needs to be overriden by passthrough "connection.type" setting */
-            return "INVALID-netplan-passthrough";
+            return NULL;
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -517,6 +516,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     g_autofree gchar* conf_path = NULL;
     g_autofree gchar* full_path = NULL;
     g_autofree gchar* nd_nm_id = NULL;
+    const gchar* nm_type = NULL;
     gchar* tmp_key = NULL;
     mode_t orig_umask;
     char uuidstr[37];
@@ -538,7 +538,17 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     else
         nd_nm_id = g_strdup_printf("netplan-%s", def->id);
     g_key_file_set_string(kf, "connection", "id", nd_nm_id);
-    g_key_file_set_string(kf, "connection", "type", type_str(def));
+    nm_type = type_str(def);
+    if (type)
+        g_key_file_set_string(kf, "connection", "type", nm_type);
+    else {
+        if (!def->backend_settings.nm.passthrough || !g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type")) {
+            g_fprintf(stderr, "ERROR: %s: Unsupported type setting, missing connection.type passthrough\n", def->id);
+            exit(1);
+        }
+        g_key_file_set_string(kf, "connection", "type", g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"));
+        g_key_file_set_comment(kf, "connection", "type", "Netplan: Unsupported connection.type setting, overridden by passthrough", NULL);
+    }
 
     /* VLAN devices refer to us as their parent; if our ID is not a name but we
      * have matches, parent= must be the connection UUID, so put it into the
@@ -804,7 +814,6 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         }
         if (ap->backend_settings.nm.passthrough) {
             g_debug("NetworkManager: using AP keyfile passthrough mode");
-            g_warning("lkjsdflk");
             /* Write all key-value pairs from the hashtable into the keyfile */
             g_hash_table_foreach(ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
         }
@@ -858,7 +867,6 @@ write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
         const NetplanWifiAccessPoint* ap;
         g_assert(def->access_points);
         g_hash_table_iter_init(&iter, def->access_points);
-
         while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap))
             write_nm_conf_access_point(def, rootdir, ap);
     } else {
