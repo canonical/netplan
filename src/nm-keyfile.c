@@ -28,7 +28,6 @@
  * by default, so we only need to check for those. See:
  * https://bugzilla.gnome.org/show_bug.cgi?id=696940
  * https://gitlab.freedesktop.org/NetworkManager/NetworkManager/-/commit/c36200a225aefb2a3919618e75682646899b82c0
- * nm_keyfile_plugin_kf_set* from nm-keyfile-utils.c (libnm-core)
  */
 static const NetplanDefType
 type_from_str(const char* type_str)
@@ -47,7 +46,7 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_VLAN;
     else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
         return NETPLAN_DEF_TYPE_TUNNEL;
-    /* Full fallback/passthrough mode */
+    /* Unsupported type, needs to be specified via passthrough */
     return NETPLAN_DEF_TYPE_OTHER;
 }
 
@@ -64,6 +63,7 @@ ap_type_from_str(const char* type_str)
     return NETPLAN_WIFI_MODE_OTHER;
 }
 
+/* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GHashTable** out_map)
 {
@@ -71,12 +71,11 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
     gchar **keys = NULL;
     gchar *group_key = NULL;
     gchar *value = NULL;
+    gsize klen = 0;
+    gsize glen = 0;
 
     if (!*out_map)
         *out_map = g_hash_table_new(g_str_hash, g_str_equal);
-    /* Pass through the key-value pairs from the keyfile */
-    gsize klen = 0;
-    gsize glen = 0;
     groups = g_key_file_get_groups(kf, &glen);
     if (groups) {
         for(unsigned i = 0; i < glen; ++i) {
@@ -93,7 +92,7 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
                 }
                 group_key = g_strconcat(groups[i], ".", keys[j], NULL);
                 g_hash_table_insert(*out_map, group_key, value);
-                /* no need to free group_key and value, as they stay in the hash table */
+                /* no need to free group_key and value: they stay in the map */
             }
             g_strfreev(keys);
         }
@@ -107,7 +106,6 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
 gboolean
 netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
 {
-    //const gchar *hidden = NULL;
     g_autofree gchar *nd_id = NULL;
     g_autofree gchar *uuid = NULL;
     g_autofree gchar *ssid = NULL;
@@ -138,7 +136,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     nd_type = type_from_str(type);
 
     nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
-    /* remove values from passthrough, which are supported and have been handled */
+    /* remove supported values from passthrough, which have been handled */
     if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
         || nd_type == NETPLAN_DEF_TYPE_WIFI
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
@@ -177,7 +175,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
             if (ap->mode != NETPLAN_WIFI_MODE_OTHER)
                 g_key_file_remove_key(kf, "wifi", "mode", NULL);
         }
-        
+
         ap->hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL);
         g_key_file_remove_key(kf, "wifi", "hidden", NULL);
 
@@ -185,25 +183,27 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
             nd->access_points = g_hash_table_new(g_str_hash, g_str_equal);
         g_hash_table_insert(nd->access_points, ap->ssid, ap);
 
+        /* Last: handle passthrough for everything left in the keyfile
+         *       Also, transfer backend_settings from netdef to AP */
         ap->backend_settings.nm.uuid = nd->backend_settings.nm.uuid;
         ap->backend_settings.nm.name = nd->backend_settings.nm.name;
         nd->backend_settings.nm.uuid = NULL;
         nd->backend_settings.nm.name = NULL;
         read_passthrough(kf, &ap->backend_settings.nm.passthrough);
     } else {
-        /* Last: handle passthrough/fallback for everything which is left in the keyfile */
+        /* Last: handle passthrough for everything left in the keyfile */
         read_passthrough(kf, &nd->backend_settings.nm.passthrough);
     }
 
     return netplan_render_netdef(nd, yaml_path);
 }
 
-/* For testing only */
+/**
+ * Helper function for testing only, to pass through the test-data
+ * (keyfile string) until we cann pass the real GKeyFile data from python. */
 gboolean
 _netplan_render_yaml_from_nm_keyfile_str(const char* keyfile_str, const char* rootdir)
 {
-    /* Pass through the test-data (keyfile string) during testing,
-     * until we cann pass the real GKeyFile data from Python */
     g_autoptr(GKeyFile) kf = g_key_file_new();
     g_key_file_load_from_data(kf, keyfile_str, -1, 0, NULL);
     return netplan_render_yaml_from_nm_keyfile(kf, rootdir);
