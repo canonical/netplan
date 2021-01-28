@@ -88,8 +88,10 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefi
         if (ap->mode != NETPLAN_WIFI_MODE_OTHER) {
             YAML_SCALAR_PLAIN(event, emitter, netplan_wifi_mode_to_str[ap->mode]);
         } else {
+            // LCOV_EXCL_START
             g_warning("netplan: serialize: %s (SSID %s), unsupported AP mode, falling back to 'infrastructure'", nd->id, ap->ssid);
             YAML_SCALAR_PLAIN(event, emitter, "infrastructure"); //TODO: add YAML comment about unsupported mode
+            // LCOV_EXCL_STOP
         }
         if (!write_backend_settings(event, emitter, ap->backend_settings)) goto error;
         YAML_MAPPING_CLOSE(event, emitter);
@@ -153,11 +155,19 @@ error:
     // LCOV_EXCL_STOP
 }
 
-/*
+/**
+ * Helper function for testing only
+ */
 gboolean
-_netplan_render_netdef(const char* in_path, const char* out_path)
+_netplan_render_netdef(const char* netdef_id, const char* read_path, const char* write_path)
 {
-    //TODO: parse in_path
-    return netplan_render_netdef(..., out_path);
+    gboolean ret = FALSE;
+    GHashTable* ht = NULL;
+    NetplanNetDefinition* nd = NULL;
+    netplan_parse_yaml(read_path, NULL);
+    ht = netplan_finish_parse(NULL);
+    nd = g_hash_table_lookup(ht, netdef_id);
+    ret = netplan_render_netdef(nd, write_path);
+    netplan_clear_netdefs();
+    return ret;
 }
-*/
