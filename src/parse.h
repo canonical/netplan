@@ -405,8 +405,17 @@ struct net_definition {
 typedef enum {
     NETPLAN_WIFI_MODE_INFRASTRUCTURE,
     NETPLAN_WIFI_MODE_ADHOC,
-    NETPLAN_WIFI_MODE_AP
+    NETPLAN_WIFI_MODE_AP,
+    NETPLAN_WIFI_MODE_OTHER,
+    NETPLAN_WIFI_MODE_MAX_
 } NetplanWifiMode;
+
+static const char* const netplan_wifi_mode_to_str[NETPLAN_WIFI_MODE_MAX_] = {
+    [NETPLAN_WIFI_MODE_INFRASTRUCTURE] = "infrastructure",
+    [NETPLAN_WIFI_MODE_ADHOC] = "adhoc",
+    [NETPLAN_WIFI_MODE_AP] = "ap",
+    [NETPLAN_WIFI_MODE_OTHER] = NULL,
+};
 
 typedef struct {
     char *endpoint;
