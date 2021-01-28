@@ -101,7 +101,6 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefi
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
-
 /**
  * Takes a single NetplanNetDefinition structure and writes it to a YAML file.
  * @nd: NetplanNetDefinition (as pointer), the data to be serialized
