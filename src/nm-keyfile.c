@@ -106,6 +106,7 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
 gboolean
 netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
 {
+    gboolean ret = FALSE;
     g_autofree gchar *nd_id = NULL;
     g_autofree gchar *uuid = NULL;
     g_autofree gchar *ssid = NULL;
@@ -122,10 +123,12 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         g_warning("netplan: Keyfile: cannot find connection.uuid");
         return FALSE;
     }
+    /* Auto-generated netdefs by NM always use a "NM-<UUID>" ID */
     nd_id = g_strconcat("NM-", uuid, NULL);
 
-    /* NetworkManager produces one file per connection profile */
-    filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
+    /* NetworkManager produces one file per connection profile
+     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
+    filename = g_strconcat("90-", nd_id, ".yaml", NULL);
     yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
     type = g_key_file_get_string(kf, "connection", "type", NULL);
@@ -151,7 +154,10 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     if (nd->backend_settings.nm.name)
         g_key_file_remove_key(kf, "connection", "id", NULL);
 
-    /* Handle match */
+    /* Handle match: Netplan usually defines a connection per interface, while
+     * NM connection profiles are usually applied to any interface of matching
+     * type (like wifi/ethernet/...). Therefore, we match the interface on '*'
+     * if not specified. */
     nd->match.original_name = g_key_file_get_string(kf, "connection", "interface-name", NULL);
     if (nd->match.original_name)
         g_key_file_remove_key(kf, "connection", "interface-name", NULL);
@@ -195,7 +201,9 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         read_passthrough(kf, &nd->backend_settings.nm.passthrough);
     }
 
-    return netplan_render_netdef(nd, yaml_path);
+    ret = netplan_render_netdef(nd, yaml_path);
+    netplan_clear_netdefs(); //cleanup the 'netdefs' map
+    return ret;
 }
 
 /**
