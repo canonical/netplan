@@ -547,13 +547,12 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     }
 
     nm_type = type_str(def);
-    if (type)
+    if (nm_type)
         g_key_file_set_string(kf, "connection", "type", nm_type);
     else {
-        if (!def->backend_settings.nm.passthrough || !g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type")) {
-            g_fprintf(stderr, "ERROR: %s: Unsupported type setting, missing connection.type passthrough\n", def->id);
-            exit(1);
-        }
+        /* This case is checked in validation.c and should never happen */
+        if (!def->backend_settings.nm.passthrough || !g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"))
+            g_assert_not_reached(); // LCOV_EXCL_LINE
         g_key_file_set_string(kf, "connection", "type", g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"));
         g_key_file_set_comment(kf, "connection", "type", "Netplan: Unsupported connection.type setting, overridden by passthrough", NULL);
     }

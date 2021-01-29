@@ -374,8 +374,9 @@ class TestConfigErrors(TestBase):
   others:
     engreen:
       networkmanager:
-        uuid: 123456''', expect_fail=True)
-        self.assertIn("engreen: network type 'others:' needs to provide a 'passthrough", err)
+        passthrough:
+          connection.uuid: "123456"''', expect_fail=True)
+        self.assertIn("engreen: network type 'others:' needs to provide a 'connection.type' via passthrough", err)
 
     def test_invalid_address_node_type(self):
         err = self.generate('''network:
