@@ -539,6 +539,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     else if (def->backend_settings.nm.name)
         g_key_file_set_string(kf, "connection", "id", def->backend_settings.nm.name);
     else {
+        /* Auto-generate a name for the connection profile, if not specified */
         if (ap)
             nd_nm_id = g_strdup_printf("netplan-%s-%s", def->id, ap->ssid);
         else
@@ -790,7 +791,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
 
     if (def->backend_settings.nm.passthrough) {
         g_debug("NetworkManager: using keyfile passthrough mode");
-        /* Write all key-value pairs from the hashtable into the keyfile */
+        /* Write all key-value pairs from the hashtable into the keyfile,
+         * potentially overriding existing values, if not fully supported. */
         g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
     }
 
@@ -821,7 +823,11 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         }
         if (ap->backend_settings.nm.passthrough) {
             g_debug("NetworkManager: using AP keyfile passthrough mode");
-            /* Write all key-value pairs from the hashtable into the keyfile */
+            /* Write all key-value pairs from the hashtable into the keyfile,
+             * potentially overriding existing values, if not fully supported.
+             * AP passthrough values have higher priority than ND passthrough,
+             * because they are more specific and bound to the current SSID's
+             * NM connection profile. */
             g_hash_table_foreach(ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
         }
     } else {
