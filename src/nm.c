@@ -491,9 +491,10 @@ write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
     g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
 
     g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
-    /* Should we use g_key_file_set_comment() to mark fallback keys in the keyfile? */
-    if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL)))
-        g_warning("NetworkManager: overwriting %s.%s via passthrough", group, k);
+    if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL))) {
+        g_warning("NetworkManager: overriding %s.%s via passthrough", group, k);
+        g_key_file_set_comment(kf, group, k, "Netplan: Unsupported setting or value, overridden by passthrough", NULL);
+    }
     g_key_file_set_string(kf, group, k, val);
     g_strfreev(group_key);
 }
