@@ -275,20 +275,15 @@ method=auto'''.format(UUID, nm_mode)
         name: "*"
       networkmanager:
         uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        name: some NM id
         passthrough:
-          connection.id: myid with spaces
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
-          connection.type: wifi
-          connection.permissions:
-          ipv4.dns-search:
-          ipv4.method: auto
-          ipv6.addr-gen-mode: stable-privacy
-          ipv6.dns-search:
-          ipv6.method: auto''')
+          connection.type: ethernet
+          connection.permissions:''')
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
-id=myid with spaces
-type=wifi
+id=some NM id
+type=ethernet
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 permissions=
 
@@ -299,13 +294,10 @@ wake-on-lan=0
 interface-name=*;
 
 [ipv4]
-method=auto
-dns-search=
+method=link-local
 
 [ipv6]
-method=auto
-addr-gen-mode=stable-privacy
-dns-search=
+method=ignore
 '''})
 
     def test_fallback_generator_wifi(self):
@@ -320,16 +312,12 @@ dns-search=
         "SOME-SSID":
           networkmanager:
             uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+            name: myid with spaces
             passthrough:
               connection.id: myid with spaces
               connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
               connection.permissions:
               wifi.ssid: SOME-SSID
-              ipv4.dns-search:
-              ipv4.method: auto
-              ipv6.addr-gen-mode: stable-privacy
-              ipv6.dns-search:
-              ipv6.method: auto
         "OTHER-SSID":
           hidden: true''')
 
@@ -346,13 +334,10 @@ wake-on-lan=0
 interface-name=*;
 
 [ipv4]
-method=auto
-dns-search=
+method=link-local
 
 [ipv6]
-method=auto
-addr-gen-mode=stable-privacy
-dns-search=
+method=ignore
 
 [wifi]
 ssid=SOME-SSID
@@ -394,6 +379,7 @@ hidden=true
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: Unsupported connection.type setting, overridden by passthrough
 type=dummy
 interface-name=NM-87749f1d-334f-40b2-98d4-55db58965f5f
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
@@ -414,11 +400,13 @@ method=ignore
         name: "*"
       networkmanager:
         passthrough:
+          connection.type: "wireguard"
           wireguard-peer.some-key.endpoint: 1.2.3.4''')
 
         self.assert_nm({'dotted-group-test': '''[connection]
 id=netplan-dotted-group-test
-type=INVALID-netplan-passthrough
+#Netplan: Unsupported connection.type setting, overridden by passthrough
+type=wireguard
 interface-name=dotted-group-test
 
 [ipv4]
@@ -429,4 +417,40 @@ method=ignore
 
 [wireguard-peer.some-key]
 endpoint=1.2.3.4
+'''})
+
+    def test_fallback_generator_unsupported_setting(self):
+        self.generate('''network:
+  wifis:
+    test:
+      renderer: NetworkManager
+      match:
+        name: "*"
+      access-points:
+        "SOME-SSID":
+          mode: adhoc
+          networkmanager:
+            passthrough:
+              wifi.mode: "mesh"''')
+
+        self.assert_nm({'test-SOME-SSID': '''[connection]
+id=netplan-test-SOME-SSID
+type=wifi
+
+[ethernet]
+wake-on-lan=0
+
+[match]
+interface-name=*;
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=SOME-SSID
+#Netplan: Unsupported setting or value, overridden by passthrough
+mode=mesh
 '''})
