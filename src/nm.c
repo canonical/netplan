@@ -534,11 +534,18 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     }
 
     kf = g_key_file_new();
-    if (ap)
-        nd_nm_id = g_strdup_printf("netplan-%s-%s", def->id, ap->ssid);
-    else
-        nd_nm_id = g_strdup_printf("netplan-%s", def->id);
-    g_key_file_set_string(kf, "connection", "id", nd_nm_id);
+    if (ap && ap->backend_settings.nm.name)
+        g_key_file_set_string(kf, "connection", "id", ap->backend_settings.nm.name);
+    else if (def->backend_settings.nm.name)
+        g_key_file_set_string(kf, "connection", "id", def->backend_settings.nm.name);
+    else {
+        if (ap)
+            nd_nm_id = g_strdup_printf("netplan-%s-%s", def->id, ap->ssid);
+        else
+            nd_nm_id = g_strdup_printf("netplan-%s", def->id);
+        g_key_file_set_string(kf, "connection", "id", nd_nm_id);
+    }
+
     nm_type = type_str(def);
     if (type)
         g_key_file_set_string(kf, "connection", "type", nm_type);
