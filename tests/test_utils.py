@@ -19,6 +19,7 @@ import os
 import unittest
 import tempfile
 import glob
+import netifaces
 
 from unittest.mock import patch
 
@@ -96,3 +97,13 @@ class TestUtils(unittest.TestCase):
         match = {'name': 'ens?', 'driver': 'f*'}
         iface = utils.find_matching_iface(DEVICES, match)
         self.assertEqual(iface, 'ens4')
+
+    @patch('netifaces.ifaddresses')
+    def test_interface_macaddress(self, ifaddr):
+        ifaddr.side_effect = lambda _: {netifaces.AF_LINK: [{'addr': '00:01:02:03:04:05'}]}
+        self.assertEqual(utils.get_interface_macaddress('eth42'), '00:01:02:03:04:05')
+
+    @patch('netifaces.ifaddresses')
+    def test_interface_macaddress_empty(self, ifaddr):
+        ifaddr.side_effect = lambda _: {}
+        self.assertEqual(utils.get_interface_macaddress('eth42'), '')

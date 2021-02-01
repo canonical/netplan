@@ -165,9 +165,10 @@ def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (c
     return driver_name
 
 
-def get_interface_macaddress(interface):  # pragma: nocover (covered in autopkgtest)
-    link = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]
-    return link.get('addr')
+def get_interface_macaddress(interface):
+    # return an empty list (and string) if no LL data can be found
+    link = netifaces.ifaddresses(interface).get(netifaces.AF_LINK, [{}])[0]
+    return link.get('addr', '')
 
 
 def is_interface_matching_name(interface, match_name):
