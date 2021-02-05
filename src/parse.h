@@ -232,6 +232,19 @@ typedef struct ovs_settings {
     NetplanAuthenticationSettings ssl;
 } NetplanOVSSettings;
 
+typedef union {
+    struct NetplanNMSettings {
+        char *name;
+        char *uuid;
+        char *stable_id;
+        char *device;
+        GHashTable* passthrough;
+    } nm;
+    struct NetplanNetworkdSettings {
+        char *unit;
+    } networkd;
+} NetplanBackendSettings;
+
 /**
  * Represent a configuration stanza
  */
@@ -390,24 +403,23 @@ struct net_definition {
     /* netplan-feature: openvswitch */
     NetplanOVSSettings ovs_settings;
 
-    union {
-        struct NetplanNMSettings {
-            char *name;
-            char *uuid;
-            char *stable_id;
-            char *device;
-        } nm;
-        struct NetplanNetworkdSettings {
-            char *unit;
-        } networkd;
-    } backend_settings;
+    NetplanBackendSettings backend_settings;
 };
 
 typedef enum {
     NETPLAN_WIFI_MODE_INFRASTRUCTURE,
     NETPLAN_WIFI_MODE_ADHOC,
-    NETPLAN_WIFI_MODE_AP
+    NETPLAN_WIFI_MODE_AP,
+    NETPLAN_WIFI_MODE_OTHER,
+    NETPLAN_WIFI_MODE_MAX_
 } NetplanWifiMode;
+
+static const char* const netplan_wifi_mode_to_str[NETPLAN_WIFI_MODE_MAX_] = {
+    [NETPLAN_WIFI_MODE_INFRASTRUCTURE] = "infrastructure",
+    [NETPLAN_WIFI_MODE_ADHOC] = "adhoc",
+    [NETPLAN_WIFI_MODE_AP] = "ap",
+    [NETPLAN_WIFI_MODE_OTHER] = NULL,
+};
 
 typedef struct {
     char *endpoint;
@@ -439,6 +451,8 @@ typedef struct {
 
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
+
+    NetplanBackendSettings backend_settings;
 } NetplanWifiAccessPoint;
 
 #define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
