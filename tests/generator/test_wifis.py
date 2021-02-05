@@ -265,7 +265,7 @@ unmanaged-devices+=interface-name:wl0,''')
           password: "c0mpany1"
           mode: ap
       dhcp4: yes''', expect_fail=True)
-        self.assertIn('networkd does not support wifi in access point mode', err)
+        self.assertIn('wl0: workplace: networkd does not support this wifi mode', err)
 
     def test_wifi_wowlan(self):
         self.generate('''network:

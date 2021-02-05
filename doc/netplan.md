@@ -1272,6 +1272,8 @@ consumer of that backend. Currently, this is only used with ``NetworkManager``.
      ``device`` (scalar) – since **0.99**
      :    Defines the interface name for which this connection applies.
 
+     ``passthrough`` (mapping) – since **0.102**
+     :    Can be used as a fallback mechanism to missing keyfile settings.
 
 ## Examples
 Configure an ethernet device with networkd, identified by its name, and enable

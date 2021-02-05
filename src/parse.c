@@ -712,6 +712,19 @@ get_default_backend_for_type(NetplanDefType type)
 }
 
 static gboolean
+handle_access_point_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_str(doc, node, cur_access_point, data, error);
+}
+
+static gboolean
+handle_access_point_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_access_point);
+    return handle_generic_map(doc, node, cur_access_point, data, error);
+}
+
+static gboolean
 handle_access_point_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_guint(doc, node, cur_access_point, data, error);
@@ -784,6 +797,29 @@ handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _,
     return TRUE;
 }
 
+/* Keep in sync with ap_nm_backend_settings_handlers */
+static const mapping_entry_handler nm_backend_settings_handlers[] = {
+    {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.name)},
+    {"uuid", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
+    {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
+    /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
+    {"passthrough", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(backend_settings.nm.passthrough)},
+    {NULL}
+};
+
+/* Keep in sync with nm_backend_settings_handlers */
+static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
+    {"name", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.name)},
+    {"uuid", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.stable_id)},
+    {"device", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.device)},
+    /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
+    {"passthrough", YAML_MAPPING_NODE, handle_access_point_map, NULL, access_point_offset(backend_settings.nm.passthrough)},
+    {NULL}
+};
+
+
 static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"band", YAML_SCALAR_NODE, handle_access_point_band},
     {"bssid", YAML_SCALAR_NODE, handle_access_point_mac, NULL, access_point_offset(bssid)},
@@ -792,6 +828,7 @@ static const mapping_entry_handler wifi_access_point_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_access_point_mode},
     {"password", YAML_SCALAR_NODE, handle_access_point_password},
     {"auth", YAML_MAPPING_NODE, handle_access_point_auth},
+    {"networkmanager", YAML_MAPPING_NODE, NULL, ap_nm_backend_settings_handlers},
     {NULL}
 };
 
@@ -1924,14 +1961,6 @@ handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
-
-static const mapping_entry_handler nm_backend_settings_handlers[] = {
-    {"name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.name)},
-    {"uuid", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.uuid)},
-    {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
-    {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
-    {NULL}
-};
 
 static gboolean
 handle_ovs_bond_lacp(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
