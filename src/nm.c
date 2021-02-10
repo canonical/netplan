@@ -484,13 +484,23 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
     gchar* val = value;
-    /* Group name may contain dots, but key name may not */
+    /* Group name may contain dots, but key name may not.
+     * The "tc" group is a special case, where it is the other way around, e.g.:
+     *   tc->qdisc.root
+     *   tc->tfilter.ffff: */
     const gchar* key = g_quark_to_string(key_id);
     gchar **group_key = g_strsplit(key, ".", -1);
     guint len = g_strv_length(group_key);
-    g_autofree gchar *k = group_key[len-1];
-    group_key[len-1] = NULL; //remove key from array
-    g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
+    g_autofree gchar* k = NULL;
+    g_autofree gchar* group = NULL;
+    if (!g_strcmp0(group_key[0], "tc") && len > 2) {
+        k = g_strconcat(group_key[1], ".", group_key[2], NULL);
+        group = g_strdup(group_key[0]);
+    } else {
+        k = group_key[len-1];
+        group_key[len-1] = NULL; //remove key from array
+        group = g_strjoinv(".", group_key); //re-combine group parts
+    }
 
     g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
     if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL))) {
