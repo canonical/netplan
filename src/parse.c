@@ -450,6 +450,34 @@ handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
     return TRUE;
 }
 
+/*
+ * Handler for setting a DataList field from a mapping node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the boolean field to write is located
+*/
+static gboolean
+handle_generic_datalist(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    GData** list = (GData**) ((void*) entryptr + offset);
+    if (!*list)
+        g_datalist_init(list);
+
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+
+        key = yaml_document_get_node(doc, entry->key);
+        value = yaml_document_get_node(doc, entry->value);
+
+        assert_type(key, YAML_SCALAR_NODE);
+        assert_type(value, YAML_SCALAR_NODE);
+
+        g_datalist_set_data_full(list, g_strdup(scalar(key)), g_strdup(scalar(value)), g_free);
+    }
+
+    return TRUE;
+}
+
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -624,6 +652,13 @@ handle_netdef_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return handle_generic_map(doc, node, cur_netdef, data, error);
 }
 
+static gboolean
+handle_netdef_datalist(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_netdef);
+    return handle_generic_datalist(doc, node, cur_netdef, data, error);
+}
+
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -718,10 +753,10 @@ handle_access_point_str(yaml_document_t* doc, yaml_node_t* node, const void* dat
 }
 
 static gboolean
-handle_access_point_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_datalist(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(cur_access_point);
-    return handle_generic_map(doc, node, cur_access_point, data, error);
+    return handle_generic_datalist(doc, node, cur_access_point, data, error);
 }
 
 static gboolean
@@ -804,7 +839,7 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
     {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, handle_netdef_datalist, NULL, netdef_offset(backend_settings.nm.passthrough)},
     {NULL}
 };
 
@@ -815,7 +850,7 @@ static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.stable_id)},
     {"device", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, handle_access_point_map, NULL, access_point_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, handle_access_point_datalist, NULL, access_point_offset(backend_settings.nm.passthrough)},
     {NULL}
 };
 

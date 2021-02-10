@@ -65,7 +65,7 @@ ap_type_from_str(const char* type_str)
 
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
-read_passthrough(GKeyFile* kf, GHashTable** out_map)
+read_passthrough(GKeyFile* kf, GData** list)
 {
     gchar **groups = NULL;
     gchar **keys = NULL;
@@ -74,8 +74,8 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
     gsize klen = 0;
     gsize glen = 0;
 
-    if (!*out_map)
-        *out_map = g_hash_table_new(g_str_hash, g_str_equal);
+    if (!*list)
+        g_datalist_init(list);
     groups = g_key_file_get_groups(kf, &glen);
     if (groups) {
         for (unsigned i = 0; i < glen; ++i) {
@@ -95,8 +95,8 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
                     // LCOV_EXCL_STOP
                 }
                 group_key = g_strconcat(groups[i], ".", keys[j], NULL);
-                g_hash_table_insert(*out_map, group_key, value);
-                /* no need to free group_key and value: they stay in the map */
+                g_datalist_set_data_full(list, group_key, value, g_free);
+                /* no need to free group_key and value: they stay in the list */
             }
             g_strfreev(keys);
         }

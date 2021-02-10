@@ -480,11 +480,12 @@ maybe_generate_uuid(NetplanNetDefinition* def)
  * "backend_settings.nm.passthrough" and inject them into the keyfile as-is.
  */
 static void
-write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
+write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
     gchar* val = value;
     /* Group name may contain dots, but key name may not */
+    const gchar* key = g_quark_to_string(key_id);
     gchar **group_key = g_strsplit(key, ".", -1);
     guint len = g_strv_length(group_key);
     g_autofree gchar *k = group_key[len-1];
@@ -556,9 +557,9 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         g_key_file_set_string(kf, "connection", "type", nm_type);
     else {
         /* This case is checked in validation.c and should never happen */
-        if (!def->backend_settings.nm.passthrough || !g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"))
+        if (!def->backend_settings.nm.passthrough || !g_datalist_get_data(&def->backend_settings.nm.passthrough, "connection.type"))
             g_assert_not_reached(); // LCOV_EXCL_LINE
-        g_key_file_set_string(kf, "connection", "type", g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"));
+        g_key_file_set_string(kf, "connection", "type", g_datalist_get_data(&def->backend_settings.nm.passthrough, "connection.type"));
         g_key_file_set_comment(kf, "connection", "type", "Netplan: Unsupported connection.type setting, overridden by passthrough", NULL);
     }
 
@@ -797,7 +798,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         g_debug("NetworkManager: using keyfile passthrough mode");
         /* Write all key-value pairs from the hashtable into the keyfile,
          * potentially overriding existing values, if not fully supported. */
-        g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+        g_datalist_foreach(&def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
     }
 
     if (ap) {
@@ -832,7 +833,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
              * AP passthrough values have higher priority than ND passthrough,
              * because they are more specific and bound to the current SSID's
              * NM connection profile. */
-            g_hash_table_foreach(ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+            g_datalist_foreach((GData**)&ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
         }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);

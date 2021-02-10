@@ -35,11 +35,23 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefinition* 
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+typedef struct {
+    yaml_event_t* event;
+    yaml_emitter_t* emitter;
+} _passthrough_handler_data;
+
+static void
+_passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
+{
+    _passthrough_handler_data *d = user_data;
+    const gchar* key = g_quark_to_string(key_id);
+    YAML_SCALAR_PLAIN(d->event, d->emitter, key);
+    YAML_SCALAR_QUOTED(d->event, d->emitter, value);
+error: return; // LCOV_EXCL_LINE
+}
+
 static gboolean
 write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBackendSettings s) {
-    GHashTableIter iter;
-    gpointer key, value;
-
     if (s.nm.uuid || s.nm.name || s.nm.passthrough) {
         YAML_SCALAR_PLAIN(event, emitter, "networkmanager");
         YAML_MAPPING_OPEN(event, emitter);
@@ -51,14 +63,13 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
             YAML_SCALAR_PLAIN(event, emitter, "name");
             YAML_SCALAR_QUOTED(event, emitter, s.nm.name);
         }
-        if (s.nm.passthrough && g_hash_table_size(s.nm.passthrough) > 0) {
+        if (s.nm.passthrough) {
             YAML_SCALAR_PLAIN(event, emitter, "passthrough");
             YAML_MAPPING_OPEN(event, emitter);
-            g_hash_table_iter_init(&iter, s.nm.passthrough);
-            while (g_hash_table_iter_next(&iter, &key, &value)) {
-                YAML_SCALAR_PLAIN(event, emitter, key);
-                YAML_SCALAR_QUOTED(event, emitter, value);
-            }
+            _passthrough_handler_data d;
+            d.event = event;
+            d.emitter = emitter;
+            g_datalist_foreach(&s.nm.passthrough, _passthrough_handler, &d);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         YAML_MAPPING_CLOSE(event, emitter);
