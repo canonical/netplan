@@ -24,13 +24,15 @@
 static gboolean
 write_match(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefinition* nd)
 {
-    YAML_SCALAR_PLAIN(event, emitter, "match");
-    YAML_MAPPING_OPEN(event, emitter);
-    if (nd->match.original_name) {
-        YAML_SCALAR_PLAIN(event, emitter, "name");
-        YAML_SCALAR_QUOTED(event, emitter, nd->match.original_name);
+    if (nd->type < NETPLAN_DEF_TYPE_VIRTUAL) {
+        YAML_SCALAR_PLAIN(event, emitter, "match");
+        YAML_MAPPING_OPEN(event, emitter);
+        if (nd->match.original_name) {
+            YAML_SCALAR_PLAIN(event, emitter, "name");
+            YAML_SCALAR_QUOTED(event, emitter, nd->match.original_name);
+        }
+        YAML_MAPPING_CLOSE(event, emitter);
     }
-    YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 error: return FALSE; // LCOV_EXCL_LINE
 }
