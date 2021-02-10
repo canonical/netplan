@@ -81,7 +81,11 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
         for (unsigned i = 0; i < glen; ++i) {
             klen = 0;
             keys = g_key_file_get_keys(kf, groups[i], &klen, NULL);
-            if (!keys) continue; // empty group
+            if (klen == 0) {
+                /* empty group */
+                g_datalist_set_data_full(list, g_strconcat(groups[i], ".", NETPLAN_NM_EMPTY_GROUP, NULL), g_strdup(""), g_free);
+                continue;
+            }
             for (unsigned j = 0; j < klen; ++j) {
                 value = g_key_file_get_string(kf, groups[i], keys[j], NULL);
                 if (!value) {

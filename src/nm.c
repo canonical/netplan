@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "util.h"
 #include "validation.h"
+#include "nm-keyfile.h"
 
 GString* udev_rules;
 
@@ -497,6 +498,9 @@ write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
     }
     g_key_file_set_string(kf, group, k, val);
     g_strfreev(group_key);
+    /* delete the dummy key, if this was just an empty group */
+    if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
+        g_key_file_remove_key(kf, group, k, NULL);
 }
 
 /**
