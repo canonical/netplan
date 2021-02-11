@@ -491,6 +491,8 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
     const gchar* key = g_quark_to_string(key_id);
     gchar **group_key = g_strsplit(key, ".", -1);
     guint len = g_strv_length(group_key);
+    g_autofree gchar* old_key = NULL;
+    gboolean has_key = FALSE;
     g_autofree gchar* k = NULL;
     g_autofree gchar* group = NULL;
     if (!g_strcmp0(group_key[0], "tc") && len > 2) {
@@ -502,16 +504,21 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
         group = g_strjoinv(".", group_key); //re-combine group parts
     }
 
-    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
-    if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL))) {
-        g_warning("NetworkManager: overriding %s.%s via passthrough", group, k);
-        g_key_file_set_comment(kf, group, k, "Netplan: Unsupported setting or value, overridden by passthrough", NULL);
-    }
+    has_key = g_key_file_has_key(kf, group, k, NULL);
+    old_key = g_key_file_get_string(kf, group, k, NULL);
     g_key_file_set_string(kf, group, k, val);
-    g_strfreev(group_key);
     /* delete the dummy key, if this was just an empty group */
     if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
         g_key_file_remove_key(kf, group, k, NULL);
+    else if (!has_key) {
+        g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
+        g_key_file_set_comment(kf, group, k, "Netplan: passthrough setting", NULL);
+    } else if (!!g_strcmp0(val, old_key)) {
+        g_debug("NetworkManager: fallback override: %s.%s=%s", group, k, val);
+        g_key_file_set_comment(kf, group, k, "Netplan: passthrough override", NULL);
+    }
+
+    g_strfreev(group_key);
 }
 
 /**
