@@ -134,14 +134,12 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
     YAML_SCALAR_PLAIN(event, emitter, "network");
     YAML_MAPPING_OPEN(event, emitter);
     // TODO: global backend/renderer
-    YAML_SCALAR_PLAIN(event, emitter, "version");
-    YAML_SCALAR_PLAIN(event, emitter, "2");
+    YAML_STRING_PLAIN(event, emitter, "version", "2");
     YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[nd->type]);
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, nd->id);
     YAML_MAPPING_OPEN(event, emitter);
-    YAML_SCALAR_PLAIN(event, emitter, "renderer");
-    YAML_SCALAR_PLAIN(event, emitter, netplan_backend_to_name[nd->backend]);
+    YAML_STRING_PLAIN(event, emitter, "renderer", netplan_backend_to_name[nd->backend])
 
     if (nd->has_match)
         write_match(event, emitter, nd);
@@ -149,6 +147,16 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
     /* wake-on-lan */
     if (nd->wake_on_lan)
         YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
+
+    /* some modem settings to auto-detect GSM vs CDMA connections */
+    if (nd->modem_params.auto_config)
+        YAML_STRING_PLAIN(event, emitter, "auto-config", "true");
+    YAML_STRING(event, emitter, "apn", nd->modem_params.apn);
+    YAML_STRING(event, emitter, "device-id", nd->modem_params.device_id);
+    YAML_STRING(event, emitter, "network-id", nd->modem_params.network_id);
+    YAML_STRING(event, emitter, "pin", nd->modem_params.pin);
+    YAML_STRING(event, emitter, "sim-id", nd->modem_params.sim_id);
+    YAML_STRING(event, emitter, "sim-operator-id", nd->modem_params.sim_operator_id);
 
     if (nd->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, nd)) goto error;

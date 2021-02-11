@@ -182,6 +182,28 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         nd->match.original_name = g_strdup("*");
     nd->has_match = TRUE;
 
+    /* Modem parameters to detect GSM vs CDMA connections */
+    nd->modem_params.auto_config = g_key_file_get_boolean(kf, "gsm", "auto-config", NULL);
+    _kf_clear_key(kf, "gsm", "auto-config");
+    nd->modem_params.apn = g_key_file_get_string(kf, "gsm", "apn", NULL);
+    if (nd->modem_params.apn)
+        _kf_clear_key(kf, "gsm", "apn");
+    nd->modem_params.device_id = g_key_file_get_string(kf, "gsm", "device-id", NULL);
+    if (nd->modem_params.device_id)
+        _kf_clear_key(kf, "gsm", "device-id");
+    nd->modem_params.network_id = g_key_file_get_string(kf, "gsm", "network-id", NULL);
+    if (nd->modem_params.network_id)
+        _kf_clear_key(kf, "gsm", "network-id");
+    nd->modem_params.pin = g_key_file_get_string(kf, "gsm", "pin", NULL);
+    if (nd->modem_params.pin)
+        _kf_clear_key(kf, "gsm", "pin");
+    nd->modem_params.sim_id = g_key_file_get_string(kf, "gsm", "sim-id", NULL);
+    if (nd->modem_params.sim_id)
+        _kf_clear_key(kf, "gsm", "sim-id");
+    nd->modem_params.sim_operator_id = g_key_file_get_string(kf, "gsm", "sim-operator-id", NULL);
+    if (nd->modem_params.sim_operator_id)
+        _kf_clear_key(kf, "gsm", "sim-operator-id");
+
     /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
     if (g_key_file_has_group(kf, "ethernet")) {
         if (!g_key_file_has_key(kf, "ethernet", "wake-on-lan", NULL)) {
