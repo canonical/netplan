@@ -827,7 +827,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
 
         g_key_file_set_string(kf, "wifi", "ssid", ap->ssid);
-        g_key_file_set_string(kf, "wifi", "mode", wifi_mode_str(ap->mode));
+        if (ap->mode < NETPLAN_WIFI_MODE_OTHER)
+            g_key_file_set_string(kf, "wifi", "mode", wifi_mode_str(ap->mode));
         if (ap->bssid)
             g_key_file_set_string(kf, "wifi", "bssid", ap->bssid);
         if (ap->hidden)

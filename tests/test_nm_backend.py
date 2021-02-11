@@ -217,12 +217,12 @@ type=wifi
 uuid={}
 id=myid with spaces
 
+[ipv4]
+method=auto
+
 [wifi]
 ssid=SOME-SSID
-mode={}
-
-[ipv4]
-method=auto'''.format(UUID, nm_mode)
+mode={}'''.format(UUID, nm_mode)
         self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         wifi_mode = ''
