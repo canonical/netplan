@@ -120,9 +120,7 @@ class TestNetworkManagerBackend(TestBase):
         self.assertEqual(lib.netplan_clear_netdefs(), 0)
         self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-        t = ''
-        if not supported:
-            t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type)
+        t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type) if not supported else ''
         match = '\n      match: {}' if nd_type in ['ethernets', 'modems', 'wifis'] else ''
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
