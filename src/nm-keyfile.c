@@ -154,15 +154,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         return FALSE;
     }
     nd_type = type_from_str(type);
-
     nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
-    /* remove supported values from passthrough, which have been handled */
-    if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
-        || nd_type == NETPLAN_DEF_TYPE_WIFI
-        || nd_type == NETPLAN_DEF_TYPE_BRIDGE
-        || nd_type == NETPLAN_DEF_TYPE_BOND
-        || nd_type == NETPLAN_DEF_TYPE_VLAN)
-        _kf_clear_key(kf, "connection", "type");
 
     /* Handle uuid & NM name/id */
     nd->backend_settings.nm.uuid = g_strdup(uuid);
@@ -170,6 +162,18 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     nd->backend_settings.nm.name = g_key_file_get_string(kf, "connection", "id", NULL);
     if (nd->backend_settings.nm.name)
         _kf_clear_key(kf, "connection", "id");
+
+    if (nd_type == NETPLAN_DEF_TYPE_OTHER)
+        goto only_passthrough; //do not try to handle any keys for connections types unknown to netplan
+
+    /* remove supported values from passthrough, which have been handled */
+    if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
+        || nd_type == NETPLAN_DEF_TYPE_WIFI
+        || nd_type == NETPLAN_DEF_TYPE_MODEM
+        || nd_type == NETPLAN_DEF_TYPE_BRIDGE
+        || nd_type == NETPLAN_DEF_TYPE_BOND
+        || nd_type == NETPLAN_DEF_TYPE_VLAN)
+        _kf_clear_key(kf, "connection", "type");
 
     /* Handle match: Netplan usually defines a connection per interface, while
      * NM connection profiles are usually applied to any interface of matching
@@ -246,6 +250,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         nd->backend_settings.nm.name = NULL;
         read_passthrough(kf, &ap->backend_settings.nm.passthrough);
     } else {
+only_passthrough:
         /* Last: handle passthrough for everything left in the keyfile */
         read_passthrough(kf, &nd->backend_settings.nm.passthrough);
     }

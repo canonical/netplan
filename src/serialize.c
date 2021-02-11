@@ -141,6 +141,9 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_STRING_PLAIN(event, emitter, "renderer", netplan_backend_to_name[nd->backend])
 
+    if (nd->type == NETPLAN_DEF_TYPE_OTHER)
+        goto only_passthrough; //do not try to handle "unknown" connection types
+
     if (nd->has_match)
         write_match(event, emitter, nd);
 
@@ -160,6 +163,7 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
 
     if (nd->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, nd)) goto error;
+only_passthrough:
     if (!write_backend_settings(event, emitter, nd->backend_settings)) goto error;
 
     /* Close remaining mappings */
