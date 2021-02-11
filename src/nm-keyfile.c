@@ -177,14 +177,15 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
 
     /* Handle match: Netplan usually defines a connection per interface, while
      * NM connection profiles are usually applied to any interface of matching
-     * type (like wifi/ethernet/...). Therefore, we match the interface on '*'
-     * if not specified. */
-    nd->match.original_name = g_key_file_get_string(kf, "connection", "interface-name", NULL);
-    if (nd->match.original_name)
-        g_key_file_remove_key(kf, "connection", "interface-name", NULL);
-    else
-        nd->match.original_name = g_strdup("*");
-    nd->has_match = TRUE;
+     * type (like wifi/ethernet/...). */
+    if (nd->type < NETPLAN_DEF_TYPE_VIRTUAL) {
+        nd->match.original_name = g_key_file_get_string(kf, "connection", "interface-name", NULL);
+        if (nd->match.original_name)
+            _kf_clear_key(kf, "connection", "interface-name");
+        /* Set match, even if it is empty, so the NM renderer will not force
+         * the netdef ID as interface-name */
+        nd->has_match = TRUE;
+    }
 
     /* Modem parameters to detect GSM vs CDMA connections */
     nd->modem_params.auto_config = g_key_file_get_boolean(kf, "gsm", "auto-config", NULL);

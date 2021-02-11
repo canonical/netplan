@@ -32,8 +32,7 @@ class TestNetworkManager(TestBase):
   ethernets:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       networkmanager:
         uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
         name: some NM id
@@ -51,9 +50,6 @@ permissions=
 [ethernet]
 wake-on-lan=0
 
-[match]
-interface-name=*;
-
 [ipv4]
 method=link-local
 
@@ -67,8 +63,7 @@ method=ignore
   wifis:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       access-points:
         "SOME-SSID":
           networkmanager:
@@ -88,9 +83,6 @@ type=wifi
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 permissions=
 
-[match]
-interface-name=*;
-
 [ipv4]
 method=link-local
 
@@ -104,9 +96,6 @@ mode=infrastructure
                         'NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID
 type=wifi
-
-[match]
-interface-name=*;
 
 [ipv4]
 method=link-local
@@ -125,8 +114,7 @@ hidden=true
   others:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       networkmanager:
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
@@ -136,7 +124,6 @@ hidden=true
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f
 #Netplan: Unsupported connection.type setting, overridden by passthrough
 type=dummy
-interface-name=NM-87749f1d-334f-40b2-98d4-55db58965f5f
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 
 [ipv4]
@@ -151,8 +138,7 @@ method=ignore
   others:
     dotted-group-test:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       networkmanager:
         passthrough:
           connection.type: "wireguard"
@@ -162,7 +148,6 @@ method=ignore
 id=netplan-dotted-group-test
 #Netplan: Unsupported connection.type setting, overridden by passthrough
 type=wireguard
-interface-name=dotted-group-test
 
 [ipv4]
 method=link-local
@@ -179,8 +164,7 @@ endpoint=1.2.3.4
   wifis:
     test:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       access-points:
         "SOME-SSID": # implicit "mode: infrasturcutre"
           networkmanager:
@@ -190,9 +174,6 @@ endpoint=1.2.3.4
         self.assert_nm({'test-SOME-SSID': '''[connection]
 id=netplan-test-SOME-SSID
 type=wifi
-
-[match]
-interface-name=*;
 
 [ipv4]
 method=link-local

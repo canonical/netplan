@@ -609,7 +609,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
         /* virtual (created) devices set a name */
-        g_key_file_set_string(kf, "connection", "interface-name", def->id);
+        if (strlen(def->id) > 15)
+            g_debug("interface-name longer than 15 characters is not supported");
+        else
+            g_key_file_set_string(kf, "connection", "interface-name", def->id);
 
         if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
             write_bridge_params(def, kf);

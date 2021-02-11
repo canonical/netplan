@@ -123,17 +123,16 @@ class TestNetworkManagerBackend(TestBase):
         t = ''
         if not supported:
             t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type)
+        match = '\n      match: {}' if nd_type in ['ethernets', 'modems', 'wifis'] else ''
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
   {}:
     NM-{}:
-      renderer: NetworkManager
-      match:
-        name: "*"
+      renderer: NetworkManager{}
       networkmanager:
         uuid: {}{}
-'''.format(nd_type, UUID, UUID, t))
+'''.format(nd_type, UUID, match, UUID, t))
 
     def test_render_keyfile_ethernet(self):
         self._template_render_keyfile('ethernets', 'ethernet')
@@ -237,8 +236,7 @@ method=auto'''.format(UUID, nm_mode)
   wifis:
     NM-{}:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {{}}
       access-points:
         "SOME-SSID":
           mode: {}
