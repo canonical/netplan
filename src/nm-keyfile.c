@@ -63,6 +63,19 @@ ap_type_from_str(const char* type_str)
     return NETPLAN_WIFI_MODE_OTHER;
 }
 
+static gboolean
+_kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
+{
+    gsize len = 1;
+    gboolean ret = FALSE;
+    ret = g_key_file_remove_key(kf, group, key, NULL);
+    g_strfreev(g_key_file_get_keys(kf, group, &len, NULL));
+    /* clear group if this was the last key */
+    if (len == 0)
+        ret &= g_key_file_remove_group(kf, group, NULL);
+    return ret;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GData** list)
@@ -149,14 +162,14 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
         || nd_type == NETPLAN_DEF_TYPE_BOND
         || nd_type == NETPLAN_DEF_TYPE_VLAN)
-        g_key_file_remove_key(kf, "connection", "type", NULL);
+        _kf_clear_key(kf, "connection", "type");
 
     /* Handle uuid & NM name/id */
     nd->backend_settings.nm.uuid = g_strdup(uuid);
-    g_key_file_remove_key(kf, "connection", "uuid", NULL);
+    _kf_clear_key(kf, "connection", "uuid");
     nd->backend_settings.nm.name = g_key_file_get_string(kf, "connection", "id", NULL);
     if (nd->backend_settings.nm.name)
-        g_key_file_remove_key(kf, "connection", "id", NULL);
+        _kf_clear_key(kf, "connection", "id");
 
     /* Handle match: Netplan usually defines a connection per interface, while
      * NM connection profiles are usually applied to any interface of matching
@@ -177,17 +190,17 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
             g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
             return FALSE;
         } else
-            g_key_file_remove_key(kf, "wifi", "ssid", NULL);
+            _kf_clear_key(kf, "wifi", "ssid");
 
         wifi_mode = g_key_file_get_string(kf, "wifi", "mode", NULL);
         if (wifi_mode) {
             ap->mode = ap_type_from_str(wifi_mode);
             if (ap->mode != NETPLAN_WIFI_MODE_OTHER)
-                g_key_file_remove_key(kf, "wifi", "mode", NULL);
+                _kf_clear_key(kf, "wifi", "mode");
         }
 
         ap->hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL);
-        g_key_file_remove_key(kf, "wifi", "hidden", NULL);
+        _kf_clear_key(kf, "wifi", "hidden");
 
         if (!nd->access_points)
             nd->access_points = g_hash_table_new(g_str_hash, g_str_equal);
