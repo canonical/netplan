@@ -45,6 +45,7 @@ class TestNetworkManager(TestBase):
 id=some NM id
 type=ethernet
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
 permissions=
 
 [ethernet]
@@ -79,6 +80,7 @@ method=ignore
 id=myid with spaces
 type=wifi
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
 permissions=
 
 [ipv4]
@@ -120,9 +122,10 @@ hidden=true
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f
-#Netplan: Unsupported connection.type setting, overridden by passthrough
-type=dummy
+#Netplan: passthrough setting
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
+type=dummy
 
 [ipv4]
 method=link-local
@@ -144,7 +147,7 @@ method=ignore
 
         self.assert_nm({'dotted-group-test': '''[connection]
 id=netplan-dotted-group-test
-#Netplan: Unsupported connection.type setting, overridden by passthrough
+#Netplan: passthrough setting
 type=wireguard
 
 [ipv4]
@@ -154,7 +157,42 @@ method=link-local
 method=ignore
 
 [wireguard-peer.some-key]
+#Netplan: passthrough setting
 endpoint=1.2.3.4
+'''})
+
+    def test_passthrough_dotted_key(self):
+        self.generate('''network:
+  ethernets:
+    dotted-key-test:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        passthrough:
+          tc.qdisc.root: something
+          tc.qdisc.fff1: ":abc"
+          tc.filters.test: "test"''')
+
+        self.assert_nm({'dotted-key-test': '''[connection]
+id=netplan-dotted-key-test
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[tc]
+#Netplan: passthrough setting
+qdisc.root=something
+#Netplan: passthrough setting
+qdisc.fff1=:abc
+#Netplan: passthrough setting
+filters.test=test
 '''})
 
     def test_passthrough_unsupported_setting(self):
@@ -181,6 +219,32 @@ method=ignore
 
 [wifi]
 ssid=SOME-SSID
-#Netplan: Unsupported setting or value, overridden by passthrough
+#Netplan: passthrough override
 mode=mesh
+'''})
+
+    def test_passthrough_empty_group(self):
+        self.generate('''network:
+  ethernets:
+    test:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        passthrough:
+          proxy._: ""''')
+
+        self.assert_nm({'test': '''[connection]
+id=netplan-test
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[proxy]
 '''})
