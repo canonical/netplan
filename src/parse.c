@@ -240,6 +240,8 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     /* OpenVSwitch defaults */
     initialize_ovs_settings(&cur_netdef->ovs_settings);
 
+    if (!netdefs)
+        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
     g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
     netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
     return cur_netdef;
@@ -2681,7 +2683,12 @@ netplan_clear_netdefs()
         /* FIXME: make sure that any dynamically allocated netdef data is freed */
         if (n > 0)
             g_hash_table_remove_all(netdefs);
+        netdefs = NULL;
 	}
+    if(netdefs_ordered) {
+        g_clear_list(&netdefs_ordered, g_free);
+        netdefs_ordered = NULL;
+    }
     return n;
 }
 

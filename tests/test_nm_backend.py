@@ -117,6 +117,7 @@ class TestNetworkManagerBackend(TestBase):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\ntype={}\nuuid={}'.format(nm_type, UUID)
+        self.assertEqual(lib.netplan_clear_netdefs(), 0)
         self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         t = ''
