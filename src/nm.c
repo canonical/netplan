@@ -583,6 +583,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         g_key_file_set_comment(kf, "connection", "type", "Netplan: Unsupported connection.type setting, overridden by passthrough", NULL);
     }
 
+    if (ap && ap->backend_settings.nm.uuid)
+        g_key_file_set_string(kf, "connection", "uuid", ap->backend_settings.nm.uuid);
+    else if (def->backend_settings.nm.uuid)
+        g_key_file_set_string(kf, "connection", "uuid", def->backend_settings.nm.uuid);
     /* VLAN devices refer to us as their parent; if our ID is not a name but we
      * have matches, parent= must be the connection UUID, so put it into the
      * connection */

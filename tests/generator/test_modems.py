@@ -352,6 +352,7 @@ method=ignore
         self.assert_nm({'mobilephone': '''[connection]
 id=netplan-mobilephone
 type=gsm
+uuid=b22d8f0f-3f34-46bd-ac28-801fa87f1eb6
 interface-name=mobilephone
 
 [gsm]

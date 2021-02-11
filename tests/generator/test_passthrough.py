@@ -70,8 +70,6 @@ method=ignore
             uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
             name: myid with spaces
             passthrough:
-              connection.id: myid with spaces
-              connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
               connection.permissions:
               wifi.ssid: SOME-SSID
         "OTHER-SSID":
