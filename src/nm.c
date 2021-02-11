@@ -665,7 +665,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
-        g_key_file_set_integer(kf, "ethernet", "wake-on-lan", def->wake_on_lan ? 1 : 0);
+        if (def->type == NETPLAN_DEF_TYPE_ETHERNET)
+            g_key_file_set_integer(kf, "ethernet", "wake-on-lan", def->wake_on_lan ? 1 : 0);
 
         const char* con_type = NULL;
         switch (def->type) {

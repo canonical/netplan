@@ -59,9 +59,6 @@ password=s0s3kr1t
 username=test-user
 number=#666
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -85,9 +82,6 @@ interface-name=mobilephone
 
 [gsm]
 auto-config=true
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -118,9 +112,6 @@ mtu=1600
 number=*99#
 pin=1234
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -144,9 +135,6 @@ interface-name=mobilephone
 
 [gsm]
 apn=internet
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -176,9 +164,6 @@ apn=internet
 password=some-pass
 username=some-user
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -203,9 +188,6 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 device-id=test
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -232,9 +214,6 @@ interface-name=mobilephone
 auto-config=true
 network-id=test
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -259,9 +238,6 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 pin=1234
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -288,9 +264,6 @@ interface-name=mobilephone
 auto-config=true
 sim-id=test
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -315,9 +288,6 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 sim-operator-id=test
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -361,9 +331,6 @@ pin=2345
 sim-id=89148000000060671234
 sim-operator-id=310260
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -389,9 +356,6 @@ interface-name=mobilephone
 
 [gsm]
 auto-config=true
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local

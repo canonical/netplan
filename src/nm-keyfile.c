@@ -182,6 +182,16 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         nd->match.original_name = g_strdup("*");
     nd->has_match = TRUE;
 
+    /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
+    if (g_key_file_has_group(kf, "ethernet")) {
+        if (!g_key_file_has_key(kf, "ethernet", "wake-on-lan", NULL)) {
+            nd->wake_on_lan = TRUE; //NM's default is "1"
+        } else {
+            //XXX: fix delta between options in NM (0x1, 0x2, 0x4, ...) and netplan (bool)
+            nd->wake_on_lan = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL) > 0;
+        }
+    }
+
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {
         ap = g_new0(NetplanWifiAccessPoint, 1);

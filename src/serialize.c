@@ -145,6 +145,11 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
 
     if (nd->has_match)
         write_match(event, emitter, nd);
+
+    /* wake-on-lan */
+    if (nd->wake_on_lan)
+        YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
+
     if (nd->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, nd)) goto error;
     if (!write_backend_settings(event, emitter, nd->backend_settings)) goto error;

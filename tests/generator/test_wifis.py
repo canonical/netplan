@@ -382,9 +382,6 @@ id=netplan-wl0-Joe's Home
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -406,9 +403,6 @@ psk=s0s3kr1t
 id=netplan-wl0-workplace
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto
@@ -432,9 +426,6 @@ id=netplan-wl0-hidden-y
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -455,9 +446,6 @@ id=netplan-wl0-hidden-n
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -477,9 +465,6 @@ id=netplan-wl0-channel-no-band
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -494,9 +479,6 @@ mode=infrastructure
 id=netplan-wl0-band-no-channel
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto
@@ -527,9 +509,6 @@ band=a
 id=netplan-all-workplace
 type=wifi
 
-[ethernet]
-wake-on-lan=0
-
 [wifi]
 mac-address=11:22:33:44:55:66
 ssid=workplace
@@ -555,9 +534,6 @@ method=ignore
         self.assert_nm({'all-workplace': '''[connection]
 id=netplan-all-workplace
 type=wifi
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -585,9 +561,6 @@ mode=infrastructure
 id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=shared
@@ -621,9 +594,6 @@ id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -649,9 +619,6 @@ mode=adhoc
 id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [wifi]
 wake-on-wlan=330
@@ -679,9 +646,6 @@ method=ignore
 id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local

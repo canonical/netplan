@@ -88,9 +88,6 @@ type=wifi
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 permissions=
 
-[ethernet]
-wake-on-lan=0
-
 [match]
 interface-name=*;
 
@@ -107,9 +104,6 @@ mode=infrastructure
                         'NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID
 type=wifi
-
-[ethernet]
-wake-on-lan=0
 
 [match]
 interface-name=*;
@@ -196,9 +190,6 @@ endpoint=1.2.3.4
         self.assert_nm({'test-SOME-SSID': '''[connection]
 id=netplan-test-SOME-SSID
 type=wifi
-
-[ethernet]
-wake-on-lan=0
 
 [match]
 interface-name=*;
