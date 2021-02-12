@@ -141,7 +141,7 @@ addr-gen-mode=stable-privacy
 dns-search=
 method=auto
 '''
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -200,7 +200,7 @@ method=auto
 
 [proxy]
 '''
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -235,7 +235,7 @@ method=auto
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\ntype={}\nuuid={}'.format(nm_type, UUID)
         self.assertEqual(lib.netplan_clear_netdefs(), 0)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type) if not supported else ''
         match = '\n      match: {}' if nd_type in ['ethernets', 'modems', 'wifis'] else ''
@@ -278,12 +278,12 @@ method=auto
 
     def test_serialize_keyfile_missing_uuid(self):
         file = '[connection]\ntype=ethernets'
-        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
 
     def test_serialize_keyfile_missing_type(self):
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\nuuid={}'.format(UUID)
-        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
 
     def test_serialize_keyfile_type_wifi(self):
         self.maxDiff = None
@@ -303,7 +303,7 @@ hidden=true
 [ipv4]
 method=auto
 dns-search='''.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -340,7 +340,7 @@ method=auto
 [wifi]
 ssid=SOME-SSID
 mode={}'''.format(UUID, nm_mode)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         wifi_mode = ''
         if nm_mode != nd_mode:
@@ -375,7 +375,7 @@ mode={}'''.format(UUID, nm_mode)
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID)
-        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
 
     def test_serialize_keyfile_wake_on_lan(self):
@@ -391,7 +391,7 @@ wake-on-lan=2
 
 [ipv4]
 method=auto'''.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -421,7 +421,7 @@ id=myid with spaces
 
 [ipv4]
 method=auto'''.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -452,7 +452,7 @@ method=auto
 
 [gsm]
 auto-config=true'''.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -468,3 +468,28 @@ auto-config=true'''.format(UUID)
         passthrough:
           ipv4.method: "auto"
 '''.format(UUID, UUID))
+
+    def test_serialize_keyfile_existing_id(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=bridge
+uuid={}
+id=renamed netplan bridge
+
+[ipv4]
+method=auto'''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), "mybr".encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  bridges:
+    mybr:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: {}
+        name: "renamed netplan bridge"
+        passthrough:
+          ipv4.method: "auto"
+'''.format(UUID))

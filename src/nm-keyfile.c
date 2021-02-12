@@ -121,7 +121,7 @@ read_passthrough(GKeyFile* kf, GData** list)
  * Render keyfile data to YAML
  */
 gboolean
-netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
+netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const char* rootdir)
 {
     gboolean ret = FALSE;
     g_autofree gchar *nd_id = NULL;
@@ -140,12 +140,9 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         g_warning("netplan: Keyfile: cannot find connection.uuid");
         return FALSE;
     }
-    /* Auto-generated netdefs by NM always use a "NM-<UUID>" ID */
-    nd_id = g_strconcat("NM-", uuid, NULL);
-
     /* NetworkManager produces one file per connection profile
      * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
-    filename = g_strconcat("90-", nd_id, ".yaml", NULL);
+    filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
     yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
     type = g_key_file_get_string(kf, "connection", "type", NULL);
@@ -154,6 +151,13 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         return FALSE;
     }
     nd_type = type_from_str(type);
+
+    /* Use previously existing netdef IDs, if available, to override connections
+     * Else: generate a "NM-<UUID>" ID */
+    if (netdef_id)
+        nd_id = g_strdup(netdef_id);
+    else
+        nd_id = g_strconcat("NM-", uuid, NULL);
     nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
 
     /* Handle uuid & NM name/id */
@@ -265,11 +269,11 @@ only_passthrough:
  * Helper function for testing only, to pass through the test-data
  * (keyfile string) until we cann pass the real GKeyFile data from python. */
 gboolean
-_netplan_render_yaml_from_nm_keyfile_str(const char* keyfile_str, const char* rootdir)
+_netplan_render_yaml_from_nm_keyfile_str(const char* keyfile_str, const char* netdef_id, const char* rootdir)
 {
     g_autoptr(GKeyFile) kf = g_key_file_new();
     g_key_file_load_from_data(kf, keyfile_str, -1, 0, NULL);
-    return netplan_render_yaml_from_nm_keyfile(kf, rootdir);
+    return netplan_render_yaml_from_nm_keyfile(kf, netdef_id, rootdir);
 }
 
 /**
