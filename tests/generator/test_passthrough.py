@@ -248,3 +248,38 @@ method=ignore
 
 [proxy]
 '''})
+
+    def test_passthrough_interface_rename_existing_id(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    # This is the original  netdef, generating "netplan-eth0.nmconnection"
+    eth0:
+      dhcp4: true
+    # This is the override netdef, modifying match.original_name (i.e. interface-name)
+    # it should still generate a "netplan-eth0.nmconnection" file (not netplan-eth33.nmconnection).
+    eth0:
+      renderer: NetworkManager
+      match:
+        name: "eth33"
+      networkmanager:
+        uuid: 626dd384-8b3d-3690-9511-192b2c79b3fd
+        name: "netplan-eth0"
+''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+uuid=626dd384-8b3d-3690-9511-192b2c79b3fd
+interface-name=eth33
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})

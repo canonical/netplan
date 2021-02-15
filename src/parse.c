@@ -2485,7 +2485,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* convenience shortcut: physical device without match: means match
          * name on ID */
         if (cur_netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !cur_netdef->has_match)
-            cur_netdef->match.original_name = cur_netdef->id;
+            cur_netdef->match.original_name = g_strdup(cur_netdef->id);
     }
     backend_cur_type = NETPLAN_BACKEND_NONE;
     return TRUE;
