@@ -32,9 +32,9 @@
 static const NetplanDefType
 type_from_str(const char* type_str)
 {
-    if (!g_strcmp0(type_str, "ethernet"))
+    if (!g_strcmp0(type_str, "ethernet") || !g_strcmp0(type_str, "802-3-ethernet"))
         return NETPLAN_DEF_TYPE_ETHERNET;
-    else if (!g_strcmp0(type_str, "wifi"))
+    else if (!g_strcmp0(type_str, "wifi") || !g_strcmp0(type_str, "802-11-wireless"))
         return NETPLAN_DEF_TYPE_WIFI;
     else if (!g_strcmp0(type_str, "gsm") || !g_strcmp0(type_str, "cdma"))
         return NETPLAN_DEF_TYPE_MODEM;
