@@ -38,7 +38,7 @@ default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.serv
 %.o: src/%.c
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-libnetplan.so.$(NETPLAN_SOVER): parse.o serialize.o util.o validation.o error.o nm-keyfile.o
+libnetplan.so.$(NETPLAN_SOVER): parse.o netplan.o util.o validation.o error.o parse-nm.o
 	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --libs glib-2.0 gio-2.0 yaml-0.1`
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 

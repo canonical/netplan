@@ -30,7 +30,7 @@
 #include "parse.h"
 #include "util.h"
 #include "validation.h"
-#include "nm-keyfile.h"
+#include "parse-nm.h"
 
 GString* udev_rules;
 

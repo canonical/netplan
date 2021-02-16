@@ -18,7 +18,7 @@
 #include <glib.h>
 #include <yaml.h>
 
-#include "serialize.h"
+#include "netplan.h"
 #include "parse.h"
 
 static gboolean

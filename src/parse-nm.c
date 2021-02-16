@@ -18,8 +18,8 @@
 #include <glib.h>
 #include <yaml.h>
 
-#include "nm-keyfile.h"
-#include "serialize.h"
+#include "netplan.h"
+#include "parse-nm.h"
 #include "parse.h"
 
 /**
