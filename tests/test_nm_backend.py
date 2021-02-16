@@ -112,3 +112,154 @@ class TestNetworkManagerBackend(TestBase):
         # Verify the file still exists and still contains the other connection
         with open(FILENAME, 'r') as f:
             self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
+
+    def _template_render_keyfile(self, nd_type, nm_type, supported=True):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '[connection]\ntype={}\nuuid={}'.format(nm_type, UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        t = ''
+        if not supported:
+            t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type)
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  {}:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "*"
+      networkmanager:
+        uuid: {}{}
+'''.format(nd_type, UUID, UUID, t))
+
+    def test_render_keyfile_ethernet(self):
+        self._template_render_keyfile('ethernets', 'ethernet')
+
+    def test_render_keyfile_type_modem(self):
+        self._template_render_keyfile('modems', 'gsm', False)
+
+    def test_render_keyfile_type_modem2(self):
+        self._template_render_keyfile('modems', 'cdma', False)
+
+    def test_render_keyfile_type_bridge(self):
+        self._template_render_keyfile('bridges', 'bridge')
+
+    def test_render_keyfile_type_bond(self):
+        self._template_render_keyfile('bonds', 'bond')
+
+    def test_render_keyfile_type_vlan(self):
+        self._template_render_keyfile('vlans', 'vlan')
+
+    def test_render_keyfile_type_tunnel(self):
+        self._template_render_keyfile('tunnels', 'ip-tunnel', False)
+
+    def test_render_keyfile_type_wireguard(self):
+        self._template_render_keyfile('tunnels', 'wireguard', False)
+
+    def test_render_keyfile_type_other(self):
+        self._template_render_keyfile('others', 'dummy', False)
+
+    def test_render_keyfile_missing_uuid(self):
+        file = '[connection]\ntype=ethernets'
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+
+    def test_render_keyfile_missing_type(self):
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '[connection]\nuuid={}'.format(UUID)
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+
+    def test_render_keyfile_type_wifi(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=wifi
+uuid={}
+permissions=
+id=myid with spaces
+interface-name=eth0
+
+[wifi]
+ssid=SOME-SSID
+mode=infrastructure
+hidden=true
+
+[ipv4]
+method=auto
+dns-search='''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "eth0"
+      access-points:
+        "SOME-SSID":
+          hidden: true
+          mode: infrastructure
+          networkmanager:
+            uuid: {}
+            name: "myid with spaces"
+            passthrough:
+              ipv4.method: "auto"
+              ipv4.dns-search: ""
+              connection.permissions: ""
+'''.format(UUID, UUID))
+
+    def _template_render_keyfile_type_wifi(self, nd_mode, nm_mode):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=wifi
+uuid={}
+id=myid with spaces
+
+[wifi]
+ssid=SOME-SSID
+mode={}
+
+[ipv4]
+method=auto'''.format(UUID, nm_mode)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        wifi_mode = ''
+        if nm_mode != nd_mode:
+            wifi_mode = '\n              wifi.mode: "{}"'.format(nm_mode)
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "*"
+      access-points:
+        "SOME-SSID":
+          mode: {}
+          networkmanager:
+            uuid: {}
+            name: "myid with spaces"
+            passthrough:
+              ipv4.method: "auto"{}
+'''.format(UUID, nd_mode, UUID, wifi_mode))
+
+    def test_render_keyfile_type_wifi_ap(self):
+        self._template_render_keyfile_type_wifi('ap', 'ap')
+
+    def test_render_keyfile_type_wifi_adhoc(self):
+        self._template_render_keyfile_type_wifi('adhoc', 'adhoc')
+
+    def test_render_keyfile_type_wifi_unkonwn(self):
+        self._template_render_keyfile_type_wifi('infrastructure', 'mesh')
+
+    def test_render_keyfile_type_wifi_missing_ssid(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID)
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))

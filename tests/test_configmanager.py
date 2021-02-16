@@ -118,6 +118,13 @@ class TestConfigManager(unittest.TestCase):
       addresses:
         - "2001:dead:beef::2/64"
       gateway6: "2001:dead:beef::1"
+  others:
+    fallback:
+      renderer: NetworkManager
+      networkmanager:
+        passthrough:
+          connection.id: some-nm-id
+          connection.uuid: some-uuid
 ''', file=fd)
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'w') as fd:
             print("pretend .network", file=fd)
@@ -143,6 +150,7 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('ports', self.configmanager.openvswitch)
         self.assertEquals(2, self.configmanager.version)
         self.assertEquals('networkd', self.configmanager.renderer)
+        self.assertIn('fallback', self.configmanager.others)
 
     def test_parse_merging(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])

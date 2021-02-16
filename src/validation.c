@@ -342,6 +342,9 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         // LCOV_EXCL_STOP
     }
 
+    if (nd->type == NETPLAN_DEF_TYPE_OTHER && (!nd->backend_settings.nm.passthrough || !g_hash_table_lookup(nd->backend_settings.nm.passthrough, "connection.type")))
+        return yaml_error(node, error, "%s: network type 'others:' needs to provide a 'connection.type' via passthrough", nd->id);
+
     valid = TRUE;
 
 netdef_grammar_error:

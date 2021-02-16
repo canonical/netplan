@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
+ * Copyright (C) 2016-2021 Canonical, Ltd.
  * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ * Author: Lukas Märdian <slyon@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +32,6 @@
 #include "validation.h"
 
 GString* udev_rules;
-
 
 /**
  * Append NM device specifier of @def to @s.
@@ -115,6 +115,9 @@ type_str(const NetplanNetDefinition* def)
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
             return "ip-tunnel";
+        case NETPLAN_DEF_TYPE_OTHER:
+            /* needs to be overriden by passthrough "connection.type" setting */
+            return NULL;
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -479,6 +482,31 @@ maybe_generate_uuid(NetplanNetDefinition* def)
 }
 
 /**
+ * Special handling for passthrough mode: read key-value pairs from
+ * "backend_settings.nm.passthrough" and inject them into the keyfile as-is.
+ */
+static void
+write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
+{
+    GKeyFile *kf = user_data;
+    gchar* val = value;
+    /* Group name may contain dots, but key name may not */
+    gchar **group_key = g_strsplit(key, ".", -1);
+    guint len = g_strv_length(group_key);
+    g_autofree gchar *k = group_key[len-1];
+    group_key[len-1] = NULL; //remove key from array
+    g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
+
+    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
+    if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL))) {
+        g_warning("NetworkManager: overriding %s.%s via passthrough", group, k);
+        g_key_file_set_comment(kf, group, k, "Netplan: Unsupported setting or value, overridden by passthrough", NULL);
+    }
+    g_key_file_set_string(kf, group, k, val);
+    g_strfreev(group_key);
+}
+
+/**
  * Generate NetworkManager configuration in @rootdir/run/NetworkManager/ for a
  * particular NetplanNetDefinition and NetplanWifiAccessPoint, as NM requires a separate
  * connection file for each SSID.
@@ -496,6 +524,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     g_autofree gchar* conf_path = NULL;
     g_autofree gchar* full_path = NULL;
     g_autofree gchar* nd_nm_id = NULL;
+    const gchar* nm_type = NULL;
     gchar* tmp_key = NULL;
     mode_t orig_umask;
     char uuidstr[37];
@@ -512,12 +541,29 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     }
 
     kf = g_key_file_new();
-    if (ap)
-        nd_nm_id = g_strdup_printf("netplan-%s-%s", def->id, ap->ssid);
-    else
-        nd_nm_id = g_strdup_printf("netplan-%s", def->id);
-    g_key_file_set_string(kf, "connection", "id", nd_nm_id);
-    g_key_file_set_string(kf, "connection", "type", type_str(def));
+    if (ap && ap->backend_settings.nm.name)
+        g_key_file_set_string(kf, "connection", "id", ap->backend_settings.nm.name);
+    else if (def->backend_settings.nm.name)
+        g_key_file_set_string(kf, "connection", "id", def->backend_settings.nm.name);
+    else {
+        /* Auto-generate a name for the connection profile, if not specified */
+        if (ap)
+            nd_nm_id = g_strdup_printf("netplan-%s-%s", def->id, ap->ssid);
+        else
+            nd_nm_id = g_strdup_printf("netplan-%s", def->id);
+        g_key_file_set_string(kf, "connection", "id", nd_nm_id);
+    }
+
+    nm_type = type_str(def);
+    if (nm_type)
+        g_key_file_set_string(kf, "connection", "type", nm_type);
+    else {
+        /* This case is checked in validation.c and should never happen */
+        if (!def->backend_settings.nm.passthrough || !g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"))
+            g_assert_not_reached(); // LCOV_EXCL_LINE
+        g_key_file_set_string(kf, "connection", "type", g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"));
+        g_key_file_set_comment(kf, "connection", "type", "Netplan: Unsupported connection.type setting, overridden by passthrough", NULL);
+    }
 
     /* VLAN devices refer to us as their parent; if our ID is not a name but we
      * have matches, parent= must be the connection UUID, so put it into the
@@ -750,6 +796,13 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     else
         g_key_file_set_string(kf, "ipv6", "method", "ignore");
 
+    if (def->backend_settings.nm.passthrough) {
+        g_debug("NetworkManager: using keyfile passthrough mode");
+        /* Write all key-value pairs from the hashtable into the keyfile,
+         * potentially overriding existing values, if not fully supported. */
+        g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+    }
+
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
@@ -774,6 +827,15 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         }
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, kf);
+        }
+        if (ap->backend_settings.nm.passthrough) {
+            g_debug("NetworkManager: using AP keyfile passthrough mode");
+            /* Write all key-value pairs from the hashtable into the keyfile,
+             * potentially overriding existing values, if not fully supported.
+             * AP passthrough values have higher priority than ND passthrough,
+             * because they are more specific and bound to the current SSID's
+             * NM connection profile. */
+            g_hash_table_foreach(ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
         }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
@@ -819,7 +881,6 @@ write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
         exit(1);
     }
 
-    /* for wifi we need to create a separate connection file for every SSID */
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
         GHashTableIter iter;
         gpointer key;
