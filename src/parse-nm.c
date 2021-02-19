@@ -123,12 +123,9 @@ read_passthrough(GKeyFile* kf, GData** list)
 gboolean
 netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const char* rootdir)
 {
-    gboolean ret = FALSE;
     g_autofree gchar *nd_id = NULL;
     g_autofree gchar *uuid = NULL;
     g_autofree gchar *ssid = NULL;
-    g_autofree gchar *filename = NULL;
-    g_autofree gchar *yaml_path = NULL;
     g_autofree gchar *type = NULL;
     g_autofree gchar* wifi_mode = NULL;
     NetplanDefType nd_type = NETPLAN_DEF_TYPE_NONE;
@@ -140,10 +137,6 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const c
         g_warning("netplan: Keyfile: cannot find connection.uuid");
         return FALSE;
     }
-    /* NetworkManager produces one file per connection profile
-     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
-    filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
-    yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
     type = g_key_file_get_string(kf, "connection", "type", NULL);
     if (!type) {
@@ -255,8 +248,8 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const c
          *       Also, transfer backend_settings from netdef to AP */
         ap->backend_settings.nm.uuid = nd->backend_settings.nm.uuid;
         ap->backend_settings.nm.name = nd->backend_settings.nm.name;
-        nd->backend_settings.nm.uuid = NULL;
-        nd->backend_settings.nm.name = NULL;
+        /* No need to clear nm.uuid & nm.name from def->backend_settings,
+         * as we have only one AP. */
         read_passthrough(kf, &ap->backend_settings.nm.passthrough);
     } else {
 only_passthrough:
@@ -264,9 +257,9 @@ only_passthrough:
         read_passthrough(kf, &nd->backend_settings.nm.passthrough);
     }
 
-    ret = netplan_render_netdef(nd, yaml_path);
+    write_netplan_conf(nd, rootdir);
     netplan_clear_netdefs(); //cleanup the 'netdefs' map
-    return ret;
+    return TRUE;
 }
 
 /**

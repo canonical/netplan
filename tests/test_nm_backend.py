@@ -324,7 +324,10 @@ dns-search='''.format(UUID)
               connection.permissions: ""
               ipv4.method: "auto"
               ipv4.dns-search: ""
-'''.format(UUID, UUID))
+      networkmanager:
+        uuid: {}
+        name: "myid with spaces"
+'''.format(UUID, UUID, UUID))
 
     def _template_serialize_keyfile_type_wifi(self, nd_mode, nm_mode):
         self.maxDiff = None
@@ -360,7 +363,10 @@ mode={}'''.format(UUID, nm_mode)
             name: "myid with spaces"
             passthrough:
               ipv4.method: "auto"{}
-'''.format(UUID, nd_mode, UUID, wifi_mode))
+      networkmanager:
+        uuid: {}
+        name: "myid with spaces"
+'''.format(UUID, nd_mode, UUID, wifi_mode, UUID))
 
     def test_serialize_keyfile_type_wifi_ap(self):
         self._template_serialize_keyfile_type_wifi('ap', 'ap')
@@ -368,7 +374,7 @@ mode={}'''.format(UUID, nm_mode)
     def test_serialize_keyfile_type_wifi_adhoc(self):
         self._template_serialize_keyfile_type_wifi('adhoc', 'adhoc')
 
-    def test_serialize_keyfile_type_wifi_unkonwn(self):
+    def test_serialize_keyfile_type_wifi_unknown(self):
         self._template_serialize_keyfile_type_wifi('infrastructure', 'mesh')
 
     def test_serialize_keyfile_type_wifi_missing_ssid(self):
