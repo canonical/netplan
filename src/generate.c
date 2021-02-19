@@ -232,11 +232,11 @@ int main(int argc, char** argv)
         return find_interface(mapping_iface);
 
     /* Generate backend specific configuration files from merged data. */
+    write_ovs_conf_finish(rootdir); // OVS cleanup unit is always written
     if (netdefs) {
         g_debug("Generating output files..");
         g_list_foreach (netdefs_ordered, nd_iterator_list, rootdir);
         write_nm_conf_finish(rootdir);
-        write_ovs_conf_finish(rootdir);
         if (any_sriov) write_sriov_conf_finish(rootdir);
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only

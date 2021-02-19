@@ -2384,7 +2384,7 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
         assert_type(peer, YAML_SCALAR_NODE);
 
         /* Create port 1 netdef */
-        component = g_hash_table_lookup(netdefs, scalar(port));
+        component = netdefs ? g_hash_table_lookup(netdefs, scalar(port)) : NULL;
         if (!component) {
             component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(missing_id, scalar(port)))
@@ -2398,7 +2398,7 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
 
         /* Create port 2 (peer) netdef */
         component = NULL;
-        component = g_hash_table_lookup(netdefs, scalar(peer));
+        component = netdefs ? g_hash_table_lookup(netdefs, scalar(peer)) : NULL;
         if (!component) {
             component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(missing_id, scalar(peer)))
@@ -2448,13 +2448,13 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         if(g_hash_table_remove(missing_id, scalar(key)))
             missing_ids_found++;
 
-        cur_netdef = g_hash_table_lookup(netdefs, scalar(key));
+        cur_netdef = netdefs ? g_hash_table_lookup(netdefs, scalar(key)) : NULL;
         if (cur_netdef) {
             /* already exists, overriding/amending previous definition */
             if (cur_netdef->type != GPOINTER_TO_UINT(data))
                 return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
-            netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
+            cur_netdef = netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
         }
         g_assert(cur_filename);
         cur_netdef->filename = g_strdup(cur_filename);
@@ -2606,9 +2606,6 @@ netplan_parse_yaml(const char* filename, GError** error)
 
     if (!load_yaml(filename, &doc, error))
         return FALSE;
-
-    if (!netdefs)
-        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
 
     /* empty file? */
     if (yaml_document_get_root_node(&doc) == NULL)

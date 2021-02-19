@@ -52,10 +52,12 @@ safe_mkdir_p_dir(const char* file_path)
 void g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix)
 {
     g_autofree char* full_path = NULL;
+    g_autofree char* path_suffix = NULL;
     g_autofree char* contents = g_string_free(s, FALSE);
     GError* error = NULL;
 
-    full_path = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, path, suffix, NULL);
+    path_suffix = g_strjoin(NULL, path, suffix, NULL);
+    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: "", path_suffix, NULL);
     safe_mkdir_p_dir(full_path);
     if (!g_file_set_contents(full_path, contents, -1, &error)) {
         /* the mkdir() just succeeded, there is no sensible

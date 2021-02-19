@@ -939,7 +939,7 @@ write_nm_conf_finish(const char* rootdir)
     GString *s = NULL;
     gsize len;
 
-    if (g_hash_table_size(netdefs) == 0)
+    if (!netdefs || g_hash_table_size(netdefs) == 0)
         return;
 
     /* Set all devices not managed by us to unmanaged, so that NM does not
