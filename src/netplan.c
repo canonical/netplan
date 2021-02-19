@@ -22,11 +22,11 @@
 #include "parse.h"
 
 static gboolean
-write_match(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefinition* nd)
+write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_SCALAR_PLAIN(event, emitter, "match");
     YAML_MAPPING_OPEN(event, emitter);
-    YAML_STRING(event, emitter, "name", nd->match.original_name);
+    YAML_STRING(event, emitter, "name", def->match.original_name);
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 error: return FALSE; // LCOV_EXCL_LINE
@@ -76,14 +76,14 @@ error: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
-write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefinition* nd)
+write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     NetplanWifiAccessPoint* ap = NULL;
     GHashTableIter iter;
     gpointer key, value;
     YAML_SCALAR_PLAIN(event, emitter, "access-points"); //FIXME: loop for each AP
     YAML_MAPPING_OPEN(event, emitter);
-    g_hash_table_iter_init(&iter, nd->access_points);
+    g_hash_table_iter_init(&iter, def->access_points);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
         ap = value;
         YAML_SCALAR_QUOTED(event, emitter, ap->ssid);
@@ -97,7 +97,7 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefi
             YAML_SCALAR_PLAIN(event, emitter, netplan_wifi_mode_to_str[ap->mode]);
         } else {
             // LCOV_EXCL_START
-            g_warning("netplan: serialize: %s (SSID %s), unsupported AP mode, falling back to 'infrastructure'", nd->id, ap->ssid);
+            g_warning("netplan: serialize: %s (SSID %s), unsupported AP mode, falling back to 'infrastructure'", def->id, ap->ssid);
             YAML_SCALAR_PLAIN(event, emitter, "infrastructure"); //TODO: add YAML comment about unsupported mode
             // LCOV_EXCL_STOP
         }
@@ -110,19 +110,31 @@ error: return FALSE; // LCOV_EXCL_LINE
 }
 
 /**
- * Takes a single NetplanNetDefinition structure and writes it to a YAML file.
- * @nd: NetplanNetDefinition (as pointer), the data to be serialized
- * @yaml_path: string, the full path of the file to be written
+ * Generate the Netplan YAML configuration for the selected netdef
+ * @def: NetplanNetDefinition (as pointer), the data to be serialized
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
  */
-gboolean
-netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
+void
+write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
+    g_autofree gchar *filename = NULL;
+    g_autofree gchar *path = NULL;
+
+    /* NetworkManager produces one file per connection profile
+    * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
+    if (def->backend_settings.nm.uuid)
+        filename = g_strconcat("90-NM-", def->backend_settings.nm.uuid, ".yaml", NULL);
+    else
+        filename = g_strconcat("10-netplan-", def->id, ".yaml", NULL);
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: "", "etc", "netplan", filename, NULL);
+
     /* Start rendering YAML output */
     yaml_emitter_t emitter_data;
     yaml_event_t event_data;
     yaml_emitter_t* emitter = &emitter_data;
     yaml_event_t* event = &event_data;
-    FILE *output = fopen(yaml_path, "wb");
+    FILE *output = fopen(path, "wb");
 
     YAML_OUT_START(event, emitter, output);
     /* build the netplan boilerplate YAML structure */
@@ -130,36 +142,36 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
     YAML_MAPPING_OPEN(event, emitter);
     // TODO: global backend/renderer
     YAML_STRING_PLAIN(event, emitter, "version", "2");
-    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[nd->type]);
+    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
     YAML_MAPPING_OPEN(event, emitter);
-    YAML_SCALAR_PLAIN(event, emitter, nd->id);
+    YAML_SCALAR_PLAIN(event, emitter, def->id);
     YAML_MAPPING_OPEN(event, emitter);
-    YAML_STRING_PLAIN(event, emitter, "renderer", netplan_backend_to_name[nd->backend])
+    YAML_STRING_PLAIN(event, emitter, "renderer", netplan_backend_to_name[def->backend])
 
-    if (nd->type == NETPLAN_DEF_TYPE_OTHER)
+    if (def->type == NETPLAN_DEF_TYPE_OTHER)
         goto only_passthrough; //do not try to handle "unknown" connection types
 
-    if (nd->has_match)
-        write_match(event, emitter, nd);
+    if (def->has_match)
+        write_match(event, emitter, def);
 
     /* wake-on-lan */
-    if (nd->wake_on_lan)
+    if (def->wake_on_lan)
         YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
 
     /* some modem settings to auto-detect GSM vs CDMA connections */
-    if (nd->modem_params.auto_config)
+    if (def->modem_params.auto_config)
         YAML_STRING_PLAIN(event, emitter, "auto-config", "true");
-    YAML_STRING(event, emitter, "apn", nd->modem_params.apn);
-    YAML_STRING(event, emitter, "device-id", nd->modem_params.device_id);
-    YAML_STRING(event, emitter, "network-id", nd->modem_params.network_id);
-    YAML_STRING(event, emitter, "pin", nd->modem_params.pin);
-    YAML_STRING(event, emitter, "sim-id", nd->modem_params.sim_id);
-    YAML_STRING(event, emitter, "sim-operator-id", nd->modem_params.sim_operator_id);
+    YAML_STRING(event, emitter, "apn", def->modem_params.apn);
+    YAML_STRING(event, emitter, "device-id", def->modem_params.device_id);
+    YAML_STRING(event, emitter, "network-id", def->modem_params.network_id);
+    YAML_STRING(event, emitter, "pin", def->modem_params.pin);
+    YAML_STRING(event, emitter, "sim-id", def->modem_params.sim_id);
+    YAML_STRING(event, emitter, "sim-operator-id", def->modem_params.sim_operator_id);
 
-    if (nd->type == NETPLAN_DEF_TYPE_WIFI)
-        if (!write_access_points(event, emitter, nd)) goto error;
+    if (def->type == NETPLAN_DEF_TYPE_WIFI)
+        if (!write_access_points(event, emitter, def)) goto error;
 only_passthrough:
-    if (!write_backend_settings(event, emitter, nd->backend_settings)) goto error;
+    if (!write_backend_settings(event, emitter, def->backend_settings)) goto error;
 
     /* Close remaining mappings */
     YAML_MAPPING_CLOSE(event, emitter);
@@ -169,29 +181,31 @@ only_passthrough:
     /* Tear down the YAML emitter */
     YAML_OUT_STOP(event, emitter);
     fclose(output);
-    return TRUE;
+    return;
 
     // LCOV_EXCL_START
 error:
     yaml_emitter_delete(emitter);
     fclose(output);
-    return FALSE;
     // LCOV_EXCL_STOP
 }
+
+/* XXX: implement the following functions, once needed:
+void write_netplan_conf_finish(const char* rootdir)
+void cleanup_netplan_conf(const char* rootdir)
+*/
 
 /**
  * Helper function for testing only
  */
-gboolean
-_netplan_render_netdef(const char* netdef_id, const char* read_path, const char* write_path)
+void
+_write_netplan_conf(const char* netdef_id, const char* read_path, const char* rootdir)
 {
-    gboolean ret = FALSE;
     GHashTable* ht = NULL;
-    NetplanNetDefinition* nd = NULL;
+    const NetplanNetDefinition* def = NULL;
     netplan_parse_yaml(read_path, NULL);
     ht = netplan_finish_parse(NULL);
-    nd = g_hash_table_lookup(ht, netdef_id);
-    ret = netplan_render_netdef(nd, write_path);
+    def = g_hash_table_lookup(ht, netdef_id);
+    write_netplan_conf(def, rootdir);
     netplan_clear_netdefs();
-    return ret;
 }
