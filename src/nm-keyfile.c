@@ -191,7 +191,11 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const c
         nd->has_match = TRUE;
     }
 
-    /* Modem parameters to detect GSM vs CDMA connections */
+    /* Modem parameters
+     * NM differentiates between GSM and CDMA connections, while netplan
+     * combines them as "modems". We need to parse a basic set of parameters
+     * to enable the generator (in nm.c) to detect GSM vs CDMA connections,
+     * using its modem_is_gsm() util. */
     nd->modem_params.auto_config = g_key_file_get_boolean(kf, "gsm", "auto-config", NULL);
     _kf_clear_key(kf, "gsm", "auto-config");
     nd->modem_params.apn = g_key_file_get_string(kf, "gsm", "apn", NULL);
