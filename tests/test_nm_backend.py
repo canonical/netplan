@@ -205,7 +205,7 @@ method=auto
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
-  others:
+  nm-devices:
     NM-{}:
       renderer: NetworkManager
       networkmanager:
@@ -274,7 +274,7 @@ method=auto
         self._template_serialize_keyfile('tunnels', 'wireguard', False)
 
     def test_serialize_keyfile_type_other(self):
-        self._template_serialize_keyfile('others', 'dummy', False)
+        self._template_serialize_keyfile('nm-devices', 'dummy', False)
 
     def test_serialize_keyfile_missing_uuid(self):
         file = '[connection]\ntype=ethernets'

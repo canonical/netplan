@@ -148,7 +148,7 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_STRING_PLAIN(event, emitter, "renderer", netplan_backend_to_name[def->backend])
 
-    if (def->type == NETPLAN_DEF_TYPE_OTHER)
+    if (def->type == NETPLAN_DEF_TYPE_NM)
         goto only_passthrough; //do not try to handle "unknown" connection types
 
     if (def->has_match)

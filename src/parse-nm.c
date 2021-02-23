@@ -47,7 +47,7 @@ type_from_str(const char* type_str)
     else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
         return NETPLAN_DEF_TYPE_TUNNEL;
     /* Unsupported type, needs to be specified via passthrough */
-    return NETPLAN_DEF_TYPE_OTHER;
+    return NETPLAN_DEF_TYPE_NM;
 }
 
 static const NetplanWifiMode
@@ -160,7 +160,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const c
     if (nd->backend_settings.nm.name)
         _kf_clear_key(kf, "connection", "id");
 
-    if (nd_type == NETPLAN_DEF_TYPE_OTHER)
+    if (nd_type == NETPLAN_DEF_TYPE_NM)
         goto only_passthrough; //do not try to handle any keys for connections types unknown to netplan
 
     /* remove supported values from passthrough, which have been handled */
