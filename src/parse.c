@@ -2472,7 +2472,10 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case NETPLAN_DEF_TYPE_TUNNEL: handlers = tunnel_def_handlers; break;
             case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
-            case NETPLAN_DEF_TYPE_NM: handlers = ethernet_def_handlers; break;
+            case NETPLAN_DEF_TYPE_NM:
+                g_warning("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", cur_netdef->id);
+                handlers = ethernet_def_handlers;
+                break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
         if (!process_mapping(doc, value, handlers, NULL, error))
