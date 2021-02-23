@@ -20,4 +20,3 @@
 #define NETPLAN_NM_EMPTY_GROUP "_"
 
 gboolean netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const char* rootdir);
-gchar* netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
