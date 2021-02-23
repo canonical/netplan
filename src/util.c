@@ -57,7 +57,7 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
     GError* error = NULL;
 
     path_suffix = g_strjoin(NULL, path, suffix, NULL);
-    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: "", path_suffix, NULL);
+    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, path_suffix, NULL);
     safe_mkdir_p_dir(full_path);
     if (!g_file_set_contents(full_path, contents, -1, &error)) {
         /* the mkdir() just succeeded, there is no sensible
