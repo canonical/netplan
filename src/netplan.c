@@ -127,7 +127,7 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
         filename = g_strconcat("90-NM-", def->backend_settings.nm.uuid, ".yaml", NULL);
     else
         filename = g_strconcat("10-netplan-", def->id, ".yaml", NULL);
-    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: "", "etc", "netplan", filename, NULL);
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
 
     /* Start rendering YAML output */
     yaml_emitter_t emitter_data;
@@ -199,13 +199,11 @@ void cleanup_netplan_conf(const char* rootdir)
  * Helper function for testing only
  */
 void
-_write_netplan_conf(const char* netdef_id, const char* read_path, const char* rootdir)
+_write_netplan_conf(const char* netdef_id, const char* rootdir)
 {
     GHashTable* ht = NULL;
     const NetplanNetDefinition* def = NULL;
-    netplan_parse_yaml(read_path, NULL);
     ht = netplan_finish_parse(NULL);
     def = g_hash_table_lookup(ht, netdef_id);
     write_netplan_conf(def, rootdir);
-    netplan_clear_netdefs();
 }

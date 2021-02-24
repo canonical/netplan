@@ -44,7 +44,9 @@ class TestNetplanSerialize(TestBase):
         with open(FILENAME, 'w') as f:
             f.write(yaml_content)
         # Parse YAML and and re-write the specified netdef ID into a new file
-        lib._write_netplan_conf(netdef_id.encode(), FILENAME.encode(), self.workdir.name.encode())
+        lib.netplan_parse_yaml(FILENAME.encode(), None)
+        lib._write_netplan_conf(netdef_id.encode(), self.workdir.name.encode())
+        lib.netplan_clear_netdefs()
         self.assertTrue(os.path.isfile(NEWFILE))
         with open(FILENAME, 'r') as f:
             with open(NEWFILE, 'r') as new:
