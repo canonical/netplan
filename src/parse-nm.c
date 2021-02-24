@@ -130,7 +130,6 @@ netplan_parse_keyfile(const char* filename, GError** error)
     g_autofree gchar *type = NULL;
     g_autofree gchar* wifi_mode = NULL;
     g_autofree gchar* ssid = NULL;
-	g_autofree gchar* escaped_ssid = NULL;
     g_autofree gchar* netdef_id = NULL;
     NetplanNetDefinition* nd = NULL;
     NetplanWifiAccessPoint* ap = NULL;
@@ -144,10 +143,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
     ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
     if (!ssid)
         ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
-    if (ssid)
-        escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
 
-    netdef_id = netplan_get_id_from_nm_filename(filename, escaped_ssid);
+    netdef_id = netplan_get_id_from_nm_filename(filename, ssid);
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
     if (!uuid) {
         g_warning("netplan: Keyfile: cannot find connection.uuid");
