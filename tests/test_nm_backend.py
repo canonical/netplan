@@ -113,64 +113,179 @@ class TestNetworkManagerBackend(TestBase):
         with open(FILENAME, 'r') as f:
             self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
 
-    def _template_render_keyfile(self, nd_type, nm_type, supported=True):
+    def test_serialize_gsm(self):
+        self.maxDiff = None
+        UUID = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
+        file = '''[connection]
+id=T-Mobile Funkadelic 2
+uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+type=gsm
+
+[gsm]
+apn=internet2.voicestream.com
+device-id=da812de91eec16620b06cd0ca5cbc7ea25245222
+home-only=true
+network-id=254098
+password=parliament2
+pin=123456
+sim-id=89148000000060671234
+sim-operator-id=310260
+username=george.clinton.again
+
+[ipv4]
+dns-search=
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+'''
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  modems:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      apn: "internet2.voicestream.com"
+      device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
+      network-id: "254098"
+      pin: "123456"
+      sim-id: "89148000000060671234"
+      sim-operator-id: "310260"
+      networkmanager:
+        uuid: {}
+        name: "T-Mobile Funkadelic 2"
+        passthrough:
+          gsm.home-only: "true"
+          gsm.password: "parliament2"
+          gsm.username: "george.clinton.again"
+          ipv4.dns-search: ""
+          ipv4.method: "auto"
+          ipv6.addr-gen-mode: "stable-privacy"
+          ipv6.dns-search: ""
+          ipv6.method: "auto"
+'''.format(UUID, UUID))
+
+    def test_serialize_gsm_via_bluetooth(self):
+        self.maxDiff = None
+        UUID = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
+        file = '''[connection]
+id=T-Mobile Funkadelic 2
+uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+type=bluetooth
+
+[gsm]
+apn=internet2.voicestream.com
+device-id=da812de91eec16620b06cd0ca5cbc7ea25245222
+home-only=true
+network-id=254098
+password=parliament2
+pin=123456
+sim-id=89148000000060671234
+sim-operator-id=310260
+username=george.clinton.again
+
+[ipv4]
+dns-search=
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+
+[proxy]
+'''
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  others:
+    NM-{}:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: {}
+        name: "T-Mobile Funkadelic 2"
+        passthrough:
+          connection.type: "bluetooth"
+          gsm.apn: "internet2.voicestream.com"
+          gsm.device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
+          gsm.home-only: "true"
+          gsm.network-id: "254098"
+          gsm.password: "parliament2"
+          gsm.pin: "123456"
+          gsm.sim-id: "89148000000060671234"
+          gsm.sim-operator-id: "310260"
+          gsm.username: "george.clinton.again"
+          ipv4.dns-search: ""
+          ipv4.method: "auto"
+          ipv6.addr-gen-mode: "stable-privacy"
+          ipv6.dns-search: ""
+          ipv6.method: "auto"
+          proxy._: ""
+'''.format(UUID, UUID))
+
+    def _template_serialize_keyfile(self, nd_type, nm_type, supported=True):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\ntype={}\nuuid={}'.format(nm_type, UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertEqual(lib.netplan_clear_netdefs(), 0)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-        t = ''
-        if not supported:
-            t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type)
+        t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type) if not supported else ''
+        match = '\n      match: {}' if nd_type in ['ethernets', 'modems', 'wifis'] else ''
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
   {}:
     NM-{}:
-      renderer: NetworkManager
-      match:
-        name: "*"
+      renderer: NetworkManager{}
       networkmanager:
         uuid: {}{}
-'''.format(nd_type, UUID, UUID, t))
+'''.format(nd_type, UUID, match, UUID, t))
 
-    def test_render_keyfile_ethernet(self):
-        self._template_render_keyfile('ethernets', 'ethernet')
+    def test_serialize_keyfile_ethernet(self):
+        self._template_serialize_keyfile('ethernets', 'ethernet')
 
-    def test_render_keyfile_type_modem(self):
-        self._template_render_keyfile('modems', 'gsm', False)
+    def test_serialize_keyfile_type_modem_gsm(self):
+        self._template_serialize_keyfile('modems', 'gsm')
 
-    def test_render_keyfile_type_modem2(self):
-        self._template_render_keyfile('modems', 'cdma', False)
+    def test_serialize_keyfile_type_modem_cdma(self):
+        self._template_serialize_keyfile('modems', 'cdma')
 
-    def test_render_keyfile_type_bridge(self):
-        self._template_render_keyfile('bridges', 'bridge')
+    def test_serialize_keyfile_type_bridge(self):
+        self._template_serialize_keyfile('bridges', 'bridge')
 
-    def test_render_keyfile_type_bond(self):
-        self._template_render_keyfile('bonds', 'bond')
+    def test_serialize_keyfile_type_bond(self):
+        self._template_serialize_keyfile('bonds', 'bond')
 
-    def test_render_keyfile_type_vlan(self):
-        self._template_render_keyfile('vlans', 'vlan')
+    def test_serialize_keyfile_type_vlan(self):
+        self._template_serialize_keyfile('vlans', 'vlan')
 
-    def test_render_keyfile_type_tunnel(self):
-        self._template_render_keyfile('tunnels', 'ip-tunnel', False)
+    def test_serialize_keyfile_type_tunnel(self):
+        self._template_serialize_keyfile('tunnels', 'ip-tunnel', False)
 
-    def test_render_keyfile_type_wireguard(self):
-        self._template_render_keyfile('tunnels', 'wireguard', False)
+    def test_serialize_keyfile_type_wireguard(self):
+        self._template_serialize_keyfile('tunnels', 'wireguard', False)
 
-    def test_render_keyfile_type_other(self):
-        self._template_render_keyfile('others', 'dummy', False)
+    def test_serialize_keyfile_type_other(self):
+        self._template_serialize_keyfile('others', 'dummy', False)
 
-    def test_render_keyfile_missing_uuid(self):
+    def test_serialize_keyfile_missing_uuid(self):
         file = '[connection]\ntype=ethernets'
-        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
 
-    def test_render_keyfile_missing_type(self):
+    def test_serialize_keyfile_missing_type(self):
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '[connection]\nuuid={}'.format(UUID)
-        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
 
-    def test_render_keyfile_type_wifi(self):
+    def test_serialize_keyfile_type_wifi(self):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '''[connection]
@@ -188,7 +303,7 @@ hidden=true
 [ipv4]
 method=auto
 dns-search='''.format(UUID)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
@@ -206,12 +321,12 @@ dns-search='''.format(UUID)
             uuid: {}
             name: "myid with spaces"
             passthrough:
+              connection.permissions: ""
               ipv4.method: "auto"
               ipv4.dns-search: ""
-              connection.permissions: ""
 '''.format(UUID, UUID))
 
-    def _template_render_keyfile_type_wifi(self, nd_mode, nm_mode):
+    def _template_serialize_keyfile_type_wifi(self, nd_mode, nm_mode):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '''[connection]
@@ -219,13 +334,13 @@ type=wifi
 uuid={}
 id=myid with spaces
 
+[ipv4]
+method=auto
+
 [wifi]
 ssid=SOME-SSID
-mode={}
-
-[ipv4]
-method=auto'''.format(UUID, nm_mode)
-        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+mode={}'''.format(UUID, nm_mode)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         wifi_mode = ''
         if nm_mode != nd_mode:
@@ -236,8 +351,7 @@ method=auto'''.format(UUID, nm_mode)
   wifis:
     NM-{}:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {{}}
       access-points:
         "SOME-SSID":
           mode: {}
@@ -248,18 +362,134 @@ method=auto'''.format(UUID, nm_mode)
               ipv4.method: "auto"{}
 '''.format(UUID, nd_mode, UUID, wifi_mode))
 
-    def test_render_keyfile_type_wifi_ap(self):
-        self._template_render_keyfile_type_wifi('ap', 'ap')
+    def test_serialize_keyfile_type_wifi_ap(self):
+        self._template_serialize_keyfile_type_wifi('ap', 'ap')
 
-    def test_render_keyfile_type_wifi_adhoc(self):
-        self._template_render_keyfile_type_wifi('adhoc', 'adhoc')
+    def test_serialize_keyfile_type_wifi_adhoc(self):
+        self._template_serialize_keyfile_type_wifi('adhoc', 'adhoc')
 
-    def test_render_keyfile_type_wifi_unkonwn(self):
-        self._template_render_keyfile_type_wifi('infrastructure', 'mesh')
+    def test_serialize_keyfile_type_wifi_unkonwn(self):
+        self._template_serialize_keyfile_type_wifi('infrastructure', 'mesh')
 
-    def test_render_keyfile_type_wifi_missing_ssid(self):
+    def test_serialize_keyfile_type_wifi_missing_ssid(self):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
         file = '''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID)
-        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), self.workdir.name.encode()))
+        self.assertFalse(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+
+    def test_serialize_keyfile_wake_on_lan(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=ethernet
+uuid={}
+id=myid with spaces
+
+[ethernet]
+wake-on-lan=2
+
+[ipv4]
+method=auto'''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      wakeonlan: true
+      networkmanager:
+        uuid: {}
+        name: "myid with spaces"
+        passthrough:
+          ethernet.wake-on-lan: "2"
+          ipv4.method: "auto"
+'''.format(UUID, UUID))
+
+    def test_serialize_keyfile_wake_on_lan_nm_default(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=ethernet
+uuid={}
+id=myid with spaces
+
+[ethernet]
+
+[ipv4]
+method=auto'''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      wakeonlan: true
+      networkmanager:
+        uuid: {}
+        name: "myid with spaces"
+        passthrough:
+          ethernet._: ""
+          ipv4.method: "auto"
+'''.format(UUID, UUID))
+
+    def test_serialize_keyfile_modem_gsm(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=gsm
+uuid={}
+id=myid with spaces
+
+[ipv4]
+method=auto
+
+[gsm]
+auto-config=true'''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), None, self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  modems:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      auto-config: true
+      networkmanager:
+        uuid: {}
+        name: "myid with spaces"
+        passthrough:
+          ipv4.method: "auto"
+'''.format(UUID, UUID))
+
+    def test_serialize_keyfile_existing_id(self):
+        self.maxDiff = None
+        UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        file = '''[connection]
+type=bridge
+uuid={}
+id=renamed netplan bridge
+
+[ipv4]
+method=auto'''.format(UUID)
+        self.assertTrue(lib._netplan_render_yaml_from_nm_keyfile_str(file.encode(), "mybr".encode(), self.workdir.name.encode()))
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  bridges:
+    mybr:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: {}
+        name: "renamed netplan bridge"
+        passthrough:
+          ipv4.method: "auto"
+'''.format(UUID))

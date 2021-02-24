@@ -59,9 +59,6 @@ password=s0s3kr1t
 username=test-user
 number=#666
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -85,9 +82,6 @@ interface-name=mobilephone
 
 [gsm]
 auto-config=true
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -118,9 +112,6 @@ mtu=1600
 number=*99#
 pin=1234
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -144,9 +135,6 @@ interface-name=mobilephone
 
 [gsm]
 apn=internet
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -176,9 +164,6 @@ apn=internet
 password=some-pass
 username=some-user
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -203,9 +188,6 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 device-id=test
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -232,9 +214,6 @@ interface-name=mobilephone
 auto-config=true
 network-id=test
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -259,9 +238,6 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 pin=1234
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -288,9 +264,6 @@ interface-name=mobilephone
 auto-config=true
 sim-id=test
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -315,9 +288,6 @@ interface-name=mobilephone
 [gsm]
 auto-config=true
 sim-operator-id=test
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -361,9 +331,6 @@ pin=2345
 sim-id=89148000000060671234
 sim-operator-id=310260
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -385,19 +352,74 @@ method=ignore
         self.assert_nm({'mobilephone': '''[connection]
 id=netplan-mobilephone
 type=gsm
+uuid=b22d8f0f-3f34-46bd-ac28-801fa87f1eb6
 interface-name=mobilephone
 
 [gsm]
 auto-config=true
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
 
 [ipv6]
 method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_nm_udev(None)
+
+    def test_modem_nm_integration_gsm_cdma(self):
+        self.generate('''network:
+  version: 2
+  modems:
+    NM-a08c5805-7cf5-43f7-afb9-12cb30f6eca3:
+      renderer: NetworkManager
+      match: {}
+      apn: internet2.voicestream.com
+      networkmanager:
+        uuid: a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+        name: "T-Mobile Funkadelic 2"
+        passthrough:
+          connection.type: "bluetooth"
+          gsm.apn: "internet2.voicestream.com"
+          gsm.device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
+          gsm.username: "george.clinton.again"
+          gsm.sim-operator-id: "310260"
+          gsm.pin: "123456"
+          gsm.sim-id: "89148000000060671234"
+          gsm.password: "parliament2"
+          gsm.network-id: "254098"
+          ipv4.method: "auto"
+          ipv6.method: "auto"''')
+        self.assert_nm({'NM-a08c5805-7cf5-43f7-afb9-12cb30f6eca3': '''[connection]
+id=T-Mobile Funkadelic 2
+#Netplan: passthrough override
+type=bluetooth
+uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+
+[gsm]
+apn=internet2.voicestream.com
+#Netplan: passthrough setting
+device-id=da812de91eec16620b06cd0ca5cbc7ea25245222
+#Netplan: passthrough setting
+username=george.clinton.again
+#Netplan: passthrough setting
+sim-operator-id=310260
+#Netplan: passthrough setting
+pin=123456
+#Netplan: passthrough setting
+sim-id=89148000000060671234
+#Netplan: passthrough setting
+password=parliament2
+#Netplan: passthrough setting
+network-id=254098
+
+[ipv4]
+#Netplan: passthrough override
+method=auto
+
+[ipv6]
+#Netplan: passthrough override
+method=auto
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)

@@ -240,6 +240,8 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     /* OpenVSwitch defaults */
     initialize_ovs_settings(&cur_netdef->ovs_settings);
 
+    if (!netdefs)
+        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
     g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
     netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
     return cur_netdef;
@@ -450,6 +452,34 @@ handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
     return TRUE;
 }
 
+/*
+ * Handler for setting a DataList field from a mapping node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the boolean field to write is located
+*/
+static gboolean
+handle_generic_datalist(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    GData** list = (GData**) ((void*) entryptr + offset);
+    if (!*list)
+        g_datalist_init(list);
+
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+
+        key = yaml_document_get_node(doc, entry->key);
+        value = yaml_document_get_node(doc, entry->value);
+
+        assert_type(key, YAML_SCALAR_NODE);
+        assert_type(value, YAML_SCALAR_NODE);
+
+        g_datalist_set_data_full(list, g_strdup(scalar(key)), g_strdup(scalar(value)), g_free);
+    }
+
+    return TRUE;
+}
+
 /**
  * Generic handler for setting a cur_netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -624,6 +654,13 @@ handle_netdef_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     return handle_generic_map(doc, node, cur_netdef, data, error);
 }
 
+static gboolean
+handle_netdef_datalist(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(cur_netdef);
+    return handle_generic_datalist(doc, node, cur_netdef, data, error);
+}
+
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -718,10 +755,10 @@ handle_access_point_str(yaml_document_t* doc, yaml_node_t* node, const void* dat
 }
 
 static gboolean
-handle_access_point_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_datalist(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(cur_access_point);
-    return handle_generic_map(doc, node, cur_access_point, data, error);
+    return handle_generic_datalist(doc, node, cur_access_point, data, error);
 }
 
 static gboolean
@@ -804,7 +841,7 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.stable_id)},
     {"device", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, handle_netdef_map, NULL, netdef_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, handle_netdef_datalist, NULL, netdef_offset(backend_settings.nm.passthrough)},
     {NULL}
 };
 
@@ -815,7 +852,7 @@ static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.stable_id)},
     {"device", YAML_SCALAR_NODE, handle_access_point_str, NULL, access_point_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, handle_access_point_map, NULL, access_point_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, handle_access_point_datalist, NULL, access_point_offset(backend_settings.nm.passthrough)},
     {NULL}
 };
 
@@ -2257,6 +2294,7 @@ static const mapping_entry_handler vlan_def_handlers[] = {
 static const mapping_entry_handler modem_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
+    PHYSICAL_LINK_HANDLERS,
     {"apn", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.apn)},
     {"auto-config", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(modem_params.auto_config)},
     {"device-id", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(modem_params.device_id)},
@@ -2349,7 +2387,7 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
         assert_type(peer, YAML_SCALAR_NODE);
 
         /* Create port 1 netdef */
-        component = g_hash_table_lookup(netdefs, scalar(port));
+        component = netdefs ? g_hash_table_lookup(netdefs, scalar(port)) : NULL;
         if (!component) {
             component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(missing_id, scalar(port)))
@@ -2363,7 +2401,7 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
 
         /* Create port 2 (peer) netdef */
         component = NULL;
-        component = g_hash_table_lookup(netdefs, scalar(peer));
+        component = netdefs ? g_hash_table_lookup(netdefs, scalar(peer)) : NULL;
         if (!component) {
             component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(missing_id, scalar(peer)))
@@ -2413,13 +2451,13 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         if(g_hash_table_remove(missing_id, scalar(key)))
             missing_ids_found++;
 
-        cur_netdef = g_hash_table_lookup(netdefs, scalar(key));
+        cur_netdef = netdefs ? g_hash_table_lookup(netdefs, scalar(key)) : NULL;
         if (cur_netdef) {
             /* already exists, overriding/amending previous definition */
             if (cur_netdef->type != GPOINTER_TO_UINT(data))
                 return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
-            netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
+            cur_netdef = netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
         }
         g_assert(cur_filename);
         cur_netdef->filename = g_strdup(cur_filename);
@@ -2450,7 +2488,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* convenience shortcut: physical device without match: means match
          * name on ID */
         if (cur_netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !cur_netdef->has_match)
-            cur_netdef->match.original_name = cur_netdef->id;
+            cur_netdef->match.original_name = g_strdup(cur_netdef->id);
     }
     backend_cur_type = NETPLAN_BACKEND_NONE;
     return TRUE;
@@ -2572,9 +2610,6 @@ netplan_parse_yaml(const char* filename, GError** error)
     if (!load_yaml(filename, &doc, error))
         return FALSE;
 
-    if (!netdefs)
-        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
-
     /* empty file? */
     if (yaml_document_get_root_node(&doc) == NULL)
         return TRUE;
@@ -2648,7 +2683,12 @@ netplan_clear_netdefs()
         /* FIXME: make sure that any dynamically allocated netdef data is freed */
         if (n > 0)
             g_hash_table_remove_all(netdefs);
+        netdefs = NULL;
 	}
+    if(netdefs_ordered) {
+        g_clear_list(&netdefs_ordered, g_free);
+        netdefs_ordered = NULL;
+    }
     return n;
 }
 
