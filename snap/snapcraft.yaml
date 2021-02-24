@@ -17,7 +17,7 @@ apps:
 
 parts:
   netplan:
-    source: https://github.com/CanonicalLtd/netplan.git
+    source: https://github.com/canonical/netplan.git
     plugin: make
     build-packages:
       - bash-completion
