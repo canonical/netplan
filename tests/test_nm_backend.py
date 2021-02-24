@@ -50,6 +50,11 @@ class TestNetworkManagerBackend(TestBase):
           '/run/NetworkManager/system-connections/netplan-some-id.nmconnection'.encode(), None)
         self.assertEqual(out, b'some-id')
 
+    def test_get_id_from_filename_rootdir(self):
+        out = lib.netplan_get_id_from_nm_filename(
+          '/some/rootdir/run/NetworkManager/system-connections/netplan-some-id.nmconnection'.encode(), None)
+        self.assertEqual(out, b'some-id')
+
     def test_get_id_from_filename_wifi(self):
         out = lib.netplan_get_id_from_nm_filename(
           '/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection'.encode(), 'SOME-SSID'.encode())

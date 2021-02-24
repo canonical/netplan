@@ -266,11 +266,12 @@ netplan_get_id_from_nm_filename(const char* filename, const char* ssid)
     g_autofree gchar* escaped_ssid = NULL;
     g_autofree gchar* suffix = NULL;
     const char* nm_prefix = "/run/NetworkManager/system-connections/netplan-";
-    const char* start = filename;
+    const char* pos = g_strrstr(filename, nm_prefix);
+    const char* start = NULL;
     const char* end = NULL;
     gsize id_len = 0;
 
-    if (!g_str_has_prefix(filename, nm_prefix))
+    if (!pos)
         return NULL;
 
     if (ssid) {
@@ -284,7 +285,7 @@ netplan_get_id_from_nm_filename(const char* filename, const char* ssid)
         return NULL;
 
     /* Move pointer to start of netplan ID inside filename string */
-    start = start + strlen(nm_prefix);
+    start = pos + strlen(nm_prefix);
     id_len = end - start;
     return g_strndup(start, id_len);
 }
