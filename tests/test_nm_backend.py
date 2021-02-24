@@ -563,3 +563,98 @@ method=auto'''.format(UUID))
         passthrough:
           ipv4.method: "auto"
 '''.format(UUID))
+
+    def test_keyfile_yaml_wifi_hotspot(self):
+        self.maxDiff = None
+        UUID = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        FILE_KF = os.path.join(self.workdir.name, 'tmp/Hotspot.nmconnection')
+        CONTENT_KF = '''[connection]
+id=Hotspot-1
+type=wifi
+uuid={}
+interface-name=wlan0
+#Netplan: passthrough setting
+autoconnect=false
+#Netplan: passthrough setting
+permissions=
+
+[ipv4]
+method=shared
+#Netplan: passthrough setting
+dns-search=
+
+[ipv6]
+method=ignore
+#Netplan: passthrough setting
+addr-gen-mode=stable-privacy
+#Netplan: passthrough setting
+dns-search=
+
+[wifi]
+ssid=my-hotspot
+mode=ap
+#Netplan: passthrough setting
+mac-address-blacklist=
+
+[wifi-security]
+#Netplan: passthrough setting
+group=ccmp;
+#Netplan: passthrough setting
+key-mgmt=wpa-psk
+#Netplan: passthrough setting
+pairwise=ccmp;
+#Netplan: passthrough setting
+proto=rsn;
+#Netplan: passthrough setting
+psk=test1234
+
+[proxy]
+'''.format(UUID)
+        os.makedirs(os.path.dirname(FILE_KF))
+        with open(FILE_KF, 'w') as file:
+            file.write(CONTENT_KF)
+        # Convert Keyfile to YAML and compare
+        lib.netplan_parse_keyfile(FILE_KF.encode(), None)
+        lib._write_netplan_conf('NM-{}'.format(UUID).encode(), self.workdir.name.encode())
+        lib.netplan_clear_netdefs()
+        FILE_YAML = os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))
+        CONTENT_YAML = '''network:
+  version: 2
+  wifis:
+    NM-ff9d6ebc-226d-4f82-a485-b7ff83b9607f:
+      renderer: NetworkManager
+      match:
+        name: "wlan0"
+      access-points:
+        "my-hotspot":
+          mode: ap
+          networkmanager:
+            uuid: ff9d6ebc-226d-4f82-a485-b7ff83b9607f
+            name: "Hotspot-1"
+            passthrough:
+              connection.autoconnect: "false"
+              connection.permissions: ""
+              ipv4.method: "shared"
+              ipv4.dns-search: ""
+              ipv6.method: "ignore"
+              ipv6.addr-gen-mode: "stable-privacy"
+              ipv6.dns-search: ""
+              wifi.mac-address-blacklist: ""
+              wifi-security.group: "ccmp;"
+              wifi-security.key-mgmt: "wpa-psk"
+              wifi-security.pairwise: "ccmp;"
+              wifi-security.proto: "rsn;"
+              wifi-security.psk: "test1234"
+              proxy._: ""
+      networkmanager:
+        uuid: {}
+        name: "Hotspot-1"
+'''.format(UUID)
+        self.assertTrue(os.path.isfile(FILE_YAML))
+        with open(FILE_YAML, 'r') as f:
+            self.assertEqual(f.read(), CONTENT_YAML)
+
+        # Convert YAML back to Keyfile and compare to original KF
+        os.remove(FILE_YAML)
+        self.generate(CONTENT_YAML)
+        self.assert_nm({'NM-ff9d6ebc-226d-4f82-a485-b7ff83b9607f-my-hotspot': CONTENT_KF})
