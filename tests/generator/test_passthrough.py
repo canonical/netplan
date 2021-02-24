@@ -32,8 +32,7 @@ class TestNetworkManager(TestBase):
   ethernets:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       networkmanager:
         uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
         name: some NM id
@@ -46,13 +45,11 @@ class TestNetworkManager(TestBase):
 id=some NM id
 type=ethernet
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
 permissions=
 
 [ethernet]
 wake-on-lan=0
-
-[match]
-interface-name=*;
 
 [ipv4]
 method=link-local
@@ -67,16 +64,13 @@ method=ignore
   wifis:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       access-points:
         "SOME-SSID":
           networkmanager:
             uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
             name: myid with spaces
             passthrough:
-              connection.id: myid with spaces
-              connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
               connection.permissions:
               wifi.ssid: SOME-SSID
         "OTHER-SSID":
@@ -86,13 +80,8 @@ method=ignore
 id=myid with spaces
 type=wifi
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
 permissions=
-
-[ethernet]
-wake-on-lan=0
-
-[match]
-interface-name=*;
 
 [ipv4]
 method=link-local
@@ -107,12 +96,6 @@ mode=infrastructure
                         'NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f-OTHER-SSID
 type=wifi
-
-[ethernet]
-wake-on-lan=0
-
-[match]
-interface-name=*;
 
 [ipv4]
 method=link-local
@@ -131,8 +114,7 @@ hidden=true
   others:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       networkmanager:
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
@@ -140,10 +122,10 @@ hidden=true
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f
-#Netplan: Unsupported connection.type setting, overridden by passthrough
-type=dummy
-interface-name=NM-87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
+#Netplan: passthrough setting
+type=dummy
 
 [ipv4]
 method=link-local
@@ -157,8 +139,7 @@ method=ignore
   others:
     dotted-group-test:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       networkmanager:
         passthrough:
           connection.type: "wireguard"
@@ -166,9 +147,8 @@ method=ignore
 
         self.assert_nm({'dotted-group-test': '''[connection]
 id=netplan-dotted-group-test
-#Netplan: Unsupported connection.type setting, overridden by passthrough
+#Netplan: passthrough setting
 type=wireguard
-interface-name=dotted-group-test
 
 [ipv4]
 method=link-local
@@ -177,7 +157,42 @@ method=link-local
 method=ignore
 
 [wireguard-peer.some-key]
+#Netplan: passthrough setting
 endpoint=1.2.3.4
+'''})
+
+    def test_passthrough_dotted_key(self):
+        self.generate('''network:
+  ethernets:
+    dotted-key-test:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        passthrough:
+          tc.qdisc.root: something
+          tc.qdisc.fff1: ":abc"
+          tc.filters.test: "test"''')
+
+        self.assert_nm({'dotted-key-test': '''[connection]
+id=netplan-dotted-key-test
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[tc]
+#Netplan: passthrough setting
+qdisc.root=something
+#Netplan: passthrough setting
+qdisc.fff1=:abc
+#Netplan: passthrough setting
+filters.test=test
 '''})
 
     def test_passthrough_unsupported_setting(self):
@@ -185,8 +200,7 @@ endpoint=1.2.3.4
   wifis:
     test:
       renderer: NetworkManager
-      match:
-        name: "*"
+      match: {}
       access-points:
         "SOME-SSID": # implicit "mode: infrasturcutre"
           networkmanager:
@@ -197,12 +211,6 @@ endpoint=1.2.3.4
 id=netplan-test-SOME-SSID
 type=wifi
 
-[ethernet]
-wake-on-lan=0
-
-[match]
-interface-name=*;
-
 [ipv4]
 method=link-local
 
@@ -211,6 +219,67 @@ method=ignore
 
 [wifi]
 ssid=SOME-SSID
-#Netplan: Unsupported setting or value, overridden by passthrough
+#Netplan: passthrough override
 mode=mesh
+'''})
+
+    def test_passthrough_empty_group(self):
+        self.generate('''network:
+  ethernets:
+    test:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        passthrough:
+          proxy._: ""''')
+
+        self.assert_nm({'test': '''[connection]
+id=netplan-test
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[proxy]
+'''})
+
+    def test_passthrough_interface_rename_existing_id(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    # This is the original  netdef, generating "netplan-eth0.nmconnection"
+    eth0:
+      dhcp4: true
+    # This is the override netdef, modifying match.original_name (i.e. interface-name)
+    # it should still generate a "netplan-eth0.nmconnection" file (not netplan-eth33.nmconnection).
+    eth0:
+      renderer: NetworkManager
+      match:
+        name: "eth33"
+      networkmanager:
+        uuid: 626dd384-8b3d-3690-9511-192b2c79b3fd
+        name: "netplan-eth0"
+''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+uuid=626dd384-8b3d-3690-9511-192b2c79b3fd
+interface-name=eth33
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
 '''})

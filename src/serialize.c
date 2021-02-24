@@ -26,20 +26,29 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, NetplanNetDefinition* 
 {
     YAML_SCALAR_PLAIN(event, emitter, "match");
     YAML_MAPPING_OPEN(event, emitter);
-    if (nd->match.original_name) {
-        YAML_SCALAR_PLAIN(event, emitter, "name");
-        YAML_SCALAR_QUOTED(event, emitter, nd->match.original_name);
-    }
+    YAML_STRING(event, emitter, "name", nd->match.original_name);
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+typedef struct {
+    yaml_event_t* event;
+    yaml_emitter_t* emitter;
+} _passthrough_handler_data;
+
+static void
+_passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
+{
+    _passthrough_handler_data *d = user_data;
+    const gchar* key = g_quark_to_string(key_id);
+    YAML_SCALAR_PLAIN(d->event, d->emitter, key);
+    YAML_SCALAR_QUOTED(d->event, d->emitter, value);
+error: return; // LCOV_EXCL_LINE
+}
+
 static gboolean
 write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBackendSettings s) {
-    GHashTableIter iter;
-    gpointer key, value;
-
     if (s.nm.uuid || s.nm.name || s.nm.passthrough) {
         YAML_SCALAR_PLAIN(event, emitter, "networkmanager");
         YAML_MAPPING_OPEN(event, emitter);
@@ -51,14 +60,13 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
             YAML_SCALAR_PLAIN(event, emitter, "name");
             YAML_SCALAR_QUOTED(event, emitter, s.nm.name);
         }
-        if (s.nm.passthrough && g_hash_table_size(s.nm.passthrough) > 0) {
+        if (s.nm.passthrough) {
             YAML_SCALAR_PLAIN(event, emitter, "passthrough");
             YAML_MAPPING_OPEN(event, emitter);
-            g_hash_table_iter_init(&iter, s.nm.passthrough);
-            while (g_hash_table_iter_next(&iter, &key, &value)) {
-                YAML_SCALAR_PLAIN(event, emitter, key);
-                YAML_SCALAR_QUOTED(event, emitter, value);
-            }
+            _passthrough_handler_data d;
+            d.event = event;
+            d.emitter = emitter;
+            g_datalist_foreach(&s.nm.passthrough, _passthrough_handler, &d);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         YAML_MAPPING_CLOSE(event, emitter);
@@ -121,19 +129,36 @@ netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path)
     YAML_SCALAR_PLAIN(event, emitter, "network");
     YAML_MAPPING_OPEN(event, emitter);
     // TODO: global backend/renderer
-    YAML_SCALAR_PLAIN(event, emitter, "version");
-    YAML_SCALAR_PLAIN(event, emitter, "2");
+    YAML_STRING_PLAIN(event, emitter, "version", "2");
     YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[nd->type]);
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, nd->id);
     YAML_MAPPING_OPEN(event, emitter);
-    YAML_SCALAR_PLAIN(event, emitter, "renderer");
-    YAML_SCALAR_PLAIN(event, emitter, netplan_backend_to_name[nd->backend]);
+    YAML_STRING_PLAIN(event, emitter, "renderer", netplan_backend_to_name[nd->backend])
+
+    if (nd->type == NETPLAN_DEF_TYPE_OTHER)
+        goto only_passthrough; //do not try to handle "unknown" connection types
 
     if (nd->has_match)
         write_match(event, emitter, nd);
+
+    /* wake-on-lan */
+    if (nd->wake_on_lan)
+        YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
+
+    /* some modem settings to auto-detect GSM vs CDMA connections */
+    if (nd->modem_params.auto_config)
+        YAML_STRING_PLAIN(event, emitter, "auto-config", "true");
+    YAML_STRING(event, emitter, "apn", nd->modem_params.apn);
+    YAML_STRING(event, emitter, "device-id", nd->modem_params.device_id);
+    YAML_STRING(event, emitter, "network-id", nd->modem_params.network_id);
+    YAML_STRING(event, emitter, "pin", nd->modem_params.pin);
+    YAML_STRING(event, emitter, "sim-id", nd->modem_params.sim_id);
+    YAML_STRING(event, emitter, "sim-operator-id", nd->modem_params.sim_operator_id);
+
     if (nd->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, nd)) goto error;
+only_passthrough:
     if (!write_backend_settings(event, emitter, nd->backend_settings)) goto error;
 
     /* Close remaining mappings */

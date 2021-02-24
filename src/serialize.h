@@ -40,6 +40,20 @@
     yaml_scalar_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)scalar, strlen(scalar), 1, 1, YAML_DOUBLE_QUOTED_SCALAR_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
 }
+#define YAML_STRING(event_ptr, emitter_ptr, key, value_ptr) \
+{ \
+    if (value_ptr) { \
+        YAML_SCALAR_PLAIN(event, emitter, key); \
+        YAML_SCALAR_QUOTED(event, emitter, value_ptr); \
+    } \
+}
+#define YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, value_ptr) \
+{ \
+    if (value_ptr) { \
+        YAML_SCALAR_PLAIN(event, emitter, key); \
+        YAML_SCALAR_PLAIN(event, emitter, value_ptr); \
+    } \
+}
 /* open YAML emitter, document, stream and initial mapping */
 #define YAML_OUT_START(event_ptr, emitter_ptr, file) \
 { \

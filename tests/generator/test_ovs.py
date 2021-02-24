@@ -700,7 +700,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
 ''', expect_fail=True)
         self.assertIn("ERROR: openvswitch bridge controller target 'ssl:10.10.10.1' needs SSL configuration, but global \
 'openvswitch.ssl' settings are not set", err)
-        self.assert_ovs({})
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({})
 
     def test_global_ports(self):
@@ -711,7 +711,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
       - [patch0-1, patch1-0]
 ''', expect_fail=True)
         self.assertIn('patch0-1: OpenVSwitch patch port needs to be assigned to a bridge/bond', err)
-        self.assert_ovs({})
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({})
 
     def test_few_ports(self):
@@ -987,7 +987,7 @@ ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan=true
             openvswitch: {}
 ''', expect_fail=True)
         self.assertIn('eth0: This device type is not supported with the OpenVSwitch backend', err)
-        self.assert_ovs({})
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({})
 
     def test_bridge_non_ovs_bond(self):

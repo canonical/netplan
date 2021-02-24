@@ -241,7 +241,7 @@ typedef union {
         char *uuid;
         char *stable_id;
         char *device;
-        GHashTable* passthrough;
+        GData* passthrough;
     } nm;
     struct NetplanNetworkdSettings {
         char *unit;

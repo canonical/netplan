@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "util.h"
 #include "validation.h"
+#include "nm-keyfile.h"
 
 GString* udev_rules;
 
@@ -79,10 +80,13 @@ g_string_append_netdef_match(GString* s, const NetplanNetDefinition* def)
 static const gboolean
 modem_is_gsm(const NetplanNetDefinition* def)
 {
-    if (def->type == NETPLAN_DEF_TYPE_MODEM && (def->modem_params.apn ||
-        def->modem_params.auto_config || def->modem_params.device_id ||
-        def->modem_params.network_id || def->modem_params.pin ||
-        def->modem_params.sim_id || def->modem_params.sim_operator_id))
+    if (   def->modem_params.apn
+        || def->modem_params.auto_config
+        || def->modem_params.device_id
+        || def->modem_params.network_id
+        || def->modem_params.pin
+        || def->modem_params.sim_id
+        || def->modem_params.sim_operator_id)
         return TRUE;
 
     return FALSE;
@@ -479,23 +483,44 @@ maybe_generate_uuid(NetplanNetDefinition* def)
  * "backend_settings.nm.passthrough" and inject them into the keyfile as-is.
  */
 static void
-write_fallback_key_value(gpointer key, gpointer value, gpointer user_data)
+write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
     gchar* val = value;
-    /* Group name may contain dots, but key name may not */
+    /* Group name may contain dots, but key name may not.
+     * The "tc" group is a special case, where it is the other way around, e.g.:
+     *   tc->qdisc.root
+     *   tc->tfilter.ffff: */
+    const gchar* key = g_quark_to_string(key_id);
     gchar **group_key = g_strsplit(key, ".", -1);
     guint len = g_strv_length(group_key);
-    g_autofree gchar *k = group_key[len-1];
-    group_key[len-1] = NULL; //remove key from array
-    g_autofree gchar *group = g_strjoinv(".", group_key); //re-combine group parts
-
-    g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
-    if (g_key_file_has_key(kf, group, k, NULL) && !!g_strcmp0(val, g_key_file_get_string(kf, group, k, NULL))) {
-        g_warning("NetworkManager: overriding %s.%s via passthrough", group, k);
-        g_key_file_set_comment(kf, group, k, "Netplan: Unsupported setting or value, overridden by passthrough", NULL);
+    g_autofree gchar* old_key = NULL;
+    gboolean has_key = FALSE;
+    g_autofree gchar* k = NULL;
+    g_autofree gchar* group = NULL;
+    if (!g_strcmp0(group_key[0], "tc") && len > 2) {
+        k = g_strconcat(group_key[1], ".", group_key[2], NULL);
+        group = g_strdup(group_key[0]);
+    } else {
+        k = group_key[len-1];
+        group_key[len-1] = NULL; //remove key from array
+        group = g_strjoinv(".", group_key); //re-combine group parts
     }
+
+    has_key = g_key_file_has_key(kf, group, k, NULL);
+    old_key = g_key_file_get_string(kf, group, k, NULL);
     g_key_file_set_string(kf, group, k, val);
+    /* delete the dummy key, if this was just an empty group */
+    if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
+        g_key_file_remove_key(kf, group, k, NULL);
+    else if (!has_key) {
+        g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
+        g_key_file_set_comment(kf, group, k, "Netplan: passthrough setting", NULL);
+    } else if (!!g_strcmp0(val, old_key)) {
+        g_debug("NetworkManager: fallback override: %s.%s=%s", group, k, val);
+        g_key_file_set_comment(kf, group, k, "Netplan: passthrough override", NULL);
+    }
+
     g_strfreev(group_key);
 }
 
@@ -550,14 +575,11 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     nm_type = type_str(def);
     if (nm_type)
         g_key_file_set_string(kf, "connection", "type", nm_type);
-    else {
-        /* This case is checked in validation.c and should never happen */
-        if (!def->backend_settings.nm.passthrough || !g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"))
-            g_assert_not_reached(); // LCOV_EXCL_LINE
-        g_key_file_set_string(kf, "connection", "type", g_hash_table_lookup(def->backend_settings.nm.passthrough, "connection.type"));
-        g_key_file_set_comment(kf, "connection", "type", "Netplan: Unsupported connection.type setting, overridden by passthrough", NULL);
-    }
 
+    if (ap && ap->backend_settings.nm.uuid)
+        g_key_file_set_string(kf, "connection", "uuid", ap->backend_settings.nm.uuid);
+    else if (def->backend_settings.nm.uuid)
+        g_key_file_set_string(kf, "connection", "uuid", def->backend_settings.nm.uuid);
     /* VLAN devices refer to us as their parent; if our ID is not a name but we
      * have matches, parent= must be the connection UUID, so put it into the
      * connection */
@@ -584,7 +606,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
         /* virtual (created) devices set a name */
-        g_key_file_set_string(kf, "connection", "interface-name", def->id);
+        if (strlen(def->id) > 15)
+            g_debug("interface-name longer than 15 characters is not supported");
+        else
+            g_key_file_set_string(kf, "connection", "interface-name", def->id);
 
         if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
             write_bridge_params(def, kf);
@@ -640,7 +665,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
-        g_key_file_set_integer(kf, "ethernet", "wake-on-lan", def->wake_on_lan ? 1 : 0);
+        if (def->type == NETPLAN_DEF_TYPE_ETHERNET)
+            g_key_file_set_integer(kf, "ethernet", "wake-on-lan", def->wake_on_lan ? 1 : 0);
 
         const char* con_type = NULL;
         switch (def->type) {
@@ -793,7 +819,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         g_debug("NetworkManager: using keyfile passthrough mode");
         /* Write all key-value pairs from the hashtable into the keyfile,
          * potentially overriding existing values, if not fully supported. */
-        g_hash_table_foreach(def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+        g_datalist_foreach(&def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
     }
 
     if (ap) {
@@ -801,7 +827,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
 
         g_key_file_set_string(kf, "wifi", "ssid", ap->ssid);
-        g_key_file_set_string(kf, "wifi", "mode", wifi_mode_str(ap->mode));
+        if (ap->mode < NETPLAN_WIFI_MODE_OTHER)
+            g_key_file_set_string(kf, "wifi", "mode", wifi_mode_str(ap->mode));
         if (ap->bssid)
             g_key_file_set_string(kf, "wifi", "bssid", ap->bssid);
         if (ap->hidden)
@@ -828,7 +855,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
              * AP passthrough values have higher priority than ND passthrough,
              * because they are more specific and bound to the current SSID's
              * NM connection profile. */
-            g_hash_table_foreach(ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+            g_datalist_foreach((GData**)&ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
         }
     } else {
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
@@ -912,7 +939,7 @@ write_nm_conf_finish(const char* rootdir)
     GString *s = NULL;
     gsize len;
 
-    if (g_hash_table_size(netdefs) == 0)
+    if (!netdefs || g_hash_table_size(netdefs) == 0)
         return;
 
     /* Set all devices not managed by us to unmanaged, so that NM does not

@@ -72,7 +72,7 @@ class TestGenerate(unittest.TestCase):
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
-        self.assertEqual(os.listdir(self.workdir.name), [])
+        self.assertEqual(os.listdir(self.workdir.name), ['run'])
 
     def test_with_empty_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')

@@ -63,9 +63,22 @@ ap_type_from_str(const char* type_str)
     return NETPLAN_WIFI_MODE_OTHER;
 }
 
+static gboolean
+_kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
+{
+    gsize len = 1;
+    gboolean ret = FALSE;
+    ret = g_key_file_remove_key(kf, group, key, NULL);
+    g_strfreev(g_key_file_get_keys(kf, group, &len, NULL));
+    /* clear group if this was the last key */
+    if (len == 0)
+        ret &= g_key_file_remove_group(kf, group, NULL);
+    return ret;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
-read_passthrough(GKeyFile* kf, GHashTable** out_map)
+read_passthrough(GKeyFile* kf, GData** list)
 {
     gchar **groups = NULL;
     gchar **keys = NULL;
@@ -74,14 +87,18 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
     gsize klen = 0;
     gsize glen = 0;
 
-    if (!*out_map)
-        *out_map = g_hash_table_new(g_str_hash, g_str_equal);
+    if (!*list)
+        g_datalist_init(list);
     groups = g_key_file_get_groups(kf, &glen);
     if (groups) {
         for (unsigned i = 0; i < glen; ++i) {
             klen = 0;
             keys = g_key_file_get_keys(kf, groups[i], &klen, NULL);
-            if (!keys) continue; // empty group
+            if (klen == 0) {
+                /* empty group */
+                g_datalist_set_data_full(list, g_strconcat(groups[i], ".", NETPLAN_NM_EMPTY_GROUP, NULL), g_strdup(""), g_free);
+                continue;
+            }
             for (unsigned j = 0; j < klen; ++j) {
                 value = g_key_file_get_string(kf, groups[i], keys[j], NULL);
                 if (!value) {
@@ -91,8 +108,8 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
                     // LCOV_EXCL_STOP
                 }
                 group_key = g_strconcat(groups[i], ".", keys[j], NULL);
-                g_hash_table_insert(*out_map, group_key, value);
-                /* no need to free group_key and value: they stay in the map */
+                g_datalist_set_data_full(list, group_key, value, g_free);
+                /* no need to free group_key and value: they stay in the list */
             }
             g_strfreev(keys);
         }
@@ -104,7 +121,7 @@ read_passthrough(GKeyFile* kf, GHashTable** out_map)
  * Render keyfile data to YAML
  */
 gboolean
-netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
+netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const char* rootdir)
 {
     gboolean ret = FALSE;
     g_autofree gchar *nd_id = NULL;
@@ -123,12 +140,9 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         g_warning("netplan: Keyfile: cannot find connection.uuid");
         return FALSE;
     }
-    /* Auto-generated netdefs by NM always use a "NM-<UUID>" ID */
-    nd_id = g_strconcat("NM-", uuid, NULL);
-
     /* NetworkManager produces one file per connection profile
      * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
-    filename = g_strconcat("90-", nd_id, ".yaml", NULL);
+    filename = g_strconcat("90-NM-", uuid, ".yaml", NULL);
     yaml_path = g_strjoin("/", rootdir ?: "", "etc", "netplan", filename, NULL);
 
     type = g_key_file_get_string(kf, "connection", "type", NULL);
@@ -138,32 +152,80 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
     }
     nd_type = type_from_str(type);
 
+    /* Use previously existing netdef IDs, if available, to override connections
+     * Else: generate a "NM-<UUID>" ID */
+    if (netdef_id)
+        nd_id = g_strdup(netdef_id);
+    else
+        nd_id = g_strconcat("NM-", uuid, NULL);
     nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
-    /* remove supported values from passthrough, which have been handled */
-    if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
-        || nd_type == NETPLAN_DEF_TYPE_WIFI
-        || nd_type == NETPLAN_DEF_TYPE_BRIDGE
-        || nd_type == NETPLAN_DEF_TYPE_BOND
-        || nd_type == NETPLAN_DEF_TYPE_VLAN)
-        g_key_file_remove_key(kf, "connection", "type", NULL);
 
     /* Handle uuid & NM name/id */
     nd->backend_settings.nm.uuid = g_strdup(uuid);
-    g_key_file_remove_key(kf, "connection", "uuid", NULL);
+    _kf_clear_key(kf, "connection", "uuid");
     nd->backend_settings.nm.name = g_key_file_get_string(kf, "connection", "id", NULL);
     if (nd->backend_settings.nm.name)
-        g_key_file_remove_key(kf, "connection", "id", NULL);
+        _kf_clear_key(kf, "connection", "id");
+
+    if (nd_type == NETPLAN_DEF_TYPE_OTHER)
+        goto only_passthrough; //do not try to handle any keys for connections types unknown to netplan
+
+    /* remove supported values from passthrough, which have been handled */
+    if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
+        || nd_type == NETPLAN_DEF_TYPE_WIFI
+        || nd_type == NETPLAN_DEF_TYPE_MODEM
+        || nd_type == NETPLAN_DEF_TYPE_BRIDGE
+        || nd_type == NETPLAN_DEF_TYPE_BOND
+        || nd_type == NETPLAN_DEF_TYPE_VLAN)
+        _kf_clear_key(kf, "connection", "type");
 
     /* Handle match: Netplan usually defines a connection per interface, while
      * NM connection profiles are usually applied to any interface of matching
-     * type (like wifi/ethernet/...). Therefore, we match the interface on '*'
-     * if not specified. */
-    nd->match.original_name = g_key_file_get_string(kf, "connection", "interface-name", NULL);
-    if (nd->match.original_name)
-        g_key_file_remove_key(kf, "connection", "interface-name", NULL);
-    else
-        nd->match.original_name = g_strdup("*");
-    nd->has_match = TRUE;
+     * type (like wifi/ethernet/...). */
+    if (nd->type < NETPLAN_DEF_TYPE_VIRTUAL) {
+        nd->match.original_name = g_key_file_get_string(kf, "connection", "interface-name", NULL);
+        if (nd->match.original_name)
+            _kf_clear_key(kf, "connection", "interface-name");
+        /* Set match, even if it is empty, so the NM renderer will not force
+         * the netdef ID as interface-name */
+        nd->has_match = TRUE;
+    }
+
+    /* Modem parameters
+     * NM differentiates between GSM and CDMA connections, while netplan
+     * combines them as "modems". We need to parse a basic set of parameters
+     * to enable the generator (in nm.c) to detect GSM vs CDMA connections,
+     * using its modem_is_gsm() util. */
+    nd->modem_params.auto_config = g_key_file_get_boolean(kf, "gsm", "auto-config", NULL);
+    _kf_clear_key(kf, "gsm", "auto-config");
+    nd->modem_params.apn = g_key_file_get_string(kf, "gsm", "apn", NULL);
+    if (nd->modem_params.apn)
+        _kf_clear_key(kf, "gsm", "apn");
+    nd->modem_params.device_id = g_key_file_get_string(kf, "gsm", "device-id", NULL);
+    if (nd->modem_params.device_id)
+        _kf_clear_key(kf, "gsm", "device-id");
+    nd->modem_params.network_id = g_key_file_get_string(kf, "gsm", "network-id", NULL);
+    if (nd->modem_params.network_id)
+        _kf_clear_key(kf, "gsm", "network-id");
+    nd->modem_params.pin = g_key_file_get_string(kf, "gsm", "pin", NULL);
+    if (nd->modem_params.pin)
+        _kf_clear_key(kf, "gsm", "pin");
+    nd->modem_params.sim_id = g_key_file_get_string(kf, "gsm", "sim-id", NULL);
+    if (nd->modem_params.sim_id)
+        _kf_clear_key(kf, "gsm", "sim-id");
+    nd->modem_params.sim_operator_id = g_key_file_get_string(kf, "gsm", "sim-operator-id", NULL);
+    if (nd->modem_params.sim_operator_id)
+        _kf_clear_key(kf, "gsm", "sim-operator-id");
+
+    /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
+    if (g_key_file_has_group(kf, "ethernet")) {
+        if (!g_key_file_has_key(kf, "ethernet", "wake-on-lan", NULL)) {
+            nd->wake_on_lan = TRUE; //NM's default is "1"
+        } else {
+            //XXX: fix delta between options in NM (0x1, 0x2, 0x4, ...) and netplan (bool)
+            nd->wake_on_lan = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL) > 0;
+        }
+    }
 
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {
@@ -173,17 +235,17 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
             g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
             return FALSE;
         } else
-            g_key_file_remove_key(kf, "wifi", "ssid", NULL);
+            _kf_clear_key(kf, "wifi", "ssid");
 
         wifi_mode = g_key_file_get_string(kf, "wifi", "mode", NULL);
         if (wifi_mode) {
             ap->mode = ap_type_from_str(wifi_mode);
             if (ap->mode != NETPLAN_WIFI_MODE_OTHER)
-                g_key_file_remove_key(kf, "wifi", "mode", NULL);
+                _kf_clear_key(kf, "wifi", "mode");
         }
 
         ap->hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL);
-        g_key_file_remove_key(kf, "wifi", "hidden", NULL);
+        _kf_clear_key(kf, "wifi", "hidden");
 
         if (!nd->access_points)
             nd->access_points = g_hash_table_new(g_str_hash, g_str_equal);
@@ -197,6 +259,7 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
         nd->backend_settings.nm.name = NULL;
         read_passthrough(kf, &ap->backend_settings.nm.passthrough);
     } else {
+only_passthrough:
         /* Last: handle passthrough for everything left in the keyfile */
         read_passthrough(kf, &nd->backend_settings.nm.passthrough);
     }
@@ -210,11 +273,11 @@ netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* rootdir)
  * Helper function for testing only, to pass through the test-data
  * (keyfile string) until we cann pass the real GKeyFile data from python. */
 gboolean
-_netplan_render_yaml_from_nm_keyfile_str(const char* keyfile_str, const char* rootdir)
+_netplan_render_yaml_from_nm_keyfile_str(const char* keyfile_str, const char* netdef_id, const char* rootdir)
 {
     g_autoptr(GKeyFile) kf = g_key_file_new();
     g_key_file_load_from_data(kf, keyfile_str, -1, 0, NULL);
-    return netplan_render_yaml_from_nm_keyfile(kf, rootdir);
+    return netplan_render_yaml_from_nm_keyfile(kf, netdef_id, rootdir);
 }
 
 /**
