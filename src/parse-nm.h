@@ -19,4 +19,4 @@
 
 #define NETPLAN_NM_EMPTY_GROUP "_"
 
-gboolean netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const char* rootdir);
+gboolean netplan_parse_keyfile(const char* filename, GError** error);

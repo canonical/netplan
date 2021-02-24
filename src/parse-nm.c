@@ -21,6 +21,7 @@
 #include "netplan.h"
 #include "parse-nm.h"
 #include "parse.h"
+#include "util.h"
 
 /**
  * NetworkManager writes the alias for '802-3-ethernet' (ethernet),
@@ -118,20 +119,35 @@ read_passthrough(GKeyFile* kf, GData** list)
 }
 
 /**
- * Render keyfile data to YAML
+ * Parse keyfile into a NetplanNetDefinition struct
+ * @filename: full path to the NetworkManager keyfile
  */
 gboolean
-netplan_render_yaml_from_nm_keyfile(GKeyFile* kf, const char* netdef_id, const char* rootdir)
+netplan_parse_keyfile(const char* filename, GError** error)
 {
     g_autofree gchar *nd_id = NULL;
     g_autofree gchar *uuid = NULL;
-    g_autofree gchar *ssid = NULL;
     g_autofree gchar *type = NULL;
     g_autofree gchar* wifi_mode = NULL;
-    NetplanDefType nd_type = NETPLAN_DEF_TYPE_NONE;
+    g_autofree gchar* ssid = NULL;
+	g_autofree gchar* escaped_ssid = NULL;
+    g_autofree gchar* netdef_id = NULL;
     NetplanNetDefinition* nd = NULL;
     NetplanWifiAccessPoint* ap = NULL;
+    g_autoptr(GKeyFile) kf = g_key_file_new();
+    NetplanDefType nd_type = NETPLAN_DEF_TYPE_NONE;
+    if (!g_key_file_load_from_file(kf, filename, G_KEY_FILE_NONE, error)) {
+        g_warning("netplan: cannot load keyfile");
+        return FALSE;
+    }
 
+    ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
+    if (!ssid)
+        ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
+    if (ssid)
+        escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
+
+    netdef_id = netplan_get_id_from_nm_filename(filename, escaped_ssid);
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
     if (!uuid) {
         g_warning("netplan: Keyfile: cannot find connection.uuid");
@@ -257,24 +273,6 @@ only_passthrough:
         read_passthrough(kf, &nd->backend_settings.nm.passthrough);
     }
 
-    write_netplan_conf(nd, rootdir);
-    netplan_clear_netdefs(); //cleanup the 'netdefs' map
+    g_key_file_free(kf);
     return TRUE;
-}
-
-/**
- * Helper function for testing only, to pass through the test-data
- * (keyfile string) until we cann pass the real GKeyFile data from python. */
-gboolean
-_netplan_render_yaml_from_nm_keyfile_str(const char* keyfile_str, const char* netdef_id, const char* rootdir)
-{
-    g_autoptr(GKeyFile) kf = g_key_file_new();
-    g_key_file_load_from_data(kf, keyfile_str, -1, 0, NULL);
-    return netplan_render_yaml_from_nm_keyfile(kf, netdef_id, rootdir);
-}
-
-{
-
-        escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-
 }
