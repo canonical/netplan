@@ -425,6 +425,8 @@ typedef struct {
     gboolean has_auth;
 } NetplanWifiAccessPoint;
 
+#define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
+#define NETPLAN_CONGESTION_WINDOW_UNSPEC 0
 #define NETPLAN_MTU_UNSPEC 0
 #define NETPLAN_METRIC_UNSPEC G_MAXUINT
 #define NETPLAN_ROUTE_TABLE_UNSPEC 0
@@ -449,6 +451,8 @@ typedef struct {
     guint metric;
 
     guint mtubytes;
+    guint congestion_window;
+    guint advertised_receive_window;
 } NetplanIPRoute;
 
 typedef struct {

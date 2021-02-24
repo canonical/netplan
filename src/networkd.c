@@ -441,6 +441,10 @@ write_route(NetplanIPRoute* r, GString* s)
         g_string_append_printf(s, "Table=%d\n", r->table);
     if (r->mtubytes != NETPLAN_MTU_UNSPEC)
         g_string_append_printf(s, "MTUBytes=%u\n", r->mtubytes);
+    if (r->congestion_window != NETPLAN_CONGESTION_WINDOW_UNSPEC)
+        g_string_append_printf(s, "InitialCongestionWindow=%u\n", r->congestion_window);
+    if (r->advertised_receive_window != NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC)
+        g_string_append_printf(s, "InitialAdvertisedReceiveWindow=%u\n", r->advertised_receive_window);
 }
 
 static void
