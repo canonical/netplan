@@ -543,7 +543,7 @@ class TestConfigErrors(TestBase):
 
         self.assertIn("invalid unsigned int value '-1'", err)
 
-    def test_device_bad_route_initcwnd(self):
+    def test_device_bad_route_congestion_window(self):
         err = self.generate('''network:
   version: 2
   ethernets:
@@ -551,14 +551,14 @@ class TestConfigErrors(TestBase):
       routes:
         - to: 10.10.0.0/16
           via: 10.1.1.1
-          initcwnd: -1
+          congestion-window: -1
       addresses:
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)
 
         self.assertIn("invalid unsigned int value '-1'", err)
 
-    def test_device_bad_route_initrwnd(self):
+    def test_device_bad_route_advertised_receive_window(self):
         err = self.generate('''network:
   version: 2
   ethernets:
@@ -566,7 +566,7 @@ class TestConfigErrors(TestBase):
       routes:
         - to: 10.10.0.0/16
           via: 10.1.1.1
-          initrwnd: -1
+          advertised-receive-window: -1
       addresses:
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)

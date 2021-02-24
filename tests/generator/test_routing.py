@@ -369,7 +369,7 @@ Gateway=192.168.14.20
 MTUBytes=1500
 '''})
 
-    def test_route_v4_initcwnd(self):
+    def test_route_v4_congestion_window(self):
         self.generate('''network:
   version: 2
   ethernets:
@@ -378,7 +378,7 @@ MTUBytes=1500
       routes:
         - to: 10.10.10.0/24
           via: 192.168.14.20
-          initcwnd: 16
+          congestion-window: 16
         ''')
 
         self.assert_networkd({'engreen.network': '''[Match]
@@ -394,7 +394,7 @@ Gateway=192.168.14.20
 InitialCongestionWindow=16
 '''})
 
-    def test_route_v4_initrwnd(self):
+    def test_route_v4_advertised_receive_window(self):
         self.generate('''network:
   version: 2
   ethernets:
@@ -403,7 +403,7 @@ InitialCongestionWindow=16
       routes:
         - to: 10.10.10.0/24
           via: 192.168.14.20
-          initrwnd: 16
+          advertised-receive-window: 16
         ''')
 
         self.assert_networkd({'engreen.network': '''[Match]
@@ -982,7 +982,7 @@ method=ignore
 '''})
         self.assert_networkd({})
 
-    def test_route_initcwnd(self):
+    def test_route_congestion_window(self):
         out = self.generate('''network:
   version: 2
   ethernets:
@@ -992,7 +992,7 @@ method=ignore
       routes:
         - to: 10.10.10.0/24
           via: 192.168.1.20
-          initcwnd: 16
+          congestion-window: 16
         ''')
         self.assertEqual('', out)
 
@@ -1015,7 +1015,7 @@ method=ignore
 '''})
         self.assert_networkd({})
 
-    def test_route_initrwnd(self):
+    def test_route_advertised_receive_window(self):
         out = self.generate('''network:
   version: 2
   ethernets:
@@ -1025,7 +1025,7 @@ method=ignore
       routes:
         - to: 10.10.10.0/24
           via: 192.168.1.20
-          initrwnd: 16
+          advertised-receive-window: 16
         ''')
         self.assertEqual('', out)
 

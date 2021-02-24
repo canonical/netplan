@@ -195,7 +195,7 @@ class _CommonTests():
         self.assertIn(b'mtu 777',  # check mtu from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
-    def test_per_route_initcwnd(self):
+    def test_per_route_congestion_window(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -208,12 +208,12 @@ class _CommonTests():
       routes:
         - to: 10.10.10.0/24
           via: 192.168.5.254
-          initcwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+          congestion-window: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle()
         self.assertIn(b'initcwnd 16',  # check initcwnd from static route
                     subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
-    def test_per_route_initrwnd(self):
+    def test_per_route_advertised_receive_window(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -226,7 +226,7 @@ class _CommonTests():
       routes:
         - to: 10.10.10.0/24
           via: 192.168.5.254
-          initrwnd: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+          advertised-receive-window: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle()
         self.assertIn(b'initrwnd 16',  # check initrwnd from static route
                     subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))

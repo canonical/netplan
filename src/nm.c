@@ -222,8 +222,8 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
             g_string_append(s, "\n");
 
             if (   cur_route->onlink
-                || cur_route->initrwnd
-                || cur_route->initcwnd
+                || cur_route->advertised_receive_window
+                || cur_route->congestion_window
                 || cur_route->mtubytes
                 || cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC
                 || cur_route->from) {
@@ -232,10 +232,10 @@ write_routes(const NetplanNetDefinition* def, GString *s, int family)
                     /* onlink for IPv6 addresses is only supported since nm-1.18.0. */
                     g_string_append_printf(s, "onlink=true,");
                 }
-                if (cur_route->initrwnd != NETPLAN_INITRWND_UNSPEC)
-                    g_string_append_printf(s, "initrwnd=%u,", cur_route->initrwnd);
-                if (cur_route->initcwnd != NETPLAN_INITCWND_UNSPEC)
-                    g_string_append_printf(s, "initcwnd=%u,", cur_route->initcwnd);
+                if (cur_route->advertised_receive_window != NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC)
+                    g_string_append_printf(s, "initrwnd=%u,", cur_route->advertised_receive_window);
+                if (cur_route->congestion_window != NETPLAN_CONGESTION_WINDOW_UNSPEC)
+                    g_string_append_printf(s, "initcwnd=%u,", cur_route->congestion_window);
                 if (cur_route->mtubytes != NETPLAN_MTU_UNSPEC)
                     g_string_append_printf(s, "mtu=%u,", cur_route->mtubytes);
                 if (cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC)
