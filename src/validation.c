@@ -205,11 +205,8 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
     if (!nd->tunnel.remote_ip)
         return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
-
-    if (nd->tunnel.ttl) {
-	if ((nd->tunnel.ttl) < 1 || (nd->tunnel.ttl) > 255)
-            return yaml_error(node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
-    }
+    if (nd->tunnel.ttl && nd->tunnel.ttl > 255)
+        return yaml_error(node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
 
     switch(nd->tunnel.mode) {
         case NETPLAN_TUNNEL_MODE_IPIP6:

@@ -359,7 +359,7 @@ struct net_definition {
         char *private_key; /* used for wireguard */
         guint fwmark;
         guint port;
-	guint ttl;
+        guint ttl;
     } tunnel;
 
     NetplanAuthenticationSettings auth;

@@ -19,7 +19,7 @@
 from .base import TestBase, ND_WITHIPGW, ND_EMPTY, NM_WG, ND_WG
 
 
-def prepare_config_for_mode(renderer, mode, key=None):
+def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
     config = """network:
   version: 2
   renderer: {}
@@ -36,16 +36,16 @@ def prepare_config_for_mode(renderer, mode, key=None):
         local_ip = "10.10.10.10"
         remote_ip = "20.20.20.20"
 
+    append_ttl = '\n      ttl: {}'.format(ttl) if ttl else ''
     config += """
   tunnels:
     tun0:
       mode: {}
       local: {}
-      remote: {}
-      ttl: 64
+      remote: {}{}
       addresses: [ 15.15.15.15/24 ]
       gateway4: 20.20.20.21
-""".format(mode, local_ip, remote_ip)
+""".format(mode, local_ip, remote_ip, append_ttl)
 
     # Handle key/keys as str or dict as required by the test
     if type(key) is str:
@@ -745,7 +745,7 @@ ConfigureWithoutCarrier=yes
 
     def test_ipip(self):
         """[networkd] Validate generation of IPIP tunnels"""
-        config = prepare_config_for_mode('networkd', 'ipip')
+        config = prepare_config_for_mode('networkd', 'ipip', ttl=64)
         self.generate(config)
         self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
@@ -1068,7 +1068,7 @@ method=ignore
 
     def test_ipip(self):
         """[NetworkManager] Validate generation of IPIP tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'ipip')
+        config = prepare_config_for_mode('NetworkManager', 'ipip', ttl=64)
         self.generate(config)
         self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
@@ -1079,6 +1079,7 @@ interface-name=tun0
 mode=1
 local=10.10.10.10
 remote=20.20.20.20
+ttl=64
 
 [ipv4]
 method=manual
