@@ -1,7 +1,7 @@
 # netplan - Backend-agnostic network configuration in YAML
 
-[![Build](https://github.com/CanonicalLtd/netplan/workflows/Build/badge.svg?branch=master)](https://github.com/CanonicalLtd/netplan/actions?query=branch%3Amaster+workflow%3ABuild)
-[![Codecov](https://codecov.io/gh/CanonicalLtd/netplan/branch/master/graph/badge.svg)](https://codecov.io/gh/CanonicalLtd/netplan)
+[![Build](https://github.com/canonical/netplan/workflows/Build/badge.svg?branch=master)](https://github.com/canonical/netplan/actions?query=branch%3Amaster+workflow%3ABuild)
+[![Codecov](https://codecov.io/gh/canonical/netplan/branch/master/graph/badge.svg)](https://codecov.io/gh/canonical/netplan)
 
 
 # Website
