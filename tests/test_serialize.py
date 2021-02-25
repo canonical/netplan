@@ -40,11 +40,13 @@ class TestNetplanSerialize(TestBase):
 
     def _template_serialize_yaml(self, yaml_content, netdef_id='myid'):
         FILENAME = os.path.join(self.confdir, 'some-filename.yaml')
-        NEWFILE = os.path.join(self.confdir, 'newfile.yaml')
+        NEWFILE = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef_id))
         with open(FILENAME, 'w') as f:
             f.write(yaml_content)
         # Parse YAML and and re-write the specified netdef ID into a new file
-        self.assertTrue(lib._netplan_render_netdef(netdef_id.encode(), FILENAME.encode(), NEWFILE.encode()))
+        lib.netplan_parse_yaml(FILENAME.encode(), None)
+        lib._write_netplan_conf(netdef_id.encode(), self.workdir.name.encode())
+        lib.netplan_clear_netdefs()
         self.assertTrue(os.path.isfile(NEWFILE))
         with open(FILENAME, 'r') as f:
             with open(NEWFILE, 'r') as new:
@@ -77,4 +79,4 @@ class TestNetplanSerialize(TestBase):
             name: "Some NM name with spaces"
             passthrough:
               wifi.mode: "mesh"
-''')
+''', 'myid')

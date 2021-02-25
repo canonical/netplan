@@ -30,7 +30,7 @@
 #include "parse.h"
 #include "util.h"
 #include "validation.h"
-#include "nm-keyfile.h"
+#include "parse-nm.h"
 
 GString* udev_rules;
 
@@ -119,7 +119,7 @@ type_str(const NetplanNetDefinition* def)
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
             return "ip-tunnel";
-        case NETPLAN_DEF_TYPE_OTHER:
+        case NETPLAN_DEF_TYPE_NM:
             /* needs to be overriden by passthrough "connection.type" setting */
             return NULL;
         // LCOV_EXCL_START

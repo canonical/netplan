@@ -76,4 +76,4 @@
     yaml_emitter_delete(emitter_ptr); \
 }
 
-gboolean netplan_render_netdef(NetplanNetDefinition* nd, const char* yaml_path);
+void write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

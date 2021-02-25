@@ -109,9 +109,9 @@ mode=infrastructure
 hidden=true
 '''})
 
-    def test_passthrough_type_others(self):
+    def test_passthrough_type_nm_devices(self):
         self.generate('''network:
-  others:
+  nm-devices:
     NM-87749f1d-334f-40b2-98d4-55db58965f5f:
       renderer: NetworkManager
       match: {}
@@ -136,7 +136,7 @@ method=ignore
 
     def test_passthrough_dotted_group(self):
         self.generate('''network:
-  others:
+  nm-devices:
     dotted-group-test:
       renderer: NetworkManager
       match: {}

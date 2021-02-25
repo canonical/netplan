@@ -1256,9 +1256,9 @@ Example:
         link: eno1
         addresses: ...
 
-## Properties for device type ``others:``
+## Properties for device type ``nm-devices:``
 
-The ``others`` device type is for internal use only and should not be used in normal configuration files. It enables a fallback mode for unsupported settings, using the ``passthrough`` mapping.
+The ``nm-devices`` device type is for internal use only and should not be used in normal configuration files. It enables a fallback mode for unsupported settings, using the ``passthrough`` mapping.
 
 
 ## Backend-specific configuration parameters
