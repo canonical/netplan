@@ -289,3 +289,26 @@ netplan_get_id_from_nm_filename(const char* filename, const char* ssid)
     id_len = end - start;
     return g_strndup(start, id_len);
 }
+
+/**
+ * Get the filename from which the given netdef has been parsed.
+ * @rootdir: ID of the netdef to be looked up
+ * @rootdir: parse files from this root directory
+ */
+gchar*
+netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
+{
+    gchar* filename = NULL;
+    netplan_clear_netdefs();
+    if (!process_yaml_hierarchy(rootdir))
+        return NULL; // LCOV_EXCL_LINE
+    GHashTable* netdefs = netplan_finish_parse(NULL);
+    if (!netdefs)
+        return NULL;
+    NetplanNetDefinition* nd = g_hash_table_lookup(netdefs, netdef_id);
+    if (!nd)
+        return NULL;
+    filename = g_strdup(nd->filename);
+    netplan_clear_netdefs();
+    return filename;
+}

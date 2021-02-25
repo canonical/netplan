@@ -38,6 +38,7 @@ class _GError(ctypes.Structure):
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_parse_yaml.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.POINTER(_GError))]
+lib.netplan_get_filename_by_id.restype = ctypes.c_char_p
 
 
 def netplan_parse(path):
@@ -51,6 +52,11 @@ def netplan_parse(path):
     if err:
         raise Exception(err.contents.message.decode('utf-8'))
     return True
+
+
+def netplan_get_filename_by_id(netdef_id, rootdir):
+    res = lib.netplan_get_filename_by_id(netdef_id.encode(), rootdir.encode())
+    return res.decode('utf-8') if res else None
 
 
 def get_generator_path():
