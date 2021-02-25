@@ -58,6 +58,12 @@ class IntegrationTestsBase(unittest.TestCase):
     '''
     @classmethod
     def setUpClass(klass):
+        # Try to keep autopkgtest's management network (eth0/ens3) up and
+        # configured. It should be running all the time, independently of netplan
+        os.makedirs('/etc/systemd/network', exist_ok=True)
+        with open('/etc/systemd/network/20-wired.network', 'w') as f:
+            f.write('[Match]\nName=eth0 en*\n\n[Network]\nDHCP=yes')
+
         # ensure NM can manage our fake eths
         os.makedirs('/run/udev/rules.d', exist_ok=True)
 
@@ -90,6 +96,8 @@ class IntegrationTestsBase(unittest.TestCase):
             os.remove('/run/systemd/generator/netplan.stamp')
         except FileNotFoundError:
             pass
+        # Keep the management network (eth0/ens3 from 20-wired.network) up
+        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
 
     @classmethod
     def create_devices(klass):
