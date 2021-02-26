@@ -30,6 +30,7 @@ import tempfile
 import unittest
 import shutil
 import gi
+import glob
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
@@ -92,6 +93,11 @@ class IntegrationTestsBase(unittest.TestCase):
         shutil.rmtree('/etc/netplan', ignore_errors=True)
         shutil.rmtree('/run/NetworkManager', ignore_errors=True)
         shutil.rmtree('/run/systemd/network', ignore_errors=True)
+        for f in glob.glob('/run/systemd/system/netplan-*'):
+            os.remove(f)
+        for f in glob.glob('/run/systemd/system/**/netplan-*'):
+            os.remove(f)
+        subprocess.call(['systemctl', 'daemon-reload'])
         try:
             os.remove('/run/systemd/generator/netplan.stamp')
         except FileNotFoundError:
