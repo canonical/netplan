@@ -184,7 +184,7 @@ class TestSet(unittest.TestCase):
             f.write('''network:\n  version: 2\n  renderer: NetworkManager
   ethernets:
     ens3: {dhcp4: yes, dhcp6: yes}
-    eth0: {addresses: [1.2.3.4]}''')
+    eth0: {addresses: [1.2.3.4/24]}''')
         self._set(['ethernets.eth0.addresses=NULL'])
         self._set(['ethernets.ens3.dhcp6=null'])
         self.assertTrue(os.path.isfile(self.path))
