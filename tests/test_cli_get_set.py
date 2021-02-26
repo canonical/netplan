@@ -132,14 +132,6 @@ class TestSet(unittest.TestCase):
         self.assertIsInstance(err, Exception)
         self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(err))
 
-    def test_set_invalid_yaml_read(self):
-        with open(self.path, 'w') as f:
-            f.write('''network: {}}''')
-        err = self._set(['ethernets.eth0.dhcp4=true'])
-        self.assertIsInstance(err, Exception)
-        self.assertTrue(os.path.isfile(self.path))
-        self.assertIn('expected <block end>, but found \'}\'', str(err))
-
     def test_set_append(self):
         with open(self.path, 'w') as f:
             f.write('''network:
@@ -236,6 +228,28 @@ class TestSet(unittest.TestCase):
         err = self._set([r'ethernets.eth0={dhcp4:false}'])
         self.assertIsInstance(err, Exception)
         self.assertEquals('Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}', str(err))
+
+    def test_set_override_existing_file(self):
+        OVERRIDE = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
+        with open(OVERRIDE, 'w') as f:
+            f.write(r'network: {ethernets: {eth0: {dhcp4: true}, eth1: {dhcp6: false}}}')
+        self._set([r'ethernets.eth0.dhcp4=false'])
+        self.assertFalse(os.path.isfile(self.path))
+        self.assertTrue(os.path.isfile(OVERRIDE))
+        with open(OVERRIDE, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: false', out)  # new
+            self.assertIn('eth1:\n      dhcp6: false', out)  # old
+
+    def test_set_override_existing_file_escaped_dot(self):
+        OVERRIDE = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
+        with open(OVERRIDE, 'w') as f:
+            f.write(r'network: {ethernets: {eth0.123: {dhcp4: true}}}')
+        self._set([r'ethernets.eth0\.123.dhcp4=false'])
+        self.assertFalse(os.path.isfile(self.path))
+        self.assertTrue(os.path.isfile(OVERRIDE))
+        with open(OVERRIDE, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
 
 
 class TestGet(unittest.TestCase):

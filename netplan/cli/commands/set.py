@@ -36,7 +36,7 @@ class NetplanSet(utils.NetplanCommand):
     def run(self):
         self.parser.add_argument('key_value', type=str,
                                  help='The nested key=value pair in dotted format. Value can be NULL to delete a key.')
-        self.parser.add_argument('--origin-hint', type=str, default='70-netplan-set',
+        self.parser.add_argument('--origin-hint', type=str,
                                  help='Can be used to help choose a name for the overwrite YAML file. \
                                        A .yaml suffix will be appended automatically.')
         self.parser.add_argument('--root-dir', default='/',
@@ -48,19 +48,35 @@ class NetplanSet(utils.NetplanCommand):
         self.run_command()
 
     def command_set(self):
-        if len(self.origin_hint) == 0:
-            raise Exception('Invalid/empty origin-hint')
         split = self.key_value.split('=', 1)
         if len(split) != 2:
             raise Exception('Invalid value specified')
         key, value = split
+        # The 'network.' prefix is optional for netsted keys, its always assumed to be there
+        if not key.startswith('network.'):
+            key = 'network.' + key
+
+        if self.origin_hint is None:
+            hint = None
+            # Split at '.' but not at '\.' via negative lookbehind expression
+            key_split = re.split(r'(?<!\\)\.', key)
+            if len(key_split) >= 3:
+                netdef_id = key_split[2].replace('\\.', '.')  # Unescape interface-ids, containing dots
+                filename = utils.netplan_get_filename_by_id(netdef_id, self.root_dir)
+                print(netdef_id, filename)
+                if filename:
+                    hint = os.path.basename(filename)[:-5]  # strip prefix and .yaml
+            if hint:
+                self.origin_hint = hint
+            else:
+                self.origin_hint = '70-netplan-set'
+        elif len(self.origin_hint) == 0:
+            raise Exception('Invalid/empty origin-hint')
+
         set_tree = self.parse_key(key, yaml.safe_load(value))
         self.write_file(set_tree, self.origin_hint + '.yaml', self.root_dir)
 
     def parse_key(self, key, value):
-        # The 'network.' prefix is optional for netsted keys, its always assumed to be there
-        if not key.startswith('network.'):
-            key = 'network.' + key
         # Split at '.' but not at '\.' via negative lookbehind expression
         split = re.split(r'(?<!\\)\.', key)
         tree = {}
