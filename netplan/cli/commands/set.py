@@ -21,6 +21,7 @@ import os
 import yaml
 import tempfile
 import re
+import logging
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
@@ -47,36 +48,57 @@ class NetplanSet(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
+    def split_tree_by_hint(self, set_tree) -> (str, dict):
+        network = set_tree.get('network', {})
+        # subtrees is a dict of mappings of 'origin-hint' -> YAML tree (one subtree per netdef)
+        subtrees = dict()
+        for devtype in network:
+            if devtype in ['version', 'renderer']:
+                continue  # special handling of globals down below
+            for netdef in network.get(devtype, []):
+                hint = '70-netplan-set'
+                filename = utils.netplan_get_filename_by_id(netdef, self.root_dir)
+                if filename:
+                    hint = os.path.basename(filename)[:-5]  # strip prefix and .yaml
+                netdef_tree = {'network': {devtype: {netdef: network.get(devtype).get(netdef)}}}
+                if subtrees.get(hint) is None:
+                    subtrees[hint] = netdef_tree
+                else:
+                    subtrees[hint] = self.merge(subtrees.get(hint, {}), netdef_tree)
+
+        # Merge in the globals: 'renderer'/'version':
+        #   Write to same file (if only one hint/subtree)
+        #   Write to 70-netplan-set if multiple hints/subtrees (as we do not know where it is supposed to go)
+        if network.get('renderer') is not None or network.get('version') is not None:
+            g = ['renderer', 'version']  # globals
+            # Write to the same file, if we have only one file-hint or to '70-netplan-set' otherwise
+            hint = list(subtrees)[0] if len(subtrees) == 1 else '70-netplan-set'
+            for var in g:
+                tree = {'network': {var: network.get(var)}}
+                subtrees[hint] = self.merge(subtrees.get(hint, {}), tree)
+        return subtrees.items()
+
     def command_set(self):
+        if self.origin_hint is not None and len(self.origin_hint) == 0:
+            raise Exception('Invalid/empty origin-hint')
         split = self.key_value.split('=', 1)
         if len(split) != 2:
             raise Exception('Invalid value specified')
         key, value = split
-        # The 'network.' prefix is optional for netsted keys, its always assumed to be there
-        if not key.startswith('network.'):
-            key = 'network.' + key
-
-        if self.origin_hint is None:
-            hint = None
-            # Split at '.' but not at '\.' via negative lookbehind expression
-            key_split = re.split(r'(?<!\\)\.', key)
-            if len(key_split) >= 3:
-                netdef_id = key_split[2].replace('\\.', '.')  # Unescape interface-ids, containing dots
-                filename = utils.netplan_get_filename_by_id(netdef_id, self.root_dir)
-                print(netdef_id, filename)
-                if filename:
-                    hint = os.path.basename(filename)[:-5]  # strip prefix and .yaml
-            if hint:
-                self.origin_hint = hint
-            else:
-                self.origin_hint = '70-netplan-set'
-        elif len(self.origin_hint) == 0:
-            raise Exception('Invalid/empty origin-hint')
-
         set_tree = self.parse_key(key, yaml.safe_load(value))
-        self.write_file(set_tree, self.origin_hint + '.yaml', self.root_dir)
+
+        hints = [(self.origin_hint, set_tree)]
+        # Override YAML config in each individual netdef file if origin-hint is not set
+        if self.origin_hint is None:
+            hints = self.split_tree_by_hint(set_tree)
+
+        for hint, subtree in hints:
+            self.write_file(subtree, hint + '.yaml', self.root_dir)
 
     def parse_key(self, key, value):
+        # The 'network.' prefix is optional for netsted keys, its always assumed to be there
+        if not key.startswith('network.') and not key == 'network':
+            key = 'network.' + key
         # Split at '.' but not at '\.' via negative lookbehind expression
         split = re.split(r'(?<!\\)\.', key)
         tree = {}
@@ -123,6 +145,7 @@ class NetplanSet(utils.NetplanCommand):
 
         new_tree = self.merge(config, set_tree)
         stripped = ConfigManager.strip_tree(new_tree)
+        logging.debug('Writing file {}: {}'.format(name, stripped))
         if 'network' in stripped and list(stripped['network'].keys()) == ['version']:
             # Clear file if only 'network: {version: 2}' is left
             os.remove(absp)

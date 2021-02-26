@@ -69,6 +69,12 @@ class TestSet(unittest.TestCase):
         with open(self.path, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'yes\'', f.read())
 
+    def test_set_global(self):
+        self._set([r'network={renderer: NetworkManager}'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('network:\n  renderer: NetworkManager', f.read())
+
     def test_set_sequence(self):
         self._set(['ethernets.eth0.addresses=[1.2.3.4/24, \'5.6.7.8/24\']'])
         self.assertTrue(os.path.isfile(self.path))
@@ -250,6 +256,33 @@ class TestSet(unittest.TestCase):
         self.assertTrue(os.path.isfile(OVERRIDE))
         with open(OVERRIDE, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
+
+    def test_set_override_multiple_existing_files(self):
+        FILE1 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth0.yaml')
+        with open(FILE1, 'w') as f:
+            f.write(r'network: {ethernets: {eth0.1: {dhcp4: true}, eth0.2: {dhcp4: true}}}')
+        FILE2 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth1.yaml')
+        with open(FILE2, 'w') as f:
+            f.write(r'network: {ethernets: {eth1: {dhcp4: true}}}')
+        self._set([(r'network={renderer: NetworkManager, version: 2,'
+                    r'ethernets:{'
+                    r'eth1:{dhcp4: false},'
+                    r'eth0.1:{dhcp4: false},'
+                    r'eth0.2:{dhcp4: false}},'
+                    r'bridges:{'
+                    r'br99:{dhcp4: false}}}')])
+        self.assertTrue(os.path.isfile(FILE1))
+        with open(FILE1, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0.1:\n      dhcp4: false', f.read())
+        self.assertTrue(os.path.isfile(FILE2))
+        with open(FILE2, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth1:\n      dhcp4: false', f.read())
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  bridges:\n    br99:\n      dhcp4: false', out)
+            self.assertIn('  version: 2', out)
+            self.assertIn('  renderer: NetworkManager', out)
 
 
 class TestGet(unittest.TestCase):
