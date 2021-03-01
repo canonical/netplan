@@ -22,7 +22,7 @@
 #include <glib/gprintf.h>
 
 #include "util.h"
-#include "parse.h"
+#include "netplan.h"
 
 GHashTable* wifi_frequency_24;
 GHashTable* wifi_frequency_5;

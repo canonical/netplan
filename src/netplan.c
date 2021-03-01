@@ -81,7 +81,7 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
     NetplanWifiAccessPoint* ap = NULL;
     GHashTableIter iter;
     gpointer key, value;
-    YAML_SCALAR_PLAIN(event, emitter, "access-points"); //FIXME: loop for each AP
+    YAML_SCALAR_PLAIN(event, emitter, "access-points");
     YAML_MAPPING_OPEN(event, emitter);
     g_hash_table_iter_init(&iter, def->access_points);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
