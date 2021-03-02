@@ -392,16 +392,29 @@ Label=ip6
 
     def test_bond_arp_ip_targets_multi_pass(self):
         self.generate('''network:
-  version: 2
-  ethernets:
-    eno1: {}
   bonds:
     bond0:
-      interfaces: [eno1]
+      interfaces:
+      - eno1
+      - eno49
       parameters:
         arp-ip-targets:
           - 10.10.10.10
-          - 20.20.20.20''')
+          - 20.20.20.20
+    bond1:
+      interfaces:
+      - eno2
+      - eno50
+      parameters:
+        arp-ip-targets:
+          - 10.10.10.10
+          - 20.20.20.20
+  ethernets:
+    eno1: {}
+    eno2: {}
+    eno49: {}
+    eno50: {}
+  version: 2''')
         self.assert_networkd({'bond0.netdev': '''[NetDev]
 Name=bond0
 Kind=bond
@@ -416,12 +429,47 @@ Name=bond0
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 ''',
+                              'bond1.netdev': '''[NetDev]
+Name=bond1
+Kind=bond
+
+[Bond]
+ARPIPTargets=10.10.10.10 20.20.20.20
+''',
+                              'bond1.network': '''[Match]
+Name=bond1
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
                               'eno1.network': '''[Match]
 Name=eno1
 
 [Network]
 LinkLocalAddressing=no
 Bond=bond0
+''',
+                              'eno2.network': '''[Match]
+Name=eno2
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond1
+''',
+                              'eno49.network': '''[Match]
+Name=eno49
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+''',
+                              'eno50.network': '''[Match]
+Name=eno50
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond1
 '''})
 
     def test_dhcp_critical_true(self):
