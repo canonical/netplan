@@ -1624,6 +1624,18 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 static gboolean
 handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
+    if (!cur_netdef->bond_params.arp_ip_targets) {
+        cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char *));
+    }
+
+    /* Avoid adding the same arp_ip_targets in a 2nd parsing pass by comparing
+     * the array size to the YAML sequence size. Skip if they are equal. */
+    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    if (cur_netdef->bond_params.arp_ip_targets->len == item_count) {
+        g_debug("%s: all arp ip targets have already been added", cur_netdef->id);
+        return TRUE;
+    }
+
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
@@ -1633,8 +1645,6 @@ handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GE
 
         /* is it an IPv4 address? */
         if (is_ip4_address(addr)) {
-            if (!cur_netdef->bond_params.arp_ip_targets)
-                cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
             g_array_append_val(cur_netdef->bond_params.arp_ip_targets, s);
             continue;
