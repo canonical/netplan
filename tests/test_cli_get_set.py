@@ -331,3 +331,9 @@ pin: 1234''', out)
     eth0:
       dhcp4: true
   version: 2\n''', out)
+
+    def test_get_network(self):
+        with open(self.path, 'w') as f:
+            f.write('network:\n  version: 2\n  renderer: NetworkManager')
+        out = self._get(['network'])
+        self.assertEquals('renderer: NetworkManager\nversion: 2\n', out)
