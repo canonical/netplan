@@ -125,7 +125,7 @@ class _CommonTests():
         self.assertIn("peer: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=", out)
         self.assertIn("allowed ips: 20.20.20.0/24", out)
         self.assertRegex(out, r'latest handshake: (\d+ seconds? ago|Now)')
-        self.assertRegex(out, r'transfer: \d+ B received, \d+ B sent')
+        self.assertRegex(out, r'transfer: \d+.*B received, \d+.*B sent')
         self.assert_iface('wg0', ['inet 10.10.10.20/24'])
         # Verify client
         out = subprocess.check_output(['wg', 'show', 'wg1', 'private-key'], universal_newlines=True)
@@ -139,7 +139,7 @@ class _CommonTests():
         self.assertIn("allowed ips: 0.0.0.0/0", out)
         self.assertIn("persistent keepalive: every 21 seconds", out)
         self.assertRegex(out, r'latest handshake: (\d+ seconds? ago|Now)')
-        self.assertRegex(out, r'transfer: \d+ B received, \d+ B sent')
+        self.assertRegex(out, r'transfer: \d+.*B received, \d+.*B sent')
         self.assert_iface('wg1', ['inet 20.20.20.10/24'])
 
 
