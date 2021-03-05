@@ -322,18 +322,26 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     g_autofree gchar *origin = NULL;
     g_autofree gchar *root_dir = NULL;
     gint exit_status = 0;
+    char *args[2] = {NULL, NULL};
     char *config_delta = NULL;
     char *origin_hint = NULL;
+    guint cur_arg = 0;
 
     if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint"); // LCOV_EXCL_LINE
 
-    if (!!strcmp(origin_hint, ""))
+    if (!!strcmp(origin_hint, "")) {
         origin = g_strdup_printf("--origin-hint=%s", origin_hint);
+        args[cur_arg] = origin;
+        cur_arg++;
+    }
 
-    if (d->config_id)
+    if (d->config_id) {
         root_dir = g_strdup_printf("--root-dir=%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
-    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, origin, root_dir, NULL};
+        args[cur_arg] = root_dir;
+        cur_arg++;
+    }
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, args[0], args[1], NULL};
 
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)

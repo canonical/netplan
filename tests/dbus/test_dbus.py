@@ -242,13 +242,14 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan",
             "/io/netplan/Netplan/config/{}".format(cid),
             "io.netplan.Netplan.Config",
-            "Set", "ss", "ethernets.eth42.dhcp6=true", "testfile",
+            "Set", "ss", "ethernets.eth42.dhcp6=true", "",
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
+        print(self.mock_netplan_cmd.calls(), flush=True)
         self.assertEquals(self.mock_netplan_cmd.calls(), [[
             "netplan", "set", "ethernets.eth42.dhcp6=true",
-            "--origin-hint=testfile", "--root-dir={}".format(tmpdir)
+            "--root-dir={}".format(tmpdir)
         ]])
 
     def test_netplan_dbus_config_get(self):
