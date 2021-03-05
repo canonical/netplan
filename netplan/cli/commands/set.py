@@ -49,33 +49,34 @@ class NetplanSet(utils.NetplanCommand):
         self.run_command()
 
     def split_tree_by_hint(self, set_tree) -> (str, dict):
+        FALLBACK_HINT = '70-netplan-set'
         network = set_tree.get('network', {})
-        # subtrees is a dict of mappings of 'origin-hint' -> YAML tree (one subtree per netdef)
+        # A mapping of 'origin-hint' -> YAML tree (one subtree per netdef)
         subtrees = dict()
+        global_keys = ['renderer', 'version']
         for devtype in network:
-            if devtype in ['version', 'renderer']:
-                continue  # special handling of globals down below
+            if devtype in global_keys:
+                continue  # special handling of global keys down below
             for netdef in network.get(devtype, []):
-                hint = '70-netplan-set'
+                hint = FALLBACK_HINT
                 filename = utils.netplan_get_filename_by_id(netdef, self.root_dir)
                 if filename:
                     hint = os.path.basename(filename)[:-5]  # strip prefix and .yaml
                 netdef_tree = {'network': {devtype: {netdef: network.get(devtype).get(netdef)}}}
-                if subtrees.get(hint) is None:
-                    subtrees[hint] = netdef_tree
-                else:
-                    subtrees[hint] = self.merge(subtrees.get(hint, {}), netdef_tree)
+                # Merge all netdef trees which are going to be written to the same file/hint
+                subtrees[hint] = self.merge(subtrees.get(hint, {}), netdef_tree)
 
-        # Merge in the globals: 'renderer'/'version':
-        #   Write to same file (if only one hint/subtree)
-        #   Write to 70-netplan-set if multiple hints/subtrees (as we do not know where it is supposed to go)
+        # Merge global_keys into one of the available subtrees
+        # Write to same file (if only one hint/subtree is available)
+        # Write to FALLBACK_HINT if multiple hints/subtrees are available, as we do not know where it is supposed to go
         if network.get('renderer') is not None or network.get('version') is not None:
-            g = ['renderer', 'version']  # globals
-            # Write to the same file, if we have only one file-hint or to '70-netplan-set' otherwise
-            hint = list(subtrees)[0] if len(subtrees) == 1 else '70-netplan-set'
-            for var in g:
+            # Write to the same file, if we have only one file-hint or to FALLBACK_HINT otherwise
+            hint = list(subtrees)[0] if len(subtrees) == 1 else FALLBACK_HINT
+            for var in global_keys:
                 tree = {'network': {var: network.get(var)}}
                 subtrees[hint] = self.merge(subtrees.get(hint, {}), tree)
+
+        # return a list of (str:hint, dict:subtree) tuples
         return subtrees.items()
 
     def command_set(self):
