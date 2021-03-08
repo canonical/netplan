@@ -117,18 +117,33 @@ def systemctl_network_manager(action, sync=False):  # pragma: nocover (covered i
     subprocess.check_call(command)
 
 
-def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocover (covered in autopkgtest)
-    command = ['systemctl', action]
+def systemctl(action, services, sync=False):
+    if len(services) >= 1:
+        command = ['systemctl', action]
 
-    if not sync:
-        command.append('--no-block')
+        if not sync:
+            command.append('--no-block')
 
-    command.append('systemd-networkd.service')
+        for service in services:
+            command.append(service)
 
-    for service in extra_services:
-        command.append(service)
+        subprocess.check_call(command)
 
-    subprocess.check_call(command)
+
+def networkd_interfaces():
+    interfaces = set()
+    out = subprocess.check_output(['networkctl', '--no-pager', '--no-legend'], universal_newlines=True)
+    for line in out.splitlines():
+        s = line.strip().split(' ')
+        if s[0].isnumeric() and s[-1] not in ['unmanaged', 'linger']:
+            interfaces.add(s[1])
+    return interfaces
+
+
+def networkctl_reconfigure(interfaces):
+    subprocess.check_call(['networkctl', 'reload'])
+    if len(interfaces) >= 1:
+        subprocess.check_call(['networkctl', 'reconfigure'] + list(interfaces))
 
 
 def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtest)

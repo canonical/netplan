@@ -192,3 +192,34 @@ class TestUtils(unittest.TestCase):
       remote: 0.0.0.0
       key: 0.0.0.0''')
         self.assertIsNone(utils.netplan_get_filename_by_id('some-id', self.workdir.name))
+
+    def test_systemctl(self):
+        self.mock_systemctl = MockCmd('systemctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_systemctl.path) + os.pathsep + path_env
+        utils.systemctl('start', ['service1', 'service2'])
+        self.assertEquals(self.mock_systemctl.calls(), [['systemctl', 'start', '--no-block', 'service1', 'service2']])
+
+    def test_networkd_interfaces(self):
+        self.mock_networkctl = MockCmd('networkctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
+        self.mock_networkctl.set_output('''
+  1 lo              loopback carrier    unmanaged
+  2 ens3            ether    routable   configured
+  3 wlan0           wlan     routable   configuring
+174 wwan0           wwan     off        linger''')
+        res = utils.networkd_interfaces()
+        self.assertEquals(self.mock_networkctl.calls(), [['networkctl', '--no-pager', '--no-legend']])
+        self.assertIn('wlan0', res)
+        self.assertIn('ens3', res)
+
+    def test_networkctl_reconfigure(self):
+        self.mock_networkctl = MockCmd('networkctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
+        utils.networkctl_reconfigure(['eth0', 'eth1'])
+        self.assertEquals(self.mock_networkctl.calls(), [
+            ['networkctl', 'reload'],
+            ['networkctl', 'reconfigure', 'eth0', 'eth1']
+        ])
