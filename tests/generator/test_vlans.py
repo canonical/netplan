@@ -232,8 +232,6 @@ uuid=%s
 
 [ethernet]
 wake-on-lan=0
-
-[802-3-ethernet]
 mac-address=11:22:33:44:55:66
 
 [ipv4]

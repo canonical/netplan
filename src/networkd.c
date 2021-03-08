@@ -976,8 +976,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
                 case NETPLAN_WIFI_MODE_ADHOC:
                     g_string_append(s, "  mode=1\n");
                     break;
-                case NETPLAN_WIFI_MODE_AP:
-                    g_fprintf(stderr, "ERROR: %s: networkd does not support wifi in access point mode\n", def->id);
+                default:
+                    g_fprintf(stderr, "ERROR: %s: %s: networkd does not support this wifi mode\n", def->id, ap->ssid);
                     exit(1);
             }
 

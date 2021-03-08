@@ -1256,6 +1256,10 @@ Example:
         link: eno1
         addresses: ...
 
+## Properties for device type ``nm-devices:``
+
+The ``nm-devices`` device type is for internal use only and should not be used in normal configuration files. It enables a fallback mode for unsupported settings, using the ``passthrough`` mapping.
+
 
 ## Backend-specific configuration parameters
 
@@ -1284,6 +1288,8 @@ consumer of that backend. Currently, this is only used with ``NetworkManager``.
      ``device`` (scalar) – since **0.99**
      :    Defines the interface name for which this connection applies.
 
+     ``passthrough`` (mapping) – since **0.102**
+     :    Can be used as a fallback mechanism to missing keyfile settings.
 
 ## Examples
 Configure an ethernet device with networkd, identified by its name, and enable

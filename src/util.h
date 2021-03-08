@@ -31,5 +31,8 @@ int wifi_get_freq24(int channel);
 int wifi_get_freq5(int channel);
 
 gchar* systemd_escape(char* string);
+gboolean netplan_delete_connection(const char* id, const char* rootdir);
+gboolean netplan_generate(const char* rootdir);
+gchar* netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
 
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
