@@ -296,7 +296,7 @@ class IntegrationTestsBase(unittest.TestCase):
         '''Generate config, launch and settle NM and networkd'''
 
         # regenerate netplan config
-        out = subprocess.check_output(['netplan', 'apply'], universal_newlines=True)
+        out = subprocess.check_output(['netplan', 'apply'], stderr=subprocess.STDOUT, universal_newlines=True)
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             self.fail('systemd units changed without reload')
         # start NM so that we can verify that it does not manage anything
