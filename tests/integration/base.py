@@ -199,6 +199,7 @@ class IntegrationTestsBase(unittest.TestCase):
         subprocess.check_call(['ip', 'link', 'set', self.dev_e2_ap, 'up'])
         if start_dnsmasq:
             self.start_dnsmasq(ipv6_mode, self.dev_e_ap)
+            self.start_dnsmasq(ipv6_mode, self.dev_e2_ap)
 
     #
     # Internal implementation details

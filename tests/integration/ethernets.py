@@ -32,7 +32,6 @@ class _CommonTests():
 
     def test_eth_mtu(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -55,7 +54,6 @@ class _CommonTests():
 
     def test_eth_mac(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -81,7 +79,6 @@ class _CommonTests():
 
         Interface globbing was introduced as of NM 1.14+'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -175,7 +172,6 @@ class _CommonTests():
       addresses: ["172.16.7.2/30", "4321:AAAA::99/80"]
       dhcp4: yes
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.generate_and_settle()
         if self.backend == 'NetworkManager':
             self.nm_online_full(self.dev_e2_client)

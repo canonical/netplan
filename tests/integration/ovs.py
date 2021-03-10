@@ -78,12 +78,13 @@ class _CommonTests():
     # If we have just OVS interfaces/ports networkd/networkctl will not be
     # aware that our network is ready.
     %(ec)s: {addresses: [10.10.10.20/24]}
+    %(e2c)s: {addresses: [10.10.10.30/24]}
   openvswitch:
     ports:
       - [patch0-1, patch1-0]
   bridges:
     ovs0: {interfaces: [patch0-1]}
-    ovs1: {interfaces: [patch1-0]}''' % {'ec': self.dev_e_client})
+    ovs1: {interfaces: [patch1-0]}''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         # Basic verification that the bridges/ports/interfaces are there in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
@@ -119,12 +120,13 @@ class _CommonTests():
             f.write('''network:
   ethernets:
     %(ec)s: {addresses: [10.10.10.20/24]}
+    %(e2c)s: {addresses: [10.10.10.30/24]}
   openvswitch:
     ports: [[patch0-1, patch1-0]]
   bonds:
     bond0: {interfaces: [patch1-0, %(ec)s]}
   bridges:
-    ovs0: {interfaces: [patch0-1, bond0]}''' % {'ec': self.dev_e_client})
+    ovs0: {interfaces: [patch0-1, bond0]}''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         # Basic verification that the bridges/ports/interfaces are there in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
@@ -137,6 +139,7 @@ class _CommonTests():
             f.write('''network:
   ethernets:
     %(ec)s: {addresses: [10.10.10.20/24]}
+    %(ec)s: {addresses: [10.10.10.30/24]}
   openvswitch:
     ports: [[patchx, patchy]]
   bonds:
@@ -283,7 +286,7 @@ class _CommonTests():
         self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
 
     def test_bridge_patch_ports(self):
-        self.setup_eth(None, False)
+        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br0'])
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br1'])
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-port', 'patch0-1'])
@@ -374,11 +377,12 @@ class _CommonTests():
             nameservers:
                 addresses: [10.5.32.99]
                 search: [maas]
+        %(e2c)s: {}
     vlans:
         %(ec)s.21:
             id: 21
             link: %(ec)s
-            mtu: 1500''' % {'ec': self.dev_e_client})
+            mtu: 1500''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'], universal_newlines=True)

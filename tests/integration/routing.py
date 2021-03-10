@@ -35,7 +35,6 @@ class _CommonTests():
         The on-link option was introduced as of NM 1.12+ (for IPv4)
         The on-link option was introduced as of NM 1.18+ (for IPv6)'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -59,7 +58,6 @@ class _CommonTests():
 
         The from option was introduced as of NM 1.8+'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -82,7 +80,6 @@ class _CommonTests():
 
         The table option was introduced as of NM 1.10+'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         table_id = '255' # This is the 'local' FIB of /etc/iproute2/rt_tables
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -263,7 +260,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     @unittest.skip("networkd does not handle non-unicast routes correctly yet (Invalid argument)")
     def test_route_type_blackhole(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -283,7 +279,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_route_with_policy(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
