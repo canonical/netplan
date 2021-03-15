@@ -70,7 +70,7 @@ class NetplanSet(utils.NetplanCommand):
         # Merge GLOBAL_KEYS into one of the available subtrees
         # Write to same file (if only one hint/subtree is available)
         # Write to FALLBACK_HINT if multiple hints/subtrees are available, as we do not know where it is supposed to go
-        if network.get('renderer') is not None or network.get('version') is not None:
+        if any(network.get(key) for key in GLOBAL_KEYS):
             # Write to the same file, if we have only one file-hint or to FALLBACK_HINT otherwise
             hint = list(subtrees)[0] if len(subtrees) == 1 else FALLBACK_HINT
             for key in GLOBAL_KEYS:
