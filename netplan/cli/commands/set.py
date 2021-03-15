@@ -26,6 +26,9 @@ import logging
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
 
+FALLBACK_HINT = '70-netplan-set'
+GLOBAL_KEYS = ['renderer', 'version']
+
 
 class NetplanSet(utils.NetplanCommand):
 
@@ -49,13 +52,11 @@ class NetplanSet(utils.NetplanCommand):
         self.run_command()
 
     def split_tree_by_hint(self, set_tree) -> (str, dict):
-        FALLBACK_HINT = '70-netplan-set'
         network = set_tree.get('network', {})
         # A mapping of 'origin-hint' -> YAML tree (one subtree per netdef)
         subtrees = dict()
-        global_keys = ['renderer', 'version']
         for devtype in network:
-            if devtype in global_keys:
+            if devtype in GLOBAL_KEYS:
                 continue  # special handling of global keys down below
             for netdef in network.get(devtype, []):
                 hint = FALLBACK_HINT
@@ -66,14 +67,14 @@ class NetplanSet(utils.NetplanCommand):
                 # Merge all netdef trees which are going to be written to the same file/hint
                 subtrees[hint] = self.merge(subtrees.get(hint, {}), netdef_tree)
 
-        # Merge global_keys into one of the available subtrees
+        # Merge GLOBAL_KEYS into one of the available subtrees
         # Write to same file (if only one hint/subtree is available)
         # Write to FALLBACK_HINT if multiple hints/subtrees are available, as we do not know where it is supposed to go
         if network.get('renderer') is not None or network.get('version') is not None:
             # Write to the same file, if we have only one file-hint or to FALLBACK_HINT otherwise
             hint = list(subtrees)[0] if len(subtrees) == 1 else FALLBACK_HINT
-            for var in global_keys:
-                tree = {'network': {var: network.get(var)}}
+            for key in GLOBAL_KEYS:
+                tree = {'network': {key: network.get(key)}}
                 subtrees[hint] = self.merge(subtrees.get(hint, {}), tree)
 
         # return a list of (str:hint, dict:subtree) tuples
