@@ -236,33 +236,33 @@ class TestSet(unittest.TestCase):
         self.assertEquals('Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}', str(err))
 
     def test_set_override_existing_file(self):
-        OVERRIDE = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
-        with open(OVERRIDE, 'w') as f:
+        override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
+        with open(override, 'w') as f:
             f.write(r'network: {ethernets: {eth0: {dhcp4: true}, eth1: {dhcp6: false}}}')
         self._set([r'ethernets.eth0.dhcp4=false'])
         self.assertFalse(os.path.isfile(self.path))
-        self.assertTrue(os.path.isfile(OVERRIDE))
-        with open(OVERRIDE, 'r') as f:
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
             out = f.read()
             self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: false', out)  # new
             self.assertIn('eth1:\n      dhcp6: false', out)  # old
 
     def test_set_override_existing_file_escaped_dot(self):
-        OVERRIDE = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
-        with open(OVERRIDE, 'w') as f:
+        override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
+        with open(override, 'w') as f:
             f.write(r'network: {ethernets: {eth0.123: {dhcp4: true}}}')
         self._set([r'ethernets.eth0\.123.dhcp4=false'])
         self.assertFalse(os.path.isfile(self.path))
-        self.assertTrue(os.path.isfile(OVERRIDE))
-        with open(OVERRIDE, 'r') as f:
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
 
     def test_set_override_multiple_existing_files(self):
-        FILE1 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth0.yaml')
-        with open(FILE1, 'w') as f:
+        file1 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth0.yaml')
+        with open(file1, 'w') as f:
             f.write(r'network: {ethernets: {eth0.1: {dhcp4: true}, eth0.2: {dhcp4: true}}}')
-        FILE2 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth1.yaml')
-        with open(FILE2, 'w') as f:
+        file2 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth1.yaml')
+        with open(file2, 'w') as f:
             f.write(r'network: {ethernets: {eth1: {dhcp4: true}}}')
         self._set([(r'network={renderer: NetworkManager, version: 2,'
                     r'ethernets:{'
@@ -271,11 +271,11 @@ class TestSet(unittest.TestCase):
                     r'eth0.2:{dhcp4: false}},'
                     r'bridges:{'
                     r'br99:{dhcp4: false}}}')])
-        self.assertTrue(os.path.isfile(FILE1))
-        with open(FILE1, 'r') as f:
+        self.assertTrue(os.path.isfile(file1))
+        with open(file1, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0.1:\n      dhcp4: false', f.read())
-        self.assertTrue(os.path.isfile(FILE2))
-        with open(FILE2, 'r') as f:
+        self.assertTrue(os.path.isfile(file2))
+        with open(file2, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth1:\n      dhcp4: false', f.read())
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
