@@ -35,7 +35,7 @@ For details of the configuration file format, see **netplan**(5).
 :    Write YAML files into this root instead of /
 
   --origin-hint
-:    Specify the name of the overwrite YAML file, e.g.: ``70-netplan-set`` => ``/etc/netplan/70-netplan-set.yaml``
+:    Specify a name for the config file, e.g.: ``70-netplan-set`` => ``/etc/netplan/70-netplan-set.yaml``
 
 # SEE ALSO
 

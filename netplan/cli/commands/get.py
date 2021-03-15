@@ -48,7 +48,7 @@ class NetplanGet(utils.NetplanCommand):
 
         if self.key != 'all':
             # The 'network.' prefix is optional for netsted keys, its always assumed to be there
-            if not self.key.startswith('network.'):
+            if not self.key.startswith('network.') and not self.key == 'network':
                 self.key = 'network.' + self.key
             # Split at '.' but not at '\.' via negative lookbehind expression
             for k in re.split(r'(?<!\\)\.', self.key):

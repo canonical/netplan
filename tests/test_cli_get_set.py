@@ -69,6 +69,12 @@ class TestSet(unittest.TestCase):
         with open(self.path, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'yes\'', f.read())
 
+    def test_set_global(self):
+        self._set([r'network={renderer: NetworkManager}'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            self.assertIn('network:\n  renderer: NetworkManager', f.read())
+
     def test_set_sequence(self):
         self._set(['ethernets.eth0.addresses=[1.2.3.4/24, \'5.6.7.8/24\']'])
         self.assertTrue(os.path.isfile(self.path))
@@ -132,14 +138,6 @@ class TestSet(unittest.TestCase):
         self.assertIsInstance(err, Exception)
         self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(err))
 
-    def test_set_invalid_yaml_read(self):
-        with open(self.path, 'w') as f:
-            f.write('''network: {}}''')
-        err = self._set(['ethernets.eth0.dhcp4=true'])
-        self.assertIsInstance(err, Exception)
-        self.assertTrue(os.path.isfile(self.path))
-        self.assertIn('expected <block end>, but found \'}\'', str(err))
-
     def test_set_append(self):
         with open(self.path, 'w') as f:
             f.write('''network:
@@ -184,7 +182,7 @@ class TestSet(unittest.TestCase):
             f.write('''network:\n  version: 2\n  renderer: NetworkManager
   ethernets:
     ens3: {dhcp4: yes, dhcp6: yes}
-    eth0: {addresses: [1.2.3.4]}''')
+    eth0: {addresses: [1.2.3.4/24]}''')
         self._set(['ethernets.eth0.addresses=NULL'])
         self._set(['ethernets.ens3.dhcp6=null'])
         self.assertTrue(os.path.isfile(self.path))
@@ -236,6 +234,55 @@ class TestSet(unittest.TestCase):
         err = self._set([r'ethernets.eth0={dhcp4:false}'])
         self.assertIsInstance(err, Exception)
         self.assertEquals('Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}', str(err))
+
+    def test_set_override_existing_file(self):
+        override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
+        with open(override, 'w') as f:
+            f.write(r'network: {ethernets: {eth0: {dhcp4: true}, eth1: {dhcp6: false}}}')
+        self._set([r'ethernets.eth0.dhcp4=false'])
+        self.assertFalse(os.path.isfile(self.path))
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: false', out)  # new
+            self.assertIn('eth1:\n      dhcp6: false', out)  # old
+
+    def test_set_override_existing_file_escaped_dot(self):
+        override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
+        with open(override, 'w') as f:
+            f.write(r'network: {ethernets: {eth0.123: {dhcp4: true}}}')
+        self._set([r'ethernets.eth0\.123.dhcp4=false'])
+        self.assertFalse(os.path.isfile(self.path))
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
+
+    def test_set_override_multiple_existing_files(self):
+        file1 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth0.yaml')
+        with open(file1, 'w') as f:
+            f.write(r'network: {ethernets: {eth0.1: {dhcp4: true}, eth0.2: {dhcp4: true}}}')
+        file2 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth1.yaml')
+        with open(file2, 'w') as f:
+            f.write(r'network: {ethernets: {eth1: {dhcp4: true}}}')
+        self._set([(r'network={renderer: NetworkManager, version: 2,'
+                    r'ethernets:{'
+                    r'eth1:{dhcp4: false},'
+                    r'eth0.1:{dhcp4: false},'
+                    r'eth0.2:{dhcp4: false}},'
+                    r'bridges:{'
+                    r'br99:{dhcp4: false}}}')])
+        self.assertTrue(os.path.isfile(file1))
+        with open(file1, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0.1:\n      dhcp4: false', f.read())
+        self.assertTrue(os.path.isfile(file2))
+        with open(file2, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth1:\n      dhcp4: false', f.read())
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+            self.assertIn('network:\n  bridges:\n    br99:\n      dhcp4: false', out)
+            self.assertIn('  version: 2', out)
+            self.assertIn('  renderer: NetworkManager', out)
 
 
 class TestGet(unittest.TestCase):
@@ -331,3 +378,9 @@ pin: 1234''', out)
     eth0:
       dhcp4: true
   version: 2\n''', out)
+
+    def test_get_network(self):
+        with open(self.path, 'w') as f:
+            f.write('network:\n  version: 2\n  renderer: NetworkManager')
+        out = self._get(['network'])
+        self.assertEquals('renderer: NetworkManager\nversion: 2\n', out)
