@@ -25,13 +25,13 @@ import sys
 import glob
 import subprocess
 import shutil
+import netifaces
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
 from netplan.cli.sriov import apply_sriov_config
 from netplan.cli.ovs import apply_ovs_cleanup
 
-import netifaces
 
 
 class NetplanApply(utils.NetplanCommand):
