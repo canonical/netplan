@@ -21,9 +21,8 @@ import tempfile
 import glob
 import netifaces
 
-from unittest.mock import patch
-
 import netplan.cli.utils as utils
+from unittest.mock import patch
 
 
 DEVICES = ['eth0', 'eth1', 'ens3', 'ens4', 'br0']
@@ -166,11 +165,11 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.get_interface_macaddress('eth42'), '')
 
     def test_netplan_get_filename_by_id(self):
-        FILE_A = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
-        FILE_B = os.path.join(self.workdir.name, 'etc/netplan/b.yaml')
-        with open(FILE_A, 'w') as f:
+        file_a = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        file_b = os.path.join(self.workdir.name, 'etc/netplan/b.yaml')
+        with open(file_a, 'w') as f:
             f.write('network:\n  ethernets:\n    id_a:\n      dhcp4: true')
-        with open(FILE_B, 'w') as f:
+        with open(file_b, 'w') as f:
             f.write('network:\n  ethernets:\n    id_b:\n      dhcp4: true\n    id_a:\n      dhcp4: true')
         # netdef:b can only be found in b.yaml
         basename = os.path.basename(utils.netplan_get_filename_by_id('id_b', self.workdir.name))
@@ -183,8 +182,8 @@ class TestUtils(unittest.TestCase):
         self.assertIsNone(utils.netplan_get_filename_by_id('some-id', self.workdir.name))
 
     def test_netplan_get_filename_by_id_invalid(self):
-        FILE = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
-        with open(FILE, 'w') as f:
+        file = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        with open(file, 'w') as f:
             f.write('''network:
   tunnels:
     id_a:
