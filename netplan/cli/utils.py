@@ -100,21 +100,12 @@ def nm_interfaces(paths, devices):
     return interfaces
 
 
-def systemctl_network_manager(action, sync=False):  # pragma: nocover (covered in autopkgtest)
-    service_name = NM_SERVICE_NAME
-
-    command = ['systemctl', action]
-    if not sync:
-        command.append('--no-block')
-
+def systemctl_network_manager(action, sync=False):
     # If the network-manager snap is installed use its service
     # name rather than the one of the deb packaged NetworkManager
     if is_nm_snap_enabled():
-        service_name = NM_SNAP_SERVICE_NAME
-
-    command.append(service_name)
-
-    subprocess.check_call(command)
+        return systemctl(action, [NM_SNAP_SERVICE_NAME], sync)
+    return systemctl(action, [NM_SERVICE_NAME], sync)  # pragma: nocover (covered in autopkgtest)
 
 
 def systemctl(action, services, sync=False):
