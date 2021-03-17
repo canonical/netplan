@@ -63,7 +63,7 @@ def get_generator_path():
     return os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
 
 
-def is_nm_snap_enabled():  # pragma: nocover (covered in autopkgtest)
+def is_nm_snap_enabled():
     return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
 
 
@@ -137,19 +137,19 @@ def networkctl_reconfigure(interfaces):
         subprocess.check_call(['networkctl', 'reconfigure'] + list(interfaces))
 
 
-def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtest)
+def systemctl_is_active(unit_pattern):
     '''Return True if at least one matching unit is running'''
     if subprocess.call(['systemctl', '--quiet', 'is-active', unit_pattern]) == 0:
         return True
     return False
 
 
-def systemctl_daemon_reload():  # pragma: nocover (covered in autopkgtest)
+def systemctl_daemon_reload():
     '''Reload systemd unit files from disk and re-calculate its dependencies'''
     subprocess.check_call(['systemctl', 'daemon-reload'])
 
 
-def ip_addr_flush(iface):  # pragma: nocover (covered in autopkgtest)
+def ip_addr_flush(iface):
     '''Flush all IP addresses of a given interface via iproute2'''
     subprocess.check_call(['ip', 'addr', 'flush', iface], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
