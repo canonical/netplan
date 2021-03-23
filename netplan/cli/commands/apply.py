@@ -25,13 +25,15 @@ import sys
 import glob
 import subprocess
 import shutil
+import netifaces
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
 from netplan.cli.sriov import apply_sriov_config
 from netplan.cli.ovs import apply_ovs_cleanup
 
-import netifaces
+
+OVS_CLEANUP_SERVICE = 'netplan-ovs-cleanup.service'
 
 
 class NetplanApply(utils.NetplanCommand):
@@ -149,7 +151,7 @@ class NetplanApply(utils.NetplanCommand):
 
         # stop backends
         if restart_networkd:
-            logging.debug('netplan generated networkd configuration changed, restarting networkd')
+            logging.debug('netplan generated networkd configuration changed, reloading networkd')
             # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
             # so let's make sure we only run it iff we're willing to run 'netplan generate'
             if run_generate:
@@ -161,7 +163,7 @@ class NetplanApply(utils.NetplanCommand):
             # upgraded system, we need to make sure to stop those.
             if utils.systemctl_is_active('netplan-wpa@*.service'):
                 wpa_services.insert(0, 'netplan-wpa@*.service')
-            utils.systemctl_networkd('stop', sync=sync, extra_services=wpa_services)
+            utils.systemctl('stop', wpa_services, sync=sync)
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
@@ -230,10 +232,16 @@ class NetplanApply(utils.NetplanCommand):
         # (re)start backends
         if restart_networkd:
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
-            netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')]
+            # exclude the special 'netplan-ovs-cleanup.service' unit
+            netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')
+                           if not f.endswith('/' + OVS_CLEANUP_SERVICE)]
             # Run 'systemctl start' command synchronously, to avoid race conditions
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
-            utils.systemctl_networkd('start', sync=True, extra_services=netplan_wpa + netplan_ovs)
+            utils.networkctl_reconfigure(utils.networkd_interfaces())
+            # 1st: execute OVS cleanup, to avoid races while applying OVS config
+            utils.systemctl('start', [OVS_CLEANUP_SERVICE], sync=True)
+            # 2nd: start all other services
+            utils.systemctl('start', netplan_wpa + netplan_ovs, sync=True)
         if restart_nm:
             # Flush all IP addresses of NM managed interfaces, to avoid NM creating
             # new, non netplan-* connection profiles, using the existing IPs.

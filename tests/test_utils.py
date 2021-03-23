@@ -84,6 +84,10 @@ then
 fi
 """.format(timeout_dsec))
 
+    def set_returncode(self, returncode):
+        with open(self.path, "a") as fp:
+            fp.write("exit %d" % returncode)
+
 
 class TestUtils(unittest.TestCase):
 
@@ -192,3 +196,100 @@ class TestUtils(unittest.TestCase):
       remote: 0.0.0.0
       key: 0.0.0.0''')
         self.assertIsNone(utils.netplan_get_filename_by_id('some-id', self.workdir.name))
+
+    def test_systemctl(self):
+        self.mock_systemctl = MockCmd('systemctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_systemctl.path) + os.pathsep + path_env
+        utils.systemctl('start', ['service1', 'service2'])
+        self.assertEquals(self.mock_systemctl.calls(), [['systemctl', 'start', '--no-block', 'service1', 'service2']])
+
+    def test_networkd_interfaces(self):
+        self.mock_networkctl = MockCmd('networkctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
+        self.mock_networkctl.set_output('''
+  1 lo              loopback carrier    unmanaged
+  2 ens3            ether    routable   configured
+  3 wlan0           wlan     routable   configuring
+174 wwan0           wwan     off        linger''')
+        res = utils.networkd_interfaces()
+        self.assertEquals(self.mock_networkctl.calls(), [['networkctl', '--no-pager', '--no-legend']])
+        self.assertIn('wlan0', res)
+        self.assertIn('ens3', res)
+
+    def test_networkctl_reconfigure(self):
+        self.mock_networkctl = MockCmd('networkctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
+        utils.networkctl_reconfigure(['eth0', 'eth1'])
+        self.assertEquals(self.mock_networkctl.calls(), [
+            ['networkctl', 'reload'],
+            ['networkctl', 'reconfigure', 'eth0', 'eth1']
+        ])
+
+    def test_is_nm_snap_enabled(self):
+        self.mock_cmd = MockCmd('systemctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        self.assertTrue(utils.is_nm_snap_enabled())
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['systemctl', '--quiet', 'is-enabled', 'snap.network-manager.networkmanager.service']
+        ])
+
+    def test_is_nm_snap_enabled_false(self):
+        self.mock_cmd = MockCmd('systemctl')
+        self.mock_cmd.set_returncode(1)
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        self.assertFalse(utils.is_nm_snap_enabled())
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['systemctl', '--quiet', 'is-enabled', 'snap.network-manager.networkmanager.service']
+        ])
+
+    def test_systemctl_network_manager(self):
+        self.mock_cmd = MockCmd('systemctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        utils.systemctl_network_manager('start')
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['systemctl', '--quiet', 'is-enabled', 'snap.network-manager.networkmanager.service'],
+            ['systemctl', 'start', '--no-block', 'snap.network-manager.networkmanager.service']
+        ])
+
+    def test_systemctl_is_active(self):
+        self.mock_cmd = MockCmd('systemctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        self.assertTrue(utils.systemctl_is_active('some.service'))
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['systemctl', '--quiet', 'is-active', 'some.service']
+        ])
+
+    def test_systemctl_is_active_false(self):
+        self.mock_cmd = MockCmd('systemctl')
+        self.mock_cmd.set_returncode(1)
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        self.assertFalse(utils.systemctl_is_active('some.service'))
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['systemctl', '--quiet', 'is-active', 'some.service']
+        ])
+
+    def test_systemctl_daemon_reload(self):
+        self.mock_cmd = MockCmd('systemctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        utils.systemctl_daemon_reload()
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['systemctl', 'daemon-reload']
+        ])
+
+    def test_ip_addr_flush(self):
+        self.mock_cmd = MockCmd('ip')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        utils.ip_addr_flush('eth42')
+        self.assertEquals(self.mock_cmd.calls(), [
+            ['ip', 'addr', 'flush', 'eth42']
+        ])

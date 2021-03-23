@@ -63,7 +63,7 @@ def get_generator_path():
     return os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
 
 
-def is_nm_snap_enabled():  # pragma: nocover (covered in autopkgtest)
+def is_nm_snap_enabled():
     return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
 
 
@@ -100,50 +100,55 @@ def nm_interfaces(paths, devices):
     return interfaces
 
 
-def systemctl_network_manager(action, sync=False):  # pragma: nocover (covered in autopkgtest)
-    service_name = NM_SERVICE_NAME
-
-    command = ['systemctl', action]
-    if not sync:
-        command.append('--no-block')
-
+def systemctl_network_manager(action, sync=False):
     # If the network-manager snap is installed use its service
     # name rather than the one of the deb packaged NetworkManager
     if is_nm_snap_enabled():
-        service_name = NM_SNAP_SERVICE_NAME
-
-    command.append(service_name)
-
-    subprocess.check_call(command)
+        return systemctl(action, [NM_SNAP_SERVICE_NAME], sync)
+    return systemctl(action, [NM_SERVICE_NAME], sync)  # pragma: nocover (covered in autopkgtest)
 
 
-def systemctl_networkd(action, sync=False, extra_services=[]):  # pragma: nocover (covered in autopkgtest)
-    command = ['systemctl', action]
+def systemctl(action, services, sync=False):
+    if len(services) >= 1:
+        command = ['systemctl', action]
 
-    if not sync:
-        command.append('--no-block')
+        if not sync:
+            command.append('--no-block')
 
-    command.append('systemd-networkd.service')
+        command.extend(services)
 
-    for service in extra_services:
-        command.append(service)
-
-    subprocess.check_call(command)
+        subprocess.check_call(command)
 
 
-def systemctl_is_active(unit_pattern):  # pragma: nocover (covered in autopkgtest)
+def networkd_interfaces():
+    interfaces = set()
+    out = subprocess.check_output(['networkctl', '--no-pager', '--no-legend'], universal_newlines=True)
+    for line in out.splitlines():
+        s = line.strip().split(' ')
+        if s[0].isnumeric() and s[-1] not in ['unmanaged', 'linger']:
+            interfaces.add(s[1])
+    return interfaces
+
+
+def networkctl_reconfigure(interfaces):
+    subprocess.check_call(['networkctl', 'reload'])
+    if len(interfaces) >= 1:
+        subprocess.check_call(['networkctl', 'reconfigure'] + list(interfaces))
+
+
+def systemctl_is_active(unit_pattern):
     '''Return True if at least one matching unit is running'''
     if subprocess.call(['systemctl', '--quiet', 'is-active', unit_pattern]) == 0:
         return True
     return False
 
 
-def systemctl_daemon_reload():  # pragma: nocover (covered in autopkgtest)
+def systemctl_daemon_reload():
     '''Reload systemd unit files from disk and re-calculate its dependencies'''
     subprocess.check_call(['systemctl', 'daemon-reload'])
 
 
-def ip_addr_flush(iface):  # pragma: nocover (covered in autopkgtest)
+def ip_addr_flush(iface):
     '''Flush all IP addresses of a given interface via iproute2'''
     subprocess.check_call(['ip', 'addr', 'flush', iface], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
