@@ -115,8 +115,7 @@ def systemctl(action, services, sync=False):
         if not sync:
             command.append('--no-block')
 
-        for service in services:
-            command.append(service)
+        command.extend(services)
 
         subprocess.check_call(command)
 
