@@ -47,7 +47,7 @@ class _CommonTests():
           via: 9876:BBBB::5
           on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client])
-        self.assert_iface_up(self.dev_e_client, ['inet 10.20.10.1'])
+        self.assert_iface_up(self.dev_e_client, ['inet6 9876:bbbb::11/70'])
         out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client],
                                       universal_newlines=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
