@@ -41,18 +41,22 @@ static void
 g_string_append_netdef_match(GString* s, const NetplanNetDefinition* def)
 {
     g_assert(!def->match.driver || def->set_name);
-    if (def->match.mac) {
-        g_string_append_printf(s, "mac:%s", def->match.mac);
-    } else if (def->match.original_name || def->set_name || def->type >= NETPLAN_DEF_TYPE_VIRTUAL) {
-        /* we always have the renamed name here */
-        g_string_append_printf(s, "interface-name:%s",
-                (def->type >= NETPLAN_DEF_TYPE_VIRTUAL) ? def->id
-                                          : (def->set_name ?: def->match.original_name));
+    if (def->match.mac || def->match.original_name || def->set_name || def->type >= NETPLAN_DEF_TYPE_VIRTUAL) {
+        if (def->match.mac) {
+            g_string_append_printf(s, "mac:%s,", def->match.mac);
+        }
+        /* MAC could change, e.g. for bond slaves. Ignore by interface-name as well */
+        if (def->match.original_name || def->set_name || def->type >= NETPLAN_DEF_TYPE_VIRTUAL) {
+            /* we always have the renamed name here */
+            g_string_append_printf(s, "interface-name:%s,",
+                    (def->type >= NETPLAN_DEF_TYPE_VIRTUAL) ? def->id
+                                            : (def->set_name ?: def->match.original_name));
+        }
     } else {
         /* no matches → match all devices of that type */
         switch (def->type) {
             case NETPLAN_DEF_TYPE_ETHERNET:
-                g_string_append(s, "type:ethernet");
+                g_string_append(s, "type:ethernet,");
                 break;
             /* This cannot be reached with just NM and networkd backends, as
              * networkd does not support wifi and thus we'll never blacklist a
@@ -929,13 +933,13 @@ nd_append_non_nm_ids(gpointer data, gpointer str)
 
     if (nd->backend != NETPLAN_BACKEND_NM) {
         if (nd->match.driver) {
+            /* TODO: NetworkManager supports (non-globbing) "driver:..." matching nowadays */
             /* NM cannot match on drivers, so ignore these via udev rules */
             if (!udev_rules)
                 udev_rules = g_string_new(NULL);
             g_string_append_printf(udev_rules, "ACTION==\"add|change\", SUBSYSTEM==\"net\", ENV{ID_NET_DRIVER}==\"%s\", ENV{NM_UNMANAGED}=\"1\"\n", nd->match.driver);
         } else {
             g_string_append_netdef_match((GString*) str, nd);
-            g_string_append((GString*) str, ",");
         }
     }
 }
