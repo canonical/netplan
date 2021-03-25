@@ -96,10 +96,10 @@ Virtual devices
      :   Device's MAC address in the form "XX:XX:XX:XX:XX:XX". Globs are not
          allowed.
 
-     ``driver`` (scalar)
+     ``driver`` (scalar or sequence of scalars) – sequence since **0.104**
      :   Kernel driver name, corresponding to the ``DRIVER`` udev property.
-         Globs are supported. Matching on driver is *only* supported with
-         networkd.
+         A sequence of globs is supported, any of which must match.
+         Matching on driver is *only* supported with networkd.
 
      Examples:
 
@@ -118,6 +118,12 @@ Virtual devices
             match:
               driver: ixgbe
               name: en*s0
+
+     - first card with a driver matching ``bcmgenet`` or ``smsc*``:
+
+            match:
+              driver: ["bcmgenet", "smsc*"]
+              name: en*
 
 ``set-name`` (scalar)
 
