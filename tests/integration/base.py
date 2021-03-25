@@ -333,17 +333,21 @@ class IntegrationTestsBase(unittest.TestCase):
         else:
             self.fail('timed out waiting for %s to get ready by NM' % iface)
 
-    def nm_wait_connected(self, iface, timeout):
-        for t in range(timeout):
+    def wait_output(self, cmd, expected_output, timeout=10):
+        for _ in range(timeout):
             try:
-                out = subprocess.check_output(['nmcli', 'dev', 'show', iface])
+                out = subprocess.check_output(cmd, universal_newlines=True)
             except subprocess.CalledProcessError:
-                out = b''
-            if b'(connected' in out:
+                out = ''
+            if expected_output in out:
                 break
+            sys.stdout.write('. ')  # waiting indicator
             time.sleep(1)
         else:
-            self.fail('timed out waiting for %s to get connected by NM:\n%s' % (iface, out.decode()))
+            self.fail('timed out waiting for "{}" to appear in {}'.format(expected_output, cmd))
+
+    def nm_wait_connected(self, iface, timeout):
+        self.wait_output(['nmcli', 'dev', 'show', iface], '(connected', timeout)
 
     @classmethod
     def is_active(klass, unit):

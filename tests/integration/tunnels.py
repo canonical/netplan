@@ -112,7 +112,9 @@ class _CommonTests():
           keepalive: 21
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
-        time.sleep(2)  # Give some time for handshake/connection between client & server
+        # Wait for handshake/connection between client & server
+        self.wait_output(['wg', 'show', 'wg0'], 'latest handshake')
+        self.wait_output(['wg', 'show', 'wg1'], 'latest handshake')
         # Verify server
         out = subprocess.check_output(['wg', 'show', 'wg0', 'private-key'], universal_newlines=True)
         self.assertIn("4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=", out)
