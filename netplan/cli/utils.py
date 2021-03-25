@@ -157,9 +157,15 @@ def is_interface_matching_name(interface, match_name):
 
 
 def is_interface_matching_driver_name(interface, match_driver):
+    driver_globs = match_driver
+    if not isinstance(driver_globs, list):
+        driver_globs = [match_driver]
     driver_name = get_interface_driver_name(interface)
     # globs are supported
-    return fnmatch.fnmatchcase(driver_name, match_driver)
+    return any(
+        fnmatch.fnmatchcase(driver_name, pattern)
+        for pattern in driver_globs
+    )
 
 
 def is_interface_matching_macaddress(interface, match_mac):
