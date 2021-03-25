@@ -162,6 +162,15 @@ class TestUtils(unittest.TestCase):
         iface = utils.find_matching_iface(DEVICES, match)
         self.assertEqual(iface, 'ens4')
 
+    @patch('netplan.cli.utils.get_interface_driver_name')
+    def test_find_matching_iface_name_and_drivers(self, gidn):
+        # we mock-out get_interface_driver_name to return useful values for the test
+        gidn.side_effect = lambda x: 'foo' if x == 'ens4' else 'bar'
+
+        match = {'name': 'ens?', 'driver': ['baz', 'f*', 'quux']}
+        iface = utils.find_matching_iface(DEVICES, match)
+        self.assertEqual(iface, 'ens4')
+
     @patch('netifaces.ifaddresses')
     def test_interface_macaddress(self, ifaddr):
         ifaddr.side_effect = lambda _: {netifaces.AF_LINK: [{'addr': '00:01:02:03:04:05'}]}
