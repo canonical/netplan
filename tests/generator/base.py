@@ -26,6 +26,8 @@ import string
 import tempfile
 import subprocess
 import unittest
+import ctypes
+import ctypes.util
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), 'generate')
@@ -35,6 +37,9 @@ os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_P
 
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'
+
+from netplan.configmanager import ConfigManager
+lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
 # common patterns for expected output
 ND_EMPTY = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=%s\nConfigureWithoutCarrier=yes\n'
@@ -83,6 +88,45 @@ class TestBase(unittest.TestCase):
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
         self.maxDiff = None
 
+    def normalize_yaml_value(self, line):
+        kv = line.replace('"', '').split(':', 1)
+        if len(kv) != 2 or kv[1].isspace() or kv[1] == '':
+            return line  # no normalization needed; no value given
+
+        val = kv[1].strip()
+        if val in ['n', 'no', 'off', 'false']:
+            kv[1] = 'false'
+        elif val in ['y', 'yes', 'on', 'true']:
+            kv[1] = 'true'
+        else:
+            kv[1] = val  # no normalization needed or known
+        return ': '.join(kv)
+
+    def validate_generated_yaml(self, conf, yaml):
+        cm = ConfigManager(self.workdir.name)
+        cm.parse()
+
+        for netdef in list(cm.interfaces):
+            if netdef in yaml:
+                lib.netplan_parse_yaml(conf.encode(), None)
+                lib._write_netplan_conf(netdef.encode(), self.workdir.name.encode())
+                lib.netplan_clear_netdefs()
+                with open(conf, 'r') as orig:
+                    with open(os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef)), 'r') as f:
+                        generated = f.read().replace('"', '')
+                        for line in orig.readlines():
+                            line = line.strip('\n')
+                            if line.endswith('}'):
+                                line = line[:-1]
+                                # TODO: make it work recursively
+                                # FIXME: add correct left whitespace padding to subsequent lines
+                                for l in line.split(' {', 1):
+                                    normalized = self.normalize_yaml_value(l)
+                                    self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
+                            else:
+                                normalized = self.normalize_yaml_value(line)
+                                self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
+
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
 
@@ -111,6 +155,7 @@ class TestBase(unittest.TestCase):
         else:
             self.assertEqual(p.returncode, 0, err)
         self.assertEqual(out, '')
+        self.validate_generated_yaml(conf, yaml)
         return err
 
     def eth_name(self):
