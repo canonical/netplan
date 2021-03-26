@@ -27,6 +27,8 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
     YAML_SCALAR_PLAIN(event, emitter, "match");
     YAML_MAPPING_OPEN(event, emitter);
     YAML_STRING(event, emitter, "name", def->match.original_name);
+    YAML_STRING(event, emitter, "macaddress", def->match.mac)
+    YAML_STRING(event, emitter, "driver", def->match.driver)
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 error: return FALSE; // LCOV_EXCL_LINE
@@ -120,6 +122,7 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autofree gchar *filename = NULL;
     g_autofree gchar *path = NULL;
+    gchar *tmp = NULL;
 
     /* NetworkManager produces one file per connection profile
     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
@@ -140,8 +143,12 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     /* build the netplan boilerplate YAML structure */
     YAML_SCALAR_PLAIN(event, emitter, "network");
     YAML_MAPPING_OPEN(event, emitter);
-    // TODO: global backend/renderer
     YAML_STRING_PLAIN(event, emitter, "version", "2");
+    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
+        YAML_STRING(event, emitter, "renderer", "NetworkManager");
+    } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
+        YAML_STRING(event, emitter, "renderer", "networkd");
+    }
     YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, def->id);
@@ -153,6 +160,22 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     if (def->has_match)
         write_match(event, emitter, def);
+
+    if (def->dhcp4) {
+        YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");
+    } else {
+        YAML_STRING_PLAIN(event, emitter, "dhcp4", "false");
+    }
+
+    YAML_STRING(event, emitter, "macaddress", def->set_mac);
+    YAML_STRING(event, emitter, "set-name", def->set_name);
+    if (def->mtubytes) {
+        tmp = g_strdup_printf("%u", def->mtubytes);
+        YAML_STRING_PLAIN(event, emitter, "mtu", tmp);
+        g_free(tmp);
+    }
+    if (def->emit_lldp)
+        YAML_STRING_PLAIN(event, emitter, "emit-lldp", "true");
 
     /* wake-on-lan */
     if (def->wake_on_lan)
@@ -167,6 +190,10 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     YAML_STRING(event, emitter, "pin", def->modem_params.pin);
     YAML_STRING(event, emitter, "sim-id", def->modem_params.sim_id);
     YAML_STRING(event, emitter, "sim-operator-id", def->modem_params.sim_operator_id);
+    YAML_STRING(event, emitter, "pin", def->modem_params.pin);
+    YAML_STRING(event, emitter, "username", def->modem_params.username);
+    YAML_STRING(event, emitter, "password", def->modem_params.password);
+    YAML_STRING(event, emitter, "number", def->modem_params.number);
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, def)) goto error;
