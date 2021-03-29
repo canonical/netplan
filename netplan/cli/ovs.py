@@ -52,6 +52,7 @@ def _del_dict(type, iface, column, key, value):
     # removes the exact value only if it was set by netplan
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, _escape_colon(value)])
 
+
 # for ovsdb remove: column key's value can not contain bare ':', need to escape with '\'
 def _escape_colon(literal):
     return re.sub(r'([^\\]):', r'\g<1>\:', literal)
