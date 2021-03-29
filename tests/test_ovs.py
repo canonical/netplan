@@ -108,6 +108,15 @@ Bootstrap: false'''
             call([OVS, 'remove', 'Bridge', 'ovs0', 'external-ids', 'netplan/rstp_enable'])
         ])
 
+    @patch('subprocess.check_call')
+    def test_clear_dict_colon(self, mock):
+        ovs.clear_setting('Bridge', 'ovs0', 'netplan/other-config/key','fa:16:3e:4b:19:3a')
+        mock.assert_has_calls([
+            call([OVS, 'remove', 'Bridge', 'ovs0', 'other-config', 'key', 'fa\:16\:3e\:4b\:19\:3a']),
+            call([OVS, 'remove', 'Bridge', 'ovs0', 'external-ids', 'netplan/other-config/key'])
+        ])
+        mock.mock_calls
+
     def test_is_ovs_interface(self):
         interfaces = dict()
         interfaces['ovs0'] = {'openvswitch': {'set-fail-mode': 'secure'}}
