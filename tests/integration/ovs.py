@@ -432,7 +432,7 @@ class _CommonTests():
       certificate: /another/cert.pem
       private-key: /private/key.pem
     external-ids:
-      somekey: somevalue
+      somekey: 55:44:33:22:11:00
     other-config:
       key: value
   ethernets:
@@ -466,6 +466,7 @@ class _CommonTests():
           iface-id: myhostname
         other-config:
           disable-in-band: true
+          hwaddr: aa:bb:cc:dd:ee:ff
     ovs1:
       openvswitch:
         # Add ovs1 as rstp cannot be used if bridge contains a bond interface
@@ -526,13 +527,15 @@ class _CommonTests():
         # Verify other-config
         self.assertIn(b'key=value', before['other-config-Open_vSwitch'])
         self.assertNotIn(b'key=value', after['other-config-Open_vSwitch'])
-        self.assertIn(b'ovs0,disable-in-band=true\n', before['other-config-Bridge'])
+        self.assertIn(b'hwaddr=aa:bb:cc:dd:ee:ff', before['other-config-Bridge'])
+        self.assertNotIn(b'hwaddr=aa:bb:cc:dd:ee:ff', after['other-config-Bridge'])
+        self.assertIn(b'ovs0,disable-in-band=true', before['other-config-Bridge'])
         self.assertIn(b'ovs0,\n', after['other-config-Bridge'])
         self.assertIn(b'eth42,disable-in-band=false\n', before['other-config-Interface'])
         self.assertIn(b'eth42,\n', after['other-config-Interface'])
         # Verify external-ids
-        self.assertIn(b'somekey=somevalue', before['external-ids-Open_vSwitch'])
-        self.assertNotIn(b'somekey=somevalue', after['external-ids-Open_vSwitch'])
+        self.assertIn(b'somekey=55:44:33:22:11:00', before['external-ids-Open_vSwitch'])
+        self.assertNotIn(b'somekey=55:44:33:22:11:00', after['external-ids-Open_vSwitch'])
         self.assertIn(b'iface-id=myhostname', before['external-ids-Bridge'])
         self.assertNotIn(b'iface-id=myhostname', after['external-ids-Bridge'])
         self.assertIn(b'iface-id=mylocaliface', before['external-ids-Interface'])
