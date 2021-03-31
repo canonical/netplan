@@ -438,6 +438,9 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile 
         case NETPLAN_AUTH_EAP_TTLS:
             g_key_file_set_string(kf, "802-1x", "eap", "ttls");
             break;
+        default:
+            g_debug("write_dot1x_auth_parameters: unhandled eap_method");
+            break;
     }
 
     if (auth->identity)
@@ -476,6 +479,9 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "ieee8021x");
+            break;
+        default:
+            g_debug("write_wifi_auth_parameters: unhandled key_management");
             break;
     }
 

@@ -164,6 +164,7 @@ typedef enum {
     NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK,
     NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP,
     NETPLAN_AUTH_KEY_MANAGEMENT_8021X,
+    NETPLAN_AUTH_KEY_MANAGEMENT_MAX,
 } NetplanAuthKeyManagementType;
 
 typedef enum {
@@ -171,6 +172,7 @@ typedef enum {
     NETPLAN_AUTH_EAP_TLS,
     NETPLAN_AUTH_EAP_PEAP,
     NETPLAN_AUTH_EAP_TTLS,
+    NETPLAN_AUTH_EAP_METHOD_MAX,
 } NetplanAuthEAPMethod;
 
 typedef struct missing_node {

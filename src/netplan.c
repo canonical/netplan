@@ -34,6 +34,26 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSettings auth)
+{
+    YAML_SCALAR_PLAIN(event, emitter, "auth");
+    YAML_MAPPING_OPEN(event, emitter);
+    YAML_STRING(event, emitter, "key-management", netplan_auth_key_management_type_to_str[auth.key_management]);
+    YAML_STRING(event, emitter, "method", netplan_auth_eap_method_to_str[auth.eap_method]);
+    YAML_STRING(event, emitter, "anonymous-identity", auth.anonymous_identity);
+    YAML_STRING(event, emitter, "identity", auth.identity);
+    YAML_STRING(event, emitter, "ca-certificate", auth.ca_certificate);
+    YAML_STRING(event, emitter, "client-certificate", auth.client_certificate);
+    YAML_STRING(event, emitter, "client-key", auth.client_key);
+    YAML_STRING(event, emitter, "client-key-password", auth.client_key_password);
+    YAML_STRING(event, emitter, "phase2-auth", auth.phase2_auth);
+    YAML_STRING(event, emitter, "password", auth.password);
+    YAML_MAPPING_CLOSE(event, emitter);
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 typedef struct {
     yaml_event_t* event;
     yaml_emitter_t* emitter;
@@ -90,6 +110,8 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         ap = value;
         YAML_SCALAR_QUOTED(event, emitter, ap->ssid);
         YAML_MAPPING_OPEN(event, emitter);
+        if (ap->has_auth)
+            write_auth(event, emitter, ap->auth);
         if (ap->hidden) {
             YAML_SCALAR_PLAIN(event, emitter, "hidden");
             YAML_SCALAR_PLAIN(event, emitter, "true");
@@ -176,6 +198,9 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     }
     if (def->emit_lldp)
         YAML_STRING_PLAIN(event, emitter, "emit-lldp", "true");
+
+    if (def->has_auth)
+        write_auth(event, emitter, def->auth);
 
     /* wake-on-lan */
     if (def->wake_on_lan)

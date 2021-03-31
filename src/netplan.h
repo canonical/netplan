@@ -89,4 +89,18 @@ static const char* const netplan_def_type_to_str[NETPLAN_DEF_TYPE_MAX_] = {
     [NETPLAN_DEF_TYPE_NM] = "nm-devices",
 };
 
+static const char* const netplan_auth_key_management_type_to_str[NETPLAN_AUTH_KEY_MANAGEMENT_MAX] = {
+    [NETPLAN_AUTH_KEY_MANAGEMENT_NONE] = "none",
+    [NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK] = "psk",
+    [NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP] = "eap",
+    [NETPLAN_AUTH_KEY_MANAGEMENT_8021X] = "802.1x",
+};
+
+static const char* const netplan_auth_eap_method_to_str[NETPLAN_AUTH_EAP_METHOD_MAX] = {
+    [NETPLAN_AUTH_EAP_NONE] = NULL,
+    [NETPLAN_AUTH_EAP_TLS] = "tls",
+    [NETPLAN_AUTH_EAP_PEAP] = "peap",
+    [NETPLAN_AUTH_EAP_TTLS] = "ttls",
+};
+
 void write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);
