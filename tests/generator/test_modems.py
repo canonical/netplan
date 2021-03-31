@@ -45,7 +45,6 @@ class TestNetworkManager(TestBase):
   renderer: NetworkManager
   modems:
     mobilephone:
-      mtu: 0
       number: "#666"
       username: test-user
       password: s0s3kr1t''')
