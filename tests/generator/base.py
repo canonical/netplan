@@ -148,51 +148,6 @@ class TestBase(unittest.TestCase):
                         #print("GENERATED", generated, flush=True)
                         self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
 
-        return
-        skip_to = None
-        cm = ConfigManager(self.workdir.name)
-        cm.parse()
-
-        # FIXME: the whole logic!
-        for netdef in list(cm.interfaces):
-            print("NETDEF", netdef, flush=True)
-            if netdef in yaml:
-                yaml_file = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef))
-                # Special case for NM generated YAML, using UUID
-                uuid = cm.interfaces.get(netdef, {}).get('networkmanager', {}).get('uuid')
-                if uuid:
-                    yaml_file = os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))
-                lib.netplan_parse_yaml(conf.encode(), None)
-                lib._write_netplan_conf(netdef.encode(), self.workdir.name.encode())
-                lib.netplan_clear_netdefs()
-                with open(conf, 'r') as orig:
-                    with open(yaml_file, 'r') as f:
-                        generated = f.read().replace('"', '')
-                        for line in orig.readlines():
-                            if skip_to and line != skip_to:
-                                continue
-                            skip_to = None
-                            print("LINE", line, flush=True)
-                            if line.endswith(':\n') and line[:-2].strip() in cm.interfaces:
-                                skip_to = line
-                                print("NEW INTERFACE", flush=True)
-                                break
-                            line = line.strip('\n').replace('"', '')
-                            if line.endswith('}'):
-                                if line.endswith('{}'):
-                                    break;
-                                line = line[:-1]
-                                # TODO: make it work recursively
-                                # FIXME: add correct left whitespace padding to subsequent lines
-                                for l in line.split(' {', 1):
-                                    normalized = self.normalize_yaml_value(l)
-                                    #print("GENERATED", generated, flush=True)
-                                    self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
-                            else:
-                                normalized = self.normalize_yaml_value(line)
-                                #print("GENERATED", generated, flush=True)
-                                self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
-
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
 
