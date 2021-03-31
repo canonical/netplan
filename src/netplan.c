@@ -54,6 +54,53 @@ write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSe
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+/* TODO: non-str types:
+{"min-links", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.min_links)},
+{"all-slaves-active", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(bond_params.all_slaves_active)},
+{"arp-ip-targets", YAML_SEQUENCE_NODE, handle_arp_ip_targets},
+{"gratuitous-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitous_arp)},
+{"gratuitious-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitous_arp)},
+{"packets-per-slave", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.packets_per_slave)},
+{"resend-igmp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.resend_igmp)},
+{"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.learn_interval)},
+{"primary", YAML_SCALAR_NODE, handle_bond_primary_slave, NULL, netdef_offset(bond_params.primary_slave)},
+*/
+    if (   def->bond_params.mode
+        || def->bond_params.monitor_interval
+        || def->bond_params.up_delay
+        || def->bond_params.down_delay
+        || def->bond_params.lacp_rate
+        || def->bond_params.transmit_hash_policy
+        || def->bond_params.selection_logic
+        || def->bond_params.arp_validate
+        || def->bond_params.arp_all_targets
+        || def->bond_params.fail_over_mac_policy
+        || def->bond_params.primary_reselect_policy
+        || def->bond_params.learn_interval
+        || def->bond_params.arp_interval)
+    YAML_SCALAR_PLAIN(event, emitter, "parameters");
+    YAML_MAPPING_OPEN(event, emitter);
+    YAML_STRING(event, emitter, "mode", def->bond_params.mode)
+    YAML_STRING(event, emitter, "mii-monitor-interval", def->bond_params.monitor_interval)
+    YAML_STRING(event, emitter, "up-delay", def->bond_params.up_delay)
+    YAML_STRING(event, emitter, "down-delay", def->bond_params.down_delay)
+    YAML_STRING(event, emitter, "lacp-rate", def->bond_params.lacp_rate)
+    YAML_STRING(event, emitter, "transmit-hash-policy", def->bond_params.transmit_hash_policy)
+    YAML_STRING(event, emitter, "ad-select", def->bond_params.selection_logic)
+    YAML_STRING(event, emitter, "arp-validate", def->bond_params.arp_validate)
+    YAML_STRING(event, emitter, "arp-all-targets", def->bond_params.arp_all_targets)
+    YAML_STRING(event, emitter, "fail-over-mac-policy", def->bond_params.fail_over_mac_policy)
+    YAML_STRING(event, emitter, "primary-reselect-policy", def->bond_params.primary_reselect_policy)
+    YAML_STRING(event, emitter, "learn-packet-interval", def->bond_params.learn_interval)
+    YAML_STRING(event, emitter, "arp-interval", def->bond_params.arp_interval)
+    YAML_MAPPING_CLOSE(event, emitter);
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 typedef struct {
     yaml_event_t* event;
     yaml_emitter_t* emitter;
@@ -201,6 +248,8 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     if (def->has_auth)
         write_auth(event, emitter, def->auth);
+
+    write_bond_params(event, emitter, def);
 
     /* wake-on-lan */
     if (def->wake_on_lan)
