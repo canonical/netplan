@@ -3,8 +3,9 @@
 # configuration files look as expected. These are run during "make check" and
 # don't touch the system configuration at all.
 #
-# Copyright (C) 2016 Canonical, Ltd.
+# Copyright (C) 2016-2021 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +29,7 @@ import subprocess
 import unittest
 import ctypes
 import ctypes.util
+import yaml
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), 'generate')
@@ -79,6 +81,9 @@ ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListen
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 
 
+TYPES = ['ethernets', 'wifis', 'modems', 'bridges', 'bonds', 'vlans', 'tunnels']
+
+
 class TestBase(unittest.TestCase):
 
     def setUp(self):
@@ -102,11 +107,55 @@ class TestBase(unittest.TestCase):
             kv[1] = val  # no normalization needed or known
         return ': '.join(kv)
 
-    def validate_generated_yaml(self, conf, yaml):
+    def validate_generated_yaml(self, conf, yaml_data):  # XXX: remove yaml_data?
+        generated = None
+        cm = ConfigManager(self.workdir.name)
+        cm.parse()
+        with open(conf, 'r') as orig:
+            for line in orig.readlines():
+                y = yaml.safe_load(line)
+                if not y:
+                    continue  # EOF
+                key = list(y)[0]
+                if key in TYPES:
+                    continue
+                elif key in cm.interfaces:
+                    print(" -- INTERFACE", key, flush=True)
+                    netdef = key
+                    yaml_file = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef))
+                    # Special case for NM generated YAML, using UUID
+                    uuid = cm.interfaces.get(netdef, {}).get('networkmanager', {}).get('uuid')
+                    if uuid:
+                        yaml_file = os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))
+                    lib.netplan_parse_yaml(conf.encode(), None)
+                    lib._write_netplan_conf(netdef.encode(), self.workdir.name.encode())
+                    lib.netplan_clear_netdefs()
+                    with open(yaml_file, 'r') as f:
+                        generated = f.read().replace('"', '')
+                print("LINE", line, flush=True)
+                if generated:
+                    line = line.strip('\n').replace('"', '')
+                    if line.endswith('}'):
+                        line = line[:-1]
+                        # TODO: make it work recursively
+                        # FIXME: add correct left whitespace padding to subsequent lines
+                        for l in line.split(' {', 1):
+                            normalized = self.normalize_yaml_value(l)
+                            #print("GENERATED", generated, flush=True)
+                            self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
+                    else:
+                        normalized = self.normalize_yaml_value(line)
+                        #print("GENERATED", generated, flush=True)
+                        self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
+
+        return
+        skip_to = None
         cm = ConfigManager(self.workdir.name)
         cm.parse()
 
+        # FIXME: the whole logic!
         for netdef in list(cm.interfaces):
+            print("NETDEF", netdef, flush=True)
             if netdef in yaml:
                 yaml_file = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef))
                 # Special case for NM generated YAML, using UUID
@@ -120,16 +169,28 @@ class TestBase(unittest.TestCase):
                     with open(yaml_file, 'r') as f:
                         generated = f.read().replace('"', '')
                         for line in orig.readlines():
+                            if skip_to and line != skip_to:
+                                continue
+                            skip_to = None
+                            print("LINE", line, flush=True)
+                            if line.endswith(':\n') and line[:-2].strip() in cm.interfaces:
+                                skip_to = line
+                                print("NEW INTERFACE", flush=True)
+                                break
                             line = line.strip('\n').replace('"', '')
                             if line.endswith('}'):
+                                if line.endswith('{}'):
+                                    break;
                                 line = line[:-1]
                                 # TODO: make it work recursively
                                 # FIXME: add correct left whitespace padding to subsequent lines
                                 for l in line.split(' {', 1):
                                     normalized = self.normalize_yaml_value(l)
+                                    #print("GENERATED", generated, flush=True)
                                     self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
                             else:
                                 normalized = self.normalize_yaml_value(line)
+                                #print("GENERATED", generated, flush=True)
                                 self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
