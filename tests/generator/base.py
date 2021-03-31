@@ -108,14 +108,19 @@ class TestBase(unittest.TestCase):
 
         for netdef in list(cm.interfaces):
             if netdef in yaml:
+                yaml_file = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef))
+                # Special case for NM generated YAML, using UUID
+                uuid = cm.interfaces.get(netdef, {}).get('networkmanager', {}).get('uuid')
+                if uuid:
+                    yaml_file = os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))
                 lib.netplan_parse_yaml(conf.encode(), None)
                 lib._write_netplan_conf(netdef.encode(), self.workdir.name.encode())
                 lib.netplan_clear_netdefs()
                 with open(conf, 'r') as orig:
-                    with open(os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef)), 'r') as f:
+                    with open(yaml_file, 'r') as f:
                         generated = f.read().replace('"', '')
                         for line in orig.readlines():
-                            line = line.strip('\n')
+                            line = line.strip('\n').replace('"', '')
                             if line.endswith('}'):
                                 line = line[:-1]
                                 # TODO: make it work recursively
@@ -155,7 +160,8 @@ class TestBase(unittest.TestCase):
         else:
             self.assertEqual(p.returncode, 0, err)
         self.assertEqual(out, '')
-        self.validate_generated_yaml(conf, yaml)
+        if not expect_fail:
+            self.validate_generated_yaml(conf, yaml)
         return err
 
     def eth_name(self):
