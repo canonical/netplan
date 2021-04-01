@@ -5,8 +5,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,7 +44,6 @@ class _CommonTests():
   version: 2
   renderer: %(r)s
   ethernets:
-    %(ec)s: {}
     myether:
       match: {name: %(e2c)s}
       dhcp4: yes
@@ -56,9 +56,8 @@ class _CommonTests():
       id: 2002
       link: myether
       dhcp4: true
-      ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-
+      ''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.dev_e2_client, 'nptestone', 'nptesttwo'])
         self.assert_iface_up('nptestone', ['nptestone@' + self.dev_e2_client, 'inet 10.9.8.7/24'])
         self.assert_iface_up('nptesttwo', ['nptesttwo@' + self.dev_e2_client, 'inet 192.168.5'])
         self.assertNotIn(b'default',
@@ -75,14 +74,13 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   vlans:
     myvlan:
       id: 101
       link: ethbn
       macaddress: aa:bb:cc:dd:ee:22
-        ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+        ''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'myvlan'])
         self.assert_iface_up('myvlan', ['myvlan@' + self.dev_e_client])
         with open('/sys/class/net/myvlan/address') as f:
             self.assertEqual(f.read().strip(), 'aa:bb:cc:dd:ee:22')

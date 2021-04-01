@@ -5,8 +5,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,17 +39,13 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
 
@@ -68,12 +65,10 @@ class _CommonTests():
         mode: active-backup
         primary: %(ec)s
       addresses: [ '10.10.10.1/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 10.10.10.1/24'])
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e2_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 10.10.10.1/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             result = f.read().strip()
             self.assertIn(self.dev_e_client, result)
@@ -90,19 +85,15 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
       parameters:
         all-slaves-active: true
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/all_slaves_active') as f:
@@ -117,19 +108,15 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: 802.3ad
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
@@ -144,20 +131,16 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: 802.3ad
         ad-select: bandwidth
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/ad_select') as f:
@@ -172,20 +155,16 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: 802.3ad
         lacp-rate: fast
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/lacp_rate') as f:
@@ -200,20 +179,16 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: active-backup
         fail-over-mac-policy: follow
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
@@ -230,19 +205,15 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: balance-xor
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
@@ -257,19 +228,15 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: balance-rr
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
@@ -284,20 +251,16 @@ class _CommonTests():
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
         mode: balance-rr
         packets-per-slave: 15
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
@@ -325,10 +288,9 @@ class _CommonTests():
         mii-monitor-interval: 50s
         resend-igmp: 100
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e2_client, ['master mybond'], ['inet '])
         self.assert_iface_up('mybond', ['inet 192.168.9.9/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             result = f.read().strip()
@@ -354,20 +316,16 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       match:
         name: %(ec)s
         macaddress: %(ec_mac)s
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
       macaddress: 00:01:02:03:04:05
       dhcp4: yes''' % {'r': self.backend,
                        'ec': self.dev_e_client,
-                       'e2c': self.dev_e2_client,
                        'ec_mac': self.dev_e_client_mac})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24', '00:01:02:03:04:05'])
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24', '00:01:02:03:04:05'])
 
     def test_bond_down_delay(self):
         self.setup_eth(None)
@@ -378,7 +336,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -386,13 +343,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         mode: active-backup
         mii-monitor-interval: 5
         down-delay: 10s
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/downdelay') as f:
@@ -407,7 +361,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -415,13 +368,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         mode: active-backup
         mii-monitor-interval: 5
         up-delay: 10000
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/updelay') as f:
@@ -436,7 +386,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -444,13 +393,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         mode: balance-xor
         arp-ip-targets: [ 192.168.5.1 ]
         arp-interval: 50s
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_interval') as f:
@@ -465,7 +411,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -473,13 +418,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         mode: balance-xor
         arp-interval: 50000
         arp-ip-targets: [ 192.168.5.1 ]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
@@ -494,7 +436,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -502,13 +443,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         mode: balance-xor
         arp-interval: 50000
         arp-ip-targets: [ 192.168.5.1, 192.168.5.34 ]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
@@ -525,7 +463,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -535,13 +472,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-interval: 50000
         arp-all-targets: all
         arp-validate: all
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_all_targets') as f:
@@ -556,7 +490,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -565,13 +498,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-ip-targets: [192.168.5.1]
         arp-interval: 50000
         arp-validate: all
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
@@ -596,7 +526,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -604,13 +533,10 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         mode: active-backup
         mii-monitor-interval: 5
         down-delay: 10000
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/downdelay') as f:
@@ -625,7 +551,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -633,13 +558,10 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         mode: active-backup
         mii-monitor-interval: 5
         up-delay: 10000
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/updelay') as f:
@@ -654,7 +576,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -662,13 +583,10 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         mode: balance-xor
         arp-ip-targets: [ 192.168.5.1 ]
         arp-interval: 50000
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_interval') as f:
@@ -683,7 +601,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -691,13 +608,10 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         mode: balance-xor
         arp-interval: 50000
         arp-ip-targets: [ 192.168.5.1 ]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
@@ -712,7 +626,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -722,13 +635,10 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         arp-interval: 50000
         arp-all-targets: all
         arp-validate: all
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_all_targets') as f:
@@ -743,7 +653,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbn:
       match: {name: %(ec)s}
-    %(e2c)s: {}
   bonds:
     mybond:
       parameters:
@@ -751,13 +660,10 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         mii-monitor-interval: 5
         learn-packet-interval: 15
       interfaces: [ethbn]
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['master mybond'],
-                             ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'mybond'])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:

@@ -4,10 +4,10 @@
 # Wifi (mac80211-hwsim). These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018-2020 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
-# Author: Lukas Märdian <lukas.maerdian@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -308,9 +308,9 @@ class IntegrationTestsBase(unittest.TestCase):
         for iface in ifaces:
             print(iface, end=' ', flush=True)
             if self.backend == 'NetworkManager':
-                self.nm_wait_connected(iface, 30)
+                self.nm_wait_connected(iface, 60)
             else:
-                self.networkd_wait_connected(iface, 30)
+                self.networkd_wait_connected(iface, 60)
 
     def nm_online_full(self, iface, timeout=60):
         '''Wait for NetworkManager connection to be completed (incl. IP4 & DHCP)'''

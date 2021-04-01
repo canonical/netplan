@@ -5,8 +5,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,7 +44,7 @@ class _CommonTests():
       access-points:
         "fake net": {}
         decoy: {}''' % {'r': self.backend})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_w_client])
         p = subprocess.Popen(['netplan', 'generate', '--mapping', 'mac80211_hwsim'],
                              stdout=subprocess.PIPE)
         out = p.communicate()[0]
@@ -62,14 +63,8 @@ class _CommonTests():
       access-points:
         "fake net": {}
         decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
-        self.generate_and_settle()
-        # nm-online doesn't wait for wifis, argh
-        if self.backend == 'NetworkManager':
-            self.nm_wait_connected(self.dev_w_client, 60)
-
-        self.assert_iface_up(self.dev_w_client,
-                             ['inet 192.168.5.[0-9]+/24'],
-                             ['master'])
+        self.generate_and_settle([self.dev_w_client])
+        self.assert_iface_up(self.dev_w_client, ['inet 192.168.5.[0-9]+/24'])
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
         if self.backend == 'NetworkManager':
@@ -102,14 +97,8 @@ wpa_passphrase=12345678
         "fake net":
           password: 12345678
         decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
-        self.generate_and_settle()
-        # nm-online doesn't wait for wifis, argh
-        if self.backend == 'NetworkManager':
-            self.nm_wait_connected(self.dev_w_client, 60)
-
-        self.assert_iface_up(self.dev_w_client,
-                             ['inet 192.168.5.[0-9]+/24'],
-                             ['master'])
+        self.generate_and_settle([self.dev_w_client])
+        self.assert_iface_up(self.dev_w_client, ['inet 192.168.5.[0-9]+/24'])
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
         if self.backend == 'NetworkManager':
@@ -147,11 +136,7 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
       access-points:
         "fake net":
           mode: ap''' % {'wc': self.dev_w_client})
-        self.generate_and_settle()
-
-        # nm-online doesn't wait for wifis, argh
-        self.nm_wait_connected(self.dev_w_client, 60)
-
+        self.generate_and_settle([self.dev_w_client])
         out = subprocess.check_output(['iw', 'dev', self.dev_w_client, 'info'],
                                       universal_newlines=True)
         self.assertIn('type AP', out)

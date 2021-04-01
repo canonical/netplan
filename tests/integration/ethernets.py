@@ -6,8 +6,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# AUthor: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,48 +37,32 @@ class _CommonTests():
             f.write('''network:
   renderer: %(r)s
   ethernets:
-    %(ec)s:
-      dhcp4: yes
     enmtus:
       match: {name: %(e2c)s}
       mtu: 1492
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet 192.168.5.[0-9]+/24'],
-                             ['master'])
+      dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.dev_e2_client])
         self.assert_iface_up(self.dev_e2_client,
-                             ['inet 192.168.6.[0-9]+/24'])
-        out = subprocess.check_output(['ip', 'a', 'show', self.dev_e2_client],
-                                      universal_newlines=True)
-        self.assertTrue('mtu 1492' in out, "checking MTU, should be 1492")
+                             ['inet 192.168.6.[0-9]+/24', 'mtu 1492'])
 
     def test_eth_mac(self):
         self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'set', self.dev_e2_client, 'address', self.dev_e2_client_mac])
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   ethernets:
-    %(ec)s:
-      dhcp4: yes
     enmac:
       match: {name: %(e2c)s}
       macaddress: 00:01:02:03:04:05
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+      dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.dev_e2_client])
         self.assert_iface_up(self.dev_e2_client,
-                             ['inet 192.168.6.[0-9]+/24', '00:01:02:03:04:05'],
-                             ['master'])
-        out = subprocess.check_output(['ip', 'link', 'show', self.dev_e2_client],
-                                      universal_newlines=True)
-        self.assertIn('ether 00:01:02:03:04:05', out)
-        subprocess.check_call(['ip', 'link', 'set', self.dev_e2_client,
-                               'address', self.dev_e2_client_mac])
+                             ['inet 192.168.6.[0-9]+/24', 'ether 00:01:02:03:04:05'])
 
+    # Supposed to fail if tested against NetworkManager < 1.14
+    # Interface globbing was introduced as of NM 1.14+
     def test_eth_glob(self):
-        '''Supposed to fail if tested against NetworkManager < 1.14
-
-        Interface globbing was introduced as of NM 1.14+'''
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -87,12 +72,8 @@ class _CommonTests():
       match: {name: "eth?2"}
       addresses: ["172.16.42.99/18", "1234:FFFF::42/64"]
 ''' % {'r': self.backend}) # globbing match on "eth42", i.e. self.dev_e_client
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet 172.16.42.99/18', 'inet6 1234:ffff::42/64'])
-        out = subprocess.check_output(['ip', 'a', 'show', 'dev', self.dev_e_client],
-                                      universal_newlines=True)
-        self.assertIn('inet 172.16.42.99/18', out)
-        self.assertIn('inet6 1234:ffff::42/64', out)
 
     def test_manual_addresses(self):
         self.setup_eth(None)
@@ -204,9 +185,8 @@ class _CommonTests():
   ethernets:
     %(ec)s:
       dhcp6: yes
-      accept-ra: yes
-    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+      accept-ra: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
 
     def test_ip6_token(self):
@@ -219,9 +199,8 @@ class _CommonTests():
     %(ec)s:
       dhcp6: yes
       accept-ra: yes
-      ipv6-address-token: ::42
-    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+      ipv6-address-token: ::42''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
 
     def test_link_local_all(self):
@@ -232,7 +211,7 @@ class _CommonTests():
   ethernets:
     %(ec)s:
       link-local: [ ipv4, ipv6 ]''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         # Verify IPv4 and IPv6 link local addresses are there
         self.assert_iface(self.dev_e_client, ['inet6 fe80:', 'inet 169.254.'])
 
@@ -253,10 +232,8 @@ class _CommonTests():
       set-name: iface2
       addresses: [10.10.10.22/24]
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c_mac': self.dev_e2_client_mac})
-        self.generate_and_settle()
-        self.assert_iface('iface1', ['inet 10.10.10.11'])
+        self.generate_and_settle(['iface1', 'iface2'])
         self.assert_iface_up('iface1', ['inet 10.10.10.11'])
-        self.assert_iface('iface2', ['inet 10.10.10.22'])
         self.assert_iface_up('iface2', ['inet 10.10.10.22'])
 
 
@@ -290,9 +267,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     %(ec)s:
       dhcp6: no
       accept-ra: no
-      addresses: [ '192.168.1.100/24' ]
-    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+      addresses: [ '192.168.1.100/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
     # TODO: implement link-local handling in NetworkManager backend and move this test into CommonTests()
@@ -304,7 +280,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     %(ec)s:
       link-local: [ ipv4 ]''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         # Verify IPv4 link local address is there, while IPv6 is not
         self.assert_iface(self.dev_e_client, ['inet 169.254.'], ['inet6 fe80:'])
 
@@ -317,7 +293,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     %(ec)s:
       link-local: [ ipv6 ]''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         # Verify IPv6 link local address is there, while IPv4 is not
         self.assert_iface(self.dev_e_client, ['inet6 fe80:'], ['inet 169.254.'])
 
@@ -331,7 +307,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     %(ec)s:
       addresses: ["172.16.5.3/20", "9876:BBBB::11/70"] # needed to bring up the interface at all
       link-local: []''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         # Verify IPv4 and IPv6 link local addresses are not there
         self.assert_iface(self.dev_e_client,
                           ['inet6 9876:bbbb::11/70', 'inet 172.16.5.3/20'],
@@ -352,9 +328,8 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
   ethernets:
     %(ec)s:
       dhcp6: no
-      addresses: [ '192.168.1.100/24' ]
-    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+      addresses: [ '192.168.1.100/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
 
 
