@@ -293,7 +293,7 @@ class IntegrationTestsBase(unittest.TestCase):
         if 'bond' not in iface:
             self.assertIn('state UP', out)
 
-    def generate_and_settle(self):
+    def generate_and_settle(self, wait_interfaces=None):
         '''Generate config, launch and settle NM and networkd'''
 
         # regenerate netplan config
@@ -301,20 +301,16 @@ class IntegrationTestsBase(unittest.TestCase):
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             self.fail('systemd units changed without reload')
         # start NM so that we can verify that it does not manage anything
-        subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
-        # wait until networkd is done
-        if self.is_active('systemd-networkd.service'):
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=30']) != 0:
-                subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
-                st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
-                st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
-                                               stderr=subprocess.PIPE, universal_newlines=True)
-                st_e2 = subprocess.check_output(['networkctl', 'status', self.dev_e2_client],
-                                                stderr=subprocess.PIPE, universal_newlines=True)
-                self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
+        subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
 
-        if subprocess.call(['nm-online', '--quiet', '--timeout=240', '--wait-for-startup']) != 0:
-            self.fail('timed out waiting for NetworkManager to settle down')
+        # Wait for interfaces to be ready:
+        ifaces = wait_interfaces if wait_interfaces is not None else [self.dev_e_client, self.dev_e2_client]
+        for iface in ifaces:
+            print(iface, end=' ', flush=True)
+            if self.backend == 'NetworkManager':
+                self.nm_wait_connected(iface, 30)
+            else:
+                self.networkd_wait_connected(iface, 30)
 
     def nm_online_full(self, iface, timeout=60):
         '''Wait for NetworkManager connection to be completed (incl. IP4 & DHCP)'''
@@ -341,13 +337,18 @@ class IntegrationTestsBase(unittest.TestCase):
                 out = ''
             if expected_output in out:
                 break
-            sys.stdout.write('. ')  # waiting indicator
+            sys.stdout.write('.')  # waiting indicator
             time.sleep(1)
         else:
+            subprocess.call(cmd)  # print output of the failed command
             self.fail('timed out waiting for "{}" to appear in {}'.format(expected_output, cmd))
 
-    def nm_wait_connected(self, iface, timeout):
+    def nm_wait_connected(self, iface, timeout=10):
         self.wait_output(['nmcli', 'dev', 'show', iface], '(connected', timeout)
+
+    def networkd_wait_connected(self, iface, timeout=10):
+        # "State: routable (configured)" or "State: degraded (configured)"
+        self.wait_output(['networkctl', 'status', iface], '(configured', timeout)
 
     @classmethod
     def is_active(klass, unit):
