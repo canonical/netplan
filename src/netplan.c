@@ -192,6 +192,8 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     g_autofree gchar *filename = NULL;
     g_autofree gchar *path = NULL;
     gchar *tmp = NULL;
+    GHashTableIter iter;
+    gpointer key, value;
 
     /* NetworkManager produces one file per connection profile
     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
@@ -250,6 +252,15 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
         write_auth(event, emitter, def->auth);
 
     write_bond_params(event, emitter, def);
+
+    /* TODO: interfaces: [...] */
+    g_hash_table_iter_init(&iter, netdefs);
+    while (g_hash_table_iter_next (&iter, &key, &value)) {
+        NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
+        if (!g_strcmp0(nd->bond, def->id)) {
+            //TODO: add to interfaces via libyaml
+        }
+    }
 
     /* wake-on-lan */
     if (def->wake_on_lan)
