@@ -189,6 +189,7 @@ class IntegrationTestsBase(unittest.TestCase):
         '''
         # give our router an IP
         subprocess.check_call(['ip', 'a', 'flush', 'dev', self.dev_e_ap])
+        subprocess.check_call(['ip', 'a', 'flush', 'dev', self.dev_e2_ap])
         if ipv6_mode is not None:
             subprocess.check_call(['ip', 'a', 'add', self.dev_e_ap_ip6, 'dev', self.dev_e_ap])
             subprocess.check_call(['ip', 'a', 'add', self.dev_e2_ap_ip6, 'dev', self.dev_e2_ap])
@@ -252,11 +253,11 @@ class IntegrationTestsBase(unittest.TestCase):
             if ipv6_mode:
                 dhcp_range += ',' + ipv6_mode
 
-        self.dnsmasq_log = os.path.join(self.workdir, 'dnsmasq-%s.log' % iface)
+        dnsmasq_log = os.path.join(self.workdir, 'dnsmasq-%s.log' % iface)
         lease_file = os.path.join(self.workdir, 'dnsmasq-%s.leases' % iface)
 
         p = subprocess.Popen(['dnsmasq', '--keep-in-foreground', '--log-queries',
-                              '--log-facility=' + self.dnsmasq_log,
+                              '--log-facility=' + dnsmasq_log,
                               '--conf-file=/dev/null',
                               '--dhcp-leasefile=' + lease_file,
                               '--bind-interfaces',
@@ -264,13 +265,12 @@ class IntegrationTestsBase(unittest.TestCase):
                               '--except-interface=lo',
                               '--enable-ra',
                               '--dhcp-range=' + dhcp_range])
-        self.addCleanup(p.wait)
-        self.addCleanup(p.terminate)
+        self.addCleanup(p.kill)
 
         if ipv6_mode is not None:
-            self.poll_text(self.dnsmasq_log, 'IPv6 router advertisement enabled')
+            self.poll_text(dnsmasq_log, 'IPv6 router advertisement enabled')
         else:
-            self.poll_text(self.dnsmasq_log, 'DHCP, IP range')
+            self.poll_text(dnsmasq_log, 'DHCP, IP range')
 
     def assert_iface(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface has been created'''
