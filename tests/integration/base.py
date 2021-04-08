@@ -305,12 +305,30 @@ class IntegrationTestsBase(unittest.TestCase):
 
         # Wait for interfaces to be ready:
         ifaces = wait_interfaces if wait_interfaces is not None else [self.dev_e_client, self.dev_e2_client]
-        for iface in ifaces:
+        for iface_state in ifaces:
+            split = iface_state.split('/', 1)
+            iface = split[0]
+            state = split[1] if len(split) > 1 else None
             print(iface, end=' ', flush=True)
             if self.backend == 'NetworkManager':
                 self.nm_wait_connected(iface, 60)
             else:
                 self.networkd_wait_connected(iface, 60)
+            # wait for iproute2 state change
+            if state:
+                self.wait_output(['ip', 'addr', 'show', iface], state, 30)
+
+    def state(self, iface, state):
+        '''Tell generate_and_settle() to wait for a specific state'''
+        return iface + '/' + state
+
+    def state_dhcp4(self, iface):
+        '''Tell generate_and_settle() to wait for assignment of an IP4 address from DHCP'''
+        return self.state(iface, 'inet 192.168.')  # TODO: make this a regex to check for specific DHCP ranges
+
+    def state_dhcp6(self, iface):
+        '''Tell generate_and_settle() to wait for assignment of an IP6 address from DHCP'''
+        return self.state(iface, 'inet6 260')  # TODO: make this a regex to check for specific DHCP ranges
 
     def nm_online_full(self, iface, timeout=60):
         '''Wait for NetworkManager connection to be completed (incl. IP4 & DHCP)'''

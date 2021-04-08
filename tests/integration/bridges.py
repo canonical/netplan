@@ -45,7 +45,9 @@ class _CommonTests():
     mybr:
       interfaces: [ethbr]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.state_dhcp4(self.dev_e_client),
+                                  self.dev_e2_client,
+                                  self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
@@ -77,7 +79,7 @@ class _CommonTests():
           ethbr: 50
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -103,7 +105,7 @@ class _CommonTests():
         ageing-time: 21
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -129,7 +131,7 @@ class _CommonTests():
         max-age: 12
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -155,7 +157,7 @@ class _CommonTests():
         hello-time: 1
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -181,7 +183,7 @@ class _CommonTests():
         forward-delay: 10
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -208,7 +210,7 @@ class _CommonTests():
         max-age: 100000
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -235,7 +237,7 @@ class _CommonTests():
           ethbr: 42
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
@@ -269,7 +271,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       dhcp4: yes''' % {'r': self.backend,
                        'ec': self.dev_e_client,
                        'ec_mac': self.dev_e_client_mac})
-        self.generate_and_settle([self.dev_e_client, 'br0'])
+        self.generate_and_settle([self.dev_e_client, self.state_dhcp4('br0')])
         self.assert_iface_up(self.dev_e_client, ['master br0'], ['inet '])
         self.assert_iface_up('br0', ['inet 192.168.5.[0-9]+/24', 'ether 00:01:02:03:04:05'])
 
@@ -332,7 +334,7 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         priority: 16384
         stp: false
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_dhcp4('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],

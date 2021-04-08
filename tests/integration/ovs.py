@@ -178,7 +178,10 @@ class _CommonTests():
         br-%(ec)s.100:
             id: 100
             link: br-%(ec)s''' % {'ec': self.dev_e_client})
-        self.generate_and_settle([self.dev_e_client, 'br-eth42', 'br-data', 'br-eth42.100'])
+        self.generate_and_settle([self.dev_e_client,
+                                  self.state_dhcp4('br-eth42'),
+                                  'br-data',
+                                  'br-eth42.100'])
         # Basic verification that the interfaces/ports are set up in OVS
         out = subprocess.check_output(['ovs-vsctl', 'show'])
         self.assertIn(b'    Bridge br-%b' % self.dev_e_client.encode(), out)

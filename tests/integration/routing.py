@@ -113,7 +113,7 @@ class _CommonTests():
           - to: 10.10.10.0/24
             via: 192.168.5.254
             metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle([self.dev_e_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_e_client)])
         self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])  # from DHCP
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))

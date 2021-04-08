@@ -57,7 +57,9 @@ class _CommonTests():
       link: myether
       dhcp4: true
       ''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'nptestone', 'nptesttwo'])
+        self.generate_and_settle([self.state_dhcp4(self.dev_e2_client),
+                                  'nptestone',
+                                  self.state_dhcp4('nptesttwo')])
         self.assert_iface_up('nptestone', ['nptestone@' + self.dev_e2_client, 'inet 10.9.8.7/24'])
         self.assert_iface_up('nptesttwo', ['nptesttwo@' + self.dev_e2_client, 'inet 192.168.5'])
         self.assertNotIn(b'default',

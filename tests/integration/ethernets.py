@@ -41,7 +41,7 @@ class _CommonTests():
       match: {name: %(e2c)s}
       mtu: 1492
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_e2_client)])
         self.assert_iface_up(self.dev_e2_client,
                              ['inet 192.168.6.[0-9]+/24', 'mtu 1492'])
 
@@ -56,7 +56,7 @@ class _CommonTests():
       match: {name: %(e2c)s}
       macaddress: 00:01:02:03:04:05
       dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_e2_client)])
         self.assert_iface_up(self.dev_e2_client,
                              ['inet 192.168.6.[0-9]+/24', 'ether 00:01:02:03:04:05'])
 
@@ -91,7 +91,7 @@ class _CommonTests():
         addresses: [172.1.2.3]
         search: ["fakesuffix"]
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.state_dhcp4(self.dev_e_client), self.dev_e2_client])
         if self.backend == 'NetworkManager':
             self.nm_online_full(self.dev_e_client)
         self.assert_iface_up(self.dev_e_client,
@@ -153,7 +153,7 @@ class _CommonTests():
       addresses: ["172.16.7.2/30", "4321:AAAA::99/80"]
       dhcp4: yes
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client, self.state_dhcp4(self.dev_e2_client)])
         if self.backend == 'NetworkManager':
             self.nm_online_full(self.dev_e2_client)
         self.assert_iface_up(self.dev_e_client,
@@ -186,7 +186,7 @@ class _CommonTests():
     %(ec)s:
       dhcp6: yes
       accept-ra: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle([self.dev_e_client])
+        self.generate_and_settle([self.state_dhcp6(self.dev_e_client)])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
 
     def test_ip6_token(self):
@@ -200,7 +200,7 @@ class _CommonTests():
       dhcp6: yes
       accept-ra: yes
       ipv6-address-token: ::42''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle([self.dev_e_client])
+        self.generate_and_settle([self.state_dhcp6(self.dev_e_client)])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
 
     def test_link_local_all(self):

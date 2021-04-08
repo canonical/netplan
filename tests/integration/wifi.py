@@ -44,7 +44,7 @@ class _CommonTests():
       access-points:
         "fake net": {}
         decoy: {}''' % {'r': self.backend})
-        self.generate_and_settle([self.dev_w_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_w_client)])
         p = subprocess.Popen(['netplan', 'generate', '--mapping', 'mac80211_hwsim'],
                              stdout=subprocess.PIPE)
         out = p.communicate()[0]
@@ -63,7 +63,7 @@ class _CommonTests():
       access-points:
         "fake net": {}
         decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
-        self.generate_and_settle([self.dev_w_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_w_client)])
         self.assert_iface_up(self.dev_w_client, ['inet 192.168.5.[0-9]+/24'])
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
@@ -97,7 +97,7 @@ wpa_passphrase=12345678
         "fake net":
           password: 12345678
         decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
-        self.generate_and_settle([self.dev_w_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_w_client)])
         self.assert_iface_up(self.dev_w_client, ['inet 192.168.5.[0-9]+/24'])
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
@@ -136,7 +136,7 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
       access-points:
         "fake net":
           mode: ap''' % {'wc': self.dev_w_client})
-        self.generate_and_settle([self.dev_w_client])
+        self.generate_and_settle([self.state_dhcp4(self.dev_w_client)])
         out = subprocess.check_output(['iw', 'dev', self.dev_w_client, 'info'],
                                       universal_newlines=True)
         self.assertIn('type AP', out)
