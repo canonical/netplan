@@ -136,7 +136,7 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
       access-points:
         "fake net":
           mode: ap''' % {'wc': self.dev_w_client})
-        self.generate_and_settle([self.state_dhcp4(self.dev_w_client)])
+        self.generate_and_settle([self.state(self.dev_w_client, 'inet 10.')])
         out = subprocess.check_output(['iw', 'dev', self.dev_w_client, 'info'],
                                       universal_newlines=True)
         self.assertIn('type AP', out)
@@ -152,10 +152,7 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
                                       universal_newlines=True)
         self.assertIn('type managed', out)
         self.assertIn('ssid fake net', out)
-        out = subprocess.check_output(['ip', 'a', 'show', self.dev_w_ap],
-                                      universal_newlines=True)
-        self.assertIn('state UP', out)
-        self.assertIn('inet 10.', out)
+        self.assert_iface_up(self.dev_w_ap, ['inet 10.'])
 
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
