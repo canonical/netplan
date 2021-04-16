@@ -2323,7 +2323,6 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"mode", YAML_SCALAR_NODE, handle_tunnel_mode},
     {"local", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.local_ip)},
     {"remote", YAML_SCALAR_NODE, handle_tunnel_addr, NULL, netdef_offset(tunnel.remote_ip)},
-    {"ttl", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(tunnel.ttl)},
 
     /* Handle key/keys for clarity in config: this can be either a scalar or
      * mapping of multiple keys (input and output)

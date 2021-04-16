@@ -19,7 +19,7 @@
 from .base import TestBase, ND_WITHIPGW, ND_EMPTY, NM_WG, ND_WG
 
 
-def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
+def prepare_config_for_mode(renderer, mode, key=None):
     config = """network:
   version: 2
   renderer: {}
@@ -36,16 +36,15 @@ def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
         local_ip = "10.10.10.10"
         remote_ip = "20.20.20.20"
 
-    append_ttl = '\n      ttl: {}'.format(ttl) if ttl else ''
     config += """
   tunnels:
     tun0:
       mode: {}
       local: {}
-      remote: {}{}
+      remote: {}
       addresses: [ 15.15.15.15/24 ]
       gateway4: 20.20.20.21
-""".format(mode, local_ip, remote_ip, append_ttl)
+""".format(mode, local_ip, remote_ip)
 
     # Handle key/keys as str or dict as required by the test
     if type(key) is str:
@@ -745,7 +744,7 @@ ConfigureWithoutCarrier=yes
 
     def test_ipip(self):
         """[networkd] Validate generation of IPIP tunnels"""
-        config = prepare_config_for_mode('networkd', 'ipip', ttl=64)
+        config = prepare_config_for_mode('networkd', 'ipip')
         self.generate(config)
         self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
@@ -755,7 +754,6 @@ Kind=ipip
 Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
-TTL=64
 ''',
                               'tun0.network': '''[Match]
 Name=tun0
@@ -1068,7 +1066,7 @@ method=ignore
 
     def test_ipip(self):
         """[NetworkManager] Validate generation of IPIP tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'ipip', ttl=64)
+        config = prepare_config_for_mode('NetworkManager', 'ipip')
         self.generate(config)
         self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
@@ -1079,7 +1077,6 @@ interface-name=tun0
 mode=1
 local=10.10.10.10
 remote=20.20.20.20
-ttl=64
 
 [ipv4]
 method=manual
@@ -1262,20 +1259,6 @@ class TestConfigErrors(TestBase):
 '''
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: missing 'remote' property for tunnel", out)
-
-    def test_invalid_ttl(self):
-        """Fail if TTL not in range [1...255]"""
-        config = '''network:
-  version: 2
-  tunnels:
-    tun0:
-      mode: ipip
-      local: 20.20.20.20
-      remote: 10.10.10.10
-      ttl: 300
-'''
-        out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: tun0: 'ttl' property for tunnel must be in range [1...255]", out)
 
     def test_wrong_local_ip_for_mode_v4(self):
         """Show an error when an IPv6 local addr is used for an IPv4 tunnel mode"""
