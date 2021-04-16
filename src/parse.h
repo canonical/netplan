@@ -246,7 +246,6 @@ struct net_definition {
     NetplanDefType type;
     NetplanBackend backend;
     char* id;
-    char* filename;
     /* only necessary for NetworkManager connection UUIDs in some cases */
     uuid_t uuid;
 
@@ -392,6 +391,8 @@ struct net_definition {
     NetplanOVSSettings ovs_settings;
 
     NetplanBackendSettings backend_settings;
+
+    char* filename;
 };
 
 typedef enum {
