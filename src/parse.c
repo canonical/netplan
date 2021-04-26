@@ -2712,6 +2712,7 @@ netplan_clear_netdefs()
         g_clear_list(&netdefs_ordered, g_free);
         netdefs_ordered = NULL;
     }
+    backend_global = NETPLAN_BACKEND_NONE;
     return n;
 }
 

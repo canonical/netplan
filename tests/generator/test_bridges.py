@@ -201,6 +201,7 @@ UseMTU=true
                                               '[Network]\nLinkLocalAddressing=no\nBridge=br0\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
+        self.assertFalse(True)
 
     @unittest.skipIf("CODECOV_TOKEN" in os.environ, "Skip on codecov.io: GLib changed hashtable sorting")
     def test_eth_bridge_nm_blacklist(self):  # pragma: nocover
@@ -298,6 +299,7 @@ UseMTU=true
                                               '[Bridge]\nCost=70\nPriority=14\n',
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
+        self.assertFalse(True)
 
 
 class TestNetworkManager(TestBase):

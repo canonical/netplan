@@ -29,6 +29,16 @@
     yaml_mapping_end_event_initialize(event_ptr); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
 }
+#define YAML_SEQUENCE_OPEN(event_ptr, emitter_ptr) \
+{ \
+    yaml_sequence_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_SEQ_TAG, 1, YAML_FLOW_SEQUENCE_STYLE); \
+    if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
+}
+#define YAML_SEQUENCE_CLOSE(event_ptr, emitter_ptr) \
+{ \
+    yaml_sequence_end_event_initialize(event_ptr); \
+    if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
+}
 #define YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, scalar) \
 { \
     yaml_scalar_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)scalar, strlen(scalar), 1, 0, YAML_PLAIN_SCALAR_STYLE); \
@@ -43,15 +53,15 @@
 #define YAML_STRING(event_ptr, emitter_ptr, key, value_ptr) \
 { \
     if (value_ptr) { \
-        YAML_SCALAR_PLAIN(event, emitter, key); \
-        YAML_SCALAR_QUOTED(event, emitter, value_ptr); \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
+        YAML_SCALAR_QUOTED(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
 #define YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, value_ptr) \
 { \
     if (value_ptr) { \
-        YAML_SCALAR_PLAIN(event, emitter, key); \
-        YAML_SCALAR_PLAIN(event, emitter, value_ptr); \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
 /* open YAML emitter, document, stream and initial mapping */
