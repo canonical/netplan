@@ -156,8 +156,6 @@ class TestBase(unittest.TestCase):
         generated = None
         y1 = None
         y2 = None
-        #cm = ConfigManager(self.workdir.name)
-        #cm.parse()
 
         if len(extra_args) > 0:
             conf = extra_args[0]  # TODO: handle multiple files
@@ -166,14 +164,11 @@ class TestBase(unittest.TestCase):
         lib._write_netplan_conf_full('out.yaml'.encode(), self.workdir.name.encode())
         lib.netplan_clear_netdefs()
 
-        # deepdiff code
         with open(conf, 'r') as orig:
             y1 = yaml.safe_load(orig.read())
             # Consider 'network: {}' and 'network: {version: 2}' to be empty
             if y1 is None or y1 == {'network':{}} or y1 == {'network':{'version':2}}:
                 y1 = yaml.safe_load('')
-            #if DeepDiff(y1, {'network': {}}) == {} or DeepDiff(y1, {'network': {'version': 2}}) == {}:
-            #    y1 = yaml.safe_load('')
             generated_path = os.path.join(self.confdir, 'out.yaml')
             if os.path.isfile(generated_path):
                 with open(generated_path, 'r') as generated:
@@ -205,70 +200,6 @@ class TestBase(unittest.TestCase):
                     for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):
                         print(line, flush=True)
                     self.fail('Files do not match')
-
-
-
-
-
-
-            return # XXX older code
-            ddiff = DeepDiff(y1, y2, ignore_order=True, report_repetition=True)
-            if ddiff != {}:
-                # print error conditions
-                #print('ORIGINAL:\n' + A)
-                #print('GENERATED:\n' + B)
-                for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):
-                    print(line, flush=True)
-                print(ddiff)
-                self.fail('YAMLs don\'t match, check diff')
-
-        return  # XXX: old code
-
-        with open(conf, 'r') as orig:
-            for line in orig.readlines():
-                line = line.split('#', 1)[0].strip()  # ignore comments
-                y = yaml.safe_load(line)
-                print('Y', y, flush=True)
-                if not y:
-                    continue  # EOF
-                key = list(y)[0]
-                if key in TYPES:
-                    continue
-                # TODO: properly handle 'renderer' on TYPE level
-                # XXX: improve handling of block sequence
-                #elif key in cm.interfaces and not line.startswith('- ') and not line.startswith('renderer:'):
-                    #print(" -- INTERFACE", key, flush=True)
-                    #netdef = key
-                    #yaml_file = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef))
-                    # Special case for NM generated YAML, using UUID
-                    #uuid = cm.interfaces.get(netdef, {}).get('networkmanager', {}).get('uuid')
-                    #if uuid:
-                    #    yaml_file = os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))
-                    #lib.netplan_parse_yaml(conf.encode(), None)
-                    #lib._write_netplan_conf(netdef.encode(), self.workdir.name.encode())
-                    #lib._write_netplan_conf_full('out.yaml'.encode(), None)
-                    #lib.netplan_clear_netdefs()
-                yaml_file = os.path.join(self.confdir, 'out.yaml')
-                with open(yaml_file, 'r') as f:
-                    generated = f.read().replace('"', '')
-                    # if not generated:
-                    #     self.fail('empty file {}'.format(yaml_file))
-                print("LINE", line, flush=True)
-                if generated:
-                    line = line.strip('\n').replace('"', '')
-                    if line.endswith('}'):
-                        line = line[:-1]
-                        # TODO: make it work recursively
-                        # FIXME: add correct left whitespace padding to subsequent lines
-                        for l in line.split(' {', 1):
-                            normalized = self.normalize_yaml_value(l)
-                            #print("GENERATED", generated, flush=True)
-                            self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
-                    else:
-                        normalized = self.normalize_yaml_value(line)
-                        #print("GENERATED", generated, flush=True)
-                        self.assertIn(normalized, generated, "Please support this setting in the YAML generator (netplan.c)")
-        return
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
