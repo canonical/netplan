@@ -22,6 +22,7 @@ import yaml
 import tempfile
 import re
 import logging
+import shutil
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
@@ -159,7 +160,8 @@ class NetplanSet(utils.NetplanCommand):
             # Validate the newly created file, by parsing it via libnetplan
             utils.netplan_parse(tmpp)
             # Valid, move it to final destination
-            os.replace(tmpp, absp)
+            shutil.copy(tmpp, absp)
+            os.remove(tmpp)
         elif os.path.isfile(absp):
             # Clear file if the last/only key got removed
             os.remove(absp)
