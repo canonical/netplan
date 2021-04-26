@@ -214,7 +214,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     GHashTableIter iter;
     gpointer key, value;
 
-    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
+    if (netplan_def_type_to_str[def->type])
+        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
     YAML_MAPPING_OPEN(event, emitter);
     YAML_SCALAR_PLAIN(event, emitter, def->id);
     YAML_MAPPING_OPEN(event, emitter);
