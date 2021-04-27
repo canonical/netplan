@@ -57,9 +57,6 @@ error: return FALSE; // LCOV_EXCL_LINE
 static gboolean
 write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
-    if (def->type != NETPLAN_DEF_TYPE_BOND)
-        return FALSE;
-
     if (def->bond_params.mode
         || def->bond_params.monitor_interval
         || def->bond_params.up_delay
@@ -113,6 +110,54 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
                 YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->bond_params.arp_ip_targets, char*, i));
             YAML_SEQUENCE_CLOSE(event, emitter);
         }
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
+static gboolean
+write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def, const GArray *interfaces)
+{
+    if (def->bridge_params.ageing_time
+        || def->bridge_params.priority
+        || def->bridge_params.port_priority
+        || def->bridge_params.forward_delay
+        || def->bridge_params.hello_time
+        || def->bridge_params.max_age
+        || def->bridge_params.path_cost
+        || def->bridge_params.stp) {
+        YAML_SCALAR_PLAIN(event, emitter, "parameters");
+        YAML_MAPPING_OPEN(event, emitter);
+        YAML_STRING_PLAIN(event, emitter, "ageing-time", def->bridge_params.ageing_time);
+        YAML_STRING_PLAIN(event, emitter, "forward-delay", def->bridge_params.forward_delay);
+        YAML_STRING_PLAIN(event, emitter, "hello-time", def->bridge_params.hello_time);
+        YAML_STRING_PLAIN(event, emitter, "max-age", def->bridge_params.max_age);
+        if (def->bridge_params.priority)
+            YAML_STRING_PLAIN(event, emitter, "priority", g_strdup_printf("%u", def->bridge_params.priority)); //XXX: free the strdup'ed string
+        if (def->bridge_params.stp)
+            YAML_STRING_PLAIN(event, emitter, "stp", "true");
+
+        YAML_SCALAR_PLAIN(event, emitter, "port-priority");
+        YAML_MAPPING_OPEN(event, emitter);
+        for (unsigned i = 0; i < interfaces->len; ++i) {
+            NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+            if (nd->bridge_params.port_priority) {
+                YAML_STRING_PLAIN(event, emitter, nd->id, g_strdup_printf("%u", nd->bridge_params.port_priority)); //XXX: free the strdup'ed string
+            }
+        }
+        YAML_MAPPING_CLOSE(event, emitter);
+
+        YAML_SCALAR_PLAIN(event, emitter, "path-cost");
+        YAML_MAPPING_OPEN(event, emitter);
+        for (unsigned i = 0; i < interfaces->len; ++i) {
+            NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+            if (nd->bridge_params.path_cost) {
+                YAML_STRING_PLAIN(event, emitter, nd->id, g_strdup_printf("%u", nd->bridge_params.path_cost)); //XXX: free the strdup'ed string
+            }
+        }
+        YAML_MAPPING_CLOSE(event, emitter);
+
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;
@@ -246,27 +291,29 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     switch (def->type) {
         case NETPLAN_DEF_TYPE_BRIDGE:
         case NETPLAN_DEF_TYPE_BOND:
-            tmp_arr = g_array_new(FALSE, FALSE, sizeof(char*));
+            tmp_arr = g_array_new(FALSE, FALSE, sizeof(NetplanNetDefinition*));
             g_hash_table_iter_init(&iter, netdefs);
             while (g_hash_table_iter_next (&iter, &key, &value)) {
                 NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
                 if (g_strcmp0(nd->bond, def->id) == 0 || g_strcmp0(nd->bridge, def->id) == 0)
-                    g_array_append_val(tmp_arr, nd->id);
+                    g_array_append_val(tmp_arr, nd);
             }
             if (tmp_arr->len > 0) {
                 YAML_SCALAR_PLAIN(event, emitter, "interfaces");
                 YAML_SEQUENCE_OPEN(event, emitter);
-                for (unsigned i = 0; i < tmp_arr->len; ++i)
-                    YAML_SCALAR_PLAIN(event, emitter, g_array_index(tmp_arr, char*, i));
+                for (unsigned i = 0; i < tmp_arr->len; ++i) {
+                    NetplanNetDefinition *nd = g_array_index(tmp_arr, NetplanNetDefinition*, i);
+                    YAML_SCALAR_PLAIN(event, emitter, nd->id);
+                }
                 YAML_SEQUENCE_CLOSE(event, emitter);
             }
+            write_bond_params(event, emitter, def);
+            write_bridge_params(event, emitter, def, tmp_arr);
             g_array_free(tmp_arr, TRUE);
             break;
         default:
             break;
     }
-
-    write_bond_params(event, emitter, def);
 
     /* wake-on-lan */
     if (def->wake_on_lan)
