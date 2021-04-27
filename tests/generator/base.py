@@ -140,8 +140,8 @@ class TestBase(unittest.TestCase):
                 '        gratuitous-arp: ' + m.group(1)
             ]
         # remove default values
-        elif line.endswith(' {}'):
-            return []
+        elif line.endswith(': {}'):
+            return [line[:-3]]
         elif line == '  version: 2':
             return []
         elif line == '          mode: infrastructure':
@@ -172,10 +172,13 @@ class TestBase(unittest.TestCase):
             generated_path = os.path.join(self.confdir, 'out.yaml')
             if os.path.isfile(generated_path):
                 with open(generated_path, 'r') as generated:
-                    y2 = yaml.safe_load(generated.read())
+                    out = generated.read()
+                    # print('real Y2', out)
+                    y2 = yaml.safe_load(out)
             else:
                 y2 = yaml.safe_load('')
 
+            # print('Y2', y2)
             A = yaml.dump(y1, sort_keys=True, explicit_start=True)
             B = yaml.dump(y2, sort_keys=True, explicit_start=True)
             Ax = []

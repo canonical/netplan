@@ -21,7 +21,7 @@
 
 #define YAML_MAPPING_OPEN(event_ptr, emitter_ptr) \
 { \
-    yaml_mapping_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_MAP_TAG, 1, YAML_ANY_MAPPING_STYLE); \
+    yaml_mapping_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_MAP_TAG, 1, YAML_BLOCK_MAPPING_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
 }
 #define YAML_MAPPING_CLOSE(event_ptr, emitter_ptr) \
@@ -31,7 +31,7 @@
 }
 #define YAML_SEQUENCE_OPEN(event_ptr, emitter_ptr) \
 { \
-    yaml_sequence_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_SEQ_TAG, 1, YAML_FLOW_SEQUENCE_STYLE); \
+    yaml_sequence_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_SEQ_TAG, 1, YAML_BLOCK_SEQUENCE_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
 }
 #define YAML_SEQUENCE_CLOSE(event_ptr, emitter_ptr) \

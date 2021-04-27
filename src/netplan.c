@@ -214,9 +214,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     GHashTableIter iter;
     gpointer key, value;
 
-    if (netplan_def_type_to_str[def->type])
-        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
-    YAML_MAPPING_OPEN(event, emitter);
+
     YAML_SCALAR_PLAIN(event, emitter, def->id);
     YAML_MAPPING_OPEN(event, emitter);
     if (def->backend == NETPLAN_BACKEND_NM) {
@@ -299,7 +297,6 @@ only_passthrough:
 
     /* Close remaining mappings */
     YAML_MAPPING_CLOSE(event, emitter);
-    YAML_MAPPING_CLOSE(event, emitter);
 
     return;
 
@@ -347,12 +344,16 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
         YAML_STRING(event, emitter, "renderer", "networkd");
     }
 
+    if (netplan_def_type_to_str[def->type])
+        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
+    YAML_MAPPING_OPEN(event, emitter);
 
     _serialize_yaml(event, emitter, def);
 
 
 
     /* Close remaining mappings */
+    YAML_MAPPING_CLOSE(event, emitter);
     YAML_MAPPING_CLOSE(event, emitter);
 
     /* Tear down the YAML emitter */
@@ -383,6 +384,14 @@ _write_netplan_conf(const char* netdef_id, const char* rootdir)
     ht = netplan_finish_parse(NULL);
     def = g_hash_table_lookup(ht, netdef_id);
     write_netplan_conf(def, rootdir);
+}
+
+gboolean
+contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
+{
+    NetplanNetDefinition *nd = value;
+    NetplanDefType *type = user_data;
+    return nd->type == *type;
 }
 
 void
@@ -416,12 +425,20 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
 
 
 
-
-        /* Per-netdef config */
-        g_hash_table_iter_init(&iter, netdefs);
-        while (g_hash_table_iter_next (&iter, &key, &value)) {
-            NetplanNetDefinition *def = (NetplanNetDefinition *) value;
-            _serialize_yaml(event, emitter, def);
+        /* Go through the netdefs type-by-type */
+        for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+            /* Per-netdef config */
+            if (netplan_def_type_to_str[i] && g_hash_table_find(netdefs, contains_netdef_type, &i)) {
+                YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[i]);
+                YAML_MAPPING_OPEN(event, emitter);
+                g_hash_table_iter_init(&iter, netdefs);
+                while (g_hash_table_iter_next (&iter, &key, &value)) {
+                    NetplanNetDefinition *def = (NetplanNetDefinition *) value;
+                    if (def->type == i)
+                        _serialize_yaml(event, emitter, def);
+                }
+                YAML_MAPPING_CLOSE(event, emitter);
+            }
         }
 
 
