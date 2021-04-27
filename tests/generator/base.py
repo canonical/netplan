@@ -140,14 +140,20 @@ class TestBase(unittest.TestCase):
                 '        gratuitous-arp: ' + m.group(1)
             ]
         # remove default values
-        elif line.endswith(': {}'):
-            return [line[:-3]]
         elif line == '  version: 2':
             return []
         elif line == '          mode: infrastructure':
             return []
         elif 'dhcp4: false' in line:
             return []
+        elif 'dhcp6: false' in line:
+            return []
+        elif 'accept-ra: false' in line:
+            return []
+        elif 'parameters: {}' in line:
+            return []
+        elif line.endswith(': {}'):
+            return [line[:-3]]
         # nothing to do
         else:
             return [line]
@@ -179,8 +185,8 @@ class TestBase(unittest.TestCase):
                 y2 = yaml.safe_load('')
 
             # print('Y2', y2)
-            A = yaml.dump(y1, sort_keys=True, explicit_start=True)
-            B = yaml.dump(y2, sort_keys=True, explicit_start=True)
+            A = yaml.dump(y1, sort_keys=True)
+            B = yaml.dump(y2, sort_keys=True)
             Ax = []
             Bx = []
             for line in A.splitlines():

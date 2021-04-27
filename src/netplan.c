@@ -57,18 +57,10 @@ error: return FALSE; // LCOV_EXCL_LINE
 static gboolean
 write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
-/* TODO: non-str types:
-{"min-links", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.min_links)},
-{"all-slaves-active", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(bond_params.all_slaves_active)},
-{"arp-ip-targets", YAML_SEQUENCE_NODE, handle_arp_ip_targets},
-{"gratuitous-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitous_arp)},
-{"gratuitious-arp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.gratuitous_arp)},
-{"packets-per-slave", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.packets_per_slave)},
-{"resend-igmp", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(bond_params.resend_igmp)},
-{"learn-packet-interval", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(bond_params.learn_interval)},
-{"primary", YAML_SCALAR_NODE, handle_bond_primary_slave, NULL, netdef_offset(bond_params.primary_slave)},
-*/
-    if (   def->bond_params.mode
+    if (def->type != NETPLAN_DEF_TYPE_BOND)
+        return FALSE;
+
+    if (def->bond_params.mode
         || def->bond_params.monitor_interval
         || def->bond_params.up_delay
         || def->bond_params.down_delay
@@ -229,8 +221,12 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     if (def->dhcp4) {
         YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");
-    } else {
-        YAML_STRING_PLAIN(event, emitter, "dhcp4", "false");
+    }
+    if (def->dhcp6) {
+        YAML_STRING_PLAIN(event, emitter, "dhcp6", "true");
+    }
+    if (def->accept_ra == NETPLAN_RA_MODE_ENABLED) {
+        YAML_STRING_PLAIN(event, emitter, "accept-ra", "true");
     }
 
     YAML_STRING(event, emitter, "macaddress", def->set_mac);
