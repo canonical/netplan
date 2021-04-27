@@ -109,6 +109,10 @@ class TestBase(unittest.TestCase):
             kv[1] = 'false'
         elif val in ['y', 'yes', 'on', 'true']:
             kv[1] = 'true'
+        elif val in ['5G']:
+            kv[1] = '5GHz'
+        elif val in ['2.4G']:
+            kv[1] = '2.4GHz'
         else:
             kv[1] = val  # no normalization needed or known
 

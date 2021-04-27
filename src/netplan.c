@@ -220,12 +220,18 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         ap = value;
         YAML_SCALAR_QUOTED(event, emitter, ap->ssid);
         YAML_MAPPING_OPEN(event, emitter);
+        if (ap->hidden)
+            YAML_STRING_PLAIN(event, emitter, "hidden", "true");
+        YAML_STRING(event, emitter, "bssid", ap->bssid);
+        if (ap->band == NETPLAN_WIFI_BAND_5) {
+            YAML_STRING_PLAIN(event, emitter, "band", "5GHz");
+        } else if (ap->band == NETPLAN_WIFI_BAND_24) {
+            YAML_STRING_PLAIN(event, emitter, "band", "2.4GHz");
+        }
+        if (ap->channel)
+            YAML_STRING_PLAIN(event, emitter, "channel", g_strdup_printf("%u", ap->channel)); // XXX: free strdup'ed string
         if (ap->has_auth)
             write_auth(event, emitter, ap->auth);
-        if (ap->hidden) {
-            YAML_SCALAR_PLAIN(event, emitter, "hidden");
-            YAML_SCALAR_PLAIN(event, emitter, "true");
-        }
         YAML_SCALAR_PLAIN(event, emitter, "mode");
         if (ap->mode != NETPLAN_WIFI_MODE_OTHER) {
             YAML_SCALAR_PLAIN(event, emitter, netplan_wifi_mode_to_str[ap->mode]);
@@ -318,6 +324,31 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     /* wake-on-lan */
     if (def->wake_on_lan)
         YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
+
+    if (def->wowlan) {
+        YAML_SCALAR_PLAIN(event, emitter, "wakeonwlan");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        /* XXX: make sure to extend if NetplanWifiWowlanFlag is extended */
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_DEFAULT)
+            YAML_SCALAR_PLAIN(event, emitter, "default");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_ANY)
+            YAML_SCALAR_PLAIN(event, emitter, "any");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_DISCONNECT)
+            YAML_SCALAR_PLAIN(event, emitter, "disconnect");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_MAGIC)
+            YAML_SCALAR_PLAIN(event, emitter, "magic_pkt");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_GTK_REKEY_FAILURE)
+            YAML_SCALAR_PLAIN(event, emitter, "gtk_rekey_failure");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_EAP_IDENTITY_REQ)
+            YAML_SCALAR_PLAIN(event, emitter, "eap_identity_req");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE)
+            YAML_SCALAR_PLAIN(event, emitter, "four_way_handshake");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE)
+            YAML_SCALAR_PLAIN(event, emitter, "rfkill_release");
+        if (def->wowlan & NETPLAN_WIFI_WOWLAN_TCP)
+            YAML_SCALAR_PLAIN(event, emitter, "tcp");
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
 
     /* some modem settings to auto-detect GSM vs CDMA connections */
     if (def->modem_params.auto_config)
