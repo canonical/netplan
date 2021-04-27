@@ -160,7 +160,7 @@ class NetplanSet(utils.NetplanCommand):
             # Validate the newly created file, by parsing it via libnetplan
             utils.netplan_parse(tmpp)
             # Valid, move it to final destination
-            shutil.copy(tmpp, absp)
+            shutil.copy2(tmpp, absp)
             os.remove(tmpp)
         elif os.path.isfile(absp):
             # Clear file if the last/only key got removed
