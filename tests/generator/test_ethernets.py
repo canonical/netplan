@@ -163,7 +163,7 @@ LinkLocalAddressing=ipv6
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=mac:11:22:33:44:55:66,''')
+unmanaged-devices+=mac:11:22:33:44:55:66,interface-name:lom1,''')
         self.assert_nm_udev(None)
 
     def test_eth_implicit_name_match_dhcp4(self):
@@ -305,7 +305,7 @@ UseMTU=true
 '''})
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=mac:00:11:22:33:44:55,''')
+unmanaged-devices+=mac:00:11:22:33:44:55,interface-name:en1s*,''')
 
 
 class TestNetworkManager(TestBase):

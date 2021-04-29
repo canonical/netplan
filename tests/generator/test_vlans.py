@@ -139,7 +139,7 @@ MTUBytes=9000
 
         self.assert_nm(None, '''[keyfile]
 # devices managed by networkd
-unmanaged-devices+=mac:11:22:33:44:55:66,interface-name:vlan20,''')
+unmanaged-devices+=mac:11:22:33:44:55:66,interface-name:lan,interface-name:vlan20,''')
         self.assert_nm_udev(None)
 
 
