@@ -37,6 +37,7 @@ class MockCmd:
         self.name = name
         self.path = os.path.join(self._tmp.name, name)
         self.call_log = os.path.join(self._tmp.name, "call.log")
+        self.stdin_log = os.path.join(self._tmp.name, "stdin.log")
         with open(self.path, "w") as fp:
             fp.write("""#!/bin/bash
 printf "%%s" "$(basename "$0")" >> %(log)s
@@ -48,6 +49,7 @@ for arg in "$@"; do
 done
 
 printf '\\0' >> %(log)s
+
 """ % {'log': self.call_log})
         os.chmod(self.path, 0o755)
 
@@ -87,6 +89,20 @@ fi
     def set_returncode(self, returncode):
         with open(self.path, "a") as fp:
             fp.write("exit %d" % returncode)
+
+    def add_snippet(self, snippet):
+        with open(self.path, "a") as fp:
+            fp.write(snippet)
+
+    def expect_stdin(self):
+        with open(self.path, "a") as fp:
+            fp.write("""
+cat - > {}
+""".format(self.stdin_log))
+
+    def stdin(self):
+        with open(self.stdin_log) as fp:
+            return fp.read()
 
 
 class TestUtils(unittest.TestCase):

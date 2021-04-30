@@ -341,6 +341,62 @@ method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     return sd_bus_reply_method_return(m, "s", stdout);
 }
 
+#define NETPLAN_SET_ERROR netplan_set_error_quark ()
+
+GQuark
+netplan_set_error_quark (void)
+{
+  return g_quark_from_static_string ("netplan-set-error");
+}
+
+static bool
+apply_multiline_netplan_set(char **argv, char *config_delta, char *origin_hint, GError **ret_error) {
+   GError *err = NULL;
+
+   GPid pid;
+   gint child_stdin, child_stdout, child_stderr;
+   // XXX: This code will hang if the stdour/stderr output is more than
+   //      default pipe cacity (16k).
+   //
+   //      Should we instead simply use g_file_new_tmp/g_file_replace_contents
+   //      and add add "netplan set-from-file" ?
+   g_spawn_async_with_pipes("/", argv, NULL,
+                            G_SPAWN_DO_NOT_REAP_CHILD,
+                            NULL, NULL, &pid, &child_stdin, &child_stdout, &child_stderr, &err);
+   if (err) {
+      g_propagate_error(ret_error, err);
+      return false;
+   }
+   if (write(child_stdin, config_delta, strlen(config_delta)) < 0) {
+      // XXX: how to test this? having a netplan mock binary that closes
+      // stdin seems to be not enough
+      err = g_error_new(NETPLAN_SET_ERROR, 0, "cannot write to netplan stdin: %s", strerror(errno));
+      // XXX: this error will most likely be overriden below
+      g_propagate_error(ret_error, err);
+   }
+   close(child_stdin);
+
+   int status;
+   waitpid(pid, &status, 0);
+   g_spawn_check_exit_status(status, &err);
+   if (err != NULL) {
+      g_autofree gchar *stdout = NULL;
+      g_autofree gchar *stderr = NULL;
+      // best effort, no error checking for the stdout/stderr reading to
+      // make the errors not even more confusing
+      g_autoptr(GIOChannel) cstdout = g_io_channel_unix_new(child_stdout);
+      g_io_channel_read_to_end(cstdout, &stdout, NULL, NULL);
+      g_autoptr(GIOChannel) cstderr = g_io_channel_unix_new(child_stderr);
+      g_io_channel_read_to_end(cstderr, &stderr, NULL, NULL);
+      GError *output_err = g_error_new(NETPLAN_SET_ERROR, 0, "%s\nstdout: '%s' \nstderr: '%s'", err->message, stdout, stderr );
+      g_propagate_error(ret_error, output_err);
+      return false;
+   }
+
+   return true;
+}
+
+
 static int
 method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
@@ -370,19 +426,30 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         args[cur_arg] = root_dir;
         cur_arg++;
     }
-    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, args[0], args[1], NULL};
-
+    // parameter after "set" is 
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", NULL, args[0], args[1], NULL};
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
+    // multi-line input
+    if (strchr(config_delta,'\n') != NULL) {
+       argv[2] = "-";
+       apply_multiline_netplan_set(argv, config_delta, origin_hint, &err);
+       if (err != NULL) {
+         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s", err->message); // LCOV_EXCL_LINE
+       }
+    } else {
+       // single line input
+       argv[2] = config_delta;
+       g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
 
-    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
-    if (err != NULL)
-        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message); // LCOV_EXCL_LINE
+       if (err != NULL)
+          return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message); // LCOV_EXCL_LINE
 
-    g_spawn_check_exit_status(exit_status, &err);
-    if (err != NULL)
-       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr); // LCOV_EXCL_LINE
+       g_spawn_check_exit_status(exit_status, &err);
+       if (err != NULL)
+          return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr); // LCOV_EXCL_LINE
+    }
 
     return sd_bus_reply_method_return(m, "b", true);
 }
