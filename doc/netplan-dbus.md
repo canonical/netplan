@@ -18,6 +18,7 @@ netplan-dbus - daemon to access netplan's functionality via a DBus API
 **netplan-dbus** is a DBus daemon, providing ``io.netplan.Netplan`` on the system bus. The ``/io/netplan/Netplan`` object provides an ``io.netplan.Netplan`` interface, offering the following methods:
 
  * ``Apply() -> b``: calls **netplan apply** and returns a success or failure status.
+ * ``Generate() -> b``: calls **netplan generate** and returns a success or failure status.
  * ``Info() -> a(sv)``: returns a dict "Features -> as", containing an array of all available feature flags.
  * ``Config() -> o``: prepares a new config object as ``/io/netplan/Netplan/config/<ID>``, by copying the current state from ``/{etc,run,lib}/netplan/*.yaml``
 
