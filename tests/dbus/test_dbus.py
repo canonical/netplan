@@ -143,6 +143,47 @@ class TestNetplanDBus(unittest.TestCase):
              ],
         ])
 
+    def test_netplan_generate_in_snap_calls_busctl(self):
+        newenv = os.environ.copy()
+        busctlDir = os.path.dirname(self.mock_busctl_cmd.path)
+        newenv["PATH"] = busctlDir+":"+os.environ["PATH"]
+        p = subprocess.Popen(
+            exe_cli + ["generate"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=newenv)
+        self.assertEqual(p.stdout.read(), b"")
+        self.assertEqual(p.stderr.read(), b"")
+        self.assertEquals(self.mock_busctl_cmd.calls(), [
+            ["busctl", "call", "--quiet", "--system",
+             "io.netplan.Netplan",  # the service
+             "/io/netplan/Netplan",  # the object
+             "io.netplan.Netplan",  # the interface
+             "Generate",  # the method
+             ],
+        ])
+
+    def test_netplan_generate_in_snap_calls_busctl_ret130(self):
+        newenv = os.environ.copy()
+        busctlDir = os.path.dirname(self.mock_busctl_cmd.path)
+        newenv["PATH"] = busctlDir+":"+os.environ["PATH"]
+        self.mock_busctl_cmd.set_returncode(130)
+        p = subprocess.Popen(
+            exe_cli + ["generate"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=newenv)
+        self.assertIn(b"PermissionError: failed to communicate with dbus service", p.stderr.read())
+
+    def test_netplan_generate_in_snap_calls_busctl_ret1(self):
+        newenv = os.environ.copy()
+        busctlDir = os.path.dirname(self.mock_busctl_cmd.path)
+        newenv["PATH"] = busctlDir+":"+os.environ["PATH"]
+        self.mock_busctl_cmd.set_returncode(1)
+        p = subprocess.Popen(
+            exe_cli + ["generate"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=newenv)
+        self.assertIn(b"RuntimeError: failed to communicate with dbus service", p.stderr.read())
+
     def test_netplan_dbus_noroot(self):
         # Process should fail instantly, if not: kill it after 5 sec
         r = subprocess.run(NETPLAN_DBUS_CMD, timeout=5, capture_output=True)
@@ -171,6 +212,21 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEquals(self.mock_netplan_cmd.calls(), [
                 ["netplan", "apply"],
                 ["netplan", "apply"],
+        ])
+
+    def test_netplan_dbus_generate(self):
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan",
+            "io.netplan.Netplan",
+            "Generate",
+        ]
+        output = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(output.decode("utf-8"), "b true\n")
+        # one call to netplan apply in total
+        self.assertEquals(self.mock_netplan_cmd.calls(), [
+                ["netplan", "generate"],
         ])
 
     def test_netplan_dbus_info(self):
