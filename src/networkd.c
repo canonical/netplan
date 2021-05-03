@@ -572,6 +572,16 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         }
     }
 
+    /* The ActivationPolicy setting is available in systemd v248+ */
+    if (def->activation_mode) {
+        const char* mode;
+        if (g_strcmp0(def->activation_mode, "manual") == 0)
+            mode = "manual";
+        else /* "off" */
+            mode = "always-down";
+        g_string_append_printf(link, "ActivationPolicy=%s\n", mode);
+    }
+
     if (def->mtubytes)
         g_string_append_printf(link, "MTUBytes=%u\n", def->mtubytes);
     if (def->set_mac)

@@ -909,6 +909,15 @@ handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 }
 
 static gboolean
+handle_activation_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_strcmp0(scalar(node), "manual") && g_strcmp0(scalar(node), "off"))
+        return yaml_error(node, error, "Value of 'activation-mode' needs to be 'manual' or 'off'");
+
+    return handle_netdef_str(doc, node, data, error);
+}
+
+static gboolean
 handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     cur_netdef->has_match = TRUE;
@@ -2223,6 +2232,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS                                                                  \
     {"accept-ra", YAML_SCALAR_NODE, handle_accept_ra, NULL, netdef_offset(accept_ra)},        \
+    {"activation-mode", YAML_SCALAR_NODE, handle_activation_mode, NULL, netdef_offset(activation_mode)}, \
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},                                      \
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},        \
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},              \
