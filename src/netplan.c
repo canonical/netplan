@@ -282,6 +282,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     YAML_MAPPING_OPEN(event, emitter);
     if (def->backend == NETPLAN_BACKEND_NM) {
         YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
+    } else if (def->backend == NETPLAN_BACKEND_NETWORKD) {
+        YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");
     }
 
     if (def->type == NETPLAN_DEF_TYPE_NM)

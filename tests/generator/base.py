@@ -156,6 +156,10 @@ class TestBase(unittest.TestCase):
             return []
         elif 'parameters: {}' in line:
             return []
+        # ignore renderer: on different levels for now
+        # that information is not stored in the netdef data structure
+        elif 'renderer: ' in line:
+            return []
         elif line.endswith(': {}'):
             return [line[:-3]]
         # nothing to do
