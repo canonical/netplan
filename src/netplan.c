@@ -249,6 +249,26 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+    // TODO: handle address_options
+    YAML_SCALAR_PLAIN(event, emitter, "addresses");
+    YAML_SEQUENCE_OPEN(event, emitter);
+    if (def->ip4_addresses) {
+        for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
+            YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip4_addresses, char*, i));
+    }
+    if (def->ip6_addresses) {
+        for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
+            YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip6_addresses, char*, i));
+    }
+
+    YAML_SEQUENCE_CLOSE(event, emitter);
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 void
 _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
@@ -269,6 +289,9 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     if (def->has_match)
         write_match(event, emitter, def);
+
+    if (def->ip4_addresses || def->ip6_addresses)
+        write_addresses(event, emitter, def);
 
     if (def->dhcp4) {
         YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");
