@@ -321,6 +321,13 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
             break;
     }
 
+    if (def->type == NETPLAN_DEF_TYPE_VLAN) {
+        if (def->vlan_id)
+            YAML_STRING_PLAIN(event, emitter, "id", g_strdup_printf("%u", def->vlan_id)); //XXX: free the strdup'ed string
+        if (def->vlan_link)
+            YAML_STRING_PLAIN(event, emitter, "link", def->vlan_link->id);
+    }
+
     /* wake-on-lan */
     if (def->wake_on_lan)
         YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
