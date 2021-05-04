@@ -269,6 +269,44 @@ write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanDHCPOverrides data)
+{
+    if (   !data.use_dns
+        || !data.use_ntp
+        || !data.send_hostname
+        || !data.use_hostname
+        || !data.use_mtu
+        || !data.use_routes
+        || data.use_domains
+        || data.hostname
+        || data.metric != NETPLAN_METRIC_UNSPEC) {
+        YAML_SCALAR_PLAIN(event, emitter, key);
+        YAML_MAPPING_OPEN(event, emitter);
+        if (!data.use_dns)
+            YAML_STRING_PLAIN(event, emitter, "use-dns", "false");
+        if (!data.use_ntp)
+            YAML_STRING_PLAIN(event, emitter, "use-ntp", "false");
+        if (!data.send_hostname)
+            YAML_STRING_PLAIN(event, emitter, "send-hostname", "false");
+        if (!data.use_hostname)
+            YAML_STRING_PLAIN(event, emitter, "use-hostname", "false");
+        if (!data.use_mtu)
+            YAML_STRING_PLAIN(event, emitter, "use-mtu", "false");
+        if (!data.use_routes)
+            YAML_STRING_PLAIN(event, emitter, "use-routes", "false");
+        if (data.use_domains)
+            YAML_STRING_PLAIN(event, emitter, "use-domains", data.use_domains);
+        if (data.hostname)
+            YAML_STRING_PLAIN(event, emitter, "hostname", data.hostname);
+        if (data.metric != NETPLAN_METRIC_UNSPEC)
+            YAML_STRING_PLAIN(event, emitter, "route-metric", g_strdup_printf("%u", data.metric)); //XXX: free the strdup'ed string
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 void
 _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
@@ -297,9 +335,11 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     if (def->dhcp4) {
         YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");
+        write_dhcp_overrides(event, emitter, "dhcp4-overrides", def->dhcp4_overrides);
     }
     if (def->dhcp6) {
         YAML_STRING_PLAIN(event, emitter, "dhcp6", "true");
+        write_dhcp_overrides(event, emitter, "dhcp6-overrides", def->dhcp6_overrides);
     }
     if (def->accept_ra == NETPLAN_RA_MODE_ENABLED) {
         YAML_STRING_PLAIN(event, emitter, "accept-ra", "true");

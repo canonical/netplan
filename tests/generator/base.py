@@ -32,6 +32,7 @@ import ctypes.util
 import yaml
 import difflib
 import re
+import logging
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), 'generate')
@@ -156,6 +157,18 @@ class TestBase(unittest.TestCase):
             return []
         elif 'parameters: {}' in line:
             return []
+        elif 'send-hostname: true' in line:
+            return []
+        elif 'use-dns: true' in line:
+            return []
+        elif 'use-hostname: true' in line:
+            return []
+        elif 'use-mtu: true' in line:
+            return []
+        elif 'use-ntp: true' in line:
+            return []
+        elif 'use-routes: true' in line:
+            return []
         # ignore renderer: on different levels for now
         # that information is not stored in the netdef data structure
         elif 'renderer: ' in line:
@@ -175,6 +188,24 @@ class TestBase(unittest.TestCase):
             # continue walk the dict
             for key in data.keys():
                 self.sort_sequences(data[key])
+
+    def clear_empty_mappings(self, lines):
+        new_lines = []
+        last = len(lines)
+        for i in range(last):
+            current = lines[i]
+            following = lines[i+1] if i+1 < last else ''
+            if current.endswith(':'):
+                m = re.match(r'(\W*)(\w+)', current)
+                m2 = re.match(r'(\W*)(\w*)', following)
+                indentation_curr = len(m.group(1))
+                indentation_next = len(m2.group(1))
+                if indentation_next <= indentation_curr:
+                    logging.debug('removing empty mapping:  ' + current)
+                    logging.debug('context (line+1)      : ' + following)
+                    continue
+            new_lines.append(current)
+        return new_lines
 
     def validate_generated_yaml(self, conf, yaml_data, extra_args):  # XXX: remove yaml_data?
         generated = None
@@ -216,6 +247,9 @@ class TestBase(unittest.TestCase):
             for line in B.splitlines():
                 for l in self.expand_yaml(line):
                     Bx.append(l)
+
+            Ax = self.clear_empty_mappings(Ax)
+            #Bx = self.clear_empty_mappings(Bx)
             # NORMALIZED YAMLs
             #print('\n'.join(Ax))
             #print('\n'.join(Bx))
