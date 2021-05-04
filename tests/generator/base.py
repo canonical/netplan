@@ -250,7 +250,7 @@ class TestBase(unittest.TestCase):
                     Bx.append(l)
 
             Ax = self.clear_empty_mappings(Ax)
-            #Bx = self.clear_empty_mappings(Bx)
+            Bx = self.clear_empty_mappings(Bx)
             # NORMALIZED YAMLs
             #print('\n'.join(Ax))
             #print('\n'.join(Bx))

@@ -358,6 +358,12 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->has_auth)
         write_auth(event, emitter, def->auth);
 
+    /* SR-IOV */
+    if (def->sriov_link)
+        YAML_STRING_PLAIN(event, emitter, "link", def->sriov_link->id)
+    if (def->sriov_explicit_vf_count < G_MAXUINT)
+        YAML_STRING_PLAIN(event, emitter, "virtual-function-count", g_strdup_printf("%u", def->sriov_explicit_vf_count)); //XXX: free the strdup'ed string
+
     /* Search interfaces */
     switch (def->type) {
         case NETPLAN_DEF_TYPE_BRIDGE:
