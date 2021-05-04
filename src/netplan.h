@@ -64,6 +64,13 @@
         YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
+#define YAML_UINT(event_ptr, emitter_ptr, key, value) \
+{ \
+    tmp = g_strdup_printf("%u", value); \
+    YAML_STRING_PLAIN(event, emitter, key, tmp); \
+    g_free(tmp); \
+}
+
 /* open YAML emitter, document, stream and initial mapping */
 #define YAML_OUT_START(event_ptr, emitter_ptr, file) \
 { \
@@ -127,6 +134,12 @@ static const char* const netplan_tunnel_mode_to_str[NETPLAN_TUNNEL_MODE_MAX_] = 
     [NETPLAN_TUNNEL_MODE_GRETAP] = "gretap",
     [NETPLAN_TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
     [NETPLAN_TUNNEL_MODE_WIREGUARD] = "wireguard",
+};
+
+static const char* const netplan_addr_gen_mode_to_str[NETPLAN_ADDRGEN_MAX] = {
+    [NETPLAN_ADDRGEN_DEFAULT] = NULL,
+    [NETPLAN_ADDRGEN_EUI64] = "eui64",
+    [NETPLAN_ADDRGEN_STABLEPRIVACY] = "stable-privacy"
 };
 
 void write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

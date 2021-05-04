@@ -165,6 +165,14 @@ class TestBase(unittest.TestCase):
             return []
         elif 'use-routes: true' in line:
             return []
+        elif 'dhcp-identifier: duid' in line:
+            return []
+        elif 'ipv6-privacy: false' in line:
+            return []
+        elif 'optional: false' in line:
+            return []
+        elif 'critical: false' in line:
+            return []
         # ignore renderer: on different levels for now
         # that information is not stored in the netdef data structure
         elif 'renderer: ' in line:

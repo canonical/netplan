@@ -270,6 +270,38 @@ error: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
+write_nameservers(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+    YAML_SCALAR_PLAIN(event, emitter, "nameservers");
+    YAML_MAPPING_OPEN(event, emitter);
+    if (def->ip4_nameservers || def->ip6_nameservers){
+        YAML_SCALAR_PLAIN(event, emitter, "addresses");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        if (def->ip4_nameservers) {
+            for (unsigned i = 0; i < def->ip4_nameservers->len; ++i)
+                YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip4_nameservers, char*, i));
+        }
+        if (def->ip6_nameservers) {
+            for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
+                YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip6_nameservers, char*, i));
+        }
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+    if (def->search_domains){
+        YAML_SCALAR_PLAIN(event, emitter, "search");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        if (def->search_domains) {
+            for (unsigned i = 0; i < def->search_domains->len; ++i)
+                YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->search_domains, char*, i));
+        }
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+    YAML_MAPPING_CLOSE(event, emitter);
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
+static gboolean
 write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanDHCPOverrides data)
 {
     if (   !data.use_dns
@@ -394,12 +426,21 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->has_match)
         write_match(event, emitter, def);
 
+    if (def->optional)
+        YAML_STRING_PLAIN(event, emitter, "optional", "true");
+    if (def->critical)
+        YAML_STRING_PLAIN(event, emitter, "critical", "true");
+
     if (def->ip4_addresses || def->ip6_addresses)
         write_addresses(event, emitter, def);
+    if (def->ip4_nameservers || def->ip6_nameservers || def->search_domains)
+        write_nameservers(event, emitter, def);
 
     YAML_STRING_PLAIN(event, emitter, "gateway4", def->gateway4);
     YAML_STRING_PLAIN(event, emitter, "gateway6", def->gateway6);
 
+    if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
+        YAML_STRING(event, emitter, "dhcp-identifier", def->dhcp_identifier);
     if (def->dhcp4) {
         YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");
         write_dhcp_overrides(event, emitter, "dhcp4-overrides", def->dhcp4_overrides);
@@ -414,11 +455,14 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     YAML_STRING(event, emitter, "macaddress", def->set_mac);
     YAML_STRING(event, emitter, "set-name", def->set_name);
-    if (def->mtubytes) {
-        tmp = g_strdup_printf("%u", def->mtubytes);
-        YAML_STRING_PLAIN(event, emitter, "mtu", tmp);
-        g_free(tmp);
-    }
+    YAML_STRING_PLAIN(event, emitter, "ipv6-address-generation", netplan_addr_gen_mode_to_str[def->ip6_addr_gen_mode]);
+    YAML_STRING_PLAIN(event, emitter, "ipv6-address-token", def->ip6_addr_gen_token);
+    if (def->ip6_privacy)
+        YAML_STRING_PLAIN(event, emitter, "ipv6-privacy", "true");
+    if (def->ipv6_mtubytes)
+        YAML_UINT(event, emitter, "ipv6-mtu", def->ipv6_mtubytes);
+    if (def->mtubytes)
+        YAML_UINT(event, emitter, "mtu", def->mtubytes);
     if (def->emit_lldp)
         YAML_STRING_PLAIN(event, emitter, "emit-lldp", "true");
 
@@ -461,8 +505,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     /* VLAN settings */
     if (def->type == NETPLAN_DEF_TYPE_VLAN) {
-        if (def->vlan_id)
-            YAML_STRING_PLAIN(event, emitter, "id", g_strdup_printf("%u", def->vlan_id)); //XXX: free the strdup'ed string
+        if (def->vlan_id != G_MAXUINT)
+            YAML_UINT(event, emitter, "id", def->vlan_id);
         if (def->vlan_link)
             YAML_STRING_PLAIN(event, emitter, "link", def->vlan_link->id);
     }
@@ -498,6 +542,22 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
             YAML_SCALAR_PLAIN(event, emitter, "rfkill_release");
         if (def->wowlan & NETPLAN_WIFI_WOWLAN_TCP)
             YAML_SCALAR_PLAIN(event, emitter, "tcp");
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+
+    if (def->optional_addresses) {
+        YAML_SCALAR_PLAIN(event, emitter, "optional-addresses");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        if (def->optional_addresses & NETPLAN_OPTIONAL_IPV4_LL)
+            YAML_SCALAR_PLAIN(event, emitter, "ipv4-ll")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_IPV6_RA)
+            YAML_SCALAR_PLAIN(event, emitter, "ipv6-ra")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_DHCP4)
+            YAML_SCALAR_PLAIN(event, emitter, "dhcp4")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_DHCP6)
+            YAML_SCALAR_PLAIN(event, emitter, "dhcp6")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_STATIC)
+            YAML_SCALAR_PLAIN(event, emitter, "static")
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
 

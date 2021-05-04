@@ -89,6 +89,7 @@ typedef enum {
     NETPLAN_ADDRGEN_DEFAULT,
     NETPLAN_ADDRGEN_EUI64,
     NETPLAN_ADDRGEN_STABLEPRIVACY,
+    NETPLAN_ADDRGEN_MAX,
 } NetplanAddrGenMode;
 
 struct NetplanOptionalAddressType {
