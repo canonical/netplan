@@ -468,7 +468,7 @@ write_ovs_conf_finish(const char* rootdir)
 
     /* Clear all netplan=true tagged ports/bonds and bridges, via 'netplan apply --only-ovs-cleanup' */
     cmds = g_string_new(NULL);
-    append_systemd_cmd(cmds, "/usr/sbin/netplan apply %s", "--only-ovs-cleanup");
+    append_systemd_cmd(cmds, SBINDIR "/netplan apply %s", "--only-ovs-cleanup");
     write_ovs_systemd_unit("cleanup", cmds, rootdir, FALSE, TRUE, NULL);
     g_string_free(cmds, TRUE);
 }

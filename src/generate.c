@@ -49,7 +49,7 @@ static GOptionEntry options[] = {
 static void
 reload_udevd(void)
 {
-    const gchar *argv[] = { "/sbin/udevadm", "control", "--reload", NULL };
+    const gchar *argv[] = { "/bin/udevadm", "control", "--reload", NULL };
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 
