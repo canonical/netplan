@@ -113,4 +113,20 @@ static const char* const netplan_auth_eap_method_to_str[NETPLAN_AUTH_EAP_METHOD_
     [NETPLAN_AUTH_EAP_TTLS] = "ttls",
 };
 
+static const char* const netplan_tunnel_mode_to_str[NETPLAN_TUNNEL_MODE_MAX_] = {
+    [NETPLAN_TUNNEL_MODE_UNKNOWN] = NULL,
+    [NETPLAN_TUNNEL_MODE_IPIP] = "ipip",
+    [NETPLAN_TUNNEL_MODE_GRE] = "gre",
+    [NETPLAN_TUNNEL_MODE_SIT] = "sit",
+    [NETPLAN_TUNNEL_MODE_ISATAP] = "isatap",
+    [NETPLAN_TUNNEL_MODE_VTI] = "vti",
+    [NETPLAN_TUNNEL_MODE_IP6IP6] = "ip6ip6",
+    [NETPLAN_TUNNEL_MODE_IPIP6] = "ipip6",
+    [NETPLAN_TUNNEL_MODE_IP6GRE] = "ip6gre",
+    [NETPLAN_TUNNEL_MODE_VTI6] = "vti6",
+    [NETPLAN_TUNNEL_MODE_GRETAP] = "gretap",
+    [NETPLAN_TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+    [NETPLAN_TUNNEL_MODE_WIREGUARD] = "wireguard",
+};
+
 void write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

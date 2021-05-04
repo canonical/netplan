@@ -307,6 +307,70 @@ write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* k
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+    YAML_STRING(event, emitter, "mode", netplan_tunnel_mode_to_str[def->tunnel.mode]);
+    YAML_STRING(event, emitter, "local", def->tunnel.local_ip);
+    YAML_STRING(event, emitter, "remote", def->tunnel.remote_ip);
+    if (def->tunnel.fwmark)
+        YAML_STRING_PLAIN(event, emitter, "mark", g_strdup_printf("%u", def->tunnel.fwmark)); //XXX: free the strdup'ed string
+    if (def->tunnel.port)
+        YAML_STRING_PLAIN(event, emitter, "port", g_strdup_printf("%u", def->tunnel.port)); //XXX: free the strdup'ed string
+    if (def->tunnel.ttl)
+        YAML_STRING_PLAIN(event, emitter, "ttl", g_strdup_printf("%u", def->tunnel.ttl)); //XXX: free the strdup'ed string
+
+    if (def->tunnel.input_key || def->tunnel.output_key || def->tunnel.private_key) {
+        if (   g_strcmp0(def->tunnel.input_key, def->tunnel.output_key) == 0
+            && g_strcmp0(def->tunnel.input_key, def->tunnel.private_key) == 0) {
+            /* use short form if all keys are the same */
+            YAML_STRING(event, emitter, "key", def->tunnel.input_key);
+        } else {
+            YAML_SCALAR_PLAIN(event, emitter, "keys");
+            YAML_MAPPING_OPEN(event, emitter);
+            YAML_STRING(event, emitter, "input", def->tunnel.input_key);
+            YAML_STRING(event, emitter, "output", def->tunnel.output_key);
+            YAML_STRING(event, emitter, "private", def->tunnel.private_key);
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+    }
+
+    /* Wireguard peers */
+    if (def->wireguard_peers && def->wireguard_peers->len > 0) {
+        YAML_SCALAR_PLAIN(event, emitter, "peers");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        for (unsigned i = 0; i < def->wireguard_peers->len; ++i) {
+            NetplanWireguardPeer *peer = g_array_index(def->wireguard_peers, NetplanWireguardPeer*, i);
+            YAML_MAPPING_OPEN(event, emitter);
+            YAML_STRING(event, emitter, "endpoint", peer->endpoint);
+            if (peer->keepalive)
+                YAML_STRING(event, emitter, "keepalive", g_strdup_printf("%u", peer->keepalive)); //XXX: free the strdup'ed string
+            if (peer->public_key || peer->preshared_key) {
+                YAML_SCALAR_PLAIN(event, emitter, "keys");
+                YAML_MAPPING_OPEN(event, emitter);
+                if (peer->public_key)
+                    YAML_STRING(event, emitter, "public", peer->public_key);
+                if (peer->preshared_key)
+                    YAML_STRING(event, emitter, "shared", peer->preshared_key);
+                YAML_MAPPING_CLOSE(event, emitter);
+            }
+            if (peer->allowed_ips && peer->allowed_ips->len > 0) {
+                YAML_SCALAR_PLAIN(event, emitter, "allowed-ips");
+                YAML_SEQUENCE_OPEN(event, emitter);
+                for (unsigned i = 0; i < peer->allowed_ips->len; ++i) {
+                    char *ip = g_array_index(peer->allowed_ips, char*, i);
+                    YAML_SCALAR_QUOTED(event, emitter, ip);
+                }
+                YAML_SEQUENCE_CLOSE(event, emitter);
+            }
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 void
 _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
@@ -332,6 +396,9 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     if (def->ip4_addresses || def->ip6_addresses)
         write_addresses(event, emitter, def);
+
+    YAML_STRING_PLAIN(event, emitter, "gateway4", def->gateway4);
+    YAML_STRING_PLAIN(event, emitter, "gateway6", def->gateway6);
 
     if (def->dhcp4) {
         YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");
@@ -392,11 +459,17 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
             break;
     }
 
+    /* VLAN settings */
     if (def->type == NETPLAN_DEF_TYPE_VLAN) {
         if (def->vlan_id)
             YAML_STRING_PLAIN(event, emitter, "id", g_strdup_printf("%u", def->vlan_id)); //XXX: free the strdup'ed string
         if (def->vlan_link)
             YAML_STRING_PLAIN(event, emitter, "link", def->vlan_link->id);
+    }
+
+    /* Tunnel settings */
+    if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {
+        write_tunnel_settings(event, emitter, def);
     }
 
     /* wake-on-lan */

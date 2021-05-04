@@ -178,8 +178,11 @@ class TestBase(unittest.TestCase):
     def sort_sequences(self, data):
         '''Walk a YAML dict and sort its sequences'''
         if isinstance(data, list):
+            scalars_only = not any(list(map(lambda elem: (isinstance(elem, dict) or isinstance(elem, list)), data)))
             # sort sequence alphabetically
-            data = data.sort()
+            if scalars_only:
+                data = data.sort()
+            # else: handle list of mappings (like wireguard peers)
         elif isinstance(data, dict):
             # continue walk the dict
             for key in data.keys():
