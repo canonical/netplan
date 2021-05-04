@@ -162,6 +162,16 @@ class TestBase(unittest.TestCase):
         else:
             return [line]
 
+    def sort_sequences(self, data):
+        '''Walk a YAML dict and sort its sequences'''
+        if isinstance(data, list):
+            # sort sequence alphabetically
+            data = data.sort()
+        elif isinstance(data, dict):
+            # continue walk the dict
+            for key in data.keys():
+                self.sort_sequences(data[key])
+
     def validate_generated_yaml(self, conf, yaml_data, extra_args):  # XXX: remove yaml_data?
         generated = None
         y1 = None
@@ -188,7 +198,10 @@ class TestBase(unittest.TestCase):
             else:
                 y2 = yaml.safe_load('')
 
+            # print('Y1', y1)
+            self.sort_sequences(y1)
             # print('Y2', y2)
+            self.sort_sequences(y2)
             A = yaml.dump(y1, sort_keys=True)
             B = yaml.dump(y2, sort_keys=True)
             Ax = []
