@@ -208,6 +208,7 @@ class TestBase(unittest.TestCase):
         return new_lines
 
     def validate_generated_yaml(self, conf, yaml_data, extra_args):  # XXX: remove yaml_data?
+        filename = '_generated_test_output.yaml'
         generated = None
         y1 = None
         y2 = None
@@ -215,16 +216,16 @@ class TestBase(unittest.TestCase):
         if len(extra_args) > 0:
             conf = extra_args[0]  # TODO: handle multiple files
 
+        lib.netplan_clear_netdefs()  # clear previous netdefs
         lib.netplan_parse_yaml(conf.encode(), None)
-        lib._write_netplan_conf_full('out.yaml'.encode(), self.workdir.name.encode())
-        lib.netplan_clear_netdefs()
+        lib._write_netplan_conf_full(filename.encode(), self.workdir.name.encode())
 
         with open(conf, 'r') as orig:
             y1 = yaml.safe_load(orig.read())
             # Consider 'network: {}' and 'network: {version: 2}' to be empty
             if y1 is None or y1 == {'network':{}} or y1 == {'network':{'version':2}}:
                 y1 = yaml.safe_load('')
-            generated_path = os.path.join(self.confdir, 'out.yaml')
+            generated_path = os.path.join(self.confdir, filename)
             if os.path.isfile(generated_path):
                 with open(generated_path, 'r') as generated:
                     out = generated.read()
@@ -264,6 +265,11 @@ class TestBase(unittest.TestCase):
                     for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):
                         print(line, flush=True)
                     self.fail('Files do not match')
+
+        # cleanup generated file and data structures
+        lib.netplan_clear_netdefs()
+        if os.path.isfile(os.path.join(self.confdir, filename)):
+            os.remove(os.path.join(self.confdir, filename))
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
         '''Call generate with given YAML string as configuration
