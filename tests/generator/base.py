@@ -99,9 +99,7 @@ class TestBase(unittest.TestCase):
 
     # FIXME: keep indentation
     def normalize_yaml_value(self, line):
-        kv = line.replace('"', '').split(':', 1)
-        #if line.strip().startswith('- '):
-        #    return line.strip()[2:]  # XXX: improve sequence block/flow style handling
+        kv = line.replace('"', '').replace('\'', '').split(':', 1)
         if len(kv) != 2 or kv[1].isspace() or kv[1] == '':
             return line  # no normalization needed; no value given
 
@@ -118,8 +116,6 @@ class TestBase(unittest.TestCase):
             kv[1] = val  # no normalization needed or known
 
         key = kv[0].strip()
-        #if key == 'gratuitious-arp':
-        #    kv[0] = 'gratuitous-arp'
 
         return ': '.join(kv)
 
