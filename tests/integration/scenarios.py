@@ -6,8 +6,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,7 +35,6 @@ class _CommonTests():
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
-        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br1'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -53,21 +53,16 @@ class _CommonTests():
     ethb2:
       match: {name: %(e2c)s}
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e2_client,
-                             ['master bond0'],
-                             ['inet '])
-        self.assert_iface_up('bond0',
-                             ['master br0'])
-        ipaddr = subprocess.check_output(['ip', 'a', 'show', 'dev', 'br0'],
-                                         universal_newlines=True)
-        self.assertIn('inet 192.168', ipaddr)
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'br0', 'bond0'])
+        self.assert_iface_up(self.dev_e2_client, ['master bond0'], ['inet '])
+        self.assert_iface_up('bond0', ['master br0'])
+        self.assert_iface('br0', ['inet 192.168.0.2/24'])
         with open('/sys/class/net/bond0/bonding/slaves') as f:
             result = f.read().strip()
             self.assertIn(self.dev_e2_client, result)
 
     def test_mix_vlan_on_bridge_on_bond(self):
-        self.setup_eth(None)
+        self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br1'], stderr=subprocess.DEVNULL)
@@ -106,15 +101,11 @@ class _CommonTests():
     ethb2:
       match: {name: %(e2c)s}
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'br0', 'br1', 'bond0', 'vlan1', 'vlan2'])
         self.assert_iface_up('vlan1', ['vlan1@br0'])
-        self.assert_iface_up('vlan2',
-                             ['vlan2@' + self.dev_e_client, 'master br0'])
-        self.assert_iface_up(self.dev_e2_client,
-                             ['master br1'],
-                             ['inet '])
-        self.assert_iface_up('bond0',
-                             ['master br0'])
+        self.assert_iface_up('vlan2', ['vlan2@' + self.dev_e_client, 'master br0'])
+        self.assert_iface_up(self.dev_e2_client, ['master br1'], ['inet '])
+        self.assert_iface_up('bond0', ['master br0'])
 
 
 @unittest.skipIf("networkd" not in test_backends,

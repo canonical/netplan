@@ -5,8 +5,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,61 +31,43 @@ from base import IntegrationTestsBase, test_backends
 class _CommonTests():
 
     def test_tunnel_sit(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'sit-tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     sit-tun0:
       mode: sit
       local: 192.168.5.1
       remote: 99.99.99.99
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['sit-tun0'])
         self.assert_iface('sit-tun0', ['sit-tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
     def test_tunnel_ipip(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     tun0:
       mode: ipip
       local: 192.168.5.1
       remote: 99.99.99.99
       ttl: 64
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
     def test_tunnel_wireguard(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg1'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     wg0: #server
       mode: wireguard
@@ -110,8 +93,8 @@ class _CommonTests():
             public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
             shared: 7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
           keepalive: 21
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['wg0', 'wg1'])
         # Wait for handshake/connection between client & server
         self.wait_output(['wg', 'show', 'wg0'], 'latest handshake')
         self.wait_output(['wg', 'show', 'wg1'], 'latest handshake')
@@ -151,89 +134,65 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
     def test_tunnel_gre(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     tun0:
       mode: gre
       local: 192.168.5.1
       remote: 99.99.99.99
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
     def test_tunnel_gre6(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     tun0:
       mode: ip6gre
       local: fe80::1
       remote: 2001:dead:beef::2
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* fe80::1 brd 2001:dead:beef::2'])
 
     def test_tunnel_vti(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     tun0:
       mode: vti
       keys: 1234
       local: 192.168.5.1
       remote: 99.99.99.99
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
     def test_tunnel_vti6(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     tun0:
       mode: vti6
       keys: 1234
       local: fe80::1
       remote: 2001:dead:beef::2
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* fe80::1 brd 2001:dead:beef::2'])
 
 
@@ -243,25 +202,19 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 
     def test_tunnel_gre(self):
-        self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'tun0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
   version: 2
-  ethernets:
-    ethbn:
-      match: {name: %(ec)s}
-    ethb2:
-      match: {name: %(e2c)s}
   tunnels:
     tun0:
       mode: gre
       keys: 1234
       local: 192.168.5.1
       remote: 99.99.99.99
-''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+''' % {'r': self.backend})
+        self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
 
 

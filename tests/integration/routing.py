@@ -5,8 +5,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,11 +30,10 @@ from base import IntegrationTestsBase, test_backends
 
 class _CommonTests():
 
+    # Supposed to fail if tested against NetworkManager < 1.12/1.18
+    # The on-link option was introduced as of NM 1.12+ (for IPv4)
+    # The on-link option was introduced as of NM 1.18+ (for IPv6)
     def test_route_on_link(self):
-        '''Supposed to fail if tested against NetworkManager < 1.12/1.18
-
-        The on-link option was introduced as of NM 1.12+ (for IPv4)
-        The on-link option was introduced as of NM 1.18+ (for IPv6)'''
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -46,17 +46,16 @@ class _CommonTests():
         - to: 2001:f00f:f00f::1/64
           via: 9876:BBBB::5
           on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client, ['inet 10.20.10.1'])
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet6 9876:bbbb::11/70'])
         out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client],
                                       universal_newlines=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
         self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* onlink')
 
+    # Supposed to fail if tested against NetworkManager < 1.8
+    # The from option was introduced as of NM 1.8+
     def test_route_from(self):
-        '''Supposed to fail if tested against NetworkManager < 1.8
-
-        The from option was introduced as of NM 1.8+'''
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -69,16 +68,15 @@ class _CommonTests():
         - to: 10.10.10.0/24
           via: 192.168.14.20
           from: 192.168.14.2''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet 192.168.14.2'])
         out = subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client],
                                       universal_newlines=True)
         self.assertIn('10.10.10.0/24 via 192.168.14.20 proto static src 192.168.14.2', out)
 
+    # Supposed to fail if tested against NetworkManager < 1.10
+    # The table option was introduced as of NM 1.10+
     def test_route_table(self):
-        '''Supposed to fail if tested against NetworkManager < 1.10
-
-        The table option was introduced as of NM 1.10+'''
         self.setup_eth(None)
         table_id = '255' # This is the 'local' FIB of /etc/iproute2/rt_tables
         with open(self.config, 'w') as f:
@@ -95,7 +93,7 @@ class _CommonTests():
           via: 11.0.0.1
           table: %(tid)s
           on-link: true''' % {'r': self.backend, 'ec': self.dev_e_client, 'tid': table_id})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet '])
         out = subprocess.check_output(['ip', 'route', 'show', 'table', table_id, 'dev',
                                       self.dev_e_client], universal_newlines=True)
@@ -115,9 +113,8 @@ class _CommonTests():
           - to: 10.10.10.0/24
             via: 192.168.5.254
             metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet 192.168.5.[0-9]+/24'])  # from DHCP
+        self.generate_and_settle([self.state_dhcp4(self.dev_e_client)])
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])  # from DHCP
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'10.10.10.0/24 via 192.168.5.254',  # from static route
@@ -139,9 +136,8 @@ class _CommonTests():
           - to: 10.10.10.0/24
             via: 192.168.5.254
             metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet 192.168.5.[0-9]+/24'])  # from DHCP
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])  # from DHCP
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'10.10.10.0/24 via 192.168.5.254',  # from DHCP
@@ -162,9 +158,8 @@ class _CommonTests():
           - to: 2001:f00f:f00f::1/64
             via: 9876:BBBB::5
             metric: 799''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet6 9876:bbbb::11/70'])
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet6 9876:bbbb::11/70'])
         self.assertNotIn(b'default',
                          subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'via 9876:bbbb::1',
@@ -188,7 +183,7 @@ class _CommonTests():
           - to: 10.10.10.0/24
             via: 192.168.5.254
             mtu: 777''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         self.assertIn(b'mtu 777',  # check mtu from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
@@ -206,9 +201,9 @@ class _CommonTests():
         - to: 10.10.10.0/24
           via: 192.168.5.254
           congestion-window: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         self.assertIn(b'initcwnd 16',  # check initcwnd from static route
-                    subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
+                      subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
     def test_per_route_advertised_receive_window(self):
         self.setup_eth(None)
@@ -224,9 +219,9 @@ class _CommonTests():
         - to: 10.10.10.0/24
           via: 192.168.5.254
           advertised-receive-window: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client])
         self.assertIn(b'initrwnd 16',  # check initrwnd from static route
-                    subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
+                      subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
@@ -247,9 +242,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
           - to: 10.10.10.0/24
             scope: link
             metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet 192.168.5.[0-9]+/24'])  # from DHCP
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])  # from DHCP
         self.assertIn(b'default via 192.168.5.1',  # from DHCP
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'10.10.10.0/24 proto static scope link',
@@ -271,9 +265,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         - to: 10.10.10.0/24
           via: 10.20.10.100
           type: blackhole''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet '])
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet '])
         self.assertIn(b'blackhole 10.10.10.0/24',
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
 
@@ -298,9 +291,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         - from: 10.20.10.0/24
           to: 40.0.0.0/24
           table: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle()
-        self.assert_iface_up(self.dev_e_client,
-                             ['inet '])
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet '])
         self.assertIn(b'to 40.0.0.0/24 lookup 99',
                       subprocess.check_output(['ip', 'rule', 'show']))
         self.assertIn(b'40.0.0.0/24 via 10.20.10.88',

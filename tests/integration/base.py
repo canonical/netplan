@@ -4,10 +4,10 @@
 # Wifi (mac80211-hwsim). These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018-2020 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
-# Author: Lukas Märdian <lukas.maerdian@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -189,6 +189,7 @@ class IntegrationTestsBase(unittest.TestCase):
         '''
         # give our router an IP
         subprocess.check_call(['ip', 'a', 'flush', 'dev', self.dev_e_ap])
+        subprocess.check_call(['ip', 'a', 'flush', 'dev', self.dev_e2_ap])
         if ipv6_mode is not None:
             subprocess.check_call(['ip', 'a', 'add', self.dev_e_ap_ip6, 'dev', self.dev_e_ap])
             subprocess.check_call(['ip', 'a', 'add', self.dev_e2_ap_ip6, 'dev', self.dev_e2_ap])
@@ -252,11 +253,11 @@ class IntegrationTestsBase(unittest.TestCase):
             if ipv6_mode:
                 dhcp_range += ',' + ipv6_mode
 
-        self.dnsmasq_log = os.path.join(self.workdir, 'dnsmasq-%s.log' % iface)
+        dnsmasq_log = os.path.join(self.workdir, 'dnsmasq-%s.log' % iface)
         lease_file = os.path.join(self.workdir, 'dnsmasq-%s.leases' % iface)
 
         p = subprocess.Popen(['dnsmasq', '--keep-in-foreground', '--log-queries',
-                              '--log-facility=' + self.dnsmasq_log,
+                              '--log-facility=' + dnsmasq_log,
                               '--conf-file=/dev/null',
                               '--dhcp-leasefile=' + lease_file,
                               '--bind-interfaces',
@@ -264,13 +265,12 @@ class IntegrationTestsBase(unittest.TestCase):
                               '--except-interface=lo',
                               '--enable-ra',
                               '--dhcp-range=' + dhcp_range])
-        self.addCleanup(p.wait)
-        self.addCleanup(p.terminate)
+        self.addCleanup(p.kill)
 
         if ipv6_mode is not None:
-            self.poll_text(self.dnsmasq_log, 'IPv6 router advertisement enabled')
+            self.poll_text(dnsmasq_log, 'IPv6 router advertisement enabled')
         else:
-            self.poll_text(self.dnsmasq_log, 'DHCP, IP range')
+            self.poll_text(dnsmasq_log, 'DHCP, IP range')
 
     def assert_iface(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface has been created'''
@@ -289,11 +289,11 @@ class IntegrationTestsBase(unittest.TestCase):
     def assert_iface_up(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface is up'''
 
-        out = self.assert_iface(iface, expected_ip_a=None, unexpected_ip_a=None)
+        out = self.assert_iface(iface, expected_ip_a, unexpected_ip_a)
         if 'bond' not in iface:
             self.assertIn('state UP', out)
 
-    def generate_and_settle(self):
+    def generate_and_settle(self, wait_interfaces=None):
         '''Generate config, launch and settle NM and networkd'''
 
         # regenerate netplan config
@@ -301,20 +301,34 @@ class IntegrationTestsBase(unittest.TestCase):
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             self.fail('systemd units changed without reload')
         # start NM so that we can verify that it does not manage anything
-        subprocess.check_call(['systemctl', 'start', '--no-block', 'NetworkManager.service'])
-        # wait until networkd is done
-        if self.is_active('systemd-networkd.service'):
-            if subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=30']) != 0:
-                subprocess.call(['journalctl', '-b', '--no-pager', '-t', 'systemd-networkd'])
-                st = subprocess.check_output(['networkctl'], stderr=subprocess.PIPE, universal_newlines=True)
-                st_e = subprocess.check_output(['networkctl', 'status', self.dev_e_client],
-                                               stderr=subprocess.PIPE, universal_newlines=True)
-                st_e2 = subprocess.check_output(['networkctl', 'status', self.dev_e2_client],
-                                                stderr=subprocess.PIPE, universal_newlines=True)
-                self.fail('timed out waiting for networkd to settle down:\n%s\n%s\n%s' % (st, st_e, st_e2))
+        subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
 
-        if subprocess.call(['nm-online', '--quiet', '--timeout=240', '--wait-for-startup']) != 0:
-            self.fail('timed out waiting for NetworkManager to settle down')
+        # Wait for interfaces to be ready:
+        ifaces = wait_interfaces if wait_interfaces is not None else [self.dev_e_client, self.dev_e2_client]
+        for iface_state in ifaces:
+            split = iface_state.split('/', 1)
+            iface = split[0]
+            state = split[1] if len(split) > 1 else None
+            print(iface, end=' ', flush=True)
+            if self.backend == 'NetworkManager':
+                self.nm_wait_connected(iface, 60)
+            else:
+                self.networkd_wait_connected(iface, 60)
+            # wait for iproute2 state change
+            if state:
+                self.wait_output(['ip', 'addr', 'show', iface], state, 30)
+
+    def state(self, iface, state):
+        '''Tell generate_and_settle() to wait for a specific state'''
+        return iface + '/' + state
+
+    def state_dhcp4(self, iface):
+        '''Tell generate_and_settle() to wait for assignment of an IP4 address from DHCP'''
+        return self.state(iface, 'inet 192.168.')  # TODO: make this a regex to check for specific DHCP ranges
+
+    def state_dhcp6(self, iface):
+        '''Tell generate_and_settle() to wait for assignment of an IP6 address from DHCP'''
+        return self.state(iface, 'inet6 260')  # TODO: make this a regex to check for specific DHCP ranges
 
     def nm_online_full(self, iface, timeout=60):
         '''Wait for NetworkManager connection to be completed (incl. IP4 & DHCP)'''
@@ -341,13 +355,18 @@ class IntegrationTestsBase(unittest.TestCase):
                 out = ''
             if expected_output in out:
                 break
-            sys.stdout.write('. ')  # waiting indicator
+            sys.stdout.write('.')  # waiting indicator
             time.sleep(1)
         else:
+            subprocess.call(cmd)  # print output of the failed command
             self.fail('timed out waiting for "{}" to appear in {}'.format(expected_output, cmd))
 
-    def nm_wait_connected(self, iface, timeout):
+    def nm_wait_connected(self, iface, timeout=10):
         self.wait_output(['nmcli', 'dev', 'show', iface], '(connected', timeout)
+
+    def networkd_wait_connected(self, iface, timeout=10):
+        # "State: routable (configured)" or "State: degraded (configured)"
+        self.wait_output(['networkctl', 'status', iface], '(configured', timeout)
 
     @classmethod
     def is_active(klass, unit):

@@ -5,8 +5,9 @@
 # These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2021 Canonical, Ltd.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,7 +33,7 @@ class _CommonTests():
     def test_empty_yaml_lp1795343(self):
         with open(self.config, 'w') as f:
             f.write('''''')
-        self.generate_and_settle()
+        self.generate_and_settle([])
 
 
 @unittest.skipIf("networkd" not in test_backends,
@@ -68,15 +69,14 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         transmit-hash-policy: layer3+4
         up-delay: 0
       ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybond'])
         self.assert_iface_up(self.dev_e_client,
                              ['master mybond', '00:0a:f7:72:a7:28'],
                              ['inet '])
         self.assert_iface_up(self.dev_e2_client,
                              ['master mybond', '00:0a:f7:72:a7:28'],
                              ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertIn(self.dev_e_client, f.read().strip())
 
