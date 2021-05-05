@@ -69,9 +69,9 @@ class NetplanGenerate(utils.NetplanCommand):
                 if res == 130:
                     raise PermissionError(
                         "failed to communicate with dbus service")
-                elif res == 1:
+                else:
                     raise RuntimeError(
-                        "failed to communicate with dbus service")
+                        "failed to communicate with dbus service: error %s" % res)
             else:
                 return
 
