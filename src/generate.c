@@ -36,7 +36,7 @@
 static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd;
-static gboolean any_sriov;
+//static gboolean any_sriov;
 static gchar* mapping_iface;
 
 static GOptionEntry options[] = {
@@ -46,12 +46,14 @@ static GOptionEntry options[] = {
     {NULL}
 };
 
+/*
 static void
 reload_udevd(void)
 {
     const gchar *argv[] = { "/sbin/udevadm", "control", "--reload", NULL };
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 };
+*/
 
 // LCOV_EXCL_START
 /* covered via 'cloud-init' integration test */
@@ -85,13 +87,13 @@ static void
 nd_iterator_list(gpointer value, gpointer user_data)
 {
     NetplanNetDefinition* def = (NetplanNetDefinition*) value;
-    if (write_networkd_conf(def, (const char*) user_data))
-        any_networkd = TRUE;
+    //if (write_networkd_conf(def, (const char*) user_data))
+    //    any_networkd = TRUE;
 
-    write_ovs_conf(def, (const char*) user_data);
+    //write_ovs_conf(def, (const char*) user_data);
     write_nm_conf(def, (const char*) user_data);
-    if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
-        any_sriov = TRUE;
+    //if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
+    //    any_sriov = TRUE;
 }
 
 
@@ -223,28 +225,28 @@ int main(int argc, char** argv)
     }
 
     /* Clean up generated config from previous runs */
-    cleanup_networkd_conf(rootdir);
+    //cleanup_networkd_conf(rootdir);
     cleanup_nm_conf(rootdir);
-    cleanup_ovs_conf(rootdir);
-    cleanup_sriov_conf(rootdir);
+    //cleanup_ovs_conf(rootdir);
+    //cleanup_sriov_conf(rootdir);
 
     if (mapping_iface && netdefs)
         return find_interface(mapping_iface);
 
     /* Generate backend specific configuration files from merged data. */
-    write_ovs_conf_finish(rootdir); // OVS cleanup unit is always written
+    //write_ovs_conf_finish(rootdir); // OVS cleanup unit is always written
     if (netdefs) {
         g_debug("Generating output files..");
         g_list_foreach (netdefs_ordered, nd_iterator_list, rootdir);
         write_nm_conf_finish(rootdir);
-        if (any_sriov) write_sriov_conf_finish(rootdir);
+        //if (any_sriov) write_sriov_conf_finish(rootdir);
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only
          * invalidates cache at most every 3 seconds. Not sure if this
          * should live in `generate' or `apply', but it is confusing
          * when udevd ignores just-in-time created rules files.
          */
-        reload_udevd();
+        //reload_udevd();
     }
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
@@ -262,7 +264,7 @@ int main(int argc, char** argv)
         FILE* f = fopen(generator_run_stamp, "w");
         g_assert(f != NULL);
         fclose(f);
-    } else if (check_called_just_in_time()) {
+    } else if (FALSE && check_called_just_in_time()) {
         /* netplan-feature: generate-just-in-time */
         /* When booting with cloud-init, network configuration
          * might be provided just-in-time. Specifically after
