@@ -80,6 +80,7 @@ class NetplanApply(utils.NetplanCommand):
             #      using core20 netplan binary/client/CLI on core18 base systems. Any change
             #      must be agreed upon with the snapd team, so we don't break support for
             #      base systems running older netplan versions.
+            #      https://github.com/snapcore/snapd/pull/5915
             res = subprocess.call([busctl, "call", "--quiet", "--system",
                                    "io.netplan.Netplan",  # the service
                                    "/io/netplan/Netplan",  # the object
