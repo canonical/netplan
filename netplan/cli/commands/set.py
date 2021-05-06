@@ -23,6 +23,7 @@ import tempfile
 import re
 import logging
 import shutil
+import sys
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
@@ -84,11 +85,15 @@ class NetplanSet(utils.NetplanCommand):
     def command_set(self):
         if self.origin_hint is not None and len(self.origin_hint) == 0:
             raise Exception('Invalid/empty origin-hint')
-        split = self.key_value.split('=', 1)
-        if len(split) != 2:
-            raise Exception('Invalid value specified')
-        key, value = split
-        set_tree = self.parse_key(key, yaml.safe_load(value))
+        # read from stdin
+        if self.key_value == "-":
+            set_tree = yaml.safe_load(sys.stdin)
+        else:
+            split = self.key_value.split('=', 1)
+            if len(split) != 2:
+                raise Exception('Invalid value specified')
+            key, value = split
+            set_tree = self.parse_key(key, yaml.safe_load(value))
 
         hints = [(self.origin_hint, set_tree)]
         # Override YAML config in each individual netdef file if origin-hint is not set

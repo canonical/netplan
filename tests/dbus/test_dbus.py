@@ -308,6 +308,68 @@ class TestNetplanDBus(unittest.TestCase):
             "--root-dir={}".format(tmpdir)
         ]])
 
+    def test_netplan_dbus_config_set_multi_line(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addCleanup(shutil.rmtree, tmpdir)
+        self.mock_netplan_cmd.expect_stdin()
+
+        # Verify .Config.Set() on the config object
+        # No actual YAML file will be created, as the netplan command is mocked
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets:\n eth42:\n  dhcp6: true", "",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b true\n', out)
+        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+            "netplan", "set", "-",
+            "--root-dir={}".format(tmpdir)
+        ]])
+        self.assertEquals(self.mock_netplan_cmd.stdin(), """ethernets:
+ eth42:
+  dhcp6: true""")
+
+    def test_netplan_dbus_config_set_multi_line_error(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addCleanup(shutil.rmtree, tmpdir)
+        self.mock_netplan_cmd.add_snippet("echo stdout; >&2 echo stderr; exit 1")
+        self.mock_netplan_cmd.expect_stdin()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets:\n eth42:\n  dhcp6: true", "",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
+        self.assertIn("netplan set failed: Child process exited with code 1", err)
+        self.assertIn("stdout: 'stdout", err)
+        self.assertIn("stderr: 'stderr", err)
+
+    def test_netplan_dbus_config_set_multi_line_no_stdin_error(self):
+        cid = self._new_config_object()
+        tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        self.addCleanup(shutil.rmtree, tmpdir)
+        self.mock_netplan_cmd.add_snippet("exec 0<&-")
+        self.mock_netplan_cmd.expect_stdin()
+
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Set", "ss", "ethernets:\n eth42:\n  dhcp6: true", "",
+        ]
+        err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
+        self.assertIn("netplan set failed: Child process exited with code 1", err)
+        # XXX: not quite the failure we except
+        self.assertIn("stderr: 'cat: -: Bad file descriptor", err)
+
     def test_netplan_dbus_config_get(self):
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
