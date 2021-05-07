@@ -67,6 +67,7 @@ class _CommonTests():
       mode: ipip
       local: 192.168.5.1
       remote: 99.99.99.99
+      ttl: 64
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
