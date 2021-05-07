@@ -246,7 +246,6 @@ struct net_definition {
     NetplanDefType type;
     NetplanBackend backend;
     char* id;
-    char* filename;
     /* only necessary for NetworkManager connection UUIDs in some cases */
     uuid_t uuid;
 
@@ -376,7 +375,6 @@ struct net_definition {
         char *private_key; /* used for wireguard */
         guint fwmark;
         guint port;
-        guint ttl;
     } tunnel;
 
     NetplanAuthenticationSettings auth;
@@ -393,6 +391,10 @@ struct net_definition {
     NetplanOVSSettings ovs_settings;
 
     NetplanBackendSettings backend_settings;
+
+    char* filename;
+    /* it cannot be in the tunnel struct: https://github.com/canonical/netplan/pull/206 */
+    guint tunnel_ttl;
 };
 
 typedef enum {
