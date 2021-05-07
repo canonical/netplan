@@ -375,7 +375,6 @@ struct net_definition {
         char *private_key; /* used for wireguard */
         guint fwmark;
         guint port;
-        guint ttl;
     } tunnel;
 
     NetplanAuthenticationSettings auth;
@@ -394,6 +393,8 @@ struct net_definition {
     NetplanBackendSettings backend_settings;
 
     char* filename;
+    /* it cannot be in the tunnel struct: https://github.com/canonical/netplan/pull/206 */
+    guint tunnel_ttl;
 };
 
 typedef enum {
