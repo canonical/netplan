@@ -1087,7 +1087,7 @@ more general information about tunnels.
 
 :   Defines the address of the remote endpoint of the tunnel.
 
-``ttl`` (scalar) – since **0.102**
+``ttl`` (scalar) – since **0.103**
 
 :   Defines the TTL of the tunnel.
 
