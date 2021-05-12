@@ -285,9 +285,10 @@ Virtual devices
 
 ``dhcp-identifier`` (scalar)
 
-:   When set to 'mac'; pass that setting over to systemd-networkd to use the
-    device's MAC address as a unique identifier rather than a RFC4361-compliant
-    Client ID. This has no effect when NetworkManager is used as a renderer.
+:   (networkd backend only) Sets the source of DHCPv4 client identifier. If ``mac``
+    is specified, the MAC address of the link is used. If this option is omitted,
+    or if ``duid`` is specified, networkd will generate an RFC4361-compliant client
+    identifier for the interface by combining the link's IAID and DUID.
 
  ``dhcp4-overrides`` (mapping)
 
@@ -599,6 +600,14 @@ These options are available for all types of interfaces.
     ``mtu`` (scalar) – since **0.101**
      :    The MTU to be used for the route, in bytes. Must be a positive integer
           value.
+
+    ``congestion-window`` (scalar) – since **0.102**
+     :    The congestion window to be used for the route, represented by number
+          of segments. Must be a positive integer value.
+
+    ``advertised-receive-window`` (scalar) – since **0.102**
+     :    The receive window to be advertised for the route, represented by
+          number of segments. Must be a positive integer value.
 
 ``routing-policy`` (mapping)
 
@@ -1096,6 +1105,10 @@ more general information about tunnels.
 
 :   Defines the address of the remote endpoint of the tunnel.
 
+``ttl`` (scalar) – since **0.102**
+
+:   Defines the TTL of the tunnel.
+
 ``key``  (scalar or mapping)
 
 :   Define keys to use for the tunnel. The key can be a number or a dotted
@@ -1261,6 +1274,10 @@ Example:
         link: eno1
         addresses: ...
 
+## Properties for device type ``nm-devices:``
+
+The ``nm-devices`` device type is for internal use only and should not be used in normal configuration files. It enables a fallback mode for unsupported settings, using the ``passthrough`` mapping.
+
 
 ## Backend-specific configuration parameters
 
@@ -1289,6 +1306,8 @@ consumer of that backend. Currently, this is only used with ``NetworkManager``.
      ``device`` (scalar) – since **0.99**
      :    Defines the interface name for which this connection applies.
 
+     ``passthrough`` (mapping) – since **0.102**
+     :    Can be used as a fallback mechanism to missing keyfile settings.
 
 ## Examples
 Configure an ethernet device with networkd, identified by its name, and enable

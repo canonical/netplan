@@ -239,6 +239,35 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
+method_generate(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar *stdout = NULL;
+    g_autofree gchar *stderr = NULL;
+    gint exit_status = 0;
+
+    gchar *argv[] = {SBINDIR "/" "netplan", "generate", NULL};
+
+    // for tests only: allow changing what netplan to run
+    if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
+       argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
+
+    g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &stdout, &stderr, &exit_status, &err);
+    // LCOV_EXCL_START
+    if (err != NULL)
+        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                 "cannot run netplan generate: %s", err->message);
+    g_spawn_check_exit_status(exit_status, &err);
+    if (err != NULL)
+       return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                "netplan generate failed: %s\nstdout: '%s'\nstderr: '%s'",
+                                err->message, stdout, stderr);
+    // LCOV_EXCL_STOP
+
+    return sd_bus_reply_method_return(m, "b", true);
+}
+
+static int
 method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     sd_bus_message *reply = NULL;
@@ -322,18 +351,26 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     g_autofree gchar *origin = NULL;
     g_autofree gchar *root_dir = NULL;
     gint exit_status = 0;
+    char *args[2] = {NULL, NULL};
     char *config_delta = NULL;
     char *origin_hint = NULL;
+    guint cur_arg = 0;
 
     if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint"); // LCOV_EXCL_LINE
 
-    if (!!strcmp(origin_hint, ""))
+    if (!!strcmp(origin_hint, "")) {
         origin = g_strdup_printf("--origin-hint=%s", origin_hint);
+        args[cur_arg] = origin;
+        cur_arg++;
+    }
 
-    if (d->config_id)
+    if (d->config_id) {
         root_dir = g_strdup_printf("--root-dir=%s/netplan-config-%s", g_get_tmp_dir(), d->config_id);
-    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, origin, root_dir, NULL};
+        args[cur_arg] = root_dir;
+        cur_arg++;
+    }
+    gchar *argv[] = {SBINDIR "/" "netplan", "set", config_delta, args[0], args[1], NULL};
 
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
@@ -655,6 +692,7 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 static const sd_bus_vtable netplan_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_apply, 0),
+    SD_BUS_METHOD("Generate", "", "b", method_generate, 0),
     SD_BUS_METHOD("Info", "", "a(sv)", method_info, 0),
     SD_BUS_METHOD("Config", "", "o", method_config, 0),
     SD_BUS_VTABLE_END

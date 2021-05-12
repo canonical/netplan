@@ -306,7 +306,7 @@ class _CommonTests():
             self.assertEqual(f.read().strip(), '15')
 
     def test_bond_resend_igmp(self):
-        self.setup_eth(None)
+        self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -318,18 +318,18 @@ class _CommonTests():
       match: {name: %(e2c)s}
   bonds:
     mybond:
+      addresses: [192.168.9.9/24]
       interfaces: [ethbn, ethb2]
       parameters:
         mode: balance-rr
         mii-monitor-interval: 50s
         resend-igmp: 100
-      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle()
         self.assert_iface_up(self.dev_e_client,
                              ['master mybond'],
                              ['inet '])
-        self.assert_iface_up('mybond',
-                             ['inet 192.168.5.[0-9]+/24'])
+        self.assert_iface_up('mybond', ['inet 192.168.9.9/24'])
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             result = f.read().strip()
             self.assertIn(self.dev_e_client, result)
@@ -354,6 +354,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       match:
         name: %(ec)s
         macaddress: %(ec_mac)s
+    %(e2c)s: {}
   bonds:
     mybond:
       interfaces: [ethbn]
@@ -428,7 +429,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_interval(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -458,7 +458,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_targets(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -488,7 +487,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_targets_many_lp1829264(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -520,7 +518,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_all_targets(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -552,7 +549,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_validate(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -651,7 +647,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_interval(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -681,7 +676,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_targets(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -711,7 +705,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
 
     def test_bond_arp_all_targets(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:

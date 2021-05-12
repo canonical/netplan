@@ -99,6 +99,10 @@ class ConfigManager(object):
         return self.network['vlans']
 
     @property
+    def nm_devices(self):
+        return self.network['nm-devices']
+
+    @property
     def version(self):
         return self.network['version']
 
@@ -153,6 +157,7 @@ class ConfigManager(object):
             'bonds': {},
             'tunnels': {},
             'vlans': {},
+            'nm-devices': {},
             'version': None,
             'renderer': None
         }
@@ -294,6 +299,9 @@ class ConfigManager(object):
                         new_interfaces |= new
                     if 'vlans' in network:
                         new = self._merge_interface_config(self.vlans, network.get('vlans'))
+                        new_interfaces |= new
+                    if 'nm-devices' in network:
+                        new = self._merge_interface_config(self.nm_devices, network.get('nm-devices'))
                         new_interfaces |= new
                     if 'version' in network:
                         self.network['version'] = network.get('version')

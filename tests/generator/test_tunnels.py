@@ -19,7 +19,7 @@
 from .base import TestBase, ND_WITHIPGW, ND_EMPTY, NM_WG, ND_WG
 
 
-def prepare_config_for_mode(renderer, mode, key=None):
+def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
     config = """network:
   version: 2
   renderer: {}
@@ -36,15 +36,16 @@ def prepare_config_for_mode(renderer, mode, key=None):
         local_ip = "10.10.10.10"
         remote_ip = "20.20.20.20"
 
+    append_ttl = '\n      ttl: {}'.format(ttl) if ttl else ''
     config += """
   tunnels:
     tun0:
       mode: {}
       local: {}
-      remote: {}
+      remote: {}{}
       addresses: [ 15.15.15.15/24 ]
       gateway4: 20.20.20.21
-""".format(mode, local_ip, remote_ip)
+""".format(mode, local_ip, remote_ip, append_ttl)
 
     # Handle key/keys as str or dict as required by the test
     if type(key) is str:
@@ -359,7 +360,7 @@ persistent-keepalive=23
 endpoint=1.2.3.4:5
 preshared-key=7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=
 preshared-key-flags=0
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
     def test_simple_multi_pass(self):
         """[wireguard] Validate generation of a wireguard config, which is parsed multiple times"""
@@ -397,7 +398,7 @@ listen-port=12345
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;
 
 [ipv4]
 method=manual
@@ -427,7 +428,7 @@ method=ignore
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
                                            'endpoint': '1.2.3.4:5'}, {
-                                           'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
+                                           'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG5=',
                                            'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
                                            'keepalive': 23,
                                            'endpoint': '1.2.3.4:5'}], renderer=self.backend)
@@ -441,7 +442,7 @@ PersistentKeepalive=23
 Endpoint=1.2.3.4:5
 
 [WireGuardPeer]
-PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG5=
 AllowedIPs=0.0.0.0/0,2001:fe:ad:de:ad:be:ef:1/24
 PersistentKeepalive=23
 Endpoint=1.2.3.4:5'''),
@@ -452,12 +453,12 @@ Endpoint=1.2.3.4:5'''),
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;
 
-[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG5=]
 persistent-keepalive=23
 endpoint=1.2.3.4:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
     def test_privatekeyfile(self):
         """[wireguard] Validate generation of another simple wireguard config"""
@@ -504,7 +505,7 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5'''),
 [wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
 persistent-keepalive=23
 endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
-allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24''')})
+allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
 
 # Execute the _CommonParserErrors only for one backend, to spare some test cycles
@@ -744,7 +745,7 @@ ConfigureWithoutCarrier=yes
 
     def test_ipip(self):
         """[networkd] Validate generation of IPIP tunnels"""
-        config = prepare_config_for_mode('networkd', 'ipip')
+        config = prepare_config_for_mode('networkd', 'ipip', ttl=64)
         self.generate(config)
         self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
@@ -754,6 +755,7 @@ Kind=ipip
 Independent=true
 Local=10.10.10.10
 Remote=20.20.20.20
+TTL=64
 ''',
                               'tun0.network': '''[Match]
 Name=tun0
@@ -1066,7 +1068,7 @@ method=ignore
 
     def test_ipip(self):
         """[NetworkManager] Validate generation of IPIP tunnels"""
-        config = prepare_config_for_mode('NetworkManager', 'ipip')
+        config = prepare_config_for_mode('NetworkManager', 'ipip', ttl=64)
         self.generate(config)
         self.assert_nm({'tun0': '''[connection]
 id=netplan-tun0
@@ -1077,6 +1079,7 @@ interface-name=tun0
 mode=1
 local=10.10.10.10
 remote=20.20.20.20
+ttl=64
 
 [ipv4]
 method=manual
@@ -1259,6 +1262,20 @@ class TestConfigErrors(TestBase):
 '''
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: missing 'remote' property for tunnel", out)
+
+    def test_invalid_ttl(self):
+        """Fail if TTL not in range [1...255]"""
+        config = '''network:
+  version: 2
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 20.20.20.20
+      remote: 10.10.10.10
+      ttl: 300
+'''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: tun0: 'ttl' property for tunnel must be in range [1...255]", out)
 
     def test_wrong_local_ip_for_mode_v4(self):
         """Show an error when an IPv6 local addr is used for an IPv4 tunnel mode"""

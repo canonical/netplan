@@ -35,7 +35,6 @@ class _CommonTests():
         The on-link option was introduced as of NM 1.12+ (for IPv4)
         The on-link option was introduced as of NM 1.18+ (for IPv6)'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -59,7 +58,6 @@ class _CommonTests():
 
         The from option was introduced as of NM 1.8+'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -82,7 +80,6 @@ class _CommonTests():
 
         The table option was introduced as of NM 1.10+'''
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         table_id = '255' # This is the 'local' FIB of /etc/iproute2/rt_tables
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -195,6 +192,41 @@ class _CommonTests():
         self.assertIn(b'mtu 777',  # check mtu from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
+    def test_per_route_congestion_window(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+        - 192.168.5.99/24
+      gateway4: 192.168.5.1
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.5.254
+          congestion-window: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assertIn(b'initcwnd 16',  # check initcwnd from static route
+                    subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
+
+    def test_per_route_advertised_receive_window(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+        - 192.168.5.99/24
+      gateway4: 192.168.5.1
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.5.254
+          advertised-receive-window: 16''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle()
+        self.assertIn(b'initrwnd 16',  # check initrwnd from static route
+                    subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
@@ -228,7 +260,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     @unittest.skip("networkd does not handle non-unicast routes correctly yet (Invalid argument)")
     def test_route_type_blackhole(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -248,7 +279,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_route_with_policy(self):
         self.setup_eth(None)
-        self.start_dnsmasq(None, self.dev_e2_ap)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s

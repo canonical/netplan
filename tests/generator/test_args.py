@@ -27,7 +27,7 @@ class TestConfigArgs(TestBase):
 
     def test_no_files(self):
         subprocess.check_call([exe_generate, '--root-dir', self.workdir.name])
-        self.assertEqual(os.listdir(self.workdir.name), [])
+        self.assertEqual(os.listdir(self.workdir.name), ['run'])
         self.assert_nm_udev(None)
 
     def test_no_configs(self):
@@ -113,7 +113,8 @@ class TestConfigArgs(TestBase):
     eth0:
       dhcp4: true''')
         err = self.generate('', extra_args=['--root-dir', '/proc/foo', conf], expect_fail=True)
-        self.assertIn('cannot create directory /proc/foo/run/systemd/network', err)
+        # can be /proc/foor/run/systemd/{network,system}
+        self.assertIn('cannot create directory /proc/foo/run/systemd/', err)
 
     def test_systemd_generator(self):
         conf = os.path.join(self.confdir, 'a.yaml')

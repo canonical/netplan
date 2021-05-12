@@ -205,6 +205,8 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
     if (!nd->tunnel.remote_ip)
         return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
+    if (nd->tunnel.ttl && nd->tunnel.ttl > 255)
+        return yaml_error(node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
 
     switch(nd->tunnel.mode) {
         case NETPLAN_TUNNEL_MODE_IPIP6:
@@ -339,6 +341,9 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         }
         // LCOV_EXCL_STOP
     }
+
+    if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.nm.passthrough || !g_datalist_get_data(&nd->backend_settings.nm.passthrough, "connection.type")))
+        return yaml_error(node, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
 
     valid = TRUE;
 

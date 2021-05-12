@@ -18,6 +18,7 @@
 import logging
 import os
 import subprocess
+import re
 
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
 # Defaults for non-optional settings, as defined here:
@@ -49,7 +50,12 @@ def _del_col(type, iface, column, value):
 def _del_dict(type, iface, column, key, value):
     """Cleanup values from a dictionary (i.e. "column:key=value")"""
     # removes the exact value only if it was set by netplan
-    subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, value])
+    subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, _escape_colon(value)])
+
+
+# for ovsdb remove: column key's value can not contain bare ':', need to escape with '\'
+def _escape_colon(literal):
+    return re.sub(r'([^\\]):', r'\g<1>\:', literal)
 
 
 def _del_global(type, iface, key, value):

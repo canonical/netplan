@@ -265,7 +265,7 @@ unmanaged-devices+=interface-name:wl0,''')
           password: "c0mpany1"
           mode: ap
       dhcp4: yes''', expect_fail=True)
-        self.assertIn('networkd does not support wifi in access point mode', err)
+        self.assertIn('wl0: workplace: networkd does not support this wifi mode', err)
 
     def test_wifi_wowlan(self):
         self.generate('''network:
@@ -382,9 +382,6 @@ id=netplan-wl0-Joe's Home
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -406,9 +403,6 @@ psk=s0s3kr1t
 id=netplan-wl0-workplace
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto
@@ -432,9 +426,6 @@ id=netplan-wl0-hidden-y
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -455,9 +446,6 @@ id=netplan-wl0-hidden-n
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -477,9 +465,6 @@ id=netplan-wl0-channel-no-band
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -494,9 +479,6 @@ mode=infrastructure
 id=netplan-wl0-band-no-channel
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto
@@ -527,21 +509,16 @@ band=a
 id=netplan-all-workplace
 type=wifi
 
-[ethernet]
-wake-on-lan=0
-
-[802-11-wireless]
+[wifi]
 mac-address=11:22:33:44:55:66
+ssid=workplace
+mode=infrastructure
 
 [ipv4]
 method=link-local
 
 [ipv6]
 method=ignore
-
-[wifi]
-ssid=workplace
-mode=infrastructure
 '''})
 
     def test_wifi_match_all(self):
@@ -557,9 +534,6 @@ mode=infrastructure
         self.assert_nm({'all-workplace': '''[connection]
 id=netplan-all-workplace
 type=wifi
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local
@@ -587,9 +561,6 @@ mode=infrastructure
 id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=shared
@@ -623,9 +594,6 @@ id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=link-local
 
@@ -652,21 +620,16 @@ id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
-[802-11-wireless]
+[wifi]
 wake-on-wlan=330
+ssid=homenet
+mode=infrastructure
 
 [ipv4]
 method=link-local
 
 [ipv6]
 method=ignore
-
-[wifi]
-ssid=homenet
-mode=infrastructure
 '''})
 
     def test_wifi_wowlan_default(self):
@@ -683,9 +646,6 @@ mode=infrastructure
 id=netplan-wl0-homenet
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=link-local

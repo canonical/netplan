@@ -142,6 +142,8 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
         g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
     g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
+    if (def->tunnel.ttl)
+        g_string_append_printf(params, "TTL=%u\n", def->tunnel.ttl);
     if (def->tunnel.input_key)
         g_string_append_printf(params, "InputKey=%s\n", def->tunnel.input_key);
     if (def->tunnel.output_key)
@@ -441,6 +443,10 @@ write_route(NetplanIPRoute* r, GString* s)
         g_string_append_printf(s, "Table=%d\n", r->table);
     if (r->mtubytes != NETPLAN_MTU_UNSPEC)
         g_string_append_printf(s, "MTUBytes=%u\n", r->mtubytes);
+    if (r->congestion_window != NETPLAN_CONGESTION_WINDOW_UNSPEC)
+        g_string_append_printf(s, "InitialCongestionWindow=%u\n", r->congestion_window);
+    if (r->advertised_receive_window != NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC)
+        g_string_append_printf(s, "InitialAdvertisedReceiveWindow=%u\n", r->advertised_receive_window);
 }
 
 static void
@@ -980,8 +986,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir)
                 case NETPLAN_WIFI_MODE_ADHOC:
                     g_string_append(s, "  mode=1\n");
                     break;
-                case NETPLAN_WIFI_MODE_AP:
-                    g_fprintf(stderr, "ERROR: %s: networkd does not support wifi in access point mode\n", def->id);
+                default:
+                    g_fprintf(stderr, "ERROR: %s: %s: networkd does not support this wifi mode\n", def->id, ap->ssid);
                     exit(1);
             }
 

@@ -24,7 +24,7 @@ import sys
 import subprocess
 import unittest
 
-from base import IntegrationTestsBase, test_backends
+from base import IntegrationTestsWifi, test_backends
 
 
 class _CommonTests():
@@ -125,13 +125,13 @@ wpa_passphrase=12345678
 
 @unittest.skipIf("networkd" not in test_backends,
                      "skipping as networkd backend tests are disabled")
-class TestNetworkd(IntegrationTestsBase, _CommonTests):
+class TestNetworkd(IntegrationTestsWifi, _CommonTests):
     backend = 'networkd'
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
                      "skipping as NetworkManager backend tests are disabled")
-class TestNetworkManager(IntegrationTestsBase, _CommonTests):
+class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
     backend = 'NetworkManager'
 
     def test_wifi_ap_open(self):

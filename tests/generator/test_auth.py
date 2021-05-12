@@ -291,9 +291,6 @@ id=netplan-wl0-Joe's Home
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -313,9 +310,6 @@ id=netplan-wl0-Luke's Home
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -334,9 +328,6 @@ psk=4lsos3kr1t
 id=netplan-wl0-workplace
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto
@@ -362,9 +353,6 @@ id=netplan-wl0-workplace2
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -389,9 +377,6 @@ id=netplan-wl0-workplacehashed
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -415,9 +400,6 @@ password=hash:9db1636cedc5948537e7bee0cc1e9590
 id=netplan-wl0-customernet
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto
@@ -447,9 +429,6 @@ id=netplan-wl0-opennet
 type=wifi
 interface-name=wl0
 
-[ethernet]
-wake-on-lan=0
-
 [ipv4]
 method=auto
 
@@ -464,9 +443,6 @@ mode=infrastructure
 id=netplan-wl0-peer2peer
 type=wifi
 interface-name=wl0
-
-[ethernet]
-wake-on-lan=0
 
 [ipv4]
 method=auto

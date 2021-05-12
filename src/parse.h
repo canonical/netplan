@@ -51,6 +51,9 @@ typedef enum {
     NETPLAN_DEF_TYPE_VLAN,
     NETPLAN_DEF_TYPE_TUNNEL,
     NETPLAN_DEF_TYPE_PORT,
+    /* Type fallback/passthrough */
+    NETPLAN_DEF_TYPE_NM,
+    NETPLAN_DEF_TYPE_MAX_
 } NetplanDefType;
 
 typedef enum {
@@ -218,6 +221,19 @@ typedef struct ovs_settings {
     NetplanAuthenticationSettings ssl;
 } NetplanOVSSettings;
 
+typedef union {
+    struct NetplanNMSettings {
+        char *name;
+        char *uuid;
+        char *stable_id;
+        char *device;
+        GData* passthrough;
+    } nm;
+    struct NetplanNetworkdSettings {
+        char *unit;
+    } networkd;
+} NetplanBackendSettings;
+
 /**
  * Represent a configuration stanza
  */
@@ -230,6 +246,7 @@ struct net_definition {
     NetplanDefType type;
     NetplanBackend backend;
     char* id;
+    char* filename;
     /* only necessary for NetworkManager connection UUIDs in some cases */
     uuid_t uuid;
 
@@ -361,6 +378,7 @@ struct net_definition {
         char *private_key; /* used for wireguard */
         guint fwmark;
         guint port;
+        guint ttl;
     } tunnel;
 
     NetplanAuthenticationSettings auth;
@@ -376,24 +394,23 @@ struct net_definition {
     /* netplan-feature: openvswitch */
     NetplanOVSSettings ovs_settings;
 
-    union {
-        struct NetplanNMSettings {
-            char *name;
-            char *uuid;
-            char *stable_id;
-            char *device;
-        } nm;
-        struct NetplanNetworkdSettings {
-            char *unit;
-        } networkd;
-    } backend_settings;
+    NetplanBackendSettings backend_settings;
 };
 
 typedef enum {
     NETPLAN_WIFI_MODE_INFRASTRUCTURE,
     NETPLAN_WIFI_MODE_ADHOC,
-    NETPLAN_WIFI_MODE_AP
+    NETPLAN_WIFI_MODE_AP,
+    NETPLAN_WIFI_MODE_OTHER,
+    NETPLAN_WIFI_MODE_MAX_
 } NetplanWifiMode;
+
+static const char* const netplan_wifi_mode_to_str[NETPLAN_WIFI_MODE_MAX_] = {
+    [NETPLAN_WIFI_MODE_INFRASTRUCTURE] = "infrastructure",
+    [NETPLAN_WIFI_MODE_ADHOC] = "adhoc",
+    [NETPLAN_WIFI_MODE_AP] = "ap",
+    [NETPLAN_WIFI_MODE_OTHER] = NULL,
+};
 
 typedef struct {
     char *endpoint;
@@ -425,8 +442,12 @@ typedef struct {
 
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
+
+    NetplanBackendSettings backend_settings;
 } NetplanWifiAccessPoint;
 
+#define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
+#define NETPLAN_CONGESTION_WINDOW_UNSPEC 0
 #define NETPLAN_MTU_UNSPEC 0
 #define NETPLAN_METRIC_UNSPEC G_MAXUINT
 #define NETPLAN_ROUTE_TABLE_UNSPEC 0
@@ -451,6 +472,8 @@ typedef struct {
     guint metric;
 
     guint mtubytes;
+    guint congestion_window;
+    guint advertised_receive_window;
 } NetplanIPRoute;
 
 typedef struct {
@@ -479,5 +502,10 @@ extern NetplanOVSSettings ovs_settings_global;
 
 gboolean netplan_parse_yaml(const char* filename, GError** error);
 GHashTable* netplan_finish_parse(GError** error);
+guint netplan_clear_netdefs();
 NetplanBackend netplan_get_global_backend();
 const char* tunnel_mode_to_string(NetplanTunnelMode mode);
+NetplanNetDefinition* netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend renderer);
+
+void process_input_file(const char* f);
+gboolean process_yaml_hierarchy(const char* rootdir);

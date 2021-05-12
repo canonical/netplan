@@ -18,8 +18,10 @@
 '''netplan generate command line'''
 
 import logging
+import os
 import sys
 import subprocess
+import shutil
 
 import netplan.cli.utils as utils
 
@@ -44,6 +46,35 @@ class NetplanGenerate(utils.NetplanCommand):
         self.run_command()
 
     def command_generate(self):
+        # if we are inside a snap, then call dbus to run netplan apply instead
+        if "SNAP" in os.environ:
+            # TODO: maybe check if we are inside a classic snap and don't do
+            # this if we are in a classic snap?
+            busctl = shutil.which("busctl")
+            if busctl is None:
+                raise RuntimeError("missing busctl utility")  # pragma: nocover
+            # XXX: DO NOT TOUCH or change this API call, it is used by snapd to communicate
+            #      using core20 netplan binary/client/CLI on core18 base systems. Any change
+            #      must be agreed upon with the snapd team, so we don't break support for
+            #      base systems running older netplan versions.
+            #      https://github.com/snapcore/snapd/pull/10212
+            res = subprocess.call([busctl, "call", "--quiet", "--system",
+                                   "io.netplan.Netplan",  # the service
+                                   "/io/netplan/Netplan",  # the object
+                                   "io.netplan.Netplan",  # the interface
+                                   "Generate",  # the method
+                                   ])
+
+            if res != 0:
+                if res == 130:
+                    raise PermissionError(
+                        "failed to communicate with dbus service")
+                else:
+                    raise RuntimeError(
+                        "failed to communicate with dbus service: error %s" % res)
+            else:
+                return
+
         argv = [utils.get_generator_path()]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
