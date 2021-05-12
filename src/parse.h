@@ -254,8 +254,6 @@ struct net_definition {
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
     gboolean critical;
-    /* netplan-feature: activation-mode */
-    char* activation_mode;
 
     /* addresses */
     gboolean dhcp4;
@@ -395,6 +393,9 @@ struct net_definition {
     NetplanOVSSettings ovs_settings;
 
     NetplanBackendSettings backend_settings;
+
+    /* netplan-feature: activation-mode */
+    char* activation_mode;
 };
 
 typedef enum {

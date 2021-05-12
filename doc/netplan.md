@@ -438,7 +438,7 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
             dhcp6: true
             optional-addresses: [ ipv4-ll, dhcp6 ]
 
-``activation-mode`` (scalar) – since **0.102**
+``activation-mode`` (scalar) – since **0.103**
 
 :    Allows specifying the management policy of the selected interface. By
      default, netplan brings up any configured interface if possible. Using the
