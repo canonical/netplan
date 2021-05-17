@@ -604,7 +604,7 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
             exit(1);
         }
         /* "manual" */
-        g_string_append(s, "autoconnect=false\n");
+        g_key_file_set_boolean(kf, "connection", "autoconnect", FALSE);
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
