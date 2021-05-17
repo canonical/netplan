@@ -43,8 +43,6 @@ os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_P
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
-from deepdiff import DeepDiff
-from netplan.configmanager import ConfigManager
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
 # common patterns for expected output
@@ -115,8 +113,6 @@ class TestBase(unittest.TestCase):
         else:
             kv[1] = val  # no normalization needed or known
 
-        key = kv[0].strip()
-
         return ': '.join(kv)
 
     def expand_yaml(self, line):
@@ -151,6 +147,8 @@ class TestBase(unittest.TestCase):
             return []
         elif 'accept-ra: false' in line:
             return []
+        elif 'hidden: false' in line:
+            return []
         elif 'parameters: {}' in line:
             return []
         elif 'send-hostname: true' in line:
@@ -172,6 +170,10 @@ class TestBase(unittest.TestCase):
         elif 'optional: false' in line:
             return []
         elif 'critical: false' in line:
+            return []
+        elif 'type: unicast' in line:
+            return []
+        elif 'on-link: false' in line:
             return []
         # ignore renderer: on different levels for now
         # that information is not stored in the netdef data structure
@@ -230,7 +232,7 @@ class TestBase(unittest.TestCase):
         with open(conf, 'r') as orig:
             y1 = yaml.safe_load(orig.read())
             # Consider 'network: {}' and 'network: {version: 2}' to be empty
-            if y1 is None or y1 == {'network':{}} or y1 == {'network':{'version':2}}:
+            if y1 is None or y1 == {'network': {}} or y1 == {'network': {'version': 2}}:
                 y1 = yaml.safe_load('')
             generated_path = os.path.join(self.confdir, filename)
             if os.path.isfile(generated_path):
@@ -250,17 +252,23 @@ class TestBase(unittest.TestCase):
             Ax = []
             Bx = []
             for line in A.splitlines():
-                for l in self.expand_yaml(line):
-                    Ax.append(l)
+                for lnA in self.expand_yaml(line):
+                    Ax.append(lnA)
             for line in B.splitlines():
-                for l in self.expand_yaml(line):
-                    Bx.append(l)
+                for lnB in self.expand_yaml(line):
+                    Bx.append(lnB)
 
             Ax = self.clear_empty_mappings(Ax)
             Bx = self.clear_empty_mappings(Bx)
             # NORMALIZED YAMLs
-            #print('\n'.join(Ax))
-            #print('\n'.join(Bx))
+            # print('\n'.join(Ax))
+            # print('\n'.join(Bx))
+
+            # Sort again (after substitutions)
+            Aa = yaml.dump(yaml.safe_load('\n'.join(Ax)))
+            Bb = yaml.dump(yaml.safe_load('\n'.join(Bx)))
+            Ax = Aa.splitlines()
+            Bx = Bb.splitlines()
 
             if len(Ax) != len(Bx):
                 for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):

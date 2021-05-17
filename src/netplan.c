@@ -403,10 +403,72 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+    if (def->routes && def->routes->len > 0) {
+        YAML_SCALAR_PLAIN(event, emitter, "routes");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        for (unsigned i = 0; i < def->routes->len; ++i) {
+            YAML_MAPPING_OPEN(event, emitter);
+            NetplanIPRoute *r = g_array_index(def->routes, NetplanIPRoute*, i);
+            if (r->type && g_strcmp0(r->type, "unicast") != 0)
+                YAML_STRING(event, emitter, "type", r->type);
+            if (r->scope && g_strcmp0(r->scope, "global") != 0)
+                YAML_STRING(event, emitter, "scope", r->scope);
+            if (r->metric != NETPLAN_METRIC_UNSPEC)
+                YAML_UINT(event, emitter, "metric", r->metric);
+            if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
+                YAML_UINT(event, emitter, "table", r->table);
+            if (r->mtubytes)
+                YAML_UINT(event, emitter, "mtu", r->mtubytes);
+            if (r->congestion_window)
+                YAML_UINT(event, emitter, "congestion-window", r->congestion_window);
+            if (r->advertised_receive_window)
+                YAML_UINT(event, emitter, "advertised-receive-window", r->advertised_receive_window);
+            if (r->onlink)
+                YAML_STRING(event, emitter, "on-link", "true");
+            if (r->from)
+                YAML_STRING(event, emitter, "from", r->from);
+            if (r->to)
+                YAML_STRING(event, emitter, "to", r->to);
+            if (r->via)
+                YAML_STRING(event, emitter, "via", r->via);
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+
+    if (def->ip_rules && def->ip_rules->len > 0) {
+        YAML_SCALAR_PLAIN(event, emitter, "routing-policy");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        for (unsigned i = 0; i < def->ip_rules->len; ++i) {
+            NetplanIPRule *r = g_array_index(def->ip_rules, NetplanIPRule*, i);
+            YAML_MAPPING_OPEN(event, emitter);
+            if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
+                YAML_UINT(event, emitter, "table", r->table);
+            if (r->priority != NETPLAN_IP_RULE_PRIO_UNSPEC)
+                YAML_UINT(event, emitter, "priority", r->priority);
+            if (r->tos != NETPLAN_IP_RULE_TOS_UNSPEC)
+                YAML_UINT(event, emitter, "type-of-service", r->tos);
+            if (r->fwmark != NETPLAN_IP_RULE_FW_MARK_UNSPEC)
+                YAML_UINT(event, emitter, "mark", r->fwmark);
+            if (r->from)
+                YAML_STRING(event, emitter, "from", r->from);
+            if (r->to)
+                YAML_STRING(event, emitter, "to", r->to);
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 void
 _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
-    gchar *tmp = NULL;
     GArray* tmp_arr = NULL;
     GHashTableIter iter;
     gpointer key, value;
@@ -501,6 +563,11 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
             break;
         default:
             break;
+    }
+
+    /* Routes */
+    if (def->routes || def->ip_rules) {
+        write_routes(event, emitter, def);
     }
 
     /* VLAN settings */

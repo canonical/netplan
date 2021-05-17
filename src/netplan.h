@@ -19,6 +19,8 @@
 
 #include "parse.h"
 
+gchar *tmp = NULL;
+
 #define YAML_MAPPING_OPEN(event_ptr, emitter_ptr) \
 { \
     yaml_mapping_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_MAP_TAG, 1, YAML_BLOCK_MAPPING_STYLE); \
