@@ -21,6 +21,8 @@
 #include "netplan.h"
 #include "parse.h"
 
+gchar *tmp = NULL;
+
 static gboolean
 write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
@@ -466,6 +468,101 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+has_openvswitch(const NetplanOVSSettings* ovs, GHashTable *ovs_ports) {
+    return (ovs_ports && g_hash_table_size(ovs_ports) > 0)
+            || (ovs->external_ids && g_hash_table_size(ovs->external_ids) > 0)
+            || (ovs->other_config && g_hash_table_size(ovs->other_config) > 0)
+            || ovs->lacp
+            || ovs->fail_mode
+            || ovs->mcast_snooping
+            || ovs->rstp
+            || ovs->protocols
+            || (ovs->ssl.ca_certificate || ovs->ssl.client_certificate || ovs->ssl.client_key)
+            || (ovs->controller.connection_mode || ovs->controller.addresses);
+}
+
+static gboolean
+write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVSSettings* ovs, GHashTable *ovs_ports)
+{
+    GHashTableIter iter;
+    gpointer key, value;
+
+    if (has_openvswitch(ovs, ovs_ports)) {
+        YAML_SCALAR_PLAIN(event, emitter, "openvswitch");
+        YAML_MAPPING_OPEN(event, emitter);
+
+        if (ovs_ports && g_hash_table_size(ovs_ports) > 0) {
+            YAML_SCALAR_PLAIN(event, emitter, "ports");
+            YAML_SEQUENCE_OPEN(event, emitter);
+
+            g_hash_table_iter_init(&iter, ovs_ports);
+            while (g_hash_table_iter_next (&iter, &key, &value)) {
+                YAML_SEQUENCE_OPEN(event, emitter);
+                YAML_SCALAR_PLAIN(event, emitter, key);
+                YAML_SCALAR_PLAIN(event, emitter, value);
+                YAML_SEQUENCE_CLOSE(event, emitter);
+                g_hash_table_iter_remove(&iter);
+            }
+
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+
+        if (ovs->external_ids && g_hash_table_size(ovs->external_ids) > 0) {
+            YAML_SCALAR_PLAIN(event, emitter, "external-ids");
+            YAML_MAPPING_OPEN(event, emitter);
+            g_hash_table_iter_init(&iter, ovs->external_ids);
+            while (g_hash_table_iter_next (&iter, &key, &value)) {
+                YAML_STRING(event, emitter, key, value);
+            }
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        if (ovs->other_config && g_hash_table_size(ovs->other_config) > 0) {
+            YAML_SCALAR_PLAIN(event, emitter, "other-config");
+            YAML_MAPPING_OPEN(event, emitter);
+            g_hash_table_iter_init(&iter, ovs->other_config);
+            while (g_hash_table_iter_next (&iter, &key, &value)) {
+                YAML_STRING(event, emitter, key, value);
+            }
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        if (ovs->lacp)
+            YAML_STRING(event, emitter, "lacp", ovs->lacp);
+        if (ovs->fail_mode)
+            YAML_STRING(event, emitter, "fail-mode", ovs->fail_mode);
+        if (ovs->mcast_snooping)
+            YAML_STRING_PLAIN(event, emitter, "mcast-snooping", "true");
+        if (ovs->rstp)
+            YAML_STRING_PLAIN(event, emitter, "rstp", "true");
+        if (ovs->protocols) {
+            YAML_SCALAR_PLAIN(event, emitter, "protocols");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            for (unsigned i = 0; i < ovs->protocols->len; ++i) {
+                const gchar *proto = g_array_index(ovs->protocols, gchar*, i);
+                YAML_SCALAR_PLAIN(event, emitter, proto);
+            }
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+        if (ovs->ssl.ca_certificate || ovs->ssl.client_certificate || ovs->ssl.client_key) {
+            YAML_SCALAR_PLAIN(event, emitter, "ssl");
+            YAML_MAPPING_OPEN(event, emitter);
+            if (ovs->ssl.ca_certificate)
+                YAML_STRING(event, emitter, "ca-cert", ovs->ssl.ca_certificate);
+            if (ovs->ssl.client_certificate)
+                YAML_STRING(event, emitter, "certificate", ovs->ssl.client_certificate);
+            if (ovs->ssl.client_key)
+                YAML_STRING(event, emitter, "private-key", ovs->ssl.client_key);
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        /* TODO: ovs->controller */
+
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
+
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 void
 _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
@@ -628,6 +725,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
 
+    write_openvswitch(event, emitter, &def->ovs_settings, NULL);
+
     /* some modem settings to auto-detect GSM vs CDMA connections */
     if (def->modem_params.auto_config)
         YAML_STRING_PLAIN(event, emitter, "auto-config", "true");
@@ -751,10 +850,11 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
 {
     g_autofree gchar *filename = NULL;
     g_autofree gchar *path = NULL;
+    GHashTable *ovs_ports = NULL;
     GHashTableIter iter;
     gpointer key, value;
 
-    if (netdefs && g_hash_table_size(netdefs) > 0) {
+    if (has_openvswitch(&ovs_settings_global, NULL) || (netdefs && g_hash_table_size(netdefs) > 0)) {
         path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
 
         /* Start rendering YAML output */
@@ -775,24 +875,39 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
             YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");
         }
 
-
-
         /* Go through the netdefs type-by-type */
-        for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
-            /* Per-netdef config */
-            if (netplan_def_type_to_str[i] && g_hash_table_find(netdefs, contains_netdef_type, &i)) {
-                YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[i]);
-                YAML_MAPPING_OPEN(event, emitter);
-                g_hash_table_iter_init(&iter, netdefs);
-                while (g_hash_table_iter_next (&iter, &key, &value)) {
-                    NetplanNetDefinition *def = (NetplanNetDefinition *) value;
-                    if (def->type == i)
-                        _serialize_yaml(event, emitter, def);
+        if (netdefs && g_hash_table_size(netdefs) > 0) {
+            for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+                /* Per-netdef config */
+                if (g_hash_table_find(netdefs, contains_netdef_type, &i)) {
+                    if (netplan_def_type_to_str[i]) {
+                        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[i]);
+                        YAML_MAPPING_OPEN(event, emitter);
+                        g_hash_table_iter_init(&iter, netdefs);
+                        while (g_hash_table_iter_next (&iter, &key, &value)) {
+                            NetplanNetDefinition *def = (NetplanNetDefinition *) value;
+                            if (def->type == i)
+                                _serialize_yaml(event, emitter, def);
+                        }
+                        YAML_MAPPING_CLOSE(event, emitter);
+                    } else if (i == NETPLAN_DEF_TYPE_PORT) {
+                        g_hash_table_iter_init(&iter, netdefs);
+                        while (g_hash_table_iter_next (&iter, &key, &value)) {
+                            NetplanNetDefinition *def = (NetplanNetDefinition *) value;
+                            if (def->type == i) {
+                                if (!ovs_ports)
+                                    ovs_ports = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+                                /* Insert each port:peer combination only once */
+                                if (!g_hash_table_lookup(ovs_ports, def->id))
+                                    g_hash_table_insert(ovs_ports, g_strdup(def->peer), g_strdup(def->id));
+                            }
+                        }
+                    }
                 }
-                YAML_MAPPING_CLOSE(event, emitter);
             }
         }
 
+        write_openvswitch(event, emitter, &ovs_settings_global, ovs_ports);
 
 
 
