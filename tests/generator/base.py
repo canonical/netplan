@@ -213,6 +213,9 @@ class TestBase(unittest.TestCase):
                     logging.debug('removing empty mapping:  ' + current)
                     logging.debug('context (line+1)      : ' + following)
                     continue
+            elif '- dhcp4' in current and '- dhcp4' in following:
+                continue  # skip current line, it's a duplicate
+
             new_lines.append(current)
         return new_lines
 
