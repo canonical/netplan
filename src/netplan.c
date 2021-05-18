@@ -725,6 +725,17 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
 
+    /* Generate "link-local" if it differs from the default: "[ ipv6 ]" */
+    if (!(def->linklocal.ipv6 && !def->linklocal.ipv4)) {
+        YAML_SCALAR_PLAIN(event, emitter, "link-local");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        if (def->linklocal.ipv4)
+            YAML_SCALAR_PLAIN(event, emitter, "ipv4");
+        if (def->linklocal.ipv6)
+            YAML_SCALAR_PLAIN(event, emitter, "ipv6");
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+
     write_openvswitch(event, emitter, &def->ovs_settings, NULL);
 
     /* some modem settings to auto-detect GSM vs CDMA connections */
