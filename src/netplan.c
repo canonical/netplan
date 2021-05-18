@@ -253,9 +253,20 @@ error: return FALSE; // LCOV_EXCL_LINE
 static gboolean
 write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
-    // TODO: handle address_options
     YAML_SCALAR_PLAIN(event, emitter, "addresses");
     YAML_SEQUENCE_OPEN(event, emitter);
+    if (def->address_options) {
+        for (unsigned i = 0; i < def->address_options->len; ++i) {
+            NetplanAddressOptions *opts = g_array_index(def->address_options, NetplanAddressOptions*, i);
+            YAML_MAPPING_OPEN(event, emitter);
+            YAML_SCALAR_PLAIN(event, emitter, opts->address);
+            YAML_MAPPING_OPEN(event, emitter);
+            YAML_STRING(event, emitter, "label", opts->label);
+            YAML_STRING(event, emitter, "lifetime", opts->lifetime);
+            YAML_MAPPING_CLOSE(event, emitter);
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+    }
     if (def->ip4_addresses) {
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
             YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip4_addresses, char*, i));
@@ -589,7 +600,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->critical)
         YAML_STRING_PLAIN(event, emitter, "critical", "true");
 
-    if (def->ip4_addresses || def->ip6_addresses)
+    if (def->ip4_addresses || def->ip6_addresses || def->address_options)
         write_addresses(event, emitter, def);
     if (def->ip4_nameservers || def->ip6_nameservers || def->search_domains)
         write_nameservers(event, emitter, def);
