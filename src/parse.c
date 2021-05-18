@@ -2713,6 +2713,7 @@ netplan_clear_netdefs()
         netdefs_ordered = NULL;
     }
     backend_global = NETPLAN_BACKEND_NONE;
+    ovs_settings_global = (NetplanOVSSettings){0};
     return n;
 }
 
