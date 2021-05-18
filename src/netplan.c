@@ -259,7 +259,7 @@ write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         for (unsigned i = 0; i < def->address_options->len; ++i) {
             NetplanAddressOptions *opts = g_array_index(def->address_options, NetplanAddressOptions*, i);
             YAML_MAPPING_OPEN(event, emitter);
-            YAML_SCALAR_PLAIN(event, emitter, opts->address);
+            YAML_SCALAR_QUOTED(event, emitter, opts->address);
             YAML_MAPPING_OPEN(event, emitter);
             YAML_STRING(event, emitter, "label", opts->label);
             YAML_STRING(event, emitter, "lifetime", opts->lifetime);
@@ -269,11 +269,11 @@ write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     }
     if (def->ip4_addresses) {
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i)
-            YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip4_addresses, char*, i));
+            YAML_SCALAR_QUOTED(event, emitter, g_array_index(def->ip4_addresses, char*, i));
     }
     if (def->ip6_addresses) {
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
-            YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip6_addresses, char*, i));
+            YAML_SCALAR_QUOTED(event, emitter, g_array_index(def->ip6_addresses, char*, i));
     }
 
     YAML_SEQUENCE_CLOSE(event, emitter);
