@@ -564,7 +564,21 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
                 YAML_STRING(event, emitter, "private-key", ovs->ssl.client_key);
             YAML_MAPPING_CLOSE(event, emitter);
         }
-        /* TODO: ovs->controller */
+        if (ovs->controller.connection_mode || ovs->controller.addresses) {
+            YAML_SCALAR_PLAIN(event, emitter, "controller");
+            YAML_MAPPING_OPEN(event, emitter);
+            YAML_STRING(event, emitter, "connection-mode", ovs->controller.connection_mode);
+            if (ovs->controller.addresses) {
+                YAML_SCALAR_PLAIN(event, emitter, "addresses");
+                YAML_SEQUENCE_OPEN(event, emitter);
+                for (unsigned i = 0; i < ovs->controller.addresses->len; ++i) {
+                    const gchar *addr = g_array_index(ovs->controller.addresses, gchar*, i);
+                    YAML_SCALAR_PLAIN(event, emitter, addr);
+                }
+                YAML_SEQUENCE_CLOSE(event, emitter);
+            }
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
 
         YAML_MAPPING_CLOSE(event, emitter);
     }
