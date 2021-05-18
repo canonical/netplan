@@ -747,7 +747,6 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     YAML_STRING(event, emitter, "pin", def->modem_params.pin);
     YAML_STRING(event, emitter, "sim-id", def->modem_params.sim_id);
     YAML_STRING(event, emitter, "sim-operator-id", def->modem_params.sim_operator_id);
-    YAML_STRING(event, emitter, "pin", def->modem_params.pin);
     YAML_STRING(event, emitter, "username", def->modem_params.username);
     YAML_STRING(event, emitter, "password", def->modem_params.password);
     YAML_STRING(event, emitter, "number", def->modem_params.number);
