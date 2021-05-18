@@ -176,8 +176,7 @@ _passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
 {
     _passthrough_handler_data *d = user_data;
     const gchar* key = g_quark_to_string(key_id);
-    YAML_SCALAR_PLAIN(d->event, d->emitter, key);
-    YAML_SCALAR_QUOTED(d->event, d->emitter, value);
+    YAML_STRING(d->event, d->emitter, key, value);
 error: return; // LCOV_EXCL_LINE
 }
 
