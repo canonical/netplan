@@ -267,11 +267,12 @@ class TestBase(unittest.TestCase):
             # print('\n'.join(Ax))
             # print('\n'.join(Bx))
 
+            # FIXME: ordering of keys
             # Sort again (after substitutions)
-            Aa = yaml.dump(yaml.safe_load('\n'.join(Ax)))
-            Bb = yaml.dump(yaml.safe_load('\n'.join(Bx)))
-            Ax = Aa.splitlines()
-            Bx = Bb.splitlines()
+            # Aa = yaml.dump(yaml.safe_load('\n'.join(Ax)))
+            # Bb = yaml.dump(yaml.safe_load('\n'.join(Bx)))
+            # Ax = Aa.splitlines()
+            # Bx = Bb.splitlines()
 
             if len(Ax) != len(Bx):
                 for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):
