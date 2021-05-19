@@ -95,12 +95,17 @@ class TestBase(unittest.TestCase):
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
         self.maxDiff = None
 
-    # FIXME: keep indentation
     def normalize_yaml_value(self, line):
         kv = line.replace('"', '').replace('\'', '').split(':', 1)
         if len(kv) != 2 or kv[1].isspace() or kv[1] == '':
             return line  # no normalization needed; no value given
 
+        # normalize key
+        key = kv[0]
+        if 'gratuitious-arp' in key:  # historically supported typo
+            kv[0] = key.replace('gratuitious-arp', 'gratuitous-arp')
+
+        # normalize value
         val = kv[1].strip()
         if val in ['n', 'no', 'off', 'false']:
             kv[1] = 'false'
@@ -117,27 +122,7 @@ class TestBase(unittest.TestCase):
 
     def expand_yaml(self, line):
         line = self.normalize_yaml_value(line)
-        # expand short forms
-        if line.startswith('          password: '):
-            m = re.match(r'          password: (\w+)', line)
-            return [
-                '          auth:',
-                '            key-management: psk',
-                '            password: ' + m.group(1)
-            ]
-        elif line == '          auth: {}':
-            return [
-                '          auth:',
-                '            key-management: none'
-            ]
-        # fix typos:
-        elif line.startswith('        gratuitious-arp: '):
-            m = re.match(r'        gratuitious-arp: (\w+)', line)
-            return [
-                '        gratuitous-arp: ' + m.group(1)
-            ]
-        # remove default values
-        elif line == '  version: 2':
+        if line == '  version: 2':
             return []
         elif line == '          mode: infrastructure':
             return []
@@ -148,8 +133,6 @@ class TestBase(unittest.TestCase):
         elif 'accept-ra: false' in line:
             return []
         elif 'hidden: false' in line:
-            return []
-        elif 'parameters: {}' in line:
             return []
         elif 'send-hostname: true' in line:
             return []
@@ -179,14 +162,16 @@ class TestBase(unittest.TestCase):
         # that information is not stored in the netdef data structure
         elif 'renderer: ' in line:
             return []
+        elif 'parameters: {}' in line:
+            return []
         elif line.endswith(': {}'):
             return [line[:-3]]
         # nothing to do
         else:
             return [line]
 
-    def sort_sequences(self, data):
-        '''Walk a YAML dict and sort its sequences'''
+    def sort_sequences(self, data, full_key=None):
+        '''Walk a YAML dict and sort its sequences, keeping track of the full_key (e.g. "network:ethernets:eth0:dhcp4")'''
         if isinstance(data, list):
             scalars_only = not any(list(map(lambda elem: (isinstance(elem, dict) or isinstance(elem, list)), data)))
             # sort sequence alphabetically
@@ -194,9 +179,20 @@ class TestBase(unittest.TestCase):
                 data = data.sort()
             # else: handle list of mappings (like wireguard peers)
         elif isinstance(data, dict):
+            # expand short forms
+            keys = data.keys()
+            if 'password' in keys and ':auth' not in full_key:
+                data['auth'] = {'key-management': 'psk', 'password': data['password']}
+                del data['password']
+            elif 'auth' in keys and data['auth'] == {}:
+                data['auth'] = {'key-management': 'none'}
+            elif 'link-local' in keys and data['link-local'] == ['ipv6']:
+                del data['link-local']  # remove default setting
+
             # continue walk the dict
             for key in data.keys():
-                self.sort_sequences(data[key])
+                full_key = ':'.join([str(full_key), str(key)]) if full_key is not None else key
+                self.sort_sequences(data[key], full_key)
 
     def clear_empty_mappings(self, lines):
         new_lines = []
