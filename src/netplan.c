@@ -121,14 +121,17 @@ error: return FALSE; // LCOV_EXCL_LINE
 static gboolean
 write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def, const GArray *interfaces)
 {
-    if (def->bridge_params.ageing_time
-        || def->bridge_params.priority
-        || def->bridge_params.port_priority
-        || def->bridge_params.forward_delay
-        || def->bridge_params.hello_time
-        || def->bridge_params.max_age
-        || def->bridge_params.path_cost
-        || def->bridge_params.stp) {
+    if (def->custom_bridging) {
+        gboolean has_path_cost = FALSE;
+        gboolean has_port_priority = FALSE;
+        for (unsigned i = 0; i < interfaces->len; ++i) {
+            NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+            has_path_cost = has_path_cost || !!nd->bridge_params.path_cost;
+            has_port_priority = has_port_priority || !!nd->bridge_params.port_priority;
+            if (has_path_cost && has_port_priority)
+                break; /* no need to continue this check */
+        }
+
         YAML_SCALAR_PLAIN(event, emitter, "parameters");
         YAML_MAPPING_OPEN(event, emitter);
         YAML_STRING_PLAIN(event, emitter, "ageing-time", def->bridge_params.ageing_time);
@@ -136,29 +139,33 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         YAML_STRING_PLAIN(event, emitter, "hello-time", def->bridge_params.hello_time);
         YAML_STRING_PLAIN(event, emitter, "max-age", def->bridge_params.max_age);
         if (def->bridge_params.priority)
-            YAML_STRING_PLAIN(event, emitter, "priority", g_strdup_printf("%u", def->bridge_params.priority)); //XXX: free the strdup'ed string
-        if (def->bridge_params.stp)
-            YAML_STRING_PLAIN(event, emitter, "stp", "true");
+            YAML_UINT(event, emitter, "priority", def->bridge_params.priority);
+        if (!def->bridge_params.stp)
+            YAML_STRING_PLAIN(event, emitter, "stp", "false");
 
-        YAML_SCALAR_PLAIN(event, emitter, "port-priority");
-        YAML_MAPPING_OPEN(event, emitter);
-        for (unsigned i = 0; i < interfaces->len; ++i) {
-            NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
-            if (nd->bridge_params.port_priority) {
-                YAML_STRING_PLAIN(event, emitter, nd->id, g_strdup_printf("%u", nd->bridge_params.port_priority)); //XXX: free the strdup'ed string
+        if (has_port_priority) {
+            YAML_SCALAR_PLAIN(event, emitter, "port-priority");
+            YAML_MAPPING_OPEN(event, emitter);
+            for (unsigned i = 0; i < interfaces->len; ++i) {
+                NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+                if (nd->bridge_params.port_priority) {
+                    YAML_UINT(event, emitter, nd->id, nd->bridge_params.port_priority);
+                }
             }
+            YAML_MAPPING_CLOSE(event, emitter);
         }
-        YAML_MAPPING_CLOSE(event, emitter);
 
-        YAML_SCALAR_PLAIN(event, emitter, "path-cost");
-        YAML_MAPPING_OPEN(event, emitter);
-        for (unsigned i = 0; i < interfaces->len; ++i) {
-            NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
-            if (nd->bridge_params.path_cost) {
-                YAML_STRING_PLAIN(event, emitter, nd->id, g_strdup_printf("%u", nd->bridge_params.path_cost)); //XXX: free the strdup'ed string
+        if (has_path_cost) {
+            YAML_SCALAR_PLAIN(event, emitter, "path-cost");
+            YAML_MAPPING_OPEN(event, emitter);
+            for (unsigned i = 0; i < interfaces->len; ++i) {
+                NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+                if (nd->bridge_params.path_cost) {
+                    YAML_UINT(event, emitter, nd->id, nd->bridge_params.path_cost);
+                }
             }
+            YAML_MAPPING_CLOSE(event, emitter);
         }
-        YAML_MAPPING_CLOSE(event, emitter);
 
         YAML_MAPPING_CLOSE(event, emitter);
     }

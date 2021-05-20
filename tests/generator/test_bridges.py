@@ -602,6 +602,18 @@ method=ignore
         self.assert_nm_udev(None)
 
 
+class TestNetplanYAML(TestBase):
+
+    def test_bridge_stp(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        stp: no
+      dhcp4: true''')
+
+
 class TestConfigErrors(TestBase):
 
     def test_bridge_unknown_iface(self):
