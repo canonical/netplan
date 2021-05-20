@@ -82,18 +82,18 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
         YAML_SCALAR_PLAIN(event, emitter, "parameters");
         YAML_MAPPING_OPEN(event, emitter);
         YAML_STRING(event, emitter, "mode", def->bond_params.mode);
-        YAML_STRING_PLAIN(event, emitter, "mii-monitor-interval", def->bond_params.monitor_interval);
-        YAML_STRING_PLAIN(event, emitter, "up-delay", def->bond_params.up_delay);
-        YAML_STRING_PLAIN(event, emitter, "down-delay", def->bond_params.down_delay);
-        YAML_STRING_PLAIN(event, emitter, "lacp-rate", def->bond_params.lacp_rate);
+        YAML_STRING(event, emitter, "mii-monitor-interval", def->bond_params.monitor_interval);
+        YAML_STRING(event, emitter, "up-delay", def->bond_params.up_delay);
+        YAML_STRING(event, emitter, "down-delay", def->bond_params.down_delay);
+        YAML_STRING(event, emitter, "lacp-rate", def->bond_params.lacp_rate);
         YAML_STRING(event, emitter, "transmit-hash-policy", def->bond_params.transmit_hash_policy);
         YAML_STRING(event, emitter, "ad-select", def->bond_params.selection_logic);
         YAML_STRING(event, emitter, "arp-validate", def->bond_params.arp_validate);
         YAML_STRING(event, emitter, "arp-all-targets", def->bond_params.arp_all_targets);
         YAML_STRING(event, emitter, "fail-over-mac-policy", def->bond_params.fail_over_mac_policy);
         YAML_STRING(event, emitter, "primary-reselect-policy", def->bond_params.primary_reselect_policy);
-        YAML_STRING_PLAIN(event, emitter, "learn-packet-interval", def->bond_params.learn_interval);
-        YAML_STRING_PLAIN(event, emitter, "arp-interval", def->bond_params.arp_interval);
+        YAML_STRING(event, emitter, "learn-packet-interval", def->bond_params.learn_interval);
+        YAML_STRING(event, emitter, "arp-interval", def->bond_params.arp_interval);
         YAML_STRING(event, emitter, "primary", def->bond_params.primary_slave);
         if (def->bond_params.min_links)
             YAML_UINT(event, emitter, "min-links", def->bond_params.min_links);
@@ -134,10 +134,10 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
 
         YAML_SCALAR_PLAIN(event, emitter, "parameters");
         YAML_MAPPING_OPEN(event, emitter);
-        YAML_STRING_PLAIN(event, emitter, "ageing-time", def->bridge_params.ageing_time);
-        YAML_STRING_PLAIN(event, emitter, "forward-delay", def->bridge_params.forward_delay);
-        YAML_STRING_PLAIN(event, emitter, "hello-time", def->bridge_params.hello_time);
-        YAML_STRING_PLAIN(event, emitter, "max-age", def->bridge_params.max_age);
+        YAML_STRING(event, emitter, "ageing-time", def->bridge_params.ageing_time);
+        YAML_STRING(event, emitter, "forward-delay", def->bridge_params.forward_delay);
+        YAML_STRING(event, emitter, "hello-time", def->bridge_params.hello_time);
+        YAML_STRING(event, emitter, "max-age", def->bridge_params.max_age);
         if (def->bridge_params.priority)
             YAML_UINT(event, emitter, "priority", def->bridge_params.priority);
         if (!def->bridge_params.stp)
@@ -192,14 +192,8 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
     if (s.nm.uuid || s.nm.name || s.nm.passthrough) {
         YAML_SCALAR_PLAIN(event, emitter, "networkmanager");
         YAML_MAPPING_OPEN(event, emitter);
-        if (s.nm.uuid) {
-            YAML_SCALAR_PLAIN(event, emitter, "uuid");
-            YAML_SCALAR_PLAIN(event, emitter, s.nm.uuid);
-        }
-        if (s.nm.name) {
-            YAML_SCALAR_PLAIN(event, emitter, "name");
-            YAML_SCALAR_QUOTED(event, emitter, s.nm.name);
-        }
+        YAML_STRING(event, emitter, "uuid", s.nm.uuid);
+        YAML_STRING(event, emitter, "name", s.nm.name);
         if (s.nm.passthrough) {
             YAML_SCALAR_PLAIN(event, emitter, "passthrough");
             YAML_MAPPING_OPEN(event, emitter);
@@ -232,23 +226,16 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
             YAML_STRING_PLAIN(event, emitter, "hidden", "true");
         YAML_STRING(event, emitter, "bssid", ap->bssid);
         if (ap->band == NETPLAN_WIFI_BAND_5) {
-            YAML_STRING_PLAIN(event, emitter, "band", "5GHz");
+            YAML_STRING(event, emitter, "band", "5GHz");
         } else if (ap->band == NETPLAN_WIFI_BAND_24) {
-            YAML_STRING_PLAIN(event, emitter, "band", "2.4GHz");
+            YAML_STRING(event, emitter, "band", "2.4GHz");
         }
         if (ap->channel)
             YAML_UINT(event, emitter, "channel", ap->channel);
         if (ap->has_auth)
             write_auth(event, emitter, ap->auth);
-        YAML_SCALAR_PLAIN(event, emitter, "mode");
-        if (ap->mode != NETPLAN_WIFI_MODE_OTHER) {
-            YAML_SCALAR_PLAIN(event, emitter, netplan_wifi_mode_to_str[ap->mode]);
-        } else {
-            // LCOV_EXCL_START
-            g_warning("netplan: serialize: %s (SSID %s), unsupported AP mode, falling back to 'infrastructure'", def->id, ap->ssid);
-            YAML_SCALAR_PLAIN(event, emitter, "infrastructure"); //TODO: add YAML comment about unsupported mode
-            // LCOV_EXCL_STOP
-        }
+        if (ap->mode != NETPLAN_WIFI_MODE_INFRASTRUCTURE)
+            YAML_STRING(event, emitter, "mode", netplan_wifi_mode_to_str[ap->mode]);
         if (!write_backend_settings(event, emitter, ap->backend_settings)) goto error;
         YAML_MAPPING_CLOSE(event, emitter);
     }
@@ -347,9 +334,9 @@ write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* k
         if (!data.use_routes)
             YAML_STRING_PLAIN(event, emitter, "use-routes", "false");
         if (data.use_domains)
-            YAML_STRING_PLAIN(event, emitter, "use-domains", data.use_domains);
+            YAML_STRING(event, emitter, "use-domains", data.use_domains);
         if (data.hostname)
-            YAML_STRING_PLAIN(event, emitter, "hostname", data.hostname);
+            YAML_STRING(event, emitter, "hostname", data.hostname);
         if (data.metric != NETPLAN_METRIC_UNSPEC)
             YAML_UINT(event, emitter, "route-metric", data.metric);
         YAML_MAPPING_CLOSE(event, emitter);
@@ -399,10 +386,8 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
             if (peer->public_key || peer->preshared_key) {
                 YAML_SCALAR_PLAIN(event, emitter, "keys");
                 YAML_MAPPING_OPEN(event, emitter);
-                if (peer->public_key)
-                    YAML_STRING(event, emitter, "public", peer->public_key);
-                if (peer->preshared_key)
-                    YAML_STRING(event, emitter, "shared", peer->preshared_key);
+                YAML_STRING(event, emitter, "public", peer->public_key);
+                YAML_STRING(event, emitter, "shared", peer->preshared_key);
                 YAML_MAPPING_CLOSE(event, emitter);
             }
             if (peer->allowed_ips && peer->allowed_ips->len > 0) {
@@ -544,15 +529,13 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
             }
             YAML_MAPPING_CLOSE(event, emitter);
         }
-        if (ovs->lacp)
-            YAML_STRING(event, emitter, "lacp", ovs->lacp);
-        if (ovs->fail_mode)
-            YAML_STRING(event, emitter, "fail-mode", ovs->fail_mode);
+        YAML_STRING(event, emitter, "lacp", ovs->lacp);
+        YAML_STRING(event, emitter, "fail-mode", ovs->fail_mode);
         if (ovs->mcast_snooping)
             YAML_STRING_PLAIN(event, emitter, "mcast-snooping", "true");
         if (ovs->rstp)
             YAML_STRING_PLAIN(event, emitter, "rstp", "true");
-        if (ovs->protocols) {
+        if (ovs->protocols && ovs->protocols->len > 0) {
             YAML_SCALAR_PLAIN(event, emitter, "protocols");
             YAML_SEQUENCE_OPEN(event, emitter);
             for (unsigned i = 0; i < ovs->protocols->len; ++i) {
@@ -564,12 +547,9 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
         if (ovs->ssl.ca_certificate || ovs->ssl.client_certificate || ovs->ssl.client_key) {
             YAML_SCALAR_PLAIN(event, emitter, "ssl");
             YAML_MAPPING_OPEN(event, emitter);
-            if (ovs->ssl.ca_certificate)
-                YAML_STRING(event, emitter, "ca-cert", ovs->ssl.ca_certificate);
-            if (ovs->ssl.client_certificate)
-                YAML_STRING(event, emitter, "certificate", ovs->ssl.client_certificate);
-            if (ovs->ssl.client_key)
-                YAML_STRING(event, emitter, "private-key", ovs->ssl.client_key);
+            YAML_STRING(event, emitter, "ca-cert", ovs->ssl.ca_certificate);
+            YAML_STRING(event, emitter, "certificate", ovs->ssl.client_certificate);
+            YAML_STRING(event, emitter, "private-key", ovs->ssl.client_key);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         if (ovs->controller.connection_mode || ovs->controller.addresses) {
@@ -581,13 +561,12 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
                 YAML_SEQUENCE_OPEN(event, emitter);
                 for (unsigned i = 0; i < ovs->controller.addresses->len; ++i) {
                     const gchar *addr = g_array_index(ovs->controller.addresses, gchar*, i);
-                    YAML_SCALAR_PLAIN(event, emitter, addr);
+                    YAML_SCALAR_QUOTED(event, emitter, addr);
                 }
                 YAML_SEQUENCE_CLOSE(event, emitter);
             }
             YAML_MAPPING_CLOSE(event, emitter);
         }
-
         YAML_MAPPING_CLOSE(event, emitter);
     }
 
@@ -646,8 +625,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     YAML_STRING(event, emitter, "macaddress", def->set_mac);
     YAML_STRING(event, emitter, "set-name", def->set_name);
-    YAML_STRING_PLAIN(event, emitter, "ipv6-address-generation", netplan_addr_gen_mode_to_str[def->ip6_addr_gen_mode]);
-    YAML_STRING_PLAIN(event, emitter, "ipv6-address-token", def->ip6_addr_gen_token);
+    YAML_STRING(event, emitter, "ipv6-address-generation", netplan_addr_gen_mode_to_str[def->ip6_addr_gen_mode]);
+    YAML_STRING(event, emitter, "ipv6-address-token", def->ip6_addr_gen_token);
     if (def->ip6_privacy)
         YAML_STRING_PLAIN(event, emitter, "ipv6-privacy", "true");
     if (def->ipv6_mtubytes)
@@ -662,36 +641,31 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     /* SR-IOV */
     if (def->sriov_link)
-        YAML_STRING_PLAIN(event, emitter, "link", def->sriov_link->id)
+        YAML_STRING(event, emitter, "link", def->sriov_link->id)
     if (def->sriov_explicit_vf_count < G_MAXUINT)
         YAML_UINT(event, emitter, "virtual-function-count", def->sriov_explicit_vf_count);
 
     /* Search interfaces */
-    switch (def->type) {
-        case NETPLAN_DEF_TYPE_BRIDGE:
-        case NETPLAN_DEF_TYPE_BOND:
-            tmp_arr = g_array_new(FALSE, FALSE, sizeof(NetplanNetDefinition*));
-            g_hash_table_iter_init(&iter, netdefs);
-            while (g_hash_table_iter_next (&iter, &key, &value)) {
-                NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
-                if (g_strcmp0(nd->bond, def->id) == 0 || g_strcmp0(nd->bridge, def->id) == 0)
-                    g_array_append_val(tmp_arr, nd);
+    if (def->type == NETPLAN_DEF_TYPE_BRIDGE || def->type == NETPLAN_DEF_TYPE_BOND) {
+        tmp_arr = g_array_new(FALSE, FALSE, sizeof(NetplanNetDefinition*));
+        g_hash_table_iter_init(&iter, netdefs);
+        while (g_hash_table_iter_next (&iter, &key, &value)) {
+            NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
+            if (g_strcmp0(nd->bond, def->id) == 0 || g_strcmp0(nd->bridge, def->id) == 0)
+                g_array_append_val(tmp_arr, nd);
+        }
+        if (tmp_arr->len > 0) {
+            YAML_SCALAR_PLAIN(event, emitter, "interfaces");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            for (unsigned i = 0; i < tmp_arr->len; ++i) {
+                NetplanNetDefinition *nd = g_array_index(tmp_arr, NetplanNetDefinition*, i);
+                YAML_SCALAR_PLAIN(event, emitter, nd->id);
             }
-            if (tmp_arr->len > 0) {
-                YAML_SCALAR_PLAIN(event, emitter, "interfaces");
-                YAML_SEQUENCE_OPEN(event, emitter);
-                for (unsigned i = 0; i < tmp_arr->len; ++i) {
-                    NetplanNetDefinition *nd = g_array_index(tmp_arr, NetplanNetDefinition*, i);
-                    YAML_SCALAR_PLAIN(event, emitter, nd->id);
-                }
-                YAML_SEQUENCE_CLOSE(event, emitter);
-            }
-            write_bond_params(event, emitter, def);
-            write_bridge_params(event, emitter, def, tmp_arr);
-            g_array_free(tmp_arr, TRUE);
-            break;
-        default:
-            break;
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+        write_bond_params(event, emitter, def);
+        write_bridge_params(event, emitter, def, tmp_arr);
+        g_array_free(tmp_arr, TRUE);
     }
 
     /* Routes */
@@ -785,12 +759,13 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, def)) goto error;
+
+    /* Handle devices in full fallback/passthrough mode (i.e. 'nm-devices') */
 only_passthrough:
     if (!write_backend_settings(event, emitter, def->backend_settings)) goto error;
 
     /* Close remaining mappings */
     YAML_MAPPING_CLOSE(event, emitter);
-
     return;
 
     // LCOV_EXCL_START
@@ -832,22 +807,15 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     YAML_SCALAR_PLAIN(event, emitter, "network");
     YAML_MAPPING_OPEN(event, emitter);
     YAML_STRING_PLAIN(event, emitter, "version", "2");
-    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
-        YAML_STRING(event, emitter, "renderer", "NetworkManager");
-    } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
-        YAML_STRING(event, emitter, "renderer", "networkd");
+
+    if (netplan_def_type_to_str[def->type]) {
+        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
+        YAML_MAPPING_OPEN(event, emitter);
+        _serialize_yaml(event, emitter, def);
+        YAML_MAPPING_CLOSE(event, emitter);
     }
 
-    if (netplan_def_type_to_str[def->type])
-        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
-    YAML_MAPPING_OPEN(event, emitter);
-
-    _serialize_yaml(event, emitter, def);
-
-
-
     /* Close remaining mappings */
-    YAML_MAPPING_CLOSE(event, emitter);
     YAML_MAPPING_CLOSE(event, emitter);
 
     /* Tear down the YAML emitter */
@@ -863,24 +831,6 @@ error:
     // LCOV_EXCL_STOP
 }
 
-/* XXX: implement the following functions, once needed:
-void write_netplan_conf_finish(const char* rootdir)
-void cleanup_netplan_conf(const char* rootdir)
-*/
-
-/**
- * Helper function for testing only
- */
-void
-_write_netplan_conf(const char* netdef_id, const char* rootdir)
-{
-    GHashTable* ht = NULL;
-    const NetplanNetDefinition* def = NULL;
-    ht = netplan_finish_parse(NULL);
-    def = g_hash_table_lookup(ht, netdef_id);
-    write_netplan_conf(def, rootdir);
-}
-
 gboolean
 contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
 {
@@ -889,16 +839,23 @@ contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
     return nd->type == *type;
 }
 
+/**
+ * Generate the Netplan YAML configuration for all currently parsed netdefs
+ * @file_hint: Name hint for the generated output YAML file
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ */
 void
-_write_netplan_conf_full(const char* file_hint, const char* rootdir)
+write_netplan_conf_full(const char* file_hint, const char* rootdir)
 {
-    g_autofree gchar *filename = NULL;
     g_autofree gchar *path = NULL;
     GHashTable *ovs_ports = NULL;
     GHashTableIter iter;
     gpointer key, value;
 
-    gboolean global_values = (netplan_get_global_backend() != NETPLAN_BACKEND_NONE) || (version_global != -1) || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL);
+    gboolean global_values = (   (version_global != -1)
+                              || (netplan_get_global_backend() != NETPLAN_BACKEND_NONE)
+                              || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL));
 
     if (global_values || (netdefs && g_hash_table_size(netdefs) > 0)) {
         path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
@@ -914,8 +871,12 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
         /* build the netplan boilerplate YAML structure */
         YAML_SCALAR_PLAIN(event, emitter, "network");
         YAML_MAPPING_OPEN(event, emitter);
-        if (version_global == 2)
+        /* We support version 2 only, currently */
+        if (version_global != 2)
+            g_warning("Version %ld not supported", version_global); // LCOV_EXCL_LINE
+        else
             YAML_STRING_PLAIN(event, emitter, "version", "2");
+
         if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
             YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
         } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
@@ -956,9 +917,6 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
 
         write_openvswitch(event, emitter, &ovs_settings_global, NETPLAN_BACKEND_NONE, ovs_ports);
 
-
-
-
         /* Close remaining mappings */
         YAML_MAPPING_CLOSE(event, emitter);
 
@@ -973,10 +931,25 @@ error:
         yaml_emitter_delete(emitter);
         fclose(output);
         // LCOV_EXCL_STOP
-
-
     } else {
-        //TODO
         g_debug("No data/netdefs to serialize into YAML.");
     }
+}
+
+/* XXX: implement the following functions, once needed:
+void write_netplan_conf_finish(const char* rootdir)
+void cleanup_netplan_conf(const char* rootdir)
+*/
+
+/**
+ * Helper function for testing only
+ */
+void
+_write_netplan_conf(const char* netdef_id, const char* rootdir)
+{
+    GHashTable* ht = NULL;
+    const NetplanNetDefinition* def = NULL;
+    ht = netplan_finish_parse(NULL);
+    def = g_hash_table_lookup(ht, netdef_id);
+    write_netplan_conf(def, rootdir);
 }

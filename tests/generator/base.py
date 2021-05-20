@@ -218,7 +218,7 @@ class TestBase(unittest.TestCase):
         for conf in yaml_input:
             lib.netplan_clear_netdefs()  # clear previous netdefs
             lib.netplan_parse_yaml(conf.encode(), None)
-            lib._write_netplan_conf_full(filename.encode(), self.workdir.name.encode())
+            lib.write_netplan_conf_full(filename.encode(), self.workdir.name.encode())
 
             with open(conf, 'r') as orig:
                 y1 = yaml.safe_load(orig.read())
