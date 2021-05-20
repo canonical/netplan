@@ -222,8 +222,8 @@ class TestBase(unittest.TestCase):
 
             with open(conf, 'r') as orig:
                 y1 = yaml.safe_load(orig.read())
-                # Consider 'network: {}' to be empty
-                if y1 is None or y1 == {'network': {}}:
+                # Consider 'network: {}' and 'network: {version: 2}' to be empty
+                if y1 is None or y1 == {'network': {}} or y1 == {'network': {'version': 2}}:
                     y1 = yaml.safe_load('')
                 generated_path = os.path.join(self.confdir, filename)
                 if os.path.isfile(generated_path):

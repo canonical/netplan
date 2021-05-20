@@ -853,8 +853,7 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
     GHashTableIter iter;
     gpointer key, value;
 
-    gboolean global_values = (   (version_global != -1)
-                              || (netplan_get_global_backend() != NETPLAN_BACKEND_NONE)
+    gboolean global_values = (   (netplan_get_global_backend() != NETPLAN_BACKEND_NONE)
                               || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL));
 
     if (global_values || (netdefs && g_hash_table_size(netdefs) > 0)) {
@@ -872,10 +871,7 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
         YAML_SCALAR_PLAIN(event, emitter, "network");
         YAML_MAPPING_OPEN(event, emitter);
         /* We support version 2 only, currently */
-        if (version_global != 2)
-            g_warning("Version %ld not supported", version_global); // LCOV_EXCL_LINE
-        else
-            YAML_STRING_PLAIN(event, emitter, "version", "2");
+        YAML_STRING_PLAIN(event, emitter, "version", "2");
 
         if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
             YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
