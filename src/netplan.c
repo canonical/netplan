@@ -368,8 +368,8 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
         YAML_UINT(event, emitter, "mark", def->tunnel.fwmark);
     if (def->tunnel.port)
         YAML_UINT(event, emitter, "port", def->tunnel.port);
-    if (def->tunnel.ttl)
-        YAML_UINT(event, emitter, "ttl", def->tunnel.ttl);
+    if (def->tunnel_ttl)
+        YAML_UINT(event, emitter, "ttl", def->tunnel_ttl);
 
     if (def->tunnel.input_key || def->tunnel.output_key || def->tunnel.private_key) {
         if (   g_strcmp0(def->tunnel.input_key, def->tunnel.output_key) == 0
