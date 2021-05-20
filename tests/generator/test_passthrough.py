@@ -39,8 +39,7 @@ class TestNetworkManager(TestBase):
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
           connection.type: ethernet
-          connection.permissions: ""
-''')
+          connection.permissions: ""''')
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=some NM id
