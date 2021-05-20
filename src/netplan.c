@@ -486,7 +486,7 @@ error: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
-has_openvswitch(const NetplanOVSSettings* ovs, GHashTable *ovs_ports) {
+has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports) {
     return (ovs_ports && g_hash_table_size(ovs_ports) > 0)
             || (ovs->external_ids && g_hash_table_size(ovs->external_ids) > 0)
             || (ovs->other_config && g_hash_table_size(ovs->other_config) > 0)
@@ -496,16 +496,17 @@ has_openvswitch(const NetplanOVSSettings* ovs, GHashTable *ovs_ports) {
             || ovs->rstp
             || ovs->protocols
             || (ovs->ssl.ca_certificate || ovs->ssl.client_certificate || ovs->ssl.client_key)
-            || (ovs->controller.connection_mode || ovs->controller.addresses);
+            || (ovs->controller.connection_mode || ovs->controller.addresses)
+            || backend == NETPLAN_BACKEND_OVS;
 }
 
 static gboolean
-write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVSSettings* ovs, GHashTable *ovs_ports)
+write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports)
 {
     GHashTableIter iter;
     gpointer key, value;
 
-    if (has_openvswitch(ovs, ovs_ports)) {
+    if (has_openvswitch(ovs, backend, ovs_ports)) {
         YAML_SCALAR_PLAIN(event, emitter, "openvswitch");
         YAML_MAPPING_OPEN(event, emitter);
 
@@ -767,7 +768,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
 
-    write_openvswitch(event, emitter, &def->ovs_settings, NULL);
+    write_openvswitch(event, emitter, &def->ovs_settings, def->backend, NULL);
 
     /* some modem settings to auto-detect GSM vs CDMA connections */
     if (def->modem_params.auto_config)
@@ -895,7 +896,9 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
     GHashTableIter iter;
     gpointer key, value;
 
-    if (has_openvswitch(&ovs_settings_global, NULL) || (netdefs && g_hash_table_size(netdefs) > 0)) {
+    gboolean global_values = (netplan_get_global_backend() != NETPLAN_BACKEND_NONE) || (version_global != -1) || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL);
+
+    if (global_values || (netdefs && g_hash_table_size(netdefs) > 0)) {
         path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
 
         /* Start rendering YAML output */
@@ -949,7 +952,7 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
             }
         }
 
-        write_openvswitch(event, emitter, &ovs_settings_global, ovs_ports);
+        write_openvswitch(event, emitter, &ovs_settings_global, NETPLAN_BACKEND_NONE, ovs_ports);
 
 
 
