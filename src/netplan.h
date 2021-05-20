@@ -67,7 +67,7 @@
 #define YAML_UINT(event_ptr, emitter_ptr, key, value) \
 { \
     tmp = g_strdup_printf("%u", value); \
-    YAML_STRING_PLAIN(event, emitter, key, tmp); \
+    YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, tmp); \
     g_free(tmp); \
 }
 
