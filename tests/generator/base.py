@@ -84,6 +84,24 @@ ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 
 
 TYPES = ['ethernets', 'wifis', 'modems', 'bridges', 'bonds', 'vlans', 'tunnels']
+DEFAULT_STANZAS = [
+    'accept-ra: false',
+    'dhcp4: false',
+    'dhcp6: false',
+    'dhcp-identifier: duid',
+    'hidden: false',
+    'mode: infrastructure',
+    'on-link: false',
+    'send-hostname: true',
+    'stp: true',
+    'type: unicast',
+    'use-dns: true',
+    'use-hostname: true',
+    'use-mtu: true',
+    'use-ntp: true',
+    'use-routes: true',
+    'version: 2',
+]
 
 
 class TestBase(unittest.TestCase):
@@ -122,37 +140,7 @@ class TestBase(unittest.TestCase):
 
     def expand_yaml(self, line):
         line = self.normalize_yaml_value(line)
-        if line == '  version: 2':
-            return []
-        elif line == '          mode: infrastructure':
-            return []
-        elif 'dhcp4: false' in line:
-            return []
-        elif 'dhcp6: false' in line:
-            return []
-        elif 'accept-ra: false' in line:
-            return []
-        elif 'hidden: false' in line:
-            return []
-        elif 'send-hostname: true' in line:
-            return []
-        elif 'use-dns: true' in line:
-            return []
-        elif 'use-hostname: true' in line:
-            return []
-        elif 'use-mtu: true' in line:
-            return []
-        elif 'use-ntp: true' in line:
-            return []
-        elif 'use-routes: true' in line:
-            return []
-        elif 'dhcp-identifier: duid' in line:
-            return []
-        elif 'type: unicast' in line:
-            return []
-        elif 'on-link: false' in line:
-            return []
-        elif 'stp: true' in line:
+        if line.strip() in DEFAULT_STANZAS:
             return []
         # ignore renderer: on different levels for now
         # that information is not stored in the netdef data structure
