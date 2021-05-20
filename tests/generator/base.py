@@ -148,21 +148,15 @@ class TestBase(unittest.TestCase):
             return []
         elif 'dhcp-identifier: duid' in line:
             return []
-        elif 'ipv6-privacy: false' in line:
-            return []
-        elif 'optional: false' in line:
-            return []
-        elif 'critical: false' in line:
-            return []
         elif 'type: unicast' in line:
             return []
         elif 'on-link: false' in line:
             return []
+        elif 'stp: true' in line:
+            return []
         # ignore renderer: on different levels for now
         # that information is not stored in the netdef data structure
-        elif 'renderer: ' in line:
-            return []
-        elif 'parameters: {}' in line:
+        elif 'renderer: ' in line:  # FIXME do not ignore the global one
             return []
         elif line.endswith(': {}'):
             return [line[:-3]]
