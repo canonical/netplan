@@ -1350,7 +1350,10 @@ Bond=bond0
     eth2:
       match:
         name: eth2
-''')
+''', skip_generated_yaml_validation=True)
+        # XXX: We need to skeip the generated YAML validation, as the pyYAML
+        #      parser overrides the duplicate "ethernets"/"bridges" keys, while
+        #      the netplan C YAML parser merges them into the netdef
 
         self.assert_networkd({'vlan1.netdev': '[NetDev]\nName=vlan1\nKind=vlan\n\n'
                                               '[VLAN]\nId=1\n',
@@ -1530,7 +1533,10 @@ unmanaged-devices+=interface-name:engreen,''')
   bridges:
     br0:
       interfaces: [eno1, switchports]
-      dhcp4: true'''})
+      dhcp4: true'''}, skip_generated_yaml_validation=True)
+        # XXX: We need to skip the generated YAML validation, as the 'bridges'
+        #      conf is invalid in itself (missing eno1 & switchports defs) and
+        #      can only be parsed if merged with the main YAML
 
         self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n',
                               'br0.network': '''[Match]
