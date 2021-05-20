@@ -309,9 +309,7 @@ UseMTU=true
     dummy2: {}
   bonds:
     bond0:
-      interfaces:
-        - eno1
-        - enp65s0
+      interfaces: [eno1, enp65s0]
       parameters:
         primary: enp65s0
         mode: balance-tlb
