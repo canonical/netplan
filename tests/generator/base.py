@@ -81,9 +81,6 @@ NM_WG = '[connection]\nid=netplan-wg0\ntype=wireguard\ninterface-name=wg0\n\n[wi
 2001:de:ad:be:ef:ca:fe:1/128\n'
 ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListenPort=%s\n%s\n'
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
-
-
-TYPES = ['ethernets', 'wifis', 'modems', 'bridges', 'bonds', 'vlans', 'tunnels']
 DEFAULT_STANZAS = [
     'accept-ra: false',
     'dhcp4: false',
