@@ -83,6 +83,8 @@ int missing_ids_found;
 const char* current_file;
 GHashTable* missing_id;
 
+long version_global = -1;
+
 /**
  * Load YAML file name into a yaml_document_t.
  *
@@ -2361,6 +2363,7 @@ handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 
     if (mangled_version < NETPLAN_VERSION_MIN || mangled_version >= NETPLAN_VERSION_MAX)
         return yaml_error(node, error, "Only version 2 is supported");
+    version_global = mangled_version;
     return TRUE;
 }
 
@@ -2714,6 +2717,7 @@ netplan_clear_netdefs()
     }
     backend_global = NETPLAN_BACKEND_NONE;
     ovs_settings_global = (NetplanOVSSettings){0};
+    version_global = -1;
     return n;
 }
 

@@ -501,6 +501,7 @@ typedef struct {
 extern GHashTable* netdefs;
 extern GList* netdefs_ordered;
 extern NetplanOVSSettings ovs_settings_global;
+extern long version_global;
 
 /****************************************************
  * Functions

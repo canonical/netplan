@@ -909,7 +909,8 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
         /* build the netplan boilerplate YAML structure */
         YAML_SCALAR_PLAIN(event, emitter, "network");
         YAML_MAPPING_OPEN(event, emitter);
-        YAML_STRING_PLAIN(event, emitter, "version", "2");
+        if (version_global == 2)
+            YAML_STRING_PLAIN(event, emitter, "version", "2");
         if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
             YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
         } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
