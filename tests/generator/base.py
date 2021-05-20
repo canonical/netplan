@@ -209,91 +209,85 @@ class TestBase(unittest.TestCase):
             new_lines.append(current)
         return new_lines
 
-    def validate_generated_yaml(self, conf, yaml_data, extra_args):  # XXX: remove yaml_data?
+    def validate_generated_yaml(self, yaml_input):
         filename = '_generated_test_output.yaml'
         generated = None
         y1 = None
         y2 = None
 
-        if len(extra_args) > 0:
-            conf = extra_args[0]  # TODO: handle multiple files
+        for conf in yaml_input:
+            lib.netplan_clear_netdefs()  # clear previous netdefs
+            lib.netplan_parse_yaml(conf.encode(), None)
+            lib._write_netplan_conf_full(filename.encode(), self.workdir.name.encode())
 
-        lib.netplan_clear_netdefs()  # clear previous netdefs
-        lib.netplan_parse_yaml(conf.encode(), None)
-        lib._write_netplan_conf_full(filename.encode(), self.workdir.name.encode())
+            with open(conf, 'r') as orig:
+                y1 = yaml.safe_load(orig.read())
+                # Consider 'network: {}' to be empty
+                if y1 is None or y1 == {'network': {}}:
+                    y1 = yaml.safe_load('')
+                generated_path = os.path.join(self.confdir, filename)
+                if os.path.isfile(generated_path):
+                    with open(generated_path, 'r') as generated:
+                        out = generated.read()
+                        y2 = yaml.safe_load(out)
+                else:
+                    y2 = yaml.safe_load('')
 
-        with open(conf, 'r') as orig:
-            y1 = yaml.safe_load(orig.read())
-            # Consider 'network: {}' and 'network: {version: 2}' to be empty
-            if y1 is None or y1 == {'network': {}} or y1 == {'network': {'version': 2}}:
-                y1 = yaml.safe_load('')
-            generated_path = os.path.join(self.confdir, filename)
-            if os.path.isfile(generated_path):
-                with open(generated_path, 'r') as generated:
-                    out = generated.read()
-                    # print('real Y2', out)
-                    y2 = yaml.safe_load(out)
-            else:
-                y2 = yaml.safe_load('')
+                self.sort_sequences(y1)
+                self.sort_sequences(y2)
+                A = yaml.dump(y1, sort_keys=True)
+                B = yaml.dump(y2, sort_keys=True)
+                Ax = []
+                Bx = []
+                for line in A.splitlines():
+                    for lnA in self.expand_yaml(line):
+                        Ax.append(lnA)
+                for line in B.splitlines():
+                    for lnB in self.expand_yaml(line):
+                        Bx.append(lnB)
 
-            # print('Y1', y1)
-            self.sort_sequences(y1)
-            # print('Y2', y2)
-            self.sort_sequences(y2)
-            A = yaml.dump(y1, sort_keys=True)
-            B = yaml.dump(y2, sort_keys=True)
-            Ax = []
-            Bx = []
-            for line in A.splitlines():
-                for lnA in self.expand_yaml(line):
-                    Ax.append(lnA)
-            for line in B.splitlines():
-                for lnB in self.expand_yaml(line):
-                    Bx.append(lnB)
+                Ax = self.clear_empty_mappings(Ax)
+                Bx = self.clear_empty_mappings(Bx)
+                # NORMALIZED YAMLs
+                # print('\n'.join(Ax))
+                # print('\n'.join(Bx))
 
-            Ax = self.clear_empty_mappings(Ax)
-            Bx = self.clear_empty_mappings(Bx)
-            # NORMALIZED YAMLs
-            # print('\n'.join(Ax))
-            # print('\n'.join(Bx))
+                yaml_files_differ = len(Ax) != len(Bx)
+                if not yaml_files_differ:  # pragma: no cover (only execited in error case)
+                    for i in range(len(Ax)):
+                        if Ax[i] != Bx[i]:
+                            yaml_files_differ = True
+                            break
 
-            # FIXME: ordering of keys
-            # Sort again (after substitutions)
-            # Aa = yaml.dump(yaml.safe_load('\n'.join(Ax)))
-            # Bb = yaml.dump(yaml.safe_load('\n'.join(Bx)))
-            # Ax = Aa.splitlines()
-            # Bx = Bb.splitlines()
-
-            if len(Ax) != len(Bx):
-                for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):
-                    print(line, flush=True)
-                self.fail('Files have different length')
-
-            for i in range(len(Ax)):
-                if Ax[i] != Bx[i]:
-                    for line in difflib.unified_diff(Ax, Bx, fromfile='original', tofile='generated', lineterm=''):
+                if yaml_files_differ:  # pragma: no cover (only execited in error case)
+                    fromfile = 'original (%s)' % conf
+                    for line in difflib.unified_diff(Ax, Bx, fromfile, tofile='generated', lineterm=''):
                         print(line, flush=True)
-                    self.fail('Files do not match')
+                    self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
 
-        # cleanup generated file and data structures
-        lib.netplan_clear_netdefs()
-        if os.path.isfile(os.path.join(self.confdir, filename)):
-            os.remove(os.path.join(self.confdir, filename))
+            # cleanup generated file and data structures
+            lib.netplan_clear_netdefs()
+            if os.path.isfile(os.path.join(self.confdir, filename)):
+                os.remove(os.path.join(self.confdir, filename))
 
-    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
+    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None, skip_generated_yaml_validation=False):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
         '''
+        yaml_input = []
         conf = os.path.join(self.confdir, 'a.yaml')
         os.makedirs(os.path.dirname(conf), exist_ok=True)
         if yaml is not None:
             with open(conf, 'w') as f:
                 f.write(yaml)
+            yaml_input.append(conf)
         if confs:
             for f, contents in confs.items():
-                with open(os.path.join(self.confdir, f + '.yaml'), 'w') as f:
+                path = os.path.join(self.confdir, f + '.yaml')
+                with open(path, 'w') as f:
                     f.write(contents)
+                yaml_input.append(path)
 
         argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args
         if 'TEST_SHELL' in os.environ:  # pragma nocover
@@ -308,8 +302,10 @@ class TestBase(unittest.TestCase):
         else:
             self.assertEqual(p.returncode, 0, err)
         self.assertEqual(out, '')
-        if not expect_fail:
-            self.validate_generated_yaml(conf, yaml, extra_args)
+        if not expect_fail and not skip_generated_yaml_validation:
+            yaml_input = list(set(yaml_input + extra_args))
+            yaml_input.sort()
+            self.validate_generated_yaml(yaml_input)
         return err
 
     def eth_name(self):
