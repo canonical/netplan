@@ -96,15 +96,15 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
         YAML_STRING_PLAIN(event, emitter, "arp-interval", def->bond_params.arp_interval);
         YAML_STRING(event, emitter, "primary", def->bond_params.primary_slave);
         if (def->bond_params.min_links)
-            YAML_STRING_PLAIN(event, emitter, "min-links", g_strdup_printf("%u", def->bond_params.min_links)); //XXX: free the strdup'ed string
+            YAML_UINT(event, emitter, "min-links", def->bond_params.min_links);
         if (def->bond_params.all_slaves_active)
             YAML_STRING_PLAIN(event, emitter, "all-slaves-active", "true");
         if (def->bond_params.gratuitous_arp)
-            YAML_STRING_PLAIN(event, emitter, "gratuitous-arp", g_strdup_printf("%u", def->bond_params.gratuitous_arp)); //XXX: free the strdup'ed string
+            YAML_UINT(event, emitter, "gratuitous-arp", def->bond_params.gratuitous_arp);
         if (def->bond_params.packets_per_slave)
-            YAML_STRING_PLAIN(event, emitter, "packets-per-slave", g_strdup_printf("%u", def->bond_params.packets_per_slave)); //XXX: free the strdup'ed string
+            YAML_UINT(event, emitter, "packets-per-slave", def->bond_params.packets_per_slave);
         if (def->bond_params.resend_igmp)
-            YAML_STRING_PLAIN(event, emitter, "resend-igmp", g_strdup_printf("%u", def->bond_params.resend_igmp)); //XXX: free the strdup'ed string
+            YAML_UINT(event, emitter, "resend-igmp", def->bond_params.resend_igmp);
         if (def->bond_params.arp_ip_targets) {
             YAML_SCALAR_PLAIN(event, emitter, "arp-ip-targets");
             YAML_SEQUENCE_OPEN(event, emitter);
@@ -230,7 +230,7 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
             YAML_STRING_PLAIN(event, emitter, "band", "2.4GHz");
         }
         if (ap->channel)
-            YAML_STRING_PLAIN(event, emitter, "channel", g_strdup_printf("%u", ap->channel)); // XXX: free strdup'ed string
+            YAML_UINT(event, emitter, "channel", ap->channel);
         if (ap->has_auth)
             write_auth(event, emitter, ap->auth);
         YAML_SCALAR_PLAIN(event, emitter, "mode");
@@ -344,7 +344,7 @@ write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* k
         if (data.hostname)
             YAML_STRING_PLAIN(event, emitter, "hostname", data.hostname);
         if (data.metric != NETPLAN_METRIC_UNSPEC)
-            YAML_STRING_PLAIN(event, emitter, "route-metric", g_strdup_printf("%u", data.metric)); //XXX: free the strdup'ed string
+            YAML_UINT(event, emitter, "route-metric", data.metric);
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;
@@ -358,11 +358,11 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
     YAML_STRING(event, emitter, "local", def->tunnel.local_ip);
     YAML_STRING(event, emitter, "remote", def->tunnel.remote_ip);
     if (def->tunnel.fwmark)
-        YAML_STRING_PLAIN(event, emitter, "mark", g_strdup_printf("%u", def->tunnel.fwmark)); //XXX: free the strdup'ed string
+        YAML_UINT(event, emitter, "mark", def->tunnel.fwmark);
     if (def->tunnel.port)
-        YAML_STRING_PLAIN(event, emitter, "port", g_strdup_printf("%u", def->tunnel.port)); //XXX: free the strdup'ed string
+        YAML_UINT(event, emitter, "port", def->tunnel.port);
     if (def->tunnel.ttl)
-        YAML_STRING_PLAIN(event, emitter, "ttl", g_strdup_printf("%u", def->tunnel.ttl)); //XXX: free the strdup'ed string
+        YAML_UINT(event, emitter, "ttl", def->tunnel.ttl);
 
     if (def->tunnel.input_key || def->tunnel.output_key || def->tunnel.private_key) {
         if (   g_strcmp0(def->tunnel.input_key, def->tunnel.output_key) == 0
@@ -388,7 +388,7 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
             YAML_MAPPING_OPEN(event, emitter);
             YAML_STRING(event, emitter, "endpoint", peer->endpoint);
             if (peer->keepalive)
-                YAML_STRING(event, emitter, "keepalive", g_strdup_printf("%u", peer->keepalive)); //XXX: free the strdup'ed string
+                YAML_UINT(event, emitter, "keepalive", peer->keepalive);
             if (peer->public_key || peer->preshared_key) {
                 YAML_SCALAR_PLAIN(event, emitter, "keys");
                 YAML_MAPPING_OPEN(event, emitter);
@@ -656,7 +656,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->sriov_link)
         YAML_STRING_PLAIN(event, emitter, "link", def->sriov_link->id)
     if (def->sriov_explicit_vf_count < G_MAXUINT)
-        YAML_STRING_PLAIN(event, emitter, "virtual-function-count", g_strdup_printf("%u", def->sriov_explicit_vf_count)); //XXX: free the strdup'ed string
+        YAML_UINT(event, emitter, "virtual-function-count", def->sriov_explicit_vf_count);
 
     /* Search interfaces */
     switch (def->type) {
