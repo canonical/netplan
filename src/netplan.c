@@ -793,10 +793,11 @@ only_passthrough:
 
     return;
 
+    // LCOV_EXCL_START
 error:
-    //TODO: handle error cases
-    g_warning("=== YAML err: %s\n", emitter->problem);
+    g_warning("Error generating YAML: %s", emitter->problem);
     return;
+    // LCOV_EXCL_STOP
 }
 
 /**
@@ -856,6 +857,7 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
 
     // LCOV_EXCL_START
 error:
+    g_warning("Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
     fclose(output);
     // LCOV_EXCL_STOP
@@ -967,7 +969,7 @@ _write_netplan_conf_full(const char* file_hint, const char* rootdir)
 
         // LCOV_EXCL_START
 error:
-        g_warning("YAML error: %s", emitter->problem);
+        g_warning("Error generating YAML: %s", emitter->problem);
         yaml_emitter_delete(emitter);
         fclose(output);
         // LCOV_EXCL_STOP
