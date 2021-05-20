@@ -195,65 +195,71 @@ class TestBase(unittest.TestCase):
         return new_lines
 
     def validate_generated_yaml(self, yaml_input):
-        filename = '_generated_test_output.yaml'
-        generated = None
-        y1 = None
-        y2 = None
+        '''Validate a list of YAML input files one by one.
 
-        for conf in yaml_input:
+        Go through the list @yaml_input one by one, parse the YAML and
+        re-generate the YAML output. Afterwards, normalize and compare the
+        original (and normalized) input with the generated (and normalized)
+        output.
+        '''
+        output = '_generated_test_output.yaml'
+        output_path = os.path.join(self.confdir, output)
+
+        for input in yaml_input:
             lib.netplan_clear_netdefs()  # clear previous netdefs
-            lib.netplan_parse_yaml(conf.encode(), None)
-            lib.write_netplan_conf_full(filename.encode(), self.workdir.name.encode())
+            lib.netplan_parse_yaml(input.encode(), None)
+            lib.write_netplan_conf_full(output.encode(), self.workdir.name.encode())
 
-            with open(conf, 'r') as orig:
-                y1 = yaml.safe_load(orig.read())
+            input_yaml = None
+            output_yaml = None
+
+            # Read input YAML file, as defined by the self.generate('...') method
+            with open(input, 'r') as orig:
+                input_yaml = yaml.safe_load(orig.read())
                 # Consider 'network: {}' and 'network: {version: 2}' to be empty
-                if y1 is None or y1 == {'network': {}} or y1 == {'network': {'version': 2}}:
-                    y1 = yaml.safe_load('')
-                generated_path = os.path.join(self.confdir, filename)
-                if os.path.isfile(generated_path):
-                    with open(generated_path, 'r') as generated:
-                        out = generated.read()
-                        y2 = yaml.safe_load(out)
-                else:
-                    y2 = yaml.safe_load('')
+                if input_yaml is None or input_yaml == {'network': {}} or input_yaml == {'network': {'version': 2}}:
+                    input_yaml = yaml.safe_load('')
 
-                self.sort_sequences(y1)
-                self.sort_sequences(y2)
-                A = yaml.dump(y1, sort_keys=True)
-                B = yaml.dump(y2, sort_keys=True)
-                Ax = []
-                Bx = []
-                for line in A.splitlines():
-                    for lnA in self.expand_yaml(line):
-                        Ax.append(lnA)
-                for line in B.splitlines():
-                    for lnB in self.expand_yaml(line):
-                        Bx.append(lnB)
+            # Read output of the YAML generator (if any)
+            if os.path.isfile(output_path):
+                with open(output_path, 'r') as generated:
+                    output_yaml = yaml.safe_load(generated.read())
+            else:
+                output_yaml = yaml.safe_load('')
 
-                Ax = self.clear_empty_mappings(Ax)
-                Bx = self.clear_empty_mappings(Bx)
-                # NORMALIZED YAMLs
-                # print('\n'.join(Ax))
-                # print('\n'.join(Bx))
+            # Normalize input and output YAML
+            self.sort_sequences(input_yaml)
+            self.sort_sequences(output_yaml)
+            A = yaml.dump(input_yaml, sort_keys=True)
+            B = yaml.dump(output_yaml, sort_keys=True)
+            Ax = []
+            Bx = []
+            for line in A.splitlines():
+                for lnA in self.expand_yaml(line):
+                    Ax.append(lnA)
+            for line in B.splitlines():
+                for lnB in self.expand_yaml(line):
+                    Bx.append(lnB)
+            Ax = self.clear_empty_mappings(Ax)
+            Bx = self.clear_empty_mappings(Bx)
 
-                yaml_files_differ = len(Ax) != len(Bx)
-                if not yaml_files_differ:  # pragma: no cover (only execited in error case)
-                    for i in range(len(Ax)):
-                        if Ax[i] != Bx[i]:
-                            yaml_files_differ = True
-                            break
+            # Check if (normalized) input and (normalized) output are equal
+            yaml_files_differ = len(Ax) != len(Bx)
+            if not yaml_files_differ:  # pragma: no cover (only execited in error case)
+                for i in range(len(Ax)):
+                    if Ax[i] != Bx[i]:
+                        yaml_files_differ = True
+                        break
+            if yaml_files_differ:  # pragma: no cover (only execited in error case)
+                fromfile = 'original (%s)' % input
+                for line in difflib.unified_diff(Ax, Bx, fromfile, tofile='generated', lineterm=''):
+                    print(line, flush=True)
+                self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
 
-                if yaml_files_differ:  # pragma: no cover (only execited in error case)
-                    fromfile = 'original (%s)' % conf
-                    for line in difflib.unified_diff(Ax, Bx, fromfile, tofile='generated', lineterm=''):
-                        print(line, flush=True)
-                    self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
-
-            # cleanup generated file and data structures
+            # Cleanup the generated file and data structures
             lib.netplan_clear_netdefs()
-            if os.path.isfile(os.path.join(self.confdir, filename)):
-                os.remove(os.path.join(self.confdir, filename))
+            if os.path.isfile(output_path):
+                os.remove(output_path)
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None, skip_generated_yaml_validation=False):
         '''Call generate with given YAML string as configuration
