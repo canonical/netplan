@@ -621,6 +621,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     }
     if (def->accept_ra == NETPLAN_RA_MODE_ENABLED) {
         YAML_STRING_PLAIN(event, emitter, "accept-ra", "true");
+    } else if (def->accept_ra == NETPLAN_RA_MODE_DISABLED) {
+        YAML_STRING_PLAIN(event, emitter, "accept-ra", "false");
     }
 
     YAML_STRING(event, emitter, "macaddress", def->set_mac);
