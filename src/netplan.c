@@ -590,11 +590,12 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");
     }
 
-    if (def->type == NETPLAN_DEF_TYPE_NM)
-        goto only_passthrough; //do not try to handle "unknown" connection types
-
     if (def->has_match)
         write_match(event, emitter, def);
+
+    /* Do not try to handle "unknown" connection types (full fallback/passthrough) */
+    if (def->type == NETPLAN_DEF_TYPE_NM)
+        goto only_passthrough;
 
     if (def->optional)
         YAML_STRING_PLAIN(event, emitter, "optional", "true");
