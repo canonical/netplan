@@ -31,8 +31,6 @@ import ctypes
 import ctypes.util
 import yaml
 import difflib
-import re
-import logging
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), 'generate')
@@ -81,36 +79,31 @@ NM_WG = '[connection]\nid=netplan-wg0\ntype=wireguard\ninterface-name=wg0\n\n[wi
 2001:de:ad:be:ef:ca:fe:1/128\n'
 ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListenPort=%s\n%s\n'
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
-DEFAULT_STANZAS = [
-    'accept-ra: false',
-    'dhcp4: false',
-    'dhcp6: false',
-    'dhcp-identifier: duid',
-    'hidden: false',
-    'mode: infrastructure',
-    'on-link: false',
-    'send-hostname: true',
-    'stp: true',
-    'type: unicast',
-    'use-dns: true',
-    'use-hostname: true',
-    'use-mtu: true',
-    'use-ntp: true',
-    'use-routes: true',
-    'version: 2',
-]
 
 
-class TestBase(unittest.TestCase):
+class NetplanV2Normalizer():
 
-    def setUp(self):
-        self.workdir = tempfile.TemporaryDirectory()
-        self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
-        self.nm_enable_all_conf = os.path.join(
-            self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
-        self.maxDiff = None
+    YAML_FALSE = ['n', 'no', 'off', 'false']
+    YAML_TRUE = ['y', 'yes', 'on', 'true']
+    DEFAULT_STANZAS = [
+        'dhcp4: false',
+        'dhcp4-overrides: {}',
+        'dhcp6: false',
+        'dhcp6-overrides: {}',
+        'dhcp-identifier: duid',
+        'hidden: false',
+        'on-link: false',
+        'stp: true',
+        'type: unicast',
+        'version: 2',
+    ]
+    # FIXME: move non-sequence defaults (i.e. non-routing) into normalize_tree()
 
-    def normalize_yaml_value(self, line):
+    def normalize_yaml_line(self, line):
+        '''Process formatted YAML line by line (one setting/key per line)
+
+        Deleting default values and re-writing to default wording
+        '''
         kv = line.replace('"', '').replace('\'', '').split(':', 1)
         if len(kv) != 2 or kv[1].isspace() or kv[1] == '':
             return line  # no normalization needed; no value given
@@ -122,77 +115,114 @@ class TestBase(unittest.TestCase):
 
         # normalize value
         val = kv[1].strip()
-        if val in ['n', 'no', 'off', 'false']:
+        if val in self.YAML_FALSE:
             kv[1] = 'false'
-        elif val in ['y', 'yes', 'on', 'true']:
+        elif val in self.YAML_TRUE:
             kv[1] = 'true'
-        elif val in ['5G']:
+        elif val == '5G':
             kv[1] = '5GHz'
-        elif val in ['2.4G']:
+        elif val == '2.4G':
             kv[1] = '2.4GHz'
-        else:
-            kv[1] = val  # no normalization needed or known
+        else:  # no normalization needed or known
+            kv[1] = val
 
         return ': '.join(kv)
 
-    def expand_yaml(self, line):
-        line = self.normalize_yaml_value(line)
-        if line.strip() in DEFAULT_STANZAS:
-            return []
-        # ignore renderer: on different levels for now
-        # that information is not stored in the netdef data structure
-        elif 'renderer: ' in line:  # FIXME do not ignore the global one
-            return []
-        elif line.endswith(': {}'):
-            return [line[:-3]]
-        # nothing to do
-        else:
-            return [line]
+    def normalize_yaml_tree(self, data, full_key=''):
+        '''Walk the YAML dict/tree @data and sort its sequences in place
 
-    def sort_sequences(self, data, full_key=None):
-        '''Walk a YAML dict and sort its sequences, keeping track of the full_key (e.g. "network:ethernets:eth0:dhcp4")'''
+        Keeping track of the @full_key (path), e.g.: "network:ethernets:eth0:dhcp4"
+        And normalizing certain netplan special cases
+        '''
         if isinstance(data, list):
             scalars_only = not any(list(map(lambda elem: (isinstance(elem, dict) or isinstance(elem, list)), data)))
             # sort sequence alphabetically
             if scalars_only:
-                data = data.sort()
-            # else: handle list of mappings (like wireguard peers)
+                data.sort()
+                # remove duplicates (if needed)
+                unique = set(data)
+                if len(data) > len(unique):
+                    rm_idx = set()
+                    last_idx = 0
+                    for elem in unique:
+                        if data.count(elem) > 1:
+                            idx = data.index(elem, last_idx)
+                            rm_idx.add(idx)
+                            last_idx = idx
+                    for idx in rm_idx:
+                        del data[idx]
         elif isinstance(data, dict):
-            # expand short forms
             keys = data.keys()
+            # expand special short forms
             if 'password' in keys and ':auth' not in full_key:
                 data['auth'] = {'key-management': 'psk', 'password': data['password']}
                 del data['password']
             elif 'auth' in keys and data['auth'] == {}:
                 data['auth'] = {'key-management': 'none'}
+            # remove default stanza ("link-local: [ ipv6 ]"")
             elif 'link-local' in keys and data['link-local'] == ['ipv6']:
-                del data['link-local']  # remove default setting
+                del data['link-local']
+            # remove explicit openvswitch stanzas, they might not always be
+            # defined in the original YAML (due to being implicit)
+            elif ('openvswitch' in keys and data['openvswitch'] == {} and
+                  any(map(full_key.__contains__, [':bonds:', ':bridges:', ':vlans:']))):
+                del data['openvswitch']
+            # remove default empty bond-parameters, those are not rendered by the YAML generator
+            elif 'parameters' in keys and data['parameters'] == {} and ':bonds:' in full_key:
+                del data['parameters']
+            # remove default mode=infrastructore from wifi APs, keeping the SSID
+            elif 'mode' in keys and ':wifis:' in full_key and 'infrastructure' in data['mode']:
+                del data['mode']
+            # ignore renderer: on different levels for now (except for the global level)
+            # as that information is currently not stored in the netdef data structure
+            # FIXME: "renderer: sriov"
+            elif 'renderer' in keys and len(full_key) > len('network'):
+                del data['renderer']
+            # remove default values from the  dhcp4/6-overrides mappings
+            elif full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
+                dhcp_defaults = {
+                    'send-hostname': self.YAML_TRUE,
+                    'use-dns': self.YAML_TRUE,
+                    'use-hostname': self.YAML_TRUE,
+                    'use-mtu': self.YAML_TRUE,
+                    'use-ntp': self.YAML_TRUE,
+                    'use-routes': self.YAML_TRUE,
+                }
 
-            # continue walk the dict
+                potential_defaults = list(set(keys) & set(dhcp_defaults.keys()))
+                for k in potential_defaults:
+                    if any(map(str(data[k]).lower().__eq__, dhcp_defaults[k])):
+                        del data[k]
+
+            # continue to walk the dict
             for key in data.keys():
-                full_key = ':'.join([str(full_key), str(key)]) if full_key is not None else key
-                self.sort_sequences(data[key], full_key)
+                full_key = ':'.join([str(full_key), str(key)]) if full_key != '' else key
+                self.normalize_yaml_tree(data[key], full_key)
 
-    def clear_empty_mappings(self, lines):
-        new_lines = []
-        last = len(lines)
-        for i in range(last):
-            current = lines[i]
-            following = lines[i+1] if i+1 < last else ''
-            if current.endswith(':'):
-                m = re.match(r'(\W*)(\w+)', current)
-                m2 = re.match(r'(\W*)(\w*)', following)
-                indentation_curr = len(m.group(1))
-                indentation_next = len(m2.group(1))
-                if indentation_next <= indentation_curr:
-                    logging.debug('removing empty mapping:  ' + current)
-                    logging.debug('context (line+1)      : ' + following)
-                    continue
-            elif '- dhcp4' in current and '- dhcp4' in following:
-                continue  # skip current line, it's a duplicate
+    def normalize_yaml(self, yaml_dict):
+        # 1st pass: normalize the YAML tree in place, sorting and removing some values
+        self.normalize_yaml_tree(yaml_dict)
+        # 2nd pass: sort the mapping keys and output a formatted yaml (one key per line)
+        formatted_yaml = yaml.dump(yaml_dict, sort_keys=True)
+        # 3rd pass: normalize the wording of certain keys/values per line
+        #           and remove any line, containg only default values
+        output = []
+        for line in formatted_yaml.splitlines():
+            line = self.normalize_yaml_line(line)
+            if line.strip() in self.DEFAULT_STANZAS:
+                continue
+            output.append(line)
+        return output
 
-            new_lines.append(current)
-        return new_lines
+
+class TestBase(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = tempfile.TemporaryDirectory()
+        self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
+        self.nm_enable_all_conf = os.path.join(
+            self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
+        self.maxDiff = None
 
     def validate_generated_yaml(self, yaml_input):
         '''Validate a list of YAML input files one by one.
@@ -228,31 +258,20 @@ class TestBase(unittest.TestCase):
                 output_yaml = yaml.safe_load('')
 
             # Normalize input and output YAML
-            self.sort_sequences(input_yaml)
-            self.sort_sequences(output_yaml)
-            A = yaml.dump(input_yaml, sort_keys=True)
-            B = yaml.dump(output_yaml, sort_keys=True)
-            Ax = []
-            Bx = []
-            for line in A.splitlines():
-                for lnA in self.expand_yaml(line):
-                    Ax.append(lnA)
-            for line in B.splitlines():
-                for lnB in self.expand_yaml(line):
-                    Bx.append(lnB)
-            Ax = self.clear_empty_mappings(Ax)
-            Bx = self.clear_empty_mappings(Bx)
+            netplan_normalizer = NetplanV2Normalizer()
+            input_lines = netplan_normalizer.normalize_yaml(input_yaml)
+            output_lines = netplan_normalizer.normalize_yaml(output_yaml)
 
             # Check if (normalized) input and (normalized) output are equal
-            yaml_files_differ = len(Ax) != len(Bx)
+            yaml_files_differ = len(input_lines) != len(output_lines)
             if not yaml_files_differ:  # pragma: no cover (only execited in error case)
-                for i in range(len(Ax)):
-                    if Ax[i] != Bx[i]:
+                for i in range(len(input_lines)):
+                    if input_lines[i] != output_lines[i]:
                         yaml_files_differ = True
                         break
             if yaml_files_differ:  # pragma: no cover (only execited in error case)
                 fromfile = 'original (%s)' % input
-                for line in difflib.unified_diff(Ax, Bx, fromfile, tofile='generated', lineterm=''):
+                for line in difflib.unified_diff(input_lines, output_lines, fromfile, tofile='generated', lineterm=''):
                     print(line, flush=True)
                 self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
 
