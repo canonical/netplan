@@ -584,7 +584,9 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     YAML_SCALAR_PLAIN(event, emitter, def->id);
     YAML_MAPPING_OPEN(event, emitter);
-    if (def->backend == NETPLAN_BACKEND_NM) {
+    if (def->type == NETPLAN_DEF_TYPE_VLAN && def->sriov_vlan_filter) {
+        YAML_STRING_PLAIN(event, emitter, "renderer", "sriov");
+    } else if (def->backend == NETPLAN_BACKEND_NM) {
         YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
     } else if (def->backend == NETPLAN_BACKEND_NETWORKD) {
         YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");

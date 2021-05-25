@@ -173,10 +173,10 @@ class NetplanV2Normalizer():
             # remove default mode=infrastructore from wifi APs, keeping the SSID
             elif 'mode' in keys and ':wifis:' in full_key and 'infrastructure' in data['mode']:
                 del data['mode']
-            # ignore renderer: on different levels for now (except for the global level)
-            # as that information is currently not stored in the netdef data structure
-            # FIXME: "renderer: sriov"
-            elif 'renderer' in keys and len(full_key) > len('network'):
+            # ignore renderer: on other than global levels for now, as that
+            # information is currently not stored in the netdef data structure
+            elif ('renderer' in keys and len(full_key.split(':')) > 1 and
+                  data['renderer'] in ['networkd', 'NetworkManager']):
                 del data['renderer']
             # remove default values from the  dhcp4/6-overrides mappings
             elif full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
@@ -196,8 +196,8 @@ class NetplanV2Normalizer():
 
             # continue to walk the dict
             for key in data.keys():
-                full_key = ':'.join([str(full_key), str(key)]) if full_key != '' else key
-                self.normalize_yaml_tree(data[key], full_key)
+                full_key_next = ':'.join([str(full_key), str(key)]) if full_key != '' else key
+                self.normalize_yaml_tree(data[key], full_key_next)
 
     def normalize_yaml(self, yaml_dict):
         # 1st pass: normalize the YAML tree in place, sorting and removing some values
