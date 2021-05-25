@@ -173,6 +173,25 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
 error: return FALSE; // LCOV_EXCL_LINE
 }
 
+static gboolean
+write_modem_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+    /* some modem settings to auto-detect GSM vs CDMA connections */
+    if (def->modem_params.auto_config)
+        YAML_STRING_PLAIN(event, emitter, "auto-config", "true");
+    YAML_STRING(event, emitter, "apn", def->modem_params.apn);
+    YAML_STRING(event, emitter, "device-id", def->modem_params.device_id);
+    YAML_STRING(event, emitter, "network-id", def->modem_params.network_id);
+    YAML_STRING(event, emitter, "pin", def->modem_params.pin);
+    YAML_STRING(event, emitter, "sim-id", def->modem_params.sim_id);
+    YAML_STRING(event, emitter, "sim-operator-id", def->modem_params.sim_operator_id);
+    YAML_STRING(event, emitter, "username", def->modem_params.username);
+    YAML_STRING(event, emitter, "password", def->modem_params.password);
+    YAML_STRING(event, emitter, "number", def->modem_params.number);
+    return TRUE;
+error: return FALSE; // LCOV_EXCL_LINE
+}
+
 typedef struct {
     yaml_event_t* event;
     yaml_emitter_t* emitter;
@@ -749,18 +768,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     write_openvswitch(event, emitter, &def->ovs_settings, def->backend, NULL);
 
-    /* some modem settings to auto-detect GSM vs CDMA connections */
-    if (def->modem_params.auto_config)
-        YAML_STRING_PLAIN(event, emitter, "auto-config", "true");
-    YAML_STRING(event, emitter, "apn", def->modem_params.apn);
-    YAML_STRING(event, emitter, "device-id", def->modem_params.device_id);
-    YAML_STRING(event, emitter, "network-id", def->modem_params.network_id);
-    YAML_STRING(event, emitter, "pin", def->modem_params.pin);
-    YAML_STRING(event, emitter, "sim-id", def->modem_params.sim_id);
-    YAML_STRING(event, emitter, "sim-operator-id", def->modem_params.sim_operator_id);
-    YAML_STRING(event, emitter, "username", def->modem_params.username);
-    YAML_STRING(event, emitter, "password", def->modem_params.password);
-    YAML_STRING(event, emitter, "number", def->modem_params.number);
+    if (def->type == NETPLAN_DEF_TYPE_MODEM)
+        write_modem_params(event, emitter, def);
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
         if (!write_access_points(event, emitter, def)) goto error;
