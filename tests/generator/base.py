@@ -83,21 +83,38 @@ ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 
 class NetplanV2Normalizer():
 
-    YAML_FALSE = ['n', 'no', 'off', 'false']
-    YAML_TRUE = ['y', 'yes', 'on', 'true']
-    DEFAULT_STANZAS = [
-        'dhcp4: false',
-        'dhcp4-overrides: {}',
-        'dhcp6: false',
-        'dhcp6-overrides: {}',
-        'dhcp-identifier: duid',
-        'hidden: false',
-        'on-link: false',
-        'stp: true',
-        'type: unicast',
-        'version: 2',
-    ]
-    # FIXME: move non-sequence defaults (i.e. non-routing) into normalize_tree()
+    def __init__(self):
+        self.YAML_FALSE = ['n', 'no', 'off', 'false']
+        self.YAML_TRUE = ['y', 'yes', 'on', 'true']
+        self.DEFAULT_STANZAS = [
+            'dhcp4-overrides: {}',  # 2nd level default (containing defaults itself)
+            'dhcp6-overrides: {}',  # 2nd level default (containing defaults itself)
+            'hidden: false',  # access-point
+            'on-link: false',  # route
+            'stp: true',  # paramters
+            'type: unicast',  # route
+            'version: 2',  # global
+        ]
+        self.DEFAULT_NETDEF = {
+            'dhcp4': self.YAML_FALSE,
+            'dhcp6': self.YAML_FALSE,
+            'dhcp-identifier': ['duid'],
+            'hidden': self.YAML_FALSE,
+        }
+        self.DEFAULT_DHCP = {
+            'send-hostname': self.YAML_TRUE,
+            'use-dns': self.YAML_TRUE,
+            'use-hostname': self.YAML_TRUE,
+            'use-mtu': self.YAML_TRUE,
+            'use-ntp': self.YAML_TRUE,
+            'use-routes': self.YAML_TRUE,
+        }
+
+    def _clear_mapping_defaults(self, keys, defaults, data):
+        potential_defaults = list(set(keys) & set(defaults.keys()))
+        for k in potential_defaults:
+            if any(map(str(data[k]).lower().__eq__, defaults[k])):
+                del data[k]
 
     def normalize_yaml_line(self, line):
         '''Process formatted YAML line by line (one setting/key per line)
@@ -178,21 +195,12 @@ class NetplanV2Normalizer():
             elif ('renderer' in keys and len(full_key.split(':')) > 1 and
                   data['renderer'] in ['networkd', 'NetworkManager']):
                 del data['renderer']
-            # remove default values from the  dhcp4/6-overrides mappings
+            # remove default values from the dhcp4/6-overrides mappings
             elif full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
-                dhcp_defaults = {
-                    'send-hostname': self.YAML_TRUE,
-                    'use-dns': self.YAML_TRUE,
-                    'use-hostname': self.YAML_TRUE,
-                    'use-mtu': self.YAML_TRUE,
-                    'use-ntp': self.YAML_TRUE,
-                    'use-routes': self.YAML_TRUE,
-                }
-
-                potential_defaults = list(set(keys) & set(dhcp_defaults.keys()))
-                for k in potential_defaults:
-                    if any(map(str(data[k]).lower().__eq__, dhcp_defaults[k])):
-                        del data[k]
+                self._clear_mapping_defaults(keys, self.DEFAULT_DHCP, data)
+            # remove default values from netdef/interface mappings
+            elif len(full_key.split(':')) == 3:  # netdef level
+                self._clear_mapping_defaults(keys, self.DEFAULT_NETDEF, data)
 
             # continue to walk the dict
             for key in data.keys():
