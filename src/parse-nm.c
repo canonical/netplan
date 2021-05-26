@@ -78,10 +78,18 @@ _kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
 }
 
 static gboolean
+kf_matches(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match)
+{
+    g_autofree gchar *kf_value = NULL;
+    kf_value = g_key_file_get_string(kf, group, key, NULL);
+    return g_strcmp0(kf_value, match) == 0;
+}
+
+static gboolean
 set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match, const void* dataptr)
 {
     g_assert(dataptr);
-    if (g_strcmp0(g_key_file_get_string(kf, group, key, NULL), match) == 0) {
+    if (kf_matches(kf, group, key, match)) {
         *((gboolean*) dataptr) = TRUE;
         _kf_clear_key(kf, group, key);
         return TRUE;
