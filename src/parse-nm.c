@@ -269,8 +269,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
     }
 
     /* DHCPv4/v6 */
-    set_true_on_match(kf, "ipv4", "method", "auto", &(nd->dhcp4));
-    set_true_on_match(kf, "ipv6", "method", "auto", &(nd->dhcp6));
+    set_true_on_match(kf, "ipv4", "method", "auto", &nd->dhcp4);
+    set_true_on_match(kf, "ipv6", "method", "auto", &nd->dhcp6);
 
     /* Manuall IPv4/6 addresses */
     parse_addresses(kf, "ipv4", &nd->ip4_addresses);
@@ -287,24 +287,12 @@ netplan_parse_keyfile(const char* filename, GError** error)
      * using its modem_is_gsm() util. */
     nd->modem_params.auto_config = g_key_file_get_boolean(kf, "gsm", "auto-config", NULL);
     _kf_clear_key(kf, "gsm", "auto-config");
-    nd->modem_params.apn = g_key_file_get_string(kf, "gsm", "apn", NULL);
-    if (nd->modem_params.apn)
-        _kf_clear_key(kf, "gsm", "apn");
-    nd->modem_params.device_id = g_key_file_get_string(kf, "gsm", "device-id", NULL);
-    if (nd->modem_params.device_id)
-        _kf_clear_key(kf, "gsm", "device-id");
-    nd->modem_params.network_id = g_key_file_get_string(kf, "gsm", "network-id", NULL);
-    if (nd->modem_params.network_id)
-        _kf_clear_key(kf, "gsm", "network-id");
-    nd->modem_params.pin = g_key_file_get_string(kf, "gsm", "pin", NULL);
-    if (nd->modem_params.pin)
-        _kf_clear_key(kf, "gsm", "pin");
-    nd->modem_params.sim_id = g_key_file_get_string(kf, "gsm", "sim-id", NULL);
-    if (nd->modem_params.sim_id)
-        _kf_clear_key(kf, "gsm", "sim-id");
-    nd->modem_params.sim_operator_id = g_key_file_get_string(kf, "gsm", "sim-operator-id", NULL);
-    if (nd->modem_params.sim_operator_id)
-        _kf_clear_key(kf, "gsm", "sim-operator-id");
+    handle_generic_str(kf, "gsm", "apn", &nd->modem_params.apn);
+    handle_generic_str(kf, "gsm", "device-id", &nd->modem_params.device_id);
+    handle_generic_str(kf, "gsm", "network-id", &nd->modem_params.network_id);
+    handle_generic_str(kf, "gsm", "pin", &nd->modem_params.pin);
+    handle_generic_str(kf, "gsm", "sim-id", &nd->modem_params.sim_id);
+    handle_generic_str(kf, "gsm", "sim-operator-id", &nd->modem_params.sim_operator_id);
 
     /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
     if (g_key_file_has_group(kf, "ethernet")) {
