@@ -261,12 +261,14 @@ dns-search=
 method=manual
 address1=1.2.3.4/24,8.8.8.8
 address2=5.6.7.8/16
+gateway=6.6.6.6
 
 [ipv6]
 addr-gen-mode=stable-privacy
 dns-search=
 method=manual
 address1=1:2:3::9/128
+gateway=6:6::6
 
 [proxy]
 ''')
@@ -285,6 +287,8 @@ address1=1:2:3::9/128
       - "1.2.3.4/24"
       - "5.6.7.8/16"
       - "1:2:3::9/128"
+      gateway4: 6.6.6.6
+      gateway6: 6:6::6
       networkmanager:
         uuid: "{}"
         name: "Test"

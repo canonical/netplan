@@ -98,6 +98,17 @@ set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gcha
 }
 
 static gboolean
+handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** dataptr)
+{
+    g_assert(dataptr);
+    g_assert(!*dataptr);
+    *dataptr = g_key_file_get_string(kf, group, key, NULL);
+    if (*dataptr)
+        _kf_clear_key(kf, group, key);
+    return TRUE;
+}
+
+static gboolean
 parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 {
     g_assert(ip_arr);
@@ -264,6 +275,10 @@ netplan_parse_keyfile(const char* filename, GError** error)
     /* Manuall IPv4/6 addresses */
     parse_addresses(kf, "ipv4", &nd->ip4_addresses);
     parse_addresses(kf, "ipv6", &nd->ip6_addresses);
+
+    /* Default gateways */
+    handle_generic_str(kf, "ipv4", "gateway", &nd->gateway4);
+    handle_generic_str(kf, "ipv6", "gateway", &nd->gateway6);
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan
