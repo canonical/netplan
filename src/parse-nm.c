@@ -97,6 +97,46 @@ set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gcha
     return FALSE;
 }
 
+static gboolean
+parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
+{
+    g_assert(ip_arr);
+    if (kf_matches(kf, group, "method", "manual")) {
+        gboolean unhandled_data = FALSE;
+        gchar *key = NULL;
+        gchar *kf_value = NULL;
+        gchar **split = NULL;
+        for (unsigned i = 1;; ++i) {
+            key = g_strdup_printf("address%u", i);
+            kf_value = g_key_file_get_string(kf, group, key, NULL);
+            if (!kf_value) {
+                g_free(key);
+                break;
+            }
+            if (!*ip_arr)
+                *ip_arr = g_array_new(FALSE, FALSE, sizeof(char*));
+            split = g_strsplit(kf_value, ",", 2);
+            /* Append "address/prefix" */
+            if (split[0]) {
+                /* no need to free 's', this will stay in the netdef */
+                char* s = g_strdup(split[0]);
+                g_array_append_val(*ip_arr, s);
+            }
+            if (!split[1])
+                _kf_clear_key(kf, group, key);
+            else
+                unhandled_data = TRUE; //FIXME: how to handle additional values (like "gateway") in split[n]?
+            g_free(key);
+            g_strfreev(split);
+            g_free(kf_value);
+        }
+        /* clear keyfile once all data was handled */
+        if (!unhandled_data)
+            _kf_clear_key(kf, group, "method");
+    }
+    return TRUE;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GData** list)
@@ -220,6 +260,10 @@ netplan_parse_keyfile(const char* filename, GError** error)
     /* DHCPv4/v6 */
     set_true_on_match(kf, "ipv4", "method", "auto", &(nd->dhcp4));
     set_true_on_match(kf, "ipv6", "method", "auto", &(nd->dhcp6));
+
+    /* Manuall IPv4/6 addresses */
+    parse_addresses(kf, "ipv4", &nd->ip4_addresses);
+    parse_addresses(kf, "ipv6", &nd->ip6_addresses);
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan

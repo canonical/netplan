@@ -245,6 +245,58 @@ method=auto
           proxy._: ""
 '''.format(UUID, UUID))
 
+    def test_serialize_method_manual(self):
+        self.maxDiff = None
+        UUID = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
+        FILE = os.path.join(self.workdir.name, 'tmp/some.keyfile')
+        os.makedirs(os.path.dirname(FILE))
+        with open(FILE, 'w') as file:
+            file.write('''[connection]
+id=Test
+uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+type=ethernet
+
+[ipv4]
+dns-search=
+method=manual
+address1=1.2.3.4/24,8.8.8.8
+address2=5.6.7.8/16
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=manual
+address1=1:2:3::9/128
+
+[proxy]
+''')
+        lib.netplan_parse_keyfile(FILE.encode(), None)
+        lib._write_netplan_conf('NM-a08c5805-7cf5-43f7-afb9-12cb30f6eca3'.encode(), self.workdir.name.encode())
+        lib.netplan_clear_netdefs()
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      addresses:
+      - "1.2.3.4/24"
+      - "5.6.7.8/16"
+      - "1:2:3::9/128"
+      networkmanager:
+        uuid: "{}"
+        name: "Test"
+        passthrough:
+          ipv4.dns-search: ""
+          ipv4.method: "manual"
+          ipv4.address1: "1.2.3.4/24,8.8.8.8"
+          ipv6.addr-gen-mode: "stable-privacy"
+          ipv6.dns-search: ""
+          proxy._: ""
+'''.format(UUID, UUID))
+
     def _template_serialize_keyfile(self, nd_type, nm_type, supported=True):
         self.maxDiff = None
         UUID = '87749f1d-334f-40b2-98d4-55db58965f5f'
