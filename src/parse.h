@@ -395,6 +395,9 @@ struct net_definition {
     char* filename;
     /* it cannot be in the tunnel struct: https://github.com/canonical/netplan/pull/206 */
     guint tunnel_ttl;
+  
+    /* netplan-feature: activation-mode */
+    char* activation_mode;  
 };
 
 typedef enum {
