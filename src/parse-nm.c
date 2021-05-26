@@ -77,6 +77,18 @@ _kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
     return ret;
 }
 
+static gboolean
+set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match, const void* dataptr)
+{
+    g_assert(dataptr);
+    if (g_strcmp0(g_key_file_get_string(kf, group, key, NULL), match) == 0) {
+        *((gboolean*) dataptr) = TRUE;
+        _kf_clear_key(kf, group, key);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GData** list)
@@ -196,6 +208,10 @@ netplan_parse_keyfile(const char* filename, GError** error)
          * the netdef ID as interface-name */
         nd->has_match = TRUE;
     }
+
+    /* DHCPv4/v6 */
+    set_true_on_match(kf, "ipv4", "method", "auto", &(nd->dhcp4));
+    set_true_on_match(kf, "ipv6", "method", "auto", &(nd->dhcp6));
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan

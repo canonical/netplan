@@ -160,6 +160,8 @@ method=auto
     NM-{}:
       renderer: NetworkManager
       match: {{}}
+      dhcp4: true
+      dhcp6: true
       apn: "internet2.voicestream.com"
       device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
       network-id: "254098"
@@ -174,10 +176,8 @@ method=auto
           gsm.password: "parliament2"
           gsm.username: "george.clinton.again"
           ipv4.dns-search: ""
-          ipv4.method: "auto"
           ipv6.addr-gen-mode: "stable-privacy"
           ipv6.dns-search: ""
-          ipv6.method: "auto"
 '''.format(UUID, UUID))
 
     def test_serialize_gsm_via_bluetooth(self):
@@ -349,6 +349,7 @@ dns-search='''.format(UUID))
       renderer: NetworkManager
       match:
         name: "eth0"
+      dhcp4: true
       access-points:
         "SOME-SSID":
           hidden: true
@@ -357,7 +358,6 @@ dns-search='''.format(UUID))
             name: "myid with spaces"
             passthrough:
               connection.permissions: ""
-              ipv4.method: "auto"
               ipv4.dns-search: ""
       networkmanager:
         uuid: "{}"
@@ -388,7 +388,7 @@ mode={}'''.format(UUID, nm_mode))
         wifi_mode = ''
         ap_mode = ''
         if nm_mode != nd_mode:
-            wifi_mode = '\n              wifi.mode: "{}"'.format(nm_mode)
+            wifi_mode = '\n            passthrough:\n              wifi.mode: "{}"'.format(nm_mode)
         if nd_mode != 'infrastructure':
             ap_mode = '\n          mode: "%s"' % nd_mode
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
@@ -398,13 +398,12 @@ mode={}'''.format(UUID, nm_mode))
     NM-{}:
       renderer: NetworkManager
       match: {{}}
+      dhcp4: true
       access-points:
         "SOME-SSID":{}
           networkmanager:
             uuid: "{}"
-            name: "myid with spaces"
-            passthrough:
-              ipv4.method: "auto"{}
+            name: "myid with spaces"{}
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -456,13 +455,13 @@ method=auto'''.format(UUID))
     NM-{}:
       renderer: NetworkManager
       match: {{}}
+      dhcp4: true
       wakeonlan: true
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
         passthrough:
           ethernet.wake-on-lan: "2"
-          ipv4.method: "auto"
 '''.format(UUID, UUID))
 
     def test_serialize_keyfile_wake_on_lan_nm_default(self):
@@ -491,13 +490,13 @@ method=auto'''.format(UUID))
     NM-{}:
       renderer: NetworkManager
       match: {{}}
+      dhcp4: true
       wakeonlan: true
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
         passthrough:
           ethernet._: ""
-          ipv4.method: "auto"
 '''.format(UUID, UUID))
 
     def test_serialize_keyfile_modem_gsm(self):
@@ -527,12 +526,11 @@ auto-config=true'''.format(UUID))
     NM-{}:
       renderer: NetworkManager
       match: {{}}
+      dhcp4: true
       auto-config: true
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
-        passthrough:
-          ipv4.method: "auto"
 '''.format(UUID, UUID))
 
     def test_serialize_keyfile_existing_id(self):
@@ -558,11 +556,10 @@ method=auto'''.format(UUID))
   bridges:
     mybr:
       renderer: NetworkManager
+      dhcp4: true
       networkmanager:
         uuid: "{}"
         name: "renamed netplan bridge"
-        passthrough:
-          ipv4.method: "auto"
 '''.format(UUID))
 
     def test_keyfile_yaml_wifi_hotspot(self):
