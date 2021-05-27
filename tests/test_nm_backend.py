@@ -245,6 +245,63 @@ method=auto
           proxy._: ""
 '''.format(UUID, UUID))
 
+    def test_serialize_method_auto(self):
+        self.maxDiff = None
+        UUID = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
+        FILE = os.path.join(self.workdir.name, 'tmp/some.keyfile')
+        os.makedirs(os.path.dirname(FILE))
+        with open(FILE, 'w') as file:
+            file.write('''[connection]
+id=Test
+uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+type=ethernet
+
+[ipv4]
+dns-search=
+method=auto
+ignore-auto-routes=true
+never-default=true
+route-metric=4242
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+ignore-auto-routes=true
+never-default=true
+route-metric=4242
+
+[proxy]
+''')
+        lib.netplan_parse_keyfile(FILE.encode(), None)
+        lib._write_netplan_conf('NM-a08c5805-7cf5-43f7-afb9-12cb30f6eca3'.encode(), self.workdir.name.encode())
+        lib.netplan_clear_netdefs()
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
+        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            self.assertEqual(f.read(), '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      dhcp4: true
+      dhcp4-overrides:
+        use-routes: false
+        route-metric: 4242
+      dhcp6: true
+      dhcp6-overrides:
+        use-routes: false
+        route-metric: 4242
+      networkmanager:
+        uuid: "{}"
+        name: "Test"
+        passthrough:
+          ipv4.dns-search: ""
+          ipv6.addr-gen-mode: "stable-privacy"
+          ipv6.dns-search: ""
+          proxy._: ""
+'''.format(UUID, UUID))
+
     def test_serialize_method_manual(self):
         self.maxDiff = None
         UUID = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'

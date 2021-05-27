@@ -148,6 +148,25 @@ parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
     return TRUE;
 }
 
+static gboolean
+parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dataptr)
+{
+    g_autoptr(GError) err = NULL;
+    if (   g_key_file_get_boolean(kf, group, "ignore-auto-routes", NULL)
+        && g_key_file_get_boolean(kf, group, "never-default", NULL)) {
+        (*dataptr).use_routes = FALSE;
+        _kf_clear_key(kf, group, "ignore-auto-routes");
+        _kf_clear_key(kf, group, "never-default");
+    }
+    if (g_key_file_get_uint64(kf, group, "route-metric", &err) != NETPLAN_METRIC_UNSPEC) {
+        if (!err) {
+            (*dataptr).metric = g_key_file_get_uint64(kf, group, "route-metric", NULL);
+            _kf_clear_key(kf, group, "route-metric");
+        }
+    }
+    return TRUE;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GData** list)
@@ -271,6 +290,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
     /* DHCPv4/v6 */
     set_true_on_match(kf, "ipv4", "method", "auto", &nd->dhcp4);
     set_true_on_match(kf, "ipv6", "method", "auto", &nd->dhcp6);
+    parse_dhcp_overrides(kf, "ipv4", &nd->dhcp4_overrides);
+    parse_dhcp_overrides(kf, "ipv6", &nd->dhcp6_overrides);
 
     /* Manuall IPv4/6 addresses */
     parse_addresses(kf, "ipv4", &nd->ip4_addresses);
