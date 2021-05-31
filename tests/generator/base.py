@@ -179,6 +179,9 @@ class NetplanV2Normalizer():
             # remove default stanza ("link-local: [ ipv6 ]"")
             elif 'link-local' in keys and data['link-local'] == ['ipv6']:
                 del data['link-local']
+            # remove default stanza ("wakeonwlan: [ default ]")
+            elif 'wakeonwlan' in keys and data['wakeonwlan'] == ['default']:
+                del data['wakeonwlan']
             # remove explicit openvswitch stanzas, they might not always be
             # defined in the original YAML (due to being implicit)
             elif ('openvswitch' in keys and data['openvswitch'] == {} and

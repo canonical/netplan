@@ -714,12 +714,10 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->wake_on_lan)
         YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
 
-    if (def->wowlan) {
+    if (def->wowlan && def->wowlan != NETPLAN_WIFI_WOWLAN_DEFAULT) {
         YAML_SCALAR_PLAIN(event, emitter, "wakeonwlan");
         YAML_SEQUENCE_OPEN(event, emitter);
         /* XXX: make sure to extend if NetplanWifiWowlanFlag is extended */
-        if (def->wowlan & NETPLAN_WIFI_WOWLAN_DEFAULT)
-            YAML_SCALAR_PLAIN(event, emitter, "default");
         if (def->wowlan & NETPLAN_WIFI_WOWLAN_ANY)
             YAML_SCALAR_PLAIN(event, emitter, "any");
         if (def->wowlan & NETPLAN_WIFI_WOWLAN_DISCONNECT)
