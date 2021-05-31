@@ -324,6 +324,14 @@ netplan_parse_keyfile(const char* filename, GError** error)
             nd->wake_on_lan = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL) > 0;
         }
     }
+    if (g_key_file_has_group(kf, "wifi")) {
+        if (g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL)) {
+            nd->wowlan = g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL);
+            _kf_clear_key(kf, "wifi", "wake-on-wlan");
+        } else {
+            nd->wowlan = NETPLAN_WIFI_WOWLAN_DEFAULT;
+        }
+    }
 
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {

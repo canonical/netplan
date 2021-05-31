@@ -349,6 +349,7 @@ method=auto
 
 [wifi]
 ssid=SOME-SSID
+wake-on-wlan=24
 mode={}'''.format(uuid, nm_mode))
         wifi_mode = ''
         ap_mode = ''
@@ -363,6 +364,9 @@ mode={}'''.format(uuid, nm_mode))
       renderer: NetworkManager
       match: {{}}
       dhcp4: true
+      wakeonwlan:
+      - magic_pkt
+      - gtk_rekey_failure
       access-points:
         "SOME-SSID":{}
           networkmanager:
