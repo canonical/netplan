@@ -18,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import shutil
 import ctypes
 import ctypes.util
 
@@ -38,12 +37,12 @@ class TestNetworkManagerBackend(TestBase):
     '''Test libnetplan functionality as used by NetworkManager backend'''
 
     def test_serialize_keyfile_missing_uuid(self):
-        self.generate('[connection]\ntype=ethernets', expect_fail=True)
-        # TODO: assert output/error message
+        err = self.generate('[connection]\ntype=ethernets', expect_fail=True)
+        self.assertIn('netplan: Keyfile: cannot find connection.uuid', err)
 
     def test_serialize_keyfile_missing_type(self):
-        self.generate('[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f', expect_fail=True)
-        # TODO: assert output/error message
+        err = self.generate('[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f', expect_fail=True)
+        self.assertIn('netplan: Keyfile: cannot find connection.type', err)
 
     def test_serialize_gsm(self):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
@@ -385,9 +384,9 @@ mode={}'''.format(uuid, nm_mode))
 
     def test_serialize_keyfile_type_wifi_missing_ssid(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
-        self.generate('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(uuid), expect_fail=True)
+        err = self.generate('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(uuid), expect_fail=True)
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))))
-        # TODO: assert the error message on stderr/stdout
+        self.assertIn('netplan: Keyfile: cannot find SSID for WiFi connection', err)
 
     def test_serialize_keyfile_wake_on_lan(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'

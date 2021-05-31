@@ -23,6 +23,7 @@ import ctypes
 import ctypes.util
 
 from generator.base import TestBase
+from parser.base import capture_stderr
 from tests.test_utils import MockCmd
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -72,8 +73,10 @@ class TestLibnetplan(TestBase):
     def test_parse_keyfile_missing(self):
         f = os.path.join(self.workdir.name, 'tmp/some.keyfile')
         os.makedirs(os.path.dirname(f))
-        self.assertFalse(lib.netplan_parse_keyfile(f.encode(), None))
-        # TODO: assert ouput/error message
+        with capture_stderr() as outf:
+            self.assertFalse(lib.netplan_parse_keyfile(f.encode(), None))
+            with open(outf.name, 'r') as f:
+                self.assertIn('netplan: cannot load keyfile', f.read().strip())
 
     def test_generate(self):
         self.mock_netplan_cmd = MockCmd("netplan")
@@ -104,8 +107,11 @@ class TestLibnetplan(TestBase):
     some-netplan-id:
       dhcp4: true''')
         self.assertTrue(os.path.isfile(orig))
-        self.assertFalse(lib.netplan_delete_connection('unknown-id'.encode(), self.workdir.name.encode()))
-        self.assertTrue(os.path.isfile(orig))
+        with capture_stderr() as outf:
+            self.assertFalse(lib.netplan_delete_connection('unknown-id'.encode(), self.workdir.name.encode()))
+            self.assertTrue(os.path.isfile(orig))
+            with open(outf.name, 'r') as f:
+                self.assertIn('netplan_delete_connection: Cannot delete unknown-id, does not exist.', f.read().strip())
 
     def test_delete_connection_two_in_file(self):
         os.environ["TEST_NETPLAN_CMD"] = exe_cli
