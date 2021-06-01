@@ -315,15 +315,21 @@ netplan_parse_keyfile(const char* filename, GError** error)
     handle_generic_str(kf, "gsm", "sim-id", &nd->modem_params.sim_id);
     handle_generic_str(kf, "gsm", "sim-operator-id", &nd->modem_params.sim_operator_id);
 
-    /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
+    /* Ethernets */
     if (g_key_file_has_group(kf, "ethernet")) {
+        /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
         if (!g_key_file_has_key(kf, "ethernet", "wake-on-lan", NULL)) {
             nd->wake_on_lan = TRUE; //NM's default is "1"
         } else {
+            guint value = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL);
             //XXX: fix delta between options in NM (0x1, 0x2, 0x4, ...) and netplan (bool)
-            nd->wake_on_lan = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL) > 0;
+            nd->wake_on_lan = value > 0; // netplan only knows about "off" or "on"
+            if (value == 0)
+                _kf_clear_key(kf, "ethernet", "wake-on-lan"); // value "off" is supported
         }
     }
+
+    /* Wifis */
     if (g_key_file_has_group(kf, "wifi")) {
         if (g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL)) {
             nd->wowlan = g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL);
