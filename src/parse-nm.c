@@ -126,6 +126,9 @@ handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
     gboolean ret = FALSE;
     ret &= handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
     ret &= handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    ret &= handle_generic_str(kf, group, "mac-address", &nd->match.mac);
+    if (nd->match.mac)
+        nd->has_match = TRUE;
     return ret;
 }
 

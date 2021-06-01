@@ -214,6 +214,9 @@ id=Test
 uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
 type=ethernet
 
+[ethernet]
+mac-address=00:11:22:33:44:55
+
 [ipv4]
 dns-search=
 method=manual
@@ -235,13 +238,15 @@ gateway=6:6::6
   ethernets:
     NM-{}:
       renderer: NetworkManager
-      match: {{}}
+      match:
+        macaddress: "00:11:22:33:44:55"
       addresses:
       - "1.2.3.4/24"
       - "5.6.7.8/16"
       - "1:2:3::9/128"
       gateway4: 6.6.6.6
       gateway6: 6:6::6
+      wakeonlan: true
       networkmanager:
         uuid: "{}"
         name: "Test"
