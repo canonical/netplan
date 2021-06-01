@@ -662,10 +662,13 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     if (def->has_auth)
         write_auth(event, emitter, def->auth);
+    /* activation-mode */
+    if (def->activation_mode)
+        YAML_STRING(event, emitter, "activation-mode", def->activation_mode);
 
     /* SR-IOV */
     if (def->sriov_link)
-        YAML_STRING(event, emitter, "link", def->sriov_link->id)
+        YAML_STRING(event, emitter, "link", def->sriov_link->id);
     if (def->sriov_explicit_vf_count < G_MAXUINT)
         YAML_UINT(event, emitter, "virtual-function-count", def->sriov_explicit_vf_count);
 
