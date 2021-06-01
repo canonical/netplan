@@ -159,6 +159,11 @@ id=Test
 uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
 type=ethernet
 
+[ethernet]
+wake-on-lan=0
+mtu=1500
+cloned-mac-address=00:11:22:33:44:55
+
 [ipv4]
 dns-search=
 method=auto
@@ -190,6 +195,8 @@ route-metric=4242
       dhcp6-overrides:
         use-routes: false
         route-metric: 4242
+      macaddress: "00:11:22:33:44:55"
+      mtu: 1500
       networkmanager:
         uuid: "{}"
         name: "Test"
@@ -311,6 +318,8 @@ interface-name=eth0
 ssid=SOME-SSID
 mode=infrastructure
 hidden=true
+mtu=1500
+cloned-mac-address=00:11:22:33:44:55
 
 [ipv4]
 method=auto
@@ -323,6 +332,8 @@ dns-search='''.format(uuid))
       match:
         name: "eth0"
       dhcp4: true
+      macaddress: "00:11:22:33:44:55"
+      mtu: 1500
       access-points:
         "SOME-SSID":
           hidden: true

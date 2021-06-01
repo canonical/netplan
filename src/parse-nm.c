@@ -109,6 +109,27 @@ handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** da
 }
 
 static gboolean
+handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* dataptr, guint default_value)
+{
+    g_assert(dataptr);
+    if (g_key_file_has_key(kf, group, key, NULL)) {
+        guint data = g_key_file_get_uint64(kf, group, key, NULL);
+        if (data != default_value)
+            *dataptr = data;
+        _kf_clear_key(kf, group, key);
+    }
+    return TRUE;
+}
+
+static gboolean
+handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
+    gboolean ret = FALSE;
+    ret &= handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
+    ret &= handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    return ret;
+}
+
+static gboolean
 parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 {
     g_assert(ip_arr);
@@ -327,6 +348,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
             if (value == 0)
                 _kf_clear_key(kf, "ethernet", "wake-on-lan"); // value "off" is supported
         }
+
+        handle_common(kf, nd, "ethernet");
     }
 
     /* Wifis */
@@ -337,6 +360,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
         } else {
             nd->wowlan = NETPLAN_WIFI_WOWLAN_DEFAULT;
         }
+
+        handle_common(kf, nd, "wifi");
     }
 
     /* Special handling for WiFi "access-points:" mapping */
