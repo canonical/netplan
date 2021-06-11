@@ -445,7 +445,8 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
      ``activation-mode`` setting users can override that behavior by either
      specifying ``manual``, to hand over control over the interface state to the
      administrator or (for networkd backend *only*) ``off`` to force the link
-     in a down state at all times.
+     in a down state at all times. Any interface with ``activation-mode``
+     defined is implicitly considered ``optional``.
      Supported officially as of ``networkd`` v248+.
 
     Example:
