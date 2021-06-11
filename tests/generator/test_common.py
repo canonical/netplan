@@ -85,6 +85,7 @@ Name=eth0
 
 [Link]
 ActivationPolicy=always-down
+RequiredForOnline=no
 
 [Network]
 DHCP=ipv6
@@ -108,6 +109,7 @@ Name=eth0
 
 [Link]
 ActivationPolicy=manual
+RequiredForOnline=no
 
 [Network]
 DHCP=ipv6
