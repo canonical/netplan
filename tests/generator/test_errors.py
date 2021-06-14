@@ -850,3 +850,11 @@ class TestConfigErrors(TestBase):
     engreen:
       dhcp4: *yes''', expect_fail=True)
         self.assertIn("aliases are not supported", err)
+
+    def test_invalid_activation_mode(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      activation-mode: invalid''', expect_fail=True)
+        self.assertIn("needs to be 'manual' or 'off'", err)

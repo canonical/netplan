@@ -73,6 +73,52 @@ UseMTU=true
         err = self.generate(self.config_with_optional_addresses(eth_name, '["invalid"]'), expect_fail=True)
         self.assertIn('invalid value for optional-addresses', err)
 
+    def test_activation_mode_off(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp6: true
+      activation-mode: off''')
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Link]
+ActivationPolicy=always-down
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+        self.assert_networkd_udev(None)
+
+    def test_activation_mode_manual(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp6: true
+      activation-mode: manual''')
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Link]
+ActivationPolicy=manual
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+        self.assert_networkd_udev(None)
+
     def test_mtu_all(self):
         self.generate(textwrap.dedent("""
             network:
@@ -767,6 +813,40 @@ method=link-local
 method=ignore
 ''',
         })
+
+    def test_activation_mode_off(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      activation-mode: off''', expect_fail=True)
+
+    def test_activation_mode_manual(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      activation-mode: manual''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+autoconnect=false
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_nm_udev(None)
 
     def test_ipv6_mtu(self):
         self.generate(textwrap.dedent("""
