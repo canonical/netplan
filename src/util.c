@@ -232,7 +232,7 @@ netplan_delete_connection(const char* id, const char* rootdir)
     netplan_clear_netdefs();
 
     /* TODO: refactor logic to actually be inside the library instead of spawning another process */
-    const gchar *argv[] = { "/sbin/netplan", "set", del, "--origin-hint" , filename, NULL, NULL, NULL };
+    const gchar *argv[] = { SBINDIR "/" "netplan", "set", del, "--origin-hint" , filename, NULL, NULL, NULL };
     if (rootdir) {
         argv[5] = "--root-dir";
         argv[6] = rootdir;
@@ -246,7 +246,7 @@ gboolean
 netplan_generate(const char* rootdir)
 {
     /* TODO: refactor logic to actually be inside the library instead of spawning another process */
-    const gchar *argv[] = { "/sbin/netplan", "generate", NULL , NULL, NULL };
+    const gchar *argv[] = { SBINDIR "/" "netplan", "generate", NULL , NULL, NULL };
     if (rootdir) {
         argv[2] = "--root-dir";
         argv[3] = rootdir;
