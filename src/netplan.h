@@ -81,7 +81,6 @@ static const char* const netplan_def_type_to_str[NETPLAN_DEF_TYPE_MAX_] = {
     [NETPLAN_DEF_TYPE_ETHERNET] = "ethernets",
     [NETPLAN_DEF_TYPE_WIFI] = "wifis",
     [NETPLAN_DEF_TYPE_MODEM] = "modems",
-    [NETPLAN_DEF_TYPE_VIRTUAL] = NULL,
     [NETPLAN_DEF_TYPE_BRIDGE] = "bridges",
     [NETPLAN_DEF_TYPE_BOND] = "bonds",
     [NETPLAN_DEF_TYPE_VLAN] = "vlans",
