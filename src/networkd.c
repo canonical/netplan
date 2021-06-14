@@ -142,8 +142,8 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
         g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
     g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
-    if (def->tunnel.ttl)
-        g_string_append_printf(params, "TTL=%u\n", def->tunnel.ttl);
+    if (def->tunnel_ttl)
+        g_string_append_printf(params, "TTL=%u\n", def->tunnel_ttl);
     if (def->tunnel.input_key)
         g_string_append_printf(params, "InputKey=%s\n", def->tunnel.input_key);
     if (def->tunnel.output_key)
@@ -570,6 +570,16 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
             g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
             }
         }
+    }
+
+    /* The ActivationPolicy setting is available in systemd v248+ */
+    if (def->activation_mode) {
+        const char* mode;
+        if (g_strcmp0(def->activation_mode, "manual") == 0)
+            mode = "manual";
+        else /* "off" */
+            mode = "always-down";
+        g_string_append_printf(link, "ActivationPolicy=%s\n", mode);
     }
 
     if (def->mtubytes)

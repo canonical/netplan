@@ -409,8 +409,8 @@ write_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
     g_key_file_set_integer(kf, "ip-tunnel", "mode", def->tunnel.mode);
     g_key_file_set_string(kf, "ip-tunnel", "local", def->tunnel.local_ip);
     g_key_file_set_string(kf, "ip-tunnel", "remote", def->tunnel.remote_ip);
-    if (def->tunnel.ttl)
-        g_key_file_set_uint64(kf, "ip-tunnel", "ttl", def->tunnel.ttl);
+    if (def->tunnel_ttl)
+        g_key_file_set_uint64(kf, "ip-tunnel", "ttl", def->tunnel_ttl);
     if (def->tunnel.input_key)
         g_key_file_set_string(kf, "ip-tunnel", "input-key", def->tunnel.input_key);
     if (def->tunnel.output_key)
@@ -594,6 +594,17 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         maybe_generate_uuid(def);
         uuid_unparse(def->uuid, uuidstr);
         g_key_file_set_string(kf, "connection", "uuid", uuidstr);
+    }
+
+    if (def->activation_mode) {
+        /* XXX: For now NetworkManager only supports the "manual" activation
+         * mode */
+        if (!!g_strcmp0(def->activation_mode, "manual")) {
+            g_fprintf(stderr, "ERROR: %s: NetworkManager definitions do not support activation-mode %s\n", def->id, def->activation_mode);
+            exit(1);
+        }
+        /* "manual" */
+        g_key_file_set_boolean(kf, "connection", "autoconnect", FALSE);
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
