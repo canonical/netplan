@@ -549,6 +549,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     GString* link = NULL;
     GString* s = NULL;
     mode_t orig_umask;
+    gboolean is_optional = def->optional;
 
     if (def->type == NETPLAN_DEF_TYPE_VLAN && def->sriov_vlan_filter) {
         g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
@@ -561,17 +562,6 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     /* Prepare the [Network] section */
     network = g_string_sized_new(200);
 
-    if (def->optional || def->optional_addresses) {
-        if (def->optional) {
-            g_string_append(link, "RequiredForOnline=no\n");
-        }
-        for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
-            if (def->optional_addresses & NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag) {
-            g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
-            }
-        }
-    }
-
     /* The ActivationPolicy setting is available in systemd v248+ */
     if (def->activation_mode) {
         const char* mode;
@@ -580,6 +570,22 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         else /* "off" */
             mode = "always-down";
         g_string_append_printf(link, "ActivationPolicy=%s\n", mode);
+        /* When activation-mode is used we default to being optional.
+         * Otherwise systemd might wait indefinitely for the interface to
+         * become online.
+         */
+        is_optional = TRUE;
+    }
+
+    if (is_optional || def->optional_addresses) {
+        if (is_optional) {
+            g_string_append(link, "RequiredForOnline=no\n");
+        }
+        for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
+            if (def->optional_addresses & NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag) {
+            g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
+            }
+        }
     }
 
     if (def->mtubytes)
