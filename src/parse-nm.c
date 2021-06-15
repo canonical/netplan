@@ -17,6 +17,7 @@
 
 #include <glib.h>
 #include <yaml.h>
+#include <arpa/inet.h>
 
 #include "netplan.h"
 #include "parse-nm.h"
@@ -173,6 +174,99 @@ parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 }
 
 static gboolean
+parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
+{
+    g_assert(routes_arr);
+    NetplanIPRoute *cur_route = NULL;
+
+    gchar *key = NULL;
+    gchar *options_key = NULL;
+    gchar *kf_value = NULL;
+    gchar *options_kf_value = NULL;
+    gchar **split = NULL;
+    for (unsigned i = 1;; ++i) {
+        gboolean unhandled_data = FALSE;
+        key = g_strdup_printf("route%u", i);
+        options_key = g_strdup_printf("route%u_options", i);
+        kf_value = g_key_file_get_string(kf, group, key, NULL);
+        options_kf_value = g_key_file_get_string(kf, group, options_key, NULL);
+        if (!options_kf_value) {
+            g_free(options_key);
+        }
+        if (!kf_value) {
+            g_free(key);
+            break;
+        }
+        if (!*routes_arr)
+            *routes_arr = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
+
+        cur_route = g_new0(NetplanIPRoute, 1);
+        cur_route->type = g_strdup("unicast");
+        cur_route->scope = g_strdup("global");
+        cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
+        cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        g_debug("%s: adding new route (kf)", key);
+
+        if (g_strcmp0(group, "ipv4") == 0)
+            cur_route->family = AF_INET;
+        else if (g_strcmp0(group, "ipv6") == 0)
+            cur_route->family = AF_INET6;
+
+        split = g_strsplit(kf_value, ",", 3);
+        /* Append "to" (address/prefix) */
+        if (split[0])
+            cur_route->to = g_strdup(split[0]); //no need to free, will stay in netdef
+        /* Append gateway/via IP */
+        if (split[0] && split[1])
+            cur_route->via = g_strdup(split[1]); //no need to free, will stay in netdef
+        /* Append metric */
+        if (split[0] && split[1] && split[2] && strtoul(split[2], NULL, 10) != NETPLAN_METRIC_UNSPEC)
+            cur_route->metric = strtoul(split[2], NULL, 10);
+        g_strfreev(split);
+
+        /* Parse route options */
+        if (options_kf_value) {
+            g_debug("%s: adding new route_options (kf)", options_key);
+            split = g_strsplit(options_kf_value, ",", -1);
+            for (unsigned i = 0; split[i]; ++i) {
+                g_debug("processing route_option: %s", split[i]);
+                gchar **kv = g_strsplit(split[i], "=", 2);
+                if (g_strcmp0(kv[0], "onlink") == 0)
+                    cur_route->onlink = (gboolean)g_strcmp0(kv[1], "false");
+                else if (g_strcmp0(kv[0], "initrwnd") == 0)
+                    cur_route->advertised_receive_window = strtoul(kv[1], NULL, 10);
+                else if (g_strcmp0(kv[0], "initcwnd") == 0)
+                    cur_route->congestion_window = strtoul(kv[1], NULL, 10);
+                else if (g_strcmp0(kv[0], "mtu") == 0)
+                    cur_route->mtubytes = strtoul(kv[1], NULL, 10);
+                else if (g_strcmp0(kv[0], "table") == 0)
+                    cur_route->table = strtoul(kv[1], NULL, 10);
+                else if (g_strcmp0(kv[0], "src") == 0)
+                    cur_route->from = g_strdup(kv[1]); //no need to free, will stay in netdef
+                else
+                    unhandled_data = TRUE;
+
+                g_strfreev(kv);
+            }
+            g_strfreev(split);
+
+            if (!unhandled_data)
+                _kf_clear_key(kf, group, options_key);
+            g_free(options_key);
+            g_free(options_kf_value);
+        }
+
+        /* Add route to array, clear keyfile */
+        g_array_append_val(*routes_arr, cur_route);
+        if (!unhandled_data)
+            _kf_clear_key(kf, group, key);
+        g_free(key);
+        g_free(kf_value);
+    }
+    return TRUE;
+}
+
+static gboolean
 parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dataptr)
 {
     g_autoptr(GError) err = NULL;
@@ -324,6 +418,10 @@ netplan_parse_keyfile(const char* filename, GError** error)
     /* Default gateways */
     handle_generic_str(kf, "ipv4", "gateway", &nd->gateway4);
     handle_generic_str(kf, "ipv6", "gateway", &nd->gateway6);
+
+    /* Routes */
+    parse_routes(kf, "ipv4", &nd->routes);
+    parse_routes(kf, "ipv6", &nd->routes);
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan

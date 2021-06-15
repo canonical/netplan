@@ -223,6 +223,9 @@ method=manual
 address1=1.2.3.4/24,8.8.8.8
 address2=5.6.7.8/16
 gateway=6.6.6.6
+route1=1.1.2.2/16,8.8.8.8,42
+route1_options=onlink=true,initrwnd=33,initcwnd=44,mtu=1024,table=102,src=10.10.10.11
+route2=2.2.3.3/24,4.4.4.4
 
 [ipv6]
 addr-gen-mode=stable-privacy
@@ -230,6 +233,8 @@ dns-search=
 method=manual
 address1=1:2:3::9/128
 gateway=6:6::6
+route1=dead:beef::1/128,2001:1234::2
+route1_options=unknown=invalid,
 
 [proxy]
 ''')
@@ -246,6 +251,20 @@ gateway=6:6::6
       - "1:2:3::9/128"
       gateway4: 6.6.6.6
       gateway6: 6:6::6
+      routes:
+      - metric: 42
+        table: 102
+        mtu: 1024
+        congestion-window: 44
+        advertised-receive-window: 33
+        on-link: "true"
+        from: "10.10.10.11"
+        to: "1.1.2.2/16"
+        via: "8.8.8.8"
+      - to: "2.2.3.3/24"
+        via: "4.4.4.4"
+      - to: "dead:beef::1/128"
+        via: "2001:1234::2"
       wakeonlan: true
       networkmanager:
         uuid: "{}"
@@ -256,6 +275,8 @@ gateway=6:6::6
           ipv4.address1: "1.2.3.4/24,8.8.8.8"
           ipv6.addr-gen-mode: "stable-privacy"
           ipv6.dns-search: ""
+          ipv6.route1: "dead:beef::1/128,2001:1234::2"
+          ipv6.route1_options: "unknown=invalid,"
           proxy._: ""
 '''.format(uuid, uuid)})
 
