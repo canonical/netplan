@@ -285,6 +285,36 @@ parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dat
     return TRUE;
 }
 
+static gboolean
+parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
+{
+    g_assert(domains_arr);
+    g_autofree gchar *kf_value = NULL;
+    gchar **split = NULL;
+
+    kf_value = g_key_file_get_string(kf, group, "dns-search", NULL);
+    if (kf_value) {
+        if (strlen(kf_value) == 0) {
+            _kf_clear_key(kf, group, "dns-search");
+            return TRUE;
+        }
+
+        if (!*domains_arr)
+            *domains_arr = g_array_new(FALSE, FALSE, sizeof(char*));
+        split = g_strsplit(kf_value, ",", -1);
+
+        for(unsigned i = 0; split[i]; ++i) {
+            /* no need to free 's', this will stay in the netdef */
+            char* s = g_strdup(split[i]);
+            g_array_append_val(*domains_arr, s);
+        }
+        _kf_clear_key(kf, group, "dns-search");
+        g_strfreev(split);
+    }
+
+    return TRUE;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GData** list)
@@ -422,6 +452,10 @@ netplan_parse_keyfile(const char* filename, GError** error)
     /* Routes */
     parse_routes(kf, "ipv4", &nd->routes);
     parse_routes(kf, "ipv6", &nd->routes);
+
+    /* DNS */
+    parse_search_domains(kf, "ipv4", &nd->search_domains);
+    parse_search_domains(kf, "ipv6", &nd->search_domains);
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan

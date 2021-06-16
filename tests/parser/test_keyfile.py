@@ -92,9 +92,7 @@ method=auto
           gsm.home-only: "true"
           gsm.password: "parliament2"
           gsm.username: "george.clinton.again"
-          ipv4.dns-search: ""
           ipv6.addr-gen-mode: "stable-privacy"
-          ipv6.dns-search: ""
 '''.format(uuid, uuid)})
 
     def test_serialize_gsm_via_bluetooth(self):
@@ -201,9 +199,7 @@ route-metric=4242
         uuid: "{}"
         name: "Test"
         passthrough:
-          ipv4.dns-search: ""
           ipv6.addr-gen-mode: "stable-privacy"
-          ipv6.dns-search: ""
           proxy._: ""
 '''.format(uuid, uuid)})
 
@@ -218,7 +214,7 @@ type=ethernet
 mac-address=00:11:22:33:44:55
 
 [ipv4]
-dns-search=
+dns-search=foo.local
 method=manual
 address1=1.2.3.4/24,8.8.8.8
 address2=5.6.7.8/16
@@ -229,7 +225,7 @@ route2=2.2.3.3/24,4.4.4.4
 
 [ipv6]
 addr-gen-mode=stable-privacy
-dns-search=
+dns-search=bar.local
 method=manual
 address1=1:2:3::9/128
 gateway=6:6::6
@@ -249,6 +245,10 @@ route1_options=unknown=invalid,
       - "1.2.3.4/24"
       - "5.6.7.8/16"
       - "1:2:3::9/128"
+      nameservers:
+        search:
+        - foo.local
+        - bar.local
       gateway4: 6.6.6.6
       gateway6: 6:6::6
       routes:
@@ -270,11 +270,9 @@ route1_options=unknown=invalid,
         uuid: "{}"
         name: "Test"
         passthrough:
-          ipv4.dns-search: ""
           ipv4.method: "manual"
           ipv4.address1: "1.2.3.4/24,8.8.8.8"
           ipv6.addr-gen-mode: "stable-privacy"
-          ipv6.dns-search: ""
           ipv6.route1: "dead:beef::1/128,2001:1234::2"
           ipv6.route1_options: "unknown=invalid,"
           proxy._: ""
@@ -368,7 +366,6 @@ dns-search='''.format(uuid))
             name: "myid with spaces"
             passthrough:
               connection.permissions: ""
-              ipv4.dns-search: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -576,10 +573,8 @@ psk=test1234
               connection.autoconnect: "false"
               connection.permissions: ""
               ipv4.method: "shared"
-              ipv4.dns-search: ""
               ipv6.method: "ignore"
               ipv6.addr-gen-mode: "stable-privacy"
-              ipv6.dns-search: ""
               wifi.mac-address-blacklist: ""
               wifi-security.group: "ccmp;"
               wifi-security.key-mgmt: "wpa-psk"
