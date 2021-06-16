@@ -396,6 +396,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
     g_autofree gchar* wifi_mode = NULL;
     g_autofree gchar* ssid = NULL;
     g_autofree gchar* netdef_id = NULL;
+    GError *tmp_err = NULL;
+    gchar *tmp_str = NULL;
     NetplanNetDefinition* nd = NULL;
     NetplanWifiAccessPoint* ap = NULL;
     g_autoptr(GKeyFile) kf = g_key_file_new();
@@ -485,6 +487,26 @@ netplan_parse_keyfile(const char* filename, GError** error)
     parse_search_domains(kf, "ipv6", &nd->search_domains);
     parse_nameservers(kf, "ipv4", &nd->ip4_nameservers);
     parse_nameservers(kf, "ipv6", &nd->ip6_nameservers);
+
+    /* IP6 addr-gen */
+    gint addr_gen_mode = g_key_file_get_integer(kf, "ipv6", "addr-gen-mode", &tmp_err);
+    if (!tmp_err) {
+        if (addr_gen_mode == 0) {
+            nd->ip6_addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
+            _kf_clear_key(kf, "ipv6", "addr-gen-mode");
+        } else if (addr_gen_mode == 1) {
+            nd->ip6_addr_gen_mode = NETPLAN_ADDRGEN_STABLEPRIVACY;
+            _kf_clear_key(kf, "ipv6", "addr-gen-mode");
+        }
+    } else
+        g_error_free(tmp_err);
+
+    tmp_str = g_key_file_get_string(kf, "ipv6", "token", NULL);
+    if (tmp_str) {
+        nd->ip6_addr_gen_token = g_strdup(tmp_str);
+        _kf_clear_key(kf, "ipv6", "token");
+    }
+    tmp_str = NULL;
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan

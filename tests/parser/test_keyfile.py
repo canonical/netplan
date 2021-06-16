@@ -67,7 +67,6 @@ dns-search=
 method=auto
 
 [ipv6]
-addr-gen-mode=stable-privacy
 dns-search=
 method=auto
 ''')
@@ -92,7 +91,6 @@ method=auto
           gsm.home-only: "true"
           gsm.password: "parliament2"
           gsm.username: "george.clinton.again"
-          ipv6.addr-gen-mode: "stable-privacy"
 '''.format(uuid, uuid)})
 
     def test_serialize_gsm_via_bluetooth(self):
@@ -118,7 +116,6 @@ dns-search=
 method=auto
 
 [ipv6]
-addr-gen-mode=stable-privacy
 dns-search=
 method=auto
 
@@ -144,7 +141,6 @@ method=auto
           gsm.username: "george.clinton.again"
           ipv4.dns-search: ""
           ipv4.method: "auto"
-          ipv6.addr-gen-mode: "stable-privacy"
           ipv6.dns-search: ""
           ipv6.method: "auto"
           proxy._: ""
@@ -170,7 +166,8 @@ never-default=true
 route-metric=4242
 
 [ipv6]
-addr-gen-mode=stable-privacy
+addr-gen-mode=0
+token=1234::3
 dns-search=
 method=auto
 ignore-auto-routes=true
@@ -194,12 +191,13 @@ route-metric=4242
         use-routes: false
         route-metric: 4242
       macaddress: "00:11:22:33:44:55"
+      ipv6-address-generation: "eui64"
+      ipv6-address-token: "1234::3"
       mtu: 1500
       networkmanager:
         uuid: "{}"
         name: "Test"
         passthrough:
-          ipv6.addr-gen-mode: "stable-privacy"
           proxy._: ""
 '''.format(uuid, uuid)})
 
@@ -225,7 +223,7 @@ route1_options=onlink=true,initrwnd=33,initcwnd=44,mtu=1024,table=102,src=10.10.
 route2=2.2.3.3/24,4.4.4.4
 
 [ipv6]
-addr-gen-mode=stable-privacy
+addr-gen-mode=1
 dns-search=bar.local
 dns=dead:beef::2,
 method=manual
@@ -257,6 +255,7 @@ route1_options=unknown=invalid,
         - bar.local
       gateway4: 6.6.6.6
       gateway6: 6:6::6
+      ipv6-address-generation: "stable-privacy"
       routes:
       - metric: 42
         table: 102
@@ -278,7 +277,6 @@ route1_options=unknown=invalid,
         passthrough:
           ipv4.method: "manual"
           ipv4.address1: "1.2.3.4/24,8.8.8.8"
-          ipv6.addr-gen-mode: "stable-privacy"
           ipv6.route1: "dead:beef::1/128,2001:1234::2"
           ipv6.route1_options: "unknown=invalid,"
           proxy._: ""
