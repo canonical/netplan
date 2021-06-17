@@ -742,3 +742,110 @@ method=ignore
         uuid: "{}"
         name: "netplan-eth1"
 '''.format(uuid)})
+
+    def test_keyfile_vlan(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+id=netplan-enblue
+type=vlan
+interface-name=enblue
+uuid={}
+
+[vlan]
+id=1
+parent=en1
+
+[ipv4]
+method=manual
+address1=1.2.3.4/24
+
+[ipv6]
+method=ignore
+'''.format(uuid), netdef_id='enblue', expect_fail=False, filename="some.keyfile")
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  vlans:
+    enblue:
+      renderer: NetworkManager
+      addresses:
+      - "1.2.3.4/24"
+      id: 1
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-enblue"
+        passthrough:
+          vlan.parent: "en1"
+'''.format(uuid)})
+
+    def test_keyfile_bridge(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+uuid={}
+
+[bridge]
+ageing-time=50
+priority=1000
+forward-delay=12
+hello-time=6
+max-age=24
+stp=false
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''.format(uuid), netdef_id='br0', expect_fail=False, filename="netplan-br0.nmconnection")
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  bridges:
+    br0:
+      renderer: NetworkManager
+      dhcp4: true
+      parameters:
+        ageing-time: "50"
+        forward-delay: "12"
+        hello-time: "6"
+        max-age: "24"
+        priority: 1000
+        stp: false
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-br0"
+'''.format(uuid)})
+
+    def test_keyfile_bridge_default_stp(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+uuid={}
+
+[bridge]
+hello-time=6
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''.format(uuid), netdef_id='br0')
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  bridges:
+    br0:
+      renderer: NetworkManager
+      dhcp4: true
+      parameters:
+        hello-time: "6"
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-br0"
+'''.format(uuid)})

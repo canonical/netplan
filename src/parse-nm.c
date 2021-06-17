@@ -457,12 +457,19 @@ netplan_parse_keyfile(const char* filename, GError** error)
     }
     nd_type = type_from_str(type);
 
+    tmp_str = g_key_file_get_string(kf, "connection", "interface-name", NULL);
     /* Use previously existing netdef IDs, if available, to override connections
      * Else: generate a "NM-<UUID>" ID */
-    if (netdef_id)
+    if (netdef_id) {
         nd_id = g_strdup(netdef_id);
-    else
+        if (g_strcmp0(netdef_id, tmp_str) == 0)
+            _kf_clear_key(kf, "connection", "interface-name");
+    } else if (tmp_str && nd_type >= NETPLAN_DEF_TYPE_VIRTUAL && nd_type < NETPLAN_DEF_TYPE_NM) {
+        nd_id = g_strdup(tmp_str);
+        _kf_clear_key(kf, "connection", "interface-name");
+    } else
         nd_id = g_strconcat("NM-", uuid, NULL);
+    g_free(tmp_str);
     nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
 
     /* Handle uuid & NM name/id */
@@ -609,6 +616,40 @@ netplan_parse_keyfile(const char* filename, GError** error)
             nd->ip4_nameservers))
         _kf_clear_key(kf, "ipv4", "method");
     g_free(tmp_str);
+
+    /* Vlan: XXX: find a way to parse the "link:" (parent) connection */
+    handle_generic_uint(kf, "vlan", "id", &nd->vlan_id, G_MAXUINT);
+
+    /* Bridge: XXX: find a way to parse the bridge-port.priority & bridge-port.path-cost values */
+    handle_generic_uint(kf, "bridge", "priority", &nd->bridge_params.priority, 0);
+    if (g_key_file_get_uint64(kf, "bridge", "ageing-time", NULL)) {
+        nd->custom_bridging = TRUE;
+        nd->bridge_params.ageing_time = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "ageing-time", NULL));
+        _kf_clear_key(kf, "bridge", "ageing-time");
+    }
+    if (g_key_file_get_uint64(kf, "bridge", "hello-time", NULL)) {
+        nd->custom_bridging = TRUE;
+        nd->bridge_params.hello_time = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "hello-time", NULL));
+        _kf_clear_key(kf, "bridge", "hello-time");
+    }
+    if (g_key_file_get_uint64(kf, "bridge", "forward-delay", NULL)) {
+        nd->custom_bridging = TRUE;
+        nd->bridge_params.forward_delay = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "forward-delay", NULL));
+        _kf_clear_key(kf, "bridge", "forward-delay");
+    }
+    if (g_key_file_get_uint64(kf, "bridge", "max-age", NULL)) {
+        nd->custom_bridging = TRUE;
+        nd->bridge_params.max_age = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "max-age", NULL));
+        _kf_clear_key(kf, "bridge", "max-age");
+    }
+    /* STP needs to be handled last, for its different default value in custom_bridging */
+    if (g_key_file_has_key(kf, "bridge", "stp", NULL)) {
+        nd->custom_bridging = TRUE;
+        nd->bridge_params.stp = g_key_file_get_boolean(kf, "bridge", "stp", NULL);
+        _kf_clear_key(kf, "bridge", "stp");
+    } else if(nd->custom_bridging) {
+        nd->bridge_params.stp = TRUE; //set default value if not specified otherwise
+    }
 
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {

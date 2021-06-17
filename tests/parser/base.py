@@ -72,7 +72,7 @@ class TestBase(unittest.TestCase):
         shutil.rmtree(self.workdir.name)
         super().tearDown()
 
-    def generate(self, keyfile, netdef_id=None, expect_fail=False):
+    def generate(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
         '''Call libnetplan with given keyfile string as configuration'''
         # Autodetect default 'NM-<UUID>' netdef-id
         if not netdef_id:
@@ -80,7 +80,9 @@ class TestBase(unittest.TestCase):
                 if line.startswith('uuid='):
                     netdef_id = 'NM-' + line.split('=')[1]
                     break
-        f = os.path.join(self.workdir.name, 'run/NetworkManager/system-connections/netplan-{}.nmconnection'.format(netdef_id))
+        if not filename:
+            filename = 'netplan-{}.nmconnection'.format(netdef_id)
+        f = os.path.join(self.workdir.name, 'run/NetworkManager/system-connections/{}'.format(filename))
         os.makedirs(os.path.dirname(f))
         with open(f, 'w') as file:
             file.write(keyfile)
