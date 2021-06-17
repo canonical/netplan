@@ -352,6 +352,9 @@ band=a
 channel=12
 bssid=de:ad:be:ef:ca:fe
 
+[wifi-security]
+key-mgmt=ieee8021x
+
 [ipv4]
 method=auto
 dns-search='''.format(uuid))
@@ -371,6 +374,8 @@ dns-search='''.format(uuid))
           bssid: "de:ad:be:ef:ca:fe"
           band: "5GHz"
           channel: 12
+          auth:
+            key-management: "802.1x"
           networkmanager:
             uuid: "{}"
             name: "myid with spaces"
@@ -380,6 +385,76 @@ dns-search='''.format(uuid))
         uuid: "{}"
         name: "myid with spaces"
 '''.format(uuid, uuid, uuid)})
+
+    def _template_serialize_keyfile_type_wifi_eap(self, method):
+        uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        self.generate('''[connection]
+type=wifi
+uuid={}
+permissions=
+id=testnet
+interface-name=wlan0
+
+[wifi]
+ssid=testnet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-eap
+
+[802-1x]
+eap={}
+identity=some-id
+anonymous-identity=anon-id
+password=v3rys3cr3t!
+ca-cert=/some/path.key
+client-cert=/some/path.client_cert
+private-key=/some/path.key
+private-key-password=s0s3cr3t!!111
+phase2-auth=chap
+
+[ipv4]
+method=auto
+dns-search='''.format(uuid, method))
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlan0"
+      dhcp4: true
+      access-points:
+        "testnet":
+          auth:
+            key-management: "eap"
+            method: "{}"
+            anonymous-identity: "anon-id"
+            identity: "some-id"
+            ca-certificate: "/some/path.key"
+            client-certificate: "/some/path.client_cert"
+            client-key: "/some/path.key"
+            client-key-password: "s0s3cr3t!!111"
+            phase2-auth: "chap"
+            password: "v3rys3cr3t!"
+          networkmanager:
+            uuid: "{}"
+            name: "testnet"
+            passthrough:
+              connection.permissions: ""
+      networkmanager:
+        uuid: "{}"
+        name: "testnet"
+'''.format(uuid, method, uuid, uuid)})
+
+    def test_serialize_keyfile_type_wifi_eap_peap(self):
+        self._template_serialize_keyfile_type_wifi_eap('peap')
+
+    def test_serialize_keyfile_type_wifi_eap_tls(self):
+        self._template_serialize_keyfile_type_wifi_eap('tls')
+
+    def test_serialize_keyfile_type_wifi_eap_ttls(self):
+        self._template_serialize_keyfile_type_wifi_eap('ttls')
 
     def _template_serialize_keyfile_type_wifi(self, nd_mode, nm_mode):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
@@ -577,6 +652,9 @@ psk=test1234
         name: "wlan0"
       access-points:
         "my-hotspot":
+          auth:
+            key-management: "psk"
+            password: "test1234"
           mode: "ap"
           networkmanager:
             uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
@@ -589,10 +667,8 @@ psk=test1234
               ipv6.addr-gen-mode: "stable-privacy"
               wifi.mac-address-blacklist: ""
               wifi-security.group: "ccmp;"
-              wifi-security.key-mgmt: "wpa-psk"
               wifi-security.pairwise: "ccmp;"
               wifi-security.proto: "rsn;"
-              wifi-security.psk: "test1234"
               proxy._: ""
       networkmanager:
         uuid: "{}"

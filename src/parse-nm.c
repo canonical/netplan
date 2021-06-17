@@ -342,6 +342,38 @@ parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
     return TRUE;
 }
 
+static gboolean
+parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
+{
+    g_assert(auth);
+    gchar* tmp_str = NULL;
+
+    tmp_str = g_key_file_get_string(kf, "802-1x", "eap", NULL);
+    if (tmp_str && g_strcmp0(tmp_str, "tls") == 0) {
+        auth->eap_method = NETPLAN_AUTH_EAP_TLS;
+        _kf_clear_key(kf, "802-1x", "eap");
+    } else if (tmp_str && g_strcmp0(tmp_str, "peap") == 0) {
+        auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
+        _kf_clear_key(kf, "802-1x", "eap");
+    } else if (tmp_str && g_strcmp0(tmp_str, "ttls") == 0) {
+        auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
+        _kf_clear_key(kf, "802-1x", "eap");
+    }
+    g_free(tmp_str);
+
+    handle_generic_str(kf, "802-1x", "identity", &auth->identity);
+    handle_generic_str(kf, "802-1x", "anonymous-identity", &auth->anonymous_identity);
+    if (!auth->password)
+        handle_generic_str(kf, "802-1x", "password", &auth->password);
+    handle_generic_str(kf, "802-1x", "ca-cert", &auth->ca_certificate);
+    handle_generic_str(kf, "802-1x", "client-cert", &auth->client_certificate);
+    handle_generic_str(kf, "802-1x", "private-key", &auth->client_key);
+    handle_generic_str(kf, "802-1x", "private-key-password", &auth->client_key_password);
+    handle_generic_str(kf, "802-1x", "phase2-auth", &auth->phase2_auth);
+
+    return TRUE;
+}
+
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 static void
 read_passthrough(GKeyFile* kf, GData** list)
@@ -582,11 +614,40 @@ netplan_parse_keyfile(const char* filename, GError** error)
             ap->band = NETPLAN_WIFI_BAND_24;
             _kf_clear_key(kf, "wifi", "band");
         }
-        tmp_str = NULL;
+        g_free(tmp_str);
         if (g_key_file_get_uint64(kf, "wifi", "channel", NULL)) {
             ap->channel = g_key_file_get_uint64(kf, "wifi", "channel", NULL);
             _kf_clear_key(kf, "wifi", "channel");
         }
+
+        /* Wifi security */
+        tmp_str = g_key_file_get_string(kf, "wifi-security", "key-mgmt", NULL);
+        if (tmp_str && g_strcmp0(tmp_str, "wpa-psk") == 0) {
+            ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+            ap->has_auth = TRUE;
+            _kf_clear_key(kf, "wifi-security", "key-mgmt");
+        } else if (tmp_str && g_strcmp0(tmp_str, "wpa-eap") == 0) {
+            ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
+            ap->has_auth = TRUE;
+            _kf_clear_key(kf, "wifi-security", "key-mgmt");
+        } else if (tmp_str && g_strcmp0(tmp_str, "ieee8021x") == 0) {
+            ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
+            ap->has_auth = TRUE;
+            _kf_clear_key(kf, "wifi-security", "key-mgmt");
+        }
+        g_free(tmp_str);
+
+        tmp_str = g_key_file_get_string(kf, "wifi-security", "psk", NULL);
+        if (tmp_str) {
+            ap->auth.password = g_strdup(tmp_str);
+            ap->has_auth = TRUE;
+            _kf_clear_key(kf, "wifi-security", "psk");
+        }
+        g_free(tmp_str);
+
+        parse_dot1x_auth(kf, &ap->auth);
+        if (ap->auth.eap_method != NETPLAN_AUTH_EAP_NONE)
+            ap->has_auth = TRUE;
 
         if (!nd->access_points)
             nd->access_points = g_hash_table_new(g_str_hash, g_str_equal);
