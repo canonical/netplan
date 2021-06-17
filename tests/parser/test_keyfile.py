@@ -250,7 +250,7 @@ mac-address=00:11:22:33:44:55
 
 [ipv4]
 dns-search=foo.local
-dns=9.8.7.6,5.4.3.2
+dns=9.8.7.6;5.4.3.2
 method=manual
 address1=1.2.3.4/24,8.8.8.8
 address2=5.6.7.8/16
@@ -262,7 +262,7 @@ route2=2.2.3.3/24,4.4.4.4
 [ipv6]
 addr-gen-mode=1
 dns-search=bar.local
-dns=dead:beef::2,
+dns=dead:beef::2;
 method=manual
 address1=1:2:3::9/128
 gateway=6:6::6

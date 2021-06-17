@@ -319,26 +319,19 @@ static gboolean
 parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
 {
     g_assert(nameserver_arr);
-    g_autofree gchar *kf_value = NULL;
-    gchar **split = NULL;
-
-    kf_value = g_key_file_get_string(kf, group, "dns", NULL);
-    if (kf_value) {
+    gchar **split = g_key_file_get_string_list(kf, group, "dns", NULL, NULL);
+    if (split) {
         if (!*nameserver_arr)
             *nameserver_arr = g_array_new(FALSE, FALSE, sizeof(char*));
-        split = g_strsplit(kf_value, ",", -1);
-
         for(unsigned i = 0; split[i]; ++i) {
             if (strlen(split[i]) > 0) {
-                /* no need to free 's', this will stay in the netdef */
-                char* s = g_strdup(split[i]);
+                gchar* s = g_strdup(split[i]); //no need to free, will stay in netdef
                 g_array_append_val(*nameserver_arr, s);
             }
         }
         _kf_clear_key(kf, group, "dns");
         g_strfreev(split);
     }
-
     return TRUE;
 }
 
