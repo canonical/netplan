@@ -48,7 +48,7 @@ class TestNetworkManagerBackend(TestBase):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
         self.generate('''[connection]
 id=T-Mobile Funkadelic 2
-uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
+uuid={}
 type=gsm
 
 [gsm]
@@ -61,6 +61,7 @@ pin=123456
 sim-id=89148000000060671234
 sim-operator-id=310260
 username=george.clinton.again
+mtu=1042
 
 [ipv4]
 dns-search=
@@ -69,7 +70,7 @@ method=auto
 [ipv6]
 dns-search=
 method=auto
-''')
+'''.format(uuid))
         self.assert_netplan({uuid: '''network:
   version: 2
   modems:
@@ -78,19 +79,55 @@ method=auto
       match: {{}}
       dhcp4: true
       dhcp6: true
+      mtu: 1042
       apn: "internet2.voicestream.com"
       device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
       network-id: "254098"
       pin: "123456"
       sim-id: "89148000000060671234"
       sim-operator-id: "310260"
+      username: "george.clinton.again"
+      password: "parliament2"
       networkmanager:
         uuid: "{}"
         name: "T-Mobile Funkadelic 2"
         passthrough:
           gsm.home-only: "true"
-          gsm.password: "parliament2"
-          gsm.username: "george.clinton.again"
+'''.format(uuid, uuid)})
+
+    def test_serialize_cdma(self):
+        uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
+        self.generate('''[connection]
+id=T-Mobile Funkadelic 2
+uuid={}
+type=cdma
+
+[cdma]
+number=0123456
+username=testuser
+password=testpass
+mtu=1042
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''.format(uuid))
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  modems:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      dhcp4: true
+      mtu: 1042
+      username: "testuser"
+      password: "testpass"
+      number: "0123456"
+      networkmanager:
+        uuid: "{}"
+        name: "T-Mobile Funkadelic 2"
 '''.format(uuid, uuid)})
 
     def test_serialize_gsm_via_bluetooth(self):

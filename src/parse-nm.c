@@ -554,6 +554,19 @@ netplan_parse_keyfile(const char* filename, GError** error)
     handle_generic_str(kf, "gsm", "sim-id", &nd->modem_params.sim_id);
     handle_generic_str(kf, "gsm", "sim-operator-id", &nd->modem_params.sim_operator_id);
 
+    /* GSM & CDMA */
+    handle_generic_uint(kf, "cdma", "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    handle_generic_uint(kf, "gsm", "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    handle_generic_str(kf, "gsm", "number", &nd->modem_params.number);
+    if (!nd->modem_params.number)
+        handle_generic_str(kf, "cdma", "number", &nd->modem_params.number);
+    handle_generic_str(kf, "gsm", "password", &nd->modem_params.password);
+    if (!nd->modem_params.password)
+        handle_generic_str(kf, "cdma", "password", &nd->modem_params.password);
+    handle_generic_str(kf, "gsm", "username", &nd->modem_params.username);
+    if (!nd->modem_params.username)
+        handle_generic_str(kf, "cdma", "username", &nd->modem_params.username);
+
     /* Ethernets */
     if (g_key_file_has_group(kf, "ethernet")) {
         /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
