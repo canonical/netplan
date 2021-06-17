@@ -662,8 +662,6 @@ psk=test1234
             passthrough:
               connection.autoconnect: "false"
               connection.permissions: ""
-              ipv4.method: "shared"
-              ipv6.method: "ignore"
               ipv6.addr-gen-mode: "stable-privacy"
               wifi.mac-address-blacklist: ""
               wifi-security.group: "ccmp;"
@@ -680,3 +678,30 @@ psk=test1234
         #os.remove(FILE_YAML)
         #self.generate(CONTENT_YAML)
         #self.assert_nm({'NM-ff9d6ebc-226d-4f82-a485-b7ff83b9607f-my-hotspot': CONTENT_KF})
+
+    def test_keyfile_ip4_linklocal_ip6_ignore(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+id=netplan-eth1
+type=ethernet
+interface-name=eth1
+uuid={}
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''.format(uuid))
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  ethernets:
+    NM-ff9d6ebc-226d-4f82-a485-b7ff83b9607f:
+      renderer: NetworkManager
+      match:
+        name: "eth1"
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-eth1"
+'''.format(uuid)})

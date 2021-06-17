@@ -582,6 +582,21 @@ netplan_parse_keyfile(const char* filename, GError** error)
         handle_common(kf, nd, "wifi");
     }
 
+    /* Cleanup some implicit keys */
+    tmp_str = g_key_file_get_string(kf, "ipv6", "method", NULL);
+    if (tmp_str && g_strcmp0(tmp_str, "ignore") == 0 &&
+        !(nd->dhcp6 || nd->ip6_addresses || nd->gateway6 ||
+            nd->ip6_nameservers || nd->ip6_addr_gen_mode))
+        _kf_clear_key(kf, "ipv6", "method");
+    g_free(tmp_str);
+
+    tmp_str = g_key_file_get_string(kf, "ipv4", "method", NULL);
+    if (tmp_str && g_strcmp0(tmp_str, "link-local") == 0 &&
+        !(nd->dhcp4 || nd->ip4_addresses || nd->gateway4 ||
+            nd->ip4_nameservers))
+        _kf_clear_key(kf, "ipv4", "method");
+    g_free(tmp_str);
+
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {
         ap = g_new0(NetplanWifiAccessPoint, 1);
@@ -598,6 +613,13 @@ netplan_parse_keyfile(const char* filename, GError** error)
             if (ap->mode != NETPLAN_WIFI_MODE_OTHER)
                 _kf_clear_key(kf, "wifi", "mode");
         }
+
+        tmp_str = g_key_file_get_string(kf, "ipv4", "method", NULL);
+        if (tmp_str && g_strcmp0(tmp_str, "shared") == 0) {
+            ap->mode = NETPLAN_WIFI_MODE_AP;
+            _kf_clear_key(kf, "ipv4", "method");
+        }
+        g_free(tmp_str);
 
         ap->hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL);
         _kf_clear_key(kf, "wifi", "hidden");
