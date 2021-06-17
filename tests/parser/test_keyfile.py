@@ -348,6 +348,9 @@ mode=infrastructure
 hidden=true
 mtu=1500
 cloned-mac-address=00:11:22:33:44:55
+band=a
+channel=12
+bssid=de:ad:be:ef:ca:fe
 
 [ipv4]
 method=auto
@@ -365,6 +368,9 @@ dns-search='''.format(uuid))
       access-points:
         "SOME-SSID":
           hidden: true
+          bssid: "de:ad:be:ef:ca:fe"
+          band: "5GHz"
+          channel: 12
           networkmanager:
             uuid: "{}"
             name: "myid with spaces"
@@ -388,6 +394,7 @@ method=auto
 [wifi]
 ssid=SOME-SSID
 wake-on-wlan=24
+band=bg
 mode={}'''.format(uuid, nm_mode))
         wifi_mode = ''
         ap_mode = ''
@@ -406,7 +413,8 @@ mode={}'''.format(uuid, nm_mode))
       - magic_pkt
       - gtk_rekey_failure
       access-points:
-        "SOME-SSID":{}
+        "SOME-SSID":
+          band: "2.4GHz"{}
           networkmanager:
             uuid: "{}"
             name: "myid with spaces"{}

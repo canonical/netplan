@@ -570,6 +570,24 @@ netplan_parse_keyfile(const char* filename, GError** error)
         ap->hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL);
         _kf_clear_key(kf, "wifi", "hidden");
 
+        ap->bssid = g_key_file_get_string(kf, "wifi", "bssid", NULL);
+        _kf_clear_key(kf, "wifi", "bssid");
+
+        /* Wifi band & channel */
+        tmp_str = g_key_file_get_string(kf, "wifi", "band", NULL);
+        if (tmp_str && g_strcmp0(tmp_str, "a") == 0) {
+            ap->band = NETPLAN_WIFI_BAND_5;
+            _kf_clear_key(kf, "wifi", "band");
+        } else if (tmp_str && g_strcmp0(tmp_str, "bg") == 0) {
+            ap->band = NETPLAN_WIFI_BAND_24;
+            _kf_clear_key(kf, "wifi", "band");
+        }
+        tmp_str = NULL;
+        if (g_key_file_get_uint64(kf, "wifi", "channel", NULL)) {
+            ap->channel = g_key_file_get_uint64(kf, "wifi", "channel", NULL);
+            _kf_clear_key(kf, "wifi", "channel");
+        }
+
         if (!nd->access_points)
             nd->access_points = g_hash_table_new(g_str_hash, g_str_equal);
         g_hash_table_insert(nd->access_points, ap->ssid, ap);
