@@ -651,6 +651,43 @@ netplan_parse_keyfile(const char* filename, GError** error)
         nd->bridge_params.stp = TRUE; //set default value if not specified otherwise
     }
 
+    /* Bonds */
+    handle_generic_str(kf, "bond", "mode", &nd->bond_params.mode);
+    handle_generic_str(kf, "bond", "lacp_rate", &nd->bond_params.lacp_rate);
+    handle_generic_str(kf, "bond", "miimon", &nd->bond_params.monitor_interval);
+    handle_generic_str(kf, "bond", "xmit_hash_policy", &nd->bond_params.transmit_hash_policy);
+    handle_generic_str(kf, "bond", "ad_select", &nd->bond_params.selection_logic);
+    handle_generic_str(kf, "bond", "arp_interval", &nd->bond_params.arp_interval);
+    handle_generic_str(kf, "bond", "arp_validate", &nd->bond_params.arp_validate);
+    handle_generic_str(kf, "bond", "arp_all_targets", &nd->bond_params.arp_all_targets);
+    handle_generic_str(kf, "bond", "updelay", &nd->bond_params.up_delay);
+    handle_generic_str(kf, "bond", "downdelay", &nd->bond_params.down_delay);
+    handle_generic_str(kf, "bond", "fail_over_mac", &nd->bond_params.fail_over_mac_policy);
+    handle_generic_str(kf, "bond", "primary_reselect", &nd->bond_params.primary_reselect_policy);
+    handle_generic_str(kf, "bond", "lp_interval", &nd->bond_params.learn_interval);
+    handle_generic_str(kf, "bond", "primary", &nd->bond_params.primary_slave);
+    handle_generic_uint(kf, "bond", "min_links", &nd->bond_params.min_links, 0);
+    handle_generic_uint(kf, "bond", "resend_igmp", &nd->bond_params.resend_igmp, 0);
+    handle_generic_uint(kf, "bond", "packets_per_slave", &nd->bond_params.packets_per_slave, 0);
+    handle_generic_uint(kf, "bond", "num_grat_arp", &nd->bond_params.gratuitous_arp, 0);
+    if (g_key_file_get_uint64(kf, "bond", "num_unsol_na", NULL) == nd->bond_params.gratuitous_arp)
+        _kf_clear_key(kf, "bond", "num_unsol_na");
+    nd->bond_params.all_slaves_active = g_key_file_get_boolean(kf, "bond", "all_slaves_active", NULL);
+    _kf_clear_key(kf, "bond", "all_slaves_active");
+    tmp_str = g_key_file_get_string(kf, "bond", "arp_ip_target", NULL);
+    if (tmp_str) {
+        gchar** split = g_strsplit(tmp_str, ",", -1);
+        for (unsigned i = 0; split[i]; ++i) {
+            if (!nd->bond_params.arp_ip_targets)
+                nd->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char *));
+            char *s = g_strdup(split[i]);
+            g_array_append_val(nd->bond_params.arp_ip_targets, s);
+        }
+        g_strfreev(split);
+    }
+    _kf_clear_key(kf, "bond", "arp_ip_target");
+    g_free(tmp_str);
+
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {
         ap = g_new0(NetplanWifiAccessPoint, 1);

@@ -849,3 +849,74 @@ method=ignore
         uuid: "{}"
         name: "netplan-br0"
 '''.format(uuid)})
+
+
+    def test_keyfile_bond(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+uuid={}
+id=netplan-bn0
+type=bond
+interface-name=bn0
+
+[bond]
+mode=802.3ad
+lacp_rate=10
+miimon=10
+min_links=10
+xmit_hash_policy=none
+ad_select=none
+all_slaves_active=1
+arp_interval=10
+arp_ip_target=10.10.10.10,20.20.20.20
+arp_validate=all
+arp_all_targets=all
+updelay=10
+downdelay=10
+fail_over_mac=none
+num_grat_arp=10
+num_unsol_na=10
+packets_per_slave=10
+primary_reselect=none
+resend_igmp=10
+lp_interval=10
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''.format(uuid), netdef_id='bn0')
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  bonds:
+    bn0:
+      renderer: NetworkManager
+      dhcp4: true
+      parameters:
+        mode: "802.3ad"
+        mii-monitor-interval: "10"
+        up-delay: "10"
+        down-delay: "10"
+        lacp-rate: "10"
+        transmit-hash-policy: "none"
+        ad-select: "none"
+        arp-validate: "all"
+        arp-all-targets: "all"
+        fail-over-mac-policy: "none"
+        primary-reselect-policy: "none"
+        learn-packet-interval: "10"
+        arp-interval: "10"
+        min-links: 10
+        all-slaves-active: true
+        gratuitous-arp: 10
+        packets-per-slave: 10
+        resend-igmp: 10
+        arp-ip-targets:
+        - 10.10.10.10
+        - 20.20.20.20
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-bn0"
+'''.format(uuid)})
