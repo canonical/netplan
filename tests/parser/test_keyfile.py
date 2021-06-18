@@ -203,7 +203,7 @@ never-default=true
 route-metric=4242
 
 [ipv6]
-addr-gen-mode=0
+addr-gen-mode=eui64
 token=1234::3
 dns-search=
 method=auto
@@ -260,7 +260,7 @@ route1_options=onlink=true,initrwnd=33,initcwnd=44,mtu=1024,table=102,src=10.10.
 route2=2.2.3.3/24,4.4.4.4
 
 [ipv6]
-addr-gen-mode=1
+addr-gen-mode=stable-privacy
 dns-search=bar.local
 dns=dead:beef::2;
 method=manual
@@ -664,7 +664,7 @@ dns-search=
 
 [ipv6]
 method=ignore
-addr-gen-mode=stable-privacy
+addr-gen-mode=1
 dns-search=
 
 [wifi]
@@ -699,7 +699,7 @@ psk=test1234
             passthrough:
               connection.autoconnect: "false"
               connection.permissions: ""
-              ipv6.addr-gen-mode: "stable-privacy"
+              ipv6.addr-gen-mode: "1"
               wifi.mac-address-blacklist: ""
               wifi-security.group: "ccmp;"
               wifi-security.pairwise: "ccmp;"
