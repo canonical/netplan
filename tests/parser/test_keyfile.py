@@ -249,7 +249,7 @@ type=ethernet
 mac-address=00:11:22:33:44:55
 
 [ipv4]
-dns-search=foo.local
+dns-search=foo.local;bar.remote;
 dns=9.8.7.6;5.4.3.2
 method=manual
 address1=1.2.3.4/24,8.8.8.8
@@ -289,6 +289,7 @@ route1_options=unknown=invalid,
         - dead:beef::2
         search:
         - foo.local
+        - bar.remote
         - bar.local
       gateway4: 6.6.6.6
       gateway6: 6:6::6

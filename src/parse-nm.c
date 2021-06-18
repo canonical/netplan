@@ -289,29 +289,22 @@ static gboolean
 parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
 {
     g_assert(domains_arr);
-    g_autofree gchar *kf_value = NULL;
-    gchar **split = NULL;
-
-    kf_value = g_key_file_get_string(kf, group, "dns-search", NULL);
-    if (kf_value) {
-        if (strlen(kf_value) == 0) {
+    gsize len = 0;
+    gchar **split = g_key_file_get_string_list(kf, group, "dns-search", &len, NULL);
+    if (split) {
+        if (len == 0) {
             _kf_clear_key(kf, group, "dns-search");
             return TRUE;
         }
-
         if (!*domains_arr)
             *domains_arr = g_array_new(FALSE, FALSE, sizeof(char*));
-        split = g_strsplit(kf_value, ",", -1);
-
         for(unsigned i = 0; split[i]; ++i) {
-            /* no need to free 's', this will stay in the netdef */
-            char* s = g_strdup(split[i]);
+            char* s = g_strdup(split[i]); //no need to free, will stay in netdef
             g_array_append_val(*domains_arr, s);
         }
         _kf_clear_key(kf, group, "dns-search");
         g_strfreev(split);
     }
-
     return TRUE;
 }
 
