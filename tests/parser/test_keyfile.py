@@ -32,7 +32,6 @@ lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
 
-# TODO: make sure a KEYFILE input generates the same KEYFILE output, matching some given intermediary YAML
 class TestNetworkManagerBackend(TestBase):
     '''Test libnetplan functionality as used by NetworkManager backend'''
 
@@ -537,7 +536,40 @@ mode={}'''.format(uuid, nm_mode))
 '''.format(uuid, ap_mode, uuid, wifi_mode, uuid)})
 
     def test_serialize_keyfile_type_wifi_ap(self):
-        self._template_serialize_keyfile_type_wifi('ap', 'ap')
+        uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
+        self.generate('''[connection]
+type=wifi
+uuid={}
+id=myid with spaces
+
+[ipv4]
+method=shared
+
+[wifi]
+ssid=SOME-SSID
+wake-on-wlan=24
+band=bg
+mode=ap'''.format(uuid))
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      wakeonwlan:
+      - magic_pkt
+      - gtk_rekey_failure
+      access-points:
+        "SOME-SSID":
+          band: "2.4GHz"
+          mode: "ap"
+          networkmanager:
+            uuid: "{}"
+            name: "myid with spaces"
+      networkmanager:
+        uuid: "{}"
+        name: "myid with spaces"
+'''.format(uuid, uuid, uuid)})
 
     def test_serialize_keyfile_type_wifi_adhoc(self):
         self._template_serialize_keyfile_type_wifi('adhoc', 'adhoc')
@@ -586,6 +618,7 @@ uuid={}
 id=myid with spaces
 
 [ethernet]
+wake-on-lan=0
 
 [ipv4]
 method=auto'''.format(uuid))
@@ -596,12 +629,9 @@ method=auto'''.format(uuid))
       renderer: NetworkManager
       match: {{}}
       dhcp4: true
-      wakeonlan: true
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
-        passthrough:
-          ethernet._: ""
 '''.format(uuid, uuid)})
 
     def test_serialize_keyfile_modem_gsm(self):
@@ -633,6 +663,7 @@ auto-config=true'''.format(uuid))
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=bridge
+interface-name=mybr
 uuid={}
 id=renamed netplan bridge
 
@@ -651,7 +682,7 @@ method=auto'''.format(uuid), netdef_id='mybr')
 
     def test_keyfile_yaml_wifi_hotspot(self):
         uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
-        self.generate('''[connection]
+        keyfile = '''[connection]
 id=Hotspot-1
 type=wifi
 uuid={}
@@ -680,7 +711,8 @@ pairwise=ccmp;
 proto=rsn;
 psk=test1234
 
-[proxy]'''.format(uuid))
+[proxy]'''.format(uuid)
+        self.generate(keyfile)
         self.assert_netplan({uuid: '''network:
   version: 2
   wifis:
@@ -711,12 +743,6 @@ psk=test1234
         name: "Hotspot-1"
 '''.format(uuid)})
 
-        # FIXME: uncomment those checks
-        # Convert YAML back to Keyfile and compare to original KF
-        #os.remove(FILE_YAML)
-        #self.generate(CONTENT_YAML)
-        #self.assert_nm({'NM-ff9d6ebc-226d-4f82-a485-b7ff83b9607f-my-hotspot': CONTENT_KF})
-
     def test_keyfile_ip4_linklocal_ip6_ignore(self):
         uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
         self.generate('''[connection]
@@ -724,6 +750,9 @@ id=netplan-eth1
 type=ethernet
 interface-name=eth1
 uuid={}
+
+[ethernet]
+wake-on-lan=0
 
 [ipv4]
 method=link-local
