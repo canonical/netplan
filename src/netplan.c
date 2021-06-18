@@ -600,7 +600,6 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     GHashTableIter iter;
     gpointer key, value;
 
-
     YAML_SCALAR_PLAIN(event, emitter, def->id);
     YAML_MAPPING_OPEN(event, emitter);
     if (def->type == NETPLAN_DEF_TYPE_VLAN && def->sriov_vlan_filter) {
