@@ -3,8 +3,9 @@
 # configuration files look as expected. These are run during "make check" and
 # don't touch the system configuration at all.
 #
-# Copyright (C) 2016 Canonical, Ltd.
+# Copyright (C) 2016-2021 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +27,10 @@ import string
 import tempfile
 import subprocess
 import unittest
+import ctypes
+import ctypes.util
+import yaml
+import difflib
 
 exe_generate = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), 'generate')
@@ -35,6 +40,8 @@ os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_P
 
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'
+
+lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
 # common patterns for expected output
 ND_EMPTY = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=%s\nConfigureWithoutCarrier=yes\n'
@@ -74,6 +81,151 @@ ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListen
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 
 
+class NetplanV2Normalizer():
+
+    def __init__(self):
+        self.YAML_FALSE = ['n', 'no', 'off', 'false']
+        self.YAML_TRUE = ['y', 'yes', 'on', 'true']
+        self.DEFAULT_STANZAS = [
+            'dhcp4-overrides: {}',  # 2nd level default (containing defaults itself)
+            'dhcp6-overrides: {}',  # 2nd level default (containing defaults itself)
+            'hidden: false',  # access-point
+            'on-link: false',  # route
+            'stp: true',  # paramters
+            'type: unicast',  # route
+            'version: 2',  # global
+        ]
+        self.DEFAULT_NETDEF = {
+            'dhcp4': self.YAML_FALSE,
+            'dhcp6': self.YAML_FALSE,
+            'dhcp-identifier': ['duid'],
+            'hidden': self.YAML_FALSE,
+        }
+        self.DEFAULT_DHCP = {
+            'send-hostname': self.YAML_TRUE,
+            'use-dns': self.YAML_TRUE,
+            'use-hostname': self.YAML_TRUE,
+            'use-mtu': self.YAML_TRUE,
+            'use-ntp': self.YAML_TRUE,
+            'use-routes': self.YAML_TRUE,
+        }
+
+    def _clear_mapping_defaults(self, keys, defaults, data):
+        potential_defaults = list(set(keys) & set(defaults.keys()))
+        for k in potential_defaults:
+            if any(map(str(data[k]).lower().__eq__, defaults[k])):
+                del data[k]
+
+    def normalize_yaml_line(self, line):
+        '''Process formatted YAML line by line (one setting/key per line)
+
+        Deleting default values and re-writing to default wording
+        '''
+        kv = line.replace('"', '').replace('\'', '').split(':', 1)
+        if len(kv) != 2 or kv[1].isspace() or kv[1] == '':
+            return line  # no normalization needed; no value given
+
+        # normalize key
+        key = kv[0]
+        if 'gratuitious-arp' in key:  # historically supported typo
+            kv[0] = key.replace('gratuitious-arp', 'gratuitous-arp')
+
+        # normalize value
+        val = kv[1].strip()
+        if val in self.YAML_FALSE:
+            kv[1] = 'false'
+        elif val in self.YAML_TRUE:
+            kv[1] = 'true'
+        elif val == '5G':
+            kv[1] = '5GHz'
+        elif val == '2.4G':
+            kv[1] = '2.4GHz'
+        else:  # no normalization needed or known
+            kv[1] = val
+
+        return ': '.join(kv)
+
+    def normalize_yaml_tree(self, data, full_key=''):
+        '''Walk the YAML dict/tree @data and sort its sequences in place
+
+        Keeping track of the @full_key (path), e.g.: "network:ethernets:eth0:dhcp4"
+        And normalizing certain netplan special cases
+        '''
+        if isinstance(data, list):
+            scalars_only = not any(list(map(lambda elem: (isinstance(elem, dict) or isinstance(elem, list)), data)))
+            # sort sequence alphabetically
+            if scalars_only:
+                data.sort()
+                # remove duplicates (if needed)
+                unique = set(data)
+                if len(data) > len(unique):
+                    rm_idx = set()
+                    last_idx = 0
+                    for elem in unique:
+                        if data.count(elem) > 1:
+                            idx = data.index(elem, last_idx)
+                            rm_idx.add(idx)
+                            last_idx = idx
+                    for idx in rm_idx:
+                        del data[idx]
+        elif isinstance(data, dict):
+            keys = data.keys()
+            # expand special short forms
+            if 'password' in keys and ':auth' not in full_key:
+                data['auth'] = {'key-management': 'psk', 'password': data['password']}
+                del data['password']
+            elif 'auth' in keys and data['auth'] == {}:
+                data['auth'] = {'key-management': 'none'}
+            # remove default stanza ("link-local: [ ipv6 ]"")
+            elif 'link-local' in keys and data['link-local'] == ['ipv6']:
+                del data['link-local']
+            # remove default stanza ("wakeonwlan: [ default ]")
+            elif 'wakeonwlan' in keys and data['wakeonwlan'] == ['default']:
+                del data['wakeonwlan']
+            # remove explicit openvswitch stanzas, they might not always be
+            # defined in the original YAML (due to being implicit)
+            elif ('openvswitch' in keys and data['openvswitch'] == {} and
+                  any(map(full_key.__contains__, [':bonds:', ':bridges:', ':vlans:']))):
+                del data['openvswitch']
+            # remove default empty bond-parameters, those are not rendered by the YAML generator
+            elif 'parameters' in keys and data['parameters'] == {} and ':bonds:' in full_key:
+                del data['parameters']
+            # remove default mode=infrastructore from wifi APs, keeping the SSID
+            elif 'mode' in keys and ':wifis:' in full_key and 'infrastructure' in data['mode']:
+                del data['mode']
+            # ignore renderer: on other than global levels for now, as that
+            # information is currently not stored in the netdef data structure
+            elif ('renderer' in keys and len(full_key.split(':')) > 1 and
+                  data['renderer'] in ['networkd', 'NetworkManager']):
+                del data['renderer']
+            # remove default values from the dhcp4/6-overrides mappings
+            elif full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
+                self._clear_mapping_defaults(keys, self.DEFAULT_DHCP, data)
+            # remove default values from netdef/interface mappings
+            elif len(full_key.split(':')) == 3:  # netdef level
+                self._clear_mapping_defaults(keys, self.DEFAULT_NETDEF, data)
+
+            # continue to walk the dict
+            for key in data.keys():
+                full_key_next = ':'.join([str(full_key), str(key)]) if full_key != '' else key
+                self.normalize_yaml_tree(data[key], full_key_next)
+
+    def normalize_yaml(self, yaml_dict):
+        # 1st pass: normalize the YAML tree in place, sorting and removing some values
+        self.normalize_yaml_tree(yaml_dict)
+        # 2nd pass: sort the mapping keys and output a formatted yaml (one key per line)
+        formatted_yaml = yaml.dump(yaml_dict, sort_keys=True)
+        # 3rd pass: normalize the wording of certain keys/values per line
+        #           and remove any line, containg only default values
+        output = []
+        for line in formatted_yaml.splitlines():
+            line = self.normalize_yaml_line(line)
+            if line.strip() in self.DEFAULT_STANZAS:
+                continue
+            output.append(line)
+        return output
+
+
 class TestBase(unittest.TestCase):
 
     def setUp(self):
@@ -83,20 +235,80 @@ class TestBase(unittest.TestCase):
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
         self.maxDiff = None
 
-    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None):
+    def validate_generated_yaml(self, yaml_input):
+        '''Validate a list of YAML input files one by one.
+
+        Go through the list @yaml_input one by one, parse the YAML and
+        re-generate the YAML output. Afterwards, normalize and compare the
+        original (and normalized) input with the generated (and normalized)
+        output.
+        '''
+        output = '_generated_test_output.yaml'
+        output_path = os.path.join(self.confdir, output)
+
+        for input in yaml_input:
+            lib.netplan_clear_netdefs()  # clear previous netdefs
+            lib.netplan_parse_yaml(input.encode(), None)
+            lib.write_netplan_conf_full(output.encode(), self.workdir.name.encode())
+
+            input_yaml = None
+            output_yaml = None
+
+            # Read input YAML file, as defined by the self.generate('...') method
+            with open(input, 'r') as orig:
+                input_yaml = yaml.safe_load(orig.read())
+                # Consider 'network: {}' and 'network: {version: 2}' to be empty
+                if input_yaml is None or input_yaml == {'network': {}} or input_yaml == {'network': {'version': 2}}:
+                    input_yaml = yaml.safe_load('')
+
+            # Read output of the YAML generator (if any)
+            if os.path.isfile(output_path):
+                with open(output_path, 'r') as generated:
+                    output_yaml = yaml.safe_load(generated.read())
+            else:
+                output_yaml = yaml.safe_load('')
+
+            # Normalize input and output YAML
+            netplan_normalizer = NetplanV2Normalizer()
+            input_lines = netplan_normalizer.normalize_yaml(input_yaml)
+            output_lines = netplan_normalizer.normalize_yaml(output_yaml)
+
+            # Check if (normalized) input and (normalized) output are equal
+            yaml_files_differ = len(input_lines) != len(output_lines)
+            if not yaml_files_differ:  # pragma: no cover (only execited in error case)
+                for i in range(len(input_lines)):
+                    if input_lines[i] != output_lines[i]:
+                        yaml_files_differ = True
+                        break
+            if yaml_files_differ:  # pragma: no cover (only execited in error case)
+                fromfile = 'original (%s)' % input
+                for line in difflib.unified_diff(input_lines, output_lines, fromfile, tofile='generated', lineterm=''):
+                    print(line, flush=True)
+                self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
+
+            # Cleanup the generated file and data structures
+            lib.netplan_clear_netdefs()
+            if os.path.isfile(output_path):
+                os.remove(output_path)
+
+    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None, skip_generated_yaml_validation=False):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
         '''
+        yaml_input = []
         conf = os.path.join(self.confdir, 'a.yaml')
         os.makedirs(os.path.dirname(conf), exist_ok=True)
         if yaml is not None:
             with open(conf, 'w') as f:
                 f.write(yaml)
+            yaml_input.append(conf)
         if confs:
             for f, contents in confs.items():
-                with open(os.path.join(self.confdir, f + '.yaml'), 'w') as f:
+                path = os.path.join(self.confdir, f + '.yaml')
+                with open(path, 'w') as f:
                     f.write(contents)
+                yaml_input.append(path)
 
         argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args
         if 'TEST_SHELL' in os.environ:  # pragma nocover
@@ -111,6 +323,10 @@ class TestBase(unittest.TestCase):
         else:
             self.assertEqual(p.returncode, 0, err)
         self.assertEqual(out, '')
+        if not expect_fail and not skip_generated_yaml_validation:
+            yaml_input = list(set(yaml_input + extra_args))
+            yaml_input.sort()
+            self.validate_generated_yaml(yaml_input)
         return err
 
     def eth_name(self):

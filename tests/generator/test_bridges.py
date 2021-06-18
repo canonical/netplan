@@ -602,6 +602,22 @@ method=ignore
         self.assert_nm_udev(None)
 
 
+class TestNetplanYAMLv2(TestBase):
+    '''No asserts are needed.
+
+    The generate() method implicitly checks the (re-)generated YAML.
+    '''
+
+    def test_bridge_stp(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        stp: no
+      dhcp4: true''')
+
+
 class TestConfigErrors(TestBase):
 
     def test_bridge_unknown_iface(self):

@@ -167,7 +167,7 @@ method=auto
       sim-id: "89148000000060671234"
       sim-operator-id: "310260"
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "T-Mobile Funkadelic 2"
         passthrough:
           gsm.home-only: "true"
@@ -224,7 +224,7 @@ method=auto
     NM-{}:
       renderer: NetworkManager
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "T-Mobile Funkadelic 2"
         passthrough:
           connection.type: "bluetooth"
@@ -266,7 +266,7 @@ method=auto
     NM-{}:
       renderer: NetworkManager{}
       networkmanager:
-        uuid: {}{}
+        uuid: "{}"{}
 '''.format(nd_type, UUID, match, UUID, t))
 
     def test_serialize_keyfile_ethernet(self):
@@ -352,16 +352,15 @@ dns-search='''.format(UUID))
       access-points:
         "SOME-SSID":
           hidden: true
-          mode: infrastructure
           networkmanager:
-            uuid: {}
+            uuid: "{}"
             name: "myid with spaces"
             passthrough:
               connection.permissions: ""
               ipv4.method: "auto"
               ipv4.dns-search: ""
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "myid with spaces"
 '''.format(UUID, UUID, UUID))
 
@@ -387,8 +386,11 @@ mode={}'''.format(UUID, nm_mode))
         lib.netplan_clear_netdefs()
         self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         wifi_mode = ''
+        ap_mode = ''
         if nm_mode != nd_mode:
             wifi_mode = '\n              wifi.mode: "{}"'.format(nm_mode)
+        if nd_mode != 'infrastructure':
+            ap_mode = '\n          mode: "%s"' % nd_mode
         with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
@@ -397,17 +399,16 @@ mode={}'''.format(UUID, nm_mode))
       renderer: NetworkManager
       match: {{}}
       access-points:
-        "SOME-SSID":
-          mode: {}
+        "SOME-SSID":{}
           networkmanager:
-            uuid: {}
+            uuid: "{}"
             name: "myid with spaces"
             passthrough:
               ipv4.method: "auto"{}
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "myid with spaces"
-'''.format(UUID, nd_mode, UUID, wifi_mode, UUID))
+'''.format(UUID, ap_mode, UUID, wifi_mode, UUID))
 
     def test_serialize_keyfile_type_wifi_ap(self):
         self._template_serialize_keyfile_type_wifi('ap', 'ap')
@@ -457,7 +458,7 @@ method=auto'''.format(UUID))
       match: {{}}
       wakeonlan: true
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "myid with spaces"
         passthrough:
           ethernet.wake-on-lan: "2"
@@ -492,7 +493,7 @@ method=auto'''.format(UUID))
       match: {{}}
       wakeonlan: true
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "myid with spaces"
         passthrough:
           ethernet._: ""
@@ -528,7 +529,7 @@ auto-config=true'''.format(UUID))
       match: {{}}
       auto-config: true
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "myid with spaces"
         passthrough:
           ipv4.method: "auto"
@@ -558,7 +559,7 @@ method=auto'''.format(UUID))
     mybr:
       renderer: NetworkManager
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "renamed netplan bridge"
         passthrough:
           ipv4.method: "auto"
@@ -627,9 +628,9 @@ psk=test1234
         name: "wlan0"
       access-points:
         "my-hotspot":
-          mode: ap
+          mode: "ap"
           networkmanager:
-            uuid: ff9d6ebc-226d-4f82-a485-b7ff83b9607f
+            uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
             name: "Hotspot-1"
             passthrough:
               connection.autoconnect: "false"
@@ -647,7 +648,7 @@ psk=test1234
               wifi-security.psk: "test1234"
               proxy._: ""
       networkmanager:
-        uuid: {}
+        uuid: "{}"
         name: "Hotspot-1"
 '''.format(UUID)
         self.assertTrue(os.path.isfile(FILE_YAML))

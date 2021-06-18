@@ -39,7 +39,7 @@ class TestNetworkManager(TestBase):
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
           connection.type: ethernet
-          connection.permissions:''')
+          connection.permissions: ""''')
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=some NM id
@@ -71,7 +71,7 @@ method=ignore
             uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
             name: myid with spaces
             passthrough:
-              connection.permissions:
+              connection.permissions: ""
               wifi.ssid: SOME-SSID
         "OTHER-SSID":
           hidden: true''')
@@ -261,6 +261,7 @@ method=ignore
     # it should still generate a "netplan-eth0.nmconnection" file (not netplan-eth33.nmconnection).
     eth0:
       renderer: NetworkManager
+      dhcp4: true
       match:
         name: "eth33"
       networkmanager:

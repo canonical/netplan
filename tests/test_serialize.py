@@ -73,9 +73,8 @@ class TestNetplanSerialize(TestBase):
       access-points:
         "SOME-SSID":
           hidden: true
-          mode: infrastructure
           networkmanager:
-            uuid: some-uuid
+            uuid: "some-uuid"
             name: "Some NM name with spaces"
             passthrough:
               wifi.mode: "mesh"

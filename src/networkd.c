@@ -841,6 +841,8 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
         case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
             g_string_append(s, "  key_mgmt=IEEE8021X\n");
             break;
+
+        default: break; // LCOV_EXCL_LINE
     }
 
     switch (auth->eap_method) {
@@ -858,6 +860,8 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
         case NETPLAN_AUTH_EAP_TTLS:
             g_string_append(s, "  eap=TTLS\n");
             break;
+
+        default: break; // LCOV_EXCL_LINE
     }
 
     if (auth->identity) {

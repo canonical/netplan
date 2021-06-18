@@ -21,12 +21,22 @@
 
 #define YAML_MAPPING_OPEN(event_ptr, emitter_ptr) \
 { \
-    yaml_mapping_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_MAP_TAG, 1, YAML_ANY_MAPPING_STYLE); \
+    yaml_mapping_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_MAP_TAG, 1, YAML_BLOCK_MAPPING_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
 }
 #define YAML_MAPPING_CLOSE(event_ptr, emitter_ptr) \
 { \
     yaml_mapping_end_event_initialize(event_ptr); \
+    if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
+}
+#define YAML_SEQUENCE_OPEN(event_ptr, emitter_ptr) \
+{ \
+    yaml_sequence_start_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_SEQ_TAG, 1, YAML_BLOCK_SEQUENCE_STYLE); \
+    if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
+}
+#define YAML_SEQUENCE_CLOSE(event_ptr, emitter_ptr) \
+{ \
+    yaml_sequence_end_event_initialize(event_ptr); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
 }
 #define YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, scalar) \
@@ -43,17 +53,24 @@
 #define YAML_STRING(event_ptr, emitter_ptr, key, value_ptr) \
 { \
     if (value_ptr) { \
-        YAML_SCALAR_PLAIN(event, emitter, key); \
-        YAML_SCALAR_QUOTED(event, emitter, value_ptr); \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
+        YAML_SCALAR_QUOTED(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
 #define YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, value_ptr) \
 { \
     if (value_ptr) { \
-        YAML_SCALAR_PLAIN(event, emitter, key); \
-        YAML_SCALAR_PLAIN(event, emitter, value_ptr); \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
+#define YAML_UINT(event_ptr, emitter_ptr, key, value) \
+{ \
+    tmp = g_strdup_printf("%u", value); \
+    YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, tmp); \
+    g_free(tmp); \
+}
+
 /* open YAML emitter, document, stream and initial mapping */
 #define YAML_OUT_START(event_ptr, emitter_ptr, file) \
 { \
@@ -87,6 +104,42 @@ static const char* const netplan_def_type_to_str[NETPLAN_DEF_TYPE_MAX_] = {
     [NETPLAN_DEF_TYPE_TUNNEL] = "tunnels",
     [NETPLAN_DEF_TYPE_PORT] = NULL,
     [NETPLAN_DEF_TYPE_NM] = "nm-devices",
+};
+
+static const char* const netplan_auth_key_management_type_to_str[NETPLAN_AUTH_KEY_MANAGEMENT_MAX] = {
+    [NETPLAN_AUTH_KEY_MANAGEMENT_NONE] = "none",
+    [NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK] = "psk",
+    [NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP] = "eap",
+    [NETPLAN_AUTH_KEY_MANAGEMENT_8021X] = "802.1x",
+};
+
+static const char* const netplan_auth_eap_method_to_str[NETPLAN_AUTH_EAP_METHOD_MAX] = {
+    [NETPLAN_AUTH_EAP_NONE] = NULL,
+    [NETPLAN_AUTH_EAP_TLS] = "tls",
+    [NETPLAN_AUTH_EAP_PEAP] = "peap",
+    [NETPLAN_AUTH_EAP_TTLS] = "ttls",
+};
+
+static const char* const netplan_tunnel_mode_to_str[NETPLAN_TUNNEL_MODE_MAX_] = {
+    [NETPLAN_TUNNEL_MODE_UNKNOWN] = NULL,
+    [NETPLAN_TUNNEL_MODE_IPIP] = "ipip",
+    [NETPLAN_TUNNEL_MODE_GRE] = "gre",
+    [NETPLAN_TUNNEL_MODE_SIT] = "sit",
+    [NETPLAN_TUNNEL_MODE_ISATAP] = "isatap",
+    [NETPLAN_TUNNEL_MODE_VTI] = "vti",
+    [NETPLAN_TUNNEL_MODE_IP6IP6] = "ip6ip6",
+    [NETPLAN_TUNNEL_MODE_IPIP6] = "ipip6",
+    [NETPLAN_TUNNEL_MODE_IP6GRE] = "ip6gre",
+    [NETPLAN_TUNNEL_MODE_VTI6] = "vti6",
+    [NETPLAN_TUNNEL_MODE_GRETAP] = "gretap",
+    [NETPLAN_TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+    [NETPLAN_TUNNEL_MODE_WIREGUARD] = "wireguard",
+};
+
+static const char* const netplan_addr_gen_mode_to_str[NETPLAN_ADDRGEN_MAX] = {
+    [NETPLAN_ADDRGEN_DEFAULT] = NULL,
+    [NETPLAN_ADDRGEN_EUI64] = "eui64",
+    [NETPLAN_ADDRGEN_STABLEPRIVACY] = "stable-privacy"
 };
 
 void write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);
