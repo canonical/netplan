@@ -31,7 +31,6 @@ os.environ.update({'PYTHONPATH': '.'})
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
-
 class TestNetworkManagerBackend(TestBase):
     '''Test libnetplan functionality as used by NetworkManager backend'''
 
@@ -950,3 +949,99 @@ method=ignore
         uuid: "{}"
         name: "netplan-bn0"
 '''.format(uuid)})
+
+    def test_keyfile_customer_A1(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+id=netplan-wlan0-TESTSSID
+type=wifi
+interface-name=wlan0
+uuid={}
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=TESTSSID
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=s0s3cr1t
+'''.format(uuid))
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlan0"
+      dhcp4: true
+      access-points:
+        "TESTSSID":
+          auth:
+            key-management: "psk"
+            password: "s0s3cr1t"
+          networkmanager:
+            uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
+            name: "netplan-wlan0-TESTSSID"
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-wlan0-TESTSSID"
+'''.format(uuid, uuid)})
+
+
+    def test_keyfile_customer_A2(self):
+        uuid = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
+        self.generate('''[connection]
+id=gsm
+type=gsm
+uuid={}
+interface-name=cdc-wdm1
+
+[gsm]
+apn=internet
+
+[ipv4]
+method=auto
+address1=10.10.28.159/24
+address2=10.10.164.254/24
+address3=10.10.246.132/24
+dns=8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;
+
+[ipv6]
+method=auto
+addr-gen-mode=1
+'''.format(uuid))
+
+        self.assert_netplan({uuid: '''network:
+  version: 2
+  modems:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "cdc-wdm1"
+      nameservers:
+        addresses:
+        - 8.8.8.8
+        - 8.8.4.4
+        - 8.8.8.8
+        - 8.8.4.4
+        - 8.8.8.8
+        - 8.8.4.4
+      dhcp4: true
+      dhcp6: true
+      apn: "internet"
+      networkmanager:
+        uuid: "{}"
+        name: "gsm"
+        passthrough:
+          ipv4.address1: "10.10.28.159/24"
+          ipv4.address2: "10.10.164.254/24"
+          ipv4.address3: "10.10.246.132/24"
+          ipv6.addr-gen-mode: "1"
+'''.format(uuid, uuid)})
