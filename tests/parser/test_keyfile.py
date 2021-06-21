@@ -34,15 +34,15 @@ lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 class TestNetworkManagerBackend(TestBase):
     '''Test libnetplan functionality as used by NetworkManager backend'''
 
-    def test_serialize_keyfile_missing_uuid(self):
+    def test_keyfile_missing_uuid(self):
         err = self.generate('[connection]\ntype=ethernets', expect_fail=True)
         self.assertIn('netplan: Keyfile: cannot find connection.uuid', err)
 
-    def test_serialize_keyfile_missing_type(self):
+    def test_keyfile_missing_type(self):
         err = self.generate('[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f', expect_fail=True)
         self.assertIn('netplan: Keyfile: cannot find connection.type', err)
 
-    def test_serialize_gsm(self):
+    def test_keyfile_gsm(self):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
         self.generate('''[connection]
 id=T-Mobile Funkadelic 2
@@ -93,7 +93,7 @@ method=auto
           gsm.home-only: "true"
 '''.format(uuid, uuid)})
 
-    def test_serialize_cdma(self):
+    def test_keyfile_cdma(self):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
         self.generate('''[connection]
 id=T-Mobile Funkadelic 2
@@ -128,7 +128,7 @@ method=ignore
         name: "T-Mobile Funkadelic 2"
 '''.format(uuid, uuid)})
 
-    def test_serialize_gsm_via_bluetooth(self):
+    def test_keyfile_gsm_via_bluetooth(self):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
         self.generate('''[connection]
 id=T-Mobile Funkadelic 2
@@ -181,7 +181,7 @@ method=auto
           proxy._: ""
 '''.format(uuid, uuid)})
 
-    def test_serialize_method_auto(self):
+    def test_keyfile_method_auto(self):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
         self.generate('''[connection]
 id=Test
@@ -236,7 +236,7 @@ route-metric=4242
           proxy._: ""
 '''.format(uuid, uuid)})
 
-    def test_serialize_method_manual(self):
+    def test_keyfile_method_manual(self):
         uuid = 'a08c5805-7cf5-43f7-afb9-12cb30f6eca3'
         self.generate('''[connection]
 id=Test
@@ -342,34 +342,34 @@ route1_options=unknown=invalid,
         uuid: "{}"{}
 '''.format(nd_type, UUID, match, UUID, t))
 
-    def test_serialize_keyfile_ethernet(self):
+    def test_keyfile_ethernet(self):
         self._template_serialize_keyfile('ethernets', 'ethernet')
 
-    def test_serialize_keyfile_type_modem_gsm(self):
+    def test_keyfile_type_modem_gsm(self):
         self._template_serialize_keyfile('modems', 'gsm')
 
-    def test_serialize_keyfile_type_modem_cdma(self):
+    def test_keyfile_type_modem_cdma(self):
         self._template_serialize_keyfile('modems', 'cdma')
 
-    def test_serialize_keyfile_type_bridge(self):
+    def test_keyfile_type_bridge(self):
         self._template_serialize_keyfile('bridges', 'bridge')
 
-    def test_serialize_keyfile_type_bond(self):
+    def test_keyfile_type_bond(self):
         self._template_serialize_keyfile('bonds', 'bond')
 
-    def test_serialize_keyfile_type_vlan(self):
+    def test_keyfile_type_vlan(self):
         self._template_serialize_keyfile('vlans', 'vlan')
 
-    def test_serialize_keyfile_type_tunnel(self):
+    def test_keyfile_type_tunnel(self):
         self._template_serialize_keyfile('tunnels', 'ip-tunnel', False)
 
-    def test_serialize_keyfile_type_wireguard(self):
+    def test_keyfile_type_wireguard(self):
         self._template_serialize_keyfile('tunnels', 'wireguard', False)
 
-    def test_serialize_keyfile_type_other(self):
+    def test_keyfile_type_other(self):
         self._template_serialize_keyfile('nm-devices', 'dummy', False)
 
-    def test_serialize_keyfile_type_wifi(self):
+    def test_keyfile_type_wifi(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=wifi
@@ -483,13 +483,13 @@ dns-search='''.format(uuid, method))
         name: "testnet"
 '''.format(uuid, method, uuid, uuid)})
 
-    def test_serialize_keyfile_type_wifi_eap_peap(self):
+    def test_keyfile_type_wifi_eap_peap(self):
         self._template_serialize_keyfile_type_wifi_eap('peap')
 
-    def test_serialize_keyfile_type_wifi_eap_tls(self):
+    def test_keyfile_type_wifi_eap_tls(self):
         self._template_serialize_keyfile_type_wifi_eap('tls')
 
-    def test_serialize_keyfile_type_wifi_eap_ttls(self):
+    def test_keyfile_type_wifi_eap_ttls(self):
         self._template_serialize_keyfile_type_wifi_eap('ttls')
 
     def _template_serialize_keyfile_type_wifi(self, nd_mode, nm_mode):
@@ -534,7 +534,7 @@ mode={}'''.format(uuid, nm_mode))
         name: "myid with spaces"
 '''.format(uuid, ap_mode, uuid, wifi_mode, uuid)})
 
-    def test_serialize_keyfile_type_wifi_ap(self):
+    def test_keyfile_type_wifi_ap(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=wifi
@@ -570,19 +570,19 @@ mode=ap'''.format(uuid))
         name: "myid with spaces"
 '''.format(uuid, uuid, uuid)})
 
-    def test_serialize_keyfile_type_wifi_adhoc(self):
+    def test_keyfile_type_wifi_adhoc(self):
         self._template_serialize_keyfile_type_wifi('adhoc', 'adhoc')
 
-    def test_serialize_keyfile_type_wifi_unknown(self):
+    def test_keyfile_type_wifi_unknown(self):
         self._template_serialize_keyfile_type_wifi('infrastructure', 'mesh')
 
-    def test_serialize_keyfile_type_wifi_missing_ssid(self):
+    def test_keyfile_type_wifi_missing_ssid(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         err = self.generate('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(uuid), expect_fail=True)
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))))
         self.assertIn('netplan: Keyfile: cannot find SSID for WiFi connection', err)
 
-    def test_serialize_keyfile_wake_on_lan(self):
+    def test_keyfile_wake_on_lan(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=ethernet
@@ -609,7 +609,7 @@ method=auto'''.format(uuid))
           ethernet.wake-on-lan: "2"
 '''.format(uuid, uuid)})
 
-    def test_serialize_keyfile_wake_on_lan_nm_default(self):
+    def test_keyfile_wake_on_lan_nm_default(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=ethernet
@@ -633,7 +633,7 @@ method=auto'''.format(uuid))
         name: "myid with spaces"
 '''.format(uuid, uuid)})
 
-    def test_serialize_keyfile_modem_gsm(self):
+    def test_keyfile_modem_gsm(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=gsm
@@ -658,7 +658,7 @@ auto-config=true'''.format(uuid))
         name: "myid with spaces"
 '''.format(uuid, uuid)})
 
-    def test_serialize_keyfile_existing_id(self):
+    def test_keyfile_existing_id(self):
         uuid = '87749f1d-334f-40b2-98d4-55db58965f5f'
         self.generate('''[connection]
 type=bridge

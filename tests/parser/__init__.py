@@ -1,5 +1,5 @@
 #
-# __init__ for generator tests.
+# __init__ for parser tests.
 #
 # Copyright (C) 2021 Canonical, Ltd.
 # Author: Lukas Märdian <slyon@ubuntu.com>
