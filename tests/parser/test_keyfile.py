@@ -30,13 +30,11 @@ os.environ.update({'PYTHONPATH': '.'})
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
-
-
 UUID = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
 
 
-class TestNetworkManagerBackend(TestBase):
-    '''Test libnetplan functionality as used by NetworkManager backend'''
+class TestNetworkManagerKeyfileParser(TestBase):
+    '''Test NM keyfile parser as used by NetworkManager's YAML backend'''
 
     def test_keyfile_missing_uuid(self):
         err = self.generate('[connection]\ntype=ethernets', expect_fail=True)
@@ -747,7 +745,6 @@ method=link-local
 [ipv6]
 method=ignore
 '''.format(UUID))
-
         self.assert_netplan({UUID: '''network:
   version: 2
   ethernets:
@@ -778,7 +775,6 @@ address1=1.2.3.4/24
 [ipv6]
 method=ignore
 '''.format(UUID), netdef_id='enblue', expect_fail=False, filename="some.keyfile")
-
         self.assert_netplan({UUID: '''network:
   version: 2
   vlans:
@@ -815,7 +811,6 @@ method=auto
 [ipv6]
 method=ignore
 '''.format(UUID), netdef_id='br0', expect_fail=False, filename="netplan-br0.nmconnection")
-
         self.assert_netplan({UUID: '''network:
   version: 2
   bridges:
@@ -850,7 +845,6 @@ method=auto
 [ipv6]
 method=ignore
 '''.format(UUID), netdef_id='br0')
-
         self.assert_netplan({UUID: '''network:
   version: 2
   bridges:
@@ -863,7 +857,6 @@ method=ignore
         uuid: "{}"
         name: "netplan-br0"
 '''.format(UUID)})
-
 
     def test_keyfile_bond(self):
         self.generate('''[connection]
@@ -900,7 +893,6 @@ method=auto
 [ipv6]
 method=ignore
 '''.format(UUID), netdef_id='bn0')
-
         self.assert_netplan({UUID: '''network:
   version: 2
   bonds:
@@ -955,7 +947,6 @@ mode=infrastructure
 key-mgmt=wpa-psk
 psk=s0s3cr1t
 '''.format(UUID))
-
         self.assert_netplan({UUID: '''network:
   version: 2
   wifis:
@@ -976,7 +967,6 @@ psk=s0s3cr1t
         uuid: "{}"
         name: "netplan-wlan0-TESTSSID"
 '''.format(UUID, UUID)})
-
 
     def test_keyfile_customer_A2(self):
         self.generate('''[connection]
@@ -999,7 +989,6 @@ dns=8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;
 method=auto
 addr-gen-mode=1
 '''.format(UUID))
-
         self.assert_netplan({UUID: '''network:
   version: 2
   modems:
