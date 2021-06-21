@@ -1,6 +1,6 @@
 #
-# Blackbox tests of netplan generate that verify that the generated
-# configuration files look as expected. These are run during "make check" and
+# Blackbox tests of netplan's keyfile parser that verify that the generated
+# YAML files look as expected. These are run during "make check" and
 # don't touch the system configuration at all.
 #
 # Copyright (C) 2021 Canonical, Ltd.
@@ -20,6 +20,7 @@
 
 from configparser import ConfigParser
 import os
+import sys
 import shutil
 import tempfile
 import unittest
@@ -40,14 +41,11 @@ os.environ['G_DEBUG'] = 'fatal-criticals'
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
 
-# A contextmanager which catches the stderr output on a very low level so that
-# it catches output from a subprocess or C library call, in addition to python
-# output: https://bugs.python.org/issue15805#msg184312
+# A contextmanager to catch the output on a low level so that it catches output
+# from a subprocess or C library call, in addition to normal python output
 @contextlib.contextmanager
 def capture_stderr():
-    import sys
-    import tempfile
-    stderr_fd = 2  # fd 2 = sys.stderr.fileno()
+    stderr_fd = 2  # 2 = stderr
     with tempfile.NamedTemporaryFile(mode='w+b') as tmp:
         stderr_copy = os.dup(stderr_fd)
         try:
@@ -65,8 +63,6 @@ class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
         self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
-        self.nm_enable_all_conf = os.path.join(
-            self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
         self.maxDiff = None
         os.makedirs(self.confdir)
 
@@ -79,12 +75,17 @@ class TestBase(unittest.TestCase):
         # Autodetect default 'NM-<UUID>' netdef-id
         ssid = ''
         if not netdef_id:
+            found_values = 0
             uuid = 'UNKNOWN_UUID'
             for line in keyfile.splitlines():
                 if line.startswith('uuid='):
                     uuid = line.split('=')[1]
+                    found_values += 1
                 elif line.startswith('ssid='):
                     ssid += '-' + line.split('=')[1]
+                    found_values += 1
+                if found_values >= 2:
+                    break
             netdef_id = 'NM-' + uuid
         if not filename:
             filename = 'netplan-{}{}.nmconnection'.format(netdef_id, ssid)
