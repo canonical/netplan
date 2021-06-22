@@ -65,40 +65,43 @@ ap_type_from_str(const char* type_str)
     return NETPLAN_WIFI_MODE_OTHER;
 }
 
-static gboolean
+static void
 _kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
 {
     gsize len = 1;
-    gboolean ret = FALSE;
-    ret = g_key_file_remove_key(kf, group, key, NULL);
+    g_key_file_remove_key(kf, group, key, NULL);
     g_strfreev(g_key_file_get_keys(kf, group, &len, NULL));
     /* clear group if this was the last key */
     if (len == 0)
-        ret &= g_key_file_remove_group(kf, group, NULL);
-    return ret;
+        g_key_file_remove_group(kf, group, NULL);
 }
 
 static gboolean
 kf_matches(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match)
 {
-    g_autofree gchar *kf_value = NULL;
-    kf_value = g_key_file_get_string(kf, group, key, NULL);
+    g_autofree gchar *kf_value = g_key_file_get_string(kf, group, key, NULL);
     return g_strcmp0(kf_value, match) == 0;
 }
 
-static gboolean
+static void
 set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match, const void* dataptr)
 {
     g_assert(dataptr);
     if (kf_matches(kf, group, key, match)) {
         *((gboolean*) dataptr) = TRUE;
         _kf_clear_key(kf, group, key);
-        return TRUE;
     }
-    return FALSE;
 }
 
-static gboolean
+static void
+handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, gboolean* dataptr)
+{
+    g_assert(dataptr);
+    *dataptr = g_key_file_get_boolean(kf, group, key, NULL);
+    _kf_clear_key(kf, group, key);
+}
+
+static void
 handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** dataptr)
 {
     g_assert(dataptr);
@@ -106,10 +109,9 @@ handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** da
     *dataptr = g_key_file_get_string(kf, group, key, NULL);
     if (*dataptr)
         _kf_clear_key(kf, group, key);
-    return TRUE;
 }
 
-static gboolean
+static void
 handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* dataptr, guint default_value)
 {
     g_assert(dataptr);
@@ -119,21 +121,27 @@ handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* d
             *dataptr = data;
         _kf_clear_key(kf, group, key);
     }
-    return TRUE;
 }
 
-static gboolean
+static void
 handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
-    gboolean ret = FALSE;
-    ret &= handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
-    ret &= handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
-    ret &= handle_generic_str(kf, group, "mac-address", &nd->match.mac);
+    handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
+    handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    handle_generic_str(kf, group, "mac-address", &nd->match.mac);
     if (nd->match.mac)
         nd->has_match = TRUE;
-    return ret;
 }
 
-static gboolean
+static void
+handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition* nd, char** dataptr) {
+    if (g_key_file_get_uint64(kf, "bridge", key, NULL)) {
+        nd->custom_bridging = TRUE;
+        *dataptr = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", key, NULL));
+        _kf_clear_key(kf, "bridge", key);
+    }
+}
+
+static void
 parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 {
     g_assert(ip_arr);
@@ -152,76 +160,73 @@ parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
             if (!*ip_arr)
                 *ip_arr = g_array_new(FALSE, FALSE, sizeof(char*));
             split = g_strsplit(kf_value, ",", 2);
+            g_free(kf_value);
             /* Append "address/prefix" */
             if (split[0]) {
                 /* no need to free 's', this will stay in the netdef */
-                char* s = g_strdup(split[0]);
+                gchar* s = g_strdup(split[0]);
                 g_array_append_val(*ip_arr, s);
             }
             if (!split[1])
                 _kf_clear_key(kf, group, key);
             else
-                unhandled_data = TRUE; //FIXME: how to handle additional values (like "gateway") in split[n]?
-            g_free(key);
+                /* XXX: how to handle additional values (like "gateway") in split[n]? */
+                unhandled_data = TRUE;
             g_strfreev(split);
-            g_free(kf_value);
+            g_free(key);
         }
         /* clear keyfile once all data was handled */
         if (!unhandled_data)
             _kf_clear_key(kf, group, "method");
     }
-    return TRUE;
 }
 
-static gboolean
+static void
 parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 {
     g_assert(routes_arr);
-    NetplanIPRoute *cur_route = NULL;
-
+    NetplanIPRoute *route = NULL;
     gchar *key = NULL;
-    gchar *options_key = NULL;
     gchar *kf_value = NULL;
+    gchar *options_key = NULL;
     gchar *options_kf_value = NULL;
     gchar **split = NULL;
     for (unsigned i = 1;; ++i) {
         gboolean unhandled_data = FALSE;
         key = g_strdup_printf("route%u", i);
-        options_key = g_strdup_printf("route%u_options", i);
         kf_value = g_key_file_get_string(kf, group, key, NULL);
+        options_key = g_strdup_printf("route%u_options", i);
         options_kf_value = g_key_file_get_string(kf, group, options_key, NULL);
-        if (!options_kf_value) {
+        if (!options_kf_value)
             g_free(options_key);
-        }
         if (!kf_value) {
             g_free(key);
             break;
         }
         if (!*routes_arr)
             *routes_arr = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
-
-        cur_route = g_new0(NetplanIPRoute, 1);
-        cur_route->type = g_strdup("unicast");
-        cur_route->scope = g_strdup("global");
-        cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        route = g_new0(NetplanIPRoute, 1);
+        route->type = g_strdup("unicast");
+        route->scope = g_strdup("global");
+        route->family = G_MAXUINT; /* 0 is a valid family ID */
+        route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
         g_debug("%s: adding new route (kf)", key);
 
         if (g_strcmp0(group, "ipv4") == 0)
-            cur_route->family = AF_INET;
+            route->family = AF_INET;
         else if (g_strcmp0(group, "ipv6") == 0)
-            cur_route->family = AF_INET6;
+            route->family = AF_INET6;
 
         split = g_strsplit(kf_value, ",", 3);
         /* Append "to" (address/prefix) */
         if (split[0])
-            cur_route->to = g_strdup(split[0]); //no need to free, will stay in netdef
+            route->to = g_strdup(split[0]); //no need to free, will stay in netdef
         /* Append gateway/via IP */
         if (split[0] && split[1])
-            cur_route->via = g_strdup(split[1]); //no need to free, will stay in netdef
+            route->via = g_strdup(split[1]); //no need to free, will stay in netdef
         /* Append metric */
         if (split[0] && split[1] && split[2] && strtoul(split[2], NULL, 10) != NETPLAN_METRIC_UNSPEC)
-            cur_route->metric = strtoul(split[2], NULL, 10);
+            route->metric = strtoul(split[2], NULL, 10);
         g_strfreev(split);
 
         /* Parse route options */
@@ -232,20 +237,19 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
                 g_debug("processing route_option: %s", split[i]);
                 gchar **kv = g_strsplit(split[i], "=", 2);
                 if (g_strcmp0(kv[0], "onlink") == 0)
-                    cur_route->onlink = (gboolean)g_strcmp0(kv[1], "false");
+                    route->onlink = (g_strcmp0(kv[1], "true") == 0);
                 else if (g_strcmp0(kv[0], "initrwnd") == 0)
-                    cur_route->advertised_receive_window = strtoul(kv[1], NULL, 10);
+                    route->advertised_receive_window = strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "initcwnd") == 0)
-                    cur_route->congestion_window = strtoul(kv[1], NULL, 10);
+                    route->congestion_window = strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "mtu") == 0)
-                    cur_route->mtubytes = strtoul(kv[1], NULL, 10);
+                    route->mtubytes = strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "table") == 0)
-                    cur_route->table = strtoul(kv[1], NULL, 10);
+                    route->table = strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "src") == 0)
-                    cur_route->from = g_strdup(kv[1]); //no need to free, will stay in netdef
+                    route->from = g_strdup(kv[1]); //no need to free, will stay in netdef
                 else
                     unhandled_data = TRUE;
-
                 g_strfreev(kv);
             }
             g_strfreev(split);
@@ -257,35 +261,27 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
         }
 
         /* Add route to array, clear keyfile */
-        g_array_append_val(*routes_arr, cur_route);
+        g_array_append_val(*routes_arr, route);
         if (!unhandled_data)
             _kf_clear_key(kf, group, key);
         g_free(key);
         g_free(kf_value);
     }
-    return TRUE;
 }
 
-static gboolean
+static void
 parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dataptr)
 {
-    g_autoptr(GError) err = NULL;
     if (   g_key_file_get_boolean(kf, group, "ignore-auto-routes", NULL)
         && g_key_file_get_boolean(kf, group, "never-default", NULL)) {
         (*dataptr).use_routes = FALSE;
         _kf_clear_key(kf, group, "ignore-auto-routes");
         _kf_clear_key(kf, group, "never-default");
     }
-    if (g_key_file_get_uint64(kf, group, "route-metric", &err) != NETPLAN_METRIC_UNSPEC) {
-        if (!err) {
-            (*dataptr).metric = g_key_file_get_uint64(kf, group, "route-metric", NULL);
-            _kf_clear_key(kf, group, "route-metric");
-        }
-    }
-    return TRUE;
+    handle_generic_uint(kf, group, "route-metric", &(*dataptr).metric, NETPLAN_METRIC_UNSPEC);
 }
 
-static gboolean
+static void
 parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
 {
     g_assert(domains_arr);
@@ -294,7 +290,7 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
     if (split) {
         if (len == 0) {
             _kf_clear_key(kf, group, "dns-search");
-            return TRUE;
+            return;
         }
         if (!*domains_arr)
             *domains_arr = g_array_new(FALSE, FALSE, sizeof(char*));
@@ -305,10 +301,9 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
         _kf_clear_key(kf, group, "dns-search");
         g_strfreev(split);
     }
-    return TRUE;
 }
 
-static gboolean
+static void
 parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
 {
     g_assert(nameserver_arr);
@@ -325,27 +320,24 @@ parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
         _kf_clear_key(kf, group, "dns");
         g_strfreev(split);
     }
-    return TRUE;
 }
 
-static gboolean
+static void
 parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
 {
     g_assert(auth);
-    gchar* tmp_str = NULL;
+    g_autofree gchar* method = g_key_file_get_string(kf, "802-1x", "eap", NULL);
 
-    tmp_str = g_key_file_get_string(kf, "802-1x", "eap", NULL);
-    if (tmp_str && g_strcmp0(tmp_str, "tls") == 0) {
+    if (method && g_strcmp0(method, "tls") == 0) {
         auth->eap_method = NETPLAN_AUTH_EAP_TLS;
         _kf_clear_key(kf, "802-1x", "eap");
-    } else if (tmp_str && g_strcmp0(tmp_str, "peap") == 0) {
+    } else if (method && g_strcmp0(method, "peap") == 0) {
         auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
         _kf_clear_key(kf, "802-1x", "eap");
-    } else if (tmp_str && g_strcmp0(tmp_str, "ttls") == 0) {
+    } else if (method && g_strcmp0(method, "ttls") == 0) {
         auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
         _kf_clear_key(kf, "802-1x", "eap");
     }
-    g_free(tmp_str);
 
     handle_generic_str(kf, "802-1x", "identity", &auth->identity);
     handle_generic_str(kf, "802-1x", "anonymous-identity", &auth->anonymous_identity);
@@ -356,8 +348,23 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
     handle_generic_str(kf, "802-1x", "private-key", &auth->client_key);
     handle_generic_str(kf, "802-1x", "private-key-password", &auth->client_key_password);
     handle_generic_str(kf, "802-1x", "phase2-auth", &auth->phase2_auth);
+}
 
-    return TRUE;
+static void
+parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
+{
+    g_autofree gchar *v = g_key_file_get_string(kf, "bond", "arp_ip_target", NULL);
+    if (v) {
+        gchar** split = g_strsplit(v, ",", -1);
+        for (unsigned i = 0; split[i]; ++i) {
+            if (!*targets_arr)
+                *targets_arr = g_array_new(FALSE, FALSE, sizeof(char *));
+            gchar *s = g_strdup(split[i]);
+            g_array_append_val(*targets_arr, s);
+        }
+        _kf_clear_key(kf, "bond", "arp_ip_target");
+        g_strfreev(split);
+    }
 }
 
 /* Read the key-value pairs from the keyfile and pass them through to a map */
@@ -450,6 +457,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
         if (g_strcmp0(netdef_id, tmp_str) == 0)
             _kf_clear_key(kf, "connection", "interface-name");
     } else if (tmp_str && nd_type >= NETPLAN_DEF_TYPE_VIRTUAL && nd_type < NETPLAN_DEF_TYPE_NM) {
+        /* netdef ID equals "interface-name" for virtual devices (bridge/bond/...) */
         nd_id = g_strdup(tmp_str);
         _kf_clear_key(kf, "connection", "interface-name");
     } else
@@ -506,7 +514,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
     parse_routes(kf, "ipv4", &nd->routes);
     parse_routes(kf, "ipv6", &nd->routes);
 
-    /* DNS */
+    /* DNS: XXX: How to differentiate ip4/ip6 search_domains? */
     parse_search_domains(kf, "ipv4", &nd->search_domains);
     parse_search_domains(kf, "ipv6", &nd->search_domains);
     parse_nameservers(kf, "ipv4", &nd->ip4_nameservers);
@@ -525,21 +533,14 @@ netplan_parse_keyfile(const char* filename, GError** error)
         }
     }
     g_free(tmp_str);
-
-    tmp_str = g_key_file_get_string(kf, "ipv6", "token", NULL);
-    if (tmp_str) {
-        nd->ip6_addr_gen_token = g_strdup(tmp_str);
-        _kf_clear_key(kf, "ipv6", "token");
-    }
-    g_free(tmp_str);
+    handle_generic_str(kf, "ipv6", "token", &nd->ip6_addr_gen_token);
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan
      * combines them as "modems". We need to parse a basic set of parameters
      * to enable the generator (in nm.c) to detect GSM vs CDMA connections,
      * using its modem_is_gsm() util. */
-    nd->modem_params.auto_config = g_key_file_get_boolean(kf, "gsm", "auto-config", NULL);
-    _kf_clear_key(kf, "gsm", "auto-config");
+    handle_generic_bool(kf, "gsm", "auto-config", &nd->modem_params.auto_config);
     handle_generic_str(kf, "gsm", "apn", &nd->modem_params.apn);
     handle_generic_str(kf, "gsm", "device-id", &nd->modem_params.device_id);
     handle_generic_str(kf, "gsm", "network-id", &nd->modem_params.network_id);
@@ -608,31 +609,16 @@ netplan_parse_keyfile(const char* filename, GError** error)
 
     /* Bridge: XXX: find a way to parse the bridge-port.priority & bridge-port.path-cost values */
     handle_generic_uint(kf, "bridge", "priority", &nd->bridge_params.priority, 0);
-    if (g_key_file_get_uint64(kf, "bridge", "ageing-time", NULL)) {
+    if (nd->bridge_params.priority)
         nd->custom_bridging = TRUE;
-        nd->bridge_params.ageing_time = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "ageing-time", NULL));
-        _kf_clear_key(kf, "bridge", "ageing-time");
-    }
-    if (g_key_file_get_uint64(kf, "bridge", "hello-time", NULL)) {
-        nd->custom_bridging = TRUE;
-        nd->bridge_params.hello_time = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "hello-time", NULL));
-        _kf_clear_key(kf, "bridge", "hello-time");
-    }
-    if (g_key_file_get_uint64(kf, "bridge", "forward-delay", NULL)) {
-        nd->custom_bridging = TRUE;
-        nd->bridge_params.forward_delay = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "forward-delay", NULL));
-        _kf_clear_key(kf, "bridge", "forward-delay");
-    }
-    if (g_key_file_get_uint64(kf, "bridge", "max-age", NULL)) {
-        nd->custom_bridging = TRUE;
-        nd->bridge_params.max_age = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", "max-age", NULL));
-        _kf_clear_key(kf, "bridge", "max-age");
-    }
-    /* STP needs to be handled last, for its different default value in custom_bridging */
+    handle_bridge_uint(kf, "ageing-time", nd, &nd->bridge_params.ageing_time);
+    handle_bridge_uint(kf, "hello-time", nd, &nd->bridge_params.hello_time);
+    handle_bridge_uint(kf, "forward-delay", nd, &nd->bridge_params.forward_delay);
+    handle_bridge_uint(kf, "max-age", nd, &nd->bridge_params.max_age);
+    /* STP needs to be handled last, for its different default value in custom_bridging mode */
     if (g_key_file_has_key(kf, "bridge", "stp", NULL)) {
         nd->custom_bridging = TRUE;
-        nd->bridge_params.stp = g_key_file_get_boolean(kf, "bridge", "stp", NULL);
-        _kf_clear_key(kf, "bridge", "stp");
+        handle_generic_bool(kf, "bridge", "stp", &nd->bridge_params.stp);
     } else if(nd->custom_bridging) {
         nd->bridge_params.stp = TRUE; //set default value if not specified otherwise
     }
@@ -656,23 +642,12 @@ netplan_parse_keyfile(const char* filename, GError** error)
     handle_generic_uint(kf, "bond", "resend_igmp", &nd->bond_params.resend_igmp, 0);
     handle_generic_uint(kf, "bond", "packets_per_slave", &nd->bond_params.packets_per_slave, 0);
     handle_generic_uint(kf, "bond", "num_grat_arp", &nd->bond_params.gratuitous_arp, 0);
+    /* num_unsol_na might overwrite num_grat_arp, but we're fine if they are equal:
+     * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
     if (g_key_file_get_uint64(kf, "bond", "num_unsol_na", NULL) == nd->bond_params.gratuitous_arp)
         _kf_clear_key(kf, "bond", "num_unsol_na");
-    nd->bond_params.all_slaves_active = g_key_file_get_boolean(kf, "bond", "all_slaves_active", NULL);
-    _kf_clear_key(kf, "bond", "all_slaves_active");
-    tmp_str = g_key_file_get_string(kf, "bond", "arp_ip_target", NULL);
-    if (tmp_str) {
-        gchar** split = g_strsplit(tmp_str, ",", -1);
-        for (unsigned i = 0; split[i]; ++i) {
-            if (!nd->bond_params.arp_ip_targets)
-                nd->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char *));
-            char *s = g_strdup(split[i]);
-            g_array_append_val(nd->bond_params.arp_ip_targets, s);
-        }
-        g_strfreev(split);
-    }
-    _kf_clear_key(kf, "bond", "arp_ip_target");
-    g_free(tmp_str);
+    handle_generic_bool(kf, "bond", "all_slaves_active", &nd->bond_params.all_slaves_active);
+    parse_bond_arp_ip_targets(kf, &nd->bond_params.arp_ip_targets);
 
     /* Special handling for WiFi "access-points:" mapping */
     if (nd->type == NETPLAN_DEF_TYPE_WIFI) {
@@ -698,11 +673,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
         }
         g_free(tmp_str);
 
-        ap->hidden = g_key_file_get_boolean(kf, "wifi", "hidden", NULL);
-        _kf_clear_key(kf, "wifi", "hidden");
-
-        ap->bssid = g_key_file_get_string(kf, "wifi", "bssid", NULL);
-        _kf_clear_key(kf, "wifi", "bssid");
+        handle_generic_bool(kf, "wifi", "hidden", &ap->hidden);
+        handle_generic_str(kf, "wifi", "bssid", &ap->bssid);
 
         /* Wifi band & channel */
         tmp_str = g_key_file_get_string(kf, "wifi", "band", NULL);
@@ -714,10 +686,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
             _kf_clear_key(kf, "wifi", "band");
         }
         g_free(tmp_str);
-        if (g_key_file_get_uint64(kf, "wifi", "channel", NULL)) {
-            ap->channel = g_key_file_get_uint64(kf, "wifi", "channel", NULL);
-            _kf_clear_key(kf, "wifi", "channel");
-        }
+        handle_generic_uint(kf, "wifi", "channel", &ap->channel, 0);
 
         /* Wifi security */
         tmp_str = g_key_file_get_string(kf, "wifi-security", "key-mgmt", NULL);
@@ -736,13 +705,9 @@ netplan_parse_keyfile(const char* filename, GError** error)
         }
         g_free(tmp_str);
 
-        tmp_str = g_key_file_get_string(kf, "wifi-security", "psk", NULL);
-        if (tmp_str) {
-            ap->auth.password = g_strdup(tmp_str);
+        handle_generic_str(kf, "wifi-security", "psk", &ap->auth.password);
+        if (ap->auth.password)
             ap->has_auth = TRUE;
-            _kf_clear_key(kf, "wifi-security", "psk");
-        }
-        g_free(tmp_str);
 
         parse_dot1x_auth(kf, &ap->auth);
         if (ap->auth.eap_method != NETPLAN_AUTH_EAP_NONE)
