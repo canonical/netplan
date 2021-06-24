@@ -256,6 +256,7 @@ struct net_definition {
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
     gboolean critical;
+    gboolean configure_without_carrier;
 
     /* addresses */
     gboolean dhcp4;

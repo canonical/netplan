@@ -659,7 +659,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         g_string_append_printf(network, "IPv6MTUBytes=%d\n", def->ipv6_mtubytes);
     }
 
-    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
+    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL || def->configure_without_carrier)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
