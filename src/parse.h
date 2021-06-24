@@ -256,7 +256,6 @@ struct net_definition {
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
     gboolean critical;
-    gboolean configure_without_carrier;
 
     /* addresses */
     gboolean dhcp4;
@@ -295,6 +294,9 @@ struct net_definition {
     guint vlan_id;
     NetplanNetDefinition* vlan_link;
     gboolean has_vlans;
+
+    /* carrier */
+    gboolean configure_without_carrier;
 
     /* Configured custom MAC address */
     char* set_mac;
