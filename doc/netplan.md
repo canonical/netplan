@@ -279,7 +279,8 @@ Virtual devices
 
 ``configure-without-carrier`` (bool)
 
-:   Allows a specific link to be configured even if it has no carrier.
+:   (networkd backend only) Allow the specified interface to be configured even
+    if it has no carrier.
 
 ``critical`` (bool)
 

@@ -555,6 +555,23 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_eth_configure_without_carrier_true(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      configure-without-carrier: yes
+''')
+
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+'''})
+
+
     def test_gateway(self):
         self.generate('''network:
   version: 2

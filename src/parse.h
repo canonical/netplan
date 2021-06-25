@@ -295,9 +295,6 @@ struct net_definition {
     NetplanNetDefinition* vlan_link;
     gboolean has_vlans;
 
-    /* carrier */
-    gboolean configure_without_carrier;
-
     /* Configured custom MAC address */
     char* set_mac;
 
@@ -404,6 +401,9 @@ struct net_definition {
   
     /* netplan-feature: activation-mode */
     char* activation_mode;  
+
+    /* carrier */
+    gboolean configure_without_carrier;
 };
 
 typedef enum {
