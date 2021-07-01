@@ -571,7 +571,6 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 '''})
 
-
     def test_gateway(self):
         self.generate('''network:
   version: 2
