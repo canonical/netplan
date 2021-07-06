@@ -21,7 +21,7 @@ import os
 import ctypes
 import ctypes.util
 
-from .base import TestBase
+from .base import TestKeyfileBase
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
@@ -33,19 +33,19 @@ lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 UUID = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
 
 
-class TestNetworkManagerKeyfileParser(TestBase):
+class TestNetworkManagerKeyfileParser(TestKeyfileBase):
     '''Test NM keyfile parser as used by NetworkManager's YAML backend'''
 
     def test_keyfile_missing_uuid(self):
-        err = self.generate('[connection]\ntype=ethernets', expect_fail=True)
+        err = self.generate_from_keyfile('[connection]\ntype=ethernets', expect_fail=True)
         self.assertIn('netplan: Keyfile: cannot find connection.uuid', err)
 
     def test_keyfile_missing_type(self):
-        err = self.generate('[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f', expect_fail=True)
+        err = self.generate_from_keyfile('[connection]\nuuid=87749f1d-334f-40b2-98d4-55db58965f5f', expect_fail=True)
         self.assertIn('netplan: Keyfile: cannot find connection.type', err)
 
     def test_keyfile_gsm(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=T-Mobile Funkadelic 2
 uuid={}
 type=gsm
@@ -95,7 +95,7 @@ method=auto
 '''.format(UUID, UUID)})
 
     def test_keyfile_cdma(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=T-Mobile Funkadelic 2
 uuid={}
 type=cdma
@@ -129,7 +129,7 @@ method=ignore
 '''.format(UUID, UUID)})
 
     def test_keyfile_gsm_via_bluetooth(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=T-Mobile Funkadelic 2
 uuid={}
 type=bluetooth
@@ -181,7 +181,7 @@ method=auto
 '''.format(UUID, UUID)})
 
     def test_keyfile_method_auto(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=Test
 uuid={}
 type=ethernet
@@ -235,7 +235,7 @@ route-metric=4242
 '''.format(UUID, UUID)})
 
     def test_keyfile_method_manual(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=Test
 uuid={}
 type=ethernet
@@ -366,7 +366,7 @@ route1_options=unknown=invalid,
         self._template_keyfile_type('nm-devices', 'dummy', False)
 
     def test_keyfile_type_wifi(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=wifi
 uuid={}
 permissions=
@@ -418,7 +418,7 @@ dns-search='''.format(UUID))
 '''.format(UUID, UUID, UUID)})
 
     def _template_keyfile_type_wifi_eap(self, method):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=wifi
 uuid={}
 permissions=
@@ -487,7 +487,7 @@ dns-search='''.format(UUID, method))
         self._template_keyfile_type_wifi_eap('ttls')
 
     def _template_keyfile_type_wifi(self, nd_mode, nm_mode):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=wifi
 uuid={}
 id=myid with spaces
@@ -530,7 +530,7 @@ mode={}'''.format(UUID, nm_mode))
 '''.format(UUID, ap_mode, UUID, wifi_mode, UUID)})
 
     def test_keyfile_type_wifi_ap(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=wifi
 uuid={}
 id=myid with spaces
@@ -571,12 +571,12 @@ mode=ap'''.format(UUID))
         self._template_keyfile_type_wifi('infrastructure', 'mesh')
 
     def test_keyfile_type_wifi_missing_ssid(self):
-        err = self.generate('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID), expect_fail=True)
+        err = self.generate_from_keyfile('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID), expect_fail=True)
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         self.assertIn('netplan: Keyfile: cannot find SSID for WiFi connection', err)
 
     def test_keyfile_wake_on_lan(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=ethernet
 uuid={}
 id=myid with spaces
@@ -602,7 +602,7 @@ method=auto'''.format(UUID))
 '''.format(UUID, UUID)})
 
     def test_keyfile_wake_on_lan_nm_default(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=ethernet
 uuid={}
 id=myid with spaces
@@ -625,7 +625,7 @@ method=auto'''.format(UUID))
 '''.format(UUID, UUID)})
 
     def test_keyfile_modem_gsm(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=gsm
 uuid={}
 id=myid with spaces
@@ -649,7 +649,7 @@ auto-config=true'''.format(UUID))
 '''.format(UUID, UUID)})
 
     def test_keyfile_existing_id(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 type=bridge
 interface-name=mybr
 uuid={}
@@ -669,7 +669,7 @@ method=auto'''.format(UUID), netdef_id='mybr')
 '''.format(UUID)})
 
     def test_keyfile_yaml_wifi_hotspot(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=Hotspot-1
 type=wifi
 uuid={}
@@ -730,7 +730,7 @@ psk=test1234
 '''.format(UUID, UUID, UUID)})
 
     def test_keyfile_ip4_linklocal_ip6_ignore(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=netplan-eth1
 type=ethernet
 interface-name=eth1
@@ -758,7 +758,7 @@ method=ignore
 '''.format(UUID, UUID)})
 
     def test_keyfile_vlan(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=netplan-enblue
 type=vlan
 interface-name=enblue
@@ -791,7 +791,7 @@ method=ignore
 '''.format(UUID)})
 
     def test_keyfile_bridge(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=netplan-br0
 type=bridge
 interface-name=br0
@@ -830,7 +830,7 @@ method=ignore
 '''.format(UUID)})
 
     def test_keyfile_bridge_default_stp(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=netplan-br0
 type=bridge
 interface-name=br0
@@ -859,7 +859,7 @@ method=ignore
 '''.format(UUID)})
 
     def test_keyfile_bond(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 uuid={}
 id=netplan-bn0
 type=bond
@@ -927,7 +927,7 @@ method=ignore
 '''.format(UUID)})
 
     def test_keyfile_customer_A1(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=netplan-wlan0-TESTSSID
 type=wifi
 interface-name=wlan0
@@ -969,7 +969,7 @@ psk=s0s3cr1t
 '''.format(UUID, UUID)})
 
     def test_keyfile_customer_A2(self):
-        self.generate('''[connection]
+        self.generate_from_keyfile('''[connection]
 id=gsm
 type=gsm
 uuid={}

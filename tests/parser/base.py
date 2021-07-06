@@ -58,7 +58,7 @@ def capture_stderr():
             os.close(stderr_copy)
 
 
-class TestBase(unittest.TestCase):
+class TestKeyfileBase(unittest.TestCase):
 
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
@@ -70,7 +70,7 @@ class TestBase(unittest.TestCase):
         shutil.rmtree(self.workdir.name)
         super().tearDown()
 
-    def generate(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
+    def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
         '''Call libnetplan with given keyfile string as configuration'''
         # Autodetect default 'NM-<UUID>' netdef-id
         ssid = ''
