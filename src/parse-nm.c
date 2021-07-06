@@ -272,6 +272,7 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 static void
 parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dataptr)
 {
+    g_assert(dataptr);
     if (   g_key_file_get_boolean(kf, group, "ignore-auto-routes", NULL)
         && g_key_file_get_boolean(kf, group, "never-default", NULL)) {
         (*dataptr).use_routes = FALSE;
@@ -353,6 +354,7 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
 static void
 parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
 {
+    g_assert(targets_arr);
     g_autofree gchar *v = g_key_file_get_string(kf, "bond", "arp_ip_target", NULL);
     if (v) {
         gchar** split = g_strsplit(v, ",", -1);
@@ -502,7 +504,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
     parse_dhcp_overrides(kf, "ipv4", &nd->dhcp4_overrides);
     parse_dhcp_overrides(kf, "ipv6", &nd->dhcp6_overrides);
 
-    /* Manuall IPv4/6 addresses */
+    /* Manual IPv4/6 addresses */
     parse_addresses(kf, "ipv4", &nd->ip4_addresses);
     parse_addresses(kf, "ipv6", &nd->ip6_addresses);
 
