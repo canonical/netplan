@@ -372,3 +372,28 @@ backend_rules_error:
     return valid;
 }
 
+gboolean
+validate_gateway_consistency(GHashTable *netdefs, GError** error)
+{
+    const char *gw4 = NULL, *gw6 = NULL;
+    gpointer key, value;
+    GHashTableIter iter;
+
+    g_hash_table_iter_init (&iter, netdefs);
+    while (g_hash_table_iter_next (&iter, &key, &value))
+    {
+        NetplanNetDefinition *nd = value;
+        if (nd->gateway4) {
+            if (gw4)
+                return FALSE;
+            gw4 = nd->gateway4;
+        }
+        if (nd->gateway6) {
+            if (gw6)
+                return FALSE;
+            gw6 = nd->gateway6;
+        }
+    }
+    return TRUE;
+}
+

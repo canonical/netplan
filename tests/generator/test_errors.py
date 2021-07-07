@@ -435,6 +435,30 @@ class TestConfigErrors(TestBase):
       gateway6: %s''' % a, expect_fail=True)
             self.assertIn("invalid IPv6 address '%s'" % a, err)
 
+    def test_multiple_ip4_gateways(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [192.168.22.78/24]
+      gateway4: 192.168.22.1
+    enblue:
+      addresses: [10.49.34.4/16]
+      gateway4: 10.49.2.38''', expect_fail=False)
+        self.assertIn("More than one global gateway specified", err)
+
+    def test_multiple_ip6_gateways(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [2001:FFfe::1/62]
+      gateway6: 2001:FFfe::2
+    enblue:
+      addresses: [2001:FFfe::33/62]
+      gateway6: 2001:FFfe::34''', expect_fail=False)
+        self.assertIn("More than one global gateway specified", err)
+
     def test_invalid_nameserver_ipv4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:
             err = self.generate('''network:
