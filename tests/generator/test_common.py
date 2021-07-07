@@ -556,12 +556,13 @@ UseMTU=true
 '''})
 
     def test_gateway4(self):
-        self.generate('''network:
+        err = self.generate('''network:
   version: 2
   ethernets:
     engreen:
       addresses: ["192.168.14.2/24"]
       gateway4: 192.168.14.1''')
+        self.assertIn("`gateway4` has been deprecated, use default routes instead.", err)
         self.assert_networkd({'engreen.network': '''[Match]
 Name=engreen
 
@@ -572,12 +573,13 @@ Gateway=192.168.14.1
 '''})
 
     def test_gateway6(self):
-        self.generate('''network:
+        err = self.generate('''network:
   version: 2
   ethernets:
     engreen:
       addresses: ["2001:FFfe::1/64"]
       gateway6: 2001:FFfe::2''')
+        self.assertIn("`gateway6` has been deprecated, use default routes instead.", err)
         self.assert_networkd({'engreen.network': '''[Match]
 Name=engreen
 
@@ -594,7 +596,7 @@ Gateway=2001:FFfe::2
     engreen:
       addresses: ["192.168.14.2/24", "2001:FFfe::1/64"]
       gateway4: 192.168.14.1
-      gateway6: "2001:FFfe::2"''', skip_generated_yaml_validation=True)
+      gateway6: "2001:FFfe::2"''')
 
         self.assert_networkd({'engreen.network': '''[Match]
 Name=engreen
