@@ -2714,7 +2714,7 @@ netplan_clear_netdefs()
         if (n > 0)
             g_hash_table_remove_all(netdefs);
         netdefs = NULL;
-	}
+    }
     if(netdefs_ordered) {
         g_clear_list(&netdefs_ordered, g_free);
         netdefs_ordered = NULL;
