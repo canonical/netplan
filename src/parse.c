@@ -42,6 +42,13 @@
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
 #define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(NetplanWireguardPeer, field))
 
+/* convenience macro to avoid strdup'ing a string into a field if it's already set. */
+#define set_str_if_null(dst, src) { if (dst) {\
+    g_assert_cmpstr(src, ==, dst); \
+} else { \
+    dst = g_strdup(src); \
+} }
+
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
 
@@ -1110,7 +1117,7 @@ handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 {
     if (!is_ip4_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
-    cur_netdef->gateway4 = g_strdup(scalar(node));
+    set_str_if_null(cur_netdef->gateway4, scalar(node));
     return TRUE;
 }
 
@@ -1119,7 +1126,7 @@ handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 {
     if (!is_ip6_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
-    cur_netdef->gateway6 = g_strdup(scalar(node));
+    set_str_if_null(cur_netdef->gateway6, scalar(node));
     return TRUE;
 }
 
@@ -1185,7 +1192,7 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
             if (component->bond)
                 return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
                                   cur_netdef->id, scalar(entry), component->bond);
-            component->bridge = g_strdup(cur_netdef->id);
+            set_str_if_null(component->bridge, cur_netdef->id);
             if (component->backend == NETPLAN_BACKEND_OVS) {
                 g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", cur_netdef->id);
                 cur_netdef->backend = NETPLAN_BACKEND_OVS;
@@ -2511,7 +2518,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* convenience shortcut: physical device without match: means match
          * name on ID */
         if (cur_netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !cur_netdef->has_match)
-            cur_netdef->match.original_name = g_strdup(cur_netdef->id);
+            set_str_if_null(cur_netdef->match.original_name, cur_netdef->id);
     }
     backend_cur_type = NETPLAN_BACKEND_NONE;
     return TRUE;
