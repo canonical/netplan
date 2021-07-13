@@ -2683,6 +2683,9 @@ netplan_finish_parse(GError** error)
 {
     if (netdefs) {
         g_debug("We have some netdefs, pass them through a final round of validation");
+        if (!validate_gateway_consistency(netdefs, error))
+            g_warning("More than one global gateway specified, the routing is ambiguous! "
+                      "Please set up multiple routing tables and use `routing-policy` instead.");
         g_hash_table_foreach(netdefs, finish_iterator, error);
     }
 
