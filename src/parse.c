@@ -1446,7 +1446,6 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
     guint offset = GPOINTER_TO_UINT(data);
     int family = get_ip_family(scalar(node));
     char** dest = (char**) ((void*) cur_route + offset);
-    g_free(*dest);
 
     if (family < 0)
         return yaml_error(node, error, "invalid IP family '%d'", family);
@@ -1454,6 +1453,7 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
     if (!check_and_set_family(family, &cur_route->family))
         return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
+    g_free(*dest);
     *dest = g_strdup(scalar(node));
 
     return TRUE;
@@ -1465,7 +1465,6 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     guint offset = GPOINTER_TO_UINT(data);
     int family = get_ip_family(scalar(node));
     char** dest = (char**) ((void*) cur_ip_rule + offset);
-    g_free(*dest);
 
     if (family < 0)
         return yaml_error(node, error, "invalid IP family '%d'", family);
@@ -1473,6 +1472,7 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     if (!check_and_set_family(family, &cur_ip_rule->family))
         return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
+    g_free(*dest);
     *dest = g_strdup(scalar(node));
 
     return TRUE;
