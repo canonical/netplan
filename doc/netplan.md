@@ -554,6 +554,32 @@ backend.
 
 These options are available for all types of interfaces.
 
+### Default routes
+
+The most common need for routing concerns the definition of default routes to
+reach the wider Internet. Those default routes can only defined once per IP family
+and routing table. A typical example would look like the following:
+
+```yaml
+eth0:
+  [...]
+  routes:
+  - to: default # could be 0/0 or 0.0.0.0/0 optionally
+    via: 10.0.0.1
+    metric: 100
+    on-link: true
+  - to: default # could be ::/0 optionally
+    via: cf02:de:ad:be:ef::2
+eth1:
+  [...]
+  routes:
+  - to: default
+    via: 172.134.67.1
+    metric: 100
+    on-link: true
+    table: 76 # Not on the main routing table, does not conflict with the eth0 default route
+```
+
 ``routes`` (mapping)
 
 :    The ``routes`` block defines standard static routes for an interface.
