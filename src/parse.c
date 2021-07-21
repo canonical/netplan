@@ -1643,30 +1643,35 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
         g_debug("%s: adding new route", cur_netdef->id);
 
-        if (process_mapping(doc, entry, routes_handlers, NULL, error))
-            g_array_append_val(cur_netdef->routes, cur_route);
+        if (!process_mapping(doc, entry, routes_handlers, NULL, error))
+            goto err;
 
         if (       (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
                     || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
                 && !cur_route->to) {
-            cur_route = NULL;
-            return yaml_error(node, error, "link and host routes must specify a 'to' IP");
+            yaml_error(node, error, "link and host routes must specify a 'to' IP");
+            goto err;
         } else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
                 && g_ascii_strcasecmp(cur_route->scope, "global") == 0
                 && (!cur_route->to || !cur_route->via)) {
-            cur_route = NULL;
-            return yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
+            yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
+            goto err;
         } else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to) {
-            cur_route = NULL;
-            return yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
+            yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
+            goto err;
         }
 
+        g_array_append_val(cur_netdef->routes, cur_route);
         cur_route = NULL;
-
-        if (error && *error)
-            return FALSE;
     }
     return TRUE;
+
+err:
+    if (cur_route) {
+        g_free(cur_route);
+        cur_route = NULL;
+    }
+    return FALSE;
 }
 
 static const mapping_entry_handler ip_rules_handlers[] = {
