@@ -372,10 +372,73 @@ backend_rules_error:
     return valid;
 }
 
-gboolean
-validate_gateway_consistency(GHashTable *netdefs, GError** error)
+struct _defroute_entry {
+    int family;
+    int table;
+    int metric;
+    const char *netdef_id;
+};
+
+static void
+defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **error) {
+    char table_name[128] = {};
+    char metric_name[128] = {};
+
+    g_assert(entry->family == AF_INET || entry->family == AF_INET6);
+
+    // XXX: handle 254 as an alias for main ?
+    if (entry->table == NETPLAN_ROUTE_TABLE_UNSPEC)
+        strncpy(table_name, "main table", sizeof(table_name) - 1);
+    else
+        snprintf(table_name, sizeof(table_name) - 1, "table %d", entry->table);
+
+    if (entry->metric == NETPLAN_METRIC_UNSPEC)
+        strncpy(metric_name, "default metric", sizeof(metric_name) - 1);
+    else
+        snprintf(metric_name, sizeof(metric_name) - 1, "metric %d", entry->metric);
+
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+            "Conflicting default route declarations for %s (%s, %s), first declared in %s but also in %s",
+            (entry->family == AF_INET) ? "IPv4" : "IPv6",
+            table_name,
+            metric_name,
+            entry->netdef_id,
+            new_netdef_id);
+}
+
+static gboolean
+check_defroute(struct _defroute_entry *candidate,
+               GSList **entries,
+               GError **error)
 {
-    const char *gw4 = NULL, *gw6 = NULL;
+    struct _defroute_entry *entry;
+    GSList *it;
+
+    g_assert(entries != NULL);
+    it = *entries;
+
+    while (it) {
+        struct _defroute_entry *e = it->data;
+        if (e->family == candidate->family &&
+                e->table == candidate->table &&
+                e->metric == candidate->metric) {
+            defroute_err(e, candidate->netdef_id, error);
+            return FALSE;
+        }
+        it = it->next;
+    }
+    entry = g_malloc(sizeof(*entry));
+    *entry = *candidate;
+    *entries = g_slist_prepend(*entries, entry);
+    return TRUE;
+}
+
+gboolean
+validate_default_route_consistency(GHashTable *netdefs, GError ** error)
+{
+    struct _defroute_entry candidate = {};
+    GSList *defroutes = NULL;
+    gboolean ret = TRUE;
     gpointer key, value;
     GHashTableIter iter;
 
@@ -383,17 +446,42 @@ validate_gateway_consistency(GHashTable *netdefs, GError** error)
     while (g_hash_table_iter_next (&iter, &key, &value))
     {
         NetplanNetDefinition *nd = value;
+        candidate.netdef_id = key;
+        candidate.metric = NETPLAN_METRIC_UNSPEC;
+        candidate.table = NETPLAN_ROUTE_TABLE_UNSPEC;
         if (nd->gateway4) {
-            if (gw4)
-                return FALSE;
-            gw4 = nd->gateway4;
+            candidate.family = AF_INET;
+            if (!check_defroute(&candidate, &defroutes, error)) {
+                ret = FALSE;
+                break;
+            }
         }
         if (nd->gateway6) {
-            if (gw6)
-                return FALSE;
-            gw6 = nd->gateway6;
+            candidate.family = AF_INET6;
+            if (!check_defroute(&candidate, &defroutes, error)) {
+                ret = FALSE;
+                break;
+            }
+        }
+
+        if (!nd->routes)
+            continue;
+
+        for (size_t i = 0; i < nd->routes->len; i++) {
+            NetplanIPRoute* r = g_array_index(nd->routes, NetplanIPRoute*, i);
+            char *suffix = strrchr(r->to, '/');
+            if (g_strcmp0(suffix, "/0") == 0 || g_strcmp0(r->to, "default") == 0) {
+                candidate.family = r->family;
+                candidate.table = r->table;
+                candidate.metric = r->metric;
+                if (!check_defroute(&candidate, &defroutes, error)) {
+                    ret = FALSE;
+                    break;
+                }
+            }
         }
     }
-    return TRUE;
+    g_slist_free_full(defroutes, g_free);
+    return ret;
 }
 

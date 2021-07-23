@@ -34,4 +34,4 @@ gboolean
 validate_backend_rules(NetplanNetDefinition* nd, GError** error);
 
 gboolean
-validate_gateway_consistency(GHashTable* netdefs, GError** error);
+validate_default_route_consistency(GHashTable* netdefs, GError** error);

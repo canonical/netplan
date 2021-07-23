@@ -1655,6 +1655,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        cur_route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
         g_debug("%s: adding new route", cur_netdef->id);
 
         if (!process_mapping(doc, entry, routes_handlers, NULL, error))
@@ -2701,10 +2702,14 @@ GHashTable *
 netplan_finish_parse(GError** error)
 {
     if (netdefs) {
+        GError *recoverable = NULL;
         g_debug("We have some netdefs, pass them through a final round of validation");
-        if (!validate_gateway_consistency(netdefs, error))
-            g_warning("More than one global gateway specified, the routing is ambiguous! "
-                      "Please set up multiple routing tables and use `routing-policy` instead.");
+        if (!validate_default_route_consistency(netdefs, &recoverable)) {
+            g_warning("Problem encountered while validating default route consistency."
+                      "Please set up multiple routing tables and use `routing-policy` instead.\n"
+                      "Error: %s", (recoverable) ? recoverable->message : "");
+            g_clear_error(&recoverable);
+        }
         g_hash_table_foreach(netdefs, finish_iterator, error);
     }
 
