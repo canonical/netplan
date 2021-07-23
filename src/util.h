@@ -27,6 +27,8 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
 void unlink_glob(const char* rootdir, const char* _glob);
 int find_yaml_glob(const char* rootdir, glob_t* out_glob);
 
+const char *get_global_network(int ip_family);
+
 int wifi_get_freq24(int channel);
 int wifi_get_freq5(int channel);
 

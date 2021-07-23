@@ -130,6 +130,29 @@ Gateway=192.168.1.3
 Metric=9999
 '''})
 
+    def test_route_v4_default(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.1.2/24"]
+      routes:
+        - to: default
+          via: 192.168.1.1
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.1.2/24
+
+[Route]
+Destination=0.0.0.0/0
+Gateway=192.168.1.1
+'''})
+
     def test_route_v4_onlink(self):
         self.generate('''network:
   version: 2
@@ -517,6 +540,28 @@ Gateway=2001:beef:beef::1
 Destination=2001:f00f:f00f::fe/64
 Gateway=2001:beef:feed::1
 Metric=1024
+'''})
+
+    def test_route_v6_default(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enblue:
+      addresses: ["2001:dead:beef::2/64"]
+      routes:
+        - to: default
+          via: 2001:beef:beef::1''')
+
+        self.assert_networkd({'enblue.network': '''[Match]
+Name=enblue
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:dead:beef::2/64
+
+[Route]
+Destination=::/0
+Gateway=2001:beef:beef::1
 '''})
 
     def test_ip_rule_table(self):

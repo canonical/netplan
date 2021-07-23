@@ -422,9 +422,14 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
 static void
 write_route(NetplanIPRoute* r, GString* s)
 {
+    const char *to;
     g_string_append_printf(s, "\n[Route]\n");
 
-    g_string_append_printf(s, "Destination=%s\n", r->to);
+    if (g_strcmp0(r->to, "default") == 0)
+        to = get_global_network(r->family);
+    else
+        to = r->to;
+    g_string_append_printf(s, "Destination=%s\n", to);
 
     if (r->via)
         g_string_append_printf(s, "Gateway=%s\n", r->via);
