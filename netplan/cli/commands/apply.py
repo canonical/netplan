@@ -258,6 +258,8 @@ class NetplanApply(utils.NetplanCommand):
         """
         for composite in composites:
             for _, settings in composite.items():
+                if not type(settings) is dict:
+                    continue
                 members = settings.get('interfaces', [])
                 for iface in members:
                     if iface == phy:
