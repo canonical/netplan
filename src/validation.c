@@ -388,14 +388,14 @@ defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **
 
     // XXX: handle 254 as an alias for main ?
     if (entry->table == NETPLAN_ROUTE_TABLE_UNSPEC)
-        strncpy(table_name, "main table", sizeof(table_name) - 1);
+        strncpy(table_name, "table: main", sizeof(table_name) - 1);
     else
-        snprintf(table_name, sizeof(table_name) - 1, "table %d", entry->table);
+        snprintf(table_name, sizeof(table_name) - 1, "table: %d", entry->table);
 
     if (entry->metric == NETPLAN_METRIC_UNSPEC)
-        strncpy(metric_name, "default metric", sizeof(metric_name) - 1);
+        strncpy(metric_name, "metric: default", sizeof(metric_name) - 1);
     else
-        snprintf(metric_name, sizeof(metric_name) - 1, "metric %d", entry->metric);
+        snprintf(metric_name, sizeof(metric_name) - 1, "metric: %d", entry->metric);
 
     g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
             "Conflicting default route declarations for %s (%s, %s), first declared in %s but also in %s",
@@ -484,4 +484,3 @@ validate_default_route_consistency(GHashTable *netdefs, GError ** error)
     g_slist_free_full(defroutes, g_free);
     return ret;
 }
-
