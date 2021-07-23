@@ -216,9 +216,15 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
     if (def->routes != NULL) {
         for (unsigned i = 0, j = 1; i < def->routes->len; ++i) {
             const NetplanIPRoute *cur_route = g_array_index(def->routes, NetplanIPRoute*, i);
+            const char *destination;
 
             if (cur_route->family != family)
                 continue;
+
+            if (g_strcmp0(cur_route->to, "default") == 0)
+                destination = get_global_network(family);
+            else
+                destination = cur_route->to;
 
             if (cur_route->type && g_ascii_strcasecmp(cur_route->type, "unicast") != 0) {
                 g_fprintf(stderr, "ERROR: %s: NetworkManager only supports unicast routes\n", def->id);
@@ -238,7 +244,7 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
 
             tmp_key = g_strdup_printf("route%d", j);
             tmp_val = g_string_new(NULL);
-            g_string_printf(tmp_val, "%s,%s", cur_route->to, cur_route->via);
+            g_string_printf(tmp_val, "%s,%s", destination, cur_route->via);
             if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
                 g_string_append_printf(tmp_val, ",%d", cur_route->metric);
             g_key_file_set_string(kf, group, tmp_key, tmp_val->str);

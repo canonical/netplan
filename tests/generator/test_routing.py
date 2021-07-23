@@ -790,6 +790,35 @@ route3=11.11.11.0/24,192.168.1.3,9999
 method=ignore
 '''})
 
+    def test_route_v4_default(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.1.2/24"]
+      routes:
+        - to: default
+          via: 192.168.1.1
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.1.2/24
+route1=0.0.0.0/0,192.168.1.1
+
+[ipv6]
+method=ignore
+'''})
+
     def test_route_v6_single(self):
         self.generate('''network:
   version: 2
@@ -848,6 +877,34 @@ method=manual
 address1=2001:f00f:f00f::2/64
 route1=2001:dead:beef::2/64,2001:beef:beef::1
 route2=2001:dead:feed::2/64,2001:beef:beef::2,1000
+'''})
+
+    def test_route_v6_default(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enblue:
+      addresses: ["2001:dead:beef::2/64"]
+      routes:
+        - to: default
+          via: 2001:beef:beef::1''')
+
+        self.assert_nm({'enblue': '''[connection]
+id=netplan-enblue
+type=ethernet
+interface-name=enblue
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=manual
+address1=2001:dead:beef::2/64
+route1=::/0,2001:beef:beef::1
 '''})
 
     def test_routes_mixed(self):
