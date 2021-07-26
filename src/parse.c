@@ -1464,6 +1464,16 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 }
 
 static gboolean
+handle_routes_destination(yaml_document_t *doc, yaml_node_t *node, const void *data, GError **error)
+{
+    const char *addr = scalar(node);
+    if (g_strcmp0(addr, "default") != 0)
+        return handle_routes_ip(doc, node, route_offset(to), error);
+    set_str_if_null(cur_route->to, addr);
+    return TRUE;
+}
+
+static gboolean
 handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -1611,7 +1621,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
     {"table", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(table)},
-    {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
+    {"to", YAML_SCALAR_NODE, handle_routes_destination},
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(metric)},
