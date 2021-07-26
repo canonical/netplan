@@ -251,7 +251,7 @@ class NetplanApply(utils.NetplanCommand):
             utils.systemctl_network_manager('start', sync=sync)
 
     @staticmethod
-    def is_composite_member(composites, phy):  # pragma: nocover (covered in autopkgtest)
+    def is_composite_member(composites, phy):
         """
         Is this physical interface a member of a 'composite' virtual
         interface? (bond, bridge)
