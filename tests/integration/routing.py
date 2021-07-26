@@ -169,6 +169,37 @@ class _CommonTests():
         self.assertIn(b'metric 799',
                       subprocess.check_output(['ip', '-6', 'route', 'show', '2001:f00f:f00f::/64']))
 
+    def test_routes_default(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses:
+          - 192.168.5.99/24
+          - "9876:BBBB::11/70"
+      routes:
+          - to: default
+            via: 192.168.5.1
+          - to: default
+            via: "9876:BBBB::1"
+          - to: 10.10.10.0/24
+            via: 192.168.5.254
+            metric: 99''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.99/24', 'inet6 9876:bbbb::11/70'])  # from DHCP
+        # import pdb
+        # pdb.set_trace()
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'via 9876:bbbb::1',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'default']))
+        self.assertIn(b'10.10.10.0/24 via 192.168.5.254',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+        self.assertIn(b'metric 99',  # check metric from static route
+                      subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
+
     def test_per_route_mtu(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
