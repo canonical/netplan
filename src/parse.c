@@ -1119,7 +1119,7 @@ handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
         return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
     set_str_if_null(cur_netdef->gateway4, scalar(node));
     g_warning("`gateway4` has been deprecated, use default routes instead.\n"
-            "See the 'Default routes' section of the documentation for more details.");
+              "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
@@ -1130,7 +1130,7 @@ handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
         return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
     set_str_if_null(cur_netdef->gateway6, scalar(node));
     g_warning("`gateway6` has been deprecated, use default routes instead.\n"
-            "See the 'Default routes' section of the documentation for more details.");
+              "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
