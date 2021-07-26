@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -311,4 +312,18 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
     filename = g_strdup(nd->filename);
     netplan_clear_netdefs();
     return filename;
+}
+
+/**
+ * Get a static string describing the default global network
+ * for a given address family.
+ */
+const char *
+get_global_network(int ip_family)
+{
+    g_assert(ip_family == AF_INET || ip_family == AF_INET6);
+    if (ip_family == AF_INET)
+        return "0.0.0.0/0";
+    else
+        return "::/0";
 }

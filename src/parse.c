@@ -1118,6 +1118,8 @@ handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
     if (!is_ip4_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
     set_str_if_null(cur_netdef->gateway4, scalar(node));
+    g_warning("`gateway4` has been deprecated, use default routes instead.\n"
+              "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
@@ -1127,6 +1129,8 @@ handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
     if (!is_ip6_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
     set_str_if_null(cur_netdef->gateway6, scalar(node));
+    g_warning("`gateway6` has been deprecated, use default routes instead.\n"
+              "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
@@ -1460,6 +1464,16 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 }
 
 static gboolean
+handle_routes_destination(yaml_document_t *doc, yaml_node_t *node, const void *data, GError **error)
+{
+    const char *addr = scalar(node);
+    if (g_strcmp0(addr, "default") != 0)
+        return handle_routes_ip(doc, node, route_offset(to), error);
+    set_str_if_null(cur_route->to, addr);
+    return TRUE;
+}
+
+static gboolean
 handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -1607,7 +1621,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
     {"table", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(table)},
-    {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
+    {"to", YAML_SCALAR_NODE, handle_routes_destination},
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(metric)},
@@ -1641,6 +1655,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        cur_route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
         g_debug("%s: adding new route", cur_netdef->id);
 
         if (!process_mapping(doc, entry, routes_handlers, NULL, error))
@@ -2687,10 +2702,14 @@ GHashTable *
 netplan_finish_parse(GError** error)
 {
     if (netdefs) {
+        GError *recoverable = NULL;
         g_debug("We have some netdefs, pass them through a final round of validation");
-        if (!validate_gateway_consistency(netdefs, error))
-            g_warning("More than one global gateway specified, the routing is ambiguous! "
-                      "Please set up multiple routing tables and use `routing-policy` instead.");
+        if (!validate_default_route_consistency(netdefs, &recoverable)) {
+            g_warning("Problem encountered while validating default route consistency."
+                      "Please set up multiple routing tables and use `routing-policy` instead.\n"
+                      "Error: %s", (recoverable) ? recoverable->message : "");
+            g_clear_error(&recoverable);
+        }
         g_hash_table_foreach(netdefs, finish_iterator, error);
     }
 

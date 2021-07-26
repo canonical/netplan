@@ -6,4 +6,6 @@ network:
      addresses:
        - 10.100.1.38/24
        - 10.100.1.39/24
-     gateway4: 10.100.1.1
+     routes:
+       - to: default
+         via: 10.100.1.1
