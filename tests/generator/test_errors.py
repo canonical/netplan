@@ -445,7 +445,10 @@ class TestConfigErrors(TestBase):
     enblue:
       addresses: [10.49.34.4/16]
       gateway4: 10.49.2.38''', expect_fail=False)
-        self.assertIn("More than one global gateway specified", err)
+        self.assertIn("Problem encountered while validating default route consistency", err)
+        self.assertIn("Conflicting default route declarations for IPv4 (table: main, metric: default)", err)
+        self.assertIn("engreen", err)
+        self.assertIn("enblue", err)
 
     def test_multiple_ip6_gateways(self):
         err = self.generate('''network:
@@ -457,7 +460,96 @@ class TestConfigErrors(TestBase):
     enblue:
       addresses: [2001:FFfe::33/62]
       gateway6: 2001:FFfe::34''', expect_fail=False)
-        self.assertIn("More than one global gateway specified", err)
+        self.assertIn("Problem encountered while validating default route consistency", err)
+        self.assertIn("Conflicting default route declarations for IPv6 (table: main, metric: default)", err)
+        self.assertIn("engreen", err)
+        self.assertIn("enblue", err)
+
+    def test_gateway_and_default_route(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [10.49.34.4/16]
+      gateway4: 10.49.2.38
+      routes:
+      - to: default
+        via: 10.49.65.89''', expect_fail=False)
+        self.assertIn("Problem encountered while validating default route consistency", err)
+        self.assertIn("Conflicting default route declarations for IPv4 (table: main, metric: default)", err)
+        self.assertIn("engreen", err)
+
+    def test_multiple_default_routes_on_other_table(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [10.49.34.4/16]
+      routes:
+      - to: default
+        via: 10.49.65.89
+    enblue:
+      addresses: [10.50.35.3/16]
+      routes:
+      - to: default
+        via: 10.49.65.89
+        table: 23
+    enred:
+      addresses: [172.137.1.4/24]
+      routes:
+      - to: default
+        via: 172.137.1.1
+        table: 23
+        ''', expect_fail=False)
+        self.assertIn("Problem encountered while validating default route consistency", err)
+        self.assertIn("Conflicting default route declarations for IPv4 (table: 23, metric: default)", err)
+        self.assertIn("enblue", err)
+        self.assertIn("enred", err)
+        self.assertNotIn("engreen", err)
+
+    def test_multiple_default_routes_on_specific_metrics(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [10.49.34.4/16]
+      routes:
+      - to: default
+        via: 10.49.65.89
+        metric: 100
+    enblue:
+      addresses: [10.50.35.3/16]
+      routes:
+      - to: default
+        via: 10.49.65.89
+        metric: 600
+    enred:
+      addresses: [172.137.1.4/24]
+      routes:
+      - to: default
+        via: 172.137.1.1
+        metric: 600
+        ''', expect_fail=False)
+        self.assertIn("Problem encountered while validating default route consistency", err)
+        self.assertIn("Conflicting default route declarations for IPv4 (table: main, metric: 600)", err)
+        self.assertIn("enblue", err)
+        self.assertIn("enred", err)
+        self.assertNotIn("engreen", err)
+
+    def test_default_route_and_0(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [10.49.34.4/16]
+      routes:
+      - to: default
+        via: 10.49.65.89
+      - to: 0.0.0.0/0
+        via: 10.49.65.67''', expect_fail=False)
+        self.assertIn("Problem encountered while validating default route consistency", err)
+        self.assertIn("Conflicting default route declarations for IPv4 (table: main, metric: default)", err)
+        self.assertIn("engreen", err)
 
     def test_invalid_nameserver_ipv4(self):
         for a in ['300.400.1.1', '1.2.3', '192.168.14.1/24']:

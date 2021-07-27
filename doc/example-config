@@ -13,12 +13,14 @@ network:
       addresses:
         - 192.168.14.2/24
         - "2001:1::1/64"
-      gateway4: 192.168.14.1
-      gateway6: "2001:1::2"
       routes:
-       - to: 11.22.0.0/16
-         via: 192.168.14.3
-         metric: 100
+      - to: default
+        via: 192.168.14.1
+      - to: default
+        via: "2001:1::2"
+      - to: 11.22.0.0/16
+        via: 192.168.14.3
+        metric: 100
       nameservers:
         search: [foo.local, bar.local]
         addresses: [8.8.8.8]
