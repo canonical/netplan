@@ -136,7 +136,7 @@ static void
 handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition* nd, char** dataptr) {
     if (g_key_file_get_uint64(kf, "bridge", key, NULL)) {
         nd->custom_bridging = TRUE;
-        *dataptr = g_strdup_printf("%lu", g_key_file_get_uint64(kf, "bridge", key, NULL));
+        *dataptr = g_strdup_printf("%"G_GUINT64_FORMAT, g_key_file_get_uint64(kf, "bridge", key, NULL));
         _kf_clear_key(kf, "bridge", key);
     }
 }
