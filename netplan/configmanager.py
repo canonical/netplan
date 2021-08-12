@@ -270,7 +270,7 @@ class ConfigManager(object):
 
         try:
             with open(yaml_file) as f:
-                yaml_data = yaml.load(f, Loader=yaml.CSafeLoader)
+                yaml_data = yaml.load(f, Loader=yaml.SafeLoader)
                 network = None
                 if yaml_data is not None:
                     network = yaml_data.get('network')
