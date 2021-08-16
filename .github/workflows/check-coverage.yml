@@ -1,10 +1,10 @@
 name: Unit tests & Coverage
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+# events but only for the main branch
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
     branches: [ '**' ]
 
@@ -32,7 +32,7 @@ jobs:
       - name: Run unit tests
         run: make coverage
 
-      # Checks the coverage diff to the master branch
+      # Checks the coverage diff to the main branch
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
