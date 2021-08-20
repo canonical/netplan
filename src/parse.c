@@ -2294,7 +2294,14 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"set-name", YAML_SCALAR_NODE, handle_netdef_str, NULL, netdef_offset(set_name)},         \
     {"wakeonlan", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(wake_on_lan)},    \
     {"wakeonwlan", YAML_SEQUENCE_NODE, handle_wowlan, NULL, netdef_offset(wowlan)},           \
-    {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)}
+    {"emit-lldp", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(emit_lldp)},      \
+    {"receive-checksum-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(receive_checksum_offload)}, \
+    {"transmit-checksum-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(transmit_checksum_offload)}, \
+    {"tcp-segmentation-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(tcp_segmentation_offload)}, \
+    {"tcp6-segmentation-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(tcp6_segmentation_offload)}, \
+    {"generic-segmentation-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(generic_segmentation_offload)}, \
+    {"generic-receive-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(generic_receive_offload)}, \
+    {"large-receive-offload", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(large_receive_offload)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
