@@ -1669,7 +1669,7 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         } else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
                 && g_ascii_strcasecmp(cur_route->scope, "global") == 0
                 && (!cur_route->to || !cur_route->via)) {
-            yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
+            yaml_error(node, error, "global unicast route must include both a 'to' and 'via' IP");
             goto err;
         } else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to) {
             yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
