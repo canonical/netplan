@@ -585,7 +585,8 @@ eth1:
 ``routes`` (mapping)
 
 :    The ``routes`` block defines standard static routes for an interface.
-     At least ``to`` and ``via`` must be specified.
+     At least ``to`` must be specified.  Unless the scope is ``link``, ``via`` is
+     also required.
 
      For ``from``, ``to``, and ``via``, both IPv4 and IPv6 addresses are
      recognized, and must be in the form ``addr/prefixlen`` or ``addr``.
