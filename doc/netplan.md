@@ -277,6 +277,11 @@ Virtual devices
     Example to enable all link-local addresses: ``link-local: [ ipv4, ipv6 ]``
     Example to disable all link-local addresses: ``link-local: [ ]``
 
+``ignore-carrier`` (bool) – since **0.104**
+
+:   (networkd backend only) Allow the specified interface to be configured even
+    if it has no carrier.
+
 ``critical`` (bool)
 
 :   Designate the connection as "critical to the system", meaning that special
