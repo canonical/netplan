@@ -2235,7 +2235,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"activation-mode", YAML_SCALAR_NODE, handle_activation_mode, NULL, netdef_offset(activation_mode)}, \
     {"addresses", YAML_SEQUENCE_NODE, handle_addresses},                                      \
     {"critical", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(critical)},        \
-    {"configure-without-carrier", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(configure_without_carrier)}, \
+    {"ignore-carrier", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(ignore_carrier)}, \
     {"dhcp4", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp4)},              \
     {"dhcp6", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(dhcp6)},              \
     {"dhcp-identifier", YAML_SCALAR_NODE, handle_dhcp_identifier},                            \

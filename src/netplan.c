@@ -622,8 +622,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->critical)
         YAML_STRING_PLAIN(event, emitter, "critical", "true");
 
-    if (def->configure_without_carrier)
-        YAML_STRING_PLAIN(event, emitter, "configure-without-carrier", "true");
+    if (def->ignore_carrier)
+        YAML_STRING_PLAIN(event, emitter, "ignore-carrier", "true");
 
     if (def->ip4_addresses || def->ip6_addresses || def->address_options)
         write_addresses(event, emitter, def);

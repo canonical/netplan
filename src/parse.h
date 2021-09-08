@@ -402,8 +402,8 @@ struct net_definition {
     /* netplan-feature: activation-mode */
     char* activation_mode;  
 
-    /* carrier */
-    gboolean configure_without_carrier;
+    /* configure without carrier */
+    gboolean ignore_carrier;
 };
 
 typedef enum {
