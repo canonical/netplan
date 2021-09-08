@@ -578,7 +578,7 @@ ConfigureWithoutCarrier=yes
     engreen:
       addresses: ["192.168.14.2/24", "2001:FFfe::1/64"]
       gateway4: 192.168.14.1
-      gateway6: 2001:FFfe::2''')
+      gateway6: "2001:FFfe::2"''')
 
         self.assert_networkd({'engreen.network': '''[Match]
 Name=engreen
@@ -590,6 +590,33 @@ Address=2001:FFfe::1/64
 Gateway=192.168.14.1
 Gateway=2001:FFfe::2
 '''})
+
+    def test_gateways_multi_pass(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      interfaces: [engreen]
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24", "2001:FFfe::1/64"]
+      gateway4: 192.168.14.1
+      gateway6: "2001:FFfe::2"''')
+
+        self.assert_networkd({
+            'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=no
+Address=192.168.14.2/24
+Address=2001:FFfe::1/64
+Gateway=192.168.14.1
+Gateway=2001:FFfe::2
+Bridge=br0
+''',
+            'br0.network': ND_EMPTY % ('br0', 'ipv6'),
+            'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n'})
 
     def test_nameserver(self):
         self.generate('''network:

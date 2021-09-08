@@ -42,6 +42,13 @@
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
 #define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(NetplanWireguardPeer, field))
 
+/* convenience macro to avoid strdup'ing a string into a field if it's already set. */
+#define set_str_if_null(dst, src) { if (dst) {\
+    g_assert_cmpstr(src, ==, dst); \
+} else { \
+    dst = g_strdup(src); \
+} }
+
 /* NetplanNetDefinition that is currently being processed */
 static NetplanNetDefinition* cur_netdef;
 
@@ -1110,7 +1117,9 @@ handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 {
     if (!is_ip4_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
-    cur_netdef->gateway4 = g_strdup(scalar(node));
+    set_str_if_null(cur_netdef->gateway4, scalar(node));
+    g_warning("`gateway4` has been deprecated, use default routes instead.\n"
+              "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
@@ -1119,7 +1128,9 @@ handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 {
     if (!is_ip6_address(scalar(node)))
         return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
-    cur_netdef->gateway6 = g_strdup(scalar(node));
+    set_str_if_null(cur_netdef->gateway6, scalar(node));
+    g_warning("`gateway6` has been deprecated, use default routes instead.\n"
+              "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
@@ -1185,7 +1196,7 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
             if (component->bond)
                 return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
                                   cur_netdef->id, scalar(entry), component->bond);
-            component->bridge = g_strdup(cur_netdef->id);
+            set_str_if_null(component->bridge, cur_netdef->id);
             if (component->backend == NETPLAN_BACKEND_OVS) {
                 g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", cur_netdef->id);
                 cur_netdef->backend = NETPLAN_BACKEND_OVS;
@@ -1439,7 +1450,6 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
     guint offset = GPOINTER_TO_UINT(data);
     int family = get_ip_family(scalar(node));
     char** dest = (char**) ((void*) cur_route + offset);
-    g_free(*dest);
 
     if (family < 0)
         return yaml_error(node, error, "invalid IP family '%d'", family);
@@ -1447,8 +1457,19 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
     if (!check_and_set_family(family, &cur_route->family))
         return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
+    g_free(*dest);
     *dest = g_strdup(scalar(node));
 
+    return TRUE;
+}
+
+static gboolean
+handle_routes_destination(yaml_document_t *doc, yaml_node_t *node, const void *data, GError **error)
+{
+    const char *addr = scalar(node);
+    if (g_strcmp0(addr, "default") != 0)
+        return handle_routes_ip(doc, node, route_offset(to), error);
+    set_str_if_null(cur_route->to, addr);
     return TRUE;
 }
 
@@ -1458,7 +1479,6 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     guint offset = GPOINTER_TO_UINT(data);
     int family = get_ip_family(scalar(node));
     char** dest = (char**) ((void*) cur_ip_rule + offset);
-    g_free(*dest);
 
     if (family < 0)
         return yaml_error(node, error, "invalid IP family '%d'", family);
@@ -1466,6 +1486,7 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     if (!check_and_set_family(family, &cur_ip_rule->family))
         return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
 
+    g_free(*dest);
     *dest = g_strdup(scalar(node));
 
     return TRUE;
@@ -1600,7 +1621,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {"on-link", YAML_SCALAR_NODE, handle_routes_bool, NULL, route_offset(onlink)},
     {"scope", YAML_SCALAR_NODE, handle_routes_scope},
     {"table", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(table)},
-    {"to", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(to)},
+    {"to", YAML_SCALAR_NODE, handle_routes_destination},
     {"type", YAML_SCALAR_NODE, handle_routes_type},
     {"via", YAML_SCALAR_NODE, handle_routes_ip, NULL, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, handle_routes_guint, NULL, route_offset(metric)},
@@ -1634,32 +1655,38 @@ handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** e
         cur_route->scope = g_strdup("global");
         cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
         cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        cur_route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
         g_debug("%s: adding new route", cur_netdef->id);
 
-        if (process_mapping(doc, entry, routes_handlers, NULL, error))
-            g_array_append_val(cur_netdef->routes, cur_route);
+        if (!process_mapping(doc, entry, routes_handlers, NULL, error))
+            goto err;
 
         if (       (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
                     || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
                 && !cur_route->to) {
-            cur_route = NULL;
-            return yaml_error(node, error, "link and host routes must specify a 'to' IP");
+            yaml_error(node, error, "link and host routes must specify a 'to' IP");
+            goto err;
         } else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
                 && g_ascii_strcasecmp(cur_route->scope, "global") == 0
                 && (!cur_route->to || !cur_route->via)) {
-            cur_route = NULL;
-            return yaml_error(node, error, "unicast route must include both a 'to' and 'via' IP");
+            yaml_error(node, error, "global unicast route must include both a 'to' and 'via' IP");
+            goto err;
         } else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to) {
-            cur_route = NULL;
-            return yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
+            yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
+            goto err;
         }
 
+        g_array_append_val(cur_netdef->routes, cur_route);
         cur_route = NULL;
-
-        if (error && *error)
-            return FALSE;
     }
     return TRUE;
+
+err:
+    if (cur_route) {
+        g_free(cur_route);
+        cur_route = NULL;
+    }
+    return FALSE;
 }
 
 static const mapping_entry_handler ip_rules_handlers[] = {
@@ -2512,7 +2539,7 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
         /* convenience shortcut: physical device without match: means match
          * name on ID */
         if (cur_netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !cur_netdef->has_match)
-            cur_netdef->match.original_name = g_strdup(cur_netdef->id);
+            set_str_if_null(cur_netdef->match.original_name, cur_netdef->id);
     }
     backend_cur_type = NETPLAN_BACKEND_NONE;
     return TRUE;
@@ -2676,7 +2703,14 @@ GHashTable *
 netplan_finish_parse(GError** error)
 {
     if (netdefs) {
+        GError *recoverable = NULL;
         g_debug("We have some netdefs, pass them through a final round of validation");
+        if (!validate_default_route_consistency(netdefs, &recoverable)) {
+            g_warning("Problem encountered while validating default route consistency."
+                      "Please set up multiple routing tables and use `routing-policy` instead.\n"
+                      "Error: %s", (recoverable) ? recoverable->message : "");
+            g_clear_error(&recoverable);
+        }
         g_hash_table_foreach(netdefs, finish_iterator, error);
     }
 
@@ -2708,7 +2742,7 @@ netplan_clear_netdefs()
         if (n > 0)
             g_hash_table_remove_all(netdefs);
         netdefs = NULL;
-	}
+    }
     if(netdefs_ordered) {
         g_clear_list(&netdefs_ordered, g_free);
         netdefs_ordered = NULL;

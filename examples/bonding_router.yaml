@@ -28,7 +28,6 @@ network:
     bond-wan:
       interfaces: [enp1s0, enp4s0]
       addresses: [192.168.1.252/24]
-      gateway4: 192.168.1.1
       nameservers:
         search: [local]
         addresses: [8.8.8.8, 8.8.4.4]
@@ -36,6 +35,9 @@ network:
         mode: active-backup
         mii-monitor-interval: 1
         gratuitious-arp: 5
+      routes:
+        - to: default
+          via: 192.168.1.1
     bond-conntrack:
       interfaces: [enp5s0, enp6s0]
       addresses: [192.168.254.2/24]

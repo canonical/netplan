@@ -360,11 +360,13 @@ Virtual devices
 
 ``gateway4``, ``gateway6`` (scalar)
 
-:   Set default gateway for IPv4/6, for manual address configuration. This
+:   Deprecated, see ``Default routes``.
+    Set default gateway for IPv4/6, for manual address configuration. This
     requires setting ``addresses`` too. Gateway IPs must be in a form
     recognized by **``inet_pton``**(3). There should only be a single gateway
-    set in your global config, to make it unambiguous. If you need multiple
-    default routes, please define them via ``routing-policy``.
+    per IP address family set in your global config, to make it unambiguous.
+    If you need multiple default routes, please define them via
+    ``routing-policy``.
 
     Example for IPv4: ``gateway4: 172.16.0.1``
     Example for IPv6: ``gateway6: "2001:4::1"``
@@ -559,10 +561,37 @@ backend.
 
 These options are available for all types of interfaces.
 
+### Default routes
+
+The most common need for routing concerns the definition of default routes to
+reach the wider Internet. Those default routes can only defined once per IP family
+and routing table. A typical example would look like the following:
+
+```yaml
+eth0:
+  [...]
+  routes:
+  - to: default # could be 0/0 or 0.0.0.0/0 optionally
+    via: 10.0.0.1
+    metric: 100
+    on-link: true
+  - to: default # could be ::/0 optionally
+    via: cf02:de:ad:be:ef::2
+eth1:
+  [...]
+  routes:
+  - to: default
+    via: 172.134.67.1
+    metric: 100
+    on-link: true
+    table: 76 # Not on the main routing table, does not conflict with the eth0 default route
+```
+
 ``routes`` (mapping)
 
 :    The ``routes`` block defines standard static routes for an interface.
-     At least ``to`` and ``via`` must be specified.
+     At least ``to`` must be specified.  Unless the scope is ``link``, ``via`` is
+     also required.
 
      For ``from``, ``to``, and ``via``, both IPv4 and IPv6 addresses are
      recognized, and must be in the form ``addr/prefixlen`` or ``addr``.
@@ -1367,12 +1396,14 @@ This is a complex example which shows most available features:
             - 192.168.14.2/24
             - 192.168.14.3/24
             - "2001:1::1/64"
-          gateway4: 192.168.14.1
-          gateway6: "2001:1::2"
           nameservers:
             search: [foo.local, bar.local]
             addresses: [8.8.8.8]
           routes:
+            - to: default
+              via: 192.168.14.1
+            - to: default
+              via: "2001:1::2"
             - to: 0.0.0.0/0
               via: 11.0.0.1
               table: 70

@@ -18,6 +18,7 @@
 #pragma once
 
 #include "parse.h"
+#include <glib.h>
 
 
 gboolean is_ip4_address(const char* address);
@@ -31,3 +32,6 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
 
 gboolean
 validate_backend_rules(NetplanNetDefinition* nd, GError** error);
+
+gboolean
+validate_default_route_consistency(GHashTable* netdefs, GError** error);

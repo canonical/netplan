@@ -10,6 +10,8 @@ http://netplan.io
 
 # Documentation
 
+An overview of the architecture can be found at [netplan.io/design](https://netplan.io/design)
+
 The full documentation for netplan is available in the [doc/netplan.md file](../master/doc/netplan.md)
 
 # Bug reports
@@ -18,7 +20,7 @@ Please file bug reports in [Launchpad](https://bugs.launchpad.net/netplan/+fileb
 
 # Contact us
 
-Please join us on IRC on Freenode, in #netplan.
+Please join us on IRC in #netplan at [Libera.Chat](https://libera.chat/).
 
 Our mailing list is [here](https://lists.launchpad.net/netplan-developers/).
 
