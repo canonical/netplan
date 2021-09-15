@@ -20,8 +20,14 @@
 #include "netplan.h"
 #include <glib.h>
 
-gboolean write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
-void cleanup_networkd_conf(const char* rootdir);
-void enable_networkd(const char* generator_dir);
+NETPLAN_INTERNAL gboolean
+write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
 
-void write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path);
+NETPLAN_INTERNAL void
+write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path);
+
+NETPLAN_INTERNAL void
+cleanup_networkd_conf(const char* rootdir);
+
+NETPLAN_INTERNAL void
+enable_networkd(const char* generator_dir);

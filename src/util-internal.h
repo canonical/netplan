@@ -22,6 +22,9 @@
 #include <glib.h>
 #include "types.h"
 
+#include <glib.h>
+#include "netplan.h"
+
 extern GHashTable*
 wifi_frequency_24;
 
@@ -31,13 +34,13 @@ wifi_frequency_5;
 void
 safe_mkdir_p_dir(const char* file_path);
 
-void
+NETPLAN_INTERNAL void
 g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
 
-void
+NETPLAN_INTERNAL void
 unlink_glob(const char* rootdir, const char* _glob);
 
-int
+NETPLAN_INTERNAL int
 find_yaml_glob(const char* rootdir, glob_t* out_glob);
 
 const char*
@@ -60,8 +63,8 @@ tunnel_mode_to_string(NetplanTunnelMode mode);
 NetplanNetDefinition*
 netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend renderer);
 
-void
+NETPLAN_INTERNAL void
 process_input_file(const char* f);
 
-gboolean
+NETPLAN_INTERNAL gboolean
 process_yaml_hierarchy(const char* rootdir);

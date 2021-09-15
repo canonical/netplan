@@ -22,6 +22,7 @@
 #include <glib-object.h>
 
 #include "util-internal.h"
+#include "sriov.h"
 
 void
 write_sriov_conf_finish(const char* rootdir)

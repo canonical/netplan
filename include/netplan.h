@@ -17,6 +17,7 @@
 
 #pragma once
 #define NETPLAN_PUBLIC __attribute__ ((visibility("default")))
+#define NETPLAN_INTERNAL __attribute__ ((visibility("default")))
 
 /**
  * Represent a configuration stanza

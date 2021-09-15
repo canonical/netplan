@@ -76,12 +76,15 @@ const char* cur_filename;
 static NetplanBackend backend_global, backend_cur_type;
 
 /* global OpenVSwitch settings */
+NETPLAN_INTERNAL
 NetplanOVSSettings ovs_settings_global;
 
 /* Global ID → NetplanNetDefinition* map for all parsed config files */
+NETPLAN_INTERNAL
 GHashTable* netdefs;
 
 /* Contains the same objects as 'netdefs' but ordered by dependency */
+NETPLAN_INTERNAL
 GList* netdefs_ordered;
 
 /* Set of IDs in currently parsed YAML file, for being able to detect

@@ -11,6 +11,21 @@ BUILDFLAGS = \
 	-Werror \
 	$(NULL)
 
+SRCS = \
+	src/error.c \
+	src/names.c \
+	src/netplan.c \
+	src/networkd.c \
+	src/nm.c \
+	src/openvswitch.c \
+	src/parse.c \
+	src/parse-nm.c \
+	src/sriov.c \
+	src/types.c \
+	src/util.c \
+	src/validation.c \
+	$(NULL)
+
 SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir systemd)
 SYSTEMD_UNIT_DIR=$(shell pkg-config --variable=systemdsystemunitdir systemd)
 BASH_COMPLETIONS_DIR=$(shell pkg-config --variable=completionsdir bash-completion || echo "/etc/bash_completion.d")
@@ -39,15 +54,15 @@ default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.serv
 %.o: src/%.c
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-libnetplan.so.$(NETPLAN_SOVER): parse.o types.o netplan.o util.o validation.o error.o parse-nm.o names.o
-	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --libs glib-2.0 gio-2.0 yaml-0.1`
+libnetplan.so.$(NETPLAN_SOVER): $(SRCS)
+	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 
-generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o openvswitch.o generate.o sriov.o names.o
-	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
+generate: libnetplan.so.$(NETPLAN_SOVER) generate.o
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter-out $<,$^) -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-netplan-dbus: src/dbus.c src/_features.h types.o parse.o util.o validation.o error.o names.o
-	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(patsubst %.h,,$^) `pkg-config --cflags --libs libsystemd glib-2.0 gio-2.0 yaml-0.1 uuid`
+netplan-dbus: libnetplan.so.$(NETPLAN_SOVER) src/_features.h dbus.o
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter-out $<,$(patsubst %.h,,$^)) -L. -lnetplan `pkg-config --cflags --libs libsystemd glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 src/_features.h: src/[^_]*.[hc]
 	printf "#include <stddef.h>\nstatic const char *feature_flags[] __attribute__((__unused__)) = {\n" > $@

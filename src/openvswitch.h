@@ -19,6 +19,11 @@
 
 #include "netplan.h"
 
-void write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir);
-void write_ovs_conf_finish(const char* rootdir);
-void cleanup_ovs_conf(const char* rootdir);
+NETPLAN_INTERNAL void
+write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir);
+
+NETPLAN_INTERNAL void
+write_ovs_conf_finish(const char* rootdir);
+
+NETPLAN_INTERNAL void
+cleanup_ovs_conf(const char* rootdir);
