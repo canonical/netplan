@@ -22,6 +22,7 @@
 #include <yaml.h>
 
 #include "parse.h"
+#include "parse-globals.h"
 
 
 /****************************************************

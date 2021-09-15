@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Canonical, Ltd.
- * Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>
+ * Copyright (C) 2021 Canonical, Ltd.
+ * Author: Lukas Märdian <slyon@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
 #pragma once
 
 #include "netplan.h"
+#include <glib.h>
 
-void write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir);
-void write_ovs_conf_finish(const char* rootdir);
-void cleanup_ovs_conf(const char* rootdir);
+#define NETPLAN_NM_EMPTY_GROUP "_"
+
+NETPLAN_PUBLIC gboolean
+netplan_parse_keyfile(const char* filename, GError** error);

@@ -24,9 +24,11 @@
 #include <yaml.h>
 
 #include "parse.h"
+#include "types.h"
+#include "parse-globals.h"
 #include "names.h"
 #include "error.h"
-#include "util.h"
+#include "util-internal.h"
 
 
 /* Check sanity for address types */

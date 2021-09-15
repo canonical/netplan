@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Canonical, Ltd.
- * Author: Lukas Märdian <slyon@ubuntu.com>
+ * Copyright (C) 2016 Canonical, Ltd.
+ * Author: Martin Pitt <martin.pitt@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "parse.h"
+#include <yaml.h>
 
 #define YAML_MAPPING_OPEN(event_ptr, emitter_ptr) \
 { \
@@ -92,5 +92,3 @@
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto error; \
     yaml_emitter_delete(emitter_ptr); \
 }
-
-void write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

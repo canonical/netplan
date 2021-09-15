@@ -15,7 +15,7 @@
 #include <systemd/sd-event.h>
 
 #include "_features.h"
-#include "util.h"
+#include "util-internal.h"
 
 typedef struct {
     sd_bus_slot *slot;

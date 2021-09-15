@@ -19,6 +19,7 @@
 
 #include "parse.h"
 #include <glib.h>
+#include <yaml.h>
 
 
 gboolean is_ip4_address(const char* address);

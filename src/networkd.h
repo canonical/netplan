@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include "parse.h"
+#include "netplan.h"
+#include <glib.h>
 
 gboolean write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
 void cleanup_networkd_conf(const char* rootdir);

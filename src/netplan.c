@@ -20,6 +20,8 @@
 
 #include "netplan.h"
 #include "parse.h"
+#include "parse-globals.h"
+#include "yaml-helpers.h"
 #include "names.h"
 
 gchar *tmp = NULL;

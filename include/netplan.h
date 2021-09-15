@@ -16,7 +16,12 @@
  */
 
 #pragma once
+#define NETPLAN_PUBLIC __attribute__ ((visibility("default")))
 
-#define NETPLAN_NM_EMPTY_GROUP "_"
+/**
+ * Represent a configuration stanza
+ */
+typedef struct net_definition NetplanNetDefinition;
 
-gboolean netplan_parse_keyfile(const char* filename, GError** error);
+NETPLAN_PUBLIC void
+write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

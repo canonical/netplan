@@ -23,6 +23,7 @@
 #include "parse-nm.h"
 #include "parse.h"
 #include "util.h"
+#include "util-internal.h"
 
 /**
  * NetworkManager writes the alias for '802-3-ethernet' (ethernet),

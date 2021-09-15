@@ -28,10 +28,13 @@
 #include <yaml.h>
 
 #include "parse.h"
-#include "util.h"
 #include "names.h"
+#include "util-internal.h"
 #include "error.h"
 #include "validation.h"
+
+#define NETPLAN_VERSION_MIN    2
+#define NETPLAN_VERSION_MAX    3
 
 /* convenience macro to put the offset of a NetplanNetDefinition field into "void* data" */
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
