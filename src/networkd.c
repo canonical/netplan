@@ -27,6 +27,7 @@
 
 #include "networkd.h"
 #include "parse.h"
+#include "names.h"
 #include "util.h"
 #include "validation.h"
 
@@ -139,7 +140,7 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
 
     g_string_printf(params, "Independent=true\n");
     if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_IPIP6 || def->tunnel.mode == NETPLAN_TUNNEL_MODE_IP6IP6)
-        g_string_append_printf(params, "Mode=%s\n", tunnel_mode_to_string(def->tunnel.mode));
+        g_string_append_printf(params, "Mode=%s\n", netplan_tunnel_mode_name(def->tunnel.mode));
     g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
     if (def->tunnel_ttl)
@@ -390,7 +391,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                 case NETPLAN_TUNNEL_MODE_VTI6:
                 case NETPLAN_TUNNEL_MODE_WIREGUARD:
                     g_string_append_printf(s, "Kind=%s\n",
-                                           tunnel_mode_to_string(def->tunnel.mode));
+                                           netplan_tunnel_mode_name(def->tunnel.mode));
                     break;
 
                 case NETPLAN_TUNNEL_MODE_IP6IP6:

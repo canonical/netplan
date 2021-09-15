@@ -24,6 +24,7 @@
 
 #include "util.h"
 #include "netplan.h"
+#include "names.h"
 
 GHashTable* wifi_frequency_24;
 GHashTable* wifi_frequency_5;
@@ -229,7 +230,7 @@ netplan_delete_connection(const char* id, const char* rootdir)
 
     filename = g_path_get_basename(nd->filename);
     filename[strlen(filename) - 5] = '\0'; //stip ".yaml" suffix
-    del = g_strdup_printf("network.%s.%s=NULL", netplan_def_type_to_str[nd->type], id);
+    del = g_strdup_printf("network.%s.%s=NULL", netplan_def_type_name(nd->type), id);
     netplan_clear_netdefs();
 
     /* TODO: refactor logic to actually be inside the library instead of spawning another process */
