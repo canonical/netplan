@@ -29,7 +29,7 @@
 #include "names.h"
 #include "error.h"
 #include "util-internal.h"
-
+#include "validation.h"
 
 /* Check sanity for address types */
 

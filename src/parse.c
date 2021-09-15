@@ -906,7 +906,8 @@ handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** er
     return process_mapping(doc, node, match_handlers, NULL, error);
 }
 
-struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[] = {
+NETPLAN_ABI struct NetplanWifiWowlanType
+NETPLAN_WIFI_WOWLAN_TYPES[] = {
     {"default",            NETPLAN_WIFI_WOWLAN_DEFAULT},
     {"any",                NETPLAN_WIFI_WOWLAN_ANY},
     {"disconnect",         NETPLAN_WIFI_WOWLAN_DISCONNECT},
@@ -1317,7 +1318,8 @@ handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError
     return TRUE;
 }
 
-struct NetplanOptionalAddressType NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
+NETPLAN_ABI struct NetplanOptionalAddressType
+NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
     {"ipv4-ll", NETPLAN_OPTIONAL_IPV4_LL},
     {"ipv6-ra", NETPLAN_OPTIONAL_IPV6_RA},
     {"dhcp4",   NETPLAN_OPTIONAL_DHCP4},

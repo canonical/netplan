@@ -25,8 +25,10 @@
 gboolean is_ip4_address(const char* address);
 gboolean is_ip6_address(const char* address);
 gboolean is_hostname(const char* hostname);
-gboolean is_wireguard_key(const char* hostname);
 gboolean validate_ovs_target(gboolean host_first, gchar* s);
+
+NETPLAN_ABI gboolean
+is_wireguard_key(const char* hostname);
 
 gboolean
 validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error);
