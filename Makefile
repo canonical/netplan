@@ -55,7 +55,7 @@ default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.serv
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 libnetplan.so.$(NETPLAN_SOVER): $(SRCS)
-	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
+	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) -fvisibility=hidden $(LDFLAGS) -o $@ $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 
 generate: libnetplan.so.$(NETPLAN_SOVER) generate.o
