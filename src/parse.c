@@ -201,27 +201,6 @@ assert_valid_id(yaml_node_t* node, GError** error)
     return TRUE;
 }
 
-static void
-initialize_dhcp_overrides(NetplanDHCPOverrides* overrides)
-{
-    overrides->use_dns = TRUE;
-    overrides->use_domains = NULL;
-    overrides->use_ntp = TRUE;
-    overrides->send_hostname = TRUE;
-    overrides->use_hostname = TRUE;
-    overrides->use_mtu = TRUE;
-    overrides->use_routes = TRUE;
-    overrides->hostname = NULL;
-    overrides->metric = NETPLAN_METRIC_UNSPEC;
-}
-
-static void
-initialize_ovs_settings(NetplanOVSSettings* ovs_settings)
-{
-    ovs_settings->mcast_snooping = FALSE;
-    ovs_settings->rstp = FALSE;
-}
-
 NetplanNetDefinition*
 netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
 {
@@ -240,11 +219,11 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
 
     /* DHCP override defaults */
-    initialize_dhcp_overrides(&cur_netdef->dhcp4_overrides);
-    initialize_dhcp_overrides(&cur_netdef->dhcp6_overrides);
+    reset_dhcp_overrides(&cur_netdef->dhcp4_overrides);
+    reset_dhcp_overrides(&cur_netdef->dhcp6_overrides);
 
     /* OpenVSwitch defaults */
-    initialize_ovs_settings(&cur_netdef->ovs_settings);
+    reset_ovs_settings(&cur_netdef->ovs_settings);
 
     if (!netdefs)
         netdefs = g_hash_table_new(g_str_hash, g_str_equal);

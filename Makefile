@@ -38,14 +38,14 @@ default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.serv
 %.o: src/%.c
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-libnetplan.so.$(NETPLAN_SOVER): parse.o netplan.o util.o validation.o error.o parse-nm.o
+libnetplan.so.$(NETPLAN_SOVER): parse.o netdef.o netplan.o util.o validation.o error.o parse-nm.o
 	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ `pkg-config --libs glib-2.0 gio-2.0 yaml-0.1`
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
 
 generate: libnetplan.so.$(NETPLAN_SOVER) nm.o networkd.o openvswitch.o generate.o sriov.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-netplan-dbus: src/dbus.c src/_features.h parse.o util.o validation.o error.o
+netplan-dbus: src/dbus.c src/_features.h netdef.o parse.o util.o validation.o error.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(patsubst %.h,,$^) `pkg-config --cflags --libs libsystemd glib-2.0 gio-2.0 yaml-0.1`
 
 src/_features.h: src/[^_]*.[hc]
