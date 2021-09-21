@@ -230,7 +230,7 @@ typedef union {
         char *uuid;
         char *stable_id;
         char *device;
-        GData* passthrough;
+        GData* passthrough; /* See g_datalist* functions */
     } nm;
     struct NetplanNetworkdSettings {
         char *unit;

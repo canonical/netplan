@@ -721,8 +721,8 @@ netplan_parse_keyfile(const char* filename, GError** error)
 
         /* Last: handle passthrough for everything left in the keyfile
          *       Also, transfer backend_settings from netdef to AP */
-        ap->backend_settings.nm.uuid = nd->backend_settings.nm.uuid;
-        ap->backend_settings.nm.name = nd->backend_settings.nm.name;
+        ap->backend_settings.nm.uuid = g_strdup(nd->backend_settings.nm.uuid);
+        ap->backend_settings.nm.name = g_strdup(nd->backend_settings.nm.name);
         /* No need to clear nm.uuid & nm.name from def->backend_settings,
          * as we have only one AP. */
         read_passthrough(kf, &ap->backend_settings.nm.passthrough);
