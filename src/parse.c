@@ -234,7 +234,6 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
     /* Set some default values */
     cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
     cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
-    cur_netdef->dhcp_identifier = g_strdup("duid"); /* keep networkd's default */
     /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
     cur_netdef->linklocal.ipv6 = TRUE;
     cur_netdef->sriov_vlan_filter = FALSE;
@@ -1832,11 +1831,14 @@ handle_bonding(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** 
 static gboolean
 handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->dhcp_identifier)
-        g_free(cur_netdef->dhcp_identifier);
-    cur_netdef->dhcp_identifier = g_strdup(scalar(node));
+    g_free(cur_netdef->dhcp_identifier);
+    /* "duid" is the default case, so we don't store it. */
+    if (g_ascii_strcasecmp(scalar(node), "duid") != 0)
+        cur_netdef->dhcp_identifier = g_strdup(scalar(node));
+    else
+        cur_netdef->dhcp_identifier = NULL;
 
-    if (g_ascii_strcasecmp(cur_netdef->dhcp_identifier, "duid") == 0 ||
+    if (cur_netdef->dhcp_identifier == NULL ||
         g_ascii_strcasecmp(cur_netdef->dhcp_identifier, "mac") == 0)
         return TRUE;
 

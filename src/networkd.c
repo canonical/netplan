@@ -724,7 +724,7 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         g_string_append_printf(network, "CriticalConnection=true\n");
 
     if (def->dhcp4 || def->dhcp6) {
-        if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
+        if (def->dhcp_identifier)
             g_string_append_printf(network, "ClientIdentifier=%s\n", def->dhcp_identifier);
 
         NetplanDHCPOverrides combined_dhcp_overrides;
