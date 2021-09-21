@@ -205,31 +205,21 @@ NetplanNetDefinition*
 netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
 {
     /* create new network definition */
-    cur_netdef = g_new0(NetplanNetDefinition, 1);
-    cur_netdef->type = type;
-    cur_netdef->backend = backend ?: NETPLAN_BACKEND_NONE;
-    cur_netdef->id = g_strdup(id);
-
-    /* Set some default values */
-    cur_netdef->vlan_id = G_MAXUINT; /* 0 is a valid ID */
-    cur_netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
-    /* systemd-networkd defaults to IPv6 LL enabled; keep that default */
-    cur_netdef->linklocal.ipv6 = TRUE;
-    cur_netdef->sriov_vlan_filter = FALSE;
-    cur_netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
-
-    /* DHCP override defaults */
-    reset_dhcp_overrides(&cur_netdef->dhcp4_overrides);
-    reset_dhcp_overrides(&cur_netdef->dhcp6_overrides);
-
-    /* OpenVSwitch defaults */
-    reset_ovs_settings(&cur_netdef->ovs_settings);
+    NetplanNetDefinition *netdef = g_new0(NetplanNetDefinition, 1);
+    reset_netdef(netdef, type, backend);
+    netdef->id = g_strdup(id);
 
     if (!netdefs)
         netdefs = g_hash_table_new(g_str_hash, g_str_equal);
-    g_hash_table_insert(netdefs, cur_netdef->id, cur_netdef);
-    netdefs_ordered = g_list_append(netdefs_ordered, cur_netdef);
-    return cur_netdef;
+    g_hash_table_insert(netdefs, netdef->id, netdef);
+    /* netdefs_ordered now owns the allocated object */
+    netdefs_ordered = g_list_append(netdefs_ordered, netdef);
+
+    /* Update the convenience pointer cur_netdef. This is a weak ref,
+     * the previous value is owned by netdefs_ordered */
+    cur_netdef = netdef;
+
+    return netdef;
 }
 
 /****************************************************
@@ -2710,6 +2700,12 @@ netplan_get_global_backend()
     return backend_global;
 }
 
+static void
+clear_netdef_from_list(void *def)
+{
+    reset_netdef((NetplanNetDefinition *)def, NETPLAN_DEF_TYPE_NONE, NETPLAN_BACKEND_NONE);
+    g_free(def);
+}
 /**
  * Clear NetplanNetDefinition hashtable
  */
@@ -2719,14 +2715,14 @@ netplan_clear_netdefs()
     guint n = 0;
     if(netdefs) {
         n = g_hash_table_size(netdefs);
-        /* FIXME: make sure that any dynamically allocated netdef data is freed */
-        if (n > 0)
-            g_hash_table_remove_all(netdefs);
+        g_hash_table_destroy(netdefs);
         netdefs = NULL;
     }
     if(netdefs_ordered) {
-        g_clear_list(&netdefs_ordered, g_free);
+        g_clear_list(&netdefs_ordered, clear_netdef_from_list);
         netdefs_ordered = NULL;
+        /* The above clearing has freed this netdef, making the pointer dangling */
+        cur_netdef = NULL;
     }
     backend_global = NETPLAN_BACKEND_NONE;
     ovs_settings_global = (NetplanOVSSettings){0};
