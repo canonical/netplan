@@ -1435,7 +1435,7 @@ static gboolean
 handle_routes_destination(yaml_document_t *doc, yaml_node_t *node, const void *data, GError **error)
 {
     const char *addr = scalar(node);
-    if (g_strcmp0(addr, "default") != 0)
+    if (g_strcmp0(addr, "default") != 0) /* netplan-feature: default-routes */
         return handle_routes_ip(doc, node, route_offset(to), error);
     set_str_if_null(cur_route->to, addr);
     return TRUE;
