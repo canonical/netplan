@@ -633,7 +633,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     YAML_STRING_PLAIN(event, emitter, "gateway4", def->gateway4);
     YAML_STRING_PLAIN(event, emitter, "gateway6", def->gateway6);
 
-    if (g_strcmp0(def->dhcp_identifier, "duid") != 0)
+    if (def->dhcp_identifier)
         YAML_STRING(event, emitter, "dhcp-identifier", def->dhcp_identifier);
     if (def->dhcp4) {
         YAML_STRING_PLAIN(event, emitter, "dhcp4", "true");

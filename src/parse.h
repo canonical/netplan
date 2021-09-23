@@ -230,7 +230,7 @@ typedef union {
         char *uuid;
         char *stable_id;
         char *device;
-        GData* passthrough;
+        GData* passthrough; /* See g_datalist* functions */
     } nm;
     struct NetplanNetworkdSettings {
         char *unit;
@@ -500,7 +500,13 @@ typedef struct {
     guint tos;
 } NetplanIPRule;
 
-/* Written/updated by parse_yaml(): char* id →  net_definition */
+/* Written/updated by parse_yaml(): char* id →  net_definition.
+ *
+ * Since both netdefs and netdefs_ordered store pointers to the same elements,
+ * we consider that only netdefs_ordered is owner of this data. One should not
+ * free() objects obtained from netdefs, and proper care should be taken to remove
+ * any reference of an object in netdefs when destroying it from netdefs_ordered.
+ */
 extern GHashTable* netdefs;
 extern GList* netdefs_ordered;
 extern NetplanOVSSettings ovs_settings_global;
@@ -515,6 +521,7 @@ guint netplan_clear_netdefs();
 NetplanBackend netplan_get_global_backend();
 const char* tunnel_mode_to_string(NetplanTunnelMode mode);
 NetplanNetDefinition* netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend renderer);
+void reset_netdef(NetplanNetDefinition *netdef, NetplanDefType type, NetplanBackend renderer);
 
 void process_input_file(const char* f);
 gboolean process_yaml_hierarchy(const char* rootdir);
