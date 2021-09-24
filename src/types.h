@@ -171,7 +171,7 @@ typedef union {
     } networkd;
 } NetplanBackendSettings;
 
-struct net_definition {
+struct netplan_net_definition {
     NetplanDefType type;
     NetplanBackend backend;
     char* id;
@@ -311,7 +311,7 @@ struct net_definition {
 
     /* these properties are only valid for SR-IOV NICs */
     /* netplan-feature: sriov */
-    struct net_definition* sriov_link;
+    struct netplan_net_definition* sriov_link;
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
 
@@ -419,6 +419,18 @@ typedef struct {
     guint tos;
 } NetplanIPRule;
 
+struct netplan_state {
+    /* Since both netdefs and netdefs_ordered store pointers to the same elements,
+     * we consider that only netdefs_ordered is owner of this data. One should not
+     * free() objects obtained from netdefs, and proper care should be taken to remove
+     * any reference of an object in netdefs when destroying it from netdefs_ordered.
+     */
+    GHashTable *netdefs;
+    GList *netdefs_ordered;
+    NetplanBackend backend;
+    NetplanOVSSettings ovs_settings;
+};
+
 #define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
 #define NETPLAN_CONGESTION_WINDOW_UNSPEC 0
 #define NETPLAN_MTU_UNSPEC 0
@@ -428,4 +440,5 @@ typedef struct {
 #define NETPLAN_IP_RULE_FW_MARK_UNSPEC 0
 #define NETPLAN_IP_RULE_TOS_UNSPEC G_MAXUINT
 
-void reset_netdef(NetplanNetDefinition *netdef, NetplanDefType type, NetplanBackend renderer);
+void
+reset_netdef(NetplanNetDefinition *netdef, NetplanDefType type, NetplanBackend renderer);
