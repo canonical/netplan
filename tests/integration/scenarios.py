@@ -22,8 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import shutil
 import sys
 import subprocess
+import tempfile
 import unittest
 
 from base import IntegrationTestsBase, test_backends
@@ -106,6 +109,30 @@ class _CommonTests():
         self.assert_iface_up('vlan2', ['vlan2@' + self.dev_e_client, 'master br0'])
         self.assert_iface_up(self.dev_e2_client, ['master br1'], ['inet '])
         self.assert_iface_up('bond0', ['master br0'])
+
+    # https://bugs.launchpad.net/netplan/+bug/1943120
+    def test_remove_virtual_interfaces(self):
+        tempdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tempdir)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br54'], stderr=subprocess.DEVNULL)
+        confdir = os.path.join(tempdir, 'etc', 'netplan')
+        os.makedirs(confdir)
+        with open(self.config, 'w') as f:
+                    f.write('''network:
+  renderer: %(r)s
+  version: 2
+  bridges:
+    br54:
+      addresses: [1.2.3.4/24]''' % {'r': self.backend})
+        self.generate_and_settle(['br54'])
+        self.assert_iface('br54', ['inet 1.2.3.4/24'])
+        # backup the current YAML state (incl. br54)
+        shutil.copytree('/etc/netplan', confdir, dirs_exist_ok=True)
+        # drop br54 interface
+        subprocess.check_call(['netplan', 'set', 'network.bridges.br54.addresses=null'])
+        self.generate_and_settle([], state_dir=tempdir)
+        res = subprocess.run(['ip', 'link', 'show', 'dev', 'br54'], capture_output=True, text=True)
+        self.assertIn('not exist', res.stderr)
 
 
 @unittest.skipIf("networkd" not in test_backends,
