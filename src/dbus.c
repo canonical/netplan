@@ -199,6 +199,30 @@ _clear_tmp_state(const char *config_id, NetplanData *d)
     return TRUE;
 }
 
+static int
+_backup_global_state(sd_bus_error *ret_error)
+{
+    int r = 0;
+    g_autofree gchar *path = NULL;
+    path = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
+    /* Create {etc,run,lib} subdirs with owner r/w permissions */
+    char *subdir = NULL;
+    for (int i = 0; i < 3; i++) {
+        subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
+        r = g_mkdir_with_parents(subdir, 0700);
+        if (r < 0)
+            // LCOV_EXCL_START
+            return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
+                                    "Failed to create '%s': %s\n", subdir, strerror(errno));
+            // LCOV_EXCL_STOP
+        g_free(subdir);
+    }
+
+    /* Copy main *.yaml files from /{etc,run,lib}/netplan/ to GLOBAL backup dir */
+    _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
+    return 0;
+}
+
 /**
  * io.netplan.Netplan methods
  */
@@ -487,6 +511,10 @@ method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     d->config_dirty = g_strdup(d->config_id);
 
     if (d->try_pid < 0) {
+        r = _backup_global_state(ret_error);
+        if (r < 0)
+            return r; // LCOV_EXCL_LINE
+
         /* Delete GLOBAL state */
         unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Copy current config state to GLOBAL */
@@ -496,6 +524,8 @@ method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     }
 
     r = method_apply(m, d, ret_error);
+    /* Clear GLOBAL backup and config state */
+    _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
     _clear_tmp_state(d->config_id, d);
 
     /* unlock current config ID and handler ID */
@@ -540,7 +570,6 @@ static int
 method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     NetplanData *d = userdata;
-    g_autofree gchar *path = NULL;
     g_autofree gchar *state_dir = NULL;
     const char *config_id = sd_bus_message_get_path(m) + 27;
     if (d->try_pid > 0)
@@ -556,23 +585,9 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     d->try_pid = G_MAXINT;
     d->config_id = config_id;
 
-    /* Backup GLOBAL state */
-    path = g_strdup_printf("%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
-    /* Create {etc,run,lib} subdirs with owner r/w permissions */
-    char *subdir = NULL;
-    for (int i = 0; i < 3; i++) {
-        subdir = g_strdup_printf("%s/%s/netplan", path, NETPLAN_SUBDIRS[i]);
-        r = g_mkdir_with_parents(subdir, 0700);
-        if (r < 0)
-            // LCOV_EXCL_START
-            return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
-                                    "Failed to create '%s': %s\n", subdir, strerror(errno));
-            // LCOV_EXCL_STOP
-        g_free(subdir);
-    }
-
-    /* Copy main *.yaml files from /{etc,run,lib}/netplan/ to GLOBAL backup dir */
-    _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
+    r = _backup_global_state(ret_error);
+    if (r < 0)
+        return r; // LCOV_EXCL_LINE
 
     /* Clear main *.yaml files */
     unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");

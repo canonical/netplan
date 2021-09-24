@@ -361,6 +361,7 @@ class TestNetplanDBus(unittest.TestCase):
     def test_netplan_dbus_config_cancel(self):
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        backup = '/tmp/netplan-config-BACKUP'
 
         # Verify .Config.Cancel() teardown of the config object and state dirs
         BUSCTL_NETPLAN_CMD = [
@@ -380,9 +381,14 @@ class TestNetplanDBus(unittest.TestCase):
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
+        # Verify the backup and config state dir are gone
+        self.assertFalse(os.path.isdir(backup))
+        self.assertFalse(os.path.isdir(tmpdir))
+
     def test_netplan_dbus_config_apply(self):
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
+        backup = '/tmp/netplan-config-BACKUP'
         with open(os.path.join(tmpdir, 'etc', 'netplan', 'apply_test.yaml'), 'w') as f:
             f.write('TESTING-apply')
         with open(os.path.join(tmpdir, 'lib', 'netplan', 'apply_test.yaml'), 'w') as f:
@@ -412,6 +418,10 @@ class TestNetplanDBus(unittest.TestCase):
         # Verify the object is gone from the bus
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD)
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
+
+        # Verify the backup and config state dir are gone
+        self.assertFalse(os.path.isdir(backup))
+        self.assertFalse(os.path.isdir(tmpdir))
 
     def test_netplan_dbus_config_try_cancel(self):
         # self-terminate after 30 dsec = 3 sec, if not cancelled before
@@ -504,7 +514,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(b'b true\n', out)
         time.sleep(1.5)  # Give some time for the timeout to happen
 
-        # Verify the backup andconfig state dir are gone
+        # Verify the backup and config state dir are gone
         self.assertFalse(os.path.isdir(backup))
         self.assertFalse(os.path.isdir(tmpdir))
 
