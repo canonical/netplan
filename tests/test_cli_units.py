@@ -18,9 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+import subprocess
 
 from unittest.mock import patch
-import subprocess
 from netplan.cli.commands.apply import NetplanApply
 
 
@@ -49,12 +49,19 @@ class TestCLI(unittest.TestCase):
         res = NetplanApply.clear_virtual_links(['br0', 'vlan2', 'bond1', 'tun3'],
                                                ['br0', 'vlan2'],
                                                ['br0', 'vlan2', 'bond1', 'eth0'])
-        mock.assert_any_call(['ip', 'link', 'delete', 'dev', 'bond1'],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        mock.assert_called_with(['ip', 'link', 'delete', 'dev', 'bond1'])
         self.assertIn('bond1', res)
         self.assertIn('tun3', res)
         self.assertNotIn('br0', res)
         self.assertNotIn('vlan2', res)
+
+    @patch('subprocess.check_call')
+    def test_clear_virtual_links_failure(self, mock):
+        mock.side_effect = subprocess.CalledProcessError(1, '', 'Cannot find device "br0"')
+        res = NetplanApply.clear_virtual_links(['br0'], [], ['br0', 'eth0'])
+        mock.assert_called_with(['ip', 'link', 'delete', 'dev', 'br0'])
+        self.assertIn('br0', res)
+        self.assertNotIn('eth0', res)
 
     @patch('subprocess.check_call')
     def test_clear_virtual_links_no_delta(self, mock):

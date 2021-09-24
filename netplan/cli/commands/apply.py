@@ -58,8 +58,10 @@ class NetplanApply(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
-    def command_apply(self, run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+    def command_apply(self, run_generate=True, sync=False, exit_on_error=True, state_dir=None):  # pragma: nocover
         config_manager = ConfigManager()
+        if state_dir:
+            self.state = state_dir
 
         # For certain use-cases, we might want to only apply specific configuration.
         # If we only need SR-IOV configuration, do that and exit early.
@@ -292,9 +294,12 @@ class NetplanApply(utils.NetplanCommand):
         # NetworkManager backend
         interfaces_to_clear = list(set(dropped_interfaces).intersection(devices))
         for link in interfaces_to_clear:
-            subprocess.check_call(['ip', 'link', 'delete', 'dev', link],
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL)
+            try:
+                cmd = ['ip', 'link', 'delete', 'dev', link]
+                subprocess.check_call(cmd)
+            except subprocess.CalledProcessError:
+                logging.warn('Could not delete interface {}'.format(link))
+
         return dropped_interfaces
 
     @staticmethod
