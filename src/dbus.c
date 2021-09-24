@@ -209,6 +209,7 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
     g_autofree gchar *stderr = NULL;
+    g_autofree gchar *state = NULL;
     gint exit_status = 0;
     NetplanData *d = userdata;
 
@@ -216,8 +217,9 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
      * Otherwise execute 'netplan apply' directly. */
     if (d->try_pid > 0)
         return _try_accept(TRUE, m, userdata, ret_error);
-
-    gchar *argv[] = {SBINDIR "/" "netplan", "apply", NULL};
+    if (d->config_id)
+        state = g_strdup_printf("--state=%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
+    gchar *argv[] = {SBINDIR "/" "netplan", "apply", state, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
@@ -421,6 +423,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
+    g_autofree gchar *state = NULL;
     gint child_stdin = -1; /* child process needs an input to function correctly */
     guint seconds = 0;
     int r = -1;
@@ -430,7 +433,9 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract timeout_seconds"); // LCOV_EXCL_LINE
     if (seconds > 0)
         timeout = g_strdup_printf("--timeout=%u", seconds);
-    gchar *argv[] = {SBINDIR "/" "netplan", "try", timeout, NULL};
+    if (d->config_id)
+        state = g_strdup_printf("--state=%s/netplan-config-%s", g_get_tmp_dir(), NETPLAN_GLOBAL_CONFIG);
+    gchar *argv[] = {SBINDIR "/" "netplan", "try", timeout, state, NULL};
 
     // for tests only: allow changing what netplan to run
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)

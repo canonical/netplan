@@ -400,7 +400,7 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
-        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "apply"]])
+        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "apply", "--state=/tmp/netplan-config-BACKUP"]])
         time.sleep(1)  # Give some time for 'Apply' to clean up
         self.assertFalse(os.path.isdir(tmpdir))
 
@@ -478,7 +478,8 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
         # Verify 'netplan try' has been called
-        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=3"]])
+        self.assertEquals(self.mock_netplan_cmd.calls(),
+                          [["netplan", "try", "--timeout=3", "--state=/tmp/netplan-config-BACKUP"]])
 
     def test_netplan_dbus_config_try_cb(self):
         self.mock_netplan_cmd.set_timeout(1)  # actually self-terminate after 0.1 sec
@@ -518,7 +519,8 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
         # Verify 'netplan try' has been called
-        self.assertEquals(self.mock_netplan_cmd.calls(), [["netplan", "try", "--timeout=1"]])
+        self.assertEquals(self.mock_netplan_cmd.calls(),
+                          [["netplan", "try", "--timeout=1", "--state=/tmp/netplan-config-BACKUP"]])
 
     def test_netplan_dbus_config_try_apply(self):
         self.mock_netplan_cmd.set_timeout(30)  # 30 dsec = 3 sec
@@ -639,7 +641,7 @@ class TestNetplanDBus(unittest.TestCase):
              "--root-dir=/tmp/netplan-config-{}".format(cid)],
             ["netplan", "set", "ethernets.eth0.dhcp4=yes", "--origin-hint=70-snapd",
              "--root-dir=/tmp/netplan-config-{}".format(cid)],
-            ["netplan", "apply"]
+            ["netplan", "apply", "--state=/tmp/netplan-config-BACKUP"]
         ])
 
         # Now it works again
@@ -756,7 +758,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEquals(self.mock_netplan_cmd.calls(), [
             ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
              "--root-dir=/tmp/netplan-config-{}".format(cid)],
-            ["netplan", "try", "--timeout=1"],
+            ["netplan", "try", "--timeout=1", "--state=/tmp/netplan-config-BACKUP"],
             ["netplan", "set", "ethernets.eth0.dhcp4=false", "--origin-hint=70-snapd",
              "--root-dir=/tmp/netplan-config-{}".format(cid2)]
         ])
