@@ -19,6 +19,8 @@
 
 import unittest
 
+from unittest.mock import patch
+import subprocess
 from netplan.cli.commands.apply import NetplanApply
 
 
@@ -39,3 +41,25 @@ class TestCLI(unittest.TestCase):
     def test_is_composite_member_with_renderer(self):
         res = NetplanApply.is_composite_member([{'renderer': 'networkd', 'br0': {'interfaces': ['eth0']}}], 'eth0')
         self.assertTrue(res)
+
+    @patch('subprocess.check_call')
+    def test_clear_virtual_links(self, mock):
+        # simulate as if 'tun3' would have already been delete another way,
+        # e.g. via NetworkManager backend
+        res = NetplanApply.clear_virtual_links(['br0', 'vlan2', 'bond1', 'tun3'],
+                                               ['br0', 'vlan2'],
+                                               ['br0', 'vlan2', 'bond1', 'eth0'])
+        mock.assert_any_call(['ip', 'link', 'delete', 'dev', 'bond1'],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.assertIn('bond1', res)
+        self.assertIn('tun3', res)
+        self.assertNotIn('br0', res)
+        self.assertNotIn('vlan2', res)
+
+    @patch('subprocess.check_call')
+    def test_clear_virtual_links_no_delta(self, mock):
+        res = NetplanApply.clear_virtual_links(['br0', 'vlan2'],
+                                               ['br0', 'vlan2'],
+                                               ['br0', 'vlan2', 'eth0'])
+        mock.assert_not_called()
+        self.assertEquals(res, [])
