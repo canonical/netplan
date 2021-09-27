@@ -174,35 +174,35 @@ class NetplanV2Normalizer():
             if 'password' in keys and ':auth' not in full_key:
                 data['auth'] = {'key-management': 'psk', 'password': data['password']}
                 del data['password']
-            elif 'auth' in keys and data['auth'] == {}:
+            if 'auth' in keys and data['auth'] == {}:
                 data['auth'] = {'key-management': 'none'}
             # remove default stanza ("link-local: [ ipv6 ]"")
-            elif 'link-local' in keys and data['link-local'] == ['ipv6']:
+            if 'link-local' in keys and data['link-local'] == ['ipv6']:
                 del data['link-local']
             # remove default stanza ("wakeonwlan: [ default ]")
-            elif 'wakeonwlan' in keys and data['wakeonwlan'] == ['default']:
+            if 'wakeonwlan' in keys and data['wakeonwlan'] == ['default']:
                 del data['wakeonwlan']
             # remove explicit openvswitch stanzas, they might not always be
             # defined in the original YAML (due to being implicit)
-            elif ('openvswitch' in keys and data['openvswitch'] == {} and
-                  any(map(full_key.__contains__, [':bonds:', ':bridges:', ':vlans:']))):
+            if ('openvswitch' in keys and data['openvswitch'] == {} and
+                    any(map(full_key.__contains__, [':bonds:', ':bridges:', ':vlans:']))):
                 del data['openvswitch']
             # remove default empty bond-parameters, those are not rendered by the YAML generator
-            elif 'parameters' in keys and data['parameters'] == {} and ':bonds:' in full_key:
+            if 'parameters' in keys and data['parameters'] == {} and ':bonds:' in full_key:
                 del data['parameters']
             # remove default mode=infrastructore from wifi APs, keeping the SSID
-            elif 'mode' in keys and ':wifis:' in full_key and 'infrastructure' in data['mode']:
+            if 'mode' in keys and ':wifis:' in full_key and 'infrastructure' in data['mode']:
                 del data['mode']
             # ignore renderer: on other than global levels for now, as that
             # information is currently not stored in the netdef data structure
-            elif ('renderer' in keys and len(full_key.split(':')) > 1 and
-                  data['renderer'] in ['networkd', 'NetworkManager']):
+            if ('renderer' in keys and len(full_key.split(':')) > 1 and
+                    data['renderer'] in ['networkd', 'NetworkManager']):
                 del data['renderer']
             # remove default values from the dhcp4/6-overrides mappings
-            elif full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
+            if full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
                 self._clear_mapping_defaults(keys, self.DEFAULT_DHCP, data)
             # remove default values from netdef/interface mappings
-            elif len(full_key.split(':')) == 3:  # netdef level
+            if len(full_key.split(':')) == 3:  # netdef level
                 self._clear_mapping_defaults(keys, self.DEFAULT_NETDEF, data)
 
             # continue to walk the dict
