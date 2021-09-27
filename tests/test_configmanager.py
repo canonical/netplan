@@ -151,6 +151,12 @@ class TestConfigManager(unittest.TestCase):
         self.assertEquals(2, self.configmanager.version)
         self.assertEquals('networkd', self.configmanager.renderer)
         self.assertIn('fallback', self.configmanager.nm_devices)
+        self.assertIn('vlan2', self.configmanager.virtual_interfaces)
+        self.assertIn('br3', self.configmanager.virtual_interfaces)
+        self.assertIn('br4', self.configmanager.virtual_interfaces)
+        self.assertIn('bond5', self.configmanager.virtual_interfaces)
+        self.assertIn('bond6', self.configmanager.virtual_interfaces)
+        self.assertIn('he-ipv6', self.configmanager.virtual_interfaces)
 
     def test_parse_merging(self):
         self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])

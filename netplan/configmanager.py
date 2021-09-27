@@ -63,6 +63,16 @@ class ConfigManager(object):
         return interfaces
 
     @property
+    def virtual_interfaces(self):
+        interfaces = {}
+        # what about ovs_ports?
+        interfaces.update(self.bridges)
+        interfaces.update(self.bonds)
+        interfaces.update(self.tunnels)
+        interfaces.update(self.vlans)
+        return interfaces
+
+    @property
     def ovs_ports(self):
         return self.network['ovs_ports']
 

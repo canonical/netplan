@@ -47,13 +47,17 @@ see **netplan**(5).
 
 # KNOWN ISSUES
 
-**netplan apply** will not remove virtual devices such as bridges
-and bonds that have been created, even if they are no longer described
-in the netplan configuration.
+**netplan apply** will not remove virtual devices such as bridges and bonds
+that have been created, even if they are no longer described in the netplan
+configuration. That is due to the fact that netplan operates statelessly and
+is not aware of the previously defined virtal devices.
 
-This can be resolved by manually removing the virtual device (for
-example ``ip link delete dev bond0``) and then running **netplan
-apply**, or by rebooting.
+This can be resolved by manually removing the virtual device (for example
+``ip link delete dev bond0``) and then running **netplan apply**, by rebooting,
+or by creating a temporary backup of the YAML state in ``/etc/netplan``
+before modifying the configuration and passing this state to netplan (e.g.
+``mkdir -p /tmp/netplan_state_backup/etc && cp -r /etc/netplan /tmp/netplan_state_backup/etc/``
+then running **netplan apply --state /tmp/netplan_state_backup**)
 
 
 # SEE ALSO

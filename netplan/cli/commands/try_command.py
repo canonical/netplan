@@ -19,10 +19,11 @@
 
 import os
 import time
+import shutil
 import signal
 import sys
+import tempfile
 import logging
-import subprocess
 
 from netplan.configmanager import ConfigManager
 import netplan.cli.utils as utils
@@ -59,6 +60,8 @@ class NetplanTry(utils.NetplanCommand):
         self.parser.add_argument('--timeout',
                                  type=int, default=DEFAULT_INPUT_TIMEOUT,
                                  help="Maximum number of seconds to wait for the user's confirmation")
+        self.parser.add_argument('--state',
+                                 help='Directory containing previous YAML configuration')
 
         self.func = self.command_try
 
@@ -81,7 +84,7 @@ class NetplanTry(utils.NetplanCommand):
             self.backup()
             self.setup()
 
-            NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False)
+            NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False, state_dir=self.state)
 
             self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
@@ -114,19 +117,16 @@ class NetplanTry(utils.NetplanCommand):
         self.configuration_changed = True
 
     def revert(self):  # pragma: nocover (requires user input)
+        # backup the state we just tried to apply
+        tempdir = tempfile.mkdtemp()
+        confdir = os.path.join(tempdir, 'etc', 'netplan')
+        os.makedirs(confdir)
+        shutil.copytree('/etc/netplan', confdir, dirs_exist_ok=True)
+        # restore previous state
         self.config_manager.revert()
-        NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False)
-        for ifname in self.new_interfaces:
-            if ifname not in self.config_manager.bonds and \
-               ifname not in self.config_manager.bridges and \
-               ifname not in self.config_manager.vlans:
-                logging.debug("{} will not be removed: not a virtual interface".format(ifname))
-                continue
-            try:
-                cmd = ['ip', 'link', 'del', ifname]
-                subprocess.check_call(cmd)
-            except subprocess.CalledProcessError:
-                logging.warn("Could not revert (remove) new interface '{}'".format(ifname))
+        NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False, state_dir=tempdir)
+        # clear the backup
+        shutil.rmtree(tempdir)
 
     def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()

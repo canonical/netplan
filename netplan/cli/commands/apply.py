@@ -50,14 +50,18 @@ class NetplanApply(utils.NetplanCommand):
                                  help='Only apply SR-IOV related configuration and exit')
         self.parser.add_argument('--only-ovs-cleanup', action='store_true',
                                  help='Only clean up old OpenVSwitch interfaces and exit')
+        self.parser.add_argument('--state',
+                                 help='Directory containing previous YAML configuration')
 
         self.func = self.command_apply
 
         self.parse_args()
         self.run_command()
 
-    def command_apply(self, run_generate=True, sync=False, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
+    def command_apply(self, run_generate=True, sync=False, exit_on_error=True, state_dir=None):  # pragma: nocover
         config_manager = ConfigManager()
+        if state_dir:
+            self.state = state_dir
 
         # For certain use-cases, we might want to only apply specific configuration.
         # If we only need SR-IOV configuration, do that and exit early.
@@ -192,6 +196,14 @@ class NetplanApply(utils.NetplanCommand):
         # for now, only applies to non-virtual (real) devices.
         config_manager.parse()
         changes = NetplanApply.process_link_changes(devices, config_manager)
+        # delete virtual interfaces that have been defined in a previous state
+        # but are not configured anymore in the current YAML
+        if self.state:
+            cm = ConfigManager(self.state)
+            cm.parse()  # get previous configuration state
+            prev_links = cm.virtual_interfaces.keys()
+            curr_links = config_manager.virtual_interfaces.keys()
+            NetplanApply.clear_virtual_links(prev_links, curr_links, devices)
 
         # if the interface is up, we can still apply some .link file changes
         # but we cannot apply the interface rename via udev, as it won't touch
@@ -266,6 +278,32 @@ class NetplanApply(utils.NetplanCommand):
                         return True
 
         return False
+
+    @staticmethod
+    def clear_virtual_links(prev_links, curr_links, devices=[]):
+        """
+        Calculate the delta of virtual links. And remove the links that were
+        dropped from the YAML config, if they were not dropped by the backend
+        already.
+        We can make use of the netplan netdef ids, as those equal the interface
+        name for virtual links.
+        """
+        if not devices:
+            logging.warning('Cannot clear virtual links: no network interfaces provided.')
+            return []
+
+        dropped_interfaces = list(set(prev_links) - set(curr_links))
+        # some interfaces might have been cleaned up already, e.g. by the
+        # NetworkManager backend
+        interfaces_to_clear = list(set(dropped_interfaces).intersection(devices))
+        for link in interfaces_to_clear:
+            try:
+                cmd = ['ip', 'link', 'delete', 'dev', link]
+                subprocess.check_call(cmd)
+            except subprocess.CalledProcessError:
+                logging.warn('Could not delete interface {}'.format(link))
+
+        return dropped_interfaces
 
     @staticmethod
     def process_link_changes(interfaces, config_manager):  # pragma: nocover (covered in autopkgtest)
