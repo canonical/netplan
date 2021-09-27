@@ -280,7 +280,7 @@ class NetplanApply(utils.NetplanCommand):
         return False
 
     @staticmethod
-    def clear_virtual_links(prev_links, curr_links, devices):
+    def clear_virtual_links(prev_links, curr_links, devices=[]):
         """
         Calculate the delta of virtual links. And remove the links that were
         dropped from the YAML config, if they were not dropped by the backend
@@ -288,6 +288,9 @@ class NetplanApply(utils.NetplanCommand):
         We can make use of the netplan netdef ids, as those equal the interface
         name for virtual links.
         """
+        if not devices:
+            logging.warning('Cannot clear virtual links: no network interfaces provided.')
+            return []
 
         dropped_interfaces = list(set(prev_links) - set(curr_links))
         # some interfaces might have been cleaned up already, e.g. by the
