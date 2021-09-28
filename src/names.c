@@ -107,7 +107,7 @@ NAME_FUNCTION(wifi_mode, NetplanWifiMode);
 
 /* ABI compatibility definitions */
 
-const char *
+const char*
 tunnel_mode_to_string(NetplanTunnelMode val) __attribute__ ((alias ("netplan_tunnel_mode_name")));
 
 extern const char*
