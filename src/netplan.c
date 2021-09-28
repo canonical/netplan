@@ -20,6 +20,7 @@
 
 #include "netplan.h"
 #include "parse.h"
+#include "names.h"
 
 gchar *tmp = NULL;
 
@@ -41,8 +42,8 @@ write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSe
 {
     YAML_SCALAR_PLAIN(event, emitter, "auth");
     YAML_MAPPING_OPEN(event, emitter);
-    YAML_STRING(event, emitter, "key-management", netplan_auth_key_management_type_to_str[auth.key_management]);
-    YAML_STRING(event, emitter, "method", netplan_auth_eap_method_to_str[auth.eap_method]);
+    YAML_STRING(event, emitter, "key-management", netplan_auth_key_management_type_name(auth.key_management));
+    YAML_STRING(event, emitter, "method", netplan_auth_eap_method_name(auth.eap_method));
     YAML_STRING(event, emitter, "anonymous-identity", auth.anonymous_identity);
     YAML_STRING(event, emitter, "identity", auth.identity);
     YAML_STRING(event, emitter, "ca-certificate", auth.ca_certificate);
@@ -254,7 +255,7 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         if (ap->has_auth)
             write_auth(event, emitter, ap->auth);
         if (ap->mode != NETPLAN_WIFI_MODE_INFRASTRUCTURE)
-            YAML_STRING(event, emitter, "mode", netplan_wifi_mode_to_str[ap->mode]);
+            YAML_STRING(event, emitter, "mode", netplan_wifi_mode_name(ap->mode));
         if (!write_backend_settings(event, emitter, ap->backend_settings)) goto error;
         YAML_MAPPING_CLOSE(event, emitter);
     }
@@ -367,7 +368,7 @@ error: return FALSE; // LCOV_EXCL_LINE
 static gboolean
 write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
-    YAML_STRING(event, emitter, "mode", netplan_tunnel_mode_to_str[def->tunnel.mode]);
+    YAML_STRING(event, emitter, "mode", netplan_tunnel_mode_name(def->tunnel.mode));
     YAML_STRING(event, emitter, "local", def->tunnel.local_ip);
     YAML_STRING(event, emitter, "remote", def->tunnel.remote_ip);
     if (def->tunnel.fwmark)
@@ -651,7 +652,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     YAML_STRING(event, emitter, "macaddress", def->set_mac);
     YAML_STRING(event, emitter, "set-name", def->set_name);
-    YAML_STRING(event, emitter, "ipv6-address-generation", netplan_addr_gen_mode_to_str[def->ip6_addr_gen_mode]);
+    YAML_STRING(event, emitter, "ipv6-address-generation", netplan_addr_gen_mode_name(def->ip6_addr_gen_mode));
     YAML_STRING(event, emitter, "ipv6-address-token", def->ip6_addr_gen_token);
     if (def->ip6_privacy)
         YAML_STRING_PLAIN(event, emitter, "ipv6-privacy", "true");
@@ -825,8 +826,8 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_STRING_PLAIN(event, emitter, "version", "2");
 
-    if (netplan_def_type_to_str[def->type]) {
-        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[def->type]);
+    if (netplan_def_type_name(def->type)) {
+        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(def->type));
         YAML_MAPPING_OPEN(event, emitter);
         _serialize_yaml(event, emitter, def);
         YAML_MAPPING_CLOSE(event, emitter);
@@ -901,8 +902,8 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
             for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
                 /* Per-netdef config */
                 if (g_hash_table_find(netdefs, contains_netdef_type, &i)) {
-                    if (netplan_def_type_to_str[i]) {
-                        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_to_str[i]);
+                    if (netplan_def_type_name(i)) {
+                        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(i));
                         YAML_MAPPING_OPEN(event, emitter);
                         g_hash_table_iter_init(&iter, netdefs);
                         while (g_hash_table_iter_next (&iter, &key, &value)) {

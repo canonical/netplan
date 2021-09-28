@@ -29,6 +29,7 @@
 
 #include "parse.h"
 #include "util.h"
+#include "names.h"
 #include "error.h"
 #include "validation.h"
 
@@ -1818,12 +1819,6 @@ handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data
  * Grammar and handlers for tunnels
  ****************************************************/
 
-const char*
-tunnel_mode_to_string(NetplanTunnelMode mode)
-{
-    return netplan_tunnel_mode_table[mode];
-}
-
 static gboolean
 handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
 {
@@ -1855,7 +1850,7 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
 
     // Skip over unknown (0) tunnel mode.
     for (i = 1; i < NETPLAN_TUNNEL_MODE_MAX_; ++i) {
-        if (g_strcmp0(netplan_tunnel_mode_table[i], key) == 0) {
+        if (g_strcmp0(netplan_tunnel_mode_name(i), key) == 0) {
             cur_netdef->tunnel.mode = i;
             return TRUE;
         }

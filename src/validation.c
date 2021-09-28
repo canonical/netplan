@@ -24,6 +24,7 @@
 #include <yaml.h>
 
 #include "parse.h"
+#include "names.h"
 #include "error.h"
 #include "util.h"
 
@@ -251,7 +252,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
                     return yaml_error(node, error,
                                       "%s: %s tunnel mode is not supported by networkd",
                                       nd->id,
-                                      g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                                      g_ascii_strup(netplan_tunnel_mode_name(nd->tunnel.mode), -1));
                     break;
 
                 default:
@@ -275,7 +276,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
                     return yaml_error(node, error,
                                       "%s: %s tunnel mode is not supported by NetworkManager",
                                       nd->id,
-                                      g_ascii_strup(tunnel_mode_to_string(nd->tunnel.mode), -1));
+                                      g_ascii_strup(netplan_tunnel_mode_name(nd->tunnel.mode), -1));
                     break;
 
                 default:
