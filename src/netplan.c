@@ -720,6 +720,28 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->wake_on_lan)
         YAML_STRING_PLAIN(event, emitter, "wakeonlan", "true");
 
+    /* Offload options */
+    if (def->receive_checksum_offload)
+        YAML_STRING_PLAIN(event, emitter, "receive-checksum-offload", "true");
+
+    if (def->transmit_checksum_offload)
+        YAML_STRING_PLAIN(event, emitter, "transmit-checksum-offload", "true");
+
+    if (def->tcp_segmentation_offload)
+        YAML_STRING_PLAIN(event, emitter, "tcp-segmentation-offload", "true");
+
+    if (def->tcp6_segmentation_offload)
+        YAML_STRING_PLAIN(event, emitter, "tcp6-segmentation-offload", "true");
+
+    if (def->generic_segmentation_offload)
+        YAML_STRING_PLAIN(event, emitter, "generic-segmentation-offload", "true");
+
+    if (def->generic_receive_offload)
+        YAML_STRING_PLAIN(event, emitter, "generic-receive-offload", "true");
+
+    if (def->large_receive_offload)
+        YAML_STRING_PLAIN(event, emitter, "large-receive-offload", "true");
+
     if (def->wowlan && def->wowlan != NETPLAN_WIFI_WOWLAN_DEFAULT) {
         YAML_SCALAR_PLAIN(event, emitter, "wakeonwlan");
         YAML_SEQUENCE_OPEN(event, emitter);

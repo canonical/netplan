@@ -713,3 +713,37 @@ method=ignore
 '''})
         self.assert_networkd({})
         self.assert_nm_udev(None)
+
+    def test_offload(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth1:
+      receive-checksum-offload: true
+      transmit-checksum-offload: true
+      tcp-segmentation-offload: true
+      tcp6-segmentation-offload: true
+      generic-segmentation-offload: true
+      generic-receive-offload: true
+      large-receive-offload: true''')
+
+        self.assert_networkd({'eth1.link': '''[Match]
+OriginalName=eth1
+
+[Link]
+WakeOnLan=off
+ReceiveChecksumOffload=1
+TransmitChecksumOffload=1
+TCPSegmentationOffload=1
+TCP6SegmentationOffload=1
+GenericSegmentationOffload=1
+GenericReceiveOffload=1
+LargeReceiveOffload=1
+''',
+                              'eth1.network': '''[Match]
+Name=eth1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_networkd_udev(None)

@@ -1,0 +1,11 @@
+network:
+  version: 2
+  ethernets:
+    ens1:
+      receive-checksum-offload: false
+      transmit-checksum-offload: true
+      tcp-segmentation-offload: true
+      tcp6-segmentation-offload: true
+      generic-segmentation-offload: true
+      generic-receive-offload: true
+      large-receive-offload: true

@@ -397,6 +397,15 @@ struct net_definition {
 
     /* configure without carrier */
     gboolean ignore_carrier;
+
+    /* offload options */
+    gboolean receive_checksum_offload;
+    gboolean transmit_checksum_offload;
+    gboolean tcp_segmentation_offload;
+    gboolean tcp6_segmentation_offload;
+    gboolean generic_segmentation_offload;
+    gboolean generic_receive_offload;
+    gboolean large_receive_offload;
 };
 
 typedef enum {
