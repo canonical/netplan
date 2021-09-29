@@ -1030,6 +1030,7 @@ handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check
                 return FALSE;
 
             g_array_append_val(cur_netdef->address_options, cur_addr_option);
+            cur_addr_option = NULL;
             continue;
         }
 
