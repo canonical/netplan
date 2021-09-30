@@ -1673,6 +1673,7 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        gboolean ret;
 
         cur_ip_rule = g_new0(NetplanIPRule, 1);
         cur_ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
@@ -1681,21 +1682,20 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
         cur_ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
         cur_ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 
-        if (process_mapping(doc, entry, ip_rules_handlers, NULL, error)) {
-            if (!cur_netdef->ip_rules) {
-                cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
-            }
+        ret = process_mapping(doc, entry, ip_rules_handlers, NULL, error);
+        if (ret && !cur_ip_rule->from && !cur_ip_rule->to)
+            ret = yaml_error(node, error, "IP routing policy must include either a 'from' or 'to' IP");
 
-            g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
+        if (!ret) {
+            g_free(cur_ip_rule); /* XXX: do an in-depth cleaning */
+            cur_ip_rule = NULL;
+            return FALSE;
         }
 
-        if (!cur_ip_rule->from && !cur_ip_rule->to)
-            return yaml_error(node, error, "IP routing policy must include either a 'from' or 'to' IP");
-
+        if (!cur_netdef->ip_rules)
+            cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
+        g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
         cur_ip_rule = NULL;
-
-        if (error && *error)
-            return FALSE;
     }
     return TRUE;
 }
