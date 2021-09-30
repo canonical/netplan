@@ -1107,6 +1107,7 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
+        gboolean ret = TRUE;
 
         key = yaml_document_get_node(doc, entry->key);
         assert_type(key, YAML_SCALAR_NODE);
@@ -1118,23 +1119,22 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
         cur_access_point->ssid = g_strdup(scalar(key));
         g_debug("%s: adding wifi AP '%s'", cur_netdef->id, cur_access_point->ssid);
 
-        if (!cur_netdef->access_points)
-            cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
-        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point)) {
-            /* Even in the error case, NULL out cur_access_point. Otherwise we
-             * have an assert failure if we do a multi-pass parse. */
-            gboolean ret;
-
+        /* Check if there's already an SSID with that name */
+        if (cur_netdef->access_points &&
+                g_hash_table_lookup(cur_netdef->access_points, cur_access_point->ssid)) {
             ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
-            cur_access_point = NULL;
-            return ret;
         }
 
-        if (!process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
+        if (!ret || !process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
+            g_free(cur_access_point->ssid);
+            g_free(cur_access_point); /* XXX: should be more in-depth! */
             cur_access_point = NULL;
             return FALSE;
         }
 
+        if (!cur_netdef->access_points)
+            cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point);
         cur_access_point = NULL;
     }
     return TRUE;
