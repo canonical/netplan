@@ -15,12 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* This module contains functions to deal with the NetplanNetDefinition objects.
- * Notably, accessors and destructors.
+/* This module contains functions to deal with the Netplan objects,
+ * notably, accessors and destructors. Note that types specific to parsing
+ * are implemented separately.
  */
 
 #include <glib.h>
-#include "parse.h"
+#include "types.h"
 
 #define FREE_AND_NULLIFY(ptr) { g_free(ptr); ptr = NULL; }
 

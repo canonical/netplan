@@ -28,10 +28,13 @@
 #include <yaml.h>
 
 #include "parse.h"
-#include "util.h"
 #include "names.h"
+#include "util-internal.h"
 #include "error.h"
 #include "validation.h"
+
+#define NETPLAN_VERSION_MIN    2
+#define NETPLAN_VERSION_MAX    3
 
 /* convenience macro to put the offset of a NetplanNetDefinition field into "void* data" */
 #define access_point_offset(field) GUINT_TO_POINTER(offsetof(NetplanWifiAccessPoint, field))
@@ -73,12 +76,15 @@ const char* cur_filename;
 static NetplanBackend backend_global, backend_cur_type;
 
 /* global OpenVSwitch settings */
+NETPLAN_INTERNAL
 NetplanOVSSettings ovs_settings_global;
 
 /* Global ID → NetplanNetDefinition* map for all parsed config files */
+NETPLAN_INTERNAL
 GHashTable* netdefs;
 
 /* Contains the same objects as 'netdefs' but ordered by dependency */
+NETPLAN_INTERNAL
 GList* netdefs_ordered;
 
 /* Set of IDs in currently parsed YAML file, for being able to detect
@@ -900,7 +906,8 @@ handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** er
     return process_mapping(doc, node, match_handlers, NULL, error);
 }
 
-struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[] = {
+NETPLAN_ABI struct NetplanWifiWowlanType
+NETPLAN_WIFI_WOWLAN_TYPES[] = {
     {"default",            NETPLAN_WIFI_WOWLAN_DEFAULT},
     {"any",                NETPLAN_WIFI_WOWLAN_ANY},
     {"disconnect",         NETPLAN_WIFI_WOWLAN_DISCONNECT},
@@ -1311,7 +1318,8 @@ handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError
     return TRUE;
 }
 
-struct NetplanOptionalAddressType NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
+NETPLAN_ABI struct NetplanOptionalAddressType
+NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
     {"ipv4-ll", NETPLAN_OPTIONAL_IPV4_LL},
     {"ipv6-ra", NETPLAN_OPTIONAL_IPV6_RA},
     {"dhcp4",   NETPLAN_OPTIONAL_DHCP4},

@@ -1,0 +1,66 @@
+/*
+ * Copyright (C) 2016 Canonical, Ltd.
+ * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+#include "netplan.h"
+#include <glib.h>
+
+/****************************************************
+ * Parsed definitions
+ ****************************************************/
+
+typedef enum {
+    NETPLAN_DEF_TYPE_NONE,
+    /* physical devices */
+    NETPLAN_DEF_TYPE_ETHERNET,
+    NETPLAN_DEF_TYPE_WIFI,
+    NETPLAN_DEF_TYPE_MODEM,
+    /* virtual devices */
+    NETPLAN_DEF_TYPE_VIRTUAL,
+    NETPLAN_DEF_TYPE_BRIDGE = NETPLAN_DEF_TYPE_VIRTUAL,
+    NETPLAN_DEF_TYPE_BOND,
+    NETPLAN_DEF_TYPE_VLAN,
+    NETPLAN_DEF_TYPE_TUNNEL,
+    NETPLAN_DEF_TYPE_PORT,
+    /* Type fallback/passthrough */
+    NETPLAN_DEF_TYPE_NM,
+    NETPLAN_DEF_TYPE_MAX_
+} NetplanDefType;
+
+typedef enum {
+    NETPLAN_BACKEND_NONE,
+    NETPLAN_BACKEND_NETWORKD,
+    NETPLAN_BACKEND_NM,
+    NETPLAN_BACKEND_OVS,
+    NETPLAN_BACKEND_MAX_,
+} NetplanBackend;
+
+/****************************************************
+ * Functions
+ ****************************************************/
+
+NETPLAN_PUBLIC gboolean
+netplan_parse_yaml(const char* filename, GError** error);
+
+NETPLAN_PUBLIC GHashTable*
+netplan_finish_parse(GError** error);
+
+NETPLAN_PUBLIC guint
+netplan_clear_netdefs();
+
+NETPLAN_PUBLIC NetplanBackend
+netplan_get_global_backend();

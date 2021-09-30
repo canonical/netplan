@@ -27,7 +27,9 @@
 #include <gio/gio.h>
 
 #include "util.h"
+#include "util-internal.h"
 #include "parse.h"
+#include "parse-globals.h"
 #include "names.h"
 #include "networkd.h"
 #include "nm.h"

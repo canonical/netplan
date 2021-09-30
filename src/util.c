@@ -23,11 +23,17 @@
 #include <glib/gprintf.h>
 
 #include "util.h"
+#include "util-internal.h"
 #include "netplan.h"
+#include "parse.h"
+#include "parse-globals.h"
 #include "names.h"
 
-GHashTable* wifi_frequency_24;
-GHashTable* wifi_frequency_5;
+NETPLAN_ABI GHashTable*
+wifi_frequency_24;
+
+NETPLAN_ABI GHashTable*
+wifi_frequency_5;
 
 /**
  * Create the parent directories of given file path. Exit program on failure.

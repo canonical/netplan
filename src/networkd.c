@@ -27,8 +27,10 @@
 
 #include "networkd.h"
 #include "parse.h"
+#include "parse-globals.h"
 #include "names.h"
 #include "util.h"
+#include "util-internal.h"
 #include "validation.h"
 
 /**

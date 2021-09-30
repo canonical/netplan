@@ -25,7 +25,9 @@
 #include "openvswitch.h"
 #include "networkd.h"
 #include "parse.h"
+#include "parse-globals.h"
 #include "util.h"
+#include "util-internal.h"
 
 static void
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency)

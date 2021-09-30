@@ -20,6 +20,8 @@
 
 #include "netplan.h"
 #include "parse.h"
+#include "parse-globals.h"
+#include "yaml-helpers.h"
 #include "names.h"
 
 gchar *tmp = NULL;
@@ -885,7 +887,7 @@ contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
-void
+NETPLAN_INTERNAL void
 write_netplan_conf_full(const char* file_hint, const char* rootdir)
 {
     g_autofree gchar *path = NULL;
@@ -980,7 +982,7 @@ void cleanup_netplan_conf(const char* rootdir)
 /**
  * Helper function for testing only
  */
-void
+NETPLAN_INTERNAL void
 _write_netplan_conf(const char* netdef_id, const char* rootdir)
 {
     GHashTable* ht = NULL;

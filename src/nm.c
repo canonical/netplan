@@ -26,9 +26,12 @@
 #include <glib/gprintf.h>
 #include <uuid.h>
 
+#include "netplan.h"
 #include "nm.h"
 #include "parse.h"
+#include "parse-globals.h"
 #include "util.h"
+#include "util-internal.h"
 #include "validation.h"
 #include "parse-nm.h"
 
