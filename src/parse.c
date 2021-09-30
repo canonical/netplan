@@ -2654,12 +2654,9 @@ netplan_parse_yaml(const char* filename, GError** error)
     return ret;
 }
 
-static void
-finish_iterator(gpointer key, gpointer value, gpointer user_data)
+static gboolean
+finish_iterator(NetplanNetDefinition* nd, GError **error)
 {
-    GError **error = (GError **)user_data;
-    NetplanNetDefinition* nd = value;
-
     /* Take more steps to make sure we always have a backend set for netdefs */
     if (nd->backend == NETPLAN_BACKEND_NONE) {
         nd->backend = get_default_backend_for_type(nd->type);
@@ -2667,8 +2664,7 @@ finish_iterator(gpointer key, gpointer value, gpointer user_data)
     }
 
     /* Do a final pass of validation for backend-specific conditions */
-    if (validate_backend_rules(nd, error))
-        g_debug("Configuration is valid");
+    return validate_backend_rules(nd, error);
 }
 
 /**
@@ -2679,6 +2675,8 @@ netplan_finish_parse(GError** error)
 {
     if (netdefs) {
         GError *recoverable = NULL;
+        GHashTableIter iter;
+        gpointer key, value;
         g_debug("We have some netdefs, pass them through a final round of validation");
         if (!validate_default_route_consistency(netdefs, &recoverable)) {
             g_warning("Problem encountered while validating default route consistency."
@@ -2686,12 +2684,15 @@ netplan_finish_parse(GError** error)
                       "Error: %s", (recoverable) ? recoverable->message : "");
             g_clear_error(&recoverable);
         }
-        g_hash_table_foreach(netdefs, finish_iterator, error);
+        g_hash_table_iter_init (&iter, netdefs);
+
+        while (g_hash_table_iter_next (&iter, &key, &value))
+        {
+            if (!finish_iterator((NetplanNetDefinition *) value, error))
+                return NULL;
+            g_debug("Configuration is valid");
+        }
     }
-
-    if (error && *error)
-        return NULL;
-
     return netdefs;
 }
 
