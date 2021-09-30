@@ -1999,11 +1999,13 @@ handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, G
         cur_wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
         g_debug("%s: adding new wireguard peer", cur_netdef->id);
 
-        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
         if (!process_mapping(doc, entry, wireguard_peer_handlers, NULL, error)) {
+            g_array_free(cur_wireguard_peer->allowed_ips, TRUE);
+            g_free(cur_wireguard_peer); /* TODO: in-depth cleaning ! */
             cur_wireguard_peer = NULL;
             return FALSE;
         }
+        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
         cur_wireguard_peer = NULL;
     }
     return TRUE;
