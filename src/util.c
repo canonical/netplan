@@ -195,7 +195,7 @@ systemd_escape(char* string)
 
     gchar *argv[] = {"bin" "/" "systemd-escape", string, NULL};
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &escaped, &stderrh, &exit_status, &err);
-    g_spawn_check_exit_status(exit_status, &err);
+    g_spawn_check_wait_status(exit_status, &err);
     if (err != NULL) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to ask systemd to escape %s; exit %d\nstdout: '%s'\nstderr: '%s'", string, exit_status, escaped, stderrh);

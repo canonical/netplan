@@ -110,7 +110,7 @@ _try_accept(bool accept, sd_bus_message *m, NetplanData *d, sd_bus_error *ret_er
      * Check return code/errors. */
     kill(d->try_pid, signal);
     waitpid(d->try_pid, &status, 0);
-    g_spawn_check_exit_status(status, &error);
+    g_spawn_check_wait_status(status, &error);
     if (error != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan try failed: %s", error->message); // LCOV_EXCL_LINE
 
@@ -254,7 +254,7 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot run netplan apply: %s", err->message);
-    g_spawn_check_exit_status(exit_status, &err);
+    g_spawn_check_wait_status(exit_status, &err);
     if (err != NULL)
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                 "netplan apply failed: %s\nstdout: '%s'\nstderr: '%s'",
@@ -283,7 +283,7 @@ method_generate(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot run netplan generate: %s", err->message);
-    g_spawn_check_exit_status(exit_status, &err);
+    g_spawn_check_wait_status(exit_status, &err);
     if (err != NULL)
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                 "netplan generate failed: %s\nstdout: '%s'\nstderr: '%s'",
@@ -360,7 +360,7 @@ method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan get: %s", err->message); // LCOV_EXCL_LINE
 
-    g_spawn_check_exit_status(exit_status, &err);
+    g_spawn_check_wait_status(exit_status, &err);
     if (err != NULL)
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan get failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr); // LCOV_EXCL_LINE
 
@@ -406,7 +406,7 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (err != NULL)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot run netplan set %s: %s", config_delta, err->message); // LCOV_EXCL_LINE
 
-    g_spawn_check_exit_status(exit_status, &err);
+    g_spawn_check_wait_status(exit_status, &err);
     if (err != NULL)
        return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "netplan set failed: %s\nstdout: '%s'\nstderr: '%s'", err->message, stdout, stderr); // LCOV_EXCL_LINE
 
