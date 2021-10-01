@@ -105,6 +105,17 @@ NAME_FUNCTION(tunnel_mode, NetplanTunnelMode);
 NAME_FUNCTION(addr_gen_mode, NetplanAddrGenMode);
 NAME_FUNCTION(wifi_mode, NetplanWifiMode);
 
+#define ENUM_FUNCTION(_radical, _type) _type netplan_ ## _radical ## _from_name(const char* val) \
+{ \
+    for (int i = 0; i < sizeof(netplan_ ## _radical ## _to_str); ++i) { \
+        if (g_strcmp0(val, netplan_ ## _radical ## _to_str[i]) == 0) \
+            return i; \
+    } \
+    return -1; \
+}
+
+ENUM_FUNCTION(def_type, NetplanDefType);
+
 /* ABI compatibility definitions */
 
 NETPLAN_ABI const char*
