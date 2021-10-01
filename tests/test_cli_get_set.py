@@ -193,6 +193,20 @@ class TestSet(unittest.TestCase):
             self.assertNotIn('addresses:', out)
             self.assertNotIn('eth0:', out)
 
+    def test_set_delete_subtree(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:\n  version: 2\n  renderer: NetworkManager
+  ethernets:
+    eth0: {addresses: [1.2.3.4/24]}''')
+        self._set(['network.ethernets=null'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+        self.assertIn('network:\n', out)
+        self.assertIn(' version: 2\n', out)
+        self.assertIn(' renderer: NetworkManager\n', out)
+        self.assertNotIn('ethernets:', out)
+
     def test_set_delete_file(self):
         with open(self.path, 'w') as f:
             f.write('''network:
