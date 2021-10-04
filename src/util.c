@@ -334,3 +334,47 @@ get_global_network(int ip_family)
     else
         return "::/0";
 }
+
+struct netdef_pertype_iterator {
+    NetplanDefType type;
+    GHashTableIter iter;
+};
+
+NETPLAN_INTERNAL struct netdef_pertype_iterator*
+_netplan_iter_defs_per_devtype_init(const char *devtype)
+{
+    NetplanDefType type = netplan_def_type_from_name(devtype);
+    struct netdef_pertype_iterator *iter = g_malloc0(sizeof(*iter));
+    iter->type = type;
+    if (netdefs)
+        g_hash_table_iter_init(&iter->iter, netdefs);
+    return iter;
+}
+
+NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_iter_defs_per_devtype_next(struct netdef_pertype_iterator* it)
+{
+    gpointer key, value;
+
+    if (!netdefs)
+        return NULL;
+
+    while (g_hash_table_iter_next(&it->iter, &key, &value)) {
+        NetplanNetDefinition* netdef = value;
+        if (netdef->type == it->type)
+            return netdef;
+    }
+    return NULL;
+}
+
+NETPLAN_INTERNAL void
+_netplan_iter_defs_per_devtype_free(struct netdef_pertype_iterator* it)
+{
+    g_free(it);
+}
+
+NETPLAN_INTERNAL const char*
+_netplan_netdef_id(NetplanNetDefinition* nd)
+{
+    return nd->id;
+}

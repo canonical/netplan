@@ -59,7 +59,14 @@ class NetplanSet(utils.NetplanCommand):
         for devtype in network:
             if devtype in GLOBAL_KEYS:
                 continue  # special handling of global keys down below
-            for netdef in network.get(devtype, []):
+            devtype_content = network.get(devtype, [])
+            # Special case: removal of a whole devtype.
+            # We replace the devtype null node with a dict of all defined netdefs
+            # set to None.
+            if devtype_content is None:
+                devtype_content = {dev: None for dev in utils.netplan_get_ids_for_devtype(devtype, self.root_dir)}
+                network[devtype] = devtype_content
+            for netdef in devtype_content:
                 hint = FALLBACK_HINT
                 filename = utils.netplan_get_filename_by_id(netdef, self.root_dir)
                 if filename:

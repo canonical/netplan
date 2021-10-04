@@ -31,13 +31,11 @@ from netplan.cli.core import Netplan
 def _call_cli(args):
     old_sys_argv = sys.argv
     sys.argv = [old_sys_argv[0]] + args
+    f = io.StringIO()
     try:
-        f = io.StringIO()
         with redirect_stdout(f):
             Netplan().main()
             return f.getvalue()
-    except Exception as e:
-        return e
     finally:
         sys.argv = old_sys_argv
 
@@ -110,20 +108,20 @@ class TestSet(unittest.TestCase):
             self.assertEquals('network:\n  ethernets:\n    eth0:\n      dhcp4: true\n', f.read())
 
     def test_set_empty_origin_hint(self):
-        err = self._set(['ethernets.eth0.dhcp4=true', '--origin-hint='])
-        self.assertIsInstance(err, Exception)
-        self.assertIn('Invalid/empty origin-hint', str(err))
+        with self.assertRaises(Exception) as context:
+            self._set(['ethernets.eth0.dhcp4=true', '--origin-hint='])
+        self.assertTrue('Invalid/empty origin-hint' in str(context.exception))
 
     def test_set_invalid(self):
-        err = self._set(['xxx.yyy=abc'])
-        self.assertIsInstance(err, Exception)
-        self.assertIn('unknown key \'xxx\'\n  xxx:\n', str(err))
+        with self.assertRaises(Exception) as context:
+            self._set(['xxx.yyy=abc'])
+        self.assertIn('unknown key \'xxx\'\n  xxx:\n', str(context.exception))
         self.assertFalse(os.path.isfile(self.path))
 
     def test_set_invalid_validation(self):
-        err = self._set(['ethernets.eth0.set-name=myif0'])
-        self.assertIsInstance(err, Exception)
-        self.assertIn('eth0: \'set-name:\' requires \'match:\' properties', str(err))
+        with self.assertRaises(Exception) as context:
+            self._set(['ethernets.eth0.set-name=myif0'])
+        self.assertIn('eth0: \'set-name:\' requires \'match:\' properties', str(context.exception))
         self.assertFalse(os.path.isfile(self.path))
 
     def test_set_invalid_validation2(self):
@@ -134,9 +132,9 @@ class TestSet(unittest.TestCase):
       mode: sit
       local: 1.2.3.4
       remote: 5.6.7.8''')
-        err = self._set(['tunnels.tun0.keys.input=12345'])
-        self.assertIsInstance(err, Exception)
-        self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(err))
+        with self.assertRaises(Exception) as context:
+            self._set(['tunnels.tun0.keys.input=12345'])
+        self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(context.exception))
 
     def test_set_append(self):
         with open(self.path, 'w') as f:
@@ -195,6 +193,20 @@ class TestSet(unittest.TestCase):
             self.assertNotIn('addresses:', out)
             self.assertNotIn('eth0:', out)
 
+    def test_set_delete_subtree(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:\n  version: 2\n  renderer: NetworkManager
+  ethernets:
+    eth0: {addresses: [1.2.3.4/24]}''')
+        self._set(['network.ethernets=null'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = f.read()
+        self.assertIn('network:\n', out)
+        self.assertIn(' version: 2\n', out)
+        self.assertIn(' renderer: NetworkManager\n', out)
+        self.assertNotIn('ethernets:', out)
+
     def test_set_delete_file(self):
         with open(self.path, 'w') as f:
             f.write('''network:
@@ -220,9 +232,9 @@ class TestSet(unittest.TestCase):
             f.write('''network:\n  version: 2\n  renderer: NetworkManager
   ethernets:
     eth0: {addresses: [1.2.3.4]}''')
-        err = self._set(['ethernets.eth0.addresses'])
-        self.assertIsInstance(err, Exception)
-        self.assertEquals('Invalid value specified', str(err))
+        with self.assertRaises(Exception) as context:
+            self._set(['ethernets.eth0.addresses'])
+        self.assertEquals('Invalid value specified', str(context.exception))
 
     def test_set_escaped_dot(self):
         self._set([r'ethernets.eth0\.123.dhcp4=false'])
@@ -231,9 +243,11 @@ class TestSet(unittest.TestCase):
             self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
 
     def test_set_invalid_input(self):
-        err = self._set([r'ethernets.eth0={dhcp4:false}'])
-        self.assertIsInstance(err, Exception)
-        self.assertEquals('Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}', str(err))
+        with self.assertRaises(Exception) as context:
+            self._set([r'ethernets.eth0={dhcp4:false}'])
+        self.assertEquals(
+                'Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}',
+                str(context.exception))
 
     def test_set_override_existing_file(self):
         override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')

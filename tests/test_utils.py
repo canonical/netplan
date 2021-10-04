@@ -197,6 +197,39 @@ class TestUtils(unittest.TestCase):
       key: 0.0.0.0''')
         self.assertIsNone(utils.netplan_get_filename_by_id('some-id', self.workdir.name))
 
+    def test_netplan_get_ids_for_devtype(self):
+        path = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    id_b:
+      dhcp4: true
+    id_a:
+      dhcp4: true
+  vlans:
+    en-intra:
+      id: 3
+      link: id_b
+      dhcp4: true''')
+        self.assertSetEqual(
+                set(utils.netplan_get_ids_for_devtype("ethernets", self.workdir.name)),
+                set(["id_a", "id_b"]))
+
+    def test_netplan_get_ids_for_devtype_no_dev(self):
+        path = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    id_b:
+      dhcp4: true''')
+        self.assertSetEqual(
+                set(utils.netplan_get_ids_for_devtype("tunnels", self.workdir.name)),
+                set([]))
+
+    def test_NetdefIdIterator_with_clear_netplan(self):
+        utils.lib.netplan_clear_netdefs()
+        self.assertSequenceEqual(list(utils._NetdefIdIterator("ethernets")), [])
+
     def test_systemctl(self):
         self.mock_systemctl = MockCmd('systemctl')
         path_env = os.environ['PATH']
