@@ -92,6 +92,8 @@ method=auto
         name: "T-Mobile Funkadelic 2"
         passthrough:
           gsm.home-only: "true"
+          ipv4.dns-search: ""
+          ipv6.dns-search: ""
 '''.format(UUID, UUID)})
 
     def test_keyfile_cdma(self):
@@ -231,6 +233,8 @@ route-metric=4242
         uuid: "{}"
         name: "Test"
         passthrough:
+          ipv4.dns-search: ""
+          ipv6.dns-search: ""
           proxy._: ""
 '''.format(UUID, UUID)})
 
@@ -308,8 +312,10 @@ route1_options=unknown=invalid,
         uuid: "{}"
         name: "Test"
         passthrough:
+          ipv4.dns-search: "foo.local;bar.remote;"
           ipv4.method: "manual"
           ipv4.address1: "1.2.3.4/24,8.8.8.8"
+          ipv6.dns-search: "bar.local"
           ipv6.route1: "dead:beef::1/128,2001:1234::2"
           ipv6.route1_options: "unknown=invalid,"
           proxy._: ""
@@ -412,6 +418,7 @@ dns-search='''.format(UUID))
             name: "myid with spaces"
             passthrough:
               connection.permissions: ""
+              ipv4.dns-search: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -472,6 +479,7 @@ dns-search='''.format(UUID, method))
             name: "testnet"
             passthrough:
               connection.permissions: ""
+              ipv4.dns-search: ""
       networkmanager:
         uuid: "{}"
         name: "testnet"
@@ -718,7 +726,9 @@ psk=test1234
             passthrough:
               connection.autoconnect: "false"
               connection.permissions: ""
+              ipv4.dns-search: ""
               ipv6.addr-gen-mode: "1"
+              ipv6.dns-search: ""
               wifi.mac-address-blacklist: ""
               wifi-security.group: "ccmp;"
               wifi-security.pairwise: "ccmp;"
@@ -1015,4 +1025,111 @@ addr-gen-mode=1
           ipv4.address2: "10.10.164.254/24"
           ipv4.address3: "10.10.246.132/24"
           ipv6.addr-gen-mode: "1"
+'''.format(UUID, UUID)})
+
+    def test_keyfile_netplan0103_compat(self):
+        self.generate_from_keyfile('''[connection]
+id=Work Wired
+uuid={}
+type=ethernet
+autoconnect=false
+permissions=
+timestamp=305419896
+
+[ethernet]
+mac-address=99:88:77:66:55:44
+mac-address-blacklist=
+mtu=900
+
+[ipv4]
+address1=192.168.0.5/24,192.168.0.1
+address2=1.2.3.4/8
+dns=4.2.2.1;4.2.2.2;
+dns-search=
+method=manual
+route1=10.10.10.2/24,10.10.10.1,3
+route2=1.1.1.1/8,1.2.1.1,1
+route3=2.2.2.2/7
+route4=3.3.3.3/6,0.0.0.0,4
+route4_options=cwnd=10,mtu=1492,src=1.2.3.4
+
+[ipv6]
+addr-gen-mode=stable-privacy
+address1=abcd::beef/64
+address2=dcba::beef/56
+dns=1::cafe;2::cafe;
+dns-search=wallaceandgromit.com;
+method=manual
+route1=1:2:3:4:5:6:7:8/64,8:7:6:5:4:3:2:1,3
+route2=2001::1000/56,2001::1111,1
+route3=4:5:6:7:8:9:0:1/63,::,5
+route4=5:6:7:8:9:0:1:2/62
+
+[proxy]
+
+
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        macaddress: "99:88:77:66:55:44"
+      addresses:
+      - "192.168.0.5/24"
+      - "1.2.3.4/8"
+      - "abcd::beef/64"
+      - "dcba::beef/56"
+      nameservers:
+        addresses:
+        - 4.2.2.1
+        - 4.2.2.2
+        - 1::cafe
+        - 2::cafe
+        search:
+        - wallaceandgromit.com
+      ipv6-address-generation: "stable-privacy"
+      mtu: 900
+      routes:
+      - metric: 3
+        to: "10.10.10.2/24"
+        via: "10.10.10.1"
+      - metric: 1
+        to: "1.1.1.1/8"
+        via: "1.2.1.1"
+      - to: "2.2.2.2/7"
+        via: "0.0.0.0"
+      - metric: 4
+        mtu: 1492
+        from: "1.2.3.4"
+        to: "3.3.3.3/6"
+        via: "0.0.0.0"
+      - metric: 3
+        to: "1:2:3:4:5:6:7:8/64"
+        via: "8:7:6:5:4:3:2:1"
+      - metric: 1
+        to: "2001::1000/56"
+        via: "2001::1111"
+      - metric: 5
+        to: "4:5:6:7:8:9:0:1/63"
+        via: "::"
+      - to: "5:6:7:8:9:0:1:2/62"
+        via: "::"
+      wakeonlan: true
+      networkmanager:
+        uuid: "{}"
+        name: "Work Wired"
+        passthrough:
+          connection.autoconnect: "false"
+          connection.permissions: ""
+          connection.timestamp: "305419896"
+          ethernet.mac-address-blacklist: ""
+          ipv4.address1: "192.168.0.5/24,192.168.0.1"
+          ipv4.dns-search: ""
+          ipv4.method: "manual"
+          ipv4.route4: "3.3.3.3/6,0.0.0.0,4"
+          ipv4.route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
+          ipv6.dns-search: "wallaceandgromit.com;"
+          proxy._: ""
 '''.format(UUID, UUID)})

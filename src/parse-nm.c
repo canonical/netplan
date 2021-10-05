@@ -225,6 +225,14 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
         /* Append gateway/via IP */
         if (split[0] && split[1])
             route->via = g_strdup(split[1]); //no need to free, will stay in netdef
+        else {
+            /* If the gateway (via) is unspecified, it means that this route is
+             * only valid on the local network (see nm-keyfile.c ->
+             * read_one_ip_address_or_route()), e.g.:
+             * ip route add NETWORK dev DEV [metric METRIC] */
+            route->via = g_strdup(get_unspecified_address(route->family));
+        }
+
         /* Append metric */
         if (split[0] && split[1] && split[2] && strtoul(split[2], NULL, 10) != NETPLAN_METRIC_UNSPEC)
             route->metric = strtoul(split[2], NULL, 10);
@@ -286,12 +294,15 @@ parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dat
 static void
 parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
 {
+    /* Keep "dns-search" as fallback/passthrough, as netplan cannot
+     * differentiate between ipv4.dns-search and ipv6.dns-search */
     g_assert(domains_arr);
     gsize len = 0;
     gchar **split = g_key_file_get_string_list(kf, group, "dns-search", &len, NULL);
     if (split) {
         if (len == 0) {
-            _kf_clear_key(kf, group, "dns-search");
+            //do not clear "nds-search", keep as fallback
+            //_kf_clear_key(kf, group, "dns-search");
             return;
         }
         if (!*domains_arr)
@@ -300,7 +311,8 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
             char* s = g_strdup(split[i]); //no need to free, will stay in netdef
             g_array_append_val(*domains_arr, s);
         }
-        _kf_clear_key(kf, group, "dns-search");
+        //do not clear "nds-search", keep as fallback
+        //_kf_clear_key(kf, group, "dns-search");
         g_strfreev(split);
     }
 }
