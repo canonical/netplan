@@ -2252,6 +2252,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},        \
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},            \
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},                           \
+    {"mdns", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(mdns)},                \
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},        \
     {"optional-addresses", YAML_SEQUENCE_NODE, handle_optional_addresses},                    \
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},                                   \

@@ -200,6 +200,7 @@ struct net_definition {
     char* gateway6;
     GArray* ip4_nameservers;
     GArray* ip6_nameservers;
+    gboolean mdns;
     GArray* search_domains;
     GArray* routes;
     GArray* ip_rules;
