@@ -10,6 +10,7 @@ network:
         macaddress: 00:11:22:33:44:55
       wakeonlan: true
       dhcp4: true
+      mdns: true
       addresses:
         - 192.168.14.2/24
         - "2001:1::1/64"

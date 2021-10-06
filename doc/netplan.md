@@ -428,6 +428,11 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
               search: [lab, home]
               addresses: [8.8.8.8, "FEDC::1"]
 
+``mdns`` (bool)
+
+:   Enables multicast DNS support. That allows IP address resolution by hostname
+in networks without dedicated DNS server.
+
 ``macaddress`` (scalar)
 
 :   Set the device's MAC address. The MAC address must be in the form
@@ -910,7 +915,7 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
           the ``band`` property is also set.
 
      ``hidden`` (bool) – since **0.100**
-     :    Set to ``true`` to change the SSID scan technique for connecting to 
+     :    Set to ``true`` to change the SSID scan technique for connecting to
           hidden WiFi networks. Note this may have slower performance compared
           to ``false`` (the default) when connecting to publicly broadcast
           SSIDs.
