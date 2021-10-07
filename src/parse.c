@@ -1322,7 +1322,7 @@ static gboolean
 handle_mdns(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
     gboolean res;
-    gboolean parsed_as_bool = handle_generic_bool(doc, node, &res, 0, error);
+    gboolean parsed_as_bool = handle_generic_bool(doc, node, &res, 0, NULL);
     if (res && parsed_as_bool)
         cur_netdef->mdns = NETPLAN_MDNS_ENABLED;
     else if (!res && parsed_as_bool)
