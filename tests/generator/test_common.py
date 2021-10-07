@@ -685,6 +685,21 @@ DNS=8.8.8.8
 Domains=lab kitchen
 '''})
 
+    def test_mdns(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      mdns: resolve''')
+
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+MulticastDNS=resolve
+'''})
+
     def test_link_local_all(self):
         self.generate('''network:
   version: 2
@@ -1307,6 +1322,30 @@ wake-on-lan=0
 method=manual
 address1=192.168.1.3/24
 dns=8.8.8.8;
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_mdns(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      mdns: resolve''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+mdns=resolve
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
 
 [ipv6]
 method=ignore
