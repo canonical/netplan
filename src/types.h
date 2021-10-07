@@ -44,6 +44,7 @@ typedef enum {
 } NetplanAddrGenMode;
 
 typedef enum {
+    NETPLAN_MDNS_DEFAULT,
     NETPLAN_MDNS_DISABLED,
     NETPLAN_MDNS_RESOLVE,
     NETPLAN_MDNS_ENABLED,

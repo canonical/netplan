@@ -637,6 +637,8 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         YAML_STRING_PLAIN(event, emitter, "mdns", "true")
     } else if (def->mdns == NETPLAN_MDNS_RESOLVE) {
         YAML_STRING_PLAIN(event, emitter, "mdns", "resolve")
+    } else if (def->mdns == NETPLAN_MDNS_DISABLED) {
+        YAML_STRING_PLAIN(event, emitter, "mdns", "false")
     }
 
     YAML_STRING_PLAIN(event, emitter, "gateway4", def->gateway4);

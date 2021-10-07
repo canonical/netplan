@@ -612,6 +612,8 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         g_key_file_set_string(kf, "connection", "mdns", "yes");
     else if (def->mdns == NETPLAN_MDNS_RESOLVE)
         g_key_file_set_string(kf, "connection", "mdns", "resolve");
+    else if (def->mdns == NETPLAN_MDNS_DISABLED)
+        g_key_file_set_string(kf, "connection", "mdns", "no");
 
     if (def->activation_mode) {
         /* XXX: For now NetworkManager only supports the "manual" activation

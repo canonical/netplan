@@ -691,6 +691,8 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
         g_string_append_printf(network, "MulticastDNS=yes\n");
     else if (def->mdns == NETPLAN_MDNS_RESOLVE)
         g_string_append_printf(network, "MulticastDNS=resolve\n");
+    else if (def->mdns == NETPLAN_MDNS_DISABLED)
+        g_string_append_printf(network, "MulticastDNS=no\n");
     if (def->search_domains) {
         g_string_append_printf(network, "Domains=%s", g_array_index(def->search_domains, char*, 0));
         for (unsigned i = 1; i < def->search_domains->len; ++i)
