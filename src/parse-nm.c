@@ -301,7 +301,7 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
     gchar **split = g_key_file_get_string_list(kf, group, "dns-search", &len, NULL);
     if (split) {
         if (len == 0) {
-            //do not clear "nds-search", keep as fallback
+            //do not clear "dns-search", keep as fallback
             //_kf_clear_key(kf, group, "dns-search");
             return;
         }
@@ -311,7 +311,7 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
             char* s = g_strdup(split[i]); //no need to free, will stay in netdef
             g_array_append_val(*domains_arr, s);
         }
-        //do not clear "nds-search", keep as fallback
+        //do not clear "dns-search", keep as fallback
         //_kf_clear_key(kf, group, "dns-search");
         g_strfreev(split);
     }
