@@ -43,6 +43,12 @@ typedef enum {
     NETPLAN_ADDRGEN_MAX,
 } NetplanAddrGenMode;
 
+typedef enum {
+    NETPLAN_MDNS_DISABLED,
+    NETPLAN_MDNS_RESOLVE,
+    NETPLAN_MDNS_ENABLED,
+} NetplanMdnsMode;
+
 struct NetplanOptionalAddressType {
     char* name;
     NetplanOptionalAddressFlag flag;
@@ -200,7 +206,6 @@ struct net_definition {
     char* gateway6;
     GArray* ip4_nameservers;
     GArray* ip6_nameservers;
-    gboolean mdns;
     GArray* search_domains;
     GArray* routes;
     GArray* ip_rules;
@@ -340,6 +345,8 @@ struct net_definition {
     gboolean generic_segmentation_offload;
     gboolean generic_receive_offload;
     gboolean large_receive_offload;
+
+    NetplanMdnsMode mdns;
 };
 
 typedef enum {

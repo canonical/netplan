@@ -687,8 +687,10 @@ write_network_file(const NetplanNetDefinition* def, const char* rootdir, const c
     if (def->ip6_nameservers)
         for (unsigned i = 0; i < def->ip6_nameservers->len; ++i)
             g_string_append_printf(network, "DNS=%s\n", g_array_index(def->ip6_nameservers, char*, i));
-    if (def->mdns)
+    if (def->mdns == NETPLAN_MDNS_ENABLED)
         g_string_append_printf(network, "MulticastDNS=yes\n");
+    else if (def->mdns == NETPLAN_MDNS_RESOLVE)
+        g_string_append_printf(network, "MulticastDNS=resolve\n");
     if (def->search_domains) {
         g_string_append_printf(network, "Domains=%s", g_array_index(def->search_domains, char*, 0));
         for (unsigned i = 1; i < def->search_domains->len; ++i)

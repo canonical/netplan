@@ -633,6 +633,12 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     if (def->ip4_nameservers || def->ip6_nameservers || def->search_domains)
         write_nameservers(event, emitter, def);
 
+    if(def->mdns == NETPLAN_MDNS_ENABLED) {
+        YAML_STRING_PLAIN(event, emitter, "mdns", "true")
+    } else if (def->mdns == NETPLAN_MDNS_RESOLVE) {
+        YAML_STRING_PLAIN(event, emitter, "mdns", "resolve")
+    }
+
     YAML_STRING_PLAIN(event, emitter, "gateway4", def->gateway4);
     YAML_STRING_PLAIN(event, emitter, "gateway6", def->gateway6);
 

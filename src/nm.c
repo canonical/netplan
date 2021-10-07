@@ -608,8 +608,10 @@ write_nm_conf_access_point(NetplanNetDefinition* def, const char* rootdir, const
         uuid_unparse(def->uuid, uuidstr);
         g_key_file_set_string(kf, "connection", "uuid", uuidstr);
     }
-    if (def->mdns)
+    if (def->mdns == NETPLAN_MDNS_ENABLED)
         g_key_file_set_string(kf, "connection", "mdns", "yes");
+    else if (def->mdns == NETPLAN_MDNS_RESOLVE)
+        g_key_file_set_string(kf, "connection", "mdns", "resolve");
 
     if (def->activation_mode) {
         /* XXX: For now NetworkManager only supports the "manual" activation
