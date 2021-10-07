@@ -690,7 +690,12 @@ Domains=lab kitchen
   version: 2
   ethernets:
     eth0:
-      mdns: resolve''')
+      mdns: resolve
+    eth1:
+      mdns: true
+    eth2:
+      mdns: false
+''')
 
         self.assert_networkd({'eth0.network': '''[Match]
 Name=eth0
@@ -698,7 +703,29 @@ Name=eth0
 [Network]
 LinkLocalAddressing=ipv6
 MulticastDNS=resolve
+''',
+                              'eth1.network': '''[Match]
+Name=eth1
+
+[Network]
+LinkLocalAddressing=ipv6
+MulticastDNS=yes
+''',
+                              'eth2.network': '''[Match]
+Name=eth2
+
+[Network]
+LinkLocalAddressing=ipv6
+MulticastDNS=no
 '''})
+
+    def test_mdns_invalid(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      mdns: invalid
+''', expect_fail=True)
 
     def test_link_local_all(self):
         self.generate('''network:
@@ -1333,13 +1360,48 @@ method=ignore
   renderer: NetworkManager
   ethernets:
     eth0:
-      mdns: resolve''')
+      mdns: resolve
+    eth1:
+      mdns: true
+    eth2:
+      mdns: false
+''')
 
         self.assert_nm({'eth0': '''[connection]
 id=netplan-eth0
 type=ethernet
 mdns=resolve
 interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'eth1': '''[connection]
+id=netplan-eth1
+type=ethernet
+mdns=yes
+interface-name=eth1
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'eth2': '''[connection]
+id=netplan-eth2
+type=ethernet
+mdns=no
+interface-name=eth2
 
 [ethernet]
 wake-on-lan=0
