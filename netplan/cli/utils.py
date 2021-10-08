@@ -100,7 +100,12 @@ def netplan_get_ids_for_devtype(devtype, rootdir):
     lib._netplan_netdef_id.argtypes = [ctypes.c_void_p]
     lib._netplan_netdef_id.restype = ctypes.c_char_p
 
+    err = ctypes.POINTER(_GError)()
+    lib.netplan_clear_netdefs()
     lib.process_yaml_hierarchy(rootdir.encode('utf-8'))
+    lib.netplan_finish_parse(ctypes.byref(err))
+    if err:
+        raise Exception(err.contents.message.decode('utf-8'))
     nds = list(_NetdefIdIterator(devtype))
     return [lib._netplan_netdef_id(nd).decode('utf-8') for nd in nds]
 
