@@ -189,3 +189,14 @@ netplan_parse_yaml(const char* filename, GError** error)
 {
     return netplan_parser_load_yaml(&global_parser, filename, error);
 }
+
+/**
+ * Post-processing after parsing all config files
+ */
+GHashTable *
+netplan_finish_parse(GError** error)
+{
+    if (netplan_state_import_parser_results(&global_state, &global_parser, error))
+        return global_state.netdefs;
+    return NULL;
+}

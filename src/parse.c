@@ -28,7 +28,6 @@
 #include <yaml.h>
 
 #include "parse.h"
-#include "parse-globals.h"
 #include "names.h"
 #include "util-internal.h"
 #include "error.h"
@@ -2652,13 +2651,9 @@ insert_kv_into_hash(void *key, void *value, void *hash)
     return TRUE;
 }
 
-/**
- * Post-processing after parsing all config files
- */
-GHashTable *
-netplan_finish_parse(GError** error)
+gboolean
+netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, GError** error)
 {
-    NetplanParser* npp = &global_parser;
     if (npp->parsed_defs) {
         GError *recoverable = NULL;
         GHashTableIter iter;
@@ -2674,20 +2669,22 @@ netplan_finish_parse(GError** error)
         g_hash_table_iter_init (&iter, npp->parsed_defs);
 
         while (g_hash_table_iter_next (&iter, &key, &value)) {
+            g_assert(np_state->netdefs == NULL ||
+                    g_hash_table_lookup(np_state->netdefs, key) == NULL);
             if (!finish_iterator(npp, (NetplanNetDefinition *) value, error))
-                return NULL;
+                return FALSE;
             g_debug("Configuration is valid");
         }
     }
 
     if (npp->parsed_defs) {
-        if (!netdefs)
-            netdefs = g_hash_table_new(g_str_hash, g_str_equal);
-        g_hash_table_foreach_steal(npp->parsed_defs, insert_kv_into_hash, netdefs);
+        if (!np_state->netdefs)
+            np_state->netdefs = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_foreach_steal(npp->parsed_defs, insert_kv_into_hash, np_state->netdefs);
     }
-    netdefs_ordered = g_list_concat(netdefs_ordered, npp->ordered);
-    ovs_settings_global = npp->global_ovs_settings;
-    global_backend = npp->global_backend;
+    np_state->netdefs_ordered = g_list_concat(np_state->netdefs_ordered, npp->ordered);
+    np_state->ovs_settings = npp->global_ovs_settings;
+    np_state->backend = npp->global_backend;
 
     /* We need to reset those fields manually as we transfered ownership of the underlying
        data to out. If we don't do this, netplan_clear_parser will deallocate data
@@ -2697,7 +2694,7 @@ netplan_finish_parse(GError** error)
     memset(&npp->global_ovs_settings, 0, sizeof(NetplanOVSSettings));
 
     netplan_parser_reset(npp);
-    return netdefs;
+    return TRUE;
 }
 
 static void
