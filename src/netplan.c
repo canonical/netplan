@@ -36,7 +36,7 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
     YAML_STRING(event, emitter, "driver", def->match.driver)
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -56,7 +56,7 @@ write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSe
     YAML_STRING(event, emitter, "password", auth.password);
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -118,7 +118,7 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -173,7 +173,7 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -192,7 +192,7 @@ write_modem_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNe
     YAML_STRING(event, emitter, "password", def->modem_params.password);
     YAML_STRING(event, emitter, "number", def->modem_params.number);
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 typedef struct {
@@ -206,7 +206,7 @@ _passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
     _passthrough_handler_data *d = user_data;
     const gchar* key = g_quark_to_string(key_id);
     YAML_STRING(d->event, d->emitter, key, value);
-error: return; // LCOV_EXCL_LINE
+err_path: return; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -228,7 +228,7 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -258,12 +258,12 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
             write_auth(event, emitter, ap->auth);
         if (ap->mode != NETPLAN_WIFI_MODE_INFRASTRUCTURE)
             YAML_STRING(event, emitter, "mode", netplan_wifi_mode_name(ap->mode));
-        if (!write_backend_settings(event, emitter, ap->backend_settings)) goto error;
+        if (!write_backend_settings(event, emitter, ap->backend_settings)) goto err_path;
         YAML_MAPPING_CLOSE(event, emitter);
     }
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -294,7 +294,7 @@ write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 
     YAML_SEQUENCE_CLOSE(event, emitter);
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -326,7 +326,7 @@ write_nameservers(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
     }
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -364,7 +364,7 @@ write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* k
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -426,7 +426,7 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -489,7 +489,7 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
     }
 
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
@@ -593,7 +593,7 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
     }
 
     return TRUE;
-error: return FALSE; // LCOV_EXCL_LINE
+err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 void
@@ -800,18 +800,18 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
         write_modem_params(event, emitter, def);
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
-        if (!write_access_points(event, emitter, def)) goto error;
+        if (!write_access_points(event, emitter, def)) goto err_path;
 
     /* Handle devices in full fallback/passthrough mode (i.e. 'nm-devices') */
 only_passthrough:
-    if (!write_backend_settings(event, emitter, def->backend_settings)) goto error;
+    if (!write_backend_settings(event, emitter, def->backend_settings)) goto err_path;
 
     /* Close remaining mappings */
     YAML_MAPPING_CLOSE(event, emitter);
     return;
 
     // LCOV_EXCL_START
-error:
+err_path:
     g_warning("Error generating YAML: %s", emitter->problem);
     return;
     // LCOV_EXCL_STOP
@@ -866,7 +866,7 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     return;
 
     // LCOV_EXCL_START
-error:
+err_path:
     g_warning("Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
     fclose(output);
@@ -964,7 +964,7 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
         return;
 
         // LCOV_EXCL_START
-error:
+err_path:
         g_warning("Error generating YAML: %s", emitter->problem);
         yaml_emitter_delete(emitter);
         fclose(output);
