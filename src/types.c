@@ -113,7 +113,7 @@ reset_auth_settings(NetplanAuthenticationSettings* auth)
     auth->eap_method = NETPLAN_AUTH_EAP_NONE;
 }
 
-static void
+void
 reset_ovs_settings(NetplanOVSSettings* settings)
 {
     settings->mcast_snooping = FALSE;

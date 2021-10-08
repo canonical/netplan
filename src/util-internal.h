@@ -66,7 +66,11 @@ const char*
 tunnel_mode_to_string(NetplanTunnelMode mode);
 
 NetplanNetDefinition*
-netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend renderer);
+netplan_netdef_new(NetplanParser* npp, const char* id, NetplanDefType type, NetplanBackend renderer);
+
+const char *
+netplan_parser_get_filename(NetplanParser* npp);
+
 
 NETPLAN_INTERNAL void
 process_input_file(const char* f);

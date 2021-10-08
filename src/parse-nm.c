@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 
 #include "netplan.h"
+#include "parse-globals.h"
 #include "parse-nm.h"
 #include "parse.h"
 #include "util.h"
@@ -479,7 +480,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
     } else
         nd_id = g_strconcat("NM-", uuid, NULL);
     g_free(tmp_str);
-    nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
+    nd = netplan_netdef_new(&global_parser, nd_id, nd_type, NETPLAN_BACKEND_NM);
 
     /* Handle uuid & NM name/id */
     nd->backend_settings.nm.uuid = g_strdup(uuid);

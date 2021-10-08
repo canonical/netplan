@@ -25,6 +25,7 @@
 #include "types.h"
 #include "util-internal.h"
 #include "parse-nm.h"
+#include "parse-globals.h"
 #include "names.h"
 #include "networkd.h"
 #include "nm.h"
@@ -73,6 +74,7 @@ netplan_clear_netdefs()
 {
     guint n = netplan_state_get_netdefs_size(&global_state);
     netplan_state_reset(&global_state);
+    netplan_parser_reset(&global_parser);
     return n;
 }
 
@@ -180,4 +182,10 @@ NETPLAN_INTERNAL void
 cleanup_ovs_conf(const char* rootdir)
 {
     netplan_ovs_cleanup(rootdir);
+}
+
+gboolean
+netplan_parse_yaml(const char* filename, GError** error)
+{
+    return netplan_parser_load_yaml(&global_parser, filename, error);
 }

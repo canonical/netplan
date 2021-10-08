@@ -54,39 +54,9 @@
     dst = g_strdup(src); \
 } }
 
-/* NetplanNetDefinition that is currently being processed */
-static NetplanNetDefinition* cur_netdef;
-
-/* NetplanWifiAccessPoint that is currently being processed */
-static NetplanWifiAccessPoint* cur_access_point;
-
-/* NetplanAuthenticationSettings that are currently being processed */
-static NetplanAuthenticationSettings* cur_auth;
-
-/* NetplanWireguardPeer that is currently being processed */
-static NetplanWireguardPeer* cur_wireguard_peer;
-
-static NetplanAddressOptions* cur_addr_option;
-
-static NetplanIPRoute* cur_route;
-static NetplanIPRule* cur_ip_rule;
-
-/* Filename of the currently parsed YAML file */
-const char* cur_filename;
-
-static NetplanBackend backend_cur_type;
-
 extern NetplanState global_state;
 
-/* Set of IDs in currently parsed YAML file, for being able to detect
- * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
- * existing definition */
-static GHashTable* ids_in_file;
-
-/* Global variables, defined in this file */
-int missing_ids_found;
-const char* current_file;
-GHashTable* missing_id;
+NetplanParser global_parser = {0};
 
 /**
  * Load YAML file name into a yaml_document_t.
@@ -99,8 +69,6 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
     FILE* fyaml = NULL;
     yaml_parser_t parser;
     gboolean ret = TRUE;
-
-    current_file = yaml;
 
     fyaml = g_fopen(yaml, "r");
     if (!fyaml) {
@@ -125,7 +93,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
  * Raise a GError about a type mismatch and return FALSE.
  */
 static gboolean
-assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error)
+assert_type_fn(const NetplanParser* npp, yaml_node_t* node, yaml_node_type_t expected_type, GError** error)
 {
     if (node->type == expected_type)
         return TRUE;
@@ -136,13 +104,13 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
             return TRUE;
             break;
         case YAML_SCALAR_NODE:
-            yaml_error(node, error, "expected scalar");
+            yaml_error(npp, node, error, "expected scalar");
             break;
         case YAML_SEQUENCE_NODE:
-            yaml_error(node, error, "expected sequence");
+            yaml_error(npp, node, error, "expected sequence");
             break;
         case YAML_MAPPING_NODE:
-            yaml_error(node, error, "expected mapping (check indentation)");
+            yaml_error(npp, node, error, "expected mapping (check indentation)");
             break;
 
         // LCOV_EXCL_START
@@ -153,7 +121,7 @@ assert_type_fn(yaml_node_t* node, yaml_node_type_t expected_type, GError** error
     return FALSE;
 }
 
-#define assert_type(n,t) { if (!assert_type_fn(n,t,error)) return FALSE; }
+#define assert_type(ctx,n,t) { if (!assert_type_fn(ctx,n,t,error)) return FALSE; }
 
 static inline const char*
 scalar(const yaml_node_t* node)
@@ -162,7 +130,7 @@ scalar(const yaml_node_t* node)
 }
 
 static void
-add_missing_node(const yaml_node_t* node)
+add_missing_node(NetplanParser *npp, const yaml_node_t* node)
 {
     NetplanMissingNode* missing;
 
@@ -171,23 +139,23 @@ add_missing_node(const yaml_node_t* node)
      * seen by the compiler). We can use it later to write an sensible error
      * message and point the user in the right direction. */
     missing = g_new0(NetplanMissingNode, 1);
-    missing->netdef_id = cur_netdef->id;
+    missing->netdef_id = npp->current.netdef->id;
     missing->node = node;
 
     g_debug("recording missing yaml_node_t %s", scalar(node));
-    g_hash_table_insert(missing_id, (gpointer)scalar(node), missing);
+    g_hash_table_insert(npp->missing_id, (gpointer)scalar(node), missing);
 }
 
 /**
  * Check that node contains a valid ID/interface name. Raise GError if not.
  */
 static gboolean
-assert_valid_id(yaml_node_t* node, GError** error)
+assert_valid_id(const NetplanParser* npp, yaml_node_t* node, GError** error)
 {
     static regex_t re;
     static gboolean re_inited = FALSE;
 
-    assert_type(node, YAML_SCALAR_NODE);
+    assert_type(npp, node, YAML_SCALAR_NODE);
 
     if (!re_inited) {
         g_assert(regcomp(&re, "^[[:alnum:][:punct:]]+$", REG_EXTENDED|REG_NOSUB) == 0);
@@ -195,28 +163,22 @@ assert_valid_id(yaml_node_t* node, GError** error)
     }
 
     if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
-        return yaml_error(node, error, "Invalid name '%s'", scalar(node));
+        return yaml_error(npp, node, error, "Invalid name '%s'", scalar(node));
     return TRUE;
 }
 
 NetplanNetDefinition*
-netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
+netplan_netdef_new(NetplanParser *npp, const char* id, NetplanDefType type, NetplanBackend backend)
 {
     /* create new network definition */
     NetplanNetDefinition *netdef = g_new0(NetplanNetDefinition, 1);
     reset_netdef(netdef, type, backend);
     netdef->id = g_strdup(id);
 
-    if (!netdefs)
-        netdefs = g_hash_table_new(g_str_hash, g_str_equal);
-    g_hash_table_insert(netdefs, netdef->id, netdef);
-    /* netdefs_ordered now owns the allocated object */
-    netdefs_ordered = g_list_append(netdefs_ordered, netdef);
-
-    /* Update the convenience pointer cur_netdef. This is a weak ref,
-     * the previous value is owned by netdefs_ordered */
-    cur_netdef = netdef;
-
+    if (!npp->parsed_defs)
+        npp->parsed_defs = g_hash_table_new(g_str_hash, g_str_equal);
+    g_hash_table_insert(npp->parsed_defs, netdef->id, netdef);
+    npp->ordered = g_list_append(npp->ordered, netdef);
     return netdef;
 }
 
@@ -224,7 +186,7 @@ netplan_netdef_new(const char* id, NetplanDefType type, NetplanBackend backend)
  * Data types and functions for interpreting YAML nodes
  ****************************************************/
 
-typedef gboolean (*node_handler) (yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error);
+typedef gboolean (*node_handler) (NetplanParser* npp, yaml_node_t* node, const void* data, GError** error);
 
 typedef struct mapping_entry_handler_s {
     /* mapping key (must be scalar) */
@@ -263,11 +225,11 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
 static gboolean
-process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_handler* handlers, GList** out_values, GError** error)
+process_mapping(NetplanParser* npp, yaml_node_t* node, const mapping_entry_handler* handlers, GList** out_values, GError** error)
 {
     yaml_node_pair_t* entry;
 
-    assert_type(node, YAML_MAPPING_NODE);
+    assert_type(npp, node, YAML_MAPPING_NODE);
 
     for (entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
@@ -275,22 +237,22 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
 
         g_assert(error == NULL || *error == NULL);
 
-        key = yaml_document_get_node(doc, entry->key);
-        value = yaml_document_get_node(doc, entry->value);
-        assert_type(key, YAML_SCALAR_NODE);
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        value = yaml_document_get_node(&npp->doc, entry->value);
+        assert_type(npp, key, YAML_SCALAR_NODE);
         h = get_handler(handlers, scalar(key));
         if (!h)
-            return yaml_error(key, error, "unknown key '%s'", scalar(key));
-        assert_type(value, h->type);
+            return yaml_error(npp, key, error, "unknown key '%s'", scalar(key));
+        assert_type(npp, value, h->type);
         if (out_values)
             *out_values = g_list_prepend(*out_values, g_strdup(scalar(key)));
         if (h->map_handlers) {
             g_assert(h->handler == NULL);
             g_assert(h->type == YAML_MAPPING_NODE);
-            if (!process_mapping(doc, value, h->map_handlers, NULL, error))
+            if (!process_mapping(npp, value, h->map_handlers, NULL, error))
                 return FALSE;
         } else {
-            if (!h->handler(doc, value, h->data, error))
+            if (!h->handler(npp, value, h->data, error))
                 return FALSE;
         }
     }
@@ -308,7 +270,7 @@ process_mapping(yaml_document_t* doc, yaml_node_t* node, const mapping_entry_han
  * @data: offset into entryptr struct where the guint field to write is located
  */
 static gboolean
-handle_generic_guint(yaml_document_t* doc, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
+handle_generic_guint(NetplanParser* npp, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
     guint offset = GPOINTER_TO_UINT(data);
@@ -317,7 +279,7 @@ handle_generic_guint(yaml_document_t* doc, yaml_node_t* node, const void* entryp
 
     v = g_ascii_strtoull(scalar(node), &endptr, 10);
     if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(node));
+        return yaml_error(npp, node, error, "invalid unsigned int value '%s'", scalar(node));
 
     *((guint*) ((void*) entryptr + offset)) = (guint) v;
     return TRUE;
@@ -330,7 +292,7 @@ handle_generic_guint(yaml_document_t* doc, yaml_node_t* node, const void* entryp
  *        located
  */
 static gboolean
-handle_generic_str(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
     guint offset = GPOINTER_TO_UINT(data);
@@ -347,7 +309,7 @@ handle_generic_str(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
  *        located
  */
 static gboolean
-handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+handle_generic_mac(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
     static regex_t re;
@@ -361,9 +323,9 @@ handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
     }
 
     if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
-        return yaml_error(node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
+        return yaml_error(npp, node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
 
-    return handle_generic_str(doc, node, entryptr, data, error);
+    return handle_generic_str(npp, node, entryptr, data, error);
 }
 
 /*
@@ -372,7 +334,7 @@ handle_generic_mac(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
  * @data: offset into entryptr struct where the boolean field to write is located
  */
 static gboolean
-handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+handle_generic_bool(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
     guint offset = GPOINTER_TO_UINT(data);
@@ -389,7 +351,7 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
         g_ascii_strcasecmp(scalar(node), "n") == 0)
         v = FALSE;
     else
-        return yaml_error(node, error, "invalid boolean value '%s'", scalar(node));
+        return yaml_error(npp, node, error, "invalid boolean value '%s'", scalar(node));
 
     *((gboolean*) ((void*) entryptr + offset)) = v;
     return TRUE;
@@ -401,7 +363,7 @@ handle_generic_bool(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
  * @data: offset into entryptr struct where the boolean field to write is located
 */
 static gboolean
-handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+handle_generic_map(NetplanParser *npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     GHashTable** map = (GHashTable**) ((void*) entryptr + offset);
@@ -411,15 +373,15 @@ handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
 
-        key = yaml_document_get_node(doc, entry->key);
-        value = yaml_document_get_node(doc, entry->value);
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        value = yaml_document_get_node(&npp->doc, entry->value);
 
-        assert_type(key, YAML_SCALAR_NODE);
-        assert_type(value, YAML_SCALAR_NODE);
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        assert_type(npp, value, YAML_SCALAR_NODE);
 
         /* TODO: make sure we free all the memory here */
         if (!g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value))))
-            return yaml_error(node, error, "duplicate map entry '%s'", scalar(key));
+            return yaml_error(npp, node, error, "duplicate map entry '%s'", scalar(key));
     }
 
     return TRUE;
@@ -431,7 +393,7 @@ handle_generic_map(yaml_document_t* doc, yaml_node_t* node, void* entryptr, cons
  * @data: offset into entryptr struct where the boolean field to write is located
 */
 static gboolean
-handle_generic_datalist(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     GData** list = (GData**) ((void*) entryptr + offset);
@@ -441,11 +403,11 @@ handle_generic_datalist(yaml_document_t* doc, yaml_node_t* node, void* entryptr,
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
 
-        key = yaml_document_get_node(doc, entry->key);
-        value = yaml_document_get_node(doc, entry->value);
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        value = yaml_document_get_node(&npp->doc, entry->value);
 
-        assert_type(key, YAML_SCALAR_NODE);
-        assert_type(value, YAML_SCALAR_NODE);
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        assert_type(npp, value, YAML_SCALAR_NODE);
 
         g_datalist_set_data_full(list, g_strdup(scalar(key)), g_strdup(scalar(value)), g_free);
     }
@@ -454,31 +416,31 @@ handle_generic_datalist(yaml_document_t* doc, yaml_node_t* node, void* entryptr,
 }
 
 /**
- * Generic handler for setting a cur_netdef string field from a scalar node
+ * Generic handler for setting a npp->current.netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
-handle_netdef_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_str(doc, node, cur_netdef, data, error);
+    return handle_generic_str(npp, node, npp->current.netdef, data, error);
 }
 
 /**
- * Generic handler for setting a cur_netdef ID/iface name field from a scalar node
+ * Generic handler for setting a npp->current.netdef ID/iface name field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
-handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_id(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (!assert_valid_id(node, error))
+    if (!assert_valid_id(npp, node, error))
         return FALSE;
-    return handle_netdef_str(doc, node, data, error);
+    return handle_netdef_str(npp, node, data, error);
 }
 
 /**
- * Generic handler for setting a cur_netdef ID/iface name field referring to an
+ * Generic handler for setting a npp->current.netdef ID/iface name field referring to an
  * existing ID from a scalar node. This handler also includes a special case
  * handler for OVS VLANs, switching the backend implicitly to OVS for such
  * interfaces
@@ -486,20 +448,21 @@ handle_netdef_id(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
  *        located
  */
 static gboolean
-handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
     NetplanNetDefinition* ref = NULL;
 
-    ref = g_hash_table_lookup(netdefs, scalar(node));
+    ref = g_hash_table_lookup(npp->parsed_defs, scalar(node));
     if (!ref) {
-        add_missing_node(node);
+        add_missing_node(npp, node);
     } else {
-        *((NetplanNetDefinition**) ((void*) cur_netdef + offset)) = ref;
+        NetplanNetDefinition* netdef = npp->current.netdef;
+        *((NetplanNetDefinition**) ((void*) netdef + offset)) = ref;
 
-        if (cur_netdef->type == NETPLAN_DEF_TYPE_VLAN && ref->backend == NETPLAN_BACKEND_OVS) {
-            g_debug("%s: VLAN defined for openvswitch interface, choosing OVS backend", cur_netdef->id);
-            cur_netdef->backend = NETPLAN_BACKEND_OVS;
+        if (netdef->type == NETPLAN_DEF_TYPE_VLAN && ref->backend == NETPLAN_BACKEND_OVS) {
+            g_debug("%s: VLAN defined for openvswitch interface, choosing OVS backend", netdef->id);
+            netdef->backend = NETPLAN_BACKEND_OVS;
         }
     }
     return TRUE;
@@ -507,41 +470,41 @@ handle_netdef_id_ref(yaml_document_t* doc, yaml_node_t* node, const void* data, 
 
 
 /**
- * Generic handler for setting a cur_netdef MAC address field from a scalar node
+ * Generic handler for setting a npp->current.netdef MAC address field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 static gboolean
-handle_netdef_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_mac(doc, node, cur_netdef, data, error);
+    return handle_generic_mac(npp, node, npp->current.netdef, data, error);
 }
 
 /**
- * Generic handler for setting a cur_netdef gboolean field from a scalar node
+ * Generic handler for setting a npp->current.netdef gboolean field from a scalar node
  * @data: offset into NetplanNetDefinition where the gboolean field to write is located
  */
 static gboolean
-handle_netdef_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_bool(doc, node, cur_netdef, data, error);
+    return handle_generic_bool(npp, node, npp->current.netdef, data, error);
 }
 
 /**
- * Generic handler for setting a cur_netdef guint field from a scalar node
+ * Generic handler for setting a npp->current.netdef guint field from a scalar node
  * @data: offset into NetplanNetDefinition where the guint field to write is located
  */
 static gboolean
-handle_netdef_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_guint(doc, node, cur_netdef, data, error);
+    return handle_generic_guint(npp, node, npp->current.netdef, data, error);
 }
 
 static gboolean
-handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_ip4(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
+    char** dest = (char**) ((void*) npp->current.netdef + offset);
     g_autofree char* addr = NULL;
     char* prefix_len;
 
@@ -552,12 +515,12 @@ handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     /* FIXME: stop excluding this from coverage; refactor address handling instead */
     // LCOV_EXCL_START
     if (prefix_len)
-        return yaml_error(node, error,
+        return yaml_error(npp, node, error,
                           "invalid address: a single IPv4 address (without /prefixlength) is required");
 
     /* is it an IPv4 address? */
     if (!is_ip4_address(addr))
-        return yaml_error(node, error,
+        return yaml_error(npp, node, error,
                           "invalid IPv4 address: %s", scalar(node));
     // LCOV_EXCL_STOP
 
@@ -568,10 +531,10 @@ handle_netdef_ip4(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 }
 
 static gboolean
-handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_ip6(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_netdef + offset);
+    char** dest = (char**) ((void*) npp->current.netdef + offset);
     g_autofree char* addr = NULL;
     char* prefix_len;
 
@@ -582,12 +545,12 @@ handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
     /* FIXME: stop excluding this from coverage; refactor address handling instead */
     // LCOV_EXCL_START
     if (prefix_len)
-        return yaml_error(node, error,
+        return yaml_error(npp, node, error,
                           "invalid address: a single IPv6 address (without /prefixlength) is required");
 
     /* is it an IPv6 address? */
     if (!is_ip6_address(addr))
-        return yaml_error(node, error,
+        return yaml_error(npp, node, error,
                           "invalid IPv6 address: %s", scalar(node));
     // LCOV_EXCL_STOP
 
@@ -598,40 +561,40 @@ handle_netdef_ip6(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 }
 
 static gboolean
-handle_netdef_addrgen(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_netdef_addrgen(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_netdef);
+    g_assert(npp->current.netdef);
     if (strcmp(scalar(node), "eui64") == 0)
-        cur_netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
+        npp->current.netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_EUI64;
     else if (strcmp(scalar(node), "stable-privacy") == 0)
-        cur_netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_STABLEPRIVACY;
+        npp->current.netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_STABLEPRIVACY;
     else
-        return yaml_error(node, error, "unknown ipv6-address-generation '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown ipv6-address-generation '%s'", scalar(node));
     return TRUE;
 }
 
 static gboolean
-handle_netdef_addrtok(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_addrtok(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_netdef);
-    gboolean ret = handle_netdef_str(doc, node, data, error);
-    if (!is_ip6_address(cur_netdef->ip6_addr_gen_token))
-        return yaml_error(node, error, "invalid ipv6-address-token '%s'", scalar(node));
+    g_assert(npp->current.netdef);
+    gboolean ret = handle_netdef_str(npp, node, data, error);
+    if (!is_ip6_address(npp->current.netdef->ip6_addr_gen_token))
+        return yaml_error(npp, node, error, "invalid ipv6-address-token '%s'", scalar(node));
     return ret;
 }
 
 static gboolean
-handle_netdef_map(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_map(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_netdef);
-    return handle_generic_map(doc, node, cur_netdef, data, error);
+    g_assert(npp->current.netdef);
+    return handle_generic_map(npp, node, npp->current.netdef, data, error);
 }
 
 static gboolean
-handle_netdef_datalist(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_datalist(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_netdef);
-    return handle_generic_datalist(doc, node, cur_netdef, data, error);
+    g_assert(npp->current.netdef);
+    return handle_generic_datalist(npp, node, npp->current.netdef, data, error);
 }
 
 /****************************************************
@@ -650,45 +613,47 @@ static const mapping_entry_handler match_handlers[] = {
  ****************************************************/
 
 static gboolean
-handle_auth_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_auth_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_auth);
+    g_assert(npp->current.auth);
     guint offset = GPOINTER_TO_UINT(data);
-    char** dest = (char**) ((void*) cur_auth + offset);
+    char** dest = (char**) ((void*) npp->current.auth + offset);
     g_free(*dest);
     *dest = g_strdup(scalar(node));
     return TRUE;
 }
 
 static gboolean
-handle_auth_key_management(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_auth);
+    NetplanAuthenticationSettings* auth = npp->current.auth;
+    g_assert(auth);
     if (strcmp(scalar(node), "none") == 0)
-        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_NONE;
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_NONE;
     else if (strcmp(scalar(node), "psk") == 0)
-        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
     else if (strcmp(scalar(node), "eap") == 0)
-        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
     else if (strcmp(scalar(node), "802.1x") == 0)
-        cur_auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
     else
-        return yaml_error(node, error, "unknown key management type '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown key management type '%s'", scalar(node));
     return TRUE;
 }
 
 static gboolean
-handle_auth_method(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_auth_method(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_auth);
+    NetplanAuthenticationSettings* auth = npp->current.auth;
+    g_assert(auth);
     if (strcmp(scalar(node), "tls") == 0)
-        cur_auth->eap_method = NETPLAN_AUTH_EAP_TLS;
+        auth->eap_method = NETPLAN_AUTH_EAP_TLS;
     else if (strcmp(scalar(node), "peap") == 0)
-        cur_auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
+        auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
     else if (strcmp(scalar(node), "ttls") == 0)
-        cur_auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
+        auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
     else
-        return yaml_error(node, error, "unknown EAP method '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown EAP method '%s'", scalar(node));
     return TRUE;
 }
 
@@ -711,11 +676,10 @@ static const mapping_entry_handler auth_handlers[] = {
  ****************************************************/
 
 static NetplanBackend
-get_default_backend_for_type(NetplanDefType type)
+get_default_backend_for_type(const NetplanParser *npp, NetplanDefType type)
 {
-    NetplanBackend backend = netplan_state_get_backend(&global_state);
-    if (backend != NETPLAN_BACKEND_NONE)
-        return backend;
+    if (npp->global_backend != NETPLAN_BACKEND_NONE)
+        return npp->global_backend;
 
     /* networkd can handle all device types at the moment, so nothing
      * type-specific */
@@ -723,88 +687,92 @@ get_default_backend_for_type(NetplanDefType type)
 }
 
 static gboolean
-handle_access_point_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_str(doc, node, cur_access_point, data, error);
+    return handle_generic_str(npp, node, npp->current.access_point, data, error);
 }
 
 static gboolean
-handle_access_point_datalist(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_access_point);
-    return handle_generic_datalist(doc, node, cur_access_point, data, error);
+    g_assert(npp->current.access_point);
+    return handle_generic_datalist(npp, node, npp->current.access_point, data, error);
 }
 
 static gboolean
-handle_access_point_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_guint(doc, node, cur_access_point, data, error);
+    return handle_generic_guint(npp, node, npp->current.access_point, data, error);
 }
 
 static gboolean
-handle_access_point_mac(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_mac(doc, node, cur_access_point, data, error);
+    return handle_generic_mac(npp, node, npp->current.access_point, data, error);
 }
 
 static gboolean
-handle_access_point_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_access_point_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_bool(doc, node, cur_access_point, data, error);
+    return handle_generic_bool(npp, node, npp->current.access_point, data, error);
 }
 
 static gboolean
-handle_access_point_password(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_access_point_password(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_access_point);
+    NetplanWifiAccessPoint *access_point = npp->current.access_point;
+    g_assert(access_point);
     /* shortcut for WPA-PSK */
-    cur_access_point->has_auth = TRUE;
-    cur_access_point->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
-    g_free(cur_access_point->auth.password);
-    cur_access_point->auth.password = g_strdup(scalar(node));
+    access_point->has_auth = TRUE;
+    access_point->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+    g_free(access_point->auth.password);
+    access_point->auth.password = g_strdup(scalar(node));
     return TRUE;
 }
 
 static gboolean
-handle_access_point_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_access_point_auth(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
+    NetplanWifiAccessPoint *access_point = npp->current.access_point;
     gboolean ret;
 
-    g_assert(cur_access_point);
-    cur_access_point->has_auth = TRUE;
+    g_assert(access_point);
+    access_point->has_auth = TRUE;
 
-    cur_auth = &cur_access_point->auth;
-    ret = process_mapping(doc, node, auth_handlers, NULL, error);
-    cur_auth = NULL;
+    npp->current.auth = &access_point->auth;
+    ret = process_mapping(npp, node, auth_handlers, NULL, error);
+    npp->current.auth = NULL;
 
     return ret;
 }
 
 static gboolean
-handle_access_point_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_access_point_mode(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_access_point);
+    NetplanWifiAccessPoint *access_point = npp->current.access_point;
+    g_assert(access_point);
     if (strcmp(scalar(node), "infrastructure") == 0)
-        cur_access_point->mode = NETPLAN_WIFI_MODE_INFRASTRUCTURE;
+        access_point->mode = NETPLAN_WIFI_MODE_INFRASTRUCTURE;
     else if (strcmp(scalar(node), "adhoc") == 0)
-        cur_access_point->mode = NETPLAN_WIFI_MODE_ADHOC;
+        access_point->mode = NETPLAN_WIFI_MODE_ADHOC;
     else if (strcmp(scalar(node), "ap") == 0)
-        cur_access_point->mode = NETPLAN_WIFI_MODE_AP;
+        access_point->mode = NETPLAN_WIFI_MODE_AP;
     else
-        return yaml_error(node, error, "unknown wifi mode '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown wifi mode '%s'", scalar(node));
     return TRUE;
 }
 
 static gboolean
-handle_access_point_band(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_access_point_band(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    g_assert(cur_access_point);
+    NetplanWifiAccessPoint *access_point = npp->current.access_point;
+    g_assert(access_point);
     if (strcmp(scalar(node), "5GHz") == 0 || strcmp(scalar(node), "5G") == 0)
-        cur_access_point->band = NETPLAN_WIFI_BAND_5;
+        access_point->band = NETPLAN_WIFI_BAND_5;
     else if (strcmp(scalar(node), "2.4GHz") == 0 || strcmp(scalar(node), "2.4G") == 0)
-        cur_access_point->band = NETPLAN_WIFI_BAND_24;
+        access_point->band = NETPLAN_WIFI_BAND_24;
     else
-        return yaml_error(node, error, "unknown wifi band '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown wifi band '%s'", scalar(node));
     return TRUE;
 }
 
@@ -847,55 +815,55 @@ static const mapping_entry_handler wifi_access_point_handlers[] = {
  * Parse scalar node's string into a netdef_backend.
  */
 static gboolean
-parse_renderer(yaml_node_t* node, NetplanBackend* backend, GError** error)
+parse_renderer(NetplanParser* npp, yaml_node_t* node, NetplanBackend* backend, GError** error)
 {
     if (strcmp(scalar(node), "networkd") == 0)
         *backend = NETPLAN_BACKEND_NETWORKD;
     else if (strcmp(scalar(node), "NetworkManager") == 0)
         *backend = NETPLAN_BACKEND_NM;
     else
-        return yaml_error(node, error, "unknown renderer '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown renderer '%s'", scalar(node));
     return TRUE;
 }
 
 static gboolean
-handle_netdef_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_netdef_renderer(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    if (cur_netdef->type == NETPLAN_DEF_TYPE_VLAN) {
+    if (npp->current.netdef->type == NETPLAN_DEF_TYPE_VLAN) {
         if (strcmp(scalar(node), "sriov") == 0) {
-            cur_netdef->sriov_vlan_filter = TRUE;
+            npp->current.netdef->sriov_vlan_filter = TRUE;
             return TRUE;
         }
     }
 
-    return parse_renderer(node, &cur_netdef->backend, error);
+    return parse_renderer(npp, node, &npp->current.netdef->backend, error);
 }
 
 static gboolean
-handle_accept_ra(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_accept_ra(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    gboolean ret = handle_generic_bool(doc, node, cur_netdef, data, error);
-    if (cur_netdef->accept_ra)
-        cur_netdef->accept_ra = NETPLAN_RA_MODE_ENABLED;
+    gboolean ret = handle_generic_bool(npp, node, npp->current.netdef, data, error);
+    if (npp->current.netdef->accept_ra)
+        npp->current.netdef->accept_ra = NETPLAN_RA_MODE_ENABLED;
     else
-        cur_netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
+        npp->current.netdef->accept_ra = NETPLAN_RA_MODE_DISABLED;
     return ret;
 }
 
 static gboolean
-handle_activation_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_activation_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_strcmp0(scalar(node), "manual") && g_strcmp0(scalar(node), "off"))
-        return yaml_error(node, error, "Value of 'activation-mode' needs to be 'manual' or 'off'");
+        return yaml_error(npp, node, error, "Value of 'activation-mode' needs to be 'manual' or 'off'");
 
-    return handle_netdef_str(doc, node, data, error);
+    return handle_netdef_str(npp, node, data, error);
 }
 
 static gboolean
-handle_match(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_match(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    cur_netdef->has_match = TRUE;
-    return process_mapping(doc, node, match_handlers, NULL, error);
+    npp->current.netdef->has_match = TRUE;
+    return process_mapping(npp, node, match_handlers, NULL, error);
 }
 
 NETPLAN_ABI struct NetplanWifiWowlanType
@@ -913,56 +881,56 @@ NETPLAN_WIFI_WOWLAN_TYPES[] = {
 };
 
 static gboolean
-handle_wowlan(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_wowlan(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
         int found = FALSE;
 
         for (unsigned i = 0; NETPLAN_WIFI_WOWLAN_TYPES[i].name != NULL; ++i) {
             if (g_ascii_strcasecmp(scalar(entry), NETPLAN_WIFI_WOWLAN_TYPES[i].name) == 0) {
-                cur_netdef->wowlan |= NETPLAN_WIFI_WOWLAN_TYPES[i].flag;
+                npp->current.netdef->wowlan |= NETPLAN_WIFI_WOWLAN_TYPES[i].flag;
                 found = TRUE;
                 break;
             }
         }
         if (!found)
-            return yaml_error(node, error, "invalid value for wakeonwlan: '%s'", scalar(entry));
+            return yaml_error(npp, node, error, "invalid value for wakeonwlan: '%s'", scalar(entry));
     }
-    if (cur_netdef->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT && cur_netdef->wowlan & NETPLAN_WIFI_WOWLAN_TYPES[0].flag)
-        return yaml_error(node, error, "'default' is an exclusive flag for wakeonwlan");
+    if (npp->current.netdef->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT && npp->current.netdef->wowlan & NETPLAN_WIFI_WOWLAN_TYPES[0].flag)
+        return yaml_error(npp, node, error, "'default' is an exclusive flag for wakeonwlan");
     return TRUE;
 }
 
 static gboolean
-handle_auth(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_auth(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     gboolean ret;
 
-    cur_netdef->has_auth = TRUE;
+    npp->current.netdef->has_auth = TRUE;
 
-    cur_auth = &cur_netdef->auth;
-    ret = process_mapping(doc, node, auth_handlers, NULL, error);
-    cur_auth = NULL;
+    npp->current.auth = &npp->current.netdef->auth;
+    ret = process_mapping(npp, node, auth_handlers, NULL, error);
+    npp->current.auth = NULL;
 
     return ret;
 }
 
 static gboolean
-handle_address_option_lifetime(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_address_option_lifetime(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_ascii_strcasecmp(scalar(node), "0") != 0 &&
         g_ascii_strcasecmp(scalar(node), "forever") != 0) {
-        return yaml_error(node, error, "invalid lifetime value '%s'", scalar(node));
+        return yaml_error(npp, node, error, "invalid lifetime value '%s'", scalar(node));
     }
-    return handle_generic_str(doc, node, cur_addr_option, data, error);
+    return handle_generic_str(npp, node, npp->current.addr_options, data, error);
 }
 
 static gboolean
-handle_address_option_label(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_address_option_label(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_str(doc, node, cur_addr_option, data, error);
+    return handle_generic_str(npp, node, npp->current.addr_options, data, error);
 }
 
 const mapping_entry_handler address_option_handlers[] = {
@@ -977,7 +945,7 @@ const mapping_entry_handler address_option_handlers[] = {
  * @data: offset into entryptr struct where the array to write is located
  */
 static gboolean
-handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check_zero_prefix, GArray** ip4, GArray** ip6, GError** error)
+handle_generic_addresses(NetplanParser* npp, yaml_node_t* node, gboolean check_zero_prefix, GArray** ip4, GArray** ip6, GError** error)
 {
     g_assert(ip4);
     g_assert(ip6);
@@ -985,59 +953,60 @@ handle_generic_addresses(yaml_document_t* doc, yaml_node_t* node, gboolean check
         g_autofree char* addr = NULL;
         char* prefix_len;
         guint64 prefix_len_num;
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         yaml_node_t *key = NULL;
         yaml_node_t *value = NULL;
 
         if (entry->type != YAML_SCALAR_NODE && entry->type != YAML_MAPPING_NODE) {
-            return yaml_error(entry, error, "expected either scalar or mapping (check indentation)");
+            return yaml_error(npp, entry, error, "expected either scalar or mapping (check indentation)");
         }
 
         if (entry->type == YAML_MAPPING_NODE) {
-            key = yaml_document_get_node(doc, entry->data.mapping.pairs.start->key);
-            value = yaml_document_get_node(doc, entry->data.mapping.pairs.start->value);
+            key = yaml_document_get_node(&npp->doc, entry->data.mapping.pairs.start->key);
+            value = yaml_document_get_node(&npp->doc, entry->data.mapping.pairs.start->value);
             entry = key;
         }
-        assert_type(entry, YAML_SCALAR_NODE);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
 
         /* split off /prefix_len */
         addr = g_strdup(scalar(entry));
         prefix_len = strrchr(addr, '/');
         if (!prefix_len)
-            return yaml_error(node, error, "address '%s' is missing /prefixlength", scalar(entry));
+            return yaml_error(npp, node, error, "address '%s' is missing /prefixlength", scalar(entry));
         *prefix_len = '\0';
         prefix_len++; /* skip former '/' into first char of prefix */
         prefix_len_num = g_ascii_strtoull(prefix_len, NULL, 10);
 
         if (value) {
             if (!is_ip4_address(addr) && !is_ip6_address(addr))
-                return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+                return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
 
-            if (!cur_netdef->address_options)
-                cur_netdef->address_options = g_array_new(FALSE, FALSE, sizeof(NetplanAddressOptions*));
+            if (!npp->current.netdef->address_options)
+                npp->current.netdef->address_options = g_array_new(FALSE, FALSE, sizeof(NetplanAddressOptions*));
 
-            for (unsigned i = 0; i < cur_netdef->address_options->len; ++i) {
-                NetplanAddressOptions* opts = g_array_index(cur_netdef->address_options, NetplanAddressOptions*, i);
+            for (unsigned i = 0; i < npp->current.netdef->address_options->len; ++i) {
+                NetplanAddressOptions* opts = g_array_index(npp->current.netdef->address_options, NetplanAddressOptions*, i);
                 /* check for multi-pass parsing, return early if options for this address already exist */
                 if (!g_strcmp0(scalar(key), opts->address))
                     return TRUE;
             }
 
-            cur_addr_option = g_new0(NetplanAddressOptions, 1);
-            cur_addr_option->address = g_strdup(scalar(key));
+            npp->current.addr_options = g_new0(NetplanAddressOptions, 1);
+            npp->current.addr_options->address = g_strdup(scalar(key));
 
-            if (!process_mapping(doc, value, address_option_handlers, NULL, error))
+            if (!process_mapping(npp, value, address_option_handlers, NULL, error))
                 return FALSE;
 
-            g_array_append_val(cur_netdef->address_options, cur_addr_option);
-            cur_addr_option = NULL;
+            g_array_append_val(npp->current.netdef->address_options, npp->current.addr_options);
+            npp->current.addr_options = NULL;
+
             continue;
         }
 
         /* is it an IPv4 address? */
         if (is_ip4_address(addr)) {
             if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 32)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+                return yaml_error(npp, node, error, "invalid prefix length in address '%s'", scalar(entry));
 
             if (!*ip4)
                 *ip4 = g_array_new(FALSE, FALSE, sizeof(char*));
@@ -1055,7 +1024,7 @@ skip_ip4:
         /* is it an IPv6 address? */
         if (is_ip6_address(addr)) {
             if ((check_zero_prefix && prefix_len_num == 0) || prefix_len_num > 128)
-                return yaml_error(node, error, "invalid prefix length in address '%s'", scalar(entry));
+                return yaml_error(npp, node, error, "invalid prefix length in address '%s'", scalar(entry));
             if (!*ip6)
                 *ip6 = g_array_new(FALSE, FALSE, sizeof(char*));
 
@@ -1069,106 +1038,106 @@ skip_ip6:
             continue;
         }
 
-        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
+        return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", scalar(entry));
     }
 
     return TRUE;
 }
 
 static gboolean
-handle_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_addresses(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return handle_generic_addresses(doc, node, TRUE, &(cur_netdef->ip4_addresses), &(cur_netdef->ip6_addresses), error);
+    return handle_generic_addresses(npp, node, TRUE, &(npp->current.netdef->ip4_addresses), &(npp->current.netdef->ip6_addresses), error);
 }
 
 static gboolean
-handle_gateway4(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_gateway4(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     if (!is_ip4_address(scalar(node)))
-        return yaml_error(node, error, "invalid IPv4 address '%s'", scalar(node));
-    set_str_if_null(cur_netdef->gateway4, scalar(node));
+        return yaml_error(npp, node, error, "invalid IPv4 address '%s'", scalar(node));
+    set_str_if_null(npp->current.netdef->gateway4, scalar(node));
     g_warning("`gateway4` has been deprecated, use default routes instead.\n"
               "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
 static gboolean
-handle_gateway6(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_gateway6(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     if (!is_ip6_address(scalar(node)))
-        return yaml_error(node, error, "invalid IPv6 address '%s'", scalar(node));
-    set_str_if_null(cur_netdef->gateway6, scalar(node));
+        return yaml_error(npp, node, error, "invalid IPv6 address '%s'", scalar(node));
+    set_str_if_null(npp->current.netdef->gateway6, scalar(node));
     g_warning("`gateway6` has been deprecated, use default routes instead.\n"
               "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
 }
 
 static gboolean
-handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        NetplanWifiAccessPoint *access_point = NULL;
         yaml_node_t* key, *value;
         gboolean ret = TRUE;
 
-        key = yaml_document_get_node(doc, entry->key);
-        assert_type(key, YAML_SCALAR_NODE);
-        value = yaml_document_get_node(doc, entry->value);
-        assert_type(value, YAML_MAPPING_NODE);
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(&npp->doc, entry->value);
+        assert_type(npp, value, YAML_MAPPING_NODE);
 
-        g_assert(cur_access_point == NULL);
-        cur_access_point = g_new0(NetplanWifiAccessPoint, 1);
-        cur_access_point->ssid = g_strdup(scalar(key));
-        g_debug("%s: adding wifi AP '%s'", cur_netdef->id, cur_access_point->ssid);
+        g_assert(access_point == NULL);
+        access_point = g_new0(NetplanWifiAccessPoint, 1);
+        access_point->ssid = g_strdup(scalar(key));
+        g_debug("%s: adding wifi AP '%s'", npp->current.netdef->id, access_point->ssid);
 
         /* Check if there's already an SSID with that name */
-        if (cur_netdef->access_points &&
-                g_hash_table_lookup(cur_netdef->access_points, cur_access_point->ssid)) {
-            ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
+        if (npp->current.netdef->access_points &&
+                g_hash_table_lookup(npp->current.netdef->access_points, access_point->ssid)) {
+            ret = yaml_error(npp, key, error, "%s: Duplicate access point SSID '%s'", npp->current.netdef->id, access_point->ssid);
         }
 
-        if (!ret || !process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
-            g_free(cur_access_point->ssid);
-            g_free(cur_access_point); /* XXX: should be more in-depth! */
-            cur_access_point = NULL;
+        npp->current.access_point = access_point;
+        if (!ret || !process_mapping(npp, value, wifi_access_point_handlers, NULL, error)) {
+            access_point_clear(&npp->current.access_point, npp->current.backend);
             return FALSE;
         }
 
-        if (!cur_netdef->access_points)
-            cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
-        g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point);
-        cur_access_point = NULL;
+        if (!npp->current.netdef->access_points)
+            npp->current.netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_insert(npp->current.netdef->access_points, access_point->ssid, access_point);
+        npp->current.access_point = NULL;
     }
     return TRUE;
 }
 
 /**
- * Handler for bridge "interfaces:" list. We don't store that list in cur_netdef,
- * but set cur_netdef's ID in all listed interfaces' "bond" or "bridge" field.
+ * Handler for bridge "interfaces:" list. We don't store that list in npp->current.netdef,
+ * but set npp->current.netdef's ID in all listed interfaces' "bond" or "bridge" field.
  * @data: ignored
  */
 static gboolean
-handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bridge_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         NetplanNetDefinition *component;
 
-        assert_type(entry, YAML_SCALAR_NODE);
-        component = g_hash_table_lookup(netdefs, scalar(entry));
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+        component = g_hash_table_lookup(npp->parsed_defs, scalar(entry));
         if (!component) {
-            add_missing_node(entry);
+            add_missing_node(npp, entry);
         } else {
-            if (component->bridge && g_strcmp0(component->bridge, cur_netdef->id) != 0)
-                return yaml_error(node, error, "%s: interface '%s' is already assigned to bridge %s",
-                                  cur_netdef->id, scalar(entry), component->bridge);
+            if (component->bridge && g_strcmp0(component->bridge, npp->current.netdef->id) != 0)
+                return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bridge %s",
+                                  npp->current.netdef->id, scalar(entry), component->bridge);
             if (component->bond)
-                return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
-                                  cur_netdef->id, scalar(entry), component->bond);
-            set_str_if_null(component->bridge, cur_netdef->id);
+                return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bond %s",
+                                  npp->current.netdef->id, scalar(entry), component->bond);
+            set_str_if_null(component->bridge, npp->current.netdef->id);
             if (component->backend == NETPLAN_BACKEND_OVS) {
-                g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", cur_netdef->id);
-                cur_netdef->backend = NETPLAN_BACKEND_OVS;
+                g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
+                npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
             }
         }
     }
@@ -1182,7 +1151,7 @@ handle_bridge_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* da
  *        located
  */
 static gboolean
-handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bond_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (!(strcmp(scalar(node), "balance-rr") == 0 ||
         strcmp(scalar(node), "active-backup") == 0 ||
@@ -1193,17 +1162,17 @@ handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
         strcmp(scalar(node), "balance-alb") == 0 ||
         strcmp(scalar(node), "balance-tcp") == 0 || // only supported for OVS
         strcmp(scalar(node), "balance-slb") == 0))  // only supported for OVS
-        return yaml_error(node, error, "unknown bond mode '%s'", scalar(node));
+        return yaml_error(npp, node, error, "unknown bond mode '%s'", scalar(node));
 
     /* Implicitly set NETPLAN_BACKEND_OVS if ovs-only mode selected */
     if (!strcmp(scalar(node), "balance-tcp") ||
         !strcmp(scalar(node), "balance-slb")) {
         g_debug("%s: mode '%s' only supported with openvswitch, choosing this backend",
-                cur_netdef->id, scalar(node));
-        cur_netdef->backend = NETPLAN_BACKEND_OVS;
+                npp->current.netdef->id, scalar(node));
+        npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
     }
 
-    return handle_netdef_str(doc, node, data, error);
+    return handle_netdef_str(npp, node, data, error);
 }
 
 /**
@@ -1211,28 +1180,28 @@ handle_bond_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
  * @data: ignored
  */
 static gboolean
-handle_bond_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         NetplanNetDefinition *component;
 
-        assert_type(entry, YAML_SCALAR_NODE);
-        component = g_hash_table_lookup(netdefs, scalar(entry));
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+        component = g_hash_table_lookup(npp->parsed_defs, scalar(entry));
         if (!component) {
-            add_missing_node(entry);
+            add_missing_node(npp, entry);
         } else {
             if (component->bridge)
-                return yaml_error(node, error, "%s: interface '%s' is already assigned to bridge %s",
-                                  cur_netdef->id, scalar(entry), component->bridge);
-            if (component->bond && g_strcmp0(component->bond, cur_netdef->id) != 0)
-                return yaml_error(node, error, "%s: interface '%s' is already assigned to bond %s",
-                                  cur_netdef->id, scalar(entry), component->bond);
-            component->bond = g_strdup(cur_netdef->id);
+                return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bridge %s",
+                                  npp->current.netdef->id, scalar(entry), component->bridge);
+            if (component->bond && g_strcmp0(component->bond, npp->current.netdef->id) != 0)
+                return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bond %s",
+                                  npp->current.netdef->id, scalar(entry), component->bond);
+            component->bond = g_strdup(npp->current.netdef->id);
             if (component->backend == NETPLAN_BACKEND_OVS) {
-                g_debug("%s: Bond contains openvswitch interface, choosing OVS backend", cur_netdef->id);
-                cur_netdef->backend = NETPLAN_BACKEND_OVS;
+                g_debug("%s: Bond contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
+                npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
             }
         }
     }
@@ -1242,71 +1211,71 @@ handle_bond_interfaces(yaml_document_t* doc, yaml_node_t* node, const void* data
 
 
 static gboolean
-handle_nameservers_search(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_nameservers_search(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
-        if (!cur_netdef->search_domains)
-            cur_netdef->search_domains = g_array_new(FALSE, FALSE, sizeof(char*));
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+        if (!npp->current.netdef->search_domains)
+            npp->current.netdef->search_domains = g_array_new(FALSE, FALSE, sizeof(char*));
         char* s = g_strdup(scalar(entry));
-        g_array_append_val(cur_netdef->search_domains, s);
+        g_array_append_val(npp->current.netdef->search_domains, s);
     }
     return TRUE;
 }
 
 static gboolean
-handle_nameservers_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_nameservers_addresses(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
 
         /* is it an IPv4 address? */
         if (is_ip4_address(scalar(entry))) {
-            if (!cur_netdef->ip4_nameservers)
-                cur_netdef->ip4_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
+            if (!npp->current.netdef->ip4_nameservers)
+                npp->current.netdef->ip4_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip4_nameservers, s);
+            g_array_append_val(npp->current.netdef->ip4_nameservers, s);
             continue;
         }
 
         /* is it an IPv6 address? */
         if (is_ip6_address(scalar(entry))) {
-            if (!cur_netdef->ip6_nameservers)
-                cur_netdef->ip6_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
+            if (!npp->current.netdef->ip6_nameservers)
+                npp->current.netdef->ip6_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ip6_nameservers, s);
+            g_array_append_val(npp->current.netdef->ip6_nameservers, s);
             continue;
         }
 
-        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
+        return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
     }
 
     return TRUE;
 }
 
 static gboolean
-handle_link_local(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_link_local(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     gboolean ipv4 = FALSE;
     gboolean ipv6 = FALSE;
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
 
-        assert_type(entry, YAML_SCALAR_NODE);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
 
         if (g_ascii_strcasecmp(scalar(entry), "ipv4") == 0)
             ipv4 = TRUE;
         else if (g_ascii_strcasecmp(scalar(entry), "ipv6") == 0)
             ipv6 = TRUE;
         else
-            return yaml_error(node, error, "invalid value for link-local: '%s'", scalar(entry));
+            return yaml_error(npp, node, error, "invalid value for link-local: '%s'", scalar(entry));
     }
 
-    cur_netdef->linklocal.ipv4 = ipv4;
-    cur_netdef->linklocal.ipv6 = ipv6;
+    npp->current.netdef->linklocal.ipv4 = ipv4;
+    npp->current.netdef->linklocal.ipv6 = ipv6;
 
     return TRUE;
 }
@@ -1322,22 +1291,22 @@ NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
 };
 
 static gboolean
-handle_optional_addresses(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_optional_addresses(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
         int found = FALSE;
 
         for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
             if (g_ascii_strcasecmp(scalar(entry), NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name) == 0) {
-                cur_netdef->optional_addresses |= NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag;
+                npp->current.netdef->optional_addresses |= NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag;
                 found = TRUE;
                 break;
             }
         }
         if (!found) {
-            return yaml_error(node, error, "invalid value for optional-addresses: '%s'", scalar(entry));
+            return yaml_error(npp, node, error, "invalid value for optional-addresses: '%s'", scalar(entry));
         }
     }
     return TRUE;
@@ -1377,55 +1346,58 @@ check_and_set_family(int family, guint* dest)
 /* TODO: (cyphermox) Refactor the functions below. There's a lot of room for reuse. */
 
 static gboolean
-handle_routes_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_routes_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_route);
-    return handle_generic_bool(doc, node, cur_route, data, error);
+    g_assert(npp->current.route);
+    return handle_generic_bool(npp, node, npp->current.route, data, error);
 }
 
 static gboolean
-handle_routes_scope(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_routes_scope(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_route->scope)
-        g_free(cur_route->scope);
-    cur_route->scope = g_strdup(scalar(node));
+    NetplanIPRoute* route = npp->current.route;
+    if (route->scope)
+        g_free(route->scope);
+    route->scope = g_strdup(scalar(node));
 
-    if (g_ascii_strcasecmp(cur_route->scope, "global") == 0 ||
-        g_ascii_strcasecmp(cur_route->scope, "link") == 0 ||
-        g_ascii_strcasecmp(cur_route->scope, "host") == 0)
+    if (g_ascii_strcasecmp(route->scope, "global") == 0 ||
+        g_ascii_strcasecmp(route->scope, "link") == 0 ||
+        g_ascii_strcasecmp(route->scope, "host") == 0)
         return TRUE;
 
-    return yaml_error(node, error, "invalid route scope '%s'", cur_route->scope);
+    return yaml_error(npp, node, error, "invalid route scope '%s'", route->scope);
 }
 
 static gboolean
-handle_routes_type(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_routes_type(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_route->type)
-        g_free(cur_route->type);
-    cur_route->type = g_strdup(scalar(node));
+    NetplanIPRoute* route = npp->current.route;
+    if (route->type)
+        g_free(route->type);
+    route->type = g_strdup(scalar(node));
 
-    if (g_ascii_strcasecmp(cur_route->type, "unicast") == 0 ||
-        g_ascii_strcasecmp(cur_route->type, "unreachable") == 0 ||
-        g_ascii_strcasecmp(cur_route->type, "blackhole") == 0 ||
-        g_ascii_strcasecmp(cur_route->type, "prohibit") == 0)
+    if (g_ascii_strcasecmp(route->type, "unicast") == 0 ||
+        g_ascii_strcasecmp(route->type, "unreachable") == 0 ||
+        g_ascii_strcasecmp(route->type, "blackhole") == 0 ||
+        g_ascii_strcasecmp(route->type, "prohibit") == 0)
         return TRUE;
 
-    return yaml_error(node, error, "invalid route type '%s'", cur_route->type);
+    return yaml_error(npp, node, error, "invalid route type '%s'", route->type);
 }
 
 static gboolean
-handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_routes_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
+    NetplanIPRoute* route = npp->current.route;
     guint offset = GPOINTER_TO_UINT(data);
     int family = get_ip_family(scalar(node));
-    char** dest = (char**) ((void*) cur_route + offset);
+    char** dest = (char**) ((void*) route + offset);
 
     if (family < 0)
-        return yaml_error(node, error, "invalid IP family '%d'", family);
+        return yaml_error(npp, node, error, "invalid IP family '%d'", family);
 
-    if (!check_and_set_family(family, &cur_route->family))
-        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+    if (!check_and_set_family(family, &route->family))
+        return yaml_error(npp, node, error, "IP family mismatch in route to %s", scalar(node));
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
@@ -1434,27 +1406,28 @@ handle_routes_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GErr
 }
 
 static gboolean
-handle_routes_destination(yaml_document_t *doc, yaml_node_t *node, const void *data, GError **error)
+handle_routes_destination(NetplanParser *npp, yaml_node_t *node, const void *data, GError **error)
 {
     const char *addr = scalar(node);
     if (g_strcmp0(addr, "default") != 0) /* netplan-feature: default-routes */
-        return handle_routes_ip(doc, node, route_offset(to), error);
-    set_str_if_null(cur_route->to, addr);
+        return handle_routes_ip(npp, node, route_offset(to), error);
+    set_str_if_null(npp->current.route->to, addr);
     return TRUE;
 }
 
 static gboolean
-handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ip_rule_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
     guint offset = GPOINTER_TO_UINT(data);
     int family = get_ip_family(scalar(node));
-    char** dest = (char**) ((void*) cur_ip_rule + offset);
+    char** dest = (char**) ((void*) ip_rule + offset);
 
     if (family < 0)
-        return yaml_error(node, error, "invalid IP family '%d'", family);
+        return yaml_error(npp, node, error, "invalid IP family '%d'", family);
 
-    if (!check_and_set_family(family, &cur_ip_rule->family))
-        return yaml_error(node, error, "IP family mismatch in route to %s", scalar(node));
+    if (!check_and_set_family(family, &ip_rule->family))
+        return yaml_error(npp, node, error, "IP family mismatch in route to %s", scalar(node));
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
@@ -1463,25 +1436,26 @@ handle_ip_rule_ip(yaml_document_t* doc, yaml_node_t* node, const void* data, GEr
 }
 
 static gboolean
-handle_ip_rule_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ip_rule_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_ip_rule);
-    return handle_generic_guint(doc, node, cur_ip_rule, data, error);
+    g_assert(npp->current.ip_rule);
+    return handle_generic_guint(npp, node, npp->current.ip_rule, data, error);
 }
 
 static gboolean
-handle_routes_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_routes_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_route);
-    return handle_generic_guint(doc, node, cur_route, data, error);
+    g_assert(npp->current.route);
+    return handle_generic_guint(npp, node, npp->current.route, data, error);
 }
 
 static gboolean
-handle_ip_rule_tos(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ip_rule_tos(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    gboolean ret = handle_generic_guint(doc, node, cur_ip_rule, data, error);
-    if (cur_ip_rule->tos > 255)
-        return yaml_error(node, error, "invalid ToS (must be between 0 and 255): %s", scalar(node));
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
+    gboolean ret = handle_generic_guint(npp, node, ip_rule, data, error);
+    if (ip_rule->tos > 255)
+        return yaml_error(npp, node, error, "invalid ToS (must be between 0 and 255): %s", scalar(node));
     return ret;
 }
 
@@ -1490,7 +1464,7 @@ handle_ip_rule_tos(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
  ****************************************************/
 
 static gboolean
-handle_bridge_path_cost(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
@@ -1499,25 +1473,25 @@ handle_bridge_path_cost(yaml_document_t* doc, yaml_node_t* node, const void* dat
         NetplanNetDefinition *component;
         guint* ref_ptr;
 
-        key = yaml_document_get_node(doc, entry->key);
-        assert_type(key, YAML_SCALAR_NODE);
-        value = yaml_document_get_node(doc, entry->value);
-        assert_type(value, YAML_SCALAR_NODE);
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(&npp->doc, entry->value);
+        assert_type(npp, value, YAML_SCALAR_NODE);
 
-        component = g_hash_table_lookup(netdefs, scalar(key));
+        component = g_hash_table_lookup(npp->parsed_defs, scalar(key));
         if (!component) {
-            add_missing_node(key);
+            add_missing_node(npp, key);
         } else {
             ref_ptr = ((guint*) ((void*) component + GPOINTER_TO_UINT(data)));
             if (*ref_ptr)
-                return yaml_error(node, error, "%s: interface '%s' already has a path cost of %u",
-                                  cur_netdef->id, scalar(key), *ref_ptr);
+                return yaml_error(npp, node, error, "%s: interface '%s' already has a path cost of %u",
+                                  npp->current.netdef->id, scalar(key), *ref_ptr);
 
             v = g_ascii_strtoull(scalar(value), &endptr, 10);
             if (*endptr != '\0' || v > G_MAXUINT)
-                return yaml_error(node, error, "invalid unsigned int value '%s'", scalar(value));
+                return yaml_error(npp, node, error, "invalid unsigned int value '%s'", scalar(value));
 
-            g_debug("%s: adding path '%s' of cost: %d", cur_netdef->id, scalar(key), v);
+            g_debug("%s: adding path '%s' of cost: %d", npp->current.netdef->id, scalar(key), v);
 
             *ref_ptr = v;
         }
@@ -1526,7 +1500,7 @@ handle_bridge_path_cost(yaml_document_t* doc, yaml_node_t* node, const void* dat
 }
 
 static gboolean
-handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
@@ -1535,26 +1509,26 @@ handle_bridge_port_priority(yaml_document_t* doc, yaml_node_t* node, const void*
         NetplanNetDefinition *component;
         guint* ref_ptr;
 
-        key = yaml_document_get_node(doc, entry->key);
-        assert_type(key, YAML_SCALAR_NODE);
-        value = yaml_document_get_node(doc, entry->value);
-        assert_type(value, YAML_SCALAR_NODE);
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(&npp->doc, entry->value);
+        assert_type(npp, value, YAML_SCALAR_NODE);
 
-        component = g_hash_table_lookup(netdefs, scalar(key));
+        component = g_hash_table_lookup(npp->parsed_defs, scalar(key));
         if (!component) {
-            add_missing_node(key);
+            add_missing_node(npp, key);
         } else {
             ref_ptr = ((guint*) ((void*) component + GPOINTER_TO_UINT(data)));
             if (*ref_ptr)
-                return yaml_error(node, error, "%s: interface '%s' already has a port priority of %u",
-                                  cur_netdef->id, scalar(key), *ref_ptr);
+                return yaml_error(npp, node, error, "%s: interface '%s' already has a port priority of %u",
+                                  npp->current.netdef->id, scalar(key), *ref_ptr);
 
             v = g_ascii_strtoull(scalar(value), &endptr, 10);
             if (*endptr != '\0' || v > 63)
-                return yaml_error(node, error, "invalid port priority value (must be between 0 and 63): %s",
+                return yaml_error(npp, node, error, "invalid port priority value (must be between 0 and 63): %s",
                                   scalar(value));
 
-            g_debug("%s: adding port '%s' of priority: %d", cur_netdef->id, scalar(key), v);
+            g_debug("%s: adding port '%s' of priority: %d", npp->current.netdef->id, scalar(key), v);
 
             *ref_ptr = v;
         }
@@ -1575,11 +1549,11 @@ static const mapping_entry_handler bridge_params_handlers[] = {
 };
 
 static gboolean
-handle_bridge(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_bridge(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    cur_netdef->custom_bridging = TRUE;
-    cur_netdef->bridge_params.stp = TRUE;
-    return process_mapping(doc, node, bridge_params_handlers, NULL, error);
+    npp->current.netdef->custom_bridging = TRUE;
+    npp->current.netdef->bridge_params.stp = TRUE;
+    return process_mapping(npp, node, bridge_params_handlers, NULL, error);
 }
 
 /****************************************************
@@ -1602,59 +1576,63 @@ static const mapping_entry_handler routes_handlers[] = {
 };
 
 static gboolean
-handle_routes(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    if (!cur_netdef->routes)
-        cur_netdef->routes = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
+    if (!npp->current.netdef->routes)
+        npp->current.netdef->routes = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
 
     /* Avoid adding the same routes in a 2nd parsing pass by comparing
      * the array size to the YAML sequence size. Skip if they are equal. */
     guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
-    if (cur_netdef->routes->len == item_count) {
-        g_debug("%s: all routes have already been added", cur_netdef->id);
+    if (npp->current.netdef->routes->len == item_count) {
+        g_debug("%s: all routes have already been added", npp->current.netdef->id);
         return TRUE;
     }
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_MAPPING_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        NetplanIPRoute* route;
 
-        g_assert(cur_route == NULL);
-        cur_route = g_new0(NetplanIPRoute, 1);
-        cur_route->type = g_strdup("unicast");
-        cur_route->scope = g_strdup("global");
-        cur_route->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
-        cur_route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
-        g_debug("%s: adding new route", cur_netdef->id);
+        assert_type(npp, entry, YAML_MAPPING_NODE);
 
-        if (!process_mapping(doc, entry, routes_handlers, NULL, error))
+        g_assert(npp->current.route == NULL);
+        route = g_new0(NetplanIPRoute, 1);
+        route->type = g_strdup("unicast");
+        route->scope = g_strdup("global");
+        route->family = G_MAXUINT; /* 0 is a valid family ID */
+        route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
+        route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+        g_debug("%s: adding new route", npp->current.netdef->id);
+
+        npp->current.route = route;
+
+        if (!process_mapping(npp, entry, routes_handlers, NULL, error))
             goto err;
 
-        if (       (   g_ascii_strcasecmp(cur_route->scope, "link") == 0
-                    || g_ascii_strcasecmp(cur_route->scope, "host") == 0)
-                && !cur_route->to) {
-            yaml_error(node, error, "link and host routes must specify a 'to' IP");
+        if (       (   g_ascii_strcasecmp(route->scope, "link") == 0
+                    || g_ascii_strcasecmp(route->scope, "host") == 0)
+                && !route->to) {
+            yaml_error(npp, node, error, "link and host routes must specify a 'to' IP");
             goto err;
-        } else if (  g_ascii_strcasecmp(cur_route->type, "unicast") == 0
-                && g_ascii_strcasecmp(cur_route->scope, "global") == 0
-                && (!cur_route->to || !cur_route->via)) {
-            yaml_error(node, error, "global unicast route must include both a 'to' and 'via' IP");
+        } else if (   g_ascii_strcasecmp(route->type, "unicast") == 0
+                   && g_ascii_strcasecmp(route->scope, "global") == 0
+                   && (!route->to || !route->via)) {
+            yaml_error(npp, node, error, "global unicast route must include both a 'to' and 'via' IP");
             goto err;
-        } else if (g_ascii_strcasecmp(cur_route->type, "unicast") != 0 && !cur_route->to) {
-            yaml_error(node, error, "non-unicast routes must specify a 'to' IP");
+        } else if (g_ascii_strcasecmp(route->type, "unicast") != 0 && !route->to) {
+            yaml_error(npp, node, error, "non-unicast routes must specify a 'to' IP");
             goto err;
         }
 
-        g_array_append_val(cur_netdef->routes, cur_route);
-        cur_route = NULL;
+        g_array_append_val(npp->current.netdef->routes, route);
+        npp->current.route = NULL;
     }
     return TRUE;
 
 err:
-    if (cur_route) {
-        g_free(cur_route);
-        cur_route = NULL;
+    if (npp->current.route) {
+        g_free(npp->current.route);
+        npp->current.route = NULL;
     }
     return FALSE;
 }
@@ -1670,33 +1648,34 @@ static const mapping_entry_handler ip_rules_handlers[] = {
 };
 
 static gboolean
-handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_ip_rules(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         gboolean ret;
 
-        cur_ip_rule = g_new0(NetplanIPRule, 1);
-        cur_ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
-        cur_ip_rule->priority = NETPLAN_IP_RULE_PRIO_UNSPEC;
-        cur_ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
-        cur_ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
-        cur_ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
+        NetplanIPRule* ip_rule = g_new0(NetplanIPRule, 1);
+        ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
+        ip_rule->priority = NETPLAN_IP_RULE_PRIO_UNSPEC;
+        ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+        ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
+        ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 
-        ret = process_mapping(doc, entry, ip_rules_handlers, NULL, error);
-        if (ret && !cur_ip_rule->from && !cur_ip_rule->to)
-            ret = yaml_error(node, error, "IP routing policy must include either a 'from' or 'to' IP");
+        npp->current.ip_rule = ip_rule;
+        ret = process_mapping(npp, entry, ip_rules_handlers, NULL, error);
+        npp->current.ip_rule = NULL;
+
+        if (ret && !ip_rule->from && !ip_rule->to)
+            ret = yaml_error(npp, node, error, "IP routing policy must include either a 'from' or 'to' IP");
 
         if (!ret) {
-            g_free(cur_ip_rule); /* XXX: do an in-depth cleaning */
-            cur_ip_rule = NULL;
+            ip_rule_clear(&ip_rule);
             return FALSE;
         }
 
-        if (!cur_netdef->ip_rules)
-            cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
-        g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
-        cur_ip_rule = NULL;
+        if (!npp->current.netdef->ip_rules)
+            npp->current.netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
+        g_array_append_val(npp->current.netdef->ip_rules, ip_rule);
     }
     return TRUE;
 }
@@ -1706,60 +1685,60 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
  ****************************************************/
 
 static gboolean
-handle_arp_ip_targets(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    if (!cur_netdef->bond_params.arp_ip_targets) {
-        cur_netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char *));
+    if (!npp->current.netdef->bond_params.arp_ip_targets) {
+        npp->current.netdef->bond_params.arp_ip_targets = g_array_new(FALSE, FALSE, sizeof(char *));
     }
 
     /* Avoid adding the same arp_ip_targets in a 2nd parsing pass by comparing
      * the array size to the YAML sequence size. Skip if they are equal. */
     guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
-    if (cur_netdef->bond_params.arp_ip_targets->len == item_count) {
-        g_debug("%s: all arp ip targets have already been added", cur_netdef->id);
+    if (npp->current.netdef->bond_params.arp_ip_targets->len == item_count) {
+        g_debug("%s: all arp ip targets have already been added", npp->current.netdef->id);
         return TRUE;
     }
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         g_autofree char* addr = NULL;
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
 
         addr = g_strdup(scalar(entry));
 
         /* is it an IPv4 address? */
         if (is_ip4_address(addr)) {
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->bond_params.arp_ip_targets, s);
+            g_array_append_val(npp->current.netdef->bond_params.arp_ip_targets, s);
             continue;
         }
 
-        return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
+        return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
     }
 
     return TRUE;
 }
 
 static gboolean
-handle_bond_primary_slave(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanNetDefinition *component;
     char** ref_ptr;
 
-    component = g_hash_table_lookup(netdefs, scalar(node));
+    component = g_hash_table_lookup(npp->parsed_defs, scalar(node));
     if (!component) {
-        add_missing_node(node);
+        add_missing_node(npp, node);
     } else {
         /* If this is not the primary pass, the primary slave might already be equally set. */
-        if (!g_strcmp0(cur_netdef->bond_params.primary_slave, scalar(node))) {
+        if (!g_strcmp0(npp->current.netdef->bond_params.primary_slave, scalar(node))) {
             return TRUE;
-        } else if (cur_netdef->bond_params.primary_slave)
-            return yaml_error(node, error, "%s: bond already has a primary slave: %s",
-                              cur_netdef->id, cur_netdef->bond_params.primary_slave);
+        } else if (npp->current.netdef->bond_params.primary_slave)
+            return yaml_error(npp, node, error, "%s: bond already has a primary slave: %s",
+                              npp->current.netdef->id, npp->current.netdef->bond_params.primary_slave);
 
         ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
         *ref_ptr = g_strdup(scalar(node));
-        cur_netdef->bond_params.primary_slave = g_strdup(scalar(node));
+        npp->current.netdef->bond_params.primary_slave = g_strdup(scalar(node));
     }
 
     return TRUE;
@@ -1794,26 +1773,26 @@ static const mapping_entry_handler bond_params_handlers[] = {
 };
 
 static gboolean
-handle_bonding(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_bonding(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return process_mapping(doc, node, bond_params_handlers, NULL, error);
+    return process_mapping(npp, node, bond_params_handlers, NULL, error);
 }
 
 static gboolean
-handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_dhcp_identifier(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_free(cur_netdef->dhcp_identifier);
+    g_free(npp->current.netdef->dhcp_identifier);
     /* "duid" is the default case, so we don't store it. */
     if (g_ascii_strcasecmp(scalar(node), "duid") != 0)
-        cur_netdef->dhcp_identifier = g_strdup(scalar(node));
+        npp->current.netdef->dhcp_identifier = g_strdup(scalar(node));
     else
-        cur_netdef->dhcp_identifier = NULL;
+        npp->current.netdef->dhcp_identifier = NULL;
 
-    if (cur_netdef->dhcp_identifier == NULL ||
-        g_ascii_strcasecmp(cur_netdef->dhcp_identifier, "mac") == 0)
+    if (npp->current.netdef->dhcp_identifier == NULL ||
+        g_ascii_strcasecmp(npp->current.netdef->dhcp_identifier, "mac") == 0)
         return TRUE;
 
-    return yaml_error(node, error, "invalid DHCP client identifier type '%s'", cur_netdef->dhcp_identifier);
+    return yaml_error(npp, node, error, "invalid DHCP client identifier type '%s'", npp->current.netdef->dhcp_identifier);
 }
 
 /****************************************************
@@ -1821,7 +1800,7 @@ handle_dhcp_identifier(yaml_document_t* doc, yaml_node_t* node, const void* data
  ****************************************************/
 
 static gboolean
-handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_tunnel_addr(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_autofree char* addr = NULL;
     char* prefix_len;
@@ -1830,21 +1809,21 @@ handle_tunnel_addr(yaml_document_t* doc, yaml_node_t* node, const void* data, GE
     addr = g_strdup(scalar(node));
     prefix_len = strrchr(addr, '/');
     if (prefix_len)
-        return yaml_error(node, error, "address '%s' should not include /prefixlength", scalar(node));
+        return yaml_error(npp, node, error, "address '%s' should not include /prefixlength", scalar(node));
 
     /* is it an IPv4 address? */
     if (is_ip4_address(addr))
-        return handle_netdef_ip4(doc, node, data, error);
+        return handle_netdef_ip4(npp, node, data, error);
 
     /* is it an IPv6 address? */
     if (is_ip6_address(addr))
-        return handle_netdef_ip6(doc, node, data, error);
+        return handle_netdef_ip6(npp, node, data, error);
 
-    return yaml_error(node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(node));
+    return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(node));
 }
 
 static gboolean
-handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_tunnel_mode(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     const char *key = scalar(node);
     NetplanTunnelMode i;
@@ -1852,12 +1831,12 @@ handle_tunnel_mode(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     // Skip over unknown (0) tunnel mode.
     for (i = 1; i < NETPLAN_TUNNEL_MODE_MAX_; ++i) {
         if (g_strcmp0(netplan_tunnel_mode_name(i), key) == 0) {
-            cur_netdef->tunnel.mode = i;
+            npp->current.netdef->tunnel.mode = i;
             return TRUE;
         }
     }
 
-    return yaml_error(node, error, "%s: tunnel mode '%s' is not supported", cur_netdef->id, key);
+    return yaml_error(npp, node, error, "%s: tunnel mode '%s' is not supported", npp->current.netdef->id, key);
 }
 
 static const mapping_entry_handler tunnel_keys_handlers[] = {
@@ -1868,7 +1847,7 @@ static const mapping_entry_handler tunnel_keys_handlers[] = {
 };
 
 static gboolean
-handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_tunnel_key_mapping(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     gboolean ret = FALSE;
 
@@ -1876,15 +1855,15 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
      * single scalar with the same key to use for both input, output and private
      * keys, or a mapping where one can specify each. */
     if (node->type == YAML_SCALAR_NODE) {
-        ret = handle_netdef_str(doc, node, netdef_offset(tunnel.input_key), error);
+        ret = handle_netdef_str(npp, node, netdef_offset(tunnel.input_key), error);
         if (ret)
-            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.output_key), error);
+            ret = handle_netdef_str(npp, node, netdef_offset(tunnel.output_key), error);
         if (ret)
-            ret = handle_netdef_str(doc, node, netdef_offset(tunnel.private_key), error);
+            ret = handle_netdef_str(npp, node, netdef_offset(tunnel.private_key), error);
     } else if (node->type == YAML_MAPPING_NODE)
-        ret = process_mapping(doc, node, tunnel_keys_handlers, NULL, error);
+        ret = process_mapping(npp, node, tunnel_keys_handlers, NULL, error);
     else
-        return yaml_error(node, error, "invalid type for 'key[s]': must be a scalar or mapping");
+        return yaml_error(npp, node, error, "invalid type for 'key[s]': must be a scalar or mapping");
 
     return ret;
 }
@@ -1894,10 +1873,10 @@ handle_tunnel_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _
  * @data: pointer to the const char* field to write
  */
 static gboolean
-handle_wireguard_peer_str(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_wireguard_peer_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_wireguard_peer);
-    return handle_generic_str(doc, node, cur_wireguard_peer, data, error);
+    g_assert(npp->current.wireguard_peer);
+    return handle_generic_str(npp, node, npp->current.wireguard_peer, data, error);
 }
 
 /**
@@ -1905,21 +1884,21 @@ handle_wireguard_peer_str(yaml_document_t* doc, yaml_node_t* node, const void* d
  * @data: pointer to the guint field to write
  */
 static gboolean
-handle_wireguard_peer_guint(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_wireguard_peer_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    g_assert(cur_wireguard_peer);
-    return handle_generic_guint(doc, node, cur_wireguard_peer, data, error);
+    g_assert(npp->current.wireguard_peer);
+    return handle_generic_guint(npp, node, npp->current.wireguard_peer, data, error);
 }
 
 static gboolean
-handle_wireguard_allowed_ips(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_wireguard_allowed_ips(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return handle_generic_addresses(doc, node, FALSE, &(cur_wireguard_peer->allowed_ips),
-                                    &(cur_wireguard_peer->allowed_ips), error);
+    return handle_generic_addresses(npp, node, FALSE, &(npp->current.wireguard_peer->allowed_ips),
+                                    &(npp->current.wireguard_peer->allowed_ips), error);
 }
 
 static gboolean
-handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_wireguard_endpoint(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     g_autofree char* endpoint = NULL;
     char* port;
@@ -1929,13 +1908,13 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
     endpoint = g_strdup(scalar(node));
     /* absolute minimal length of endpoint is 3 chars: 'h:8' */
     if (strlen(endpoint) < 3) {
-        return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+        return yaml_error(npp, node, error, "invalid endpoint address or hostname '%s'", scalar(node));
     }
     if (endpoint[0] == '[') {
         /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
         char *endbrace = strrchr(endpoint, ']');
         if (!endbrace)
-            return yaml_error(node, error, "invalid address in endpoint '%s'", scalar(node));
+            return yaml_error(npp, node, error, "invalid address in endpoint '%s'", scalar(node));
         address = endpoint + 1;
         *endbrace = '\0';
         port = strrchr(endbrace + 1, ':');
@@ -1945,16 +1924,16 @@ handle_wireguard_endpoint(yaml_document_t* doc, yaml_node_t* node, const void* _
     }
     /* split off :port */
     if (!port)
-        return yaml_error(node, error, "endpoint '%s' is missing :port", scalar(node));
+        return yaml_error(npp, node, error, "endpoint '%s' is missing :port", scalar(node));
     *port = '\0';
     port++; /* skip former ':' into first char of port */
     port_num = g_ascii_strtoull(port, NULL, 10);
     if (port_num > 65535)
-        return yaml_error(node, error, "invalid port in endpoint '%s'", scalar(node));
+        return yaml_error(npp, node, error, "invalid port in endpoint '%s'", scalar(node));
     if (is_ip4_address(address) || is_ip6_address(address) || is_hostname(address)) {
-        return handle_wireguard_peer_str(doc, node, wireguard_peer_offset(endpoint), error);
+        return handle_wireguard_peer_str(npp, node, wireguard_peer_offset(endpoint), error);
     }
-    return yaml_error(node, error, "invalid endpoint address or hostname '%s'", scalar(node));
+    return yaml_error(npp, node, error, "invalid endpoint address or hostname '%s'", scalar(node));
 }
 
 static const mapping_entry_handler wireguard_peer_keys_handlers[] = {
@@ -1964,9 +1943,9 @@ static const mapping_entry_handler wireguard_peer_keys_handlers[] = {
 };
 
 static gboolean
-handle_wireguard_peer_key_mapping(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_wireguard_peer_key_mapping(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return process_mapping(doc, node, wireguard_peer_keys_handlers, NULL, error);
+    return process_mapping(npp, node, wireguard_peer_keys_handlers, NULL, error);
 }
 
 const mapping_entry_handler wireguard_peer_handlers[] = {
@@ -1978,36 +1957,34 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
 };
 
 static gboolean
-handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_wireguard_peers(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    if (!cur_netdef->wireguard_peers)
-        cur_netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer*));
+    if (!npp->current.netdef->wireguard_peers)
+        npp->current.netdef->wireguard_peers = g_array_new(FALSE, TRUE, sizeof(NetplanWireguardPeer*));
 
     /* Avoid adding the same peers in a 2nd parsing pass by comparing
      * the array size to the YAML sequence size. Skip if they are equal. */
     guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
-    if (cur_netdef->wireguard_peers->len == item_count) {
-        g_debug("%s: all wireguard peers have already been added", cur_netdef->id);
+    if (npp->current.netdef->wireguard_peers->len == item_count) {
+        g_debug("%s: all wireguard peers have already been added", npp->current.netdef->id);
         return TRUE;
     }
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_MAPPING_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_MAPPING_NODE);
 
-        g_assert(cur_wireguard_peer == NULL);
-        cur_wireguard_peer = g_new0(NetplanWireguardPeer, 1);
-        cur_wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
-        g_debug("%s: adding new wireguard peer", cur_netdef->id);
+        g_assert(npp->current.wireguard_peer == NULL);
+        npp->current.wireguard_peer = g_new0(NetplanWireguardPeer, 1);
+        npp->current.wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
+        g_debug("%s: adding new wireguard peer", npp->current.netdef->id);
 
-        if (!process_mapping(doc, entry, wireguard_peer_handlers, NULL, error)) {
-            g_array_free(cur_wireguard_peer->allowed_ips, TRUE);
-            g_free(cur_wireguard_peer); /* TODO: in-depth cleaning ! */
-            cur_wireguard_peer = NULL;
+        if (!process_mapping(npp, entry, wireguard_peer_handlers, NULL, error)) {
+            wireguard_peer_clear(&npp->current.wireguard_peer);
             return FALSE;
         }
-        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
-        cur_wireguard_peer = NULL;
+        g_array_append_val(npp->current.netdef->wireguard_peers, npp->current.wireguard_peer);
+        npp->current.wireguard_peer = NULL;
     }
     return TRUE;
 }
@@ -2017,40 +1994,40 @@ handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, G
  ****************************************************/
 
 static gboolean
-handle_ovs_bond_lacp(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ovs_bond_lacp(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND)
-        return yaml_error(node, error, "Key 'lacp' is only valid for interface type 'openvswitch bond'");
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BOND)
+        return yaml_error(npp, node, error, "Key 'lacp' is only valid for interface type 'openvswitch bond'");
 
     if (g_strcmp0(scalar(node), "active") && g_strcmp0(scalar(node), "passive") && g_strcmp0(scalar(node), "off"))
-        return yaml_error(node, error, "Value of 'lacp' needs to be 'active', 'passive' or 'off");
+        return yaml_error(npp, node, error, "Value of 'lacp' needs to be 'active', 'passive' or 'off");
 
-    return handle_netdef_str(doc, node, data, error);
+    return handle_netdef_str(npp, node, data, error);
 }
 
 static gboolean
-handle_ovs_bridge_bool(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ovs_bridge_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key is only valid for interface type 'openvswitch bridge'");
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(npp, node, error, "Key is only valid for interface type 'openvswitch bridge'");
 
-    return handle_netdef_bool(doc, node, data, error);
+    return handle_netdef_bool(npp, node, data, error);
 }
 
 static gboolean
-handle_ovs_bridge_fail_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ovs_bridge_fail_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'fail-mode' is only valid for interface type 'openvswitch bridge'");
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(npp, node, error, "Key 'fail-mode' is only valid for interface type 'openvswitch bridge'");
 
     if (g_strcmp0(scalar(node), "standalone") && g_strcmp0(scalar(node), "secure"))
-        return yaml_error(node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
+        return yaml_error(npp, node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
 
-    return handle_netdef_str(doc, node, data, error);
+    return handle_netdef_str(npp, node, data, error);
 }
 
 static gboolean
-handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     const char* supported[] = {
         "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", "OpenFlow16", NULL
@@ -2060,15 +2037,15 @@ handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
     GArray** protocols = (GArray**) ((void*) entryptr + offset);
 
     for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
-        yaml_node_t *entry = yaml_document_get_node(doc, *iter);
-        assert_type(entry, YAML_SCALAR_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *iter);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
 
         for (i = 0; supported[i] != NULL; ++i)
             if (!g_strcmp0(scalar(entry), supported[i]))
                 break;
 
         if (supported[i] == NULL)
-            return yaml_error(node, error, "Unsupported OVS 'protocol' value: %s", scalar(entry));
+            return yaml_error(npp, node, error, "Unsupported OVS 'protocol' value: %s", scalar(entry));
 
         if (!*protocols)
             *protocols = g_array_new(FALSE, FALSE, sizeof(char*));
@@ -2080,31 +2057,31 @@ handle_ovs_protocol(yaml_document_t* doc, yaml_node_t* node, void* entryptr, con
 }
 
 static gboolean
-handle_ovs_bridge_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ovs_bridge_protocol(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'protocols' is only valid for interface type 'openvswitch bridge'");
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(npp, node, error, "Key 'protocols' is only valid for interface type 'openvswitch bridge'");
 
-    return handle_ovs_protocol(doc, node, cur_netdef, data, error);
+    return handle_ovs_protocol(npp, node, npp->current.netdef, data, error);
 }
 
 static gboolean
-handle_ovs_bridge_controller_connection_mode(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ovs_bridge_controller_connection_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'controller.connection-mode' is only valid for interface type 'openvswitch bridge'");
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(npp, node, error, "Key 'controller.connection-mode' is only valid for interface type 'openvswitch bridge'");
 
     if (g_strcmp0(scalar(node), "in-band") && g_strcmp0(scalar(node), "out-of-band"))
-        return yaml_error(node, error, "Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'");
+        return yaml_error(npp, node, error, "Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'");
 
-    return handle_netdef_str(doc, node, data, error);
+    return handle_netdef_str(npp, node, data, error);
 }
 
 static gboolean
-handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_ovs_bridge_controller_addresses(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(node, error, "Key 'controller.addresses' is only valid for interface type 'openvswitch bridge'");
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
+        return yaml_error(npp, node, error, "Key 'controller.addresses' is only valid for interface type 'openvswitch bridge'");
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         gchar** vec = NULL;
@@ -2112,11 +2089,11 @@ handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, 
         gboolean is_port = FALSE;
         gboolean is_unix = FALSE;
 
-        yaml_node_t *entry = yaml_document_get_node(doc, *i);
-        assert_type(entry, YAML_SCALAR_NODE);
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
         /* We always need at least one colon */
         if (!g_strrstr(scalar(entry), ":"))
-            return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
+            return yaml_error(npp, node, error, "Unsupported OVS controller target: %s", scalar(entry));
 
         vec = g_strsplit (scalar(entry), ":", 2);
 
@@ -2124,31 +2101,31 @@ handle_ovs_bridge_controller_addresses(yaml_document_t* doc, yaml_node_t* node, 
         is_port = !g_strcmp0(vec[0], "ptcp") || !g_strcmp0(vec[0], "pssl");
         is_unix = !g_strcmp0(vec[0], "unix") || !g_strcmp0(vec[0], "punix");
 
-        if (!cur_netdef->ovs_settings.controller.addresses)
-            cur_netdef->ovs_settings.controller.addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+        if (!npp->current.netdef->ovs_settings.controller.addresses)
+            npp->current.netdef->ovs_settings.controller.addresses = g_array_new(FALSE, FALSE, sizeof(char*));
 
         /* Format: [p]unix:file */
         if (is_unix && vec[1] != NULL && vec[2] == NULL) {
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_array_append_val(npp->current.netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
         /* Format tcp:host[:port] or ssl:host[:port] */
         } else if (is_host && validate_ovs_target(TRUE, vec[1])) {
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_array_append_val(npp->current.netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
         /* Format ptcp:[port][:host] or pssl:[port][:host] */
         } else if (is_port && validate_ovs_target(FALSE, vec[1])) {
             char* s = g_strdup(scalar(entry));
-            g_array_append_val(cur_netdef->ovs_settings.controller.addresses, s);
+            g_array_append_val(npp->current.netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
         }
 
         g_strfreev(vec);
-        return yaml_error(node, error, "Unsupported OVS controller target: %s", scalar(entry));
+        return yaml_error(npp, node, error, "Unsupported OVS controller target: %s", scalar(entry));
     }
 
     return TRUE;
@@ -2173,13 +2150,13 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
 };
 
 static gboolean
-handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_ovs_backend(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     GList* values = NULL;
-    gboolean ret = process_mapping(doc, node, ovs_backend_settings_handlers, &values, error);
+    gboolean ret = process_mapping(npp, node, ovs_backend_settings_handlers, &values, error);
     guint len = g_list_length(values);
 
-    if (cur_netdef->type != NETPLAN_DEF_TYPE_BOND && cur_netdef->type != NETPLAN_DEF_TYPE_BRIDGE) {
+    if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BOND && npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE) {
         GList *other_config = g_list_find_custom(values, "other-config", (GCompareFunc) strcmp);
         GList *external_ids = g_list_find_custom(values, "external-ids", (GCompareFunc) strcmp);
         /* Non-bond/non-bridge interfaces might still be handled by the networkd backend */
@@ -2193,7 +2170,7 @@ handle_ovs_backend(yaml_document_t* doc, yaml_node_t* node, const void* _, GErro
     /* Set the renderer for this device to NETPLAN_BACKEND_OVS, implicitly.
      * But only if empty "openvswitch: {}" or "openvswitch:" with more than
      * "other-config" or "external-ids" keys is given. */
-    cur_netdef->backend = NETPLAN_BACKEND_OVS;
+    npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
     return ret;
 }
 
@@ -2357,37 +2334,37 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
  ****************************************************/
 
 static gboolean
-handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_network_version(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     long mangled_version;
 
     mangled_version = strtol(scalar(node), NULL, 10);
 
     if (mangled_version < NETPLAN_VERSION_MIN || mangled_version >= NETPLAN_VERSION_MAX)
-        return yaml_error(node, error, "Only version 2 is supported");
+        return yaml_error(npp, node, error, "Only version 2 is supported");
     return TRUE;
 }
 
 static gboolean
-handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_network_renderer(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return parse_renderer(node, &global_state.backend, error);
+    return parse_renderer(npp, node, &npp->global_backend, error);
 }
 
 static gboolean
-handle_network_ovs_settings_global(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_network_ovs_settings_global(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_map(doc, node, &ovs_settings_global, data, error);
+    return handle_generic_map(npp, node, &npp->global_ovs_settings, data, error);
 }
 
 static gboolean
-handle_network_ovs_settings_global_protocol(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_network_ovs_settings_global_protocol(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_ovs_protocol(doc, node, &ovs_settings_global, data, error);
+    return handle_ovs_protocol(npp, node, &npp->global_ovs_settings, data, error);
 }
 
 static gboolean
-handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     yaml_node_t* port = NULL;
     yaml_node_t* peer = NULL;
@@ -2396,44 +2373,44 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
     NetplanNetDefinition *component = NULL;
 
     for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
-        pair = yaml_document_get_node(doc, *iter);
-        assert_type(pair, YAML_SEQUENCE_NODE);
+        pair = yaml_document_get_node(&npp->doc, *iter);
+        assert_type(npp, pair, YAML_SEQUENCE_NODE);
 
         item = pair->data.sequence.items.start;
         /* A peer port definition must contain exactly 2 ports */
         if (item+2 != pair->data.sequence.items.top) {
-            return yaml_error(pair, error, "An openvswitch peer port sequence must have exactly two entries");
+            return yaml_error(npp, pair, error, "An openvswitch peer port sequence must have exactly two entries");
         }
 
-        port = yaml_document_get_node(doc, *item);
-        assert_type(port, YAML_SCALAR_NODE);
-        peer = yaml_document_get_node(doc, *(item+1));
-        assert_type(peer, YAML_SCALAR_NODE);
+        port = yaml_document_get_node(&npp->doc, *item);
+        assert_type(npp, port, YAML_SCALAR_NODE);
+        peer = yaml_document_get_node(&npp->doc, *(item+1));
+        assert_type(npp, peer, YAML_SCALAR_NODE);
 
         /* Create port 1 netdef */
-        component = netdefs ? g_hash_table_lookup(netdefs, scalar(port)) : NULL;
+        component = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(port)) : NULL;
         if (!component) {
-            component = netplan_netdef_new(scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
-            if (g_hash_table_remove(missing_id, scalar(port)))
-                missing_ids_found++;
+            component = netplan_netdef_new(npp, scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if (g_hash_table_remove(npp->missing_id, scalar(port)))
+                npp->missing_ids_found++;
         }
 
         if (component->peer && g_strcmp0(component->peer, scalar(peer)))
-            return yaml_error(port, error, "openvswitch port '%s' is already assigned to peer '%s'",
+            return yaml_error(npp, port, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component->id, component->peer);
         component->peer = g_strdup(scalar(peer));
 
         /* Create port 2 (peer) netdef */
         component = NULL;
-        component = netdefs ? g_hash_table_lookup(netdefs, scalar(peer)) : NULL;
+        component = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(peer)) : NULL;
         if (!component) {
-            component = netplan_netdef_new(scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
-            if (g_hash_table_remove(missing_id, scalar(peer)))
-                missing_ids_found++;
+            component = netplan_netdef_new(npp, scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if (g_hash_table_remove(npp->missing_id, scalar(peer)))
+                npp->missing_ids_found++;
         }
 
         if (component->peer && g_strcmp0(component->peer, scalar(port)))
-            return yaml_error(peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
+            return yaml_error(npp, peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component->id, component->peer);
         component->peer = g_strdup(scalar(port));
     }
@@ -2445,53 +2422,53 @@ handle_network_ovs_settings_global_ports(yaml_document_t* doc, yaml_node_t* node
  * @data: netdef_type (as pointer)
  */
 static gboolean
-handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, GError** error)
+handle_network_type(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         const mapping_entry_handler* handlers;
 
-        key = yaml_document_get_node(doc, entry->key);
-        if (!assert_valid_id(key, error))
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        if (!assert_valid_id(npp, key, error))
             return FALSE;
         /* globbing is not allowed for IDs */
         if (strpbrk(scalar(key), "*[]?"))
-            return yaml_error(key, error, "Definition ID '%s' must not use globbing", scalar(key));
+            return yaml_error(npp, key, error, "Definition ID '%s' must not use globbing", scalar(key));
 
-        value = yaml_document_get_node(doc, entry->value);
+        value = yaml_document_get_node(&npp->doc, entry->value);
 
         /* special-case "renderer:" key to set the per-type backend */
         if (strcmp(scalar(key), "renderer") == 0) {
-            if (!parse_renderer(value, &backend_cur_type, error))
+            if (!parse_renderer(npp, value, &npp->current.backend, error))
                 return FALSE;
             continue;
         }
 
-        assert_type(value, YAML_MAPPING_NODE);
+        assert_type(npp, value, YAML_MAPPING_NODE);
 
         /* At this point we've seen a new starting definition, if it has been
          * already mentioned in another netdef, removing it from our "missing"
          * list. */
-        if(g_hash_table_remove(missing_id, scalar(key)))
-            missing_ids_found++;
+        if(g_hash_table_remove(npp->missing_id, scalar(key)))
+            npp->missing_ids_found++;
 
-        cur_netdef = netdefs ? g_hash_table_lookup(netdefs, scalar(key)) : NULL;
-        if (cur_netdef) {
+        npp->current.netdef = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(key)) : NULL;
+        if (npp->current.netdef) {
             /* already exists, overriding/amending previous definition */
-            if (cur_netdef->type != GPOINTER_TO_UINT(data))
-                return yaml_error(key, error, "Updated definition '%s' changes device type", scalar(key));
+            if (npp->current.netdef->type != GPOINTER_TO_UINT(data))
+                return yaml_error(npp, key, error, "Updated definition '%s' changes device type", scalar(key));
         } else {
-            cur_netdef = netplan_netdef_new(scalar(key), GPOINTER_TO_UINT(data), backend_cur_type);
+            npp->current.netdef = netplan_netdef_new(npp, scalar(key), GPOINTER_TO_UINT(data), npp->current.backend);
         }
-        g_assert(cur_filename);
-        cur_netdef->filename = g_strdup(cur_filename);
+        g_assert(npp->current.filename);
+        npp->current.netdef->filename = g_strdup(npp->current.filename);
 
         // XXX: breaks multi-pass parsing.
-        //if (!g_hash_table_add(ids_in_file, cur_netdef->id))
-        //    return yaml_error(key, error, "Duplicate net definition ID '%s'", cur_netdef->id);
+        //if (!g_hash_table_add(ids_in_file, npp->current.netdef->id))
+        //    return yaml_error(npp, key, error, "Duplicate net definition ID '%s'", npp->current.netdef->id);
 
         /* and fill it with definitions */
-        switch (cur_netdef->type) {
+        switch (npp->current.netdef->type) {
             case NETPLAN_DEF_TYPE_BOND: handlers = bond_def_handlers; break;
             case NETPLAN_DEF_TYPE_BRIDGE: handlers = bridge_def_handlers; break;
             case NETPLAN_DEF_TYPE_ETHERNET: handlers = ethernet_def_handlers; break;
@@ -2500,24 +2477,24 @@ handle_network_type(yaml_document_t* doc, yaml_node_t* node, const void* data, G
             case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
             case NETPLAN_DEF_TYPE_NM:
-                g_warning("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", cur_netdef->id);
+                g_warning("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", npp->current.netdef->id);
                 handlers = ethernet_def_handlers;
                 break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
-        if (!process_mapping(doc, value, handlers, NULL, error))
+        if (!process_mapping(npp, value, handlers, NULL, error))
             return FALSE;
 
         /* validate definition-level conditions */
-        if (!validate_netdef_grammar(cur_netdef, value, error))
+        if (!validate_netdef_grammar(npp, npp->current.netdef, value, error))
             return FALSE;
 
         /* convenience shortcut: physical device without match: means match
          * name on ID */
-        if (cur_netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !cur_netdef->has_match)
-            set_str_if_null(cur_netdef->match.original_name, cur_netdef->id);
+        if (npp->current.netdef->type < NETPLAN_DEF_TYPE_VIRTUAL && !npp->current.netdef->has_match)
+            set_str_if_null(npp->current.netdef->match.original_name, npp->current.netdef->id);
     }
-    backend_cur_type = NETPLAN_BACKEND_NONE;
+    npp->current.backend = NETPLAN_BACKEND_NONE;
     return TRUE;
 }
 
@@ -2529,13 +2506,13 @@ static const mapping_entry_handler ovs_global_ssl_handlers[] = {
 };
 
 static gboolean
-handle_ovs_global_ssl(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
+handle_ovs_global_ssl(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     gboolean ret;
 
-    cur_auth = &(ovs_settings_global.ssl);
-    ret = process_mapping(doc, node, ovs_global_ssl_handlers, NULL, error);
-    cur_auth = NULL;
+    npp->current.auth = &(npp->global_ovs_settings.ssl);
+    ret = process_mapping(npp, node, ovs_global_ssl_handlers, NULL, error);
+    npp->current.auth = NULL;
 
     return ret;
 }
@@ -2577,32 +2554,32 @@ static const mapping_entry_handler root_handlers[] = {
  * Handle multiple-pass parsing of the yaml document.
  */
 static gboolean
-process_document(yaml_document_t* doc, GError** error)
+process_document(NetplanParser* npp, GError** error)
 {
     gboolean ret;
     int previously_found;
     int still_missing;
 
-    g_assert(missing_id == NULL);
-    missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
+    g_assert(npp->missing_id == NULL);
+    npp->missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
 
     do {
         g_debug("starting new processing pass");
 
-        previously_found = missing_ids_found;
-        missing_ids_found = 0;
+        previously_found = npp->missing_ids_found;
+        npp->missing_ids_found = 0;
 
         g_clear_error(error);
 
-        ret = process_mapping(doc, yaml_document_get_root_node(doc), root_handlers, NULL, error);
+        ret = process_mapping(npp, yaml_document_get_root_node(&npp->doc), root_handlers, NULL, error);
 
-        still_missing = g_hash_table_size(missing_id);
+        still_missing = g_hash_table_size(npp->missing_id);
 
-        if (still_missing > 0 && missing_ids_found == previously_found)
+        if (still_missing > 0 && npp->missing_ids_found == previously_found)
             break;
-    } while (still_missing > 0 || missing_ids_found > 0);
+    } while (still_missing > 0 || npp->missing_ids_found > 0);
 
-    if (g_hash_table_size(missing_id) > 0) {
+    if (g_hash_table_size(npp->missing_id) > 0) {
         GHashTableIter iter;
         gpointer key, value;
         NetplanMissingNode *missing;
@@ -2611,17 +2588,17 @@ process_document(yaml_document_t* doc, GError** error)
 
         /* Get the first missing identifier we can get from our list, to
          * approximate early failure and give the user a meaningful error. */
-        g_hash_table_iter_init (&iter, missing_id);
+        g_hash_table_iter_init (&iter, npp->missing_id);
         g_hash_table_iter_next (&iter, &key, &value);
         missing = (NetplanMissingNode*) value;
 
-        return yaml_error(missing->node, error, "%s: interface '%s' is not defined",
+        return yaml_error(npp, missing->node, error, "%s: interface '%s' is not defined",
                           missing->netdef_id,
                           key);
     }
 
-    g_hash_table_destroy(missing_id);
-    missing_id = NULL;
+    g_hash_table_destroy(npp->missing_id);
+    npp->missing_id = NULL;
     return ret;
 }
 
@@ -2629,43 +2606,50 @@ process_document(yaml_document_t* doc, GError** error)
  * Parse given YAML file and create/update global "netdefs" list.
  */
 gboolean
-netplan_parse_yaml(const char* filename, GError** error)
+netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error)
 {
-    yaml_document_t doc;
+    yaml_document_t *doc = &npp->doc;
     gboolean ret;
 
-    if (!load_yaml(filename, &doc, error))
+    if (!load_yaml(filename, doc, error))
         return FALSE;
 
     /* empty file? */
-    if (yaml_document_get_root_node(&doc) == NULL)
+    if (yaml_document_get_root_node(doc) == NULL)
         return TRUE;
 
-    g_assert(ids_in_file == NULL);
-    ids_in_file = g_hash_table_new(g_str_hash, NULL);
+    g_assert(npp->ids_in_file == NULL);
+    npp->ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
-    cur_filename = filename;
-    ret = process_document(&doc, error);
+    npp->current.filename = g_strdup(filename);
+    ret = process_document(npp, error);
+    g_free((void *)npp->current.filename);
+    npp->current.filename = NULL;
 
-    cur_filename = NULL;
-    cur_netdef = NULL;
-    yaml_document_delete(&doc);
-    g_hash_table_destroy(ids_in_file);
-    ids_in_file = NULL;
+    yaml_document_delete(doc);
+    g_hash_table_destroy(npp->ids_in_file);
+    npp->ids_in_file = NULL;
     return ret;
 }
 
 static gboolean
-finish_iterator(NetplanNetDefinition* nd, GError **error)
+finish_iterator(const NetplanParser* npp, NetplanNetDefinition* nd, GError **error)
 {
     /* Take more steps to make sure we always have a backend set for netdefs */
     if (nd->backend == NETPLAN_BACKEND_NONE) {
-        nd->backend = get_default_backend_for_type(nd->type);
+        nd->backend = get_default_backend_for_type(npp, nd->type);
         g_debug("%s: setting default backend to %i", nd->id, nd->backend);
     }
 
     /* Do a final pass of validation for backend-specific conditions */
-    return validate_backend_rules(nd, error);
+    return validate_backend_rules(npp, nd, error);
+}
+
+static gboolean
+insert_kv_into_hash(void *key, void *value, void *hash)
+{
+    g_hash_table_insert(hash, key, value);
+    return TRUE;
 }
 
 /**
@@ -2674,26 +2658,53 @@ finish_iterator(NetplanNetDefinition* nd, GError **error)
 GHashTable *
 netplan_finish_parse(GError** error)
 {
-    if (netdefs) {
+    NetplanParser* npp = &global_parser;
+    if (npp->parsed_defs) {
         GError *recoverable = NULL;
         GHashTableIter iter;
         gpointer key, value;
         g_debug("We have some netdefs, pass them through a final round of validation");
-        if (!validate_default_route_consistency(netdefs, &recoverable)) {
+        if (!validate_default_route_consistency(npp, npp->parsed_defs, &recoverable)) {
             g_warning("Problem encountered while validating default route consistency."
                       "Please set up multiple routing tables and use `routing-policy` instead.\n"
                       "Error: %s", (recoverable) ? recoverable->message : "");
             g_clear_error(&recoverable);
         }
-        g_hash_table_iter_init (&iter, netdefs);
+
+        g_hash_table_iter_init (&iter, npp->parsed_defs);
 
         while (g_hash_table_iter_next (&iter, &key, &value)) {
-            if (!finish_iterator((NetplanNetDefinition *) value, error))
+            if (!finish_iterator(npp, (NetplanNetDefinition *) value, error))
                 return NULL;
             g_debug("Configuration is valid");
         }
     }
+
+    if (npp->parsed_defs) {
+        if (!netdefs)
+            netdefs = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_foreach_steal(npp->parsed_defs, insert_kv_into_hash, netdefs);
+    }
+    netdefs_ordered = g_list_concat(netdefs_ordered, npp->ordered);
+    ovs_settings_global = npp->global_ovs_settings;
+    global_backend = npp->global_backend;
+
+    /* We need to reset those fields manually as we transfered ownership of the underlying
+       data to out. If we don't do this, netplan_clear_parser will deallocate data
+       that we don't own anymore. */
+    npp->parsed_defs = NULL;
+    npp->ordered = NULL;
+    memset(&npp->global_ovs_settings, 0, sizeof(NetplanOVSSettings));
+
+    netplan_parser_reset(npp);
     return netdefs;
+}
+
+static void
+clear_netdef_from_list(void *def)
+{
+    reset_netdef((NetplanNetDefinition *)def, NETPLAN_DEF_TYPE_NONE, NETPLAN_BACKEND_NONE);
+    g_free(def);
 }
 
 void
@@ -2732,4 +2743,66 @@ process_yaml_hierarchy(const char* rootdir)
     for (GList* i = config_keys; i != NULL; i = i->next)
         process_input_file(g_hash_table_lookup(configs, i->data));
     return TRUE;
+}
+
+NetplanParser*
+netplan_parser_new()
+{
+    NetplanParser* npp = g_new0(NetplanParser, 1);
+    netplan_parser_reset(npp);
+    return npp;
+}
+
+void
+netplan_parser_reset(NetplanParser* npp)
+{
+    g_assert(npp != NULL);
+
+    if(npp->parsed_defs) {
+        /* FIXME: make sure that any dynamically allocated netdef data is freed */
+        g_hash_table_destroy(npp->parsed_defs);
+        npp->parsed_defs = NULL;
+    }
+    if(npp->ordered) {
+        g_clear_list(&npp->ordered, clear_netdef_from_list);
+        npp->ordered = NULL;
+    }
+
+    npp->global_backend = NETPLAN_BACKEND_NONE;
+    reset_ovs_settings(&npp->global_ovs_settings);
+
+    /* These pointers are non-owning, it's not our place to free their resources*/
+    npp->current.netdef = NULL;
+    npp->current.auth = NULL;
+
+    access_point_clear(&npp->current.access_point, npp->current.backend);
+    wireguard_peer_clear(&npp->current.wireguard_peer);
+    address_options_clear(&npp->current.addr_options);
+    route_clear(&npp->current.route);
+    ip_rule_clear(&npp->current.ip_rule);
+    g_free((void *)npp->current.filename);
+    npp->current.filename = NULL;
+
+    //LCOV_EXCL_START
+    if (npp->ids_in_file) {
+        g_hash_table_destroy(npp->ids_in_file);
+        npp->ids_in_file = NULL;
+    }
+    //LCOV_EXCL_STOP
+
+    if (npp->missing_id) {
+        g_hash_table_destroy(npp->missing_id);
+        npp->missing_id = NULL;
+    }
+
+    npp->missing_ids_found = 0;
+}
+
+void
+netplan_parser_clear(NetplanParser** npp_p)
+{
+    NetplanParser* npp = *npp_p;
+    *npp_p = NULL;
+    netplan_parser_reset(npp);
+    g_free(npp);
 }

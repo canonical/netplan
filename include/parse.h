@@ -41,9 +41,24 @@ typedef enum {
     NETPLAN_DEF_TYPE_MAX_
 } NetplanDefType;
 
+typedef struct netplan_parser NetplanParser;
+
 /****************************************************
  * Functions
  ****************************************************/
+
+NETPLAN_PUBLIC NetplanParser*
+netplan_parser_new();
+
+NETPLAN_PUBLIC void
+netplan_parser_reset(NetplanParser *npp);
+
+NETPLAN_PUBLIC void
+netplan_parser_clear(NetplanParser **npp);
+
+NETPLAN_PUBLIC gboolean
+netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error);
+
 
 NETPLAN_PUBLIC gboolean
 netplan_parse_yaml(const char* filename, GError** error);

@@ -431,6 +431,57 @@ struct netplan_state {
     NetplanOVSSettings ovs_settings;
 };
 
+struct netplan_parser {
+    yaml_document_t doc;
+    /* Netplan definitions that have already been processed.
+     * Weak references to the nedefs */
+    GHashTable* parsed_defs;
+    /* Same definitions, stored in the order of processing.
+     * Owning structure for the netdefs */
+    GList* ordered;
+    NetplanBackend global_backend;
+    NetplanOVSSettings global_ovs_settings;
+
+    /* Data currently being processed */
+    struct {
+        /* Refs to objects allocated elsewhere */
+        NetplanNetDefinition* netdef;
+        NetplanAuthenticationSettings *auth;
+
+        /* Owned refs, not yet referenced anywhere */
+        NetplanWifiAccessPoint *access_point;
+        NetplanWireguardPeer* wireguard_peer;
+        NetplanAddressOptions* addr_options;
+        NetplanIPRoute* route;
+        NetplanIPRule* ip_rule;
+        const char *filename;
+
+        /* Plain old data representing the backend for which we are
+         * currently parsing. Not necessarily the same as the global
+         * backend. */
+        NetplanBackend backend;
+    } current;
+
+    /* List of "seen" ids not found in netdefs yet by the parser.
+     * These are removed when it exists in this list and we reach the point of
+     * creating a netdef for that id; so by the time we're done parsing the yaml
+     * document it should be empty.
+     *
+     * Keys are not owned, but the values are. Should be created with NULL and g_free
+     * destructors, respectively, so that the cleanup is automatic at destruction.
+     */
+    GHashTable* missing_id;
+
+    /* Set of IDs in currently parsed YAML file, for being able to detect
+     * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
+     * existing definition.
+     *
+     * Appears to be unused?
+     * */
+    GHashTable* ids_in_file;
+    int missing_ids_found;
+};
+
 #define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
 #define NETPLAN_CONGESTION_WINDOW_UNSPEC 0
 #define NETPLAN_MTU_UNSPEC 0
@@ -442,6 +493,9 @@ struct netplan_state {
 
 void
 reset_netdef(NetplanNetDefinition* netdef, NetplanDefType type, NetplanBackend renderer);
+
+void
+reset_ovs_settings(NetplanOVSSettings *settings);
 
 void
 access_point_clear(NetplanWifiAccessPoint** ap, NetplanBackend backend);

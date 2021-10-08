@@ -895,6 +895,8 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
     GHashTableIter iter;
     gpointer key, value;
 
+    netplan_finish_parse(NULL);
+
     gboolean global_values = (   (netplan_get_global_backend() != NETPLAN_BACKEND_NONE)
                               || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL));
 
