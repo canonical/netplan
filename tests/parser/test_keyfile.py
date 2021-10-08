@@ -1098,24 +1098,24 @@ route4=5:6:7:8:9:0:1:2/62
       - metric: 1
         to: "1.1.1.1/8"
         via: "1.2.1.1"
-      - to: "2.2.2.2/7"
-        via: "0.0.0.0"
-      - metric: 4
+      - scope: "link"
+        to: "2.2.2.2/7"
+      - scope: "link"
+        metric: 4
         mtu: 1492
         from: "1.2.3.4"
         to: "3.3.3.3/6"
-        via: "0.0.0.0"
       - metric: 3
         to: "1:2:3:4:5:6:7:8/64"
         via: "8:7:6:5:4:3:2:1"
       - metric: 1
         to: "2001::1000/56"
         via: "2001::1111"
-      - metric: 5
+      - scope: "link"
+        metric: 5
         to: "4:5:6:7:8:9:0:1/63"
-        via: "::"
-      - to: "5:6:7:8:9:0:1:2/62"
-        via: "::"
+      - scope: "link"
+        to: "5:6:7:8:9:0:1:2/62"
       wakeonlan: true
       networkmanager:
         uuid: "{}"

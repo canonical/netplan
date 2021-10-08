@@ -220,6 +220,7 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
         for (unsigned i = 0, j = 1; i < def->routes->len; ++i) {
             const NetplanIPRoute *cur_route = g_array_index(def->routes, NetplanIPRoute*, i);
             const char *destination;
+            const char *via;
 
             if (cur_route->family != family)
                 continue;
@@ -234,20 +235,23 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
                 exit(1);
             }
 
-            if (!g_strcmp0(cur_route->scope, "global")) {
-                /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
-                 * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
-                 * ("link" for addresses without gateway, "global" for addresses with next-hop). */
-                g_debug("%s: NetworkManager does not support setting a scope for routes, it will auto-detect them.", def->id);
-            } else if (cur_route->scope) {
-                /* Error out if scope is not set to its default value of 'global' */
-                g_fprintf(stderr, "ERROR: %s: NetworkManager does not support setting a scope for routes\n", def->id);
-                exit(1);
+            /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
+             * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
+             * ("link"/"host" for addresses without gateway, "global" for addresses with next-hop).
+             * Routes without gateway are represented by the unspecified address in keyfile. */
+            if (g_strcmp0(cur_route->scope, "global") == 0)
+                via = cur_route->via;
+            else {
+                g_debug("%s: Overriding 'via: %s' as NetworkManager does not support "
+                        "setting a route's scope directly, but will auto-detect them.",
+                        def->id, get_unspecified_address(cur_route->family));
+                via = get_unspecified_address(cur_route->family);
             }
 
             tmp_key = g_strdup_printf("route%d", j);
             tmp_val = g_string_new(NULL);
-            g_string_printf(tmp_val, "%s,%s", destination, cur_route->via);
+            g_string_printf(tmp_val, "%s,%s", destination, via);
+            via = NULL;
             if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
                 g_string_append_printf(tmp_val, ",%d", cur_route->metric);
             g_key_file_set_string(kf, group, tmp_key, tmp_val->str);

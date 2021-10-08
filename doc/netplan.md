@@ -662,8 +662,7 @@ eth1:
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible
-          values are "global", "link", or "host". ``NetworkManager`` does
-          not support setting a scope.
+          values are "global", "link", or "host".
 
      ``table`` (scalar)
      :    The table number to use for the route. In some scenarios, it may be
