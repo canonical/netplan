@@ -135,3 +135,26 @@ enable_networkd(const char* generator_dir)
     }
 }
 // LCOV_EXCL_STOP
+
+NETPLAN_INTERNAL void
+write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
+{
+    GError* error = NULL;
+    if (!netplan_netdef_write_nm(&global_state, def, rootdir, NULL, &error)) {
+        g_fprintf(stderr, "%s", error->message);
+        exit(1);
+    }
+}
+
+NETPLAN_INTERNAL void
+write_nm_conf_finish(const char* rootdir)
+{
+    /* Original implementation had no error possible!! */
+    g_assert(netplan_state_finish_nm_write(&global_state, rootdir, NULL));
+}
+
+NETPLAN_INTERNAL void
+cleanup_nm_conf(const char* rootdir)
+{
+    netplan_nm_cleanup(rootdir);
+}
