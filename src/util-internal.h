@@ -25,6 +25,8 @@
 #include <glib.h>
 #include "netplan.h"
 
+#define SET_OPT_OUT_PTR(ptr,val) { if (ptr) *ptr = val; }
+
 extern GHashTable*
 wifi_frequency_24;
 

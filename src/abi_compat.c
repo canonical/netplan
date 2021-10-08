@@ -30,6 +30,11 @@
 #include "nm.h"
 #include "openvswitch.h"
 
+#include <unistd.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <errno.h>
+
 /* These arrays are not useful per-say, but allow us to export the various
  * struct offsets of the netplan_state members to the linker, which can use
  * them in a linker script to create symbols pointing to the internal data
@@ -70,3 +75,63 @@ netplan_clear_netdefs()
     netplan_state_reset(&global_state);
     return n;
 }
+
+NETPLAN_INTERNAL void
+write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
+{
+    GError* error = NULL;
+    if (!netplan_netdef_write_network_file(&global_state, def, rootdir, path, NULL, &error))
+    {
+        g_fprintf(stderr, "%s", error->message);
+        exit(1);
+    }
+}
+
+/**
+ * Generate networkd configuration in @rootdir/run/systemd/network/ from the
+ * parsed #netdefs.
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ * Returns: TRUE if @def applies to networkd, FALSE otherwise.
+ */
+gboolean
+write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir)
+{
+    GError* error = NULL;
+    gboolean has_been_written;
+    if (!netplan_netdef_write_networkd(&global_state, def, rootdir, &has_been_written, &error))
+    {
+        g_fprintf(stderr, "%s", error->message);
+        exit(1);
+    }
+    return has_been_written;
+}
+
+NETPLAN_INTERNAL void
+cleanup_networkd_conf(const char* rootdir)
+{
+    netplan_networkd_cleanup(rootdir);
+}
+
+// There only for compatibility purposes, the proper implementation is now directly
+// in the `generate` binary.
+// LCOV_EXCL_START
+NETPLAN_ABI void
+enable_networkd(const char* generator_dir)
+{
+    g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
+    g_debug("We created networkd configuration, adding %s enablement symlink", link);
+    safe_mkdir_p_dir(link);
+    if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+        exit(1);
+    }
+
+    g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
+    safe_mkdir_p_dir(link2);
+    if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
+        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+        exit(1);
+    }
+}
+// LCOV_EXCL_STOP
