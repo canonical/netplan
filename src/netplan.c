@@ -20,7 +20,6 @@
 
 #include "netplan.h"
 #include "parse.h"
-#include "parse-globals.h"
 #include "yaml-helpers.h"
 #include "names.h"
 
@@ -596,8 +595,12 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-void
-_serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+static void
+_serialize_yaml(
+        const NetplanState* np_state,
+        yaml_event_t* event,
+        yaml_emitter_t* emitter,
+        const NetplanNetDefinition* def)
 {
     GArray* tmp_arr = NULL;
     GHashTableIter iter;
@@ -680,7 +683,7 @@ _serialize_yaml(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
     /* Search interfaces */
     if (def->type == NETPLAN_DEF_TYPE_BRIDGE || def->type == NETPLAN_DEF_TYPE_BOND) {
         tmp_arr = g_array_new(FALSE, FALSE, sizeof(NetplanNetDefinition*));
-        g_hash_table_iter_init(&iter, netdefs);
+        g_hash_table_iter_init(&iter, np_state->netdefs);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
             NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
             if (g_strcmp0(nd->bond, def->id) == 0 || g_strcmp0(nd->bridge, def->id) == 0)
@@ -819,22 +822,27 @@ err_path:
 
 /**
  * Generate the Netplan YAML configuration for the selected netdef
+ * @np_state: NetplanState (as pointer), the global state to which the netdef belongs
  * @def: NetplanNetDefinition (as pointer), the data to be serialized
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
-void
-write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
+gboolean
+netplan_netdef_write_yaml(
+        const NetplanState* np_state,
+        const NetplanNetDefinition* netdef,
+        const char* rootdir,
+        GError** error)
 {
     g_autofree gchar *filename = NULL;
     g_autofree gchar *path = NULL;
 
     /* NetworkManager produces one file per connection profile
     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
-    if (def->backend_settings.nm.uuid)
-        filename = g_strconcat("90-NM-", def->backend_settings.nm.uuid, ".yaml", NULL);
+    if (netdef->backend_settings.nm.uuid)
+        filename = g_strconcat("90-NM-", netdef->backend_settings.nm.uuid, ".yaml", NULL);
     else
-        filename = g_strconcat("10-netplan-", def->id, ".yaml", NULL);
+        filename = g_strconcat("10-netplan-", netdef->id, ".yaml", NULL);
     path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
 
     /* Start rendering YAML output */
@@ -850,10 +858,10 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     YAML_MAPPING_OPEN(event, emitter);
     YAML_STRING_PLAIN(event, emitter, "version", "2");
 
-    if (netplan_def_type_name(def->type)) {
-        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(def->type));
+    if (netplan_def_type_name(netdef->type)) {
+        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(netdef->type));
         YAML_MAPPING_OPEN(event, emitter);
-        _serialize_yaml(event, emitter, def);
+        _serialize_yaml(np_state, event, emitter, netdef);
         YAML_MAPPING_CLOSE(event, emitter);
     }
 
@@ -863,17 +871,18 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
     /* Tear down the YAML emitter */
     YAML_OUT_STOP(event, emitter);
     fclose(output);
-    return;
+    return TRUE;
 
     // LCOV_EXCL_START
 err_path:
-    g_warning("Error generating YAML: %s", emitter->problem);
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
     fclose(output);
+    return FALSE;
     // LCOV_EXCL_STOP
 }
 
-gboolean
+static gboolean
 contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
 {
     NetplanNetDefinition *nd = value;
@@ -882,27 +891,26 @@ contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
 }
 
 /**
- * Generate the Netplan YAML configuration for all currently parsed netdefs
+ * Generate the Netplan YAML configuration for all netdefs in the state
+ * @np_state: the state for which to generate the config
  * @file_hint: Name hint for the generated output YAML file
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
-NETPLAN_INTERNAL void
-write_netplan_conf_full(const char* file_hint, const char* rootdir)
+NETPLAN_INTERNAL gboolean
+netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, const char* rootdir, GError** error)
 {
     g_autofree gchar *path = NULL;
     GHashTable *ovs_ports = NULL;
     GHashTableIter iter;
     gpointer key, value;
 
-    netplan_finish_parse(NULL);
+    gboolean global_values = (np_state->backend != NETPLAN_BACKEND_NONE
+                              || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL));
 
-    gboolean global_values = (   (netplan_get_global_backend() != NETPLAN_BACKEND_NONE)
-                              || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL));
-
-    if (!global_values && (!netdefs || g_hash_table_size(netdefs) == 0)) {
+    if (!global_values && netplan_state_get_netdefs_size(np_state) == 0) {
         g_debug("No data/netdefs to serialize into YAML.");
-        return;
+        return TRUE;
     }
 
     path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
@@ -921,29 +929,29 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
     /* We support version 2 only, currently */
     YAML_STRING_PLAIN(event, emitter, "version", "2");
 
-    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
+    if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM) {
         YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
-    } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
+    } else if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NETWORKD) {
         YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");
     }
 
     /* Go through the netdefs type-by-type */
-    if ((netdefs && g_hash_table_size(netdefs) > 0)) {
+    if (netplan_state_get_netdefs_size(np_state) > 0) {
         for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
             /* Per-netdef config */
-            if (g_hash_table_find(netdefs, contains_netdef_type, &i)) {
+            if (g_hash_table_find(np_state->netdefs, contains_netdef_type, &i)) {
                 if (netplan_def_type_name(i)) {
                     YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(i));
                     YAML_MAPPING_OPEN(event, emitter);
-                    g_hash_table_iter_init(&iter, netdefs);
+                    g_hash_table_iter_init(&iter, np_state->netdefs);
                     while (g_hash_table_iter_next (&iter, &key, &value)) {
                         NetplanNetDefinition *def = (NetplanNetDefinition *) value;
                         if (def->type == i)
-                            _serialize_yaml(event, emitter, def);
+                            _serialize_yaml(np_state, event, emitter, def);
                     }
                     YAML_MAPPING_CLOSE(event, emitter);
                 } else if (i == NETPLAN_DEF_TYPE_PORT) {
-                    g_hash_table_iter_init(&iter, netdefs);
+                    g_hash_table_iter_init(&iter, np_state->netdefs);
                     while (g_hash_table_iter_next (&iter, &key, &value)) {
                         NetplanNetDefinition *def = (NetplanNetDefinition *) value;
                         if (def->type == i) {
@@ -959,7 +967,7 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
         }
     }
 
-    write_openvswitch(event, emitter, &ovs_settings_global, NETPLAN_BACKEND_NONE, ovs_ports);
+    write_openvswitch(event, emitter, &np_state->ovs_settings, NETPLAN_BACKEND_NONE, ovs_ports);
 
     /* Close remaining mappings */
     YAML_MAPPING_CLOSE(event, emitter);
@@ -967,13 +975,14 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
     /* Tear down the YAML emitter */
     YAML_OUT_STOP(event, emitter);
     fclose(output);
-    return;
+    return TRUE;
 
     // LCOV_EXCL_START
 err_path:
-    g_warning("Error generating YAML: %s", emitter->problem);
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
     fclose(output);
+    return FALSE;
     // LCOV_EXCL_STOP
 }
 
