@@ -898,80 +898,81 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
     gboolean global_values = (   (netplan_get_global_backend() != NETPLAN_BACKEND_NONE)
                               || has_openvswitch(&ovs_settings_global, NETPLAN_BACKEND_NONE, NULL));
 
-    if (global_values || (netdefs && g_hash_table_size(netdefs) > 0)) {
-        path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
+    if (!global_values && (!netdefs || g_hash_table_size(netdefs) == 0)) {
+        g_debug("No data/netdefs to serialize into YAML.");
+        return;
+    }
 
-        /* Start rendering YAML output */
-        yaml_emitter_t emitter_data;
-        yaml_event_t event_data;
-        yaml_emitter_t* emitter = &emitter_data;
-        yaml_event_t* event = &event_data;
-        FILE *output = fopen(path, "wb");
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
 
-        YAML_OUT_START(event, emitter, output);
-        /* build the netplan boilerplate YAML structure */
-        YAML_SCALAR_PLAIN(event, emitter, "network");
-        YAML_MAPPING_OPEN(event, emitter);
-        /* We support version 2 only, currently */
-        YAML_STRING_PLAIN(event, emitter, "version", "2");
+    /* Start rendering YAML output */
+    yaml_emitter_t emitter_data;
+    yaml_event_t event_data;
+    yaml_emitter_t* emitter = &emitter_data;
+    yaml_event_t* event = &event_data;
+    FILE *output = fopen(path, "wb");
 
-        if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
-            YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
-        } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
-            YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");
-        }
+    YAML_OUT_START(event, emitter, output);
+    /* build the netplan boilerplate YAML structure */
+    YAML_SCALAR_PLAIN(event, emitter, "network");
+    YAML_MAPPING_OPEN(event, emitter);
+    /* We support version 2 only, currently */
+    YAML_STRING_PLAIN(event, emitter, "version", "2");
 
-        /* Go through the netdefs type-by-type */
-        if (netdefs && g_hash_table_size(netdefs) > 0) {
-            for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
-                /* Per-netdef config */
-                if (g_hash_table_find(netdefs, contains_netdef_type, &i)) {
-                    if (netplan_def_type_name(i)) {
-                        YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(i));
-                        YAML_MAPPING_OPEN(event, emitter);
-                        g_hash_table_iter_init(&iter, netdefs);
-                        while (g_hash_table_iter_next (&iter, &key, &value)) {
-                            NetplanNetDefinition *def = (NetplanNetDefinition *) value;
-                            if (def->type == i)
-                                _serialize_yaml(event, emitter, def);
-                        }
-                        YAML_MAPPING_CLOSE(event, emitter);
-                    } else if (i == NETPLAN_DEF_TYPE_PORT) {
-                        g_hash_table_iter_init(&iter, netdefs);
-                        while (g_hash_table_iter_next (&iter, &key, &value)) {
-                            NetplanNetDefinition *def = (NetplanNetDefinition *) value;
-                            if (def->type == i) {
-                                if (!ovs_ports)
-                                    ovs_ports = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-                                /* Insert each port:peer combination only once */
-                                if (!g_hash_table_lookup(ovs_ports, def->id))
-                                    g_hash_table_insert(ovs_ports, g_strdup(def->peer), g_strdup(def->id));
-                            }
+    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM) {
+        YAML_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
+    } else if (netplan_get_global_backend() == NETPLAN_BACKEND_NETWORKD) {
+        YAML_STRING_PLAIN(event, emitter, "renderer", "networkd");
+    }
+
+    /* Go through the netdefs type-by-type */
+    if ((netdefs && g_hash_table_size(netdefs) > 0)) {
+        for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+            /* Per-netdef config */
+            if (g_hash_table_find(netdefs, contains_netdef_type, &i)) {
+                if (netplan_def_type_name(i)) {
+                    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(i));
+                    YAML_MAPPING_OPEN(event, emitter);
+                    g_hash_table_iter_init(&iter, netdefs);
+                    while (g_hash_table_iter_next (&iter, &key, &value)) {
+                        NetplanNetDefinition *def = (NetplanNetDefinition *) value;
+                        if (def->type == i)
+                            _serialize_yaml(event, emitter, def);
+                    }
+                    YAML_MAPPING_CLOSE(event, emitter);
+                } else if (i == NETPLAN_DEF_TYPE_PORT) {
+                    g_hash_table_iter_init(&iter, netdefs);
+                    while (g_hash_table_iter_next (&iter, &key, &value)) {
+                        NetplanNetDefinition *def = (NetplanNetDefinition *) value;
+                        if (def->type == i) {
+                            if (!ovs_ports)
+                                ovs_ports = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+                            /* Insert each port:peer combination only once */
+                            if (!g_hash_table_lookup(ovs_ports, def->id))
+                                g_hash_table_insert(ovs_ports, g_strdup(def->peer), g_strdup(def->id));
                         }
                     }
                 }
             }
         }
-
-        write_openvswitch(event, emitter, &ovs_settings_global, NETPLAN_BACKEND_NONE, ovs_ports);
-
-        /* Close remaining mappings */
-        YAML_MAPPING_CLOSE(event, emitter);
-
-        /* Tear down the YAML emitter */
-        YAML_OUT_STOP(event, emitter);
-        fclose(output);
-        return;
-
-        // LCOV_EXCL_START
-err_path:
-        g_warning("Error generating YAML: %s", emitter->problem);
-        yaml_emitter_delete(emitter);
-        fclose(output);
-        // LCOV_EXCL_STOP
-    } else {
-        g_debug("No data/netdefs to serialize into YAML.");
     }
+
+    write_openvswitch(event, emitter, &ovs_settings_global, NETPLAN_BACKEND_NONE, ovs_ports);
+
+    /* Close remaining mappings */
+    YAML_MAPPING_CLOSE(event, emitter);
+
+    /* Tear down the YAML emitter */
+    YAML_OUT_STOP(event, emitter);
+    fclose(output);
+    return;
+
+    // LCOV_EXCL_START
+err_path:
+    g_warning("Error generating YAML: %s", emitter->problem);
+    yaml_emitter_delete(emitter);
+    fclose(output);
+    // LCOV_EXCL_STOP
 }
 
 /* XXX: implement the following functions, once needed:
