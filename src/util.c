@@ -218,6 +218,7 @@ netplan_delete_connection(const char* id, const char* rootdir)
     g_autofree gchar* del = NULL;
     g_autoptr(GError) error = NULL;
     NetplanNetDefinition* nd = NULL;
+    netplan_clear_netdefs();
 
     /* parse all YAML files */
     if (!process_yaml_hierarchy(rootdir))
