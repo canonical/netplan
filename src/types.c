@@ -380,3 +380,27 @@ netplan_state_get_netdefs_size(const NetplanState* np_state)
 {
     return np_state->netdefs ? g_hash_table_size(np_state->netdefs) : 0;
 }
+
+void
+access_point_clear(NetplanWifiAccessPoint** ap, NetplanBackend backend)
+{
+    NetplanWifiAccessPoint* obj = *ap;
+    if (!obj)
+        return;
+    *ap = NULL;
+    free_access_point(NULL, obj, &backend);
+}
+
+#define CLEAR_FROM_FREE(free_fn, clear_fn, type) void clear_fn(type** dest) \
+{ \
+    type* obj; \
+    if (!dest || !(*dest)) return; \
+    obj = *dest; \
+    *dest = NULL; \
+    free_fn(obj);\
+}
+
+CLEAR_FROM_FREE(free_wireguard_peer, wireguard_peer_clear, NetplanWireguardPeer);
+CLEAR_FROM_FREE(free_ip_rules, ip_rule_clear, NetplanIPRule);
+CLEAR_FROM_FREE(free_route, route_clear, NetplanIPRoute);
+CLEAR_FROM_FREE(free_address_options, address_options_clear, NetplanAddressOptions);

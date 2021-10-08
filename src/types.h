@@ -441,4 +441,19 @@ struct netplan_state {
 #define NETPLAN_IP_RULE_TOS_UNSPEC G_MAXUINT
 
 void
-reset_netdef(NetplanNetDefinition *netdef, NetplanDefType type, NetplanBackend renderer);
+reset_netdef(NetplanNetDefinition* netdef, NetplanDefType type, NetplanBackend renderer);
+
+void
+access_point_clear(NetplanWifiAccessPoint** ap, NetplanBackend backend);
+
+void
+wireguard_peer_clear(NetplanWireguardPeer** peer);
+
+void
+address_options_clear(NetplanAddressOptions** options);
+
+void
+ip_rule_clear(NetplanIPRule** rule);
+
+void
+route_clear(NetplanIPRoute** route);
