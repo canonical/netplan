@@ -689,42 +689,24 @@ Domains=lab kitchen
         self.generate('''network:
   version: 2
   ethernets:
-    eth0:
-      mdns: resolve
-    eth1:
-      mdns: true
-    eth2:
-      mdns: false
+    eth0: {multicast-dns: resolve}
+    eth1: {multicast-dns: true}
+    eth2: {multicast-dns: false}
 ''')
 
-        self.assert_networkd({'eth0.network': '''[Match]
-Name=eth0
-
-[Network]
-LinkLocalAddressing=ipv6
-MulticastDNS=resolve
-''',
-                              'eth1.network': '''[Match]
-Name=eth1
-
-[Network]
-LinkLocalAddressing=ipv6
-MulticastDNS=yes
-''',
-                              'eth2.network': '''[Match]
-Name=eth2
-
-[Network]
-LinkLocalAddressing=ipv6
-MulticastDNS=no
-'''})
+        self.assert_networkd({'eth0.network': (ND_EMPTY % ('eth0', 'ipv6'))
+                              .replace('ConfigureWithoutCarrier=yes', 'MulticastDNS=resolve'),
+                              'eth1.network': (ND_EMPTY % ('eth1', 'ipv6'))
+                              .replace('ConfigureWithoutCarrier=yes', 'MulticastDNS=yes'),
+                              'eth2.network': (ND_EMPTY % ('eth2', 'ipv6'))
+                              .replace('ConfigureWithoutCarrier=yes', 'MulticastDNS=no')})
 
     def test_mdns_invalid(self):
         self.generate('''network:
   version: 2
   ethernets:
     eth0:
-      mdns: invalid
+      multicast-dns: invalid
 ''', expect_fail=True)
 
     def test_link_local_all(self):
@@ -1359,12 +1341,9 @@ method=ignore
   version: 2
   renderer: NetworkManager
   ethernets:
-    eth0:
-      mdns: resolve
-    eth1:
-      mdns: true
-    eth2:
-      mdns: false
+    eth0: {multicast-dns: resolve}
+    eth1: {multicast-dns: true}
+    eth2: {multicast-dns: false}
 ''')
 
         self.assert_nm({'eth0': '''[connection]
