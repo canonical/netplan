@@ -428,10 +428,10 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
               search: [lab, home]
               addresses: [8.8.8.8, "FEDC::1"]
 
-``mdns`` (scalar) – since **0.104**
+``multicast-dns`` (scalar) – since **0.104**
 
 :   Enables multicast DNS support. That allows IP address resolution by hostname
-    in networks without dedicated DNS server. Accepts boolean values + 'resolve'
+    in networks without dedicated DNS server. Accepts boolean values + ``resolve``
     which allows resolution of other hostnames, but doesn't broadcast its own.
 
 ``macaddress`` (scalar)

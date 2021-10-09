@@ -1323,14 +1323,12 @@ handle_mdns(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** err
 {
     gboolean res;
     gboolean parsed_as_bool = handle_generic_bool(doc, node, &res, 0, NULL);
-    if (res && parsed_as_bool)
-        cur_netdef->mdns = NETPLAN_MDNS_ENABLED;
-    else if (!res && parsed_as_bool)
-        cur_netdef->mdns = NETPLAN_MDNS_DISABLED;
-    else if(g_ascii_strcasecmp(scalar(node), "resolve") == 0)
+    if (parsed_as_bool)
+        cur_netdef->mdns = res ? NETPLAN_MDNS_ENABLED : NETPLAN_MDNS_DISABLED;
+    else if (g_ascii_strcasecmp(scalar(node), "resolve") == 0)
         cur_netdef->mdns = NETPLAN_MDNS_RESOLVE;
     else
-        return yaml_error(node, error, "invalid value for mdns: '%s'", scalar(node));
+        return yaml_error(node, error, "invalid value for multicast-dns: '%s'", scalar(node));
 
     return TRUE;
 }
@@ -2269,7 +2267,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"macaddress", YAML_SCALAR_NODE, handle_netdef_mac, NULL, netdef_offset(set_mac)},        \
     {"mtu", YAML_SCALAR_NODE, handle_netdef_guint, NULL, netdef_offset(mtubytes)},            \
     {"nameservers", YAML_MAPPING_NODE, NULL, nameservers_handlers},                           \
-    {"mdns", YAML_SCALAR_NODE, handle_mdns, NULL, netdef_offset(mdns)},                       \
+    {"multicast-dns", YAML_SCALAR_NODE, handle_mdns, NULL, netdef_offset(mdns)},              \
     {"optional", YAML_SCALAR_NODE, handle_netdef_bool, NULL, netdef_offset(optional)},        \
     {"optional-addresses", YAML_SEQUENCE_NODE, handle_optional_addresses},                    \
     {"renderer", YAML_SCALAR_NODE, handle_netdef_renderer},                                   \

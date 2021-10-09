@@ -48,6 +48,7 @@ typedef enum {
     NETPLAN_MDNS_DISABLED,
     NETPLAN_MDNS_RESOLVE,
     NETPLAN_MDNS_ENABLED,
+    NETPLAN_MDNS_MAX,
 } NetplanMdnsMode;
 
 struct NetplanOptionalAddressType {
@@ -347,6 +348,7 @@ struct net_definition {
     gboolean generic_receive_offload;
     gboolean large_receive_offload;
 
+    /* netplan-feature: multicast-dns */
     NetplanMdnsMode mdns;
 };
 
