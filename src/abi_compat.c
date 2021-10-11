@@ -158,3 +158,26 @@ cleanup_nm_conf(const char* rootdir)
 {
     netplan_nm_cleanup(rootdir);
 }
+
+NETPLAN_INTERNAL void
+write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
+{
+    GError* error = NULL;
+    if (!netplan_netdef_write_ovs(&global_state, def, rootdir, NULL, &error)) {
+        g_fprintf(stderr, "%s", error->message);
+        exit(1);
+    }
+}
+
+NETPLAN_INTERNAL void
+write_ovs_conf_finish(const char* rootdir)
+{
+    /* Original implementation had no error possible!! */
+    g_assert(netplan_state_finish_ovs_write(&global_state, rootdir, NULL));
+}
+
+NETPLAN_INTERNAL void
+cleanup_ovs_conf(const char* rootdir)
+{
+    netplan_ovs_cleanup(rootdir);
+}
