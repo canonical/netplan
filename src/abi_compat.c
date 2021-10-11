@@ -228,3 +228,9 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
     netplan_finish_parse(NULL);
     netplan_state_write_yaml(&global_state, file_hint, rootdir, NULL);
 }
+
+NETPLAN_PUBLIC gboolean
+netplan_parse_keyfile(const char* filename, GError** error)
+{
+    return netplan_parser_load_keyfile(&global_parser, filename, error);
+}

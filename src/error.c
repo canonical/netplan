@@ -22,8 +22,7 @@
 #include <yaml.h>
 
 #include "parse.h"
-#include "parse-globals.h"
-
+#include "types.h"
 
 /****************************************************
  * Loading and error handling
