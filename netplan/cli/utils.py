@@ -104,7 +104,7 @@ def netplan_get_ids_for_devtype(devtype, rootdir):
     lib.netplan_clear_netdefs()
     lib.process_yaml_hierarchy(rootdir.encode('utf-8'))
     lib.netplan_finish_parse(ctypes.byref(err))
-    if err:
+    if err:  # pragma: nocover (this is a "break in case of emergency" thing)
         raise Exception(err.contents.message.decode('utf-8'))
     nds = list(_NetdefIdIterator(devtype))
     return [lib._netplan_netdef_id(nd).decode('utf-8') for nd in nds]
