@@ -220,7 +220,6 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
         for (unsigned i = 0, j = 1; i < def->routes->len; ++i) {
             const NetplanIPRoute *cur_route = g_array_index(def->routes, NetplanIPRoute*, i);
             const char *destination;
-            const char *via;
 
             if (cur_route->family != family)
                 continue;
@@ -238,22 +237,15 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family)
             /* For IPv6 addresses, kernel and NetworkManager don't support a scope.
              * For IPv4 addresses, NetworkManager determines the scope of addresses on its own
              * ("link"/"host" for addresses without gateway, "global" for addresses with next-hop).
-             * Routes without gateway are represented by the unspecified address in keyfile. */
-            if (g_strcmp0(cur_route->scope, "global") == 0)
-                via = cur_route->via;
-            else {
-                g_debug("%s: Overriding 'via: %s' as NetworkManager does not support "
-                        "setting a route's scope directly, but will auto-detect them.",
-                        def->id, get_unspecified_address(cur_route->family));
-                via = get_unspecified_address(cur_route->family);
-            }
-
+             * No gateway is represented as missing, empty or unspecified address in keyfile. */
+            gboolean is_global = (g_strcmp0(cur_route->scope, "global") == 0);
             tmp_key = g_strdup_printf("route%d", j);
-            tmp_val = g_string_new(NULL);
-            g_string_printf(tmp_val, "%s,%s", destination, via);
-            via = NULL;
+            tmp_val = g_string_new(destination);
             if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
-                g_string_append_printf(tmp_val, ",%d", cur_route->metric);
+                g_string_append_printf(tmp_val, ",%s,%d", is_global ? cur_route->via : "",
+                                       cur_route->metric);
+            else if (is_global) // no metric, but global gateway
+                g_string_append_printf(tmp_val, ",%s", cur_route->via);
             g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
             g_free(tmp_key);
             g_string_free(tmp_val, TRUE);
