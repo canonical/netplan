@@ -254,11 +254,6 @@ class _CommonTests():
         self.assertIn(b'initrwnd 16',  # check initrwnd from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
-@unittest.skipIf("networkd" not in test_backends,
-                     "skipping as networkd backend tests are disabled")
-class TestNetworkd(IntegrationTestsBase, _CommonTests):
-    backend = 'networkd'
-
     def test_link_route_v4(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
@@ -281,6 +276,11 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
         self.assertIn(b'metric 99',  # check metric from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
+
+@unittest.skipIf("networkd" not in test_backends,
+                     "skipping as networkd backend tests are disabled")
+class TestNetworkd(IntegrationTestsBase, _CommonTests):
+    backend = 'networkd'
 
     @unittest.skip("networkd does not handle non-unicast routes correctly yet (Invalid argument)")
     def test_route_type_blackhole(self):

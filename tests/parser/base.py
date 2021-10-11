@@ -131,17 +131,13 @@ class TestKeyfileBase(unittest.TestCase):
                 # Normalize lines
                 if k == 'addr-gen-mode':
                     v = v.replace('1', 'stable-privacy').replace('0', 'eui64')
-                elif k == 'dns-search' and v != '':
-                    # XXX: netplan is loosing information here about which search domain
-                    #      belongs to the [ipv4] or [ipv6] sections
-                    v = '*** REDACTED (in base.py) ***'
-                # handle NM defaults
-                elif k == 'dns-search' and v == '':
-                    continue
                 elif k == 'wake-on-lan' and v == '1':
                     continue
                 elif k == 'stp' and v == 'true':
                     continue
+                elif k.startswith('route'):
+                    v = v.replace(',::', ',').replace(',0.0.0.0', ',')
+                    v = v.strip(',')
 
                 line = (k + '=' + v).strip(';')
                 res.append(line)

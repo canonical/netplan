@@ -46,6 +46,9 @@ find_yaml_glob(const char* rootdir, glob_t* out_glob);
 NETPLAN_ABI const char*
 get_global_network(int ip_family);
 
+NETPLAN_ABI const char*
+get_unspecified_address(int ip_family);
+
 NETPLAN_ABI int
 wifi_get_freq24(int channel);
 

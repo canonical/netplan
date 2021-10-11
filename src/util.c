@@ -335,6 +335,13 @@ get_global_network(int ip_family)
         return "::/0";
 }
 
+const char *
+get_unspecified_address(int ip_family)
+{
+    g_assert(ip_family == AF_INET || ip_family == AF_INET6);
+    return (ip_family == AF_INET) ? "0.0.0.0" : "::";
+}
+
 struct netdef_pertype_iterator {
     NetplanDefType type;
     GHashTableIter iter;

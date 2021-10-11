@@ -1185,23 +1185,6 @@ method=ignore
 '''})
         self.assert_networkd({})
 
-    def test_route_reject_scope(self):
-        out = self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      renderer: NetworkManager
-      addresses: ["192.168.14.2/24"]
-      routes:
-        - to: 10.10.10.0/24
-          via: 192.168.1.20
-          scope: host
-          ''', expect_fail=True)
-        self.assertIn('ERROR: engreen: NetworkManager does not support setting a scope for routes', out)
-
-        self.assert_nm({})
-        self.assert_networkd({})
-
     def test_route_reject_type(self):
         err = self.generate('''network:
   version: 2
