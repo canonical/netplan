@@ -66,7 +66,34 @@ def netplan_get_filename_by_id(netdef_id, rootdir):
 
 
 class _NetdefIdIterator:
+    _abi_checked = False
+
+    @classmethod
+    def c_abi_sanity_check(cls):
+        if cls._abi_checked:
+            return
+
+        if not hasattr(lib, '_netplan_iter_defs_per_devtype_init'):  # pragma: nocover (hard to unit-test against the WRONG lib)
+            raise LibNetplanException('''
+                The current version of libnetplan does not allow iterating by devtype.
+                Please ensure that both the netplan CLI package and its library are up to date.
+            ''')
+        lib._netplan_iter_defs_per_devtype_init.argtypes = [ctypes.c_char_p]
+        lib._netplan_iter_defs_per_devtype_init.restype = ctypes.c_void_p
+
+        lib._netplan_iter_defs_per_devtype_next.argtypes = [ctypes.c_void_p]
+        lib._netplan_iter_defs_per_devtype_next.restype = ctypes.c_void_p
+
+        lib._netplan_iter_defs_per_devtype_free.argtypes = [ctypes.c_void_p]
+        lib._netplan_iter_defs_per_devtype_free.restype = None
+
+        lib._netplan_netdef_id.argtypes = [ctypes.c_void_p]
+        lib._netplan_netdef_id.restype = ctypes.c_char_p
+
+        cls._abi_checked = True
+
     def __init__(self, devtype):
+        self.c_abi_sanity_check()
         self.iterator = lib._netplan_iter_defs_per_devtype_init(devtype.encode('utf-8'))
 
     def __del__(self):
@@ -83,23 +110,6 @@ class _NetdefIdIterator:
 
 
 def netplan_get_ids_for_devtype(devtype, rootdir):
-    if not hasattr(lib, '_netplan_iter_defs_per_devtype_init'):  # pragma: nocover (hard to unit-test against the WRONG lib)
-        raise LibNetplanException('''
-            The current version of libnetplan does not allow iterating by devtype.
-            Please ensure that both the netplan CLI package and its library are up to date.
-        ''')
-    lib._netplan_iter_defs_per_devtype_init.argtypes = [ctypes.c_char_p]
-    lib._netplan_iter_defs_per_devtype_init.restype = ctypes.c_void_p
-
-    lib._netplan_iter_defs_per_devtype_next.argtypes = [ctypes.c_void_p]
-    lib._netplan_iter_defs_per_devtype_next.restype = ctypes.c_void_p
-
-    lib._netplan_iter_defs_per_devtype_free.argtypes = [ctypes.c_void_p]
-    lib._netplan_iter_defs_per_devtype_free.restype = None
-
-    lib._netplan_netdef_id.argtypes = [ctypes.c_void_p]
-    lib._netplan_netdef_id.restype = ctypes.c_char_p
-
     err = ctypes.POINTER(_GError)()
     lib.netplan_clear_netdefs()
     lib.process_yaml_hierarchy(rootdir.encode('utf-8'))
