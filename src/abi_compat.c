@@ -30,6 +30,7 @@
 #include "networkd.h"
 #include "nm.h"
 #include "openvswitch.h"
+#include "util.h"
 
 #include <unistd.h>
 #include <glib.h>
@@ -268,4 +269,30 @@ _write_netplan_conf(const char* netdef_id, const char* rootdir)
     ht = netplan_finish_parse(NULL);
     def = g_hash_table_lookup(ht, netdef_id);
     write_netplan_conf(def, rootdir);
+}
+
+/**
+ * Get the filename from which the given netdef has been parsed.
+ * @rootdir: ID of the netdef to be looked up
+ * @rootdir: parse files from this root directory
+ */
+gchar*
+netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
+{
+    NetplanParser* npp = netplan_parser_new();
+    NetplanState* np_state = netplan_state_new();
+    char *filename = NULL;
+    GError* error = NULL;
+
+    if (!netplan_parser_load_yaml_hierarchy(npp, rootdir, &error) ||
+            !netplan_state_import_parser_results(np_state, npp, &error)) {
+        g_fprintf(stderr, "%s\n", error->message);
+        return NULL;
+    }
+    netplan_parser_clear(&npp);
+
+    netplan_state_get_netdef(np_state, netdef_id);
+    filename = g_strdup(netplan_netdef_get_filename(netplan_state_get_netdef(np_state, netdef_id)));
+    netplan_state_clear(&np_state);
+    return filename;
 }

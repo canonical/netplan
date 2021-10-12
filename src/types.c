@@ -331,7 +331,6 @@ clear_netdef_from_list(void *def)
     g_free(def);
 }
 
-// LCOV_EXCL_START
 NetplanState*
 netplan_state_new()
 {
@@ -343,7 +342,6 @@ netplan_state_clear(NetplanState** np_state_p)
 {
     g_assert(0);
 }
-// LCOV_EXCL_STOP
 
 void
 netplan_state_reset(NetplanState* np_state)
