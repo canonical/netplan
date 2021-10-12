@@ -991,15 +991,3 @@ void write_netplan_conf_finish(const char* rootdir)
 void cleanup_netplan_conf(const char* rootdir)
 */
 
-/**
- * Helper function for testing only
- */
-NETPLAN_INTERNAL void
-_write_netplan_conf(const char* netdef_id, const char* rootdir)
-{
-    GHashTable* ht = NULL;
-    const NetplanNetDefinition* def = NULL;
-    ht = netplan_finish_parse(NULL);
-    def = g_hash_table_lookup(ht, netdef_id);
-    write_netplan_conf(def, rootdir);
-}
