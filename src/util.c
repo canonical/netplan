@@ -218,31 +218,40 @@ netplan_delete_connection(const char* id, const char* rootdir)
     g_autofree gchar* del = NULL;
     g_autoptr(GError) error = NULL;
     NetplanNetDefinition* nd = NULL;
-    netplan_clear_netdefs();
+    gboolean ret = TRUE;
+
+    NetplanState* np_state = netplan_state_new();
+    NetplanParser* npp = netplan_parser_new();
 
     /* parse all YAML files */
-    if (!process_yaml_hierarchy(rootdir))
-        return FALSE; // LCOV_EXCL_LINE
+    if (   !netplan_parser_load_yaml_hierarchy(npp, rootdir, &error)
+        || !netplan_state_import_parser_results(np_state, npp, &error)) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "%s\n", error->message);
+        ret = FALSE;
+        goto cleanup;
+        // LCOV_EXCL_STOP
+    }
 
-    netdefs = netplan_finish_parse(&error);
-    if (!netdefs) {
+    if (!np_state->netdefs) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "netplan_delete_connection: %s\n", error->message);
-        return FALSE;
+        ret = FALSE;
+        goto cleanup;
         // LCOV_EXCL_STOP
     }
 
     /* find filename for specified netdef ID */
-    nd = g_hash_table_lookup(netdefs, id);
+    nd = g_hash_table_lookup(np_state->netdefs, id);
     if (!nd) {
         g_warning("netplan_delete_connection: Cannot delete %s, does not exist.", id);
-        return FALSE;
+        ret = FALSE;
+        goto cleanup;
     }
 
     filename = g_path_get_basename(nd->filename);
     filename[strlen(filename) - 5] = '\0'; //stip ".yaml" suffix
     del = g_strdup_printf("network.%s.%s=NULL", netplan_def_type_name(nd->type), id);
-    netplan_clear_netdefs();
 
     /* TODO: refactor logic to actually be inside the library instead of spawning another process */
     const gchar *argv[] = { SBINDIR "/" "netplan", "set", del, "--origin-hint" , filename, NULL, NULL, NULL };
@@ -252,7 +261,12 @@ netplan_delete_connection(const char* id, const char* rootdir)
     }
     if (getenv("TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("TEST_NETPLAN_CMD");
-    return g_spawn_sync(NULL, (gchar**)argv, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+    ret = g_spawn_sync(NULL, (gchar**)argv, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+
+cleanup:
+    if (npp) netplan_parser_clear(&npp);
+    if (np_state) netplan_state_clear(&np_state);
+    return ret;
 }
 
 gboolean
@@ -302,7 +316,6 @@ netplan_get_id_from_nm_filename(const char* filename, const char* ssid)
     id_len = end - start;
     return g_strndup(start, id_len);
 }
-
 
 gboolean
 netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GError** error)

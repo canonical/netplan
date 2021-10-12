@@ -334,13 +334,18 @@ clear_netdef_from_list(void *def)
 NetplanState*
 netplan_state_new()
 {
-    return NULL;
+    NetplanState* np_state = g_new0(NetplanState, 1);
+    netplan_state_reset(np_state);
+    return np_state;
 }
 
 void
 netplan_state_clear(NetplanState** np_state_p)
 {
-    g_assert(0);
+    NetplanState* np_state = *np_state_p;
+    *np_state_p = NULL;
+    netplan_state_reset(np_state);
+    g_free(np_state);
 }
 
 void

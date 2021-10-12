@@ -40,15 +40,16 @@ NETPLAN_PUBLIC NetplanState*
 netplan_state_new();
 
 NETPLAN_PUBLIC void
-netplan_state_reset(NetplanState *state);
+netplan_state_reset(NetplanState* np_state);
 
 NETPLAN_PUBLIC void
-netplan_state_clear(NetplanState **state);
+netplan_state_clear(NetplanState** np_state);
 
 NETPLAN_PUBLIC NetplanBackend
-netplan_state_get_backend(const NetplanState *state);
+netplan_state_get_backend(const NetplanState* np_state);
+
 NETPLAN_PUBLIC guint
-netplan_state_get_netdefs_size(const NetplanState *state);
+netplan_state_get_netdefs_size(const NetplanState* np_state);
 
 NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_state_get_netdef(const NetplanState* np_state, const char* id);
