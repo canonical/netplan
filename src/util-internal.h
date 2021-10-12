@@ -71,6 +71,8 @@ netplan_netdef_new(NetplanParser* npp, const char* id, NetplanDefType type, Netp
 const char *
 netplan_parser_get_filename(NetplanParser* npp);
 
+NETPLAN_INTERNAL gboolean
+netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GError** error);
 
 NETPLAN_INTERNAL void
 process_input_file(const char* f);

@@ -326,6 +326,33 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
     return filename;
 }
 
+gboolean
+netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GError** error)
+{
+    glob_t gl;
+    /* Files with asciibetically higher names override/append settings from
+     * earlier ones (in all config dirs); files in /run/netplan/
+     * shadow files in /etc/netplan/ which shadow files in /lib/netplan/.
+     * To do that, we put all found files in a hash table, then sort it by
+     * file name, and add the entries from /run after the ones from /etc
+     * and those after the ones from /lib. */
+    if (find_yaml_glob(rootdir, &gl) != 0)
+        return FALSE; // LCOV_EXCL_LINE
+    /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
+    g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    g_autoptr(GList) config_keys = NULL;
+
+    for (size_t i = 0; i < gl.gl_pathc; ++i)
+        g_hash_table_insert(configs, g_path_get_basename(gl.gl_pathv[i]), gl.gl_pathv[i]);
+
+    config_keys = g_list_sort(g_hash_table_get_keys(configs), (GCompareFunc) strcmp);
+
+    for (GList* i = config_keys; i != NULL; i = i->next)
+        if (!netplan_parser_load_yaml(npp, g_hash_table_lookup(configs, i->data), error))
+            return FALSE;
+    return TRUE;
+}
+
 /**
  * Get a static string describing the default global network
  * for a given address family.

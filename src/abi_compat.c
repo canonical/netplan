@@ -234,3 +234,25 @@ netplan_parse_keyfile(const char* filename, GError** error)
 {
     return netplan_parser_load_keyfile(&global_parser, filename, error);
 }
+
+void process_input_file(const char *f)
+{
+    GError* error = NULL;
+
+    g_debug("Processing input file %s..", f);
+    if (!netplan_parser_load_yaml(&global_parser, f, &error)) {
+        g_fprintf(stderr, "%s\n", error->message);
+        exit(1);
+    }
+}
+
+gboolean
+process_yaml_hierarchy(const char* rootdir)
+{
+    GError* error = NULL;
+    if (!netplan_parser_load_yaml_hierarchy(&global_parser, rootdir, &error)) {
+        g_fprintf(stderr, "%s\n", error->message);
+        exit(1);
+    }
+    return TRUE;
+}
