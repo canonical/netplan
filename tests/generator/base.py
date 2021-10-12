@@ -89,7 +89,8 @@ Wants=network.target
 
 [Service]
 Type=simple
-ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%(iface)s.conf -i%(iface)s'''
+ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%(iface)s.conf -i%(iface)s -D%(drivers)s
+'''
 
 
 class NetplanV2Normalizer():
