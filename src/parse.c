@@ -2686,8 +2686,7 @@ netplan_finish_parse(GError** error)
         }
         g_hash_table_iter_init (&iter, netdefs);
 
-        while (g_hash_table_iter_next (&iter, &key, &value))
-        {
+        while (g_hash_table_iter_next (&iter, &key, &value)) {
             if (!finish_iterator((NetplanNetDefinition *) value, error))
                 return NULL;
             g_debug("Configuration is valid");
