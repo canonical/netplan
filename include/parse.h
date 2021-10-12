@@ -41,14 +41,6 @@ typedef enum {
     NETPLAN_DEF_TYPE_MAX_
 } NetplanDefType;
 
-typedef enum {
-    NETPLAN_BACKEND_NONE,
-    NETPLAN_BACKEND_NETWORKD,
-    NETPLAN_BACKEND_NM,
-    NETPLAN_BACKEND_OVS,
-    NETPLAN_BACKEND_MAX_,
-} NetplanBackend;
-
 /****************************************************
  * Functions
  ****************************************************/

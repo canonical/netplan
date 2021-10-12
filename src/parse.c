@@ -28,6 +28,7 @@
 #include <yaml.h>
 
 #include "parse.h"
+#include "parse-globals.h"
 #include "names.h"
 #include "util-internal.h"
 #include "error.h"
@@ -73,19 +74,9 @@ static NetplanIPRule* cur_ip_rule;
 /* Filename of the currently parsed YAML file */
 const char* cur_filename;
 
-static NetplanBackend backend_global, backend_cur_type;
+static NetplanBackend backend_cur_type;
 
-/* global OpenVSwitch settings */
-NETPLAN_INTERNAL
-NetplanOVSSettings ovs_settings_global;
-
-/* Global ID → NetplanNetDefinition* map for all parsed config files */
-NETPLAN_INTERNAL
-GHashTable* netdefs;
-
-/* Contains the same objects as 'netdefs' but ordered by dependency */
-NETPLAN_INTERNAL
-GList* netdefs_ordered;
+extern NetplanState global_state;
 
 /* Set of IDs in currently parsed YAML file, for being able to detect
  * "duplicate ID within one file" vs. allowing a drop-in to override/amend an
@@ -722,8 +713,9 @@ static const mapping_entry_handler auth_handlers[] = {
 static NetplanBackend
 get_default_backend_for_type(NetplanDefType type)
 {
-    if (backend_global != NETPLAN_BACKEND_NONE)
-        return backend_global;
+    NetplanBackend backend = netplan_state_get_backend(&global_state);
+    if (backend != NETPLAN_BACKEND_NONE)
+        return backend;
 
     /* networkd can handle all device types at the moment, so nothing
      * type-specific */
@@ -2376,7 +2368,7 @@ handle_network_version(yaml_document_t* doc, yaml_node_t* node, const void* _, G
 static gboolean
 handle_network_renderer(yaml_document_t* doc, yaml_node_t* node, const void* _, GError** error)
 {
-    return parse_renderer(node, &backend_global, error);
+    return parse_renderer(node, &global_state.backend, error);
 }
 
 static gboolean
@@ -2699,44 +2691,6 @@ netplan_finish_parse(GError** error)
         return NULL;
 
     return netdefs;
-}
-
-/**
- * Return current global backend.
- */
-NetplanBackend
-netplan_get_global_backend()
-{
-    return backend_global;
-}
-
-static void
-clear_netdef_from_list(void *def)
-{
-    reset_netdef((NetplanNetDefinition *)def, NETPLAN_DEF_TYPE_NONE, NETPLAN_BACKEND_NONE);
-    g_free(def);
-}
-/**
- * Clear NetplanNetDefinition hashtable
- */
-guint
-netplan_clear_netdefs()
-{
-    guint n = 0;
-    if(netdefs) {
-        n = g_hash_table_size(netdefs);
-        g_hash_table_destroy(netdefs);
-        netdefs = NULL;
-    }
-    if(netdefs_ordered) {
-        g_clear_list(&netdefs_ordered, clear_netdef_from_list);
-        netdefs_ordered = NULL;
-        /* The above clearing has freed this netdef, making the pointer dangling */
-        cur_netdef = NULL;
-    }
-    backend_global = NETPLAN_BACKEND_NONE;
-    ovs_settings_global = (NetplanOVSSettings){0};
-    return n;
 }
 
 void

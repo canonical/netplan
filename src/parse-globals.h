@@ -49,3 +49,5 @@ netdefs_ordered;
 
 extern NetplanOVSSettings
 ovs_settings_global;
+extern NetplanBackend
+global_backend;

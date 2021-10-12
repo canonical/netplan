@@ -315,3 +315,60 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->activation_mode);
     netdef->ignore_carrier = FALSE;
 }
+
+static void
+clear_netdef_from_list(void *def)
+{
+    reset_netdef((NetplanNetDefinition *)def, NETPLAN_DEF_TYPE_NONE, NETPLAN_BACKEND_NONE);
+    g_free(def);
+}
+
+// LCOV_EXCL_START
+NetplanState*
+netplan_state_new()
+{
+    return NULL;
+}
+
+void
+netplan_state_clear(NetplanState** np_state_p)
+{
+    g_assert(0);
+}
+// LCOV_EXCL_STOP
+
+void
+netplan_state_reset(NetplanState* np_state)
+{
+    g_assert(np_state != NULL);
+
+    /* As stated in the netplan_state definition, netdefs_ordered is the collection
+     * owning the allocated definitions, whereas netdefs only has "weak" pointers.
+     * As such, we can destroy it without having to worry about freeing memory.
+     */
+    if(np_state->netdefs) {
+        g_hash_table_destroy(np_state->netdefs);
+        np_state->netdefs = NULL;
+    }
+
+    /* Here on the contrary we have to release the memory */
+    if(np_state->netdefs_ordered) {
+        g_clear_list(&np_state->netdefs_ordered, clear_netdef_from_list);
+        np_state->netdefs_ordered = NULL;
+    }
+
+    np_state->backend = NETPLAN_BACKEND_NONE;
+    reset_ovs_settings(&np_state->ovs_settings);
+}
+
+NetplanBackend
+netplan_state_get_backend(const NetplanState* np_state)
+{
+    return np_state->backend;
+}
+
+guint
+netplan_state_get_netdefs_size(const NetplanState* np_state)
+{
+    return np_state->netdefs ? g_hash_table_size(np_state->netdefs) : 0;
+}
