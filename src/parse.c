@@ -1107,6 +1107,7 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
+        gboolean ret = TRUE;
 
         key = yaml_document_get_node(doc, entry->key);
         assert_type(key, YAML_SCALAR_NODE);
@@ -1118,23 +1119,22 @@ handle_wifi_access_points(yaml_document_t* doc, yaml_node_t* node, const void* d
         cur_access_point->ssid = g_strdup(scalar(key));
         g_debug("%s: adding wifi AP '%s'", cur_netdef->id, cur_access_point->ssid);
 
-        if (!cur_netdef->access_points)
-            cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
-        if (!g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point)) {
-            /* Even in the error case, NULL out cur_access_point. Otherwise we
-             * have an assert failure if we do a multi-pass parse. */
-            gboolean ret;
-
+        /* Check if there's already an SSID with that name */
+        if (cur_netdef->access_points &&
+                g_hash_table_lookup(cur_netdef->access_points, cur_access_point->ssid)) {
             ret = yaml_error(key, error, "%s: Duplicate access point SSID '%s'", cur_netdef->id, cur_access_point->ssid);
-            cur_access_point = NULL;
-            return ret;
         }
 
-        if (!process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
+        if (!ret || !process_mapping(doc, value, wifi_access_point_handlers, NULL, error)) {
+            g_free(cur_access_point->ssid);
+            g_free(cur_access_point); /* XXX: should be more in-depth! */
             cur_access_point = NULL;
             return FALSE;
         }
 
+        if (!cur_netdef->access_points)
+            cur_netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_insert(cur_netdef->access_points, cur_access_point->ssid, cur_access_point);
         cur_access_point = NULL;
     }
     return TRUE;
@@ -1673,6 +1673,7 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(doc, *i);
+        gboolean ret;
 
         cur_ip_rule = g_new0(NetplanIPRule, 1);
         cur_ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
@@ -1681,21 +1682,20 @@ handle_ip_rules(yaml_document_t* doc, yaml_node_t* node, const void* _, GError**
         cur_ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
         cur_ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 
-        if (process_mapping(doc, entry, ip_rules_handlers, NULL, error)) {
-            if (!cur_netdef->ip_rules) {
-                cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
-            }
+        ret = process_mapping(doc, entry, ip_rules_handlers, NULL, error);
+        if (ret && !cur_ip_rule->from && !cur_ip_rule->to)
+            ret = yaml_error(node, error, "IP routing policy must include either a 'from' or 'to' IP");
 
-            g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
+        if (!ret) {
+            g_free(cur_ip_rule); /* XXX: do an in-depth cleaning */
+            cur_ip_rule = NULL;
+            return FALSE;
         }
 
-        if (!cur_ip_rule->from && !cur_ip_rule->to)
-            return yaml_error(node, error, "IP routing policy must include either a 'from' or 'to' IP");
-
+        if (!cur_netdef->ip_rules)
+            cur_netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
+        g_array_append_val(cur_netdef->ip_rules, cur_ip_rule);
         cur_ip_rule = NULL;
-
-        if (error && *error)
-            return FALSE;
     }
     return TRUE;
 }
@@ -1999,11 +1999,13 @@ handle_wireguard_peers(yaml_document_t* doc, yaml_node_t* node, const void* _, G
         cur_wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(char*));
         g_debug("%s: adding new wireguard peer", cur_netdef->id);
 
-        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
         if (!process_mapping(doc, entry, wireguard_peer_handlers, NULL, error)) {
+            g_array_free(cur_wireguard_peer->allowed_ips, TRUE);
+            g_free(cur_wireguard_peer); /* TODO: in-depth cleaning ! */
             cur_wireguard_peer = NULL;
             return FALSE;
         }
+        g_array_append_val(cur_netdef->wireguard_peers, cur_wireguard_peer);
         cur_wireguard_peer = NULL;
     }
     return TRUE;
@@ -2652,12 +2654,9 @@ netplan_parse_yaml(const char* filename, GError** error)
     return ret;
 }
 
-static void
-finish_iterator(gpointer key, gpointer value, gpointer user_data)
+static gboolean
+finish_iterator(NetplanNetDefinition* nd, GError **error)
 {
-    GError **error = (GError **)user_data;
-    NetplanNetDefinition* nd = value;
-
     /* Take more steps to make sure we always have a backend set for netdefs */
     if (nd->backend == NETPLAN_BACKEND_NONE) {
         nd->backend = get_default_backend_for_type(nd->type);
@@ -2665,8 +2664,7 @@ finish_iterator(gpointer key, gpointer value, gpointer user_data)
     }
 
     /* Do a final pass of validation for backend-specific conditions */
-    if (validate_backend_rules(nd, error))
-        g_debug("Configuration is valid");
+    return validate_backend_rules(nd, error);
 }
 
 /**
@@ -2677,6 +2675,8 @@ netplan_finish_parse(GError** error)
 {
     if (netdefs) {
         GError *recoverable = NULL;
+        GHashTableIter iter;
+        gpointer key, value;
         g_debug("We have some netdefs, pass them through a final round of validation");
         if (!validate_default_route_consistency(netdefs, &recoverable)) {
             g_warning("Problem encountered while validating default route consistency."
@@ -2684,12 +2684,14 @@ netplan_finish_parse(GError** error)
                       "Error: %s", (recoverable) ? recoverable->message : "");
             g_clear_error(&recoverable);
         }
-        g_hash_table_foreach(netdefs, finish_iterator, error);
+        g_hash_table_iter_init (&iter, netdefs);
+
+        while (g_hash_table_iter_next (&iter, &key, &value)) {
+            if (!finish_iterator((NetplanNetDefinition *) value, error))
+                return NULL;
+            g_debug("Configuration is valid");
+        }
     }
-
-    if (error && *error)
-        return NULL;
-
     return netdefs;
 }
 
