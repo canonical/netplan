@@ -19,7 +19,7 @@
 import os
 import stat
 
-from .base import TestBase, ND_WIFI_DHCP4
+from .base import TestBase, ND_WIFI_DHCP4, SD_WPA
 
 
 class TestNetworkd(TestBase):
@@ -135,6 +135,7 @@ network={
         self.assertTrue(os.path.isfile(os.path.join(
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
         with open(os.path.join(self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')) as f:
+            self.assertEqual(f.read(), SD_WPA % {'iface': 'wl0'})
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o644)
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
