@@ -50,6 +50,9 @@ netplan_state_get_backend(const NetplanState *state);
 NETPLAN_PUBLIC guint
 netplan_state_get_netdefs_size(const NetplanState *state);
 
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_state_get_netdef(const NetplanState* np_state, const char* id);
+
 NETPLAN_PUBLIC gboolean
 netplan_state_write_yaml(
         const NetplanState* np_state,
@@ -63,6 +66,9 @@ netplan_netdef_write_yaml(
         const NetplanNetDefinition* netdef,
         const char* rootdir,
         GError** error);
+
+NETPLAN_PUBLIC const char *
+netplan_netdef_get_filename(const NetplanNetDefinition* netdef);
 
 NETPLAN_PUBLIC void
 write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

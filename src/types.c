@@ -404,3 +404,19 @@ CLEAR_FROM_FREE(free_wireguard_peer, wireguard_peer_clear, NetplanWireguardPeer)
 CLEAR_FROM_FREE(free_ip_rules, ip_rule_clear, NetplanIPRule);
 CLEAR_FROM_FREE(free_route, route_clear, NetplanIPRoute);
 CLEAR_FROM_FREE(free_address_options, address_options_clear, NetplanAddressOptions);
+
+NetplanNetDefinition*
+netplan_state_get_netdef(const NetplanState* np_state, const char* id)
+{
+    if (!np_state->netdefs)
+        return NULL;
+    return g_hash_table_lookup(np_state->netdefs, id);
+}
+
+NETPLAN_PUBLIC const char *
+netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
+{
+    if (!netdef)
+        return NULL;
+    return netdef->filename;
+}
