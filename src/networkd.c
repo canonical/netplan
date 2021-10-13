@@ -960,6 +960,7 @@ static void
 write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autofree gchar *stdouth = NULL;
+    mode_t orig_umask;
 
     stdouth = systemd_escape(def->id);
 
@@ -976,7 +977,9 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
     if (def->type != NETPLAN_DEF_TYPE_WIFI) {
         g_string_append(s, " -Dwired\n");
     }
+    orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
 }
 
 static void

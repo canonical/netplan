@@ -225,6 +225,9 @@ network={
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.isfile(os.path.join(
             self.workdir.name, 'run/systemd/system/netplan-wpa-eth0.service')))
+
+        with open(os.path.join(self.workdir.name, 'run/systemd/system/netplan-wpa-eth0.service')) as f:
+            self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o644)
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-eth0.service')))
 
