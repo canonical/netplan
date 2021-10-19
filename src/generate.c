@@ -56,6 +56,9 @@ reload_udevd(void)
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 
+/**
+ * Create enablement symlink for systemd-networkd.service.
+ */
 static void
 enable_networkd(const char* generator_dir)
 {
