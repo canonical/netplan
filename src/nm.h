@@ -19,11 +19,27 @@
 
 #include "netplan.h"
 
+NETPLAN_INTERNAL gboolean
+netplan_netdef_write_nm(
+        const NetplanState* np_state,
+        const NetplanNetDefinition* netdef,
+        const char* rootdir,
+        gboolean* has_been_written,
+        GError** error);
+
+NETPLAN_INTERNAL gboolean
+netplan_state_finish_nm_write(
+        const NetplanState* np_state,
+        const char* rootdir,
+        GError** error);
+
+NETPLAN_INTERNAL gboolean
+netplan_nm_cleanup(const char* rootdir);
+
+/* Deprecated API */
 NETPLAN_INTERNAL void
 write_nm_conf(NetplanNetDefinition* def, const char* rootdir);
-
 NETPLAN_INTERNAL void
 write_nm_conf_finish(const char* rootdir);
-
 NETPLAN_INTERNAL void
 cleanup_nm_conf(const char* rootdir);
