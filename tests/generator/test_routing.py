@@ -1191,6 +1191,23 @@ method=ignore
   renderer: NetworkManager
   ethernets:
     engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.1.20
+          type: blackhole
+          ''', expect_fail=True)
+        self.assertIn('NetworkManager only supports unicast routes', err)
+
+        self.assert_nm({})
+        self.assert_networkd({})
+
+    def test_route_reject_type_v6(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
       addresses: ["2001:f00f::2/128"]
       routes:
         - to: 2001:dead:beef::2/64
