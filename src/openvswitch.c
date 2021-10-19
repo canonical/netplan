@@ -267,7 +267,7 @@ write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge,
 }
 
 static gboolean
-check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* result, GError** error)
+check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* needs_ssl, GError** error)
 {
     /* Check if target needs ssl */
     if (g_str_has_prefix(target, "ssl:") || g_str_has_prefix(target, "pssl:")) {
@@ -277,10 +277,10 @@ check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* resul
             g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: openvswitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
             return FALSE;
         }
-        *result = TRUE;
+        *needs_ssl = TRUE;
         return TRUE;
     }
-    *result = FALSE;
+    *needs_ssl = FALSE;
     return TRUE;
 }
 
@@ -364,11 +364,10 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s rstp_enable=%s", def->id, value);
                 write_ovs_tag_setting(def->id, type, "rstp_enable", NULL, value, cmds);
                 /* Set protocols */
-                if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
+                if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0)
                     write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
-                } else if (settings->protocols && settings->protocols->len > 0) {
+                else if (settings->protocols && settings->protocols->len > 0)
                     write_ovs_protocols(settings, def->id, cmds);
-                }
                 /* Set controller target addresses */
                 if (def->ovs_settings.controller.addresses && def->ovs_settings.controller.addresses->len > 0) {
                     if (!write_ovs_bridge_controller_targets(settings, &(def->ovs_settings.controller), def->id, cmds, error))
@@ -464,15 +463,13 @@ netplan_state_finish_ovs_write(const NetplanState* np_state, const char* rootdir
     GString* cmds = g_string_new(NULL);
 
     /* Global external-ids and other-config settings */
-    if (settings->external_ids && g_hash_table_size(settings->external_ids) > 0) {
+    if (settings->external_ids && g_hash_table_size(settings->external_ids) > 0)
         write_ovs_additional_data(settings->external_ids, "open_vswitch",
                                   ".", cmds, "external-ids");
-    }
 
-    if (settings->other_config && g_hash_table_size(settings->other_config) > 0) {
+    if (settings->other_config && g_hash_table_size(settings->other_config) > 0)
         write_ovs_additional_data(settings->other_config, "open_vswitch",
                                   ".", cmds, "other-config");
-    }
 
     if (settings->ssl.client_key && settings->ssl.client_certificate &&
         settings->ssl.ca_certificate) {
