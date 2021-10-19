@@ -36,7 +36,7 @@ netplan_state_finish_nm_write(
 NETPLAN_INTERNAL gboolean
 netplan_nm_cleanup(const char* rootdir);
 
-
+/* Deprecated API */
 NETPLAN_INTERNAL void
 write_nm_conf(NetplanNetDefinition* def, const char* rootdir);
 NETPLAN_INTERNAL void
