@@ -553,3 +553,14 @@ class TestConfigErrors(TestBase):
           password: "LoremipsumdolorsitametconsecteturadipiscingelitCrastemporvelitnu"
       dhcp4: yes''', expect_fail=True)
         self.assertIn("PSK length of 64 is only supported for hex-digit representation", err)
+
+    def test_auth_networkd_wire_psk_64_non_hexdigit(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      auth:
+        key-management: psk
+        password: "LoremipsumdolorsitametconsecteturadipiscingelitCrastemporvelitnu"
+      dhcp4: yes''', expect_fail=True)
+        self.assertIn("PSK length of 64 is only supported for hex-digit representation", err)

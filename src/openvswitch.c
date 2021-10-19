@@ -29,8 +29,8 @@
 #include "util.h"
 #include "util-internal.h"
 
-static void
-write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency)
+static gboolean
+write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency, GError** error)
 {
     g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
@@ -67,10 +67,11 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
-        exit(1);
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "failed to create enablement symlink: %m\n");
+        return FALSE;
         // LCOV_EXCL_STOP
     }
+    return TRUE;
 }
 
 #define append_systemd_cmd(s, command, ...) \
@@ -160,7 +161,7 @@ setup_patch_port(GString* s, const NetplanNetDefinition* def)
 }
 
 static char*
-write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
+write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefinition* def, GString* cmds, GError** error)
 {
     NetplanNetDefinition* tmp_nd;
     GHashTableIter iter;
@@ -170,14 +171,14 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
     GString* patch_ports = g_string_new("");
 
     if (!def->bridge) {
-        g_fprintf(stderr, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
-        exit(1);
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
+        return NULL;
     }
 
     s = g_string_new(OPENVSWITCH_OVS_VSCTL " --may-exist add-bond");
     g_string_append_printf(s, " %s %s", def->bridge, def->id);
 
-    g_hash_table_iter_init(&iter, netdefs);
+    g_hash_table_iter_init(&iter, np_state->netdefs);
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
         if (!g_strcmp0(def->id, tmp_nd->bond)) {
             /* Append and count bond interfaces */
@@ -188,8 +189,8 @@ write_ovs_bond_interfaces(const NetplanNetDefinition* def, GString* cmds)
         }
     }
     if (i < 2) {
-        g_fprintf(stderr, "Bond %s needs to have at least 2 slave interfaces\n", def->id);
-        exit(1);
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to have at least 2 slave interfaces\n", def->id);
+        return NULL;
     }
 
     g_string_append(s, patch_ports->str);
@@ -207,8 +208,8 @@ write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
                        type, id);
 }
 
-static void
-write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds)
+static gboolean
+write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds, GError** error)
 {
     char* value = NULL;
     /* OVS supports only "active-backup", "balance-tcp" and "balance-slb":
@@ -220,14 +221,15 @@ write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds)
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s bond_mode=%s", def->id, value);
         write_ovs_tag_setting(def->id, "Port", "bond_mode", NULL, value, cmds);
     } else {
-        g_fprintf(stderr, "%s: bond mode '%s' not supported by openvswitch\n",
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: bond mode '%s' not supported by openvswitch\n",
                   def->id, def->bond_params.mode);
-        exit(1);
+        return FALSE;
     }
+    return TRUE;
 }
 
 static void
-write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
+write_ovs_bridge_interfaces(const NetplanState* np_state, const NetplanNetDefinition* def, GString* cmds)
 {
     NetplanNetDefinition* tmp_nd;
     GHashTableIter iter;
@@ -235,7 +237,7 @@ write_ovs_bridge_interfaces(const NetplanNetDefinition* def, GString* cmds)
 
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s", def->id);
 
-    g_hash_table_iter_init(&iter, netdefs);
+    g_hash_table_iter_init(&iter, np_state->netdefs);
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &tmp_nd)) {
         /* OVS bonds will connect to their OVS bridge and create the interface/port themselves */
         if ((tmp_nd->type != NETPLAN_DEF_TYPE_BOND || tmp_nd->backend != NETPLAN_BACKEND_OVS)
@@ -265,38 +267,48 @@ write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge,
 }
 
 static gboolean
-check_ovs_ssl(gchar* target)
+check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* needs_ssl, GError** error)
 {
     /* Check if target needs ssl */
     if (g_str_has_prefix(target, "ssl:") || g_str_has_prefix(target, "pssl:")) {
-        /* Check if SSL is configured in ovs_settings_global.ssl */
-        if (!ovs_settings_global.ssl.ca_certificate || !ovs_settings_global.ssl.client_certificate ||
-            !ovs_settings_global.ssl.client_key) {
-            g_fprintf(stderr, "ERROR: openvswitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
-            exit(1);
+        /* Check if SSL is configured in settings->ssl */
+        if (!settings->ssl.ca_certificate || !settings->ssl.client_certificate ||
+            !settings->ssl.client_key) {
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: openvswitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
+            return FALSE;
         }
+        *needs_ssl = TRUE;
         return TRUE;
     }
-    return FALSE;
+    *needs_ssl = FALSE;
+    return TRUE;
 }
 
-static void
-write_ovs_bridge_controller_targets(const NetplanOVSController* controller, const gchar* bridge, GString* cmds)
+static gboolean
+write_ovs_bridge_controller_targets(const NetplanOVSSettings* settings, const NetplanOVSController* controller, const gchar* bridge, GString* cmds, GError** error)
 {
     gchar* target = g_array_index(controller->addresses, char*, 0);
-    gboolean needs_ssl = check_ovs_ssl(target);
-    GString* s = g_string_new(target);
+    GString* s = g_string_sized_new(0);
+    gboolean ret = TRUE;
+    gboolean needs_ssl = FALSE;
 
-    for (unsigned i = 1; i < controller->addresses->len; ++i) {
+    for (unsigned i = 0; i < controller->addresses->len; ++i) {
         target = g_array_index(controller->addresses, char*, i);
         if (!needs_ssl)
-            needs_ssl = check_ovs_ssl(target);
-        g_string_append_printf(s, " %s", target);
+            if (!check_ovs_ssl(settings, target, &needs_ssl, error)) {
+                ret = FALSE;
+                goto cleanup;
+            }
+        g_string_append_printf(s, "%s ", target);
     }
+    g_string_erase(s, s->len-1, 1);
 
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-controller %s %s", bridge, s->str);
     write_ovs_tag_setting(bridge, "Bridge", "global", "set-controller", s->str, cmds);
+
+cleanup:
     g_string_free(s, TRUE);
+    return ret;
 }
 
 /**
@@ -304,14 +316,17 @@ write_ovs_bridge_controller_targets(const NetplanOVSController* controller, cons
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
-void
-write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
+gboolean
+netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinition* def, const char* rootdir, gboolean* has_been_written, GError** error)
 {
     GString* cmds = g_string_new(NULL);
     gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
     char* value = NULL;
+    const NetplanOVSSettings* settings = &np_state->ovs_settings;
+
+    SET_OPT_OUT_PTR(has_been_written, FALSE);
 
     /* TODO: maybe dynamically query the ovs-vsctl tool path? */
 
@@ -321,19 +336,20 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     if (def->backend == NETPLAN_BACKEND_OVS) {
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:
-                dependency = write_ovs_bond_interfaces(def, cmds);
+                dependency = write_ovs_bond_interfaces(np_state, def, cmds, error);
+                if (!dependency)
+                    return FALSE;
                 write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set LACP mode, default to "off" */
                 value = def->ovs_settings.lacp? def->ovs_settings.lacp : "off";
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s lacp=%s", def->id, value);
                 write_ovs_tag_setting(def->id, type, "lacp", NULL, value, cmds);
-                if (def->bond_params.mode) {
-                    write_ovs_bond_mode(def, cmds);
-                }
+                if (def->bond_params.mode && !write_ovs_bond_mode(def, cmds, error))
+                    return FALSE;
                 break;
 
             case NETPLAN_DEF_TYPE_BRIDGE:
-                write_ovs_bridge_interfaces(def, cmds);
+                write_ovs_bridge_interfaces(np_state, def, cmds);
                 write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set fail-mode, default to "standalone" */
                 value = def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone";
@@ -348,14 +364,15 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s rstp_enable=%s", def->id, value);
                 write_ovs_tag_setting(def->id, type, "rstp_enable", NULL, value, cmds);
                 /* Set protocols */
-                if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0) {
+                if (def->ovs_settings.protocols && def->ovs_settings.protocols->len > 0)
                     write_ovs_protocols(&(def->ovs_settings), def->id, cmds);
-                } else if (ovs_settings_global.protocols && ovs_settings_global.protocols->len > 0) {
-                    write_ovs_protocols(&(ovs_settings_global), def->id, cmds);
-                }
+                else if (settings->protocols && settings->protocols->len > 0)
+                    write_ovs_protocols(settings, def->id, cmds);
                 /* Set controller target addresses */
                 if (def->ovs_settings.controller.addresses && def->ovs_settings.controller.addresses->len > 0) {
-                    write_ovs_bridge_controller_targets(&(def->ovs_settings.controller), def->id, cmds);
+                    if (!write_ovs_bridge_controller_targets(settings, &(def->ovs_settings.controller), def->id, cmds, error))
+                            return FALSE;
+
                     /* Set controller connection mode, only applicable if at least one controller target address was set */
                     if (def->ovs_settings.controller.connection_mode) {
                         value = def->ovs_settings.controller.connection_mode;
@@ -369,8 +386,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 g_assert(def->peer);
                 dependency = def->bridge?: def->bond;
                 if (!dependency) {
-                    g_fprintf(stderr, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
-                    exit(1);
+                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
+                    return FALSE;
                 }
                 /* There is no OVS Port which we could tag netplan=true if this
                  * patch port is assigned as an OVS bond interface. Tag the
@@ -390,9 +407,8 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
                 break;
 
             default:
-                g_fprintf(stderr, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
-                exit(1);
-                break;
+                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
+                return FALSE;
         }
 
         /* Try writing out a base config */
@@ -404,12 +420,13 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
             || (def->ovs_settings.other_config && g_hash_table_size(def->ovs_settings.other_config) > 0)) {
             dependency = def->bridge?: def->bond;
             if (!dependency) {
-                g_fprintf(stderr, "%s: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config\n", def->id);
-                exit(1);
+                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config\n", def->id);
+                return FALSE;
             }
         } else {
             g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
-            return;
+            SET_OPT_OUT_PTR(has_been_written, FALSE);
+            return TRUE;
         }
     }
 
@@ -428,59 +445,67 @@ write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir)
     }
 
     /* If we need to configure anything for this netdef, write the required systemd unit */
+    gboolean ret = TRUE;
     if (cmds->len > 0)
-        write_ovs_systemd_unit(def->id, cmds, rootdir, netplan_type_is_physical(def->type), FALSE, dependency);
+        ret = write_ovs_systemd_unit(def->id, cmds, rootdir, netplan_type_is_physical(def->type), FALSE, dependency, error);
     g_string_free(cmds, TRUE);
+    SET_OPT_OUT_PTR(has_been_written, TRUE);
+    return ret;
 }
 
 /**
  * Finalize the OpenVSwitch configuration (global config)
  */
-void
-write_ovs_conf_finish(const char* rootdir)
+gboolean
+netplan_state_finish_ovs_write(const NetplanState* np_state, const char* rootdir, GError** error)
 {
+    const NetplanOVSSettings* settings = &np_state->ovs_settings;
     GString* cmds = g_string_new(NULL);
 
     /* Global external-ids and other-config settings */
-    if (ovs_settings_global.external_ids && g_hash_table_size(ovs_settings_global.external_ids) > 0) {
-        write_ovs_additional_data(ovs_settings_global.external_ids, "open_vswitch",
+    if (settings->external_ids && g_hash_table_size(settings->external_ids) > 0)
+        write_ovs_additional_data(settings->external_ids, "open_vswitch",
                                   ".", cmds, "external-ids");
-    }
 
-    if (ovs_settings_global.other_config && g_hash_table_size(ovs_settings_global.other_config) > 0) {
-        write_ovs_additional_data(ovs_settings_global.other_config, "open_vswitch",
+    if (settings->other_config && g_hash_table_size(settings->other_config) > 0)
+        write_ovs_additional_data(settings->other_config, "open_vswitch",
                                   ".", cmds, "other-config");
-    }
 
-    if (ovs_settings_global.ssl.client_key && ovs_settings_global.ssl.client_certificate &&
-        ovs_settings_global.ssl.ca_certificate) {
+    if (settings->ssl.client_key && settings->ssl.client_certificate &&
+        settings->ssl.ca_certificate) {
         GString* value = g_string_new(NULL);
         g_string_printf(value, "%s %s %s",
-                        ovs_settings_global.ssl.client_key,
-                        ovs_settings_global.ssl.client_certificate,
-                        ovs_settings_global.ssl.ca_certificate);
+                        settings->ssl.client_key,
+                        settings->ssl.client_certificate,
+                        settings->ssl.ca_certificate);
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-ssl %s", value->str);
         write_ovs_tag_setting(".", "open_vswitch", "global", "set-ssl", value->str, cmds);
         g_string_free(value, TRUE);
     }
 
+    gboolean ret = TRUE;
     if (cmds->len > 0)
-        write_ovs_systemd_unit("global", cmds, rootdir, FALSE, FALSE, NULL);
+        ret = write_ovs_systemd_unit("global", cmds, rootdir, FALSE, FALSE, NULL, error);
     g_string_free(cmds, TRUE);
+    if (!ret)
+        return FALSE; // LCOV_EXCL_LINE
 
     /* Clear all netplan=true tagged ports/bonds and bridges, via 'netplan apply --only-ovs-cleanup' */
     cmds = g_string_new(NULL);
     append_systemd_cmd(cmds, SBINDIR "/netplan apply %s", "--only-ovs-cleanup");
-    write_ovs_systemd_unit("cleanup", cmds, rootdir, FALSE, TRUE, NULL);
+    ret = write_ovs_systemd_unit("cleanup", cmds, rootdir, FALSE, TRUE, NULL, error);
     g_string_free(cmds, TRUE);
+    return ret;
 }
 
 /**
  * Clean up all generated configurations in @rootdir from previous runs.
  */
-void
-cleanup_ovs_conf(const char* rootdir)
+
+gboolean
+netplan_ovs_cleanup(const char* rootdir)
 {
     unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-*.service");
     unlink_glob(rootdir, "/run/systemd/system/netplan-ovs-*.service");
+    return TRUE;
 }

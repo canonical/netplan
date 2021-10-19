@@ -826,6 +826,12 @@ UseMTU=true
 
 class TestNetworkManager(TestBase):
 
+    def test_empty_conf(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager''')
+        self.assert_nm({})
+
     def test_mtu_all(self):
         self.generate(textwrap.dedent("""
             network:
