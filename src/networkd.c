@@ -1081,6 +1081,14 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
     return TRUE;
 }
 
+/**
+ * Generate networkd configuration in @rootdir/run/systemd/network/ from the
+ * parsed #netdefs.
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ * @has_been_written: TRUE if @def applies to networkd, FALSE otherwise.
+ * Returns: FALSE on error.
+ */
 NETPLAN_INTERNAL gboolean
 netplan_netdef_write_networkd(
         const NetplanState* np_state,
