@@ -79,6 +79,18 @@ NM_WG = '[connection]\nid=netplan-wg0\ntype=wireguard\ninterface-name=wg0\n\n[wi
 2001:de:ad:be:ef:ca:fe:1/128\n'
 ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListenPort=%s\n%s\n'
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
+SD_WPA = '''[Unit]
+Description=WPA supplicant for netplan %(iface)s
+DefaultDependencies=no
+Requires=sys-subsystem-net-devices-%(iface)s.device
+After=sys-subsystem-net-devices-%(iface)s.device
+Before=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%(iface)s.conf -i%(iface)s -D%(drivers)s
+'''
 
 
 class NetplanV2Normalizer():
