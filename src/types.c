@@ -314,6 +314,14 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->tunnel_ttl = 0;
     FREE_AND_NULLIFY(netdef->activation_mode);
     netdef->ignore_carrier = FALSE;
+
+    netdef->receive_checksum_offload = FALSE;
+    netdef->transmit_checksum_offload = FALSE;
+    netdef->tcp_segmentation_offload = FALSE;
+    netdef->tcp6_segmentation_offload = FALSE;
+    netdef->generic_segmentation_offload = FALSE;
+    netdef->generic_receive_offload = FALSE;
+    netdef->large_receive_offload = FALSE;
 }
 
 static void
