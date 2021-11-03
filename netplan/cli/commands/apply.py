@@ -44,6 +44,7 @@ class NetplanApply(utils.NetplanCommand):
                          leaf=True)
         self.sriov_only = False
         self.only_ovs_cleanup = False
+        self.state = None  # to be filled by the '--state' argument
 
     def run(self):  # pragma: nocover (covered in autopkgtest)
         self.parser.add_argument('--sriov-only', action='store_true',
