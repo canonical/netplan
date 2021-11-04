@@ -96,7 +96,11 @@ check_called_just_in_time()
         gint exit_code = 0;
         g_spawn_sync(NULL, (gchar**)argv2, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &exit_code, NULL);
         /* return TRUE, if network.target is not yet active */
+        #if GLIB_CHECK_VERSION (2, 70, 0)
         return !g_spawn_check_wait_status(exit_code, NULL);
+        #else
+        return !g_spawn_check_exit_status(exit_code, NULL);
+        #endif
     }
     g_free(output);
     return FALSE;
