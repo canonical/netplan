@@ -46,9 +46,9 @@ INCLUDEDIR ?= $(PREFIX)/include
 PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/dbus/*.py)
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
-PYFLAKES3 ?= $(shell which pyflakes-3 || which pyflakes3 || echo true)
-PYCODESTYLE3 ?= $(shell which pycodestyle-3 || which pycodestyle || which pep8 || echo true)
-NOSETESTS3 ?= $(shell which nosetests-3 || which nosetests3 || echo true)
+PYFLAKES3 ?= $(shell command -v pyflakes-3 || command -v pyflakes3 || echo true)
+PYCODESTYLE3 ?= $(shell command -v pycodestyle-3 || command -v pycodestyle || command -v pep8 || echo true)
+NOSETESTS3 ?= $(shell command -v nosetests-3 || command -v nosetests3 || echo true)
 
 default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8 doc/netplan-dbus.8 doc/netplan-get.8 doc/netplan-set.8
 
