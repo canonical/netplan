@@ -87,11 +87,14 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
             f.write('''network:
   renderer: %(r)s
   version: 2''' % {'r': self.backend})
-        p = subprocess.Popen(['netplan', 'try'], stdout=subprocess.PIPE, universal_newlines=True)
-        time.sleep(0.5)
+        p = subprocess.Popen(['netplan', 'try'], bufsize=1, universal_newlines=True,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(2)
         p.send_signal(signal.SIGUSR1)
         out, err = p.communicate()
-        self.assertEqual(None, err)
+        p.wait(10)
+        self.assertEqual('', err)
+        self.assertNotIn('An error occurred:', out)
         self.assertRegex(out.strip(), r'Do you want to keep these settings\?\n\n\n'
 r'Press ENTER before the timeout to accept the new configuration\n\n\n'
 r'(Changes will revert in \d+ seconds\n)+'
@@ -102,11 +105,14 @@ r'Configuration accepted\.')
             f.write('''network:
   renderer: %(r)s
   version: 2''' % {'r': self.backend})
-        p = subprocess.Popen(['netplan', 'try'], stdout=subprocess.PIPE, universal_newlines=True)
-        time.sleep(0.5)
+        p = subprocess.Popen(['netplan', 'try'], bufsize=1, universal_newlines=True,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(2)
         p.send_signal(signal.SIGINT)
         out, err = p.communicate()
-        self.assertEqual(None, err)
+        p.wait(10)
+        self.assertEqual('', err)
+        self.assertNotIn('An error occurred:', out)
         self.assertRegex(out.strip(), r'Do you want to keep these settings\?\n\n\n'
 r'Press ENTER before the timeout to accept the new configuration\n\n\n'
 r'(Changes will revert in \d+ seconds\n)+'
