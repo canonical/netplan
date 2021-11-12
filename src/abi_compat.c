@@ -61,11 +61,13 @@ char _global_backend_off[8+offsetof(struct netplan_state, backend)] = {};
 NETPLAN_ABI
 NetplanState global_state = {};
 
+// LCOV_EXCL_START
 NetplanBackend
 netplan_get_global_backend()
 {
     return netplan_state_get_backend(&global_state);
 }
+// LCOV_EXCL_STOP
 
 /**
  * Clear NetplanNetDefinition hashtable
@@ -79,6 +81,7 @@ netplan_clear_netdefs()
     return n;
 }
 
+// LCOV_EXCL_START
 NETPLAN_INTERNAL void
 write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
@@ -118,7 +121,6 @@ cleanup_networkd_conf(const char* rootdir)
 
 // There only for compatibility purposes, the proper implementation is now directly
 // in the `generate` binary.
-// LCOV_EXCL_START
 NETPLAN_ABI void
 enable_networkd(const char* generator_dir)
 {
@@ -137,7 +139,6 @@ enable_networkd(const char* generator_dir)
         exit(1);
     }
 }
-// LCOV_EXCL_STOP
 
 NETPLAN_INTERNAL void
 write_nm_conf(NetplanNetDefinition* def, const char* rootdir)
@@ -184,6 +185,7 @@ cleanup_ovs_conf(const char* rootdir)
 {
     netplan_ovs_cleanup(rootdir);
 }
+// LCOV_EXCL_STOP
 
 gboolean
 netplan_parse_yaml(const char* filename, GError** error)
@@ -236,6 +238,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
     return netplan_parser_load_keyfile(&global_parser, filename, error);
 }
 
+// LCOV_EXCL_START
 void process_input_file(const char *f)
 {
     GError* error = NULL;
@@ -257,6 +260,7 @@ process_yaml_hierarchy(const char* rootdir)
     }
     return TRUE;
 }
+// LCOV_EXCL_STOP
 
 /**
  * Helper function for testing only
