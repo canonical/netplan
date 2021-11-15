@@ -68,6 +68,7 @@ method=auto
 
 [ipv6]
 dns-search=
+ip6-privacy=0
 method=auto
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
@@ -265,6 +266,7 @@ dns=dead:beef::2;
 method=manual
 address1=1:2:3::9/128
 gateway=6:6::6
+ip6-privacy=0
 route1=dead:beef::1/128,2001:1234::2
 route1_options=unknown=invalid,
 
@@ -997,6 +999,7 @@ dns=8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;
 
 [ipv6]
 method=auto
+ip6-privacy=0
 addr-gen-mode=1
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
@@ -1059,6 +1062,7 @@ address1=abcd::beef/64
 address2=dcba::beef/56
 dns=1::cafe;2::cafe;
 dns-search=wallaceandgromit.com;
+ip6-privacy=0
 method=manual
 route1=1:2:3:4:5:6:7:8/64,8:7:6:5:4:3:2:1,3
 route2=2001::1000/56,2001::1111,1

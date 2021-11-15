@@ -302,5 +302,6 @@ method=link-local
 
 [ipv6]
 method=auto
+ip6-privacy=0
 '''})
         self.assert_nm_udev(None)

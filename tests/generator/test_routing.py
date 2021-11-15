@@ -844,6 +844,7 @@ method=link-local
 [ipv6]
 method=manual
 address1=2001:f00f:f00f::2/64
+ip6-privacy=0
 route1=2001:dead:beef::2/64,2001:beef:beef::1
 '''})
 
@@ -875,6 +876,7 @@ method=link-local
 [ipv6]
 method=manual
 address1=2001:f00f:f00f::2/64
+ip6-privacy=0
 route1=2001:dead:beef::2/64,2001:beef:beef::1
 route2=2001:dead:feed::2/64,2001:beef:beef::2,1000
 '''})
@@ -904,6 +906,7 @@ method=link-local
 [ipv6]
 method=manual
 address1=2001:dead:beef::2/64
+ip6-privacy=0
 route1=::/0,2001:beef:beef::1
 '''})
 
@@ -948,6 +951,7 @@ route3=11.11.11.0/24,192.168.1.3,9999
 [ipv6]
 method=manual
 address1=2001:f00f::2/128
+ip6-privacy=0
 route1=2001:dead:beef::2/64,2001:beef:beef::1,997
 route2=2001:f00f:f00f::fe/64,2001:beef:feed::1
 '''})
@@ -1272,6 +1276,7 @@ method=auto
 
 [ipv6]
 method=auto
+ip6-privacy=0
 ignore-auto-routes=true
 never-default=true
 '''})
@@ -1302,6 +1307,7 @@ route-metric=4000
 
 [ipv6]
 method=auto
+ip6-privacy=0
 '''})
 
     def test_default_metric_v6(self):
@@ -1329,5 +1335,6 @@ method=auto
 
 [ipv6]
 method=auto
+ip6-privacy=0
 route-metric=5050
 '''})

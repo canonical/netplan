@@ -408,6 +408,7 @@ gateway=20.20.20.21
 [ipv6]
 method=manual
 address1=2001:de:ad:be:ef:ca:fe:1/128
+ip6-privacy=0
 ''',
                             'br0.nmconnection': '''[connection]
 id=netplan-br0
@@ -977,6 +978,7 @@ gateway=1.1.1.254
 [ipv6]
 method=manual
 address1=2001:cafe:face::1/64
+ip6-privacy=0
 ''',
                         'he-ipv6': '''[connection]
 id=netplan-he-ipv6
@@ -994,6 +996,7 @@ method=disabled
 [ipv6]
 method=manual
 address1=2001:dead:beef::2/64
+ip6-privacy=0
 gateway=2001:dead:beef::1
 '''})
 
