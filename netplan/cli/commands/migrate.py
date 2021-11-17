@@ -22,7 +22,11 @@ import os
 import sys
 import re
 from glob import glob
-import yaml
+try:
+    import yaml
+    NO_YAML = False
+except ImportError:  # pragma: nocover
+    NO_YAML = True
 from collections import OrderedDict
 import ipaddress
 
@@ -30,7 +34,6 @@ import netplan.cli.utils as utils
 
 
 class NetplanMigrate(utils.NetplanCommand):
-
     def __init__(self):
         super().__init__(command_id='migrate',
                          description='Migration of /etc/network/interfaces to netplan',
@@ -108,6 +111,10 @@ class NetplanMigrate(utils.NetplanCommand):
         self.func = self.command_migrate
 
         self.parse_args()
+        if NO_YAML:  # pragma: nocover
+            logging.error("""The `yaml` Python package couldn't be imported, and is needed for the migrate command.
+To install it on Debian or Ubuntu-based system, run `apt install python3-yaml`""")
+            sys.exit(1)
         self.run_command()
 
     def command_migrate(self):
