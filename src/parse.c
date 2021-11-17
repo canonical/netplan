@@ -695,11 +695,11 @@ static const mapping_entry_handler auth_handlers[] = {
  * Grammar and handlers for network device definition
  ****************************************************/
 
-static NetplanBackend
-get_default_backend_for_type(const NetplanParser *npp, NetplanDefType type)
+NetplanBackend
+get_default_backend_for_type(NetplanBackend global_backend, NetplanDefType type)
 {
-    if (npp->global_backend != NETPLAN_BACKEND_NONE)
-        return npp->global_backend;
+    if (global_backend != NETPLAN_BACKEND_NONE)
+        return global_backend;
 
     /* networkd can handle all device types at the moment, so nothing
      * type-specific */
@@ -2704,7 +2704,7 @@ finish_iterator(const NetplanParser* npp, NetplanNetDefinition* nd, GError **err
 {
     /* Take more steps to make sure we always have a backend set for netdefs */
     if (nd->backend == NETPLAN_BACKEND_NONE) {
-        nd->backend = get_default_backend_for_type(npp, nd->type);
+        nd->backend = get_default_backend_for_type(npp->global_backend, nd->type);
         g_debug("%s: setting default backend to %i", nd->id, nd->backend);
     }
 

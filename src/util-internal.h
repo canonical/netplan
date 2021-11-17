@@ -68,6 +68,9 @@ mark_data_as_dirty(NetplanParser* npp, void* data_ptr);
 const char*
 tunnel_mode_to_string(NetplanTunnelMode mode);
 
+NetplanBackend
+get_default_backend_for_type(NetplanBackend global_backend, NetplanDefType type);
+
 NetplanNetDefinition*
 netplan_netdef_new(NetplanParser* npp, const char* id, NetplanDefType type, NetplanBackend renderer);
 
