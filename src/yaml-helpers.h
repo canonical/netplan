@@ -55,24 +55,24 @@
     yaml_scalar_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)scalar, strlen(scalar), 1, 1, YAML_DOUBLE_QUOTED_SCALAR_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto err_path; \
 }
-#define YAML_STRING(event_ptr, emitter_ptr, key, value_ptr) \
+#define YAML_NONNULL_STRING(event_ptr, emitter_ptr, key, value_ptr) \
 { \
     if (value_ptr) { \
         YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
         YAML_SCALAR_QUOTED(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
-#define YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, value_ptr) \
+#define YAML_NONNULL_STRING_PLAIN(event_ptr, emitter_ptr, key, value_ptr) \
 { \
     if (value_ptr) { \
         YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
         YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, value_ptr); \
     } \
 }
-#define YAML_UINT(event_ptr, emitter_ptr, key, value) \
+#define _YAML_UINT(event_ptr, emitter_ptr, key, value) \
 { \
     tmp = g_strdup_printf("%u", value); \
-    YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, tmp); \
+    YAML_NONNULL_STRING_PLAIN(event_ptr, emitter_ptr, key, tmp); \
     g_free(tmp); \
 }
 

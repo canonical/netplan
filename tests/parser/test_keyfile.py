@@ -316,7 +316,7 @@ route1_options=unknown=invalid,
         mtu: 1024
         congestion-window: 44
         advertised-receive-window: 33
-        on-link: "true"
+        on-link: true
         from: "10.10.10.11"
         to: "1.1.2.2/16"
         via: "8.8.8.8"
