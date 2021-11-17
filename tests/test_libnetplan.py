@@ -19,23 +19,21 @@
 
 import os
 import shutil
-import ctypes
-import ctypes.util
 
 from generator.base import TestBase
 from parser.base import capture_stderr
 from tests.test_utils import MockCmd
 
+import netplan.libnetplan as libnetplan
+
+lib = libnetplan.lib
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
 
-lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
-lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
-
-class TestLibnetplan(TestBase):
+class TestRawLibnetplan(TestBase):
     '''Test libnetplan functionality as used by the NetworkManager backend'''
 
     def setUp(self):
@@ -83,7 +81,7 @@ class TestLibnetplan(TestBase):
         self.mock_netplan_cmd = MockCmd("netplan")
         os.environ["TEST_NETPLAN_CMD"] = self.mock_netplan_cmd.path
         self.assertTrue(lib.netplan_generate(self.workdir.name.encode()))
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
             ["netplan", "generate", "--root-dir", self.workdir.name],
         ])
 
@@ -129,7 +127,7 @@ class TestLibnetplan(TestBase):
         self.assertTrue(os.path.isfile(orig))
         # Verify the file still exists and still contains the other connection
         with open(orig, 'r') as f:
-            self.assertEquals(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
+            self.assertEqual(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
 
     def test_write_netplan_conf(self):
         netdef_id = 'some-netplan-id'
@@ -151,4 +149,76 @@ class TestLibnetplan(TestBase):
         self.assertTrue(os.path.isfile(generated))
         with open(orig, 'r') as f:
             with open(generated, 'r') as new:
-                self.assertEquals(f.read(), new.read())
+                self.assertEqual(f.read(), new.read())
+
+
+class TestFreeFunctions(TestBase):
+    def setUp(self):
+        super().setUp()
+        os.makedirs(self.confdir)
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir.name)
+        super().tearDown()
+
+    def test_netplan_get_filename_by_id(self):
+        file_a = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        file_b = os.path.join(self.workdir.name, 'etc/netplan/b.yaml')
+        with open(file_a, 'w') as f:
+            f.write('network:\n  ethernets:\n    id_a:\n      dhcp4: true')
+        with open(file_b, 'w') as f:
+            f.write('network:\n  ethernets:\n    id_b:\n      dhcp4: true\n    id_a:\n      dhcp4: true')
+        # netdef:b can only be found in b.yaml
+        basename = os.path.basename(libnetplan.netplan_get_filename_by_id('id_b', self.workdir.name))
+        self.assertEqual(basename, 'b.yaml')
+        # netdef:a is defined in a.yaml, overriden by b.yaml
+        basename = os.path.basename(libnetplan.netplan_get_filename_by_id('id_a', self.workdir.name))
+        self.assertEqual(basename, 'b.yaml')
+
+    def test_netplan_get_filename_by_id_no_files(self):
+        self.assertIsNone(libnetplan.netplan_get_filename_by_id('some-id', self.workdir.name))
+
+    def test_netplan_get_filename_by_id_invalid(self):
+        file = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        with open(file, 'w') as f:
+            f.write('''network:
+  tunnels:
+    id_a:
+      mode: sit
+      local: 0.0.0.0
+      remote: 0.0.0.0
+      key: 0.0.0.0''')
+        self.assertIsNone(libnetplan.netplan_get_filename_by_id('some-id', self.workdir.name))
+
+    def test_netplan_get_ids_for_devtype(self):
+        path = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    id_b:
+      dhcp4: true
+    id_a:
+      dhcp4: true
+  vlans:
+    en-intra:
+      id: 3
+      link: id_b
+      dhcp4: true''')
+        self.assertSetEqual(
+                set(libnetplan.netplan_get_ids_for_devtype("ethernets", self.workdir.name)),
+                set(["id_a", "id_b"]))
+
+    def test_netplan_get_ids_for_devtype_no_dev(self):
+        path = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    id_b:
+      dhcp4: true''')
+        self.assertSetEqual(
+                set(libnetplan.netplan_get_ids_for_devtype("tunnels", self.workdir.name)),
+                set([]))
+
+    def test_NetdefIdIterator_with_clear_netplan(self):
+        libnetplan.lib.netplan_clear_netdefs()
+        self.assertSequenceEqual(list(libnetplan._NetdefIdIterator("ethernets")), [])

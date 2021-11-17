@@ -25,14 +25,15 @@ import logging
 import shutil
 import glob
 
-import netplan.cli.utils as utils
+from netplan.cli.utils import NetplanCommand
+import netplan.libnetplan as libnetplan
 from netplan.configmanager import ConfigManager
 
 FALLBACK_HINT = '70-netplan-set'
 GLOBAL_KEYS = ['renderer', 'version']
 
 
-class NetplanSet(utils.NetplanCommand):
+class NetplanSet(NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='set',
@@ -70,11 +71,11 @@ class NetplanSet(utils.NetplanCommand):
             # We replace the devtype null node with a dict of all defined netdefs
             # set to None.
             if devtype_content is None:
-                devtype_content = {dev: None for dev in utils.netplan_get_ids_for_devtype(devtype, self.root_dir)}
+                devtype_content = {dev: None for dev in libnetplan.netplan_get_ids_for_devtype(devtype, self.root_dir)}
                 network[devtype] = devtype_content
             for netdef in devtype_content:
                 hint = FALLBACK_HINT
-                filename = utils.netplan_get_filename_by_id(netdef, self.root_dir)
+                filename = libnetplan.netplan_get_filename_by_id(netdef, self.root_dir)
                 if filename:
                     hint = os.path.basename(filename)[:-5]  # strip prefix and .yaml
                 netdef_tree = {'network': {devtype: {netdef: network.get(devtype).get(netdef)}}}
@@ -189,7 +190,7 @@ class NetplanSet(utils.NetplanCommand):
                 new_yaml = yaml.dump(stripped, indent=2, default_flow_style=False)
                 f.write(new_yaml)
             # Validate the newly created file, by parsing it via libnetplan
-            utils.netplan_parse(tmpp)
+            libnetplan.netplan_parse(tmpp)
             # Valid, move it to final destination
             shutil.copy2(tmpp, absp)
             os.remove(tmpp)

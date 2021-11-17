@@ -172,68 +172,6 @@ class TestUtils(unittest.TestCase):
         ifaddr.side_effect = lambda _: {}
         self.assertEqual(utils.get_interface_macaddress('eth42'), '')
 
-    def test_netplan_get_filename_by_id(self):
-        file_a = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
-        file_b = os.path.join(self.workdir.name, 'etc/netplan/b.yaml')
-        with open(file_a, 'w') as f:
-            f.write('network:\n  ethernets:\n    id_a:\n      dhcp4: true')
-        with open(file_b, 'w') as f:
-            f.write('network:\n  ethernets:\n    id_b:\n      dhcp4: true\n    id_a:\n      dhcp4: true')
-        # netdef:b can only be found in b.yaml
-        basename = os.path.basename(utils.netplan_get_filename_by_id('id_b', self.workdir.name))
-        self.assertEqual(basename, 'b.yaml')
-        # netdef:a is defined in a.yaml, overriden by b.yaml
-        basename = os.path.basename(utils.netplan_get_filename_by_id('id_a', self.workdir.name))
-        self.assertEqual(basename, 'b.yaml')
-
-    def test_netplan_get_filename_by_id_no_files(self):
-        self.assertIsNone(utils.netplan_get_filename_by_id('some-id', self.workdir.name))
-
-    def test_netplan_get_filename_by_id_invalid(self):
-        file = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
-        with open(file, 'w') as f:
-            f.write('''network:
-  tunnels:
-    id_a:
-      mode: sit
-      local: 0.0.0.0
-      remote: 0.0.0.0
-      key: 0.0.0.0''')
-        self.assertIsNone(utils.netplan_get_filename_by_id('some-id', self.workdir.name))
-
-    def test_netplan_get_ids_for_devtype(self):
-        path = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
-        with open(path, 'w') as f:
-            f.write('''network:
-  ethernets:
-    id_b:
-      dhcp4: true
-    id_a:
-      dhcp4: true
-  vlans:
-    en-intra:
-      id: 3
-      link: id_b
-      dhcp4: true''')
-        self.assertSetEqual(
-                set(utils.netplan_get_ids_for_devtype("ethernets", self.workdir.name)),
-                set(["id_a", "id_b"]))
-
-    def test_netplan_get_ids_for_devtype_no_dev(self):
-        path = os.path.join(self.workdir.name, 'etc/netplan/a.yaml')
-        with open(path, 'w') as f:
-            f.write('''network:
-  ethernets:
-    id_b:
-      dhcp4: true''')
-        self.assertSetEqual(
-                set(utils.netplan_get_ids_for_devtype("tunnels", self.workdir.name)),
-                set([]))
-
-    def test_NetdefIdIterator_with_clear_netplan(self):
-        utils.lib.netplan_clear_netdefs()
-        self.assertSequenceEqual(list(utils._NetdefIdIterator("ethernets")), [])
-
     def test_systemctl(self):
         self.mock_systemctl = MockCmd('systemctl')
         path_env = os.environ['PATH']
