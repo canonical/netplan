@@ -18,9 +18,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
+#include <yaml.h>
 
 #include "util.h"
 #include "util-internal.h"
@@ -28,6 +30,7 @@
 #include "parse.h"
 #include "parse-globals.h"
 #include "names.h"
+#include "yaml-helpers.h"
 
 NETPLAN_ABI GHashTable*
 wifi_frequency_24;
@@ -117,6 +120,164 @@ int find_yaml_glob(const char* rootdir, glob_t* out_glob)
     }
 
     return 0;
+}
+
+static gboolean
+copy_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, GError** error) {
+	yaml_event_t event;
+    int map_count = 0, seq_count = 0;
+    do {
+		if (!yaml_parser_parse(parser, &event)) {
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser->problem);
+            return FALSE;
+        }
+
+        switch (event.type) {
+            case YAML_MAPPING_START_EVENT:
+                map_count++;
+                break;
+            case YAML_SEQUENCE_START_EVENT:
+                seq_count++;
+                break;
+            case YAML_MAPPING_END_EVENT:
+                map_count--;
+                break;
+            case YAML_SEQUENCE_END_EVENT:
+                seq_count--;
+                break;
+            default:
+                break;
+        }
+        if (emitter && !yaml_emitter_emit(emitter, &event)) {
+            // LCOV_EXCL_START
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error emitting YAML: %s", emitter->problem);
+            return FALSE;
+            // LCOV_EXCL_STOP
+        }
+    } while (map_count || seq_count);
+    return TRUE;
+}
+
+/**
+ * Given a YAML tree and a YAML path (array of keys with NULL as the last array element),
+ * emits the subtree matching the path, while emitting the rest of the data into the void.
+ */
+static gboolean
+emit_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, char** yaml_path, GError** error) {
+	yaml_event_t event;
+    /* If the path component is NULL, we're done with the trimming, we can just copy the whole subtree */
+    if (!(*yaml_path))
+        return copy_yaml_subtree(parser, emitter, error);
+
+    if (!yaml_parser_parse(parser, &event))
+        goto parser_err_path; // LCOV_EXCL_LINE
+    if (event.type != YAML_MAPPING_START_EVENT) {
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Unexpected YAML structure found");
+        return FALSE;
+    }
+    while (TRUE) {
+        if (!yaml_parser_parse(parser, &event))
+            goto parser_err_path;
+        if (event.type == YAML_MAPPING_END_EVENT)
+            break;
+        if (g_strcmp0(*yaml_path, (char*)event.data.scalar.value) == 0) {
+            /* Go further down, popping the component we just used from the path */
+            if (!emit_yaml_subtree(parser, emitter, yaml_path+1, error))
+                return FALSE;
+        } else {
+            /* We're out of the path, so we trim the branch by "emitting" the data into a NULL emitter */
+            if (!copy_yaml_subtree(parser, NULL, error))
+                return FALSE;
+        }
+    }
+    return TRUE;
+
+parser_err_path:
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser->problem);
+    return FALSE;
+}
+
+NETPLAN_INTERNAL gboolean
+netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, GError** error) {
+    gboolean ret = TRUE;
+    char **yaml_path = NULL;
+	yaml_emitter_t emitter;
+	yaml_parser_t parser;
+	yaml_event_t event;
+    int in_dup = -1, out_dup = -1;
+    FILE* input = NULL;
+    FILE* output = NULL;
+
+    in_dup = dup(input_fd);
+    if (in_dup < 0)
+        goto file_error; // LCOV_EXCL_LINE
+    out_dup = dup(output_fd);
+    if (out_dup < 0)
+        goto file_error; // LCOV_EXCL_LINE
+
+    input = fdopen(in_dup, "r");
+    output = fdopen(out_dup, "w");
+    if (!input || !output)
+        goto file_error;
+
+    if (fseek(input, 0, SEEK_SET) < 0)
+        goto file_error; // LCOV_EXCL_LINE
+
+    yaml_path = g_strsplit(prefix, "\t", -1);
+
+    yaml_parser_initialize(&parser);
+    yaml_parser_set_input_file(&parser, input);
+    yaml_emitter_initialize(&emitter);
+    yaml_emitter_set_output_file(&emitter, output);
+
+    /* Copy over the stream and document start events */
+    for (int i = 0; i < 2; ++i) {
+        if (!yaml_parser_parse(&parser, &event))
+            goto parser_err_path; // LCOV_EXCL_LINE
+        if (!yaml_emitter_emit(&emitter, &event))
+            goto err_path; // LCOV_EXCL_LINE
+    }
+    void* last_head = emitter.events.head;
+
+    if (!emit_yaml_subtree(&parser, &emitter, yaml_path, error)) {
+        ret = FALSE;
+        goto cleanup;
+    }
+
+    if (emitter.events.head == last_head) {
+        YAML_NULL_PLAIN(&event, &emitter);
+    }
+
+    do {
+        if (!yaml_parser_parse(&parser, &event))
+            goto parser_err_path; // LCOV_EXCL_LINE
+        if (!yaml_emitter_emit(&emitter, &event))
+            goto err_path; // LCOV_EXCL_LINE
+    } while (!parser.stream_end_produced);
+
+    goto cleanup;
+
+file_error:
+        g_set_error(error, G_FILE_ERROR, errno, "%s", g_strerror(errno));
+        ret = FALSE;
+        goto cleanup;
+// LCOV_EXCL_START
+parser_err_path:
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser.problem);
+    ret = FALSE;
+    goto cleanup;
+err_path:
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter.problem);
+    ret = FALSE;
+// LCOV_EXCL_STOP
+cleanup:
+    if (input)
+        fclose(input);
+    if (output)
+        fclose(output);
+    if (yaml_path)
+        g_strfreev(yaml_path);
+    return ret;
 }
 
 /**

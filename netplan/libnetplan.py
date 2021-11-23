@@ -249,3 +249,14 @@ def netplan_get_ids_for_devtype(devtype, rootdir):
         raise Exception(err.contents.message.decode('utf-8'))
     nds = list(_NetdefIterator(__GlobalState(), devtype))
     return [nd.id for nd in nds]
+
+
+lib.netplan_util_dump_yaml_subtree.argtypes = [c_char_p, c_int, c_int, _GErrorPP]
+lib.netplan_util_dump_yaml_subtree.restype = c_int
+
+
+def dump_yaml_subtree(prefix, input_file, output_file):
+    _checked_lib_call(lib.netplan_util_dump_yaml_subtree,
+                      prefix.encode('utf-8'),
+                      input_file.fileno(),
+                      output_file.fileno())
