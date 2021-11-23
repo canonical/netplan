@@ -106,6 +106,9 @@ class Parser:
     def load_yaml(self, filename):
         _checked_lib_call(lib.netplan_parser_load_yaml, self._ptr, filename.encode('utf-8'))
 
+    def load_yaml_hierarchy(self, rootdir):
+        _checked_lib_call(lib.netplan_parser_load_yaml_hierarchy, self._ptr, rootdir.encode('utf-8'))
+
 
 class State:
     _abi_loaded = False
