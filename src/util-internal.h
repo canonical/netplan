@@ -79,3 +79,6 @@ process_input_file(const char* f);
 
 NETPLAN_INTERNAL gboolean
 process_yaml_hierarchy(const char* rootdir);
+
+gboolean
+has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports);

@@ -411,3 +411,19 @@ _netplan_iter_defs_per_devtype_next(struct netdef_pertype_iter* it);
 
 __attribute((alias("_netplan_netdef_pertype_iter_free"))) NETPLAN_ABI void
 _netplan_iter_defs_per_devtype_free(struct netdef_pertype_iter* it);
+
+gboolean
+has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports)
+{
+    return (ovs_ports && g_hash_table_size(ovs_ports) > 0)
+            || (ovs->external_ids && g_hash_table_size(ovs->external_ids) > 0)
+            || (ovs->other_config && g_hash_table_size(ovs->other_config) > 0)
+            || ovs->lacp
+            || ovs->fail_mode
+            || ovs->mcast_snooping
+            || ovs->rstp
+            || ovs->protocols
+            || (ovs->ssl.ca_certificate || ovs->ssl.client_certificate || ovs->ssl.client_key)
+            || (ovs->controller.connection_mode || ovs->controller.addresses)
+            || backend == NETPLAN_BACKEND_OVS;
+}

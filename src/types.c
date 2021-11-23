@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include "types.h"
+#include "util-internal.h"
 
 #define FREE_AND_NULLIFY(ptr) { g_free(ptr); ptr = NULL; }
 
@@ -436,3 +437,10 @@ netplan_netdef_get_id(const NetplanNetDefinition* netdef)
 
 NETPLAN_INTERNAL const char*
 _netplan_netdef_id(NetplanNetDefinition* netdef) __attribute__((alias("netplan_netdef_get_id")));
+
+gboolean
+netplan_state_has_nondefault_globals(const NetplanState* np_state)
+{
+        return (np_state->backend != NETPLAN_BACKEND_NONE)
+                || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL);
+}

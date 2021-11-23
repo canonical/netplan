@@ -36,6 +36,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <errno.h>
+#include <fcntl.h>
 
 /* These arrays are not useful per-say, but allow us to export the various
  * struct offsets of the netplan_state members to the linker, which can use
@@ -228,8 +229,15 @@ netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, co
 NETPLAN_ABI void
 write_netplan_conf_full(const char* file_hint, const char* rootdir)
 {
+    g_autofree gchar *path = NULL;
     netplan_finish_parse(NULL);
-    netplan_state_write_yaml(&global_state, file_hint, rootdir, NULL);
+    if (!netplan_state_has_nondefault_globals(&global_state) &&
+        !netplan_state_get_netdefs_size(&global_state))
+        return;
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+    netplan_state_dump_yaml(&global_state, fd, NULL);
+    close(fd);
 }
 
 NETPLAN_PUBLIC gboolean

@@ -511,3 +511,6 @@ ip_rule_clear(NetplanIPRule** rule);
 
 void
 route_clear(NetplanIPRoute** route);
+
+gboolean
+netplan_state_has_nondefault_globals(const NetplanState* np_state);

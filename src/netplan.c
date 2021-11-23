@@ -16,11 +16,17 @@
  */
 
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <yaml.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "netplan.h"
 #include "parse.h"
+#include "types.h"
 #include "yaml-helpers.h"
+#include "util-internal.h"
 #include "names.h"
 
 gchar *tmp = NULL;
@@ -492,21 +498,6 @@ err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
-has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports) {
-    return (ovs_ports && g_hash_table_size(ovs_ports) > 0)
-            || (ovs->external_ids && g_hash_table_size(ovs->external_ids) > 0)
-            || (ovs->other_config && g_hash_table_size(ovs->other_config) > 0)
-            || ovs->lacp
-            || ovs->fail_mode
-            || ovs->mcast_snooping
-            || ovs->rstp
-            || ovs->protocols
-            || (ovs->ssl.ca_certificate || ovs->ssl.client_certificate || ovs->ssl.client_key)
-            || (ovs->controller.connection_mode || ovs->controller.addresses)
-            || backend == NETPLAN_BACKEND_OVS;
-}
-
-static gboolean
 write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports)
 {
     GHashTableIter iter;
@@ -890,38 +881,25 @@ contains_netdef_type(gconstpointer value, gconstpointer user_data)
     return nd->type == *type ? 0 : -1;
 }
 
-/**
- * Generate the Netplan YAML configuration for all netdefs in the state
- * @np_state: the state for which to generate the config
- * @file_hint: Name hint for the generated output YAML file
- * @rootdir: If not %NULL, generate configuration in this root directory
- *           (useful for testing).
- */
-NETPLAN_INTERNAL gboolean
-netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, const char* rootdir, GError** error)
+static gboolean
+netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int out_fd, GError** error)
 {
-    g_autofree gchar *path = NULL;
     GHashTable *ovs_ports = NULL;
-    GList* netdefs = np_state->netdefs_ordered;
 
-    gboolean global_values = (np_state->backend != NETPLAN_BACKEND_NONE
-                              || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL));
-
-    if (!global_values && netplan_state_get_netdefs_size(np_state) == 0) {
-        g_debug("No data/netdefs to serialize into YAML.");
-        return TRUE;
-    }
-
-    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
+    int dup_fd = dup(out_fd);
+    if (dup_fd < 0)
+        goto file_error; // LCOV_EXCL_LINE
+    FILE* out_stream = fdopen(dup_fd, "w");
+    if (!out_stream)
+        goto file_error;
 
     /* Start rendering YAML output */
     yaml_emitter_t emitter_data;
     yaml_event_t event_data;
     yaml_emitter_t* emitter = &emitter_data;
     yaml_event_t* event = &event_data;
-    FILE *output = fopen(path, "wb");
 
-    YAML_OUT_START(event, emitter, output);
+    YAML_OUT_START(event, emitter, out_stream);
     /* build the netplan boilerplate YAML structure */
     YAML_SCALAR_PLAIN(event, emitter, "network");
     YAML_MAPPING_OPEN(event, emitter);
@@ -973,16 +951,35 @@ netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, co
 
     /* Tear down the YAML emitter */
     YAML_OUT_STOP(event, emitter);
-    fclose(output);
+    fclose(out_stream);
     return TRUE;
 
     // LCOV_EXCL_START
 err_path:
     g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
-    fclose(output);
+    fclose(out_stream);
     return FALSE;
     // LCOV_EXCL_STOP
+
+file_error:
+    g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+    return FALSE;
+}
+
+/**
+ * Dump the whole state into a single YAML file.
+ *
+ * @np_state: the state for which to generate the config
+ * @out_fd: File descriptor to an opened file into which to dump the content
+ */
+gboolean
+netplan_state_dump_yaml(const NetplanState* np_state, int out_fd, GError** error)
+{
+    if (!np_state->netdefs_ordered && !netplan_state_has_nondefault_globals(np_state))
+        return TRUE;
+
+    return netplan_netdef_list_write_yaml(np_state, np_state->netdefs_ordered, out_fd, error);
 }
 
 /* XXX: implement the following functions, once needed:

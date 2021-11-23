@@ -127,6 +127,9 @@ class State:
         lib.netplan_state_get_netdef.argtypes = [_NetplanStateP, c_char_p]
         lib.netplan_state_get_netdef.restype = _NetplanNetDefinitionP
 
+        lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
+        lib.netplan_state_dump_yaml.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -138,6 +141,10 @@ class State:
 
     def import_parser_results(self, parser):
         _checked_lib_call(lib.netplan_state_import_parser_results, self._ptr, parser._ptr)
+
+    def dump_yaml(self, output_file):
+        fd = output_file.fileno()
+        _checked_lib_call(lib.netplan_state_dump_yaml, self._ptr, fd)
 
     def __len__(self):
         return lib.netplan_state_get_netdefs_size(self._ptr)
