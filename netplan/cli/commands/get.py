@@ -17,15 +17,16 @@
 
 '''netplan get command line'''
 
-import yaml
+import sys
+import io
+import tempfile
 import re
 
 import netplan.cli.utils as utils
-from netplan.configmanager import ConfigManager
+import netplan.libnetplan as libnetplan
 
 
 class NetplanGet(utils.NetplanCommand):
-
     def __init__(self):
         super().__init__(command_id='get',
                          description='Get a setting by specifying a nested key like "ethernets.eth0.addresses", or "all"',
@@ -41,27 +42,37 @@ class NetplanGet(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
+    def dump_state(self, key, np_state, output_file):
+        if key == 'all':
+            np_state.dump_yaml(output_file=output_file)
+            return
+
+        if not key.startswith('network'):
+            key = '.'.join(('network', key))
+        # Replace the '.' with '\t' but not at '\.' via negative lookbehind expression
+        key = re.sub(r'(?<!\\)\.', '\t', key).replace(r'\.', '.')
+
+        with tempfile.NamedTemporaryFile() as tmp_in:
+            np_state.dump_yaml(output_file=tmp_in)
+            libnetplan.dump_yaml_subtree(key, tmp_in, output_file=output_file)
+
     def command_get(self):
-        config_manager = ConfigManager(prefix=self.root_dir)
-        config_manager.parse()
-        tree = config_manager.tree
+        parser = libnetplan.Parser()
+        parser.load_yaml_hierarchy(rootdir=self.root_dir)
 
-        if self.key != 'all':
-            # The 'network.' prefix is optional for netsted keys, its always assumed to be there
-            if not self.key.startswith('network.') and not self.key == 'network':
-                self.key = 'network.' + self.key
-            # Split at '.' but not at '\.' via negative lookbehind expression
-            for k in re.split(r'(?<!\\)\.', self.key):
-                k = k.replace('\\.', '.')  # Unescape interface-ids, containing dots
-                if k in tree.keys():
-                    tree = tree[k]
-                    if not isinstance(tree, dict):
-                        break
-                else:
-                    tree = None
-                    break
+        np_state = libnetplan.State()
+        np_state.import_parser_results(parser)
 
-        out = yaml.dump(tree, default_flow_style=False)[:-1]  # Remove trailing '\n'
-        if not isinstance(tree, dict) and not isinstance(tree, list):
-            out = out[:-4]  # Remove yaml.dump's '\n...' on primitive values
-        print(out)
+        try:
+            sys.stdout.fileno()
+            output_file = sys.stdout  # pragma: nocover
+        except io.UnsupportedOperation:  # Test environment detected, using a buffer file
+            output_file = tempfile.TemporaryFile()
+
+        self.dump_state(self.key, np_state, output_file)
+
+        if output_file != sys.stdout:
+            output_file.flush()
+            output_file.seek(0)
+            sys.stdout.write(output_file.read().decode('utf-8'))
+            output_file.close()

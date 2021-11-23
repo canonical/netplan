@@ -25,6 +25,8 @@ import io
 import shutil
 import glob
 
+import yaml
+
 from contextlib import redirect_stdout
 from netplan.cli.core import Netplan
 
@@ -369,12 +371,8 @@ class TestGet(unittest.TestCase):
     ens3:
       dhcp4: yes
       addresses: [1.2.3.4/24, 5.6.7.8/24]''')
-        out = self._get(['ethernets'])
-        self.assertIn('''ens3:
-  addresses:
-  - 1.2.3.4/24
-  - 5.6.7.8/24
-  dhcp4: true''', out)
+        out = yaml.safe_load(self._get(['ethernets']))
+        self.assertDictEqual({'ens3': {'addresses': ['1.2.3.4/24', '5.6.7.8/24'], 'dhcp4': True}}, out)
 
     def test_get_modems(self):
         with open(self.path, 'w') as f:
@@ -386,13 +384,13 @@ class TestGet(unittest.TestCase):
       pin: 1234
       dhcp4: yes
       addresses: [1.2.3.4/24, 5.6.7.8/24]''')
-        out = self._get(['modems.wwan0'])
-        self.assertIn('''addresses:
-- 1.2.3.4/24
-- 5.6.7.8/24
-apn: internet
-dhcp4: true
-pin: 1234''', out)
+        out = yaml.safe_load(self._get(['modems.wwan0']))
+        self.assertDictEqual({
+                'addresses': ['1.2.3.4/24', '5.6.7.8/24'],
+                'apn': 'internet',
+                'dhcp4': True,
+                'pin': '1234'
+            }, out)
 
     def test_get_sequence(self):
         with open(self.path, 'w') as f:
@@ -400,8 +398,8 @@ pin: 1234''', out)
   version: 2
   ethernets:
     ens3: {addresses: [1.2.3.4/24, 5.6.7.8/24]}''')
-        out = self._get(['network.ethernets.ens3.addresses'])
-        self.assertIn('- 1.2.3.4/24\n- 5.6.7.8/24', out)
+        out = yaml.safe_load(self._get(['network.ethernets.ens3.addresses']))
+        self.assertSequenceEqual(['1.2.3.4/24', '5.6.7.8/24'], out)
 
     def test_get_null(self):
         with open(self.path, 'w') as f:
@@ -419,7 +417,7 @@ pin: 1234''', out)
   ethernets:
     eth0.123: {dhcp4: yes}''')
         out = self._get([r'ethernets.eth0\.123.dhcp4'])
-        self.assertEquals('true\n', out)
+        self.assertEqual('true\n', out)
 
     def test_get_all(self):
         with open(self.path, 'w') as f:
@@ -427,15 +425,21 @@ pin: 1234''', out)
   version: 2
   ethernets:
     eth0: {dhcp4: yes}''')
-        out = self._get([])
-        self.assertEquals('''network:
-  ethernets:
-    eth0:
-      dhcp4: true
-  version: 2\n''', out)
+        out = yaml.safe_load(self._get([]))
+        self.assertDictEqual({'network': {
+                'ethernets': {'eth0': {'dhcp4': True}},
+                'version': 2,
+                }
+            }, out)
 
     def test_get_network(self):
         with open(self.path, 'w') as f:
             f.write('network:\n  version: 2\n  renderer: NetworkManager')
-        out = self._get(['network'])
-        self.assertEquals('renderer: NetworkManager\nversion: 2\n', out)
+        out = yaml.safe_load(self._get(['network']))
+        self.assertDictEqual({'renderer': 'NetworkManager', 'version': 2}, out)
+
+    def test_get_bad_network(self):
+        with open(self.path, 'w') as f:
+            f.write('network:\n  version: 2\n  renderer: NetworkManager')
+        out = yaml.safe_load(self._get(['networkINVALID']))
+        self.assertIsNone(out)
