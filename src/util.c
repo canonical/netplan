@@ -365,46 +365,49 @@ get_unspecified_address(int ip_family)
     return (ip_family == AF_INET) ? "0.0.0.0" : "::";
 }
 
-struct netdef_pertype_iterator {
+struct netdef_pertype_iter {
     NetplanDefType type;
     GHashTableIter iter;
+    NetplanState* np_state;
 };
 
-NETPLAN_INTERNAL struct netdef_pertype_iterator*
-_netplan_iter_defs_per_devtype_init(const char *devtype)
+NETPLAN_INTERNAL struct netdef_pertype_iter*
+_netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type)
 {
-    NetplanDefType type = netplan_def_type_from_name(devtype);
-    struct netdef_pertype_iterator *iter = g_malloc0(sizeof(*iter));
+    NetplanDefType type = def_type ? netplan_def_type_from_name(def_type) : NETPLAN_DEF_TYPE_NONE;
+    struct netdef_pertype_iter* iter = g_malloc0(sizeof(*iter));
     iter->type = type;
-    if (netdefs)
-        g_hash_table_iter_init(&iter->iter, netdefs);
+    iter->np_state = np_state;
+    if (np_state->netdefs)
+        g_hash_table_iter_init(&iter->iter, np_state->netdefs);
     return iter;
 }
 
+
 NETPLAN_INTERNAL NetplanNetDefinition*
-_netplan_iter_defs_per_devtype_next(struct netdef_pertype_iterator* it)
+_netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it)
 {
     gpointer key, value;
 
-    if (!netdefs)
+    if (!it->np_state->netdefs)
         return NULL;
 
     while (g_hash_table_iter_next(&it->iter, &key, &value)) {
         NetplanNetDefinition* netdef = value;
-        if (netdef->type == it->type)
+        if (it->type == NETPLAN_DEF_TYPE_NONE || netdef->type == it->type)
             return netdef;
     }
     return NULL;
 }
 
 NETPLAN_INTERNAL void
-_netplan_iter_defs_per_devtype_free(struct netdef_pertype_iterator* it)
+_netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it)
 {
     g_free(it);
 }
 
-NETPLAN_INTERNAL const char*
-_netplan_netdef_id(NetplanNetDefinition* nd)
-{
-    return nd->id;
-}
+__attribute((alias("_netplan_netdef_pertype_iter_next"))) NETPLAN_ABI NetplanNetDefinition*
+_netplan_iter_defs_per_devtype_next(struct netdef_pertype_iter* it);
+
+__attribute((alias("_netplan_netdef_pertype_iter_free"))) NETPLAN_ABI void
+_netplan_iter_defs_per_devtype_free(struct netdef_pertype_iter* it);

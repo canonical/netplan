@@ -419,7 +419,14 @@ netplan_state_get_netdef(const NetplanState* np_state, const char* id)
 NETPLAN_PUBLIC const char *
 netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
 {
-    if (!netdef)
-        return NULL;
     return netdef->filename;
 }
+
+NETPLAN_INTERNAL const char*
+netplan_netdef_get_id(const NetplanNetDefinition* netdef)
+{
+    return netdef->id;
+}
+
+NETPLAN_INTERNAL const char*
+_netplan_netdef_id(NetplanNetDefinition* netdef) __attribute__((alias("netplan_netdef_get_id")));

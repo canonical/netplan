@@ -19,10 +19,13 @@
 
 import os
 import shutil
+import tempfile
 
 from generator.base import TestBase
 from parser.base import capture_stderr
 from tests.test_utils import MockCmd
+
+from utils import state_from_yaml
 
 import netplan.libnetplan as libnetplan
 
@@ -152,6 +155,102 @@ class TestRawLibnetplan(TestBase):
                 self.assertEqual(f.read(), new.read())
 
 
+class TestNetdefIterator(TestBase):
+    def test_with_empty_netplan(self):
+        state = libnetplan.State()
+        self.assertSequenceEqual(list(libnetplan._NetdefIterator(state, "ethernets")), [])
+
+    def test_iter_all_types(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  bridges:
+    br0:
+      dhcp4: false''')
+        self.assertSetEqual(set(["eth0", "br0"]), set(d.id for d in libnetplan._NetdefIterator(state, None)))
+
+    def test_iter_ethernets(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      dhcp4: false
+  bridges:
+    br0:
+      dhcp4: false''')
+        self.assertSetEqual(set(["eth0", "eth1"]), set(d.id for d in libnetplan._NetdefIterator(state, "ethernets")))
+
+
+class TestState(TestBase):
+    def test_get_netdef(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+        netdef = state['eth0']
+        self.assertEqual("eth0", netdef.id)
+
+    def test_get_netdef_empty_state(self):
+        state = libnetplan.State()
+        with self.assertRaises(IndexError):
+            state['eth0']
+
+    def test_get_netdef_wrong_id(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+        with self.assertRaises(IndexError):
+            state['eth1']
+
+    def test_get_netdefs_size(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+        self.assertEqual(1, len(state))
+
+    def test_bad_state(self):
+        state = libnetplan.State()
+        parser = libnetplan.Parser()
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(b'''network:
+  renderer: networkd
+  tunnels:
+    tun0:
+      mode: ipip
+      local: 10.10.10.10
+      remote: 20.20.20.20
+      keys:
+        input: 1234
+''')
+            f.flush()
+            parser.load_yaml(f.name)
+
+        with self.assertRaises(libnetplan.LibNetplanException):
+            state.import_parser_results(parser)
+
+
+class TestNetDefinition(TestBase):
+    def test_eq(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      dhcp4: false''')
+
+        # libnetplan.State __getitem__ doesn't cache the netdefs,
+        # so fetching it twice should create two separate Python objects
+        # pointing to the same C struct.
+        self.assertEqual(state['eth0'], state['eth0'])
+        self.assertNotEqual(state['eth0'], state['eth1'])
+        # Test against a weird singleton to ensure consistency against other types
+        self.assertNotEqual(state['eth0'], True)
+
+
 class TestFreeFunctions(TestBase):
     def setUp(self):
         super().setUp()
@@ -219,6 +318,6 @@ class TestFreeFunctions(TestBase):
                 set(libnetplan.netplan_get_ids_for_devtype("tunnels", self.workdir.name)),
                 set([]))
 
-    def test_NetdefIdIterator_with_clear_netplan(self):
-        libnetplan.lib.netplan_clear_netdefs()
-        self.assertSequenceEqual(list(libnetplan._NetdefIdIterator("ethernets")), [])
+    def test_NetdefIterator_with_clear_netplan(self):
+        state = libnetplan.State()
+        self.assertSequenceEqual(list(libnetplan._NetdefIterator(state, "ethernets")), [])

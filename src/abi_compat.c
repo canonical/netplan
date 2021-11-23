@@ -298,8 +298,20 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
     }
     netplan_parser_clear(&npp);
 
-    netplan_state_get_netdef(np_state, netdef_id);
-    filename = g_strdup(netplan_netdef_get_filename(netplan_state_get_netdef(np_state, netdef_id)));
+    NetplanNetDefinition* netdef = netplan_state_get_netdef(np_state, netdef_id);
+    if (netdef)
+        filename = g_strdup(netplan_netdef_get_filename(netdef));
     netplan_state_clear(&np_state);
     return filename;
 }
+
+// LCOV_EXCL_START
+NETPLAN_INTERNAL struct netdef_pertype_iter*
+_netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* devtype);
+
+NETPLAN_INTERNAL struct netdef_pertype_iter*
+_netplan_iter_defs_per_devtype_init(const char *devtype)
+{
+    return _netplan_state_new_netdef_pertype_iter(&global_state, devtype);
+}
+// LCOV_EXCL_STOP
