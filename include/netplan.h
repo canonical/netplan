@@ -40,15 +40,36 @@ NETPLAN_PUBLIC NetplanState*
 netplan_state_new();
 
 NETPLAN_PUBLIC void
-netplan_state_reset(NetplanState *state);
+netplan_state_reset(NetplanState* np_state);
 
 NETPLAN_PUBLIC void
-netplan_state_clear(NetplanState **state);
+netplan_state_clear(NetplanState** np_state);
 
 NETPLAN_PUBLIC NetplanBackend
-netplan_state_get_backend(const NetplanState *state);
+netplan_state_get_backend(const NetplanState* np_state);
+
 NETPLAN_PUBLIC guint
-netplan_state_get_netdefs_size(const NetplanState *state);
+netplan_state_get_netdefs_size(const NetplanState* np_state);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_state_get_netdef(const NetplanState* np_state, const char* id);
+
+NETPLAN_PUBLIC gboolean
+netplan_state_write_yaml(
+        const NetplanState* np_state,
+        const char* file_hint,
+        const char* rootdir,
+        GError** error);
+
+NETPLAN_PUBLIC gboolean
+netplan_netdef_write_yaml(
+        const NetplanState* np_state,
+        const NetplanNetDefinition* netdef,
+        const char* rootdir,
+        GError** error);
+
+NETPLAN_PUBLIC const char *
+netplan_netdef_get_filename(const NetplanNetDefinition* netdef);
 
 NETPLAN_PUBLIC void
 write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir);

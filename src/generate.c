@@ -29,7 +29,6 @@
 #include "util.h"
 #include "util-internal.h"
 #include "parse.h"
-#include "parse-globals.h"
 #include "names.h"
 #include "networkd.h"
 #include "nm.h"
@@ -38,7 +37,7 @@
 
 static gchar* rootdir;
 static gchar** files;
-static gboolean any_networkd;
+static gboolean any_networkd = FALSE;
 static gboolean any_sriov;
 static gchar* mapping_iface;
 
@@ -114,22 +113,8 @@ start_unit_jit(gchar *unit)
 };
 // LCOV_EXCL_STOP
 
-static void
-nd_iterator_list(gpointer value, gpointer user_data)
-{
-    NetplanNetDefinition* def = (NetplanNetDefinition*) value;
-    if (write_networkd_conf(def, (const char*) user_data))
-        any_networkd = TRUE;
-
-    write_ovs_conf(def, (const char*) user_data);
-    write_nm_conf(def, (const char*) user_data);
-    if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
-        any_sriov = TRUE;
-}
-
-
 static int
-find_interface(gchar* interface)
+find_interface(gchar* interface, GHashTable* netdefs)
 {
     GPtrArray *found;
     GFileInfo *info;
@@ -204,6 +189,14 @@ exit_find:
     return ret;
 }
 
+#define CHECK_CALL(call) {\
+    if (!call) {\
+        error_code = 1; \
+        fprintf(stderr, "%s\n", error->message); \
+        goto cleanup;\
+    }\
+}
+
 int main(int argc, char** argv)
 {
     GError* error = NULL;
@@ -212,6 +205,9 @@ int main(int argc, char** argv)
     gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
     g_autofree char* generator_run_stamp = NULL;
     glob_t gl;
+    int error_code = 0;
+    NetplanParser* npp = NULL;
+    NetplanState* np_state = NULL;
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
@@ -226,7 +222,7 @@ int main(int argc, char** argv)
     g_option_context_add_main_entries(opt_context, options, NULL);
 
     if (!g_option_context_parse(opt_context, &argc, &argv, &error)) {
-        g_fprintf(stderr, "failed to parse options: %s\n", error->message);
+        fprintf(stderr, "failed to parse options: %s\n", error->message);
         return 1;
     }
 
@@ -242,34 +238,48 @@ int main(int argc, char** argv)
         }
     }
 
+    npp = netplan_parser_new();
     /* Read all input files */
     if (files && !called_as_generator) {
-        for (gchar** f = files; f && *f; ++f)
-            process_input_file(*f);
-    } else if (!process_yaml_hierarchy(rootdir))
-        return 1; // LCOV_EXCL_LINE
+        for (gchar** f = files; f && *f; ++f) {
+            CHECK_CALL(netplan_parser_load_yaml(npp, *f, &error));
+        }
+    } else
+        CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error));
 
-    netdefs = netplan_finish_parse(&error);
-    if (error) {
-        g_fprintf(stderr, "%s\n", error->message);
-        exit(1);
-    }
+    np_state = netplan_state_new();
+    CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error));
 
     /* Clean up generated config from previous runs */
-    cleanup_networkd_conf(rootdir);
-    cleanup_nm_conf(rootdir);
-    cleanup_ovs_conf(rootdir);
+    netplan_networkd_cleanup(rootdir);
+    netplan_nm_cleanup(rootdir);
+    netplan_ovs_cleanup(rootdir);
+
     cleanup_sriov_conf(rootdir);
 
-    if (mapping_iface && netdefs)
-        return find_interface(mapping_iface);
+    if (mapping_iface && np_state->netdefs) {
+        error_code = find_interface(mapping_iface, np_state->netdefs);
+        goto cleanup;
+    }
 
     /* Generate backend specific configuration files from merged data. */
-    write_ovs_conf_finish(rootdir); // OVS cleanup unit is always written
-    if (netdefs) {
+    CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error)); // OVS cleanup unit is always written
+    if (np_state->netdefs) {
         g_debug("Generating output files..");
-        g_list_foreach (netdefs_ordered, nd_iterator_list, rootdir);
-        write_nm_conf_finish(rootdir);
+        for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
+            NetplanNetDefinition* def = (NetplanNetDefinition*) iterator->data;
+            gboolean has_been_written = FALSE;
+            CHECK_CALL(netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error));
+            any_networkd = any_networkd || has_been_written;
+
+            CHECK_CALL(netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error));
+            CHECK_CALL(netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error));
+
+            if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
+                any_sriov = TRUE;
+        }
+
+        CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error));
         if (any_sriov) write_sriov_conf_finish(rootdir);
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only
@@ -282,7 +292,7 @@ int main(int argc, char** argv)
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if global renderer is NM */
-    if (netplan_get_global_backend() == NETPLAN_BACKEND_NM)
+    if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM)
         g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
     if (called_as_generator) {
@@ -324,5 +334,10 @@ int main(int argc, char** argv)
         // LCOV_EXCL_STOP
     }
 
-    return 0;
+cleanup:
+    if (npp)
+        netplan_parser_clear(&npp);
+    if (np_state)
+        netplan_state_clear(&np_state);
+    return error_code;
 }

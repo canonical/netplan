@@ -23,6 +23,7 @@
 #include "parse-nm.h"
 #include "parse.h"
 #include "util.h"
+#include "types.h"
 #include "util-internal.h"
 
 /**
@@ -429,7 +430,7 @@ read_passthrough(GKeyFile* kf, GData** list)
  * @filename: full path to the NetworkManager keyfile
  */
 gboolean
-netplan_parse_keyfile(const char* filename, GError** error)
+netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** error)
 {
     g_autofree gchar *nd_id = NULL;
     g_autofree gchar *uuid = NULL;
@@ -479,7 +480,7 @@ netplan_parse_keyfile(const char* filename, GError** error)
     } else
         nd_id = g_strconcat("NM-", uuid, NULL);
     g_free(tmp_str);
-    nd = netplan_netdef_new(nd_id, nd_type, NETPLAN_BACKEND_NM);
+    nd = netplan_netdef_new(npp, nd_id, nd_type, NETPLAN_BACKEND_NM);
 
     /* Handle uuid & NM name/id */
     nd->backend_settings.nm.uuid = g_strdup(uuid);

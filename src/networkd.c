@@ -1149,7 +1149,8 @@ netplan_netdef_write_networkd(
 
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         write_netdev_file(def, rootdir, path_base);
-    write_network_file(def, rootdir, path_base);
+    if (!netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
+        return FALSE;
     SET_OPT_OUT_PTR(has_been_written, TRUE);
     return TRUE;
 }

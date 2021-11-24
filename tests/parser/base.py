@@ -67,6 +67,7 @@ class TestKeyfileBase(unittest.TestCase):
         os.makedirs(self.confdir)
 
     def tearDown(self):
+        lib.netplan_clear_netdefs()
         shutil.rmtree(self.workdir.name)
         super().tearDown()
 

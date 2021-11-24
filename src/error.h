@@ -22,10 +22,11 @@
 #include <gio/gio.h>
 
 #include <yaml.h>
+#include "parse.h"
 
 
 gboolean
 parser_error(const yaml_parser_t* parser, const char* yaml, GError** error);
 
 gboolean
-yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...);
+yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, const char* msg, ...);
