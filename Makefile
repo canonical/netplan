@@ -150,7 +150,7 @@ install: default
 
 
 %.html: %.md
-	pandoc -s --toc -o $@ $<
+	pandoc -s --metadata title="Netplan reference" --toc -o $@ $<
 
 doc/netplan.5: doc/manpage-header.md doc/netplan.md doc/manpage-footer.md
 	pandoc -s -o $@ $^
