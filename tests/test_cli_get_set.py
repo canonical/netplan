@@ -53,7 +53,8 @@ class TestSet(unittest.TestCase):
 
     def _set(self, args):
         args.insert(0, 'set')
-        return _call_cli(args + ['--root-dir', self.workdir.name])
+        out = _call_cli(args + ['--root-dir', self.workdir.name])
+        self.assertEqual(out, '', msg='netplan set returned unexpected output')
 
     def test_set_scalar(self):
         self._set(['ethernets.eth0.dhcp4=true'])
@@ -222,8 +223,7 @@ class TestSet(unittest.TestCase):
   version: 2
   ethernets:
     ens3: {dhcp4: yes}''')
-        out = self._set(['network.ethernets.ens3=NULL'])
-        print(out, flush=True)
+        self._set(['network.ethernets.ens3=NULL'])
         # The file should be deleted if only "network: {version: 2}" is left
         self.assertFalse(os.path.isfile(self.path))
 
