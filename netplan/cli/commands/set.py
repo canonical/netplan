@@ -23,6 +23,7 @@ import tempfile
 import re
 import logging
 import shutil
+import glob
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
@@ -51,6 +52,11 @@ class NetplanSet(utils.NetplanCommand):
 
         self.parse_args()
         self.run_command()
+
+    def is_emtpy_yaml(self, tree):
+        if isinstance(tree, dict) and list(tree.keys()) == ['network'] and tree['network'] is None:
+            return True
+        return False
 
     def split_tree_by_hint(self, set_tree) -> (str, dict):
         network = set_tree.get('network', {})
@@ -96,6 +102,19 @@ class NetplanSet(utils.NetplanCommand):
             raise Exception('Invalid value specified')
         key, value = split
         set_tree = self.parse_key(key, yaml.safe_load(value))
+
+        # special case: clear all YAML (or a specific hint file) if "network=null" is set
+        if self.is_emtpy_yaml(set_tree):
+            path = os.path.join('etc', 'netplan')
+            if self.origin_hint:  # clear specific hint file, it it does exist
+                hint_path = os.path.join(self.root_dir, path, self.origin_hint + '.yaml')
+                if os.path.isfile(hint_path):
+                    os.remove(hint_path)
+            else:  # clear all YAML files in <ROOT_DIR>/etc/netplan/*.yaml
+                yaml_files = glob.glob(os.path.join(self.root_dir, path, '*.yaml'))
+                for f in yaml_files:
+                    os.remove(f)
+            return
 
         hints = [(self.origin_hint, set_tree)]
         # Override YAML config in each individual netdef file if origin-hint is not set

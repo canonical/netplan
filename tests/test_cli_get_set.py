@@ -23,6 +23,7 @@ import unittest
 import tempfile
 import io
 import shutil
+import glob
 
 from contextlib import redirect_stdout
 from netplan.cli.core import Netplan
@@ -120,6 +121,33 @@ class TestSet(unittest.TestCase):
         self.assertTrue(os.path.isfile(empty_file))
         with open(empty_file, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: true', f.read())
+
+    def test_set_network_null_hint(self):
+        not_a_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-no-exist.yaml')
+        self._set(['network=null', '--origin-hint=00-no-exist'])
+        self.assertFalse(os.path.isfile(not_a_file))
+
+    def test_set_network_null_hint_rm(self):
+        some_hint = os.path.join(self.workdir.name, 'etc', 'netplan', '00-some-hint.yaml')
+        with open(some_hint, 'w') as f:
+            f.write('network: {ethernets: {eth0: {dhcp4: true}}}')
+        with open(self.path, 'w') as f:
+            f.write('network: {version: 2}')
+        self._set(['network=null', '--origin-hint=00-some-hint'])
+        self.assertFalse(os.path.isfile(some_hint))  # the hint file is deleted
+        self.assertTrue(os.path.isfile(self.path))   # any other YAML still exists
+
+    def test_set_network_null_global(self):
+        some_hint = os.path.join(self.workdir.name, 'etc', 'netplan', '00-some-hint.yaml')
+        with open(some_hint, 'w') as f:
+            f.write('network: {ethernets: {eth0: {dhcp4: true}}}')
+        with open(self.path, 'w') as f:
+            f.write('network: {version: 2}')
+        self._set(['network=null'])
+        any_yaml = glob.glob(os.path.join(self.workdir.name, 'etc', 'netplan', '*.yaml'))
+        self.assertEqual(any_yaml, [])
+        self.assertFalse(os.path.isfile(self.path))
+        self.assertFalse(os.path.isfile(some_hint))
 
     def test_set_invalid(self):
         with self.assertRaises(Exception) as context:
