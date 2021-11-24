@@ -178,7 +178,9 @@ class NetplanSet(utils.NetplanCommand):
         logging.debug('Writing file {}: {}'.format(name, stripped))
         if 'network' in stripped and list(stripped['network'].keys()) == ['version']:
             # Clear file if only 'network: {version: 2}' is left
-            os.remove(absp)
+            logging.debug('Empty YAML, deleting file {}'.format(absp))
+            if os.path.isfile(absp):
+                os.remove(absp)
         elif 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)
             with open(tmpp, 'w+') as f:
