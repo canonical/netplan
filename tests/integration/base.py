@@ -70,7 +70,7 @@ class IntegrationTestsBase(unittest.TestCase):
         # ensure NM can manage our fake eths
         os.makedirs('/run/udev/rules.d', exist_ok=True)
         with open('/run/udev/rules.d/99-nm-veth-test.rules', 'w') as f:
-            f.write('ENV{ID_NET_DRIVER}=="veth", ENV{INTERFACE}=="eth42|eth43", ENV{NM_UNMANAGED}="0"\n')
+            f.write('ENV{ID_NET_DRIVER}=="veth", ENV{INTERFACE}=="eth42|eth43|iface1|iface2", ENV{NM_UNMANAGED}="0"\n')
         subprocess.check_call(['udevadm', 'control', '--reload'])
 
         os.makedirs('/etc/NetworkManager/conf.d', exist_ok=True)
