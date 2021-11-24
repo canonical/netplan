@@ -31,6 +31,7 @@ if shutil.which('python3-coverage'):
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
 NETPLAN_DBUS_CMD = os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus")
+NETPLAN_TRY_STAMP = '/tmp/netplan-try.ready'
 
 
 class TestNetplanDBus(unittest.TestCase):
@@ -49,6 +50,7 @@ class TestNetplanDBus(unittest.TestCase):
     eth0:
       dhcp4: true""")
         self.addCleanup(shutil.rmtree, self.tmp)
+        self.addCleanup(shutil.rmtree, '/tmp/netplan-config-BACKUP', True)
         self.mock_netplan_cmd = MockCmd("netplan")
         self._create_mock_system_bus()
         self._run_netplan_dbus_on_mock_bus()
@@ -423,6 +425,10 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertFalse(os.path.isdir(tmpdir))
 
     def test_netplan_dbus_config_try_cancel(self):
+        # touch NETPLAN_TRY_STAMP to signal that 'netplan try' is ready
+        # to take (Accept/Reject) input signals, before the timeout
+        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
         # self-terminate after 30 dsec = 3 sec, if not cancelled before
         self.mock_netplan_cmd.set_timeout(30)
         cid = self._new_config_object()
@@ -491,6 +497,8 @@ class TestNetplanDBus(unittest.TestCase):
                           [["netplan", "try", "--timeout=3", "--state=/tmp/netplan-config-BACKUP"]])
 
     def test_netplan_dbus_config_try_cb(self):
+        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
         self.mock_netplan_cmd.set_timeout(1)  # actually self-terminate after 0.1 sec
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
@@ -511,7 +519,7 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
-        time.sleep(1.5)  # Give some time for the timeout to happen
+        time.sleep(1.5)  # Give some time for the callback to clean up
 
         # Verify the backup and config state dir are gone
         self.assertFalse(os.path.isdir(backup))
@@ -532,6 +540,8 @@ class TestNetplanDBus(unittest.TestCase):
                           [["netplan", "try", "--timeout=1", "--state=/tmp/netplan-config-BACKUP"]])
 
     def test_netplan_dbus_config_try_apply(self):
+        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
         self.mock_netplan_cmd.set_timeout(30)  # 30 dsec = 3 sec
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
@@ -555,6 +565,8 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Another \'netplan try\' process is already running', err)
 
     def test_netplan_dbus_config_try_config_try(self):
+        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
         self.mock_netplan_cmd.set_timeout(50)  # 50 dsec = 5 sec
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
@@ -577,6 +589,22 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         err = self._check_dbus_error(BUSCTL_NETPLAN_CMD2)
         self.assertIn('Another Try() is currently in progress: PID ', err)
+
+    def test_netplan_dbus_config_try_no_ready_signal(self):
+        # Do NOT touch the /tmp/netplan-try.rady stamp file to indicate that
+        # 'netplan try' is not ready to take any signals
+        self.mock_netplan_cmd.set_timeout(1)
+        self.assertFalse(os.path.isfile(NETPLAN_TRY_STAMP))
+        cid = self._new_config_object()
+        BUSCTL_NETPLAN_CMD = [
+            "busctl", "call", "--system",
+            "io.netplan.Netplan",
+            "/io/netplan/Netplan/config/{}".format(cid),
+            "io.netplan.Netplan.Config",
+            "Try", "u", "1",
+        ]
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
+        self.assertEqual(b'b false\n', out)
 
     def test_netplan_dbus_config_set_invalidate(self):
         self.mock_netplan_cmd.set_timeout(30)  # 30 dsec = 3 sec
@@ -723,6 +751,8 @@ class TestNetplanDBus(unittest.TestCase):
         ])
 
     def test_netplan_dbus_config_set_uninvalidate_timeout(self):
+        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
         self.mock_netplan_cmd.set_timeout(1)  # actually self-terminate process after 0.1 sec
         cid = self._new_config_object()
         cid2 = self._new_config_object()

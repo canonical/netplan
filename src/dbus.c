@@ -468,6 +468,8 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     g_autoptr(GError) err = NULL;
     g_autofree gchar *timeout = NULL;
     g_autofree gchar *state = NULL;
+    g_autofree gchar *netplan_try_stamp = NULL;
+    struct stat buf;
     gint child_stdin = -1; /* child process needs an input to function correctly */
     guint seconds = 0;
     int r = -1;
@@ -485,6 +487,9 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (getenv("DBUS_TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
+    /* Delete any left-over netplan-try.ready stamp file, if it exists */
+    netplan_try_stamp = g_build_path("/", g_get_tmp_dir(), "netplan-try.ready", NULL);
+    unlink(netplan_try_stamp);
     /* Launch 'netplan try' child process, lock 'try_pid' to real PID */
     g_spawn_async_with_pipes("/", argv, NULL,
                              G_SPAWN_DO_NOT_REAP_CHILD|G_SPAWN_STDOUT_TO_DEV_NULL,
@@ -505,6 +510,21 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "cannot watch 'netplan try' child: %s", strerror(-r));
         // LCOV_EXCL_STOP
+
+    /* wait for the /tmp/netplan-try.ready stamp file to appear */
+    guint poll_timeout = 500;
+    if (seconds > 0 && seconds < 5)
+        poll_timeout = seconds * 100;
+    /* Timeout after up to 5 sec of waiting for the stamp file */
+    for (int i = 0; i < poll_timeout; i++) {
+        if (stat(netplan_try_stamp, &buf) == 0)
+            break;
+        usleep(1000 * 10);
+    }
+    if (stat(netplan_try_stamp, &buf) != 0) {
+       g_debug("cannot find %s stamp file", netplan_try_stamp);
+       return sd_bus_reply_method_return(m, "b", false);
+    }
 
     return sd_bus_reply_method_return(m, "b", true);
 }
