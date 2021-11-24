@@ -1206,7 +1206,7 @@ more general information about tunnels.
     :    The output key for the tunnel
 
     ``private`` (scalar) – since **0.100**
-    :    A base64-encoded private key required for Wireguard tunnels. When the
+    :    A base64-encoded private key required for WireGuard tunnels. When the
          ``systemd-networkd`` backend (v242+) is used, this can also be an
          absolute path to a file containing the private key.
 
@@ -1255,7 +1255,7 @@ Examples:
           private: /path/to/priv.key
 
 
-Wireguard specific keys:
+WireGuard specific keys:
 
 ``mark`` (scalar) – since **0.100**
 
@@ -1312,16 +1312,16 @@ Example:
 
 ``keys`` (mapping) – since **0.100**
 
-:   Define keys to use for the Wireguard peers.
+:   Define keys to use for the WireGuard peers.
 
     This field can be used as a mapping, where you can further specify the
     ``public`` and ``shared`` keys.
 
     ``public`` (scalar) – since **0.100**
-    :    A base64-encoded public key, required for Wireguard peers.
+    :    A base64-encoded public key, required for WireGuard peers.
 
     ``shared`` (scalar) – since **0.100**
-    :    A base64-encoded preshared key. Optional for Wireguard peers.
+    :    A base64-encoded preshared key. Optional for WireGuard peers.
          When the ``systemd-networkd`` backend (v242+) is used, this can
          also be an absolute path to a file containing the preshared key.
 
