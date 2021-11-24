@@ -26,6 +26,7 @@ import glob
 import subprocess
 import shutil
 import netifaces
+import time
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
@@ -262,6 +263,15 @@ class NetplanApply(utils.NetplanCommand):
             for iface in utils.nm_interfaces(restart_nm_glob, devices):
                 utils.ip_addr_flush(iface)
             utils.systemctl_network_manager('start', sync=sync)
+            if sync:
+                # wait up to 2 sec for 'STATE=connected (site/local-only)' or
+                # 'STATE=connected' to appear in 'nmcli general' STATE
+                env = dict(os.environ, LC_ALL='C')
+                cmd = ['nmcli', 'general', 'status']
+                for _ in range(20):
+                    if b'\nconnected' in subprocess.check_output(cmd, env=env):
+                        break
+                    time.sleep(0.1)
 
     @staticmethod
     def is_composite_member(composites, phy):
