@@ -113,6 +113,14 @@ class TestSet(unittest.TestCase):
             self._set(['ethernets.eth0.dhcp4=true', '--origin-hint='])
         self.assertTrue('Invalid/empty origin-hint' in str(context.exception))
 
+    def test_set_empty_hint_file(self):
+        empty_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-empty.yaml')
+        open(empty_file, 'w').close()  # touch empty file
+        self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=00-empty'])
+        self.assertTrue(os.path.isfile(empty_file))
+        with open(empty_file, 'r') as f:
+            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: true', f.read())
+
     def test_set_invalid(self):
         with self.assertRaises(Exception) as context:
             self._set(['xxx.yyy=abc'])

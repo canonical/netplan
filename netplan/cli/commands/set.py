@@ -149,7 +149,8 @@ class NetplanSet(utils.NetplanCommand):
 
         config = {'network': {}}
         absp = os.path.join(rootdir, path, name)
-        if os.path.isfile(absp):
+        # check stat(absp), as we don't care about empty hint files
+        if os.path.isfile(absp) and os.stat(absp).st_size > 0:
             with open(absp, 'r') as f:
                 config = yaml.safe_load(f)
 
