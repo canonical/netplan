@@ -191,8 +191,11 @@ class NetplanSet(utils.NetplanCommand):
             # Valid, move it to final destination
             shutil.copy2(tmpp, absp)
             os.remove(tmpp)
-        elif os.path.isfile(absp):
-            # Clear file if the last/only key got removed
-            os.remove(absp)
-        else:
+        elif stripped == {}:
+            # Clear file (if it exists) if the last/only key got removed
+            # do nothing otherwise
+            logging.debug('Removed last key from YAML, deleting file {}'.format(absp))
+            if os.path.isfile(absp):
+                os.remove(absp)
+        else:  # pragma nocover
             raise Exception('Invalid input: {}'.format(set_tree))

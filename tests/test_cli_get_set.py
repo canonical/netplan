@@ -127,6 +127,11 @@ class TestSet(unittest.TestCase):
         self._set(['network=null', '--origin-hint=00-no-exist'])
         self.assertFalse(os.path.isfile(not_a_file))
 
+    def test_unset_non_existing_hint(self):
+        not_a_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-no-exist.yaml')
+        self._set(['network.ethernets=null', '--origin-hint=00-no-exist'])
+        self.assertFalse(os.path.isfile(not_a_file))
+
     def test_set_network_null_hint_rm(self):
         some_hint = os.path.join(self.workdir.name, 'etc', 'netplan', '00-some-hint.yaml')
         with open(some_hint, 'w') as f:
@@ -277,13 +282,6 @@ class TestSet(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
-
-    def test_set_invalid_input(self):
-        with self.assertRaises(Exception) as context:
-            self._set([r'ethernets.eth0={dhcp4:false}'])
-        self.assertEquals(
-                'Invalid input: {\'network\': {\'ethernets\': {\'eth0\': {\'dhcp4:false\': None}}}}',
-                str(context.exception))
 
     def test_set_override_existing_file(self):
         override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
