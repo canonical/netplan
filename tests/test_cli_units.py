@@ -18,8 +18,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import shutil
 import unittest
 import subprocess
+import tempfile
 
 from unittest.mock import patch
 from netplan.cli.commands.apply import NetplanApply
@@ -28,6 +30,14 @@ from netplan.cli.commands.try_command import NetplanTry
 
 class TestCLI(unittest.TestCase):
     '''Netplan CLI unittests'''
+
+    def setUp(self):
+        self.tmproot = tempfile.mkdtemp()
+        os.mkdir(os.path.join(self.tmproot, 'run'))
+        os.environ['DBUS_TEST_NETPLAN_ROOT'] = self.tmproot
+
+    def tearDown(self):
+        shutil.rmtree(self.tmproot)
 
     def test_is_composite_member(self):
         res = NetplanApply.is_composite_member([{'br0': {'interfaces': ['eth0']}}], 'eth0')
@@ -83,8 +93,13 @@ class TestCLI(unittest.TestCase):
         mock.assert_not_called()
 
     def test_netplan_try_ready_stamp(self):
-        self.assertFalse(os.path.isfile('/tmp/netplan-try.ready'))
-        NetplanTry.touch_ready_stamp()
-        self.assertTrue(os.path.isfile('/tmp/netplan-try.ready'))
-        NetplanTry.clear_ready_stamp()
-        self.assertFalse(os.path.isfile('/tmp/netplan-try.ready'))
+        stamp_file = os.path.join(self.tmproot, 'run', 'netplan', 'netplan-try.ready')
+        cmd = NetplanTry()
+        self.assertFalse(os.path.isfile(stamp_file))
+        # make sure it behaves correctly, if the file doesn't exist
+        self.assertFalse(cmd.clear_ready_stamp())
+        self.assertFalse(os.path.isfile(stamp_file))
+        cmd.touch_ready_stamp()
+        self.assertTrue(os.path.isfile(stamp_file))
+        self.assertTrue(cmd.clear_ready_stamp())
+        self.assertFalse(os.path.isfile(stamp_file))

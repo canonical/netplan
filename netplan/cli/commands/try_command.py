@@ -33,7 +33,6 @@ import netplan.terminal
 # Keep a timeout long enough to allow the network to converge, 60 seconds may
 # be slightly short given some complex configs, i.e. if STP must reconverge.
 DEFAULT_INPUT_TIMEOUT = 120
-NETPLAN_TRY_STAMP = os.path.join('/', 'tmp', 'netplan-try.ready')
 
 
 class NetplanTry(utils.NetplanCommand):
@@ -48,6 +47,8 @@ class NetplanTry(utils.NetplanCommand):
         self._config_manager = None
         self.t_settings = None
         self.t = None
+        self._rootdir = os.environ.get('DBUS_TEST_NETPLAN_ROOT', '/')
+        self._netplan_try_stamp = os.path.join(self._rootdir, 'run', 'netplan', 'netplan-try.ready')
 
     @property
     def config_manager(self):  # pragma: nocover (called by later commands)
@@ -55,14 +56,15 @@ class NetplanTry(utils.NetplanCommand):
             self._config_manager = ConfigManager()
         return self._config_manager
 
-    @staticmethod
-    def clear_ready_stamp():
-        if os.path.isfile(NETPLAN_TRY_STAMP):
-            os.remove(NETPLAN_TRY_STAMP)
+    def clear_ready_stamp(self):
+        if os.path.isfile(self._netplan_try_stamp):
+            os.remove(self._netplan_try_stamp)
+            return True
+        return False
 
-    @staticmethod
-    def touch_ready_stamp():
-        open(NETPLAN_TRY_STAMP, 'w').close()
+    def touch_ready_stamp(self):
+        os.makedirs(self._rootdir + '/run/netplan', mode=0o700, exist_ok=True)
+        open(self._netplan_try_stamp, 'w').close()
 
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
@@ -98,7 +100,7 @@ class NetplanTry(utils.NetplanCommand):
 
             # Touch stamp file, it is the signal (for netplan-dbus) that we're
             # ready to accept any Accept/Reject input (like SIGUSR1 or SIGTERM)
-            NetplanTry.touch_ready_stamp()
+            self.touch_ready_stamp()
             self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
             print("\nReverting.")
@@ -113,7 +115,7 @@ class NetplanTry(utils.NetplanCommand):
             if self.t:
                 self.t.reset(self.t_settings)
             self.cleanup()
-            NetplanTry.clear_ready_stamp()
+            self.clear_ready_stamp()
 
     def backup(self):  # pragma: nocover (requires user input)
         backup_config_dir = False

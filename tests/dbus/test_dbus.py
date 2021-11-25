@@ -31,7 +31,6 @@ if shutil.which('python3-coverage'):
 # Make sure we can import our development netplan.
 os.environ.update({'PYTHONPATH': '.'})
 NETPLAN_DBUS_CMD = os.path.join(os.path.dirname(__file__), "..", "..", "netplan-dbus")
-NETPLAN_TRY_STAMP = '/tmp/netplan-try.ready'
 
 
 class TestNetplanDBus(unittest.TestCase):
@@ -41,6 +40,7 @@ class TestNetplanDBus(unittest.TestCase):
         os.makedirs(os.path.join(self.tmp, "etc", "netplan"), 0o700)
         os.makedirs(os.path.join(self.tmp, "lib", "netplan"), 0o700)
         os.makedirs(os.path.join(self.tmp, "run", "netplan"), 0o700)
+        self._netplan_try_stamp = os.path.join(self.tmp, 'run', 'netplan', 'netplan-try.ready')
         # Create main test YAML in /etc/netplan/
         test_file = os.path.join(self.tmp, 'etc', 'netplan', 'main_test.yaml')
         with open(test_file, 'w') as f:
@@ -425,10 +425,9 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertFalse(os.path.isdir(tmpdir))
 
     def test_netplan_dbus_config_try_cancel(self):
-        # touch NETPLAN_TRY_STAMP to signal that 'netplan try' is ready
+        # touch self._netplan_try_stamp to signal that 'netplan try' is ready
         # to take (Accept/Reject) input signals, before the timeout
-        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
-        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(self._netplan_try_stamp)
         # self-terminate after 30 dsec = 3 sec, if not cancelled before
         self.mock_netplan_cmd.set_timeout(30)
         cid = self._new_config_object()
@@ -497,8 +496,7 @@ class TestNetplanDBus(unittest.TestCase):
                           [["netplan", "try", "--timeout=3", "--state=/tmp/netplan-config-BACKUP"]])
 
     def test_netplan_dbus_config_try_cb(self):
-        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
-        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(self._netplan_try_stamp)
         self.mock_netplan_cmd.set_timeout(1)  # actually self-terminate after 0.1 sec
         cid = self._new_config_object()
         tmpdir = '/tmp/netplan-config-{}'.format(cid)
@@ -540,8 +538,7 @@ class TestNetplanDBus(unittest.TestCase):
                           [["netplan", "try", "--timeout=1", "--state=/tmp/netplan-config-BACKUP"]])
 
     def test_netplan_dbus_config_try_apply(self):
-        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
-        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(self._netplan_try_stamp)
         self.mock_netplan_cmd.set_timeout(30)  # 30 dsec = 3 sec
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
@@ -565,8 +562,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Another \'netplan try\' process is already running', err)
 
     def test_netplan_dbus_config_try_config_try(self):
-        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
-        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(self._netplan_try_stamp)
         self.mock_netplan_cmd.set_timeout(50)  # 50 dsec = 5 sec
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
@@ -594,7 +590,7 @@ class TestNetplanDBus(unittest.TestCase):
         # Do NOT touch the /tmp/netplan-try.rady stamp file to indicate that
         # 'netplan try' is not ready to take any signals
         self.mock_netplan_cmd.set_timeout(1)
-        self.assertFalse(os.path.isfile(NETPLAN_TRY_STAMP))
+        self.assertFalse(os.path.isfile(self._netplan_try_stamp))
         cid = self._new_config_object()
         BUSCTL_NETPLAN_CMD = [
             "busctl", "call", "--system",
@@ -751,8 +747,7 @@ class TestNetplanDBus(unittest.TestCase):
         ])
 
     def test_netplan_dbus_config_set_uninvalidate_timeout(self):
-        self.addCleanup(os.remove, NETPLAN_TRY_STAMP)
-        self.mock_netplan_cmd.touch(NETPLAN_TRY_STAMP)
+        self.mock_netplan_cmd.touch(self._netplan_try_stamp)
         self.mock_netplan_cmd.set_timeout(1)  # actually self-terminate process after 0.1 sec
         cid = self._new_config_object()
         cid2 = self._new_config_object()

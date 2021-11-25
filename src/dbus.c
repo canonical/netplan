@@ -488,7 +488,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
     /* Delete any left-over netplan-try.ready stamp file, if it exists */
-    netplan_try_stamp = g_build_path("/", g_get_tmp_dir(), "netplan-try.ready", NULL);
+    netplan_try_stamp = g_build_path("/", NETPLAN_ROOT, "run", "netplan-try.ready", NULL);
     unlink(netplan_try_stamp);
     /* Launch 'netplan try' child process, lock 'try_pid' to real PID */
     g_spawn_async_with_pipes("/", argv, NULL,
@@ -511,7 +511,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
                                  "cannot watch 'netplan try' child: %s", strerror(-r));
         // LCOV_EXCL_STOP
 
-    /* wait for the /tmp/netplan-try.ready stamp file to appear */
+    /* wait for the /run/netplan/netplan-try.ready stamp file to appear */
     guint poll_timeout = 500;
     if (seconds > 0 && seconds < 5)
         poll_timeout = seconds * 100;
