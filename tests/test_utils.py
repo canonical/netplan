@@ -68,6 +68,10 @@ printf '\\0' >> %(log)s
         with open(self.path, "a") as fp:
             fp.write("cat << EOF\n%s\nEOF" % output)
 
+    def touch(self, stamp_path):
+        with open(self.path, "a") as fp:
+            fp.write("touch %s\n" % stamp_path)
+
     def set_timeout(self, timeout_dsec=10):
         with open(self.path, "a") as fp:
             fp.write("""
