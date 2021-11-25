@@ -332,7 +332,6 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
-        print(self.mock_netplan_cmd.calls(), flush=True)
         self.assertEquals(self.mock_netplan_cmd.calls(), [[
             "netplan", "set", "ethernets.eth42.dhcp6=true",
             "--root-dir={}".format(tmpdir)
