@@ -17,11 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import unittest
 import subprocess
 
 from unittest.mock import patch
 from netplan.cli.commands.apply import NetplanApply
+from netplan.cli.commands.try_command import NetplanTry
 
 
 class TestCLI(unittest.TestCase):
@@ -79,3 +81,10 @@ class TestCLI(unittest.TestCase):
             self.assertEquals(res, [])
             self.assertEqual(ctx.output, ['WARNING:root:Cannot clear virtual links: no network interfaces provided.'])
         mock.assert_not_called()
+
+    def test_netplan_try_ready_stamp(self):
+        self.assertFalse(os.path.isfile('/tmp/netplan-try.ready'))
+        NetplanTry.touch_ready_stamp()
+        self.assertTrue(os.path.isfile('/tmp/netplan-try.ready'))
+        NetplanTry.clear_ready_stamp()
+        self.assertFalse(os.path.isfile('/tmp/netplan-try.ready'))

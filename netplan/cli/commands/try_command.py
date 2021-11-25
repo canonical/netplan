@@ -33,6 +33,7 @@ import netplan.terminal
 # Keep a timeout long enough to allow the network to converge, 60 seconds may
 # be slightly short given some complex configs, i.e. if STP must reconverge.
 DEFAULT_INPUT_TIMEOUT = 120
+NETPLAN_TRY_STAMP = os.path.join('/', 'tmp', 'netplan-try.ready')
 
 
 class NetplanTry(utils.NetplanCommand):
@@ -53,6 +54,15 @@ class NetplanTry(utils.NetplanCommand):
         if not self._config_manager:
             self._config_manager = ConfigManager()
         return self._config_manager
+
+    @staticmethod
+    def clear_ready_stamp():
+        if os.path.isfile(NETPLAN_TRY_STAMP):
+            os.remove(NETPLAN_TRY_STAMP)
+
+    @staticmethod
+    def touch_ready_stamp():
+        open(NETPLAN_TRY_STAMP, 'w').close()
 
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
@@ -86,6 +96,9 @@ class NetplanTry(utils.NetplanCommand):
 
             NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False, state_dir=self.state)
 
+            # Touch stamp file, it is the signal (for netplan-dbus) that we're
+            # ready to accept any Accept/Reject input (like SIGUSR1 or SIGTERM)
+            NetplanTry.touch_ready_stamp()
             self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
             print("\nReverting.")
@@ -100,6 +113,7 @@ class NetplanTry(utils.NetplanCommand):
             if self.t:
                 self.t.reset(self.t_settings)
             self.cleanup()
+            NetplanTry.clear_ready_stamp()
 
     def backup(self):  # pragma: nocover (requires user input)
         backup_config_dir = False
