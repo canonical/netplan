@@ -287,7 +287,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   bridges:
     mybr:
       interfaces: [ethbr]''' % {'r': self.backend, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client, 'mybr'])
+        self.generate_and_settle([self.dev_e2_client, self.state_up('mybr')])
         self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])
         self.assert_iface_up('mybr', [], ['inet 192.168.6.[0-9]+/24'])
         lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],

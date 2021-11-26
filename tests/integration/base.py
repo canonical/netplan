@@ -325,6 +325,10 @@ class IntegrationTestsBase(unittest.TestCase):
         '''Tell generate_and_settle() to wait for a specific state'''
         return iface + '/' + state
 
+    def state_up(self, iface):
+        '''Tell generate_and_settle() to wait for the interface to be brought UP'''
+        return self.state(iface, 'state UP')
+
     def state_dhcp4(self, iface):
         '''Tell generate_and_settle() to wait for assignment of an IP4 address from DHCP'''
         return self.state(iface, 'inet 192.168.')  # TODO: make this a regex to check for specific DHCP ranges
@@ -359,6 +363,7 @@ class IntegrationTestsBase(unittest.TestCase):
             if expected_output in out:
                 break
             sys.stdout.write('.')  # waiting indicator
+            sys.stdout.flush()
             time.sleep(1)
         else:
             subprocess.call(cmd)  # print output of the failed command
