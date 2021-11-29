@@ -47,12 +47,24 @@ class NetplanTry(utils.NetplanCommand):
         self._config_manager = None
         self.t_settings = None
         self.t = None
+        self._rootdir = os.environ.get('DBUS_TEST_NETPLAN_ROOT', '/')
+        self._netplan_try_stamp = os.path.join(self._rootdir, 'run', 'netplan', 'netplan-try.ready')
 
     @property
     def config_manager(self):  # pragma: nocover (called by later commands)
         if not self._config_manager:
             self._config_manager = ConfigManager()
         return self._config_manager
+
+    def clear_ready_stamp(self):
+        if os.path.isfile(self._netplan_try_stamp):
+            os.remove(self._netplan_try_stamp)
+            return True
+        return False
+
+    def touch_ready_stamp(self):
+        os.makedirs(self._rootdir + '/run/netplan', mode=0o700, exist_ok=True)
+        open(self._netplan_try_stamp, 'w').close()
 
     def run(self):  # pragma: nocover (requires user input)
         self.parser.add_argument('--config-file',
@@ -86,6 +98,9 @@ class NetplanTry(utils.NetplanCommand):
 
             NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False, state_dir=self.state)
 
+            # Touch stamp file, it is the signal (for netplan-dbus) that we're
+            # ready to accept any Accept/Reject input (like SIGUSR1 or SIGTERM)
+            self.touch_ready_stamp()
             self.t.get_confirmation_input(timeout=self.timeout)
         except netplan.terminal.InputRejected:
             print("\nReverting.")
@@ -100,6 +115,7 @@ class NetplanTry(utils.NetplanCommand):
             if self.t:
                 self.t.reset(self.t_settings)
             self.cleanup()
+            self.clear_ready_stamp()
 
     def backup(self):  # pragma: nocover (requires user input)
         backup_config_dir = False

@@ -24,8 +24,8 @@ netplan-dbus - daemon to access netplan's functionality via a DBus API
 
 The ``/io/netplan/Netplan/config/<ID>`` objects provide a ``io.netplan.Netplan.Config`` interface, offering the following methods:
 
- * ``Get() -> s``: calls **netplan get --root-dir=/tmp/netplan-config-ID all** and returns the merged YAML config of the the given config object's state
- * ``Set(s:CONFIG_DELTA, s:ORIGIN_HINT) -> b``: calls **netplan set --root-dir=/tmp/netplan-config-ID --origin-hint=ORIGIN_HINT CONFIG_DELTA**
+ * ``Get() -> s``: calls **netplan get --root-dir=/run/netplan/config-ID all** and returns the merged YAML config of the the given config object's state
+ * ``Set(s:CONFIG_DELTA, s:ORIGIN_HINT) -> b``: calls **netplan set --root-dir=/run/netplan/config-ID --origin-hint=ORIGIN_HINT CONFIG_DELTA**
 
     CONFIG_DELTA can be something like: ``network.ethernets.eth0.dhcp4=true`` and ORIGIN_HINT can be something like: ``70-snapd`` (it will then write the config to ``70-snapd.yaml``). Once ``Set()`` is called on a config object, all other current and future config objects are being invalidated and cannot ``Set()`` or ``Try()/Apply()`` anymore, due to this pending dirty state. After the dirty config object is rejected via ``Cancel()``, the other config objects are valid again. If the dirty config object is accepted via ``Apply()``, newly created config objects will be valid, while the older states will stay invalid.
 
