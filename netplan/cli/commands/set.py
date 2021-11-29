@@ -23,6 +23,7 @@ import tempfile
 import re
 import logging
 import shutil
+import glob
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager
@@ -51,6 +52,11 @@ class NetplanSet(utils.NetplanCommand):
 
         self.parse_args()
         self.run_command()
+
+    def is_emtpy_yaml(self, tree):
+        if isinstance(tree, dict) and list(tree.keys()) == ['network'] and tree['network'] is None:
+            return True
+        return False
 
     def split_tree_by_hint(self, set_tree) -> (str, dict):
         network = set_tree.get('network', {})
@@ -96,6 +102,19 @@ class NetplanSet(utils.NetplanCommand):
             raise Exception('Invalid value specified')
         key, value = split
         set_tree = self.parse_key(key, yaml.safe_load(value))
+
+        # special case: clear all YAML (or a specific hint file) if "network=null" is set
+        if self.is_emtpy_yaml(set_tree):
+            path = os.path.join('etc', 'netplan')
+            if self.origin_hint:  # clear specific hint file, it it does exist
+                hint_path = os.path.join(self.root_dir, path, self.origin_hint + '.yaml')
+                if os.path.isfile(hint_path):
+                    os.remove(hint_path)
+            else:  # clear all YAML files in <ROOT_DIR>/etc/netplan/*.yaml
+                yaml_files = glob.glob(os.path.join(self.root_dir, path, '*.yaml'))
+                for f in yaml_files:
+                    os.remove(f)
+            return
 
         hints = [(self.origin_hint, set_tree)]
         # Override YAML config in each individual netdef file if origin-hint is not set
@@ -149,16 +168,21 @@ class NetplanSet(utils.NetplanCommand):
 
         config = {'network': {}}
         absp = os.path.join(rootdir, path, name)
-        if os.path.isfile(absp):
+        # check stat(absp), as we don't care about empty hint files
+        if os.path.isfile(absp) and os.stat(absp).st_size > 0:
             with open(absp, 'r') as f:
-                config = yaml.safe_load(f)
+                c = yaml.safe_load(f)
+                if c is not None:  # ignore empty file, even if it contains whitespace
+                    config = c
 
         new_tree = self.merge(config, set_tree)
         stripped = ConfigManager.strip_tree(new_tree)
         logging.debug('Writing file {}: {}'.format(name, stripped))
         if 'network' in stripped and list(stripped['network'].keys()) == ['version']:
             # Clear file if only 'network: {version: 2}' is left
-            os.remove(absp)
+            logging.debug('Empty YAML, deleting file {}'.format(absp))
+            if os.path.isfile(absp):
+                os.remove(absp)
         elif 'network' in stripped:
             tmpp = os.path.join(tmproot.name, path, name)
             with open(tmpp, 'w+') as f:
@@ -169,8 +193,11 @@ class NetplanSet(utils.NetplanCommand):
             # Valid, move it to final destination
             shutil.copy2(tmpp, absp)
             os.remove(tmpp)
-        elif os.path.isfile(absp):
-            # Clear file if the last/only key got removed
-            os.remove(absp)
-        else:
+        elif stripped == {}:
+            # Clear file (if it exists) if the last/only key got removed
+            # do nothing otherwise
+            logging.debug('Removed last key from YAML, deleting file {}'.format(absp))
+            if os.path.isfile(absp):
+                os.remove(absp)
+        else:  # pragma nocover
             raise Exception('Invalid input: {}'.format(set_tree))
