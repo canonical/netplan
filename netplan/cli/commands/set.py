@@ -171,7 +171,9 @@ class NetplanSet(utils.NetplanCommand):
         # check stat(absp), as we don't care about empty hint files
         if os.path.isfile(absp) and os.stat(absp).st_size > 0:
             with open(absp, 'r') as f:
-                config = yaml.safe_load(f)
+                c = yaml.safe_load(f)
+                if c is not None:  # ignore empty file, even if it contains whitespace
+                    config = c
 
         new_tree = self.merge(config, set_tree)
         stripped = ConfigManager.strip_tree(new_tree)

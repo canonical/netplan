@@ -116,11 +116,18 @@ class TestSet(unittest.TestCase):
 
     def test_set_empty_hint_file(self):
         empty_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-empty.yaml')
-        open(empty_file, 'w').close()  # touch empty file
+        open(empty_file, 'w').close()  # touch 00-empty.yaml
         self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=00-empty'])
         self.assertTrue(os.path.isfile(empty_file))
         with open(empty_file, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: true', f.read())
+
+    def test_set_empty_hint_file_whitespace(self):
+        empty_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-empty.yaml')
+        with open(empty_file, 'w') as f:
+            f.write('\n')  # echo "" > 00-empty.yaml
+        self._set(['ethernets.eth0=null', '--origin-hint=00-empty'])
+        self.assertFalse(os.path.isfile(empty_file))
 
     def test_set_network_null_hint(self):
         not_a_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-no-exist.yaml')
