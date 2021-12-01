@@ -95,6 +95,7 @@ method=auto
           gsm.home-only: "true"
           ipv4.dns-search: ""
           ipv6.dns-search: ""
+          ipv6.ip6-privacy: "0"
 '''.format(UUID, UUID)})
 
     def test_keyfile_cdma(self):
@@ -318,6 +319,7 @@ route1_options=unknown=invalid,
           ipv4.method: "manual"
           ipv4.address1: "1.2.3.4/24,8.8.8.8"
           ipv6.dns-search: "bar.local"
+          ipv6.ip6-privacy: "0"
           ipv6.route1: "dead:beef::1/128,2001:1234::2"
           ipv6.route1_options: "unknown=invalid,"
           proxy._: ""
@@ -1027,6 +1029,7 @@ addr-gen-mode=1
           ipv4.address1: "10.10.28.159/24"
           ipv4.address2: "10.10.164.254/24"
           ipv4.address3: "10.10.246.132/24"
+          ipv6.ip6-privacy: "0"
           ipv6.addr-gen-mode: "1"
 '''.format(UUID, UUID)})
 
@@ -1135,5 +1138,6 @@ route4=5:6:7:8:9:0:1:2/62
           ipv4.route4: "3.3.3.3/6,0.0.0.0,4"
           ipv4.route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
           ipv6.dns-search: "wallaceandgromit.com;"
+          ipv6.ip6-privacy: "0"
           proxy._: ""
 '''.format(UUID, UUID)})
