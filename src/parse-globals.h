@@ -20,20 +20,6 @@
 #include <glib.h>
 #include "types.h"
 
-/* file that is currently being processed, for useful error messages */
-extern const char*
-current_file;
-
-/* List of "seen" ids not found in netdefs yet by the parser.
- * These are removed when it exists in this list and we reach the point of
- * creating a netdef for that id; so by the time we're done parsing the yaml
- * document it should be empty. */
-extern GHashTable*
-missing_id;
-
-extern int
-missing_ids_found;
-
 /* Written/updated by parse_yaml(): char* id →  net_definition.
  *
  * Since both netdefs and netdefs_ordered store pointers to the same elements,
@@ -49,5 +35,9 @@ netdefs_ordered;
 
 extern NetplanOVSSettings
 ovs_settings_global;
+
 extern NetplanBackend
 global_backend;
+
+extern NetplanParser
+global_parser;

@@ -155,7 +155,7 @@ validate_ovs_target(gboolean host_first, gchar* s) {
  * Validation for grammar and backend rules.
  ************************************************/
 static gboolean
-validate_tunnel_key(yaml_node_t* node, gchar* key, GError** error)
+validate_tunnel_key(const NetplanParser* npp, yaml_node_t* node, gchar* key, GError** error)
 {
     /* Tunnel key should be a number or dotted quad, except for wireguard. */
     gchar* endptr;
@@ -163,53 +163,53 @@ validate_tunnel_key(yaml_node_t* node, gchar* key, GError** error)
     if (*endptr != '\0' || v > G_MAXUINT) {
         /* Not a simple uint, try for a dotted quad */
         if (!is_ip4_address(key))
-            return yaml_error(node, error, "invalid tunnel key '%s'", key);
+            return yaml_error(npp, node, error, "invalid tunnel key '%s'", key);
     }
     return TRUE;
 }
 
 static gboolean
-validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
+validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
-        return yaml_error(node, error, "%s: missing 'mode' property for tunnel", nd->id);
+        return yaml_error(npp, node, error, "%s: missing 'mode' property for tunnel", nd->id);
 
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
         if (!nd->tunnel.private_key)
-            return yaml_error(node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
+            return yaml_error(npp, node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
         if (nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key))
-            return yaml_error(node, error, "%s: invalid wireguard private key", nd->id);
+            return yaml_error(npp, node, error, "%s: invalid wireguard private key", nd->id);
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
-            return yaml_error(node, error, "%s: at least one peer is required.", nd->id);
+            return yaml_error(npp, node, error, "%s: at least one peer is required.", nd->id);
         for (guint i = 0; i < nd->wireguard_peers->len; i++) {
             NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
 
             if (!peer->public_key)
-                return yaml_error(node, error, "%s: keys.public is required.", nd->id);
+                return yaml_error(npp, node, error, "%s: keys.public is required.", nd->id);
             if (!is_wireguard_key(peer->public_key))
-                return yaml_error(node, error, "%s: invalid wireguard public key", nd->id);
+                return yaml_error(npp, node, error, "%s: invalid wireguard public key", nd->id);
             if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
-                return yaml_error(node, error, "%s: invalid wireguard shared key", nd->id);
+                return yaml_error(npp, node, error, "%s: invalid wireguard shared key", nd->id);
             if (!peer->allowed_ips || peer->allowed_ips->len == 0)
-                return yaml_error(node, error, "%s: 'to' is required to define the allowed IPs.", nd->id);
+                return yaml_error(npp, node, error, "%s: 'to' is required to define the allowed IPs.", nd->id);
             if (peer->keepalive > 65535)
-                return yaml_error(node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
+                return yaml_error(npp, node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
         }
         return TRUE;
     } else {
-        if (nd->tunnel.input_key && !validate_tunnel_key(node, nd->tunnel.input_key, error))
+        if (nd->tunnel.input_key && !validate_tunnel_key(npp, node, nd->tunnel.input_key, error))
             return FALSE;
-        if (nd->tunnel.output_key && !validate_tunnel_key(node, nd->tunnel.output_key, error))
+        if (nd->tunnel.output_key && !validate_tunnel_key(npp, node, nd->tunnel.output_key, error))
             return FALSE;
     }
 
     /* Validate local/remote IPs */
     if (!nd->tunnel.local_ip)
-        return yaml_error(node, error, "%s: missing 'local' property for tunnel", nd->id);
+        return yaml_error(npp, node, error, "%s: missing 'local' property for tunnel", nd->id);
     if (!nd->tunnel.remote_ip)
-        return yaml_error(node, error, "%s: missing 'remote' property for tunnel", nd->id);
+        return yaml_error(npp, node, error, "%s: missing 'remote' property for tunnel", nd->id);
     if (nd->tunnel_ttl && nd->tunnel_ttl > 255)
-        return yaml_error(node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
+        return yaml_error(npp, node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
 
     switch(nd->tunnel.mode) {
         case NETPLAN_TUNNEL_MODE_IPIP6:
@@ -218,16 +218,16 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
         case NETPLAN_TUNNEL_MODE_IP6GRETAP:
         case NETPLAN_TUNNEL_MODE_VTI6:
             if (!is_ip6_address(nd->tunnel.local_ip))
-                return yaml_error(node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
+                return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
             if (!is_ip6_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
+                return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
             break;
 
         default:
             if (!is_ip4_address(nd->tunnel.local_ip))
-                return yaml_error(node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
+                return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
             if (!is_ip4_address(nd->tunnel.remote_ip))
-                return yaml_error(node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
+                return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
             break;
     }
 
@@ -235,7 +235,7 @@ validate_tunnel_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
 }
 
 static gboolean
-validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
+validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     /* Backend-specific validation rules for tunnels */
     switch (nd->backend) {
@@ -251,7 +251,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
                  *       systemd-networkd has grown ISATAP support in 918049a.
                  */
                 case NETPLAN_TUNNEL_MODE_ISATAP:
-                    return yaml_error(node, error,
+                    return yaml_error(npp, node, error,
                                       "%s: %s tunnel mode is not supported by networkd",
                                       nd->id,
                                       g_ascii_strup(netplan_tunnel_mode_name(nd->tunnel.mode), -1));
@@ -259,9 +259,9 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
 
                 default:
                     if (nd->tunnel.input_key)
-                        return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
+                        return yaml_error(npp, node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
                     if (nd->tunnel.output_key)
-                        return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+                        return yaml_error(npp, node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
                     break;
             }
             break;
@@ -275,7 +275,7 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
 
                 case NETPLAN_TUNNEL_MODE_GRETAP:
                 case NETPLAN_TUNNEL_MODE_IP6GRETAP:
-                    return yaml_error(node, error,
+                    return yaml_error(npp, node, error,
                                       "%s: %s tunnel mode is not supported by NetworkManager",
                                       nd->id,
                                       g_ascii_strup(netplan_tunnel_mode_name(nd->tunnel.mode), -1));
@@ -283,9 +283,9 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
 
                 default:
                     if (nd->tunnel.input_key)
-                        return yaml_error(node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
+                        return yaml_error(npp, node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
                     if (nd->tunnel.output_key)
-                        return yaml_error(node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+                        return yaml_error(npp, node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
                     break;
             }
             break;
@@ -297,9 +297,9 @@ validate_tunnel_backend_rules(NetplanNetDefinition* nd, yaml_node_t* node, GErro
 }
 
 gboolean
-validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
+validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
-    int missing_id_count = g_hash_table_size(missing_id);
+    int missing_id_count = g_hash_table_size(npp->missing_id);
     gboolean valid = FALSE;
 
     g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
@@ -312,41 +312,41 @@ validate_netdef_grammar(NetplanNetDefinition* nd, yaml_node_t* node, GError** er
 
     /* set-name: requires match: */
     if (nd->set_name && !nd->has_match)
-        return yaml_error(node, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
+        return yaml_error(npp, node, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
 
     if (nd->type == NETPLAN_DEF_TYPE_WIFI && nd->access_points == NULL)
-        return yaml_error(node, error, "%s: No access points defined", nd->id);
+        return yaml_error(npp, node, error, "%s: No access points defined", nd->id);
 
     if (nd->type == NETPLAN_DEF_TYPE_VLAN) {
         if (!nd->vlan_link)
-            return yaml_error(node, error, "%s: missing 'link' property", nd->id);
+            return yaml_error(npp, node, error, "%s: missing 'link' property", nd->id);
         nd->vlan_link->has_vlans = TRUE;
         if (nd->vlan_id == G_MAXUINT)
-            return yaml_error(node, error, "%s: missing 'id' property", nd->id);
+            return yaml_error(npp, node, error, "%s: missing 'id' property", nd->id);
         if (nd->vlan_id > 4094)
-            return yaml_error(node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
+            return yaml_error(npp, node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
-        valid = validate_tunnel_grammar(nd, node, error);
+        valid = validate_tunnel_grammar(npp, nd, node, error);
         if (!valid)
             goto netdef_grammar_error;
     }
 
     if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && nd->ip6_addr_gen_token)
-        return yaml_error(node, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
+        return yaml_error(npp, node, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
 
     if (nd->backend == NETPLAN_BACKEND_OVS) {
         // LCOV_EXCL_START
         if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
             /* Tested via integration test */
-            return yaml_error(node, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
+            return yaml_error(npp, node, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
         }
         // LCOV_EXCL_STOP
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.nm.passthrough || !g_datalist_get_data(&nd->backend_settings.nm.passthrough, "connection.type")))
-        return yaml_error(node, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
+        return yaml_error(npp, node, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
 
     valid = TRUE;
 
@@ -355,7 +355,7 @@ netdef_grammar_error:
 }
 
 gboolean
-validate_backend_rules(NetplanNetDefinition* nd, GError** error)
+validate_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error)
 {
     gboolean valid = FALSE;
     /* Set a dummy, NULL yaml_node_t for error reporting */
@@ -364,7 +364,7 @@ validate_backend_rules(NetplanNetDefinition* nd, GError** error)
     g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
-        valid = validate_tunnel_backend_rules(nd, node, error);
+        valid = validate_tunnel_backend_rules(npp, nd, node, error);
         if (!valid)
             goto backend_rules_error;
     }
@@ -437,7 +437,7 @@ check_defroute(struct _defroute_entry *candidate,
 }
 
 gboolean
-validate_default_route_consistency(GHashTable *netdefs, GError ** error)
+validate_default_route_consistency(const NetplanParser* npp, GHashTable *netdefs, GError ** error)
 {
     struct _defroute_entry candidate = {};
     GSList *defroutes = NULL;

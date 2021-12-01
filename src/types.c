@@ -113,7 +113,7 @@ reset_auth_settings(NetplanAuthenticationSettings* auth)
     auth->eap_method = NETPLAN_AUTH_EAP_NONE;
 }
 
-static void
+void
 reset_ovs_settings(NetplanOVSSettings* settings)
 {
     settings->mcast_snooping = FALSE;
@@ -331,19 +331,22 @@ clear_netdef_from_list(void *def)
     g_free(def);
 }
 
-// LCOV_EXCL_START
 NetplanState*
 netplan_state_new()
 {
-    return NULL;
+    NetplanState* np_state = g_new0(NetplanState, 1);
+    netplan_state_reset(np_state);
+    return np_state;
 }
 
 void
 netplan_state_clear(NetplanState** np_state_p)
 {
-    g_assert(0);
+    NetplanState* np_state = *np_state_p;
+    *np_state_p = NULL;
+    netplan_state_reset(np_state);
+    g_free(np_state);
 }
-// LCOV_EXCL_STOP
 
 void
 netplan_state_reset(NetplanState* np_state)
@@ -379,4 +382,44 @@ guint
 netplan_state_get_netdefs_size(const NetplanState* np_state)
 {
     return np_state->netdefs ? g_hash_table_size(np_state->netdefs) : 0;
+}
+
+void
+access_point_clear(NetplanWifiAccessPoint** ap, NetplanBackend backend)
+{
+    NetplanWifiAccessPoint* obj = *ap;
+    if (!obj)
+        return;
+    *ap = NULL;
+    free_access_point(NULL, obj, &backend);
+}
+
+#define CLEAR_FROM_FREE(free_fn, clear_fn, type) void clear_fn(type** dest) \
+{ \
+    type* obj; \
+    if (!dest || !(*dest)) return; \
+    obj = *dest; \
+    *dest = NULL; \
+    free_fn(obj);\
+}
+
+CLEAR_FROM_FREE(free_wireguard_peer, wireguard_peer_clear, NetplanWireguardPeer);
+CLEAR_FROM_FREE(free_ip_rules, ip_rule_clear, NetplanIPRule);
+CLEAR_FROM_FREE(free_route, route_clear, NetplanIPRoute);
+CLEAR_FROM_FREE(free_address_options, address_options_clear, NetplanAddressOptions);
+
+NetplanNetDefinition*
+netplan_state_get_netdef(const NetplanState* np_state, const char* id)
+{
+    if (!np_state->netdefs)
+        return NULL;
+    return g_hash_table_lookup(np_state->netdefs, id);
+}
+
+NETPLAN_PUBLIC const char *
+netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
+{
+    if (!netdef)
+        return NULL;
+    return netdef->filename;
 }

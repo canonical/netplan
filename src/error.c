@@ -22,8 +22,7 @@
 #include <yaml.h>
 
 #include "parse.h"
-#include "parse-globals.h"
-
+#include "types.h"
 
 /****************************************************
  * Loading and error handling
@@ -41,10 +40,10 @@ write_error_marker(GString *message, int column)
 }
 
 static char *
-get_syntax_error_context(const int line_num, const int column, GError **error)
+get_syntax_error_context(const NetplanParser* npp, const int line_num, const int column, GError **error)
 {
     GString *message = NULL;
-    GFile *cur_file = g_file_new_for_path(current_file);
+    GFile *cur_file = g_file_new_for_path(npp->current.filename);
     GFileInputStream *file_stream;
     GDataInputStream *stream;
     gsize len;
@@ -147,7 +146,7 @@ parser_error(const yaml_parser_t* parser, const char* yaml, GError** error)
  * Put a YAML specific error message for @node into @error.
  */
 gboolean
-yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
+yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, const char* msg, ...)
 {
     va_list argp;
     char* s;
@@ -156,10 +155,10 @@ yaml_error(const yaml_node_t* node, GError** error, const char* msg, ...)
     va_start(argp, msg);
     g_vasprintf(&s, msg, argp);
     if (node != NULL) {
-        error_context = get_syntax_error_context(node->start_mark.line, node->start_mark.column, error);
+        error_context = get_syntax_error_context(npp, node->start_mark.line, node->start_mark.column, error);
         g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
                     "%s:%zu:%zu: Error in network definition: %s\n%s",
-                    current_file,
+                    npp->current.filename,
                     node->start_mark.line + 1,
                     node->start_mark.column + 1,
                     s,

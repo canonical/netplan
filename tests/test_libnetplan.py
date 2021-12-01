@@ -44,6 +44,7 @@ class TestLibnetplan(TestBase):
 
     def tearDown(self):
         shutil.rmtree(self.workdir.name)
+        lib.netplan_clear_netdefs()
         super().tearDown()
 
     def test_get_id_from_filename(self):
