@@ -363,10 +363,10 @@ route1_options=unknown=invalid,
         self._template_keyfile_type('vlans', 'vlan')
 
     def test_keyfile_type_tunnel(self):
-        self._template_keyfile_type('tunnels', 'ip-tunnel', False)
+        self._template_keyfile_type('nm-devices', 'ip-tunnel', False)
 
     def test_keyfile_type_wireguard(self):
-        self._template_keyfile_type('tunnels', 'wireguard', False)
+        self._template_keyfile_type('nm-devices', 'wireguard', False)
 
     def test_keyfile_type_other(self):
         self._template_keyfile_type('nm-devices', 'dummy', False)
@@ -1161,12 +1161,9 @@ method=auto
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
-  tunnels:
+  nm-devices:
     NM-{}:
       renderer: NetworkManager
-      dhcp4: true
-      dhcp6: true
-      ipv6-address-generation: "stable-privacy"
       networkmanager:
         uuid: "{}"
         name: "IP tunnel connection 1"
@@ -1179,6 +1176,9 @@ method=auto
           ip-tunnel.mode: "2"
           ip-tunnel.remote: "10.20.20.2"
           ipv4.dns-search: ""
+          ipv4.method: "auto"
+          ipv6.addr-gen-mode: "stable-privacy"
           ipv6.dns-search: ""
+          ipv6.method: "auto"
           proxy._: ""
 '''.format(UUID, UUID)})

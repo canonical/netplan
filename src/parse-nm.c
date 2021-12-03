@@ -48,8 +48,10 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_BOND;
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
+    /* TODO: Tunnels are not yet supported by the keyfile parser
     else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
         return NETPLAN_DEF_TYPE_TUNNEL;
+    */
     /* Unsupported type, needs to be specified via passthrough */
     return NETPLAN_DEF_TYPE_NM;
 }
