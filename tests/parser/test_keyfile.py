@@ -1133,3 +1133,52 @@ route4=5:6:7:8:9:0:1:2/62
           ipv6.dns-search: "wallaceandgromit.com;"
           proxy._: ""
 '''.format(UUID, UUID)})
+
+    def test_keyfile_tunnel_regression_lp1952967(self):
+        self.generate_from_keyfile('''[connection]
+id=IP tunnel connection 1
+uuid={}
+type=ip-tunnel
+autoconnect=false
+interface-name=gre10
+permissions=
+
+[ip-tunnel]
+local=10.20.20.1
+mode=2
+remote=10.20.20.2
+
+[ipv4]
+dns-search=
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+
+[proxy]
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      dhcp6: true
+      ipv6-address-generation: "stable-privacy"
+      networkmanager:
+        uuid: "{}"
+        name: "IP tunnel connection 1"
+        passthrough:
+          connection.type: "ip-tunnel"
+          connection.autoconnect: "false"
+          connection.interface-name: "gre10"
+          connection.permissions: ""
+          ip-tunnel.local: "10.20.20.1"
+          ip-tunnel.mode: "2"
+          ip-tunnel.remote: "10.20.20.2"
+          ipv4.dns-search: ""
+          ipv6.dns-search: ""
+          proxy._: ""
+'''.format(UUID, UUID)})
