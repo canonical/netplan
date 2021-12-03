@@ -150,7 +150,9 @@ class TestKeyfileBase(unittest.TestCase):
         argv = [exe_generate, '--root-dir', self.workdir.name]
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, universal_newlines=True)
+        returncode = p.wait(5)
         (out, err) = p.communicate()
+        self.assertEqual(returncode, 0, err)
         self.assertEqual(out, '')
         con_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections')
         if file_contents_map:
