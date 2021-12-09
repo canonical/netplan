@@ -202,7 +202,6 @@ route-metric=4242
 
 [ipv6]
 addr-gen-mode=eui64
-token=1234::3
 dns-search=
 method=auto
 ignore-auto-routes=true
@@ -227,7 +226,6 @@ route-metric=4242
         route-metric: 4242
       macaddress: "00:11:22:33:44:55"
       ipv6-address-generation: "eui64"
-      ipv6-address-token: "1234::3"
       mtu: 1500
       networkmanager:
         uuid: "{}"
