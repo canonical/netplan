@@ -903,7 +903,7 @@ method=auto
 
 [ipv6]
 method=ignore
-'''.format(UUID), netdef_id='bn0')
+'''.format(UUID), netdef_id='bn0', expect_fail=False, filename='some.keyfile')
         self.assert_netplan({UUID: '''network:
   version: 2
   bonds:
