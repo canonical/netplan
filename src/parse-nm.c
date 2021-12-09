@@ -46,8 +46,10 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_BRIDGE;
     else if (!g_strcmp0(type_str, "bond"))
         return NETPLAN_DEF_TYPE_BOND;
+    /* TODO: Vlans are not yet fully supported by the keyfile parser
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
+    */
     /* TODO: Tunnels are not yet supported by the keyfile parser
     else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
         return NETPLAN_DEF_TYPE_TUNNEL;
@@ -499,8 +501,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         || nd_type == NETPLAN_DEF_TYPE_WIFI
         || nd_type == NETPLAN_DEF_TYPE_MODEM
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
-        || nd_type == NETPLAN_DEF_TYPE_BOND
-        || nd_type == NETPLAN_DEF_TYPE_VLAN)
+        || nd_type == NETPLAN_DEF_TYPE_BOND)
         _kf_clear_key(kf, "connection", "type");
 
     /* Handle match: Netplan usually defines a connection per interface, while

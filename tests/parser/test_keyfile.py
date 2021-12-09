@@ -358,7 +358,7 @@ route1_options=unknown=invalid,
         self._template_keyfile_type('bonds', 'bond')
 
     def test_keyfile_type_vlan(self):
-        self._template_keyfile_type('vlans', 'vlan')
+        self._template_keyfile_type('nm-devices', 'vlan', False)
 
     def test_keyfile_type_tunnel(self):
         self._template_keyfile_type('nm-devices', 'ip-tunnel', False)
@@ -782,21 +782,24 @@ address1=1.2.3.4/24
 
 [ipv6]
 method=ignore
-'''.format(UUID), netdef_id='enblue', expect_fail=False, filename="some.keyfile")
+'''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
-  vlans:
-    enblue:
+  nm-devices:
+    NM-{}:
       renderer: NetworkManager
-      addresses:
-      - "1.2.3.4/24"
-      id: 1
       networkmanager:
         uuid: "{}"
         name: "netplan-enblue"
         passthrough:
+          connection.type: "vlan"
+          connection.interface-name: "enblue"
+          vlan.id: "1"
           vlan.parent: "en1"
-'''.format(UUID)})
+          ipv4.method: "manual"
+          ipv4.address1: "1.2.3.4/24"
+          ipv6.method: "ignore"
+'''.format(UUID, UUID)})
 
     def test_keyfile_bridge(self):
         self.generate_from_keyfile('''[connection]
