@@ -25,6 +25,7 @@
 #include "util.h"
 #include "types.h"
 #include "util-internal.h"
+#include "validation.h"
 
 /**
  * NetworkManager writes the alias for '802-3-ethernet' (ethernet),
@@ -751,5 +752,11 @@ only_passthrough:
     }
 
     g_key_file_free(kf);
+
+    /* validate definition-level conditions */
+    if (!npp->missing_id)
+        npp->missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
+    if (!validate_netdef_grammar(npp, nd, NULL, error))
+        return FALSE;
     return TRUE;
 }

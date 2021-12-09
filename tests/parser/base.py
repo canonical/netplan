@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import ConfigParser
+from netplan.cli.utils import _GError
 import os
 import sys
 import shutil
@@ -73,6 +74,7 @@ class TestKeyfileBase(unittest.TestCase):
 
     def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
         '''Call libnetplan with given keyfile string as configuration'''
+        err = ctypes.POINTER(_GError)()
         # Autodetect default 'NM-<UUID>' netdef-id
         ssid = ''
         if not netdef_id:
@@ -99,9 +101,13 @@ class TestKeyfileBase(unittest.TestCase):
 
         with capture_stderr() as outf:
             if expect_fail:
-                self.assertFalse(lib.netplan_parse_keyfile(f.encode(), None))
+                self.assertFalse(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
+                if err:
+                    return err.contents.message.decode('utf-8')
             else:
-                self.assertTrue(lib.netplan_parse_keyfile(f.encode(), None))
+                self.assertTrue(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
+                if err:  # pragma: nocover (this case should never happen)
+                    return err.contents.message.decode('utf-8')
                 # If the original file does not have a standard netplan-*.nmconnection
                 # filename it is being deleted in favor of the newly generated file.
                 # It has been parsed and is not needed anymore in this case

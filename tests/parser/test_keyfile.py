@@ -236,6 +236,25 @@ route-metric=4242
           proxy._: ""
 '''.format(UUID, UUID)})
 
+    def test_keyfile_fail_validation(self):
+        err = self.generate_from_keyfile('''[connection]
+id=Test
+uuid={}
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=eui64
+token=::42
+method=auto
+'''.format(UUID), expect_fail=True)
+        self.assertIn('Error in network definition:', err)
+
     def test_keyfile_method_manual(self):
         self.generate_from_keyfile('''[connection]
 id=Test
