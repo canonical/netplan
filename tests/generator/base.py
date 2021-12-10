@@ -76,7 +76,7 @@ ND_WITHIPGW = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=
 ConfigureWithoutCarrier=yes\n'
 NM_WG = '[connection]\nid=netplan-wg0\ntype=wireguard\ninterface-name=wg0\n\n[wireguard]\nprivate-key=%s\nlisten-port=%s\n%s\
 \n\n[ipv4]\nmethod=manual\naddress1=15.15.15.15/24\ngateway=20.20.20.21\n\n[ipv6]\nmethod=manual\naddress1=\
-2001:de:ad:be:ef:ca:fe:1/128\n'
+2001:de:ad:be:ef:ca:fe:1/128\nip6-privacy=0\n'
 ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListenPort=%s\n%s\n'
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 SD_WPA = '''[Unit]

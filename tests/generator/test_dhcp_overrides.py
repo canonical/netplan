@@ -422,5 +422,6 @@ method=auto
 
 [ipv6]
 method=auto
+ip6-privacy=0
 route-metric=6666
 '''})

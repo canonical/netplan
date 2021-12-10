@@ -819,6 +819,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_string(kf, "ipv6", "addr-gen-mode", addr_gen_mode_str(def->ip6_addr_gen_mode));
         if (def->ip6_privacy)
             g_key_file_set_integer(kf, "ipv6", "ip6-privacy", 2);
+        else
+            g_key_file_set_integer(kf, "ipv6", "ip6-privacy", 0);
         if (def->gateway6)
             g_key_file_set_string(kf, "ipv6", "gateway", def->gateway6);
         if (def->ip6_nameservers) {
