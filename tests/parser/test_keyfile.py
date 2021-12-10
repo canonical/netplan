@@ -68,7 +68,6 @@ method=auto
 
 [ipv6]
 dns-search=
-ip6-privacy=0
 method=auto
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
@@ -95,7 +94,6 @@ method=auto
           gsm.home-only: "true"
           ipv4.dns-search: ""
           ipv6.dns-search: ""
-          ipv6.ip6-privacy: "0"
 '''.format(UUID, UUID)})
 
     def test_keyfile_cdma(self):
@@ -267,7 +265,6 @@ dns=dead:beef::2;
 method=manual
 address1=1:2:3::9/128
 gateway=6:6::6
-ip6-privacy=0
 route1=dead:beef::1/128,2001:1234::2
 route1_options=unknown=invalid,
 
@@ -319,7 +316,6 @@ route1_options=unknown=invalid,
           ipv4.method: "manual"
           ipv4.address1: "1.2.3.4/24,8.8.8.8"
           ipv6.dns-search: "bar.local"
-          ipv6.ip6-privacy: "0"
           ipv6.route1: "dead:beef::1/128,2001:1234::2"
           ipv6.route1_options: "unknown=invalid,"
           proxy._: ""
@@ -1001,7 +997,6 @@ dns=8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;
 
 [ipv6]
 method=auto
-ip6-privacy=0
 addr-gen-mode=1
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
@@ -1029,7 +1024,6 @@ addr-gen-mode=1
           ipv4.address1: "10.10.28.159/24"
           ipv4.address2: "10.10.164.254/24"
           ipv4.address3: "10.10.246.132/24"
-          ipv6.ip6-privacy: "0"
           ipv6.addr-gen-mode: "1"
 '''.format(UUID, UUID)})
 
@@ -1065,7 +1059,6 @@ address1=abcd::beef/64
 address2=dcba::beef/56
 dns=1::cafe;2::cafe;
 dns-search=wallaceandgromit.com;
-ip6-privacy=0
 method=manual
 route1=1:2:3:4:5:6:7:8/64,8:7:6:5:4:3:2:1,3
 route2=2001::1000/56,2001::1111,1
@@ -1138,6 +1131,5 @@ route4=5:6:7:8:9:0:1:2/62
           ipv4.route4: "3.3.3.3/6,0.0.0.0,4"
           ipv4.route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
           ipv6.dns-search: "wallaceandgromit.com;"
-          ipv6.ip6-privacy: "0"
           proxy._: ""
 '''.format(UUID, UUID)})

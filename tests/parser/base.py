@@ -132,6 +132,8 @@ class TestKeyfileBase(unittest.TestCase):
                 # Normalize lines
                 if k == 'addr-gen-mode':
                     v = v.replace('1', 'stable-privacy').replace('0', 'eui64')
+                elif k == 'ip6-privacy' and v == '0':
+                    continue
                 elif k == 'wake-on-lan' and v == '1':
                     continue
                 elif k == 'stp' and v == 'true':
