@@ -720,6 +720,92 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_default_scope_link_lp1805038(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: true
+      routes:
+      - to: 10.96.0.0/24
+    enred:
+      dhcp4: true
+      routes:
+      - to: 10.97.0.0/24
+        type: broadcast
+''', skip_generated_yaml_validation=True)  # scope: link is a default value in this case
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[Route]
+Destination=10.96.0.0/24
+Scope=link
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+''',
+                              'enred.network': '''[Match]
+Name=enred
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[Route]
+Destination=10.97.0.0/24
+Scope=link
+Type=broadcast
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
+    def test_type_local_lp1892272(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: true
+      routes:
+      - to: 0.0.0.0/0
+        type: local
+        table: 99
+      - to: ::0/0
+        type: local
+        table: 100
+''', skip_generated_yaml_validation=True)  # scope: host is a default value in this case
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[Route]
+Destination=0.0.0.0/0
+Scope=host
+Type=local
+Table=99
+
+[Route]
+Destination=::0/0
+Scope=host
+Type=local
+Table=100
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
 
 class TestNetworkManager(TestBase):
 
