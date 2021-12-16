@@ -1607,7 +1607,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
         g_assert(npp->current.route == NULL);
         route = g_new0(NetplanIPRoute, 1);
         route->type = g_strdup("unicast");
-        route->scope = g_strdup("global");
+        route->scope = NULL;
         route->family = G_MAXUINT; /* 0 is a valid family ID */
         route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
         route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
@@ -1617,6 +1617,21 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
 
         if (!process_mapping(npp, entry, routes_handlers, NULL, error))
             goto err;
+
+        /* Set the default scope, according to type */
+        if (!route->scope) {
+            if (   g_ascii_strcasecmp(route->type, "local") == 0
+                || g_ascii_strcasecmp(route->type, "nat") == 0)
+                route->scope = (g_strdup("host"));
+            /* Non-gatewayed unicast routes are scope:link, too */
+            else if (  (g_ascii_strcasecmp(route->type, "unicast") == 0 && !route->via)
+                     || g_ascii_strcasecmp(route->type, "broadcast") == 0
+                     || g_ascii_strcasecmp(route->type, "multicast") == 0
+                     || g_ascii_strcasecmp(route->type, "anycast") == 0)
+                route->scope = g_strdup("link");
+            else
+                route->scope = g_strdup("global");
+        }
 
         if (       (   g_ascii_strcasecmp(route->scope, "link") == 0
                     || g_ascii_strcasecmp(route->scope, "host") == 0)
