@@ -1375,10 +1375,20 @@ handle_routes_type(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
         g_free(route->type);
     route->type = g_strdup(scalar(node));
 
-    if (g_ascii_strcasecmp(route->type, "unicast") == 0 ||
-        g_ascii_strcasecmp(route->type, "unreachable") == 0 ||
-        g_ascii_strcasecmp(route->type, "blackhole") == 0 ||
-        g_ascii_strcasecmp(route->type, "prohibit") == 0)
+    /* local, broadcast, anycast, multicast, nat and xresolve are supported
+     * since systemd-networkd v243 */
+    /* keep "unicast" default at position 1 */
+    if (   g_ascii_strcasecmp(route->type, "unicast") == 0
+        || g_ascii_strcasecmp(route->type, "anycast") == 0
+        || g_ascii_strcasecmp(route->type, "blackhole") == 0
+        || g_ascii_strcasecmp(route->type, "broadcast") == 0
+        || g_ascii_strcasecmp(route->type, "local") == 0
+        || g_ascii_strcasecmp(route->type, "multicast") == 0
+        || g_ascii_strcasecmp(route->type, "nat") == 0
+        || g_ascii_strcasecmp(route->type, "prohibit") == 0
+        || g_ascii_strcasecmp(route->type, "throw") == 0
+        || g_ascii_strcasecmp(route->type, "unreachable") == 0
+        || g_ascii_strcasecmp(route->type, "xresolve") == 0)
         return TRUE;
 
     return yaml_error(npp, node, error, "invalid route type '%s'", route->type);
