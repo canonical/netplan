@@ -204,6 +204,46 @@ class State:
         return NetDefinition(self, ptr)
 
     @property
+    def all_defs(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, None))
+
+    @property
+    def ethernets(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "ethernets"))
+
+    @property
+    def modems(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "modems"))
+
+    @property
+    def wifis(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "wifis"))
+
+    @property
+    def vlans(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "vlans"))
+
+    @property
+    def bridges(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "bridges"))
+
+    @property
+    def bonds(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "bonds"))
+
+    @property
+    def tunnels(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "tunnels"))
+
+    @property
+    def ovs_ports(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "_ovs-ports"))
+
+    @property
+    def nm_devices(self):
+        return dict((nd.id, nd) for nd in _NetdefIterator(self, "nm-devices"))
+
+    @property
     def backend(self):
         return lib.netplan_backend_name(lib.netplan_state_get_backend(self._ptr)).decode('utf-8')
 
