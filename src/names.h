@@ -23,7 +23,7 @@
 NETPLAN_INTERNAL const char*
 netplan_backend_name(NetplanBackend val);
 
-const char*
+NETPLAN_INTERNAL const char*
 netplan_def_type_name(NetplanDefType val);
 
 const char*
