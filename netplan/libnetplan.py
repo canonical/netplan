@@ -163,6 +163,9 @@ class State:
         lib.netplan_netdef_get_delay_virtual_functions_rebind.argtypes = [_NetplanNetDefinitionP]
         lib.netplan_netdef_get_delay_virtual_functions_rebind.restype = c_int
 
+        lib.netplan_state_get_backend.argtypes = [_NetplanStateP]
+        lib.netplan_state_get_backend.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -197,6 +200,10 @@ class State:
         if not ptr:
             raise IndexError()
         return NetDefinition(self, ptr)
+
+    @property
+    def backend(self):
+        return lib.netplan_backend_name(lib.netplan_state_get_backend(self._ptr)).decode('utf-8')
 
 
 class NetDefinition:
