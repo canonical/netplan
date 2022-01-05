@@ -19,6 +19,7 @@
 import ctypes
 import ctypes.util
 from ctypes import c_char_p, c_void_p, c_int
+from typing import Union, IO
 
 
 class LibNetplanException(Exception):
@@ -94,6 +95,9 @@ class Parser:
         lib.netplan_parser_load_yaml.argtypes = [_NetplanParserP, c_char_p, _GErrorPP]
         lib.netplan_parser_load_yaml.restype = c_int
 
+        lib.netplan_parser_load_yaml_from_fd.argtypes = [_NetplanParserP, c_int, _GErrorPP]
+        lib.netplan_parser_load_yaml_from_fd.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -103,8 +107,11 @@ class Parser:
     def __del__(self):
         lib.netplan_parser_clear(ctypes.byref(self._ptr))
 
-    def load_yaml(self, filename):
-        _checked_lib_call(lib.netplan_parser_load_yaml, self._ptr, filename.encode('utf-8'))
+    def load_yaml(self, input_file: Union[str, IO]):
+        if isinstance(input_file, str):
+            _checked_lib_call(lib.netplan_parser_load_yaml, self._ptr, input_file.encode('utf-8'))
+        else:
+            _checked_lib_call(lib.netplan_parser_load_yaml_from_fd, self._ptr, input_file.fileno())
 
     def load_yaml_hierarchy(self, rootdir):
         _checked_lib_call(lib.netplan_parser_load_yaml_hierarchy, self._ptr, rootdir.encode('utf-8'))

@@ -58,7 +58,53 @@ extern NetplanState global_state;
 NetplanParser global_parser = {0};
 
 /**
+ * Load YAML file into a yaml_document_t.
+ *
+ * @input_fd: the file descriptor pointing to the YAML source file
+ * @doc: the output document structure
+ *
+ * Returns: TRUE on success, FALSE if the document is malformed; @error gets set then.
+ */
+static gboolean
+load_yaml_from_fd(int input_fd, yaml_document_t* doc, GError** error)
+{
+    int in_dup = -1;
+    FILE* fyaml = NULL;
+    yaml_parser_t parser;
+    gboolean ret = TRUE;
+
+    in_dup = dup(input_fd);
+    if (in_dup < 0)
+        goto file_error; // LCOV_EXCL_LINE
+
+    fyaml = fdopen(in_dup, "r");
+    if (!fyaml)
+        goto file_error; // LCOV_EXCL_LINE
+
+    yaml_parser_initialize(&parser);
+    yaml_parser_set_input_file(&parser, fyaml);
+    if (!yaml_parser_load(&parser, doc)) {
+        ret = parser_error(&parser, NULL, error);
+    }
+
+    yaml_parser_delete(&parser);
+    fclose(fyaml);
+    return ret;
+
+    // LCOV_EXCL_START
+file_error:
+    g_set_error(error, G_FILE_ERROR, errno, "Error when opening FD %d: %s", input_fd, g_strerror(errno));
+    if (in_dup >= 0)
+        close(in_dup);
+    return FALSE;
+    // LCOV_EXCL_STOP
+}
+
+/**
  * Load YAML file name into a yaml_document_t.
+ *
+ * @yaml: file path to the YAML source file
+ * @doc: the output document structure
  *
  * Returns: TRUE on success, FALSE if the document is malformed; @error gets set then.
  */
@@ -2573,8 +2619,8 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const void* data, GEr
         } else {
             npp->current.netdef = netplan_netdef_new(npp, scalar(key), GPOINTER_TO_UINT(data), npp->current.backend);
         }
-        g_assert(npp->current.filename);
-        npp->current.netdef->filename = g_strdup(npp->current.filename);
+        if (npp->current.filename)
+            npp->current.netdef->filename = g_strdup(npp->current.filename);
 
         // XXX: breaks multi-pass parsing.
         //if (!g_hash_table_add(ids_in_file, npp->current.netdef->id))
@@ -2715,23 +2761,17 @@ process_document(NetplanParser* npp, GError** error)
     return ret;
 }
 
-/**
- * Parse given YAML file and create/update the parser's "netdefs" list.
- */
-gboolean
-netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error)
+static gboolean
+_netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filename, yaml_document_t *doc, GError** error)
 {
-    yaml_document_t *doc = &npp->doc;
-    gboolean ret;
-    char* source;
+    int ret = FALSE;
 
-    if (!load_yaml(filename, doc, error))
-        return FALSE;
-
-    source = g_strdup(filename);
-    if (!npp->sources)
-        npp->sources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
-    g_hash_table_add(npp->sources, source);
+    if (opt_filename) {
+        char* source = g_strdup(opt_filename);
+        if (!npp->sources)
+            npp->sources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        g_hash_table_add(npp->sources, source);
+    }
 
     /* empty file? */
     if (yaml_document_get_root_node(doc) == NULL)
@@ -2740,7 +2780,7 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
     g_assert(npp->ids_in_file == NULL);
     npp->ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
-    npp->current.filename = g_strdup(filename);
+    npp->current.filename = opt_filename? g_strdup(opt_filename) : NULL;
     ret = process_document(npp, error);
     g_free((void *)npp->current.filename);
     npp->current.filename = NULL;
@@ -2749,6 +2789,32 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
     g_hash_table_destroy(npp->ids_in_file);
     npp->ids_in_file = NULL;
     return ret;
+}
+
+/**
+ * Parse given YAML file from FD and create/update the parser's "netdefs" list.
+ */
+gboolean
+netplan_parser_load_yaml_from_fd(NetplanParser* npp, int fd, GError** error)
+{
+    yaml_document_t *doc = &npp->doc;
+
+    if (!load_yaml_from_fd(fd, doc, error))
+        return FALSE;
+    return _netplan_parser_load_single_file(npp, NULL, doc, error);
+
+}
+/**
+ * Parse given YAML file and create/update the parser's "netdefs" list.
+ */
+gboolean
+netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error)
+{
+    yaml_document_t *doc = &npp->doc;
+
+    if (!load_yaml(filename, doc, error))
+        return FALSE;
+    return _netplan_parser_load_single_file(npp, filename, doc, error);
 }
 
 static gboolean
