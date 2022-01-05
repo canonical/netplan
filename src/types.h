@@ -207,6 +207,9 @@ void
 reset_netdef(NetplanNetDefinition* netdef, NetplanDefType type, NetplanBackend renderer);
 
 void
+reset_ip_rule(NetplanIPRule* ip_rule);
+
+void
 reset_ovs_settings(NetplanOVSSettings *settings);
 
 void
