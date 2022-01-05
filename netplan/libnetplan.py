@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import tempfile
+import logging
 import ctypes
 import ctypes.util
 from ctypes import c_char_p, c_void_p, c_int, c_size_t, c_ssize_t
@@ -204,6 +206,12 @@ class State:
     @property
     def backend(self):
         return lib.netplan_backend_name(lib.netplan_state_get_backend(self._ptr)).decode('utf-8')
+
+    def dump_to_logs(self):
+        # Convoluted way to dump the parsed config to the logs...
+        with tempfile.TemporaryFile() as tmp:
+            self.dump_yaml(output_file=tmp)
+            logging.debug("Merged config:\n{}".format(tmp.read()))
 
 
 class NetDefinition:
