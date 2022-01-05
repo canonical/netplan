@@ -364,6 +364,48 @@ class TestNetDefinition(TestBase):
         netdef = state['eth0']
         self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef.filepath)
 
+    def test_set_name(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    mac-match:
+      set-name: mymac0
+      match:
+        macaddress: 11:22:33:AA:BB:FF''')
+        self.assertEqual(state['mac-match'].set_name, 'mymac0')
+
+    def test_simple_matches(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    witness: {}
+    name-match:
+      match:
+        name: "eth42"
+    driver-match:
+      match:
+        driver: "e10*"
+    mac-match:
+      match:
+        macaddress: 11:22:33:AA:BB:FF''')
+        self.assertFalse(state['witness'].has_match)
+        self.assertTrue(state['name-match'].has_match)
+        self.assertTrue(state['name-match'].match_interface(itf_name="eth42"))
+        self.assertFalse(state['name-match'].match_interface(itf_name="eth32"))
+        self.assertTrue(state['driver-match'].match_interface(itf_driver="e1000"))
+        self.assertFalse(state['name-match'].match_interface(itf_driver="ixgbe"))
+        self.assertFalse(state['driver-match'].match_interface(itf_name="eth42"))
+        self.assertTrue(state['mac-match'].match_interface(itf_mac="11:22:33:AA:BB:FF"))
+        self.assertFalse(state['mac-match'].match_interface(itf_mac="11:22:33:AA:BB:CC"))
+
+    def test_match_without_match_block(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+
+        netdef = state['eth0']
+        self.assertTrue(netdef.match_interface('eth0'))
+        self.assertFalse(netdef.match_interface('eth000'))
+
 
 class TestFreeFunctions(TestBase):
     def setUp(self):

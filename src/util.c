@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <fnmatch.h>
 #include <errno.h>
 #include <string.h>
 
@@ -731,4 +732,45 @@ netplan_copy_string(const char* input, char* out_buffer, size_t out_size)
     if (end - out_buffer == out_size)
         return NETPLAN_BUFFER_TOO_SMALL;
     return end - out_buffer + 1;
+}
+
+NETPLAN_INTERNAL gboolean
+netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name)
+{
+    if (!netdef->has_match)
+        return !g_strcmp0(name, netdef->id);
+
+    if (netdef->match.mac) {
+        if (g_ascii_strcasecmp(netdef->match.mac, mac))
+            return FALSE;
+    }
+
+    if (netdef->match.original_name) {
+        if (!name || fnmatch(netdef->match.original_name, name, 0))
+            return FALSE;
+    }
+
+    if (netdef->match.driver) {
+        gboolean matches_driver = FALSE;
+        char** tokens;
+        if (!driver_name)
+            return FALSE;
+        tokens = g_strsplit(netdef->match.driver, "\t", -1);
+        for (char** it = tokens; *it; it++) {
+            if (fnmatch(*it, driver_name, 0) == 0) {
+                matches_driver = TRUE;
+                break;
+            }
+        }
+        g_strfreev(tokens);
+        return matches_driver;
+    }
+
+    return TRUE;
+}
+
+NETPLAN_INTERNAL ssize_t
+netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buf, size_t out_size)
+{
+    return netplan_copy_string(netdef->set_name, out_buf, out_size);
 }

@@ -207,6 +207,9 @@ class NetDefinition:
         if cls._abi_loaded:
             return
 
+        lib.netplan_netdef_has_match.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_has_match.restype = c_int
+
         lib.netplan_netdef_get_id.argtypes = [_NetplanNetDefinitionP, c_char_p, c_size_t]
         lib.netplan_netdef_get_id.restype = c_ssize_t
 
@@ -219,8 +222,14 @@ class NetDefinition:
         lib.netplan_netdef_get_type.argtypes = [_NetplanNetDefinitionP]
         lib.netplan_netdef_get_type.restype = c_int
 
+        lib.netplan_netdef_get_set_name.argtypes = [_NetplanNetDefinitionP, c_char_p, c_size_t]
+        lib.netplan_netdef_get_set_name.restype = c_ssize_t
+
         lib._netplan_netdef_get_critical.argtypes = [_NetplanNetDefinitionP]
         lib._netplan_netdef_get_critical.restype = c_int
+
+        lib.netplan_netdef_match_interface.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_match_interface.restype = c_int
 
         lib.netplan_backend_name.argtypes = [c_int]
         lib.netplan_backend_name.restype = c_char_p
@@ -241,6 +250,14 @@ class NetDefinition:
         # We hold on to this to avoid the underlying pointer being invalidated by
         # the GC invoking netplan_state_free
         self._parent = np_state
+
+    @property
+    def has_match(self):
+        return bool(lib.netplan_netdef_has_match(self._ptr))
+
+    @property
+    def set_name(self):
+        return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_set_name(self._ptr, b, len(b)))
 
     @property
     def critical(self):
@@ -270,6 +287,13 @@ class NetDefinition:
     @property
     def delay_virtual_functions_rebind(self):
         return bool(lib.netplan_netdef_get_delay_virtual_functions_rebind(self._ptr))
+
+    def match_interface(self, itf_name=None, itf_driver=None, itf_mac=None):
+        return bool(lib.netplan_netdef_match_interface(
+            self._ptr,
+            itf_name and itf_name.encode('utf-8'),
+            itf_mac and itf_mac.encode('utf-8'),
+            itf_driver and itf_driver.encode('utf-8')))
 
 
 class _NetdefIterator:
