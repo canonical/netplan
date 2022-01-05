@@ -406,6 +406,15 @@ class TestNetDefinition(TestBase):
         self.assertTrue(netdef.match_interface('eth0'))
         self.assertFalse(netdef.match_interface('eth000'))
 
+    def test_vlan_props_without_vlan(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+
+        self.assertIsNone(state['eth0'].vlan_id)
+        self.assertIsNone(state['eth0'].vlan_link)
+
 
 class TestFreeFunctions(TestBase):
     def setUp(self):

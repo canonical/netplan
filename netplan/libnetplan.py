@@ -20,7 +20,7 @@ import tempfile
 import logging
 import ctypes
 import ctypes.util
-from ctypes import c_char_p, c_void_p, c_int, c_size_t, c_ssize_t
+from ctypes import c_char_p, c_void_p, c_int, c_uint, c_size_t, c_ssize_t
 from typing import List, Union, IO
 
 
@@ -283,6 +283,18 @@ class NetDefinition:
         lib._netplan_netdef_get_critical.argtypes = [_NetplanNetDefinitionP]
         lib._netplan_netdef_get_critical.restype = c_int
 
+        lib._netplan_netdef_get_sriov_link.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_netdef_get_sriov_link.restype = _NetplanNetDefinitionP
+
+        lib._netplan_netdef_get_vlan_link.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_netdef_get_vlan_link.restype = _NetplanNetDefinitionP
+
+        lib._netplan_netdef_get_vlan_id.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_netdef_get_vlan_id.restype = c_uint
+
+        lib._netplan_netdef_get_sriov_vlan_filter.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_netdef_get_sriov_vlan_filter.restype = c_int
+
         lib.netplan_netdef_match_interface.argtypes = [_NetplanNetDefinitionP]
         lib.netplan_netdef_match_interface.restype = c_int
 
@@ -291,6 +303,9 @@ class NetDefinition:
 
         lib.netplan_def_type_name.argtypes = [c_int]
         lib.netplan_def_type_name.restype = c_char_p
+
+        lib._netplan_state_get_vf_count_for_def.argtypes = [_NetplanStateP, _NetplanNetDefinitionP, _GErrorPP]
+        lib._netplan_state_get_vf_count_for_def.restype = c_int
 
         cls._abi_loaded = True
 
@@ -317,6 +332,32 @@ class NetDefinition:
     @property
     def critical(self):
         return bool(lib._netplan_netdef_get_critical(self._ptr))
+
+    @property
+    def sriov_link(self):
+        link_ptr = lib._netplan_netdef_get_sriov_link(self._ptr)
+        if link_ptr:
+            return NetDefinition(self._parent, link_ptr)
+        return None
+
+    @property
+    def vlan_link(self):
+        link_ptr = lib._netplan_netdef_get_vlan_link(self._ptr)
+        if link_ptr:
+            return NetDefinition(self._parent, link_ptr)
+        return None
+
+    @property
+    def vlan_id(self):
+        vlan_id = lib._netplan_netdef_get_vlan_id(self._ptr)
+        # No easy way to get UINT_MAX besides this...
+        if vlan_id == c_uint(-1).value:
+            return None
+        return vlan_id
+
+    @property
+    def has_sriov_vlan_filter(self):
+        return bool(lib._netplan_netdef_get_sriov_vlan_filter(self._ptr))
 
     @property
     def backend(self):
@@ -349,6 +390,14 @@ class NetDefinition:
             itf_name and itf_name.encode('utf-8'),
             itf_mac and itf_mac.encode('utf-8'),
             itf_driver and itf_driver.encode('utf-8')))
+
+    @property
+    def vf_count(self):
+        err = ctypes.POINTER(_GError)()
+        count = lib._netplan_state_get_vf_count_for_def(self._parent._ptr, self._ptr, ctypes.byref(err))
+        if count < 0:
+            raise LibNetplanException(err.contents.message.decode('utf-8'))
+        return count
 
 
 class _NetdefIterator:
