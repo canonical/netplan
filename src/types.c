@@ -507,6 +507,12 @@ netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* ne
 }
 
 NETPLAN_INTERNAL gboolean
+netplan_netdef_has_match(const NetplanNetDefinition* netdef)
+{
+    return netdef->has_match;
+}
+
+NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
 {
     return netdef->critical;
