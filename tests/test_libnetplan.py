@@ -183,6 +183,23 @@ class TestNetdefIterator(TestBase):
         self.assertSetEqual(set(["eth0", "eth1"]), set(d.id for d in libnetplan._NetdefIterator(state, "ethernets")))
 
 
+class TestParser(TestBase):
+    def test_load_yaml_from_fd_empty(self):
+        parser = libnetplan.Parser()
+        # We just don't want it to raise an exception
+        with tempfile.TemporaryFile() as f:
+            parser.load_yaml(f)
+
+    def test_load_yaml_from_fd_bad_yaml(self):
+        parser = libnetplan.Parser()
+        with tempfile.TemporaryFile() as f:
+            f.write(b'invalid: {]')
+            f.seek(0, io.SEEK_SET)
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                parser.load_yaml(f)
+            self.assertIn('Invalid YAML', str(context.exception))
+
+
 class TestState(TestBase):
     def test_get_netdef(self):
         state = state_from_yaml(self.confdir, '''network:
