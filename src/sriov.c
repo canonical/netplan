@@ -122,3 +122,24 @@ netplan_sriov_cleanup(const char* rootdir)
     return TRUE;
 
 }
+
+NETPLAN_INTERNAL int
+_netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanNetDefinition* netdef, GError** error)
+{
+    GHashTableIter iter;
+    gpointer key, value;
+    int count = 0;
+
+    g_hash_table_iter_init(&iter, np_state->netdefs);
+    while (g_hash_table_iter_next (&iter, &key, &value)) {
+        const NetplanNetDefinition* def = value;
+        if (def->sriov_link == netdef)
+            count++;
+    }
+
+    if (netdef->sriov_explicit_vf_count != G_MAXUINT && count > netdef->sriov_explicit_vf_count) {
+        g_set_error(error, 0, 0, "more VFs allocated than the explicit size declared: %d > %d", count, netdef->sriov_explicit_vf_count);
+        return -1;
+    }
+    return netdef->sriov_explicit_vf_count != G_MAXUINT ? netdef->sriov_explicit_vf_count : count;
+}

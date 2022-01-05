@@ -512,6 +512,29 @@ netplan_netdef_has_match(const NetplanNetDefinition* netdef)
     return netdef->has_match;
 }
 
+NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef)
+{
+    return netdef->sriov_link;
+}
+
+NETPLAN_INTERNAL gboolean
+_netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef) {
+    return netdef->sriov_vlan_filter;
+}
+
+NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef)
+{
+    return netdef->vlan_link;
+}
+
+NETPLAN_INTERNAL guint
+_netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef)
+{
+    return netdef->vlan_id;
+}
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
 {
