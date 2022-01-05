@@ -209,6 +209,7 @@ class NetplanCommand(argparse.Namespace):
         self.testing = testing
         self._args = None
         self.debug = False
+        self.breakpoint = False
         self.commandclass = None
         self.subcommands = {}
         self.subcommand = None
@@ -219,6 +220,8 @@ class NetplanCommand(argparse.Namespace):
                                               add_help=True)
         self.parser.add_argument('--debug', action='store_true',
                                  help='Enable debug messages')
+        self.parser.add_argument('--breakpoint', action='store_true',
+                                 help=argparse.SUPPRESS)
         if not leaf:
             self.subparsers = self.parser.add_subparsers(title='Available commands',
                                                          metavar='', dest='subcommand')
@@ -245,6 +248,8 @@ class NetplanCommand(argparse.Namespace):
         if self.leaf_command and 'help' in self._args:  # pragma: nocover (covered in autopkgtest)
             self.print_usage()
 
+        if self.breakpoint:  # pragma: nocover (cannot be automatically tested)
+            breakpoint()
         self.func()
 
     def print_usage(self):
