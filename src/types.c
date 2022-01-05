@@ -466,6 +466,18 @@ netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer
     return netplan_copy_string(netdef->filepath, out_buffer, out_buf_size);
 }
 
+NETPLAN_INTERNAL NetplanBackend
+netplan_netdef_get_backend(const NetplanNetDefinition* netdef)
+{
+    return netdef->backend;
+}
+
+NETPLAN_INTERNAL NetplanDefType
+netplan_netdef_get_type(const NetplanNetDefinition* netdef)
+{
+    return netdef->type;
+}
+
 NETPLAN_INTERNAL ssize_t
 netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
@@ -492,4 +504,10 @@ netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* ne
 {
     g_assert(netdef);
     return netdef->sriov_delay_virtual_functions_rebind;
+}
+
+NETPLAN_INTERNAL gboolean
+_netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
+{
+    return netdef->critical;
 }

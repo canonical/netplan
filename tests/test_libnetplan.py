@@ -311,6 +311,35 @@ class TestState(TestBase):
 
 
 class TestNetDefinition(TestBase):
+    def test_type(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+
+        self.assertEqual(state['eth0'].type, 'ethernets')
+
+    def test_backend(self):
+        state = state_from_yaml(self.confdir, '''network:
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      renderer: NetworkManager''')
+        self.assertEqual(state['eth0'].backend, 'networkd')
+        self.assertEqual(state['eth1'].backend, 'NetworkManager')
+
+    def test_critical(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      critical: true
+    eth1: {}''')
+
+        self.assertTrue(state['eth0'].critical)
+        self.assertFalse(state['eth1'].critical)
+
     def test_eq(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:

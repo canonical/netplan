@@ -213,6 +213,21 @@ class NetDefinition:
         lib.netplan_netdef_get_filepath.argtypes = [_NetplanNetDefinitionP, c_char_p, c_size_t]
         lib.netplan_netdef_get_filepath.restype = c_ssize_t
 
+        lib.netplan_netdef_get_backend.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_backend.restype = c_int
+
+        lib.netplan_netdef_get_type.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_type.restype = c_int
+
+        lib._netplan_netdef_get_critical.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_netdef_get_critical.restype = c_int
+
+        lib.netplan_backend_name.argtypes = [c_int]
+        lib.netplan_backend_name.restype = c_char_p
+
+        lib.netplan_def_type_name.argtypes = [c_int]
+        lib.netplan_def_type_name.restype = c_char_p
+
         cls._abi_loaded = True
 
     def __eq__(self, other):
@@ -226,6 +241,18 @@ class NetDefinition:
         # We hold on to this to avoid the underlying pointer being invalidated by
         # the GC invoking netplan_state_free
         self._parent = np_state
+
+    @property
+    def critical(self):
+        return bool(lib._netplan_netdef_get_critical(self._ptr))
+
+    @property
+    def backend(self):
+        return lib.netplan_backend_name(lib.netplan_netdef_get_backend(self._ptr)).decode('utf-8')
+
+    @property
+    def type(self):
+        return lib.netplan_def_type_name(lib.netplan_netdef_get_type(self._ptr)).decode('utf-8')
 
     @property
     def id(self):
