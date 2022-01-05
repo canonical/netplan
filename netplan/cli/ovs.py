@@ -104,15 +104,10 @@ def clear_setting(type, iface, setting, value):
     subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, 'external-ids', setting])
 
 
-def is_ovs_interface(iface, interfaces):
-    assert isinstance(interfaces, dict)
-    if not isinstance(interfaces.get(iface), dict):
-        logging.debug('Ignoring special key: {} ({})'.format(iface, interfaces.get(iface)))
-        return False
-    elif interfaces.get(iface, {}).get('openvswitch') is not None:
-        return True
-    else:
-        return any(is_ovs_interface(i, interfaces) for i in interfaces.get(iface, {}).get('interfaces', []))
+def is_ovs_interface(iface, np_interface_dict):
+    assert isinstance(np_interface_dict, dict)
+    np_def = np_interface_dict.get(iface, None)
+    return np_def and np_def.backend == 'OpenVSwitch'
 
 
 def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover (covered in autopkgtest)
@@ -125,8 +120,8 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     """
     config_manager.parse()
     ovs_ifaces = set()
-    for i in config_manager.interfaces.keys():
-        if (is_ovs_interface(i, config_manager.interfaces)):
+    for i in config_manager.all_defs.keys():
+        if (is_ovs_interface(i, config_manager.all_defs)):
             ovs_ifaces.add(i)
 
     # Tear down old OVS interfaces, not defined in the current config.

@@ -338,45 +338,41 @@ class NetplanApply(utils.NetplanCommand):
         return dropped_interfaces
 
     @staticmethod
-    def process_link_changes(interfaces, config_manager):  # pragma: nocover (covered in autopkgtest)
+    def process_link_changes(interfaces, config_manager: ConfigManager):  # pragma: nocover (covered in autopkgtest)
         """
         Go through the pending changes and pick what needs special handling.
         Only applies to non-critical interfaces which can be safely updated.
         """
 
         changes = {}
-        phys = dict(config_manager.physical_interfaces)
         composite_interfaces = [config_manager.bridges, config_manager.bonds]
 
         # Find physical interfaces which need a rename
         # But do not rename virtual interfaces
-        for phy, settings in phys.items():
-            if not settings or not isinstance(settings, dict):
-                continue  # Skip special values, like "renderer: ..."
-            newname = settings.get('set-name')
+        for netdef in config_manager.physical_interfaces.values():
+            newname = netdef.set_name
             if not newname:
                 continue  # Skip if no new name needs to be set
-            match = settings.get('match')
-            if not match:
+            if not netdef.has_match:
                 continue  # Skip if no match for current name is given
-            if NetplanApply.is_composite_member(composite_interfaces, phy):
-                logging.debug('Skipping composite member {}'.format(phy))
+            if NetplanApply.is_composite_member(composite_interfaces, netdef.id):
+                logging.debug('Skipping composite member {}'.format(netdef.id))
                 # do not rename members of virtual devices. MAC addresses
                 # may be the same for all interface members.
                 continue
             # Find current name of the interface, according to match conditions and globs (name, mac, driver)
-            current_iface_name = utils.find_matching_iface(interfaces, match)
+            current_iface_name = utils.find_matching_iface(interfaces, netdef)
             if not current_iface_name:
-                logging.warning('Cannot find unique matching interface for {}: {}'.format(phy, match))
+                logging.warning('Cannot find unique matching interface for {}'.format(netdef.id))
                 continue
             if current_iface_name == newname:
                 # Skip interface if it already has the correct name
                 logging.debug('Skipping correctly named interface: {}'.format(newname))
                 continue
-            if settings.get('critical', False):
+            if netdef.critical:
                 # Skip interfaces defined as critical, as we should not take them down in order to rename
                 logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to being critical'
-                                .format(phy, current_iface_name, newname))
+                                .format(netdef.id, current_iface_name, newname))
                 continue
 
             # record the interface rename change

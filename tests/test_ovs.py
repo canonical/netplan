@@ -22,6 +22,9 @@ from netplan.cli.ovs import OPENVSWITCH_OVS_VSCTL as OVS
 
 import netplan.cli.ovs as ovs
 
+from utils import state_from_yaml
+import tempfile
+
 
 class TestOVS(unittest.TestCase):
 
@@ -118,31 +121,36 @@ Bootstrap: false'''
         mock.mock_calls
 
     def test_is_ovs_interface(self):
-        interfaces = dict()
-        interfaces['ovs0'] = {'openvswitch': {'set-fail-mode': 'secure'}}
-        self.assertTrue(ovs.is_ovs_interface('ovs0', interfaces))
+        with tempfile.TemporaryDirectory() as root:
+            state = state_from_yaml(root, '''network:
+  ethernets:
+    ovs0:
+      openvswitch: {}''')
+            self.assertTrue(ovs.is_ovs_interface('ovs0', state.all_defs))
 
     def test_is_ovs_interface_false(self):
-        interfaces = dict()
-        interfaces['br0'] = {'interfaces': ['eth0', 'eth1']}
-        interfaces['eth0'] = {}
-        interfaces['eth1'] = {}
-        self.assertFalse(ovs.is_ovs_interface('br0', interfaces))
+        with tempfile.TemporaryDirectory() as root:
+            state = state_from_yaml(root, '''network:
+  ethernets:
+    eth0: {}
+    eth1: {}
+  bridges:
+    br0:
+      interfaces:
+        - eth0
+        - eth1''')
+        self.assertFalse(ovs.is_ovs_interface('br0', state.all_defs))
 
     def test_is_ovs_interface_recursive(self):
-        interfaces = dict()
-        interfaces['patchx'] = {'peer': 'patchy', 'openvswitch': {}}
-        interfaces['patchy'] = {'peer': 'patchx', 'openvswitch': {}}
-        interfaces['ovs0'] = {'interfaces': ['bond0']}
-        interfaces['bond0'] = {'interfaces': ['patchx', 'patchy']}
-        self.assertTrue(ovs.is_ovs_interface('ovs0', interfaces))
-
-    def test_is_ovs_interface_invalid_key(self):
-        interfaces = dict()
-        interfaces['ovs0'] = {'openvswitch': {'set-fail-mode': 'secure'}}
-        self.assertFalse(ovs.is_ovs_interface('gretap1', interfaces))
-
-    def test_is_ovs_interface_special_key(self):
-        interfaces = dict()
-        interfaces['renderer'] = 'NetworkManager'
-        self.assertFalse(ovs.is_ovs_interface('renderer', interfaces))
+        with tempfile.TemporaryDirectory() as root:
+            state = state_from_yaml(root, '''network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  ethernets:
+    eth0: {}
+  bonds:
+    bond0:
+      interfaces: [patch1-0, eth0]''')
+        self.assertTrue(ovs.is_ovs_interface('bond0', state.all_defs))

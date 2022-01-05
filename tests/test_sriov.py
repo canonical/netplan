@@ -198,7 +198,7 @@ class TestSRIOV(unittest.TestCase):
         pfs = {}
 
         # call the function under test
-        sriov.get_vf_count_and_functions(interfaces, self.configmanager,
+        sriov.get_vf_count_and_functions(interfaces, self.configmanager.np_state,
                                          vf_counts, vfs, pfs)
         # check if the right vf counts have been recorded in vf_counts
         self.assertDictEqual(
@@ -247,7 +247,7 @@ class TestSRIOV(unittest.TestCase):
         pfs = {}
 
         # call the function under test
-        sriov.get_vf_count_and_functions(interfaces, self.configmanager,
+        sriov.get_vf_count_and_functions(interfaces, self.configmanager.np_state,
                                          vf_counts, vfs, pfs)
         # check if the right vf counts have been recorded in vf_counts -
         # we expect netplan to take into consideration the renamed interface
@@ -291,7 +291,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call the function under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.get_vf_count_and_functions(interfaces, self.configmanager,
+            sriov.get_vf_count_and_functions(interfaces, self.configmanager.np_state,
                                              vf_counts, vfs, pfs)
 
         self.assertIn('matched more than one interface for a PF device: enpx',
@@ -328,7 +328,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call the function under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.get_vf_count_and_functions(interfaces, self.configmanager,
+            sriov.get_vf_count_and_functions(interfaces, self.configmanager.np_state,
                                              vf_counts, vfs, pfs)
 
         self.assertIn('more VFs allocated than the explicit size declared: 3 > 2',
@@ -522,7 +522,7 @@ class TestSRIOV(unittest.TestCase):
         sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
 
         # make sure config_manager.parse() has been called
-        self.assertTrue(self.configmanager.config)
+        self.assertTrue(self.configmanager.np_state)
         # check if the config got applied as expected
         # we had 2 PFs, one having two VFs and the other only one
         self.assertEqual(set_numvfs.call_count, 2)
