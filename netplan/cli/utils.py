@@ -24,6 +24,8 @@ import netifaces
 import fnmatch
 import re
 
+import netplan.libnetplan as np
+
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
 
@@ -155,43 +157,14 @@ def get_interface_macaddress(interface):
     return link.get('addr', '')
 
 
-def is_interface_matching_name(interface, match_name):
-    # globs are supported
-    return fnmatch.fnmatchcase(interface, match_name)
+def find_matching_iface(interfaces: list, netdef):
+    assert isinstance(netdef, np.NetDefinition)
+    assert netdef.has_match
 
-
-def is_interface_matching_driver_name(interface, match_driver):
-    driver_globs = match_driver
-    if isinstance(driver_globs, str):
-        driver_globs = [match_driver]
-    driver_name = get_interface_driver_name(interface)
-    # globs are supported
-    return any(
-        fnmatch.fnmatchcase(driver_name, pattern)
-        for pattern in driver_globs
-    )
-
-
-def is_interface_matching_macaddress(interface, match_mac):
-    macaddress = get_interface_macaddress(interface)
-    # exact, case insensitive match. globs are not supported
-    return match_mac.lower() == macaddress.lower()
-
-
-def find_matching_iface(interfaces, match):
-    assert isinstance(match, dict)
-
-    # Filter for match.name glob, fallback to '*'
-    name_glob = match.get('name') if match.get('name', False) else '*'
-    matches = fnmatch.filter(interfaces, name_glob)
-
-    # Filter for match.macaddress (exact match)
-    if len(matches) > 1 and match.get('macaddress'):
-        matches = list(filter(lambda iface: is_interface_matching_macaddress(iface, match.get('macaddress')), matches))
-
-    # Filter for match.driver glob
-    if len(matches) > 1 and match.get('driver'):
-        matches = list(filter(lambda iface: is_interface_matching_driver_name(iface, match.get('driver')), matches))
+    matches = list(filter(lambda itf: netdef.match_interface(
+            itf_name=itf,
+            itf_driver=get_interface_driver_name(itf),
+            itf_mac=get_interface_macaddress(itf)), interfaces))
 
     # Return current name of unique matched interface, if available
     if len(matches) != 1:

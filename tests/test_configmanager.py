@@ -21,7 +21,7 @@ import shutil
 import tempfile
 import unittest
 
-from netplan.configmanager import ConfigManager
+from netplan.configmanager import ConfigManager, ConfigurationError
 
 
 class TestConfigManager(unittest.TestCase):
@@ -44,6 +44,8 @@ class TestConfigManager(unittest.TestCase):
   ethernets:
     eth0:
       dhcp6: on
+    eth42:
+      dhcp4: on
     ethbr1:
       dhcp4: on
 ''', file=fd)
@@ -62,6 +64,14 @@ class TestConfigManager(unittest.TestCase):
     ports: [[patchx, patchc], [patchy, patchd]]
   bridges:
     ovs0: {openvswitch: {}}
+''', file=fd)
+        with open(os.path.join(self.workdir.name, "invalid.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  vlans:
+    vlan78:
+      id: 78
+      link: ethinvalid
 ''', file=fd)
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
@@ -125,6 +135,7 @@ class TestConfigManager(unittest.TestCase):
         passthrough:
           connection.id: some-nm-id
           connection.uuid: some-uuid
+          connection.type: ethernet
 ''', file=fd)
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'w') as fd:
             print("pretend .network", file=fd)
@@ -133,59 +144,61 @@ class TestConfigManager(unittest.TestCase):
 
     def test_parse(self):
         self.configmanager.parse()
-        self.assertIn('eth0', self.configmanager.ethernets)
-        self.assertIn('bond6', self.configmanager.bonds)
-        self.assertIn('eth0', self.configmanager.physical_interfaces)
-        self.assertNotIn('bond7', self.configmanager.interfaces)
+        state = self.configmanager.np_state
+        assert state
+        self.assertIn('eth0',   state.ethernets)
+        self.assertIn('bond6',  state.bonds)
+        self.assertIn('eth0',   self.configmanager.physical_interfaces)
+        self.assertNotIn('bond7', self.configmanager.all_defs)
         self.assertNotIn('bond6', self.configmanager.physical_interfaces)
-        self.assertNotIn('parameters', self.configmanager.bonds.get('bond5'))
-        self.assertIn('parameters', self.configmanager.bonds.get('bond6'))
-        self.assertIn('wwan0', self.configmanager.modems)
+        self.assertIn('wwan0', state.modems)
         self.assertIn('wwan0', self.configmanager.physical_interfaces)
-        self.assertIn('apn', self.configmanager.modems.get('wwan0'))
-        self.assertIn('he-ipv6', self.configmanager.tunnels)
+        # self.assertIn('apn', self.configmanager.modems.get('wwan0'))
+        self.assertIn('he-ipv6',    state.tunnels)
         self.assertNotIn('he-ipv6', self.configmanager.physical_interfaces)
-        self.assertIn('remote', self.configmanager.tunnels.get('he-ipv6'))
-        self.assertIn('other-config', self.configmanager.openvswitch)
-        self.assertIn('ports', self.configmanager.openvswitch)
-        self.assertEquals(2, self.configmanager.version)
-        self.assertEquals('networkd', self.configmanager.renderer)
-        self.assertIn('fallback', self.configmanager.nm_devices)
-        self.assertIn('vlan2', self.configmanager.virtual_interfaces)
-        self.assertIn('br3', self.configmanager.virtual_interfaces)
-        self.assertIn('br4', self.configmanager.virtual_interfaces)
-        self.assertIn('bond5', self.configmanager.virtual_interfaces)
-        self.assertIn('bond6', self.configmanager.virtual_interfaces)
+        # self.assertIn('remote', self.configmanager.tunnels.get('he-ipv6'))
+        self.assertIn('patcha', state.ovs_ports)
+        self.assertIn('patchb', state.ovs_ports)
+
+        self.assertEqual('networkd', state.backend)
+        self.assertIn('fallback',    state.nm_devices)
+
+        self.assertIn('vlan2',   self.configmanager.virtual_interfaces)
+        self.assertIn('br3',     self.configmanager.virtual_interfaces)
+        self.assertIn('br4',     self.configmanager.virtual_interfaces)
+        self.assertIn('bond5',   self.configmanager.virtual_interfaces)
+        self.assertIn('bond6',   self.configmanager.virtual_interfaces)
         self.assertIn('he-ipv6', self.configmanager.virtual_interfaces)
 
     def test_parse_merging(self):
-        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])
-        self.assertIn('eth0', self.configmanager.ethernets)
-        self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
-        self.assertEquals(True, self.configmanager.ethernets['eth0'].get('dhcp6'))
-        self.assertEquals(True, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+        state = self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_merging.yaml")])
+        self.assertIn('eth0',    state.ethernets)
+        self.assertIn('eth42',   state.ethernets)
 
     def test_parse_merging_ovs(self):
-        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "ovs_merging.yaml")])
-        self.assertIn('eth0', self.configmanager.ethernets)
-        self.assertIn('dhcp4', self.configmanager.ethernets['eth0'])
-        self.assertIn('patchx', self.configmanager.ovs_ports)
-        self.assertIn('patchy', self.configmanager.ovs_ports)
-        self.assertIn('ovs0', self.configmanager.bridges)
-        self.assertEqual({}, self.configmanager.ovs_ports['patchx'].get('openvswitch'))
-        self.assertEqual({}, self.configmanager.ovs_ports['patchy'].get('openvswitch'))
-        self.assertEqual({}, self.configmanager.bridges['ovs0'].get('openvswitch'))
+        state = self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "ovs_merging.yaml")])
+        self.assertIn('eth0',   state.ethernets)
+        # self.assertIn('dhcp4',  state.ethernets['eth0'])
+        self.assertIn('patchx', state.ovs_ports)
+        self.assertIn('patchy', state.ovs_ports)
+        self.assertIn('ovs0',   state.bridges)
+        self.assertEqual('OpenVSwitch', state['ovs0'].backend)
+        self.assertEqual('OpenVSwitch', state['patchx'].backend)
+        self.assertEqual('OpenVSwitch', state['patchy'].backend)
 
     def test_parse_emptydict(self):
-        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_emptydict.yaml")])
-        self.assertIn('br666', self.configmanager.bridges)
-        self.assertEquals(False, self.configmanager.ethernets['eth0'].get('dhcp4'))
-        self.assertEquals(False, self.configmanager.ethernets['ethbr1'].get('dhcp4'))
+        state = self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile_emptydict.yaml")])
+        self.assertIn('br666',   state.bridges)
+        self.assertIn('eth0',    state.ethernets)
+
+    def test_parse_invalid(self):
+        with self.assertRaises(ConfigurationError):
+            self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "invalid.yaml")])
 
     def test_parse_extra_config(self):
-        self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile.yaml")])
-        self.assertIn('ethtest', self.configmanager.ethernets)
-        self.assertIn('bond6', self.configmanager.bonds)
+        state = self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "newfile.yaml")])
+        self.assertIn('ethtest', state.ethernets)
+        self.assertIn('bond6',   state.bonds)
 
     def test_add(self):
         self.configmanager.add({os.path.join(self.workdir.name, "newfile.yaml"):

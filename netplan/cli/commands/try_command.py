@@ -23,7 +23,6 @@ import shutil
 import signal
 import sys
 import tempfile
-import logging
 
 from netplan.configmanager import ConfigManager
 import netplan.cli.utils as utils
@@ -161,16 +160,10 @@ class NetplanTry(utils.NetplanCommand):
         to not cleanly revert via the backend.
         '''
 
-        # Parse; including any new config file passed on the command-line:
-        # new config might include things we can't revert.
         extra_config = []
         if self.config_file:
-            extra_config.append(self.config_file)
-        self.config_manager.parse(extra_config=extra_config)
-        self.new_interfaces = self.config_manager.new_interfaces
-
-        logging.debug("New interfaces: {}".format(self.new_interfaces))
-
+            extra_config.append(self.config.file)
+        np_state = self.config_manager.parse(extra_config=extra_config)
         revert_unsupported = []
 
         # Bridges and bonds are special. They typically include (or could include)
@@ -178,8 +171,8 @@ class NetplanTry(utils.NetplanCommand):
         # to tweak their behavior, which are really hard to "revert", especially
         # as systemd-networkd doesn't necessarily touch them when config changes.
         multi_iface = {}
-        multi_iface.update(self.config_manager.bridges)
-        multi_iface.update(self.config_manager.bonds)
+        multi_iface.update(np_state.bridges)
+        multi_iface.update(np_state.bonds)
         for ifname, settings in multi_iface.items():
             if settings and 'parameters' in settings:
                 reason = "reverting custom parameters for bridges and bonds is not supported"

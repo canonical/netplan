@@ -182,30 +182,24 @@ def unbind_vfs(vfs: typing.Iterable[PCIDevice], driver) -> typing.Iterable[PCIDe
     return unbound_vfs
 
 
-def _get_target_interface(interfaces, config_manager, pf_link, pfs):
+def _get_target_interface(interfaces, np_state, pf_link, pfs):
     if pf_link not in pfs:
         # handle the match: syntax, get the actual device name
-        pf_dev = config_manager.ethernets[pf_link]
-        pf_match = pf_dev.get('match')
-        if pf_match:
+        pf_dev = np_state[pf_link]
+        if pf_dev.has_match:
             # now here it's a bit tricky
-            set_name = pf_dev.get('set-name')
+            set_name = pf_dev.set_name
             if set_name and set_name in interfaces:
                 # if we had a match: stanza and set-name: this means we should
                 # assume that, if found, the interface has already been
                 # renamed - use the new name
                 pfs[pf_link] = set_name
             else:
-                # no set-name (or interfaces not yet renamed) so we need to do
-                # the matching ourselves
-                by_name = pf_match.get('name')
-                by_mac = pf_match.get('macaddress')
-                by_driver = pf_match.get('driver')
-
                 for interface in interfaces:
-                    if ((by_name and not utils.is_interface_matching_name(interface, by_name)) or
-                            (by_mac and not utils.is_interface_matching_macaddress(interface, by_mac)) or
-                            (by_driver and not utils.is_interface_matching_driver_name(interface, by_driver))):
+                    if not pf_dev.match_interface(
+                            itf_name=interface,
+                            itf_driver=utils.get_interface_driver_name(interface),
+                            itf_mac=utils.get_interface_macaddress(interface)):
                         continue
                     # we have a matching PF
                     # store the matching interface in the dictionary of
@@ -238,53 +232,27 @@ def _get_pci_slot_name(netdev):
         raise RuntimeError('failed parsing PCI slot name for %s: %s' % (netdev, str(e)))
 
 
-def get_vf_count_and_functions(interfaces, config_manager,
+def get_vf_count_and_functions(interfaces, np_state,
                                vf_counts, vfs, pfs):
     """
     Go through the list of netplan ethernet devices and identify which are
     PFs and VFs, matching the former with actual networking interfaces.
     Count how many VFs each PF will need.
     """
-    explicit_counts = {}
-    for ethernet, settings in config_manager.ethernets.items():
-        if not settings:
-            continue
-        if ethernet == 'renderer':
-            continue
+    for nid, netdef in np_state.ethernets.items():
+        if netdef.sriov_link and _get_target_interface(interfaces, np_state, netdef.sriov_link.id, pfs):
+            vfs[nid] = None
 
-        # we now also support explicitly stating how many VFs should be
-        # allocated for a PF
-        explicit_num = settings.get('virtual-function-count')
-        if explicit_num:
-            pf = _get_target_interface(interfaces, config_manager, ethernet, pfs)
-            if pf:
-                explicit_counts[pf] = explicit_num
+        try:
+            count = netdef.vf_count
+        except libnetplan.LibNetplanException as e:
+            raise ConfigurationError(*e.args)
+        if count == 0:
             continue
 
-        pf_link = settings.get('link')
-        if pf_link and pf_link in config_manager.ethernets:
-            _get_target_interface(interfaces, config_manager, pf_link, pfs)
-
-            if pf_link in pfs:
-                vf_counts[pfs[pf_link]] += 1
-            else:
-                logging.warning('could not match physical interface for the defined PF: %s' % pf_link)
-                # continue looking for other VFs
-                continue
-
-            # we can't yet perform matching on VFs as those are only
-            # created later - but store, for convenience, all the valid
-            # VFs that we encounter so far
-            vfs[ethernet] = None
-
-    # sanity check: since we can explicitly state the VF count, make sure
-    # that this number isn't smaller than the actual number of VFs declared
-    # the explicit number also overrides the number of actual VFs
-    for pf, count in explicit_counts.items():
-        if pf in vf_counts and vf_counts[pf] > count:
-            raise ConfigurationError(
-                'more VFs allocated than the explicit size declared: %s > %s' % (vf_counts[pf], count))
-        vf_counts[pf] = count
+        pf = _get_target_interface(interfaces, np_state, nid, pfs)
+        if pf:
+            vf_counts[pf] = count
 
 
 def set_numvfs_for_pf(pf, vf_count):
@@ -415,6 +383,7 @@ def apply_sriov_config(config_manager, rootdir='/'):
 
     config_manager.parse()
     interfaces = netifaces.interfaces()
+    np_state = config_manager.np_state
 
     # for sr-iov devices, we identify VFs by them having a link: field
     # pointing to an PF. So let's browse through all ethernet devices,
@@ -427,7 +396,7 @@ def apply_sriov_config(config_manager, rootdir='/'):
     pfs = {}
 
     get_vf_count_and_functions(
-        interfaces, config_manager, vf_counts, vfs, pfs)
+        interfaces, np_state, vf_counts, vfs, pfs)
 
     # setup the required number of VFs per PF
     # at the same time store which PFs got changed in case the NICs
@@ -456,22 +425,17 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # filtered VLANs for those.
     # XXX: does matching those even make sense?
     for vf in vfs:
-        settings = config_manager.ethernets.get(vf)
-        match = settings.get('match')
-        if match:
+        netdef = np_state[vf]
+        if netdef.has_match:
             # right now we only match by name, as I don't think matching per
             # driver and/or macaddress makes sense
-            by_name = match.get('name')
-            # by_mac = match.get('macaddress')
-            # by_driver = match.get('driver')
             # TODO: print warning if other matches are provided
 
             for interface in interfaces:
-                if by_name and not utils.is_interface_matching_name(interface, by_name):
-                    continue
-                if vf in vfs and vfs[vf]:
-                    raise ConfigurationError('matched more than one interface for a VF device: %s' % vf)
-                vfs[vf] = interface
+                if netdef.match_interface(itf_name=interface):
+                    if vf in vfs and vfs[vf]:
+                        raise ConfigurationError('matched more than one interface for a VF device: %s' % vf)
+                    vfs[vf] = interface
         else:
             if vf in interfaces:
                 vfs[vf] = vf
@@ -495,31 +459,31 @@ def apply_sriov_config(config_manager, rootdir='/'):
                             bind_vfs(pcidev.vfs, pcidev.driver)
 
     filtered_vlans_set = set()
-    for vlan, settings in config_manager.vlans.items():
+    for vlan, netdef in np_state.vlans.items():
         # there is a special sriov vlan renderer that one can use to mark
         # a selected vlan to be done in hardware (VLAN filtering)
-        if settings.get('renderer') == 'sriov':
+        if netdef.has_sriov_vlan_filter:
             # this only works for SR-IOV VF interfaces
-            link = settings.get('link')
-            vlan_id = settings.get('id')
-            vf = vfs.get(link)
+            link = netdef.vlan_link
+            vlan_id = netdef.vlan_id
+
+            vf = vfs.get(link.id)
             if not vf:
                 # it is possible this is not an error, for instance when
                 # the configuration has been defined 'for the future'
                 # XXX: but maybe we should error out here as well?
                 logging.warning(
-                    'SR-IOV vlan defined for %s but link %s is either not a VF or has no matches' % (vlan, link))
+                    'SR-IOV vlan defined for %s but link %s is either not a VF or has no matches' % (vlan, link.id))
                 continue
 
             # get the parent pf interface
             # first we fetch the related vf netplan entry
-            vf_parent_entry = config_manager.ethernets.get(link).get('link')
             # and finally, get the matched pf interface
-            pf = pfs.get(vf_parent_entry)
+            pf = pfs.get(link.sriov_link.id)
 
             if vf in filtered_vlans_set:
                 raise ConfigurationError(
-                    'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, link, vlan))
+                    'interface %s for netplan device %s (%s) already has an SR-IOV vlan defined' % (vf, link.id, vlan))
 
             # TODO: make sure that we don't apply the filter twice
             apply_vlan_filter_for_vf(pf, vf, vlan, vlan_id)
