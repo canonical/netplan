@@ -1766,11 +1766,7 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, const void* _, GError** e
         gboolean ret;
 
         NetplanIPRule* ip_rule = g_new0(NetplanIPRule, 1);
-        ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
-        ip_rule->priority = NETPLAN_IP_RULE_PRIO_UNSPEC;
-        ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
-        ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
-        ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
+        reset_ip_rule(ip_rule);
 
         npp->current.ip_rule = ip_rule;
         ret = process_mapping(npp, entry, ip_rules_handlers, NULL, error);
