@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import ConfigParser
+from netplan.cli.utils import _GError
 import os
 import sys
 import shutil
@@ -73,6 +74,7 @@ class TestKeyfileBase(unittest.TestCase):
 
     def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
         '''Call libnetplan with given keyfile string as configuration'''
+        err = ctypes.POINTER(_GError)()
         # Autodetect default 'NM-<UUID>' netdef-id
         ssid = ''
         if not netdef_id:
@@ -88,21 +90,33 @@ class TestKeyfileBase(unittest.TestCase):
                 if found_values >= 2:
                     break
             netdef_id = 'NM-' + uuid
-        if not filename:
-            filename = 'netplan-{}{}.nmconnection'.format(netdef_id, ssid)
-        f = os.path.join(self.workdir.name, 'run/NetworkManager/system-connections/{}'.format(filename))
+        generated_file = 'netplan-{}{}.nmconnection'.format(netdef_id, ssid)
+        original_file = filename or generated_file
+        f = os.path.join(self.workdir.name,
+                         'run/NetworkManager/system-connections/{}'.format(original_file))
         os.makedirs(os.path.dirname(f))
+        # Create the original keyfile that will be parsed by netplan
         with open(f, 'w') as file:
             file.write(keyfile)
 
         with capture_stderr() as outf:
             if expect_fail:
-                self.assertFalse(lib.netplan_parse_keyfile(f.encode(), None))
+                self.assertFalse(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
+                if err:
+                    return err.contents.message.decode('utf-8')
             else:
-                self.assertTrue(lib.netplan_parse_keyfile(f.encode(), None))
+                self.assertTrue(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
+                if err:  # pragma: nocover (only happens if a test fails so irrelevant for coverage)
+                    return err.contents.message.decode('utf-8')
+                # If the original file does not have a standard netplan-*.nmconnection
+                # filename it is being deleted in favor of the newly generated file.
+                # It has been parsed and is not needed anymore in this case
+                if generated_file != original_file:
+                    os.remove(f)
                 lib._write_netplan_conf(netdef_id.encode(), self.workdir.name.encode())
                 lib.netplan_clear_netdefs()
-                self.assert_nm_regenerate({filename: keyfile})  # check re-generated keyfile
+                # check re-generated keyfile
+                self.assert_nm_regenerate({generated_file: keyfile})
             with open(outf.name, 'r') as f:
                 output = f.read().strip()  # output from stderr (fd=2) on C/library level
                 return output
@@ -150,7 +164,9 @@ class TestKeyfileBase(unittest.TestCase):
         argv = [exe_generate, '--root-dir', self.workdir.name]
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, universal_newlines=True)
+        returncode = p.wait(5)
         (out, err) = p.communicate()
+        self.assertEqual(returncode, 0, err)
         self.assertEqual(out, '')
         con_dir = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections')
         if file_contents_map:

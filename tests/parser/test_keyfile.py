@@ -202,7 +202,6 @@ route-metric=4242
 
 [ipv6]
 addr-gen-mode=eui64
-token=1234::3
 dns-search=
 method=auto
 ignore-auto-routes=true
@@ -227,7 +226,6 @@ route-metric=4242
         route-metric: 4242
       macaddress: "00:11:22:33:44:55"
       ipv6-address-generation: "eui64"
-      ipv6-address-token: "1234::3"
       mtu: 1500
       networkmanager:
         uuid: "{}"
@@ -237,6 +235,25 @@ route-metric=4242
           ipv6.dns-search: ""
           proxy._: ""
 '''.format(UUID, UUID)})
+
+    def test_keyfile_fail_validation(self):
+        err = self.generate_from_keyfile('''[connection]
+id=Test
+uuid={}
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=eui64
+token=::42
+method=auto
+'''.format(UUID), expect_fail=True)
+        self.assertIn('Error in network definition:', err)
 
     def test_keyfile_method_manual(self):
         self.generate_from_keyfile('''[connection]
@@ -360,13 +377,13 @@ route1_options=unknown=invalid,
         self._template_keyfile_type('bonds', 'bond')
 
     def test_keyfile_type_vlan(self):
-        self._template_keyfile_type('vlans', 'vlan')
+        self._template_keyfile_type('nm-devices', 'vlan', False)
 
     def test_keyfile_type_tunnel(self):
-        self._template_keyfile_type('tunnels', 'ip-tunnel', False)
+        self._template_keyfile_type('nm-devices', 'ip-tunnel', False)
 
     def test_keyfile_type_wireguard(self):
-        self._template_keyfile_type('tunnels', 'wireguard', False)
+        self._template_keyfile_type('nm-devices', 'wireguard', False)
 
     def test_keyfile_type_other(self):
         self._template_keyfile_type('nm-devices', 'dummy', False)
@@ -784,21 +801,24 @@ address1=1.2.3.4/24
 
 [ipv6]
 method=ignore
-'''.format(UUID), netdef_id='enblue', expect_fail=False, filename="some.keyfile")
+'''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
-  vlans:
-    enblue:
+  nm-devices:
+    NM-{}:
       renderer: NetworkManager
-      addresses:
-      - "1.2.3.4/24"
-      id: 1
       networkmanager:
         uuid: "{}"
         name: "netplan-enblue"
         passthrough:
+          connection.type: "vlan"
+          connection.interface-name: "enblue"
+          vlan.id: "1"
           vlan.parent: "en1"
-'''.format(UUID)})
+          ipv4.method: "manual"
+          ipv4.address1: "1.2.3.4/24"
+          ipv6.method: "ignore"
+'''.format(UUID, UUID)})
 
     def test_keyfile_bridge(self):
         self.generate_from_keyfile('''[connection]
@@ -902,7 +922,7 @@ method=auto
 
 [ipv6]
 method=ignore
-'''.format(UUID), netdef_id='bn0')
+'''.format(UUID), netdef_id='bn0', expect_fail=False, filename='some.keyfile')
         self.assert_netplan({UUID: '''network:
   version: 2
   bonds:
@@ -1131,5 +1151,54 @@ route4=5:6:7:8:9:0:1:2/62
           ipv4.route4: "3.3.3.3/6,0.0.0.0,4"
           ipv4.route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
           ipv6.dns-search: "wallaceandgromit.com;"
+          proxy._: ""
+'''.format(UUID, UUID)})
+
+    def test_keyfile_tunnel_regression_lp1952967(self):
+        self.generate_from_keyfile('''[connection]
+id=IP tunnel connection 1
+uuid={}
+type=ip-tunnel
+autoconnect=false
+interface-name=gre10
+permissions=
+
+[ip-tunnel]
+local=10.20.20.1
+mode=2
+remote=10.20.20.2
+
+[ipv4]
+dns-search=
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+dns-search=
+method=auto
+
+[proxy]
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  nm-devices:
+    NM-{}:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: "{}"
+        name: "IP tunnel connection 1"
+        passthrough:
+          connection.type: "ip-tunnel"
+          connection.autoconnect: "false"
+          connection.interface-name: "gre10"
+          connection.permissions: ""
+          ip-tunnel.local: "10.20.20.1"
+          ip-tunnel.mode: "2"
+          ip-tunnel.remote: "10.20.20.2"
+          ipv4.dns-search: ""
+          ipv4.method: "auto"
+          ipv6.addr-gen-mode: "stable-privacy"
+          ipv6.dns-search: ""
+          ipv6.method: "auto"
           proxy._: ""
 '''.format(UUID, UUID)})

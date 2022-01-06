@@ -272,7 +272,10 @@ _write_netplan_conf(const char* netdef_id, const char* rootdir)
     const NetplanNetDefinition* def = NULL;
     ht = netplan_finish_parse(NULL);
     def = g_hash_table_lookup(ht, netdef_id);
-    write_netplan_conf(def, rootdir);
+    if (def)
+        write_netplan_conf(def, rootdir);
+    else
+        g_warning("_write_netplan_conf: netdef_id (%s) not found.", netdef_id); // LCOV_EXCL_LINE
 }
 
 /**
