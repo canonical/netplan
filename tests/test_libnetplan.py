@@ -269,6 +269,36 @@ class TestState(TestBase):
             f.flush()
             self.assertEqual(0, f.seek(0, io.SEEK_END))
 
+    def test_write_yaml_file_unremovable_target(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''', filename='target.yml')
+        target = os.path.join(self.confdir, 'target.yml')
+        os.remove(target)
+        os.makedirs(target)
+
+        with self.assertRaises(libnetplan.LibNetplanException):
+            state.write_yaml_file('target.yml', self.workdir.name)
+
+    def test_write_yaml_file_remove_directory(self):
+        state = libnetplan.State()
+        os.makedirs(self.confdir)
+        with tempfile.TemporaryDirectory(dir=self.confdir) as tmpdir:
+            hint = os.path.basename(tmpdir)
+            with self.assertRaises(libnetplan.LibNetplanException):
+                state.write_yaml_file(hint, self.workdir.name)
+
+    def test_write_yaml_file_file_no_confdir(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''', filename='test.yml')
+        shutil.rmtree(self.confdir)
+        with self.assertRaises(libnetplan.LibNetplanException) as context:
+            state.write_yaml_file('test.yml', self.workdir.name)
+        self.assertIn('No such file or directory', str(context.exception))
+
 
 class TestNetDefinition(TestBase):
     def test_eq(self):

@@ -143,6 +143,9 @@ class State:
         lib.netplan_state_get_netdef.argtypes = [_NetplanStateP, c_char_p]
         lib.netplan_state_get_netdef.restype = _NetplanNetDefinitionP
 
+        lib.netplan_state_write_yaml_file.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
+        lib.netplan_state_write_yaml_file.restype = c_int
+
         lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
         lib.netplan_state_dump_yaml.restype = c_int
 
@@ -163,6 +166,11 @@ class State:
 
     def import_parser_results(self, parser):
         _checked_lib_call(lib.netplan_state_import_parser_results, self._ptr, parser._ptr)
+
+    def write_yaml_file(self, filename, rootdir):
+        name = filename.encode('utf-8') if filename else None
+        root = rootdir.encode('utf-8') if rootdir else None
+        _checked_lib_call(lib.netplan_state_write_yaml_file, self._ptr, name, root)
 
     def dump_yaml(self, output_file):
         fd = output_file.fileno()
