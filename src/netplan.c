@@ -990,6 +990,64 @@ file_error:
 }
 
 /**
+ * Generate the YAML configuration, filtered to the data relevant to a particular file.
+ * Any data that's assigned to another file is ignored. Data that is not assigned is considered
+ * relevant.
+ *
+ * @np_state: the state for which to generate the config
+ * @filename: Relevant file basename
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ */
+gboolean
+netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename, const char* rootdir, GError** error)
+{
+    GList* iter = np_state->netdefs_ordered;
+    g_autofree gchar* path = NULL;
+    g_autofree gchar* tmp_path = NULL;
+    GList* to_write = NULL;
+    int out_fd;
+
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
+
+    while (iter) {
+        NetplanNetDefinition* netdef = iter->data;
+        const char* fname = netdef->filename ? netdef->filename : path;
+        if (g_strcmp0(fname, path) == 0)
+            to_write = g_list_append(to_write, netdef);
+        iter = iter->next;
+    }
+
+    /* Remove any existing file if there is no data to write */
+    if (to_write == NULL) {
+        if (unlink(path) && errno != ENOENT) {
+            g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    tmp_path = g_strdup_printf("%s.XXXXXX", path);
+    out_fd = mkstemp(tmp_path);
+    if (out_fd < 0) {
+        g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+        return FALSE;
+    }
+
+    gboolean ret = netplan_netdef_list_write_yaml(np_state, to_write, out_fd, error);
+    g_list_free(to_write);
+    close(out_fd);
+    if (ret) {
+        if (rename(tmp_path, path) == 0)
+            return TRUE;
+        g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+    }
+    /* Something went wrong, clean up the tempfile! */
+    unlink(tmp_path);
+    return FALSE;
+}
+
+/**
  * Dump the whole state into a single YAML file.
  *
  * @np_state: the state for which to generate the config
