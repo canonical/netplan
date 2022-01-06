@@ -106,7 +106,7 @@ class TestKeyfileBase(unittest.TestCase):
                     return err.contents.message.decode('utf-8')
             else:
                 self.assertTrue(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
-                if err:  # pragma: nocover (this case should never happen)
+                if err:  # pragma: nocover (only happens if a test fails so irrelevant for coverage)
                     return err.contents.message.decode('utf-8')
                 # If the original file does not have a standard netplan-*.nmconnection
                 # filename it is being deleted in favor of the newly generated file.
