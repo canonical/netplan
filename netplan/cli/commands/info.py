@@ -62,7 +62,7 @@ class NetplanInfo(utils.NetplanCommand):
 
         elif self.version_format == 'yaml':
             print('''netplan.io:
-  website: "https://netplan.io"
-  features:''')
+  website: "{}"
+  features:'''.format(netplan_version['netplan.io']['website']))
             for feature in netplan._features.NETPLAN_FEATURE_FLAGS:
                 print('  - ' + feature)
