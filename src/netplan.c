@@ -882,12 +882,12 @@ err_path:
     // LCOV_EXCL_STOP
 }
 
-static gboolean
-contains_netdef_type(gpointer key, gpointer value, gpointer user_data)
+static int
+contains_netdef_type(gconstpointer value, gconstpointer user_data)
 {
-    NetplanNetDefinition *nd = value;
-    NetplanDefType *type = user_data;
-    return nd->type == *type;
+    const NetplanNetDefinition *nd = value;
+    const NetplanDefType *type = user_data;
+    return nd->type == *type ? 0 : -1;
 }
 
 /**
@@ -902,8 +902,7 @@ netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, co
 {
     g_autofree gchar *path = NULL;
     GHashTable *ovs_ports = NULL;
-    GHashTableIter iter;
-    gpointer key, value;
+    GList* netdefs = np_state->netdefs_ordered;
 
     gboolean global_values = (np_state->backend != NETPLAN_BACKEND_NONE
                               || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL));
@@ -936,33 +935,33 @@ netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, co
     }
 
     /* Go through the netdefs type-by-type */
-    if (netplan_state_get_netdefs_size(np_state) > 0) {
-        for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
-            /* Per-netdef config */
-            if (g_hash_table_find(np_state->netdefs, contains_netdef_type, &i)) {
-                if (netplan_def_type_name(i)) {
-                    YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(i));
-                    YAML_MAPPING_OPEN(event, emitter);
-                    g_hash_table_iter_init(&iter, np_state->netdefs);
-                    while (g_hash_table_iter_next (&iter, &key, &value)) {
-                        NetplanNetDefinition *def = (NetplanNetDefinition *) value;
-                        if (def->type == i)
-                            _serialize_yaml(np_state, event, emitter, def);
+    for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+        /* Per-netdef config */
+        if (g_list_find_custom(netdefs, &i, contains_netdef_type)) {
+            if (i == NETPLAN_DEF_TYPE_PORT) {
+                GList* iter = netdefs;
+                while (iter) {
+                    NetplanNetDefinition *def = iter->data;
+                    if (def->type == i) {
+                        if (!ovs_ports)
+                            ovs_ports = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+                        /* Check that the peer hasn't already been inserted to avoid duplication */
+                        if (!g_hash_table_lookup(ovs_ports, def->peer))
+                            g_hash_table_insert(ovs_ports, g_strdup(def->id), g_strdup(def->peer));
                     }
-                    YAML_MAPPING_CLOSE(event, emitter);
-                } else if (i == NETPLAN_DEF_TYPE_PORT) {
-                    g_hash_table_iter_init(&iter, np_state->netdefs);
-                    while (g_hash_table_iter_next (&iter, &key, &value)) {
-                        NetplanNetDefinition *def = (NetplanNetDefinition *) value;
-                        if (def->type == i) {
-                            if (!ovs_ports)
-                                ovs_ports = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-                            /* Insert each port:peer combination only once */
-                            if (!g_hash_table_lookup(ovs_ports, def->id))
-                                g_hash_table_insert(ovs_ports, g_strdup(def->peer), g_strdup(def->id));
-                        }
-                    }
+                    iter = g_list_next(iter);
                 }
+            } else if (netplan_def_type_name(i)) {
+                GList* iter = netdefs;
+                YAML_SCALAR_PLAIN(event, emitter, netplan_def_type_name(i));
+                YAML_MAPPING_OPEN(event, emitter);
+                while (iter) {
+                    NetplanNetDefinition *def = iter->data;
+                    if (def->type == i)
+                        _serialize_yaml(np_state, event, emitter, def);
+                    iter = g_list_next(iter);
+                }
+                YAML_MAPPING_CLOSE(event, emitter);
             }
         }
     }
