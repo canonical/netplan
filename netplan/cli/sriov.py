@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2020 Canonical, Ltd.
+# Copyright (C) 2020-2022 Canonical, Ltd.
 # Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,13 +19,167 @@
 import logging
 import os
 import subprocess
+import typing
 
 from collections import defaultdict
 
 import netplan.cli.utils as utils
+import netplan.libnetplan as libnetplan
 from netplan.configmanager import ConfigurationError
 
 import netifaces
+
+
+# PCIDevice class originates from mlnx_switchdev_mode/sriovify.py
+# Copyright 2019 Canonical Ltd, Apache License, Version 2.0
+# https://github.com/openstack-charmers/mlnx-switchdev-mode
+class PCIDevice(object):
+    """Helper class for interaction with a PCI device"""
+
+    def __init__(self, pci_addr: str):
+        """Initialise a new PCI device handler
+        :param pci_addr: PCI address of device
+        :type: str
+        """
+        self.pci_addr = pci_addr
+
+    @property
+    def sys(self) -> str:
+        """sysfs path (can be overridden for testing)
+        :return: full path to /sys filesystem
+        :rtype: str
+        """
+        return "/sys"
+
+    @property
+    def path(self) -> str:
+        """/sys path for PCI device
+        :return: full path to PCI device in /sys filesystem
+        :rtype: str
+        """
+        return os.path.join(self.sys, "bus/pci/devices", self.pci_addr)
+
+    def subpath(self, subpath: str) -> str:
+        """/sys subpath helper for PCI device
+        :param subpath: subpath to construct path for
+        :type: str
+        :return: self.path + subpath
+        :rtype: str
+        """
+        return os.path.join(self.path, subpath)
+
+    @property
+    def driver(self) -> str:
+        """Kernel driver for PCI device
+        :return: kernel driver in use for device
+        :rtype: str
+        """
+        driver = ''
+        if os.path.exists(self.subpath("driver")):
+            driver = os.path.basename(os.readlink(self.subpath("driver")))
+        return driver
+
+    @property
+    def bound(self) -> bool:
+        """Determine if device is bound to a kernel driver
+        :return: whether device is bound to a kernel driver
+        :rtype: bool
+        """
+        return os.path.exists(self.subpath("driver"))
+
+    @property
+    def is_pf(self) -> bool:
+        """Determine if device is a SR-IOV Physical Function
+        :return: whether device is a PF
+        :rtype: bool
+        """
+        return os.path.exists(self.subpath("sriov_numvfs"))
+
+    @property
+    def is_vf(self) -> bool:
+        """Determine if device is a SR-IOV Virtual Function
+        :return: whether device is a VF
+        :rtype: bool
+        """
+        return os.path.exists(self.subpath("physfn"))
+
+    @property
+    def vf_addrs(self) -> list:
+        """List Virtual Function addresses associated with a Physical Function
+        :return: List of PCI addresses of Virtual Functions
+        :rtype: list[str]
+        """
+        vf_addrs = []
+        i = 0
+        while True:
+            try:
+                vf_addrs.append(
+                    os.path.basename(
+                        os.readlink(self.subpath("virtfn{}".format(i)))
+                    )
+                )
+            except FileNotFoundError:
+                break
+            i += 1
+        return vf_addrs
+
+    @property
+    def vfs(self) -> list:
+        """List Virtual Function associated with a Physical Function
+        :return: List of PCI devices of Virtual Functions
+        :rtype: list[PCIDevice]
+        """
+        return [PCIDevice(addr) for addr in self.vf_addrs]
+
+    def devlink_set(self, obj_name: str, prop: str, value: str):
+        """Set devlink options for the PCI device
+        :param obj_name: devlink object to set options on
+        :type: str
+        :param prop: property to set
+        :type: str
+        :param value: value to set for property
+        :type: str
+        """
+        subprocess.check_call(
+            [
+                "/sbin/devlink",
+                "dev",
+                obj_name,
+                "set",
+                "pci/{}".format(self.pci_addr),
+                prop,
+                value,
+            ]
+        )
+
+    def __str__(self) -> str:
+        """String represenation of object
+        :return: PCI address of string
+        :rtype: str
+        """
+        return self.pci_addr
+
+
+def bind_vfs(vfs: typing.Iterable[PCIDevice], driver):
+    """Bind unbound VFs to driver."""
+    bound_vfs = []
+    for vf in vfs:
+        if not vf.bound:
+            with open("/sys/bus/pci/drivers/{}/bind".format(driver), "wt") as f:
+                f.write(vf.pci_addr)
+                bound_vfs.append(vf)
+    return bound_vfs
+
+
+def unbind_vfs(vfs: typing.Iterable[PCIDevice], driver) -> typing.Iterable[PCIDevice]:
+    """Unbind bound VFs from driver."""
+    unbound_vfs = []
+    for vf in vfs:
+        if vf.bound:
+            with open("/sys/bus/pci/drivers/{}/unbind".format(driver), "wt") as f:
+                f.write(vf.pci_addr)
+                unbound_vfs.append(vf)
+    return unbound_vfs
 
 
 def _get_target_interface(interfaces, config_manager, pf_link, pfs):
@@ -64,6 +219,23 @@ def _get_target_interface(interfaces, config_manager, pf_link, pfs):
                 pfs[pf_link] = pf_link
 
     return pfs.get(pf_link, None)
+
+
+def _get_pci_slot_name(netdev):
+    """
+    Read PCI slot name for given interface name
+    """
+    uevent_path = os.path.join('/sys/class/net', netdev, 'device/uevent')
+    try:
+        with open(uevent_path) as f:
+            pci_slot_name = None
+            for line in f.readlines():
+                line = line.strip()
+                if line.startswith('PCI_SLOT_NAME='):
+                    pci_slot_name = line.split('=', 2)[1]
+                    return pci_slot_name
+    except IOError as e:
+        raise RuntimeError('failed parsing PCI slot name for %s: %s' % (netdev, str(e)))
 
 
 def get_vf_count_and_functions(interfaces, config_manager,
@@ -230,11 +402,17 @@ def apply_vlan_filter_for_vf(pf, vf, vlan_name, vlan_id, prefix='/'):
             'failed setting SR-IOV VLAN filter for vlan %s (ip link set command failed)' % vlan_name)
 
 
-def apply_sriov_config(config_manager):
+def apply_sriov_config(config_manager, rootdir='/'):
     """
     Go through all interfaces, identify which ones are SR-IOV VFs, create
     them and perform all other necessary setup.
     """
+    parser = libnetplan.Parser()
+    parser.load_yaml_hierarchy(rootdir)
+
+    np_state = libnetplan.State()
+    np_state.import_parser_results(parser)
+
     config_manager.parse()
     interfaces = netifaces.interfaces()
 
@@ -297,6 +475,24 @@ def apply_sriov_config(config_manager):
         else:
             if vf in interfaces:
                 vfs[vf] = vf
+
+    # Walk the SR-IOV PFs and check if we need to change the eswitch mode
+    for netdef_id, iface in pfs.items():
+        netdef = np_state[netdef_id]
+        eswitch_mode = netdef.embedded_switch_mode
+        if eswitch_mode in ['switchdev', 'legacy']:
+            pci_addr = _get_pci_slot_name(iface)
+            pcidev = PCIDevice(pci_addr)
+            if pcidev.is_pf:
+                logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
+                if pcidev.vfs:
+                    rebind_delayed = netdef.delay_virtual_functions_rebind
+                    try:
+                        unbind_vfs(pcidev.vfs, pcidev.driver)
+                        pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
+                    finally:
+                        if not rebind_delayed:
+                            bind_vfs(pcidev.vfs, pcidev.driver)
 
     filtered_vlans_set = set()
     for vlan, settings in config_manager.vlans.items():
