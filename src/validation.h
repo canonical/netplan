@@ -37,4 +37,7 @@ gboolean
 validate_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error);
 
 gboolean
+validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error);
+
+gboolean
 validate_default_route_consistency(const NetplanParser* npp, GHashTable* netdefs, GError** error);

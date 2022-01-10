@@ -133,6 +133,12 @@ class State:
         lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
         lib.netplan_state_dump_yaml.restype = c_int
 
+        lib.netplan_netdef_get_embedded_switch_mode.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_embedded_switch_mode.restype = c_char_p
+
+        lib.netplan_netdef_get_delay_virtual_functions_rebind.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_delay_virtual_functions_rebind.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -187,6 +193,15 @@ class NetDefinition:
     @property
     def id(self):
         return lib.netplan_netdef_get_id(self._ptr).decode('utf-8')
+
+    @property
+    def embedded_switch_mode(self):
+        mode = lib.netplan_netdef_get_embedded_switch_mode(self._ptr)
+        return mode and mode.decode('utf-8')
+
+    @property
+    def delay_virtual_functions_rebind(self):
+        return bool(lib.netplan_netdef_get_delay_virtual_functions_rebind(self._ptr))
 
 
 class _NetdefIterator:

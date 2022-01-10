@@ -26,6 +26,7 @@ from unittest.mock import patch, mock_open, call
 import netplan.cli.sriov as sriov
 
 from netplan.configmanager import ConfigManager, ConfigurationError
+from generator.base import TestBase
 
 
 class MockSRIOVOpen():
@@ -684,3 +685,31 @@ class TestSRIOV(unittest.TestCase):
 
         self.assertIn('matched more than one interface for a VF device: customvf1',
                       str(e.exception))
+
+
+class TestParser(TestBase):
+    def test_eswitch_mode(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      embedded-switch-mode: switchdev
+      delay-virtual-functions-rebind: true
+    sriov_vf:
+      link: engreen''')
+
+    def test_invalid_not_a_pf(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      embedded-switch-mode: legacy''', expect_fail=True)
+        self.assertIn("This is not a SR-IOV PF", err)
+
+    def test_invalid_eswitch_mode(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      embedded-switch-mode: invalid''', expect_fail=True)
+        self.assertIn("needs to be 'switchdev' or 'legacy'", err)

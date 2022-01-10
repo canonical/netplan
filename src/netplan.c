@@ -707,6 +707,9 @@ _serialize_yaml(
     if (def->sriov_link)
         YAML_STRING(def, event, emitter, "link", def->sriov_link->id);
     YAML_UINT_DEFAULT(def, event, emitter, "virtual-function-count", def->sriov_explicit_vf_count, G_MAXUINT);
+    YAML_STRING(def, event, emitter, "embedded-switch-mode", def->embedded_switch_mode);
+    YAML_BOOL_TRUE(def, event, emitter, "delay-virtual-functions-rebind",
+                   def->sriov_delay_virtual_functions_rebind);
 
     /* Search interfaces */
     if (def->type == NETPLAN_DEF_TYPE_BRIDGE || def->type == NETPLAN_DEF_TYPE_BOND) {

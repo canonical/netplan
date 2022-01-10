@@ -342,6 +342,10 @@ struct netplan_net_definition {
     gboolean large_receive_offload;
 
     struct private_netdef_data* _private;
+
+    /* netplan-feature: eswitch-mode */
+    char* embedded_switch_mode;
+    gboolean sriov_delay_virtual_functions_rebind;
 };
 
 struct private_netdef_data {

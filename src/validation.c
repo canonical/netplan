@@ -375,6 +375,46 @@ backend_rules_error:
     return valid;
 }
 
+gboolean
+validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error)
+{
+    /* The SR-IOV checks need to be executed after all netdefs have been parsed;
+     * only then can we calculate the PF/VF dependencies between the different
+     * network definitions. */
+    NetplanNetDefinition* def;
+    GHashTableIter iter;
+    gboolean valid = FALSE;
+    /* Set a dummy, NULL yaml_node_t for error reporting */
+    yaml_node_t* node = NULL;
+
+    g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
+
+    if (nd->type == NETPLAN_DEF_TYPE_ETHERNET) {
+        /* Is it defined as SR-IOV PF, explicitly? */
+        gboolean is_sriov_pf = nd->sriov_explicit_vf_count < G_MAXUINT;
+        /* Does it have any VF pointing to it? (to mark it a PF implicitly) */
+        if (!is_sriov_pf) {
+            g_hash_table_iter_init(&iter, npp->parsed_defs);
+            while (g_hash_table_iter_next(&iter, NULL, (gpointer) &def)) {
+                if (def->sriov_link == nd) {
+                    is_sriov_pf = TRUE;
+                    break;
+                }
+            }
+        }
+        gboolean eswitch_mode = (nd->embedded_switch_mode ||
+                                 nd->sriov_delay_virtual_functions_rebind);
+        if (eswitch_mode && !is_sriov_pf) {
+            valid = yaml_error(npp, node, error, "%s: This is not a SR-IOV PF", nd->id);
+            goto sriov_rules_error;
+        }
+    }
+    valid = TRUE;
+
+sriov_rules_error:
+    return valid;
+}
+
 struct _defroute_entry {
     int family;
     int table;
