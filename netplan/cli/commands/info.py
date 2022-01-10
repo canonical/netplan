@@ -61,5 +61,8 @@ class NetplanInfo(utils.NetplanCommand):
             print(json.dumps(netplan_version, indent=2))
 
         elif self.version_format == 'yaml':
-            import yaml
-            print(yaml.dump(netplan_version, indent=2, default_flow_style=False))
+            print('''netplan.io:
+  website: "{}"
+  features:'''.format(netplan_version['netplan.io']['website']))
+            for feature in netplan._features.NETPLAN_FEATURE_FLAGS:
+                print('  - ' + feature)
