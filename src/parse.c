@@ -454,6 +454,15 @@ handle_netdef_id(NetplanParser* npp, yaml_node_t* node, const void* data, GError
     return handle_netdef_str(npp, node, data, error);
 }
 
+static gboolean
+handle_embedded_switch_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_strcmp0(scalar(node), "switchdev") != 0 && g_strcmp0(scalar(node), "legacy") != 0)
+        return yaml_error(npp, node, error, "Value of 'embedded-switch-mode' needs to be 'switchdev' or 'legacy'");
+
+    return handle_netdef_str(npp, node, data, error);
+}
+
 /**
  * Generic handler for setting a npp->current.netdef ID/iface name field referring to an
  * existing ID from a scalar node. This handler also includes a special case
@@ -2362,6 +2371,8 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_auth}}},
     {"link", YAML_SCALAR_NODE, {.generic=handle_netdef_id_ref}, netdef_offset(sriov_link)},
     {"virtual-function-count", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(sriov_explicit_vf_count)},
+    {"embedded-switch-mode", YAML_SCALAR_NODE, {.generic=handle_embedded_switch_mode}, netdef_offset(embedded_switch_mode)},
+    {"delay-virtual-functions-rebind", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(sriov_delay_virtual_functions_rebind)},
     {NULL}
 };
 
@@ -2748,7 +2759,7 @@ finish_iterator(const NetplanParser* npp, NetplanNetDefinition* nd, GError **err
     }
 
     /* Do a final pass of validation for backend-specific conditions */
-    return validate_backend_rules(npp, nd, error);
+    return validate_backend_rules(npp, nd, error) && validate_sriov_rules(npp, nd, error);
 }
 
 static gboolean

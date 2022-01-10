@@ -456,3 +456,17 @@ netplan_state_has_nondefault_globals(const NetplanState* np_state)
         return (np_state->backend != NETPLAN_BACKEND_NONE)
                 || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL);
 }
+
+NETPLAN_INTERNAL const char*
+netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->embedded_switch_mode;
+}
+
+NETPLAN_INTERNAL gboolean
+netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->sriov_delay_virtual_functions_rebind;
+}
