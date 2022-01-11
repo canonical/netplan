@@ -45,10 +45,6 @@ class _netplan_net_definition(ctypes.Structure):
 
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
-lib.netplan_parse_yaml.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.POINTER(_GError))]
-lib.netplan_get_filename_by_id.restype = ctypes.c_char_p
-lib.process_yaml_hierarchy.argtypes = [ctypes.c_char_p]
-lib.process_yaml_hierarchy.restype = ctypes.c_int
 
 _GErrorPP = ctypes.POINTER(ctypes.POINTER(_GError))
 _NetplanParserP = ctypes.POINTER(_netplan_parser)
@@ -81,11 +77,6 @@ def _checked_lib_call(fn, *args):
     ret = bool(fn(*args, ctypes.byref(err)))
     if not ret:
         raise LibNetplanException(err.contents.message.decode('utf-8'))
-
-
-def netplan_get_filename_by_id(netdef_id, rootdir):
-    res = lib.netplan_get_filename_by_id(netdef_id.encode(), rootdir.encode())
-    return res.decode('utf-8') if res else None
 
 
 class Parser:
@@ -444,25 +435,6 @@ class _NetdefIterator:
         if not next_value:
             raise StopIteration
         return NetDefinition(self.np_state, next_value)
-
-
-class __GlobalState(State):
-    def __init__(self):
-        self._ptr = ctypes.cast(lib.global_state, _NetplanStateP)
-
-    def __del__(self):
-        pass
-
-
-def netplan_get_ids_for_devtype(devtype, rootdir):
-    err = ctypes.POINTER(_GError)()
-    lib.netplan_clear_netdefs()
-    lib.process_yaml_hierarchy(rootdir.encode('utf-8'))
-    lib.netplan_finish_parse(ctypes.byref(err))
-    if err:  # pragma: nocover (this is a "break in case of emergency" thing)
-        raise Exception(err.contents.message.decode('utf-8'))
-    nds = list(_NetdefIterator(__GlobalState(), devtype))
-    return [nd.id for nd in nds]
 
 
 lib.netplan_util_create_yaml_patch.argtypes = [c_char_p, c_char_p, c_int, _GErrorPP]

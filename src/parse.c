@@ -3049,12 +3049,12 @@ netplan_parser_reset(NetplanParser* npp)
     g_free((void *)npp->current.filepath);
     npp->current.filepath = NULL;
 
-    //LCOV_EXCL_START
+    // LCOV_EXCL_START
     if (npp->ids_in_file) {
         g_hash_table_destroy(npp->ids_in_file);
         npp->ids_in_file = NULL;
     }
-    //LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
 
     if (npp->missing_id) {
         g_hash_table_destroy(npp->missing_id);
