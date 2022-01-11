@@ -399,6 +399,14 @@ class TestFreeFunctions(TestBase):
         state = libnetplan.State()
         self.assertSequenceEqual(list(libnetplan._NetdefIterator(state, "ethernets")), [])
 
+    def test_create_yaml_patch_bad_syntax(self):
+        with tempfile.TemporaryFile() as patchfile:
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.create_yaml_patch(['network'], '{invalid_yaml]', patchfile)
+            self.assertIn('Error parsing YAML', str(context.exception))
+            patchfile.seek(0, io.SEEK_END)
+            self.assertEqual(patchfile.tell(), 0)
+
     def test_dump_yaml_subtree_bad_file_perms(self):
         input_file = os.path.join(self.workdir.name, 'input.yaml')
         with open(input_file, "w") as f, tempfile.TemporaryFile() as output:
