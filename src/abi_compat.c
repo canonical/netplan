@@ -180,6 +180,7 @@ _write_netplan_conf(const char* netdef_id, const char* rootdir)
         g_warning("_write_netplan_conf: netdef_id (%s) not found.", netdef_id); // LCOV_EXCL_LINE
 }
 
+// LCOV_EXCL_START
 /**
  * Get the filename from which the given netdef has been parsed.
  * @rootdir: ID of the netdef to be looked up
@@ -207,7 +208,6 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
     return filepath;
 }
 
-// LCOV_EXCL_START
 NETPLAN_INTERNAL struct netdef_pertype_iter*
 _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* devtype);
 
