@@ -48,53 +48,54 @@ class TestSet(unittest.TestCase):
         self._set(['ethernets.eth0.dhcp4=true'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: true', f.read())
+            self.assertIs(True, yaml.safe_load(f)['network']['ethernets']['eth0']['dhcp4'])
 
     def test_set_scalar2(self):
         self._set(['ethernets.eth0.dhcp4="yes"'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: \'yes\'', f.read())
+            # XXX: the previous version using PyYAML would keep the "yes" variant but the round-trip
+            # through libnetplan doesn't keep formatting choices (yes is a keyword same as true)
+            self.assertIs(True, yaml.safe_load(f)['network']['ethernets']['eth0']['dhcp4'])
 
     def test_set_global(self):
         self._set([r'network={renderer: NetworkManager}'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('network:\n  renderer: NetworkManager', f.read())
+            self.assertEqual('NetworkManager', yaml.safe_load(f)['network']['renderer'])
 
     def test_set_sequence(self):
         self._set(['ethernets.eth0.addresses=[1.2.3.4/24, \'5.6.7.8/24\']'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('''network:\n  ethernets:\n    eth0:
-      addresses:
-      - 1.2.3.4/24
-      - 5.6.7.8/24''', f.read())
+            self.assertListEqual(
+                    ['1.2.3.4/24', '5.6.7.8/24'],
+                    yaml.safe_load(f)['network']['ethernets']['eth0']['addresses'])
 
     def test_set_sequence2(self):
         self._set(['ethernets.eth0.addresses=["1.2.3.4/24", 5.6.7.8/24]'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('''network:\n  ethernets:\n    eth0:
-      addresses:
-      - 1.2.3.4/24
-      - 5.6.7.8/24''', f.read())
+            self.assertListEqual(
+                    ['1.2.3.4/24', '5.6.7.8/24'],
+                    yaml.safe_load(f)['network']['ethernets']['eth0']['addresses'])
 
     def test_set_mapping(self):
         self._set(['ethernets.eth0={addresses: [1.2.3.4/24], dhcp4: true}'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('''network:\n  ethernets:\n    eth0:
-      addresses:
-      - 1.2.3.4/24
-      dhcp4: true''', f.read())
+            out = yaml.safe_load(f)
+            self.assertSequenceEqual(
+                    ['1.2.3.4/24'],
+                    out['network']['ethernets']['eth0']['addresses'])
+            self.assertIs(True, out['network']['ethernets']['eth0']['dhcp4'])
 
     def test_set_origin_hint(self):
         self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=99_snapd'])
         p = os.path.join(self.workdir.name, 'etc', 'netplan', '99_snapd.yaml')
         self.assertTrue(os.path.isfile(p))
         with open(p, 'r') as f:
-            self.assertEquals('network:\n  ethernets:\n    eth0:\n      dhcp4: true\n', f.read())
+            self.assertIs(True, yaml.safe_load(f)['network']['ethernets']['eth0']['dhcp4'])
 
     def test_set_empty_origin_hint(self):
         with self.assertRaises(Exception) as context:
@@ -107,7 +108,7 @@ class TestSet(unittest.TestCase):
         self._set(['ethernets.eth0.dhcp4=true', '--origin-hint=00-empty'])
         self.assertTrue(os.path.isfile(empty_file))
         with open(empty_file, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: true', f.read())
+            self.assertTrue(yaml.safe_load(f)['network']['ethernets']['eth0']['dhcp4'])
 
     def test_set_empty_hint_file_whitespace(self):
         empty_file = os.path.join(self.workdir.name, 'etc', 'netplan', '00-empty.yaml')
@@ -151,7 +152,7 @@ class TestSet(unittest.TestCase):
     def test_set_invalid(self):
         with self.assertRaises(Exception) as context:
             self._set(['xxx.yyy=abc'])
-        self.assertIn('unknown key \'xxx\'\n  xxx:\n', str(context.exception))
+        self.assertIn('unknown key \'xxx\'', str(context.exception))
         self.assertFalse(os.path.isfile(self.path))
 
     def test_set_invalid_validation(self):
@@ -181,11 +182,12 @@ class TestSet(unittest.TestCase):
         self._set(['ethernets.eth0.dhcp4=true'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            out = f.read()
-            self.assertIn('network:\n  ethernets:\n', out)
-            self.assertIn('    ens3:\n      dhcp4: true', out)
-            self.assertIn('    eth0:\n      dhcp4: true', out)
-            self.assertIn('  version: 2', out)
+            out = yaml.safe_load(f)
+            self.assertIn('ens3', out['network']['ethernets'])
+            self.assertIn('eth0', out['network']['ethernets'])
+            self.assertIs(True, out['network']['ethernets']['ens3']['dhcp4'])
+            self.assertIs(True, out['network']['ethernets']['eth0']['dhcp4'])
+            self.assertEqual(2, out['network']['version'])
 
     def test_set_overwrite_eq(self):
         with open(self.path, 'w') as f:
@@ -195,39 +197,42 @@ class TestSet(unittest.TestCase):
         self._set(['ethernets.ens3.dhcp4=yes'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            out = f.read()
-            self.assertIn('network:\n  ethernets:\n', out)
-            self.assertIn('    ens3:\n      dhcp4: true', out)
+            self.assertIs(
+                    True,
+                    yaml.safe_load(f)['network']['ethernets']['ens3']['dhcp4'])
 
     def test_set_overwrite(self):
         with open(self.path, 'w') as f:
             f.write('''network:
   ethernets:
-    ens3: {dhcp4: "yes"}''')
+    ens3: {dhcp4: "no"}''')
         self._set(['ethernets.ens3.dhcp4=true'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            out = f.read()
-            self.assertIn('network:\n  ethernets:\n', out)
-            self.assertIn('    ens3:\n      dhcp4: true', out)
+            self.assertIs(
+                    True,
+                    yaml.safe_load(f)['network']['ethernets']['ens3']['dhcp4'])
 
     def test_set_delete(self):
         with open(self.path, 'w') as f:
             f.write('''network:\n  version: 2\n  renderer: NetworkManager
   ethernets:
     ens3: {dhcp4: yes, dhcp6: yes}
-    eth0: {addresses: [1.2.3.4/24]}''')
+    eth0: {addresses: [1.2.3.4/24]}
+    eth1: {addresses: [2.3.4.5/24]}
+    ''')
         self._set(['ethernets.eth0.addresses=NULL'])
         self._set(['ethernets.ens3.dhcp6=null'])
+        self._set(['ethernets.eth1=NULL'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            out = f.read()
-            self.assertIn('network:\n  ethernets:\n', out)
-            self.assertIn('  version: 2', out)
-            self.assertIn('    ens3:\n      dhcp4: true', out)
-            self.assertNotIn('dhcp6: true', out)
-            self.assertNotIn('addresses:', out)
-            self.assertNotIn('eth0:', out)
+            out = yaml.safe_load(f)
+            self.assertIn('ethernets', out['network'])
+            self.assertEqual(2, out['network']['version'])
+            self.assertIs(True, out['network']['ethernets']['ens3']['dhcp4'])
+            self.assertNotIn('dhcp6', out['network']['ethernets']['ens3'])
+            self.assertNotIn('eth0', out['network']['ethernets'])
+            self.assertNotIn('eth1', out['network']['ethernets'])
 
     def test_set_delete_subtree(self):
         with open(self.path, 'w') as f:
@@ -237,11 +242,129 @@ class TestSet(unittest.TestCase):
         self._set(['network.ethernets=null'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            out = f.read()
-        self.assertIn('network:\n', out)
-        self.assertIn(' version: 2\n', out)
-        self.assertIn(' renderer: NetworkManager\n', out)
-        self.assertNotIn('ethernets:', out)
+            out = yaml.safe_load(f)
+        self.assertIn('network', out)
+        self.assertEqual(2, out['network']['version'])
+        self.assertEqual('NetworkManager', out['network']['renderer'])
+        self.assertNotIn('ethernets', out['network'])
+
+    def test_set_global_ovs(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:\n  version: 2
+  ethernets:
+    eth0: {addresses: [1.2.3.4/24]}''')
+        self._set(['network.openvswitch={"ports": [[port1, port2]], "other-config": null}'])
+        self.assertTrue(os.path.isfile(self.path))
+        with open(self.path, 'r') as f:
+            out = yaml.safe_load(f)
+        self.assertIn('network', out)
+        self.assertEqual(2, out['network']['version'])
+        self.assertEqual('1.2.3.4/24', out['network']['ethernets']['eth0']['addresses'][0])
+        self.assertNotIn('other-config', out['network']['openvswitch'])
+        self.assertSequenceEqual(['port1', 'port2'], out['network']['openvswitch']['ports'][0])
+
+    def test_set_delete_access_point(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        "Joe's Home":
+          password: "s0s3kr1t"
+          bssid: 00:11:22:33:44:55
+          band: 2.4GHz
+          channel: 11
+        workplace:
+          password: "c0mpany1"
+          bssid: de:ad:be:ef:ca:fe
+          band: 5GHz
+          channel: 100
+        peer2peer:
+          mode: adhoc''')
+        self._set(['network.wifis.wl0.access-points.Joe\'s Home=null'])
+        with open(self.path, 'r') as f:
+            out = yaml.safe_load(f)
+        self.assertNotIn('Joe\'s Home', out['network']['wifis']['wl0']['access-points'])
+
+    def test_set_delete_nm_passthrough(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  wifis:
+    wlan0:
+      renderer: NetworkManager
+      dhcp4: true
+      macaddress: "00:11:22:33:44:55"
+      access-points:
+        "SOME-SSID":
+          bssid: "de:ad:be:ef:ca:fe"
+          networkmanager:
+            name: "myid with spaces"
+            passthrough:
+              connection.permissions: ""
+              ipv4.dns-search: ""''')
+        ap_key = 'network.wifis.wlan0.access-points.SOME-SSID'
+        self._set([ap_key+'.networkmanager.passthrough.connection\\.permissions=null'])
+        with open(self.path, 'r') as f:
+            out = yaml.safe_load(f)
+        ap = out['network']['wifis']['wlan0']['access-points']['SOME-SSID']
+        self.assertNotIn('connection.permissions', ap['networkmanager']['passthrough'])
+        self.assertEqual('', ap['networkmanager']['passthrough']['ipv4.dns-search'])
+
+    def test_set_delete_bridge_subparams(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    eno2: {}
+    switchports:
+      match:
+        driver: yayroute
+  bridges:
+    br0:
+      interfaces: [eno1, eno2, switchports]
+      parameters:
+        path-cost:
+          eno1: 70
+          eno2: 80
+        port-priority:
+          eno1: 14
+          eno2: 15''')
+
+        self._set(['network.bridges.br0.parameters={path-cost: {eno1: null}, port-priority: {eno2: null}}'])
+
+        with open(self.path, 'r') as f:
+            out = yaml.safe_load(f)
+        self.assertNotIn('eno1', out['network']['bridges']['br0']['parameters']['path-cost'])
+        self.assertEqual(80, out['network']['bridges']['br0']['parameters']['path-cost']['eno2'])
+
+        self.assertNotIn('eno2', out['network']['bridges']['br0']['parameters']['port-priority'])
+        self.assertEqual(14, out['network']['bridges']['br0']['parameters']['port-priority']['eno1'])
+
+    def test_set_delete_ovs_other_config(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0:
+      openvswitch:
+        other-config:
+          bogus-option: bogus
+          disable-in-band: true
+      dhcp6: true
+  bridges:
+    ovs0:
+      interfaces: [eth0]
+      openvswitch: {}
+''')
+        self._set(['ethernets.eth0.openvswitch.other-config.bogus-option=null'])
+
+        with open(self.path, 'r') as f:
+            out = yaml.safe_load(f)
+        self.assertNotIn('bogus-option', out['network']['ethernets']['eth0']['openvswitch']['other-config'])
+        self.assertTrue(out['network']['ethernets']['eth0']['openvswitch']['other-config']['disable-in-band'])
 
     def test_set_delete_file(self):
         with open(self.path, 'w') as f:
@@ -269,13 +392,21 @@ class TestSet(unittest.TestCase):
     eth0: {addresses: [1.2.3.4]}''')
         with self.assertRaises(Exception) as context:
             self._set(['ethernets.eth0.addresses'])
-        self.assertEquals('Invalid value specified', str(context.exception))
+        self.assertEqual('Invalid value specified', str(context.exception))
 
     def test_set_escaped_dot(self):
         self._set([r'ethernets.eth0\.123.dhcp4=false'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
+            out = yaml.safe_load(f)
+            self.assertIs(False, out['network']['ethernets']['eth0.123']['dhcp4'])
+
+    def test_set_invalid_input(self):
+        with self.assertRaises(Exception) as context:
+            self._set([r'ethernets.eth0={dhcp4:false}'])
+        self.assertIn(
+                "unknown key 'dhcp4:false'",
+                str(context.exception))
 
     def test_set_override_existing_file(self):
         override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
@@ -285,9 +416,9 @@ class TestSet(unittest.TestCase):
         self.assertFalse(os.path.isfile(self.path))
         self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
-            out = f.read()
-            self.assertIn('network:\n  ethernets:\n    eth0:\n      dhcp4: false', out)  # new
-            self.assertIn('eth1:\n      dhcp6: false', out)  # old
+            out = yaml.safe_load(f)
+            self.assertIs(False, out['network']['ethernets']['eth0']['dhcp4'])
+            self.assertIs(False, out['network']['ethernets']['eth1']['dhcp6'])
 
     def test_set_override_existing_file_escaped_dot(self):
         override = os.path.join(self.workdir.name, 'etc', 'netplan', 'some-file.yaml')
@@ -297,7 +428,8 @@ class TestSet(unittest.TestCase):
         self.assertFalse(os.path.isfile(self.path))
         self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0.123:\n      dhcp4: false', f.read())
+            out = yaml.safe_load(f)
+            self.assertIs(False, out['network']['ethernets']['eth0.123']['dhcp4'])
 
     def test_set_override_multiple_existing_files(self):
         file1 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth0.yaml')
@@ -315,16 +447,16 @@ class TestSet(unittest.TestCase):
                     r'"br99":{"dhcp4":false}}}')])
         self.assertTrue(os.path.isfile(file1))
         with open(file1, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth0.1:\n      dhcp4: false', f.read())
+            self.assertIs(False, yaml.safe_load(f)['network']['ethernets']['eth0.1']['dhcp4'])
         self.assertTrue(os.path.isfile(file2))
         with open(file2, 'r') as f:
-            self.assertIn('network:\n  ethernets:\n    eth1:\n      dhcp4: false', f.read())
+            self.assertIs(False, yaml.safe_load(f)['network']['ethernets']['eth1']['dhcp4'])
         self.assertTrue(os.path.isfile(self.path))
         with open(self.path, 'r') as f:
-            out = f.read()
-            self.assertIn('network:\n  bridges:\n    br99:\n      dhcp4: false', out)
-            self.assertIn('  version: 2', out)
-            self.assertIn('  renderer: NetworkManager', out)
+            out = yaml.safe_load(f)
+            self.assertIs(False, out['network']['bridges']['br99']['dhcp4'])
+            self.assertEqual(2, out['network']['version'])
+            self.assertEqual('NetworkManager', out['network']['renderer'])
 
 
 class TestGet(unittest.TestCase):

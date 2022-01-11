@@ -482,7 +482,6 @@ systemd_escape(char* string)
 gboolean
 netplan_delete_connection(const char* id, const char* rootdir)
 {
-    g_autofree gchar* filename = NULL;
     g_autofree gchar* del = NULL;
     g_autoptr(GError) error = NULL;
     NetplanNetDefinition* nd = NULL;
@@ -517,15 +516,13 @@ netplan_delete_connection(const char* id, const char* rootdir)
         goto cleanup;
     }
 
-    filename = g_path_get_basename(nd->filename);
-    filename[strlen(filename) - 5] = '\0'; //stip ".yaml" suffix
     del = g_strdup_printf("network.%s.%s=NULL", netplan_def_type_name(nd->type), id);
 
     /* TODO: refactor logic to actually be inside the library instead of spawning another process */
-    const gchar *argv[] = { SBINDIR "/" "netplan", "set", del, "--origin-hint" , filename, NULL, NULL, NULL };
+    const gchar *argv[] = { SBINDIR "/" "netplan", "set", del, NULL, NULL, NULL };
     if (rootdir) {
-        argv[5] = "--root-dir";
-        argv[6] = rootdir;
+        argv[3] = "--root-dir";
+        argv[4] = rootdir;
     }
     if (getenv("TEST_NETPLAN_CMD") != 0)
        argv[0] = getenv("TEST_NETPLAN_CMD");
