@@ -2723,9 +2723,15 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
 {
     yaml_document_t *doc = &npp->doc;
     gboolean ret;
+    char* source;
 
     if (!load_yaml(filename, doc, error))
         return FALSE;
+
+    source = g_strdup(filename);
+    if (!npp->sources)
+        npp->sources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    g_hash_table_add(npp->sources, source);
 
     /* empty file? */
     if (yaml_document_get_root_node(doc) == NULL)
@@ -2800,6 +2806,12 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
     np_state->ovs_settings = npp->global_ovs_settings;
     np_state->backend = npp->global_backend;
 
+    if (npp->sources) {
+        if (!np_state->sources)
+            np_state->sources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        g_hash_table_foreach_steal(npp->sources, insert_kv_into_hash, np_state->sources);
+    }
+
     /* We need to reset those fields manually as we transfered ownership of the underlying
        data to out. If we don't do this, netplan_clear_parser will deallocate data
        that we don't own anymore. */
@@ -2869,6 +2881,12 @@ netplan_parser_reset(NetplanParser* npp)
     }
 
     npp->missing_ids_found = 0;
+
+    if (npp->sources) {
+        /* Properly configured at creation not to leak */
+        g_hash_table_destroy(npp->sources);
+        npp->sources = NULL;
+    }
 }
 
 void

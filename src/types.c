@@ -394,6 +394,12 @@ netplan_state_reset(NetplanState* np_state)
 
     np_state->backend = NETPLAN_BACKEND_NONE;
     reset_ovs_settings(&np_state->ovs_settings);
+
+    if (np_state->sources) {
+        /* Properly configured at creation to clean up after itself. */
+        g_hash_table_destroy(np_state->sources);
+        np_state->sources = NULL;
+    }
 }
 
 NetplanBackend

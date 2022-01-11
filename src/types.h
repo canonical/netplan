@@ -141,6 +141,10 @@ struct netplan_state {
     GList *netdefs_ordered;
     NetplanBackend backend;
     NetplanOVSSettings ovs_settings;
+
+    /* Hashset of the source files used to create this state. Owns its data (glib-allocated
+     * char*) and is initialized with g_hash_table_new_full to avoid leaks. */
+    GHashTable* sources;
 };
 
 struct netplan_parser {
@@ -153,6 +157,9 @@ struct netplan_parser {
     GList* ordered;
     NetplanBackend global_backend;
     NetplanOVSSettings global_ovs_settings;
+
+    /* Keep track of the files used as data source */
+    GHashTable* sources;
 
     /* Data currently being processed */
     struct {
