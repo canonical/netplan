@@ -632,8 +632,11 @@ eth1:
 ``routes`` (mapping)
 
 :    The ``routes`` block defines standard static routes for an interface.
-     At least ``to`` must be specified.  Unless the scope is ``link``, ``via`` is
-     also required.
+     At least ``to`` must be specified. If type is ``local`` or ``nat`` a
+     default scope of ``host`` is assumed.
+     If type is ``unicast`` and no gateway (``via``) is given or type is 
+     ``broadcast``, ``multicast`` or ``anycast`` a default scope of ``link``
+     is assumend. Otherwise, a ``global`` scope is the default setting.
 
      For ``from``, ``to``, and ``via``, both IPv4 and IPv6 addresses are
      recognized, and must be in the form ``addr/prefixlen`` or ``addr``.
@@ -657,8 +660,9 @@ eth1:
      :    The relative priority of the route. Must be a positive integer value.
 
      ``type`` (scalar)
-     :    The type of route. Valid options are "unicast" (default),
-          "unreachable", "blackhole" or "prohibit".
+     :    The type of route. Valid options are "unicast" (default), "anycast",
+          "blackhole", "broadcast", "local", "multicast", "nat", "prohibit",
+          "throw", "unreachable" or "xresolve".
 
      ``scope`` (scalar)
      :    The route scope, how wide-ranging it is to the network. Possible

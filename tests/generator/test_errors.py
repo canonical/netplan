@@ -745,6 +745,7 @@ class TestConfigErrors(TestBase):
     engreen:
       routes:
         - to: 2001:dead:beef::2
+          scope: global
           metric: 1
       addresses:
         - 192.168.14.2/24

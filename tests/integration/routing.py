@@ -301,6 +301,45 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         self.assertIn(b'blackhole 10.10.10.0/24',
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
 
+    def test_route_type_local_lp1892272(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      addresses: [ "10.20.10.1/24" ]
+      routes:
+        - to: 0.0.0.0/0
+          type: local
+          table: 99
+        - to: ::/0
+          type: local
+          table: 100''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet '])
+        self.assertIn(b'local default',
+                      subprocess.check_output(['ip', 'route', 'show', 'table', '99', 'dev', self.dev_e_client]))
+        self.assertIn(b'local default',
+                      subprocess.check_output(['ip', '-6', 'route', 'show', 'table', '100', 'dev', self.dev_e_client]))
+
+    def test_route_scope_link_lp1805038(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+      addresses: [ "10.20.0.10/16" ]
+      routes:
+        - to: 10.96.0.0/24''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet '])
+        self.assertIn(b'10.96.0.0/24 proto static scope link',
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client]))
+
     def test_route_with_policy(self):
         self.setup_eth(None)
         with open(self.config, 'w') as f:
