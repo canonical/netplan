@@ -39,3 +39,11 @@
 - replace nose for python tests with something else, preserving coverage reports
 
 - add automated integration tests for WPA Enterprise / 802.1x that can run self-contained
+
+# After soname bump (ABI break)
+
+- get rid of abi_compat.c
+
+- change route->scope to ENUM
+
+- move tunnel_ttl into tunnel struct
