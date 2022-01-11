@@ -19,7 +19,7 @@
 import ctypes
 import ctypes.util
 from ctypes import c_char_p, c_void_p, c_int
-from typing import Union, IO
+from typing import List, Union, IO
 
 
 class LibNetplanException(Exception):
@@ -298,8 +298,18 @@ def netplan_get_ids_for_devtype(devtype, rootdir):
     return [nd.id for nd in nds]
 
 
+lib.netplan_util_create_yaml_patch.argtypes = [c_char_p, c_char_p, c_int, _GErrorPP]
+lib.netplan_util_create_yaml_patch.restype = c_int
+
 lib.netplan_util_dump_yaml_subtree.argtypes = [c_char_p, c_int, c_int, _GErrorPP]
 lib.netplan_util_dump_yaml_subtree.restype = c_int
+
+
+def create_yaml_patch(patch_object_path: List[str], patch_payload: str, patch_output):
+    _checked_lib_call(lib.netplan_util_create_yaml_patch,
+                      '\t'.join(patch_object_path).encode('utf-8'),
+                      patch_payload.encode('utf-8'),
+                      patch_output.fileno())
 
 
 def dump_yaml_subtree(prefix, input_file, output_file):

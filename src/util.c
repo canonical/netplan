@@ -122,6 +122,114 @@ int find_yaml_glob(const char* rootdir, glob_t* out_glob)
     return 0;
 }
 
+
+/**
+ * create a yaml patch from a "set expression"
+ *
+ * A "set expression" here consists of a path formed of TAB-separated
+ * keys, indicating where in the YAML doc we want to make our changes, and
+ * a valid YAML expression that will be the payload to insert at that
+ * place. The result is a well-formed YAML document.
+ *
+ * @conf_obj_path: TAB-separated YAML path
+ * @obj_payload: YAML expression
+ * @output_file: file path to write out the result document
+ */
+
+gboolean
+netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payload, int output_fd, GError** error)
+{
+	yaml_emitter_t emitter;
+	yaml_parser_t parser;
+	yaml_event_t event;
+	int token_depth = 0;
+    int out_dup = -1;
+    FILE* out_stream = NULL;
+    int ret = FALSE;
+
+    out_dup = dup(output_fd);
+    if (out_dup < 0)
+        goto file_error; // LCOV_EXCL_LINE
+    out_stream = fdopen(out_dup, "w");
+    if (!out_stream)
+        goto file_error; // LCOV_EXCL_LINE
+
+    yaml_emitter_initialize(&emitter);
+    yaml_emitter_set_output_file(&emitter, out_stream);
+    yaml_stream_start_event_initialize(&event, YAML_UTF8_ENCODING);
+    if (!yaml_emitter_emit(&emitter, &event))
+        goto err_path; // LCOV_EXCL_LINE
+    yaml_document_start_event_initialize(&event, NULL, NULL, NULL, 1);
+    if (!yaml_emitter_emit(&emitter, &event))
+        goto err_path; // LCOV_EXCL_LINE
+
+    char **tokens = g_strsplit_set(conf_obj_path, "\t", -1);
+	for (; tokens[token_depth] != NULL; token_depth++) {
+        YAML_MAPPING_OPEN(&event, &emitter);
+        YAML_SCALAR_PLAIN(&event, &emitter, tokens[token_depth]);
+    }
+    g_strfreev(tokens);
+
+    yaml_parser_initialize(&parser);
+    yaml_parser_set_input_string(&parser, (const unsigned char *)obj_payload, strlen(obj_payload));
+    while (TRUE) {
+        if (!yaml_parser_parse(&parser, &event)) {
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser.problem);
+            goto cleanup;
+        }
+        if (event.type == YAML_STREAM_END_EVENT || event.type == YAML_DOCUMENT_END_EVENT)
+            break;
+        switch (event.type) {
+            case YAML_STREAM_START_EVENT:
+            case YAML_DOCUMENT_START_EVENT:
+                break;
+            case YAML_MAPPING_START_EVENT:
+                YAML_MAPPING_OPEN(&event, &emitter);
+                break;
+            case YAML_SEQUENCE_START_EVENT:
+                YAML_SEQUENCE_OPEN(&event, &emitter);
+                break;
+            default:
+                if (!yaml_emitter_emit(&emitter, &event))
+                    goto err_path; // LCOV_EXCL_LINE
+        }
+	}
+
+	for (; token_depth > 0; token_depth--)
+        YAML_MAPPING_CLOSE(&event, &emitter);
+
+    yaml_document_end_event_initialize(&event, 1);
+    if (!yaml_emitter_emit(&emitter, &event))
+        goto err_path; // LCOV_EXCL_LINE
+    yaml_stream_end_event_initialize(&event);
+    if (!yaml_emitter_emit(&emitter, &event))
+        goto err_path; // LCOV_EXCL_LINE
+    yaml_emitter_flush(&emitter);
+    fflush(out_stream);
+    ret = TRUE;
+    goto cleanup;
+
+// LCOV_EXCL_START
+err_path:
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter.problem);
+    ret = FALSE;
+// LCOV_EXCL_STOP
+cleanup:
+    /* also closes the dup FD */
+    fclose(out_stream);
+    yaml_emitter_delete(&emitter);
+    yaml_parser_delete(&parser);
+    return ret;
+
+// LCOV_EXCL_START
+file_error:
+    g_set_error(error, G_FILE_ERROR, errno, "Error when opening FD %d: %s", output_fd, g_strerror(errno));
+    if (out_dup >= 0)
+        close(out_dup);
+    return FALSE;
+// LCOV_EXCL_STOP
+}
+
 static gboolean
 copy_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, GError** error) {
 	yaml_event_t event;

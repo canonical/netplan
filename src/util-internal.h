@@ -60,6 +60,9 @@ wifi_get_freq5(int channel);
 NETPLAN_ABI gchar*
 systemd_escape(char* string);
 
+NETPLAN_INTERNAL gboolean
+netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payload, int out_fd, GError** error);
+
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
 
 void
