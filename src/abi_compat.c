@@ -98,7 +98,7 @@ netplan_finish_parse(GError** error)
 {
     if (netplan_state_import_parser_results(&global_state, &global_parser, error))
         return global_state.netdefs;
-    return NULL;
+    return NULL; // LCOV_EXCL_LINE
 }
 
 /**

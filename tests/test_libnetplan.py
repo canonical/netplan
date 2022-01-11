@@ -130,7 +130,7 @@ class TestRawLibnetplan(TestBase):
         self.assertTrue(os.path.isfile(orig))
         # Verify the file still exists and still contains the other connection
         with open(orig, 'r') as f:
-            self.assertEqual(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
+            self.assertEqual(f.read(), 'network:\n  version: 2\n  ethernets:\n    other-id:\n      dhcp6: true\n')
 
     def test_write_netplan_conf(self):
         netdef_id = 'some-netplan-id'
