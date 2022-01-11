@@ -814,6 +814,23 @@ Example:
 
      **Requires feature: sriov**
 
+``embedded-switch-mode`` (scalar) – since **0.104**
+
+:    (SR-IOV devices only) Change the operational mode of the embedded switch
+     of a supported SmartNIC PCI device (e.g. Mellanox ConnectX-5). Possible
+     values are ``switchdev`` or ``legacy``, if unspecified the vendor's
+     default configuration is used.
+
+     **Requires feature: eswitch-mode**
+
+``delay-virtual-functions-rebind`` (bool) – since **0.104**
+
+:    (SR-IOV devices only) Delay rebinding of SR-IOV virtual functions to its
+     driver after changing the embedded-switch-mode setting to a later stage.
+     Can be enabled when bonding/VF LAG is in use. Defaults to ``false``.
+
+     **Requires feature: eswitch-mode**
+
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager``
 backend. ``systemd-networkd`` does not support modems.
