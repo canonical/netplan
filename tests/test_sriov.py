@@ -701,6 +701,33 @@ class TestSRIOV(unittest.TestCase):
         self.assertIn('matched more than one interface for a VF device: customvf1',
                       str(e.exception))
 
+    def test_unit_get_pci_slot_name(self):
+        # test error case
+        with self.assertRaises(RuntimeError) as e:
+            sriov._get_pci_slot_name('notAnetdev0')
+        self.assertIn('failed parsing PCI slot name for notAnetdev0:', str(e.exception))
+        # test success case
+        with patch('builtins.open', mock_open(read_data='''DRIVER=e1000e
+PCI_CLASS=20000
+PCI_ID=8086:156F
+PCI_SUBSYS_ID=17AA:2245
+PCI_SLOT_NAME=0000:00:1f.6
+MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
+''')) as mock_file:
+            self.assertEqual(sriov._get_pci_slot_name('eth99'), '0000:00:1f.6')
+        mock_file.assert_called_with('/sys/class/net/eth99/device/uevent')
+
+    def test_unit_class_PCIDevice(self):
+        pcidev = sriov.PCIDevice('0000:00:1f.6')
+        self.assertEqual('/sys', pcidev.sys)
+        self.assertLessEqual('/sys/bus/pci/devices/0000:00:1f.6', pcidev.path)
+        with patch('netplan.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock) as sys_mock:
+            sys_mock.return_value = os.path.join(self.workdir.name, 'sys_mock')
+            os.makedirs(os.path.join(self.workdir.name, 'sys_mock/bus/pci/devices/0000:00:1f.6/driver'))
+            self.assertTrue(pcidev.bound)
+            open(os.path.join(self.workdir.name, 'sys_mock/bus/pci/devices/0000:00:1f.6/physfn'), 'a').close()
+            self.assertTrue(pcidev.is_vf)
+
 
 class TestParser(TestBase):
     def test_eswitch_mode(self):
