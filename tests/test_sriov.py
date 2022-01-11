@@ -99,10 +99,10 @@ class TestSRIOV(unittest.TestCase):
                    os.path.join(self.workdir.name, 'sys/class/net/enp2'))
         os.symlink('../../../0000:00:1f.0', os.path.join(self.workdir.name, 'sys/class/net/enp2/device'))
         # the PF additionally has device links to all the VFs defined for it
-        os.symlink('../../../0000:00:1f.4', os.path.join(pf_dev_path, 'virtfn1'))
-        os.symlink('../../../0000:00:1f.5', os.path.join(pf_dev_path, 'virtfn2'))
-        os.symlink('../../../0000:00:1f.6', os.path.join(pf_dev_path, 'virtfn3'))
-        os.symlink('../../../0000:00:1f.7', os.path.join(pf_dev_path, 'virtfn4'))
+        os.symlink('../../../0000:00:1f.4', os.path.join(pf_dev_path, 'virtfn0'))
+        os.symlink('../../../0000:00:1f.5', os.path.join(pf_dev_path, 'virtfn1'))
+        os.symlink('../../../0000:00:1f.6', os.path.join(pf_dev_path, 'virtfn2'))
+        os.symlink('../../../0000:00:1f.7', os.path.join(pf_dev_path, 'virtfn3'))
 
     @patch('netplan.cli.utils.get_interface_driver_name')
     @patch('netplan.cli.utils.get_interface_macaddress')
@@ -407,13 +407,13 @@ class TestSRIOV(unittest.TestCase):
         self.assertEqual(check_call.call_count, 1)
         self.assertListEqual(check_call.call_args[0][0],
                              ['ip', 'link', 'set', 'dev', 'enp2',
-                              'vf', '3', 'vlan', '10'])
+                              'vf', '2', 'vlan', '10'])
 
     @patch('subprocess.check_call')
     def test_apply_vlan_filter_for_vf_failed_no_index(self, check_call):
         self._prepare_sysfs_dir_structure()
         # we remove the PF -> VF link, simulating a system error
-        os.unlink(os.path.join(self.workdir.name, 'sys/class/net/enp2/device/virtfn3'))
+        os.unlink(os.path.join(self.workdir.name, 'sys/class/net/enp2/device/virtfn2'))
 
         with self.assertRaises(RuntimeError) as e:
             sriov.apply_vlan_filter_for_vf('enp2', 'enp2s16f1', 'vlan10', 10, prefix=self.workdir.name)
