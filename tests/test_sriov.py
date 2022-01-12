@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2020 Canonical, Ltd.
+# Copyright (C) 2020-2022 Canonical, Ltd.
 # Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import unittest
 import tempfile
+import unittest
 
 from subprocess import CalledProcessError
 from collections import defaultdict
@@ -727,6 +728,100 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             self.assertTrue(pcidev.bound)
             open(os.path.join(self.workdir.name, 'sys_mock/bus/pci/devices/0000:00:1f.6/physfn'), 'a').close()
             self.assertTrue(pcidev.is_vf)
+
+    @patch('netifaces.interfaces')
+    @patch('netplan.cli.sriov.get_vf_count_and_functions')
+    @patch('netplan.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
+    @patch('subprocess.check_call')
+    @patch('netplan.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan.cli.sriov._get_pci_slot_name')
+    def test_apply_sriov_config_eswitch_mode(self, gpsn, pcidevice_sys, pcidevice_bound,
+                                             scc, quirks, set_numvfs, get_counts, netifs):
+        handle = mock_open()
+        builtin_open = open  # save the unpatched version of open()
+
+        def driver_mock_open(*args, **kwargs):
+            # mock only writes/opens to the mlx5_core driver's un-/bind files
+            if args[0].endswith('mlx5_core/bind') or args[0].endswith('mlx5_core/unbind'):
+                return handle(*args, **kwargs)
+            # unpatched version for every other path
+            return builtin_open(*args, **kwargs)
+
+        # set up the mock sysfs environment
+        self._prepare_sysfs_dir_structure(pf=('enp1', '0000:03:00.0'),
+                                          vfs=[('enp1s16f1', '0000:03:00.2'),
+                                               ('enp1s16f2', '0000:03:00.3')],
+                                          pf_driver='mlx5_core')
+        self._prepare_sysfs_dir_structure(pf=('enp2', '0000:03:00.1'),
+                                          vfs=[('enp2s14f1', '0000:03:08.2'),
+                                               ('enp2s15f1', '0000:03:08.3'),
+                                               ('enp2s16f1', '0000:03:08.4'),
+                                               ('enp2s17f1', '0000:03:08.5')],
+                                          pf_driver='mlx5_core')
+        enp1_pci_addr = '0000:03:00.0'
+        enp2_pci_addr = '0000:03:00.1'
+        gpsn.side_effect = lambda iface: enp1_pci_addr if iface == 'enp1' else enp2_pci_addr
+        sys_path = os.path.join(self.workdir.name, 'sys')
+        pcidevice_sys.return_value = sys_path
+        pcidevice_bound.side_effect = [
+            True, True,  # 2x unbind (enp1 VFs)
+            True, True, True, True,  # 4x unbind (enpx/enp2 VFs)
+            False, False, False, False]  # 4x re-bind (enpx/enp2 VFs)
+
+        # YAML config
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enpx:
+      match:
+        name: enp[2-3]
+      embedded-switch-mode: "switchdev"
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+    customvf1:
+      match:
+        name: enp[2-3]s16f[1-4]
+      link: enpx
+''', file=fd)
+
+        # set up all the mock objects
+        netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
+                               'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
+        get_counts.side_effect = mock_set_counts
+        writes = [
+            ('/sys/bus/pci/drivers/mlx5_core/unbind', '0000:03:00.2'),
+            ('/sys/bus/pci/drivers/mlx5_core/unbind', '0000:03:00.3'),
+            ('/sys/bus/pci/drivers/mlx5_core/unbind', '0000:03:08.2'),
+            ('/sys/bus/pci/drivers/mlx5_core/unbind', '0000:03:08.3'),
+            ('/sys/bus/pci/drivers/mlx5_core/unbind', '0000:03:08.4'),
+            ('/sys/bus/pci/drivers/mlx5_core/unbind', '0000:03:08.5'),
+            ('/sys/bus/pci/drivers/mlx5_core/bind', '0000:03:08.2'),
+            ('/sys/bus/pci/drivers/mlx5_core/bind', '0000:03:08.3'),
+            ('/sys/bus/pci/drivers/mlx5_core/bind', '0000:03:08.4'),
+            ('/sys/bus/pci/drivers/mlx5_core/bind', '0000:03:08.5')]
+
+        # test success case
+        with patch('builtins.open', driver_mock_open):
+            sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+        self.assertEqual(len(writes), handle.call_count)
+        self.assertEqual(handle.call_args_list, [call(elem[0], 'wt') for elem in writes])
+        self.assertEqual(len(writes), handle().write.call_count)
+        self.assertEqual(handle().write.call_args_list, [call(elem[1]) for elem in writes])
+
+        self.assertEqual(2, scc.call_count)
+        scc.assert_has_calls([
+            call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.0', 'mode', 'legacy']),
+            call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.1', 'mode', 'switchdev'])
+        ])
 
 
 class TestParser(TestBase):
