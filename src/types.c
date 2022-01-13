@@ -342,6 +342,7 @@ netplan_state_new()
 void
 netplan_state_clear(NetplanState** np_state_p)
 {
+    g_assert(np_state_p);
     NetplanState* np_state = *np_state_p;
     *np_state_p = NULL;
     netplan_state_reset(np_state);
@@ -375,12 +376,14 @@ netplan_state_reset(NetplanState* np_state)
 NetplanBackend
 netplan_state_get_backend(const NetplanState* np_state)
 {
+    g_assert(np_state);
     return np_state->backend;
 }
 
 guint
 netplan_state_get_netdefs_size(const NetplanState* np_state)
 {
+    g_assert(np_state);
     return np_state->netdefs ? g_hash_table_size(np_state->netdefs) : 0;
 }
 
@@ -411,6 +414,7 @@ CLEAR_FROM_FREE(free_address_options, address_options_clear, NetplanAddressOptio
 NetplanNetDefinition*
 netplan_state_get_netdef(const NetplanState* np_state, const char* id)
 {
+    g_assert(np_state);
     if (!np_state->netdefs)
         return NULL;
     return g_hash_table_lookup(np_state->netdefs, id);
@@ -419,7 +423,16 @@ netplan_state_get_netdef(const NetplanState* np_state, const char* id)
 NETPLAN_PUBLIC const char *
 netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
 {
-    if (!netdef)
-        return NULL;
+    g_assert(netdef);
     return netdef->filename;
 }
+
+NETPLAN_INTERNAL const char*
+netplan_netdef_get_id(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->id;
+}
+
+NETPLAN_INTERNAL const char*
+_netplan_netdef_id(NetplanNetDefinition* netdef) __attribute__((alias("netplan_netdef_get_id")));
