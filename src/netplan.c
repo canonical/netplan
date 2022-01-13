@@ -108,7 +108,16 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
     YAML_MAPPING_OPEN(event, emitter);
     YAML_NONNULL_STRING(event, emitter, "name", def->match.original_name);
     YAML_NONNULL_STRING(event, emitter, "macaddress", def->match.mac)
-    YAML_NONNULL_STRING(event, emitter, "driver", def->match.driver)
+    if (def->match.driver && g_strrstr(def->match.driver, " ")) {
+        gchar **split = g_strsplit(def->match.driver, " ", 0);
+        YAML_SCALAR_PLAIN(event, emitter, "driver");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        for (unsigned i = 0; split[i]; ++i)
+            YAML_SCALAR_QUOTED(event, emitter, split[i]);
+        YAML_SEQUENCE_CLOSE(event, emitter);
+        g_strfreev(split);
+    } else
+        YAML_NONNULL_STRING(event, emitter, "driver", def->match.driver);
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 err_path: return FALSE; // LCOV_EXCL_LINE
