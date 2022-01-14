@@ -15,12 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import io
 import os
+import sys
 import unittest
 import tempfile
 import glob
 import netifaces
 
+from contextlib import redirect_stdout
+from netplan.cli.core import Netplan
 import netplan.cli.utils as utils
 from unittest.mock import patch
 
@@ -91,6 +95,18 @@ fi
     def set_returncode(self, returncode):
         with open(self.path, "a") as fp:
             fp.write("exit %d" % returncode)
+
+
+def call_cli(args):
+    old_sys_argv = sys.argv
+    sys.argv = [old_sys_argv[0]] + args
+    f = io.StringIO()
+    try:
+        with redirect_stdout(f):
+            Netplan().main()
+            return f.getvalue()
+    finally:
+        sys.argv = old_sys_argv
 
 
 class TestUtils(unittest.TestCase):

@@ -18,29 +18,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import unittest
 import tempfile
-import io
 import shutil
 import glob
 
 import yaml
 
-from contextlib import redirect_stdout
-from netplan.cli.core import Netplan
-
-
-def _call_cli(args):
-    old_sys_argv = sys.argv
-    sys.argv = [old_sys_argv[0]] + args
-    f = io.StringIO()
-    try:
-        with redirect_stdout(f):
-            Netplan().main()
-            return f.getvalue()
-    finally:
-        sys.argv = old_sys_argv
+from tests.test_utils import call_cli
 
 
 class TestSet(unittest.TestCase):
@@ -56,7 +41,7 @@ class TestSet(unittest.TestCase):
 
     def _set(self, args):
         args.insert(0, 'set')
-        out = _call_cli(args + ['--root-dir', self.workdir.name])
+        out = call_cli(args + ['--root-dir', self.workdir.name])
         self.assertEqual(out, '', msg='netplan set returned unexpected output')
 
     def test_set_scalar(self):
@@ -352,7 +337,7 @@ class TestGet(unittest.TestCase):
 
     def _get(self, args):
         args.insert(0, 'get')
-        return _call_cli(args + ['--root-dir', self.workdir.name])
+        return call_cli(args + ['--root-dir', self.workdir.name])
 
     def test_get_scalar(self):
         with open(self.path, 'w') as f:

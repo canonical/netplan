@@ -29,6 +29,7 @@ import netplan.libnetplan as libnetplan
 
 from netplan.configmanager import ConfigManager, ConfigurationError
 from generator.base import TestBase
+from tests.test_utils import call_cli
 
 
 class MockSRIOVOpen():
@@ -822,6 +823,33 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.0', 'mode', 'legacy']),
             call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.1', 'mode', 'switchdev'])
         ])
+
+    @patch('netplan.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan.cli.commands.sriov_rebind._get_pci_slot_name')
+    def test_cli_rebind(self, gpsn, sys_mock, bound_mock):
+        self._prepare_sysfs_dir_structure(pf=('enp3s0f0', '0000:03:00.0'),
+                                          vfs=[('enp3s0f0v0', '0000:03:00.2'),
+                                               ('enp3s0f0v1', '0000:03:00.3')],
+                                          pf_driver='some_driver')
+        sys_path = os.path.join(self.workdir.name, 'sys')
+        sys_mock.return_value = sys_path
+        enp3s0f0_pci_addr = '0000:03:00.0'
+        not_a_pf_pci_addr = '0000:00:99.9'
+        gpsn.side_effect = lambda iface: enp3s0f0_pci_addr if iface == 'enp3s0f0' else not_a_pf_pci_addr
+        bound_mock.side_effect = [False, False]  # 0000:03:00.2 and 0000:03:00.3 are unbound
+
+        with patch('builtins.open', mock_open(read_data='')) as mock_file:
+            out = call_cli(['rebind', 'enp3s0f0', 'not_a_pf'])
+            self.assertEqual(out, '', msg='netplan rebind returned unexpected output')
+            self.assertEqual(2, mock_file.call_count)
+            self.assertEqual(mock_file.call_args_list, [
+                call('/sys/bus/pci/drivers/some_driver/bind', 'wt'),
+                call('/sys/bus/pci/drivers/some_driver/bind', 'wt')])
+            self.assertEqual(2, mock_file.return_value.write.call_count)
+            self.assertEqual(mock_file.return_value.write.call_args_list, [
+                call('0000:03:00.2'),
+                call('0000:03:00.3')])
 
 
 class TestParser(TestBase):
