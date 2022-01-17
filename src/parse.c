@@ -290,6 +290,7 @@ handle_generic_guint(NetplanParser* npp, yaml_node_t* node, const void* entryptr
     if (*endptr != '\0' || v > G_MAXUINT)
         return yaml_error(npp, node, error, "invalid unsigned int value '%s'", scalar(node));
 
+    mark_data_as_dirty(npp, endptr);
     *((guint*) ((void*) entryptr + offset)) = (guint) v;
     return TRUE;
 }
@@ -308,6 +309,7 @@ handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
     char** dest = (char**) ((void*) entryptr + offset);
     g_free(*dest);
     *dest = g_strdup(scalar(node));
+    mark_data_as_dirty(npp, dest);
     return TRUE;
 }
 
@@ -348,6 +350,7 @@ handle_generic_bool(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
     g_assert(entryptr);
     guint offset = GPOINTER_TO_UINT(data);
     gboolean v;
+    gboolean* dest = ((void*) entryptr + offset);
 
     if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
         g_ascii_strcasecmp(scalar(node), "on") == 0 ||
@@ -362,7 +365,8 @@ handle_generic_bool(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
     else
         return yaml_error(npp, node, error, "invalid boolean value '%s'", scalar(node));
 
-    *((gboolean*) ((void*) entryptr + offset)) = v;
+    *dest = v;
+    mark_data_as_dirty(npp, dest);
     return TRUE;
 }
 
@@ -392,6 +396,7 @@ handle_generic_map(NetplanParser *npp, yaml_node_t* node, void* entryptr, const 
         if (!g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value))))
             return yaml_error(npp, node, error, "duplicate map entry '%s'", scalar(key));
     }
+    mark_data_as_dirty(npp, map);
 
     return TRUE;
 }
@@ -420,6 +425,7 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, void* entryptr, c
 
         g_datalist_set_data_full(list, g_strdup(scalar(key)), g_strdup(scalar(value)), g_free);
     }
+    mark_data_as_dirty(npp, list);
 
     return TRUE;
 }
@@ -461,19 +467,21 @@ handle_netdef_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, GE
 {
     guint offset = GPOINTER_TO_UINT(data);
     NetplanNetDefinition* ref = NULL;
+    NetplanNetDefinition** dest = (void*) npp->current.netdef + offset;
 
     ref = g_hash_table_lookup(npp->parsed_defs, scalar(node));
     if (!ref) {
         add_missing_node(npp, node);
     } else {
         NetplanNetDefinition* netdef = npp->current.netdef;
-        *((NetplanNetDefinition**) ((void*) netdef + offset)) = ref;
+        *dest = ref;
 
         if (netdef->type == NETPLAN_DEF_TYPE_VLAN && ref->backend == NETPLAN_BACKEND_OVS) {
             g_debug("%s: VLAN defined for openvswitch interface, choosing OVS backend", netdef->id);
             netdef->backend = NETPLAN_BACKEND_OVS;
         }
     }
+    mark_data_as_dirty(npp, dest);
     return TRUE;
 }
 
@@ -535,6 +543,7 @@ handle_netdef_ip4(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
+    mark_data_as_dirty(npp, dest);
 
     return TRUE;
 }
@@ -565,6 +574,7 @@ handle_netdef_ip6(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
+    mark_data_as_dirty(npp, dest);
 
     return TRUE;
 }
@@ -629,6 +639,7 @@ handle_auth_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError*
     char** dest = (char**) ((void*) npp->current.auth + offset);
     g_free(*dest);
     *dest = g_strdup(scalar(node));
+    mark_data_as_dirty(npp, dest);
     return TRUE;
 }
 
@@ -832,6 +843,7 @@ parse_renderer(NetplanParser* npp, yaml_node_t* node, NetplanBackend* backend, G
         *backend = NETPLAN_BACKEND_NM;
     else
         return yaml_error(npp, node, error, "unknown renderer '%s'", scalar(node));
+    mark_data_as_dirty(npp, backend);
     return TRUE;
 }
 
@@ -921,6 +933,7 @@ handle_auth(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error
 
     npp->current.auth = &npp->current.netdef->auth;
     ret = process_mapping(npp, node, auth_handlers, NULL, error);
+    mark_data_as_dirty(npp, &npp->current.netdef->auth);
     npp->current.auth = NULL;
 
     return ret;
@@ -1007,6 +1020,7 @@ handle_generic_addresses(NetplanParser* npp, yaml_node_t* node, gboolean check_z
                 return FALSE;
 
             g_array_append_val(npp->current.netdef->address_options, npp->current.addr_options);
+            mark_data_as_dirty(npp, &npp->current.netdef->address_options);
             npp->current.addr_options = NULL;
 
             continue;
@@ -1026,6 +1040,7 @@ handle_generic_addresses(NetplanParser* npp, yaml_node_t* node, gboolean check_z
                     goto skip_ip4;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(*ip4, s);
+            mark_data_as_dirty(npp, ip4);
 skip_ip4:
             continue;
         }
@@ -1043,6 +1058,7 @@ skip_ip4:
                     goto skip_ip6;
             char* s = g_strdup(scalar(entry));
             g_array_append_val(*ip6, s);
+            mark_data_as_dirty(npp, ip6);
 skip_ip6:
             continue;
         }
@@ -1065,6 +1081,7 @@ handle_gateway4(NetplanParser* npp, yaml_node_t* node, const void* _, GError** e
     if (!is_ip4_address(scalar(node)))
         return yaml_error(npp, node, error, "invalid IPv4 address '%s'", scalar(node));
     set_str_if_null(npp->current.netdef->gateway4, scalar(node));
+    mark_data_as_dirty(npp, &npp->current.netdef->gateway4);
     g_warning("`gateway4` has been deprecated, use default routes instead.\n"
               "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
@@ -1076,6 +1093,7 @@ handle_gateway6(NetplanParser* npp, yaml_node_t* node, const void* _, GError** e
     if (!is_ip6_address(scalar(node)))
         return yaml_error(npp, node, error, "invalid IPv6 address '%s'", scalar(node));
     set_str_if_null(npp->current.netdef->gateway6, scalar(node));
+    mark_data_as_dirty(npp, &npp->current.netdef->gateway6);
     g_warning("`gateway6` has been deprecated, use default routes instead.\n"
               "See the 'Default routes' section of the documentation for more details.");
     return TRUE;
@@ -1116,6 +1134,7 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const void* dat
         g_hash_table_insert(npp->current.netdef->access_points, access_point->ssid, access_point);
         npp->current.access_point = NULL;
     }
+    mark_data_as_dirty(npp, &npp->current.netdef->access_points);
     return TRUE;
 }
 
@@ -1230,6 +1249,7 @@ handle_nameservers_search(NetplanParser* npp, yaml_node_t* node, const void* _, 
         char* s = g_strdup(scalar(entry));
         g_array_append_val(npp->current.netdef->search_domains, s);
     }
+    mark_data_as_dirty(npp, &npp->current.netdef->search_domains);
     return TRUE;
 }
 
@@ -1261,6 +1281,8 @@ handle_nameservers_addresses(NetplanParser* npp, yaml_node_t* node, const void* 
         return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
     }
 
+    mark_data_as_dirty(npp, &npp->current.netdef->ip4_nameservers);
+    mark_data_as_dirty(npp, &npp->current.netdef->ip6_nameservers);
     return TRUE;
 }
 
@@ -1275,11 +1297,13 @@ handle_link_local(NetplanParser* npp, yaml_node_t* node, const void* _, GError**
 
         assert_type(npp, entry, YAML_SCALAR_NODE);
 
-        if (g_ascii_strcasecmp(scalar(entry), "ipv4") == 0)
+        if (g_ascii_strcasecmp(scalar(entry), "ipv4") == 0) {
             ipv4 = TRUE;
-        else if (g_ascii_strcasecmp(scalar(entry), "ipv6") == 0)
+            mark_data_as_dirty(npp, &npp->current.netdef->linklocal.ipv4);
+        } else if (g_ascii_strcasecmp(scalar(entry), "ipv6") == 0) {
             ipv6 = TRUE;
-        else
+            mark_data_as_dirty(npp, &npp->current.netdef->linklocal.ipv6);
+        } else
             return yaml_error(npp, node, error, "invalid value for link-local: '%s'", scalar(entry));
     }
 
@@ -1420,6 +1444,7 @@ handle_routes_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GError
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
+    mark_data_as_dirty(npp, dest);
 
     return TRUE;
 }
@@ -1450,6 +1475,7 @@ handle_ip_rule_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
 
     g_free(*dest);
     *dest = g_strdup(scalar(node));
+    mark_data_as_dirty(npp, dest);
 
     return TRUE;
 }
@@ -1513,6 +1539,7 @@ handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const void* data,
             g_debug("%s: adding path '%s' of cost: %d", npp->current.netdef->id, scalar(key), v);
 
             *ref_ptr = v;
+            mark_data_as_dirty(npp, ref_ptr);
         }
     }
     return TRUE;
@@ -1550,6 +1577,7 @@ handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const void* d
             g_debug("%s: adding port '%s' of priority: %d", npp->current.netdef->id, scalar(key), v);
 
             *ref_ptr = v;
+            mark_data_as_dirty(npp, ref_ptr);
         }
     }
     return TRUE;
@@ -1661,6 +1689,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
         g_array_append_val(npp->current.netdef->routes, route);
         npp->current.route = NULL;
     }
+    mark_data_as_dirty(npp, &npp->current.netdef->routes);
     return TRUE;
 
 err:
@@ -1711,6 +1740,7 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, const void* _, GError** e
             npp->current.netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
         g_array_append_val(npp->current.netdef->ip_rules, ip_rule);
     }
+    mark_data_as_dirty(npp, &npp->current.netdef->ip_rules);
     return TRUE;
 }
 
@@ -1750,6 +1780,7 @@ handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, const void* _, GErr
         return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
     }
 
+    mark_data_as_dirty(npp, &npp->current.netdef->bond_params.arp_ip_targets);
     return TRUE;
 }
 
@@ -1773,8 +1804,10 @@ handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* dat
         ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
         *ref_ptr = g_strdup(scalar(node));
         npp->current.netdef->bond_params.primary_slave = g_strdup(scalar(node));
+        mark_data_as_dirty(npp, ref_ptr);
     }
 
+    mark_data_as_dirty(npp, &npp->current.netdef->bond_params.primary_slave);
     return TRUE;
 }
 

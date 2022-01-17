@@ -62,6 +62,9 @@ systemd_escape(char* string);
 
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
 
+void
+mark_data_as_dirty(NetplanParser* npp, void* data_ptr);
+
 const char*
 tunnel_mode_to_string(NetplanTunnelMode mode);
 

@@ -168,6 +168,15 @@ reset_backend_settings(NetplanBackendSettings* settings, NetplanBackend backend)
     }
 }
 
+static void
+reset_private_netdef_data(struct private_netdef_data* data) {
+    if (!data)
+        return;
+    if (data->dirty_fields)
+        g_hash_table_destroy(data->dirty_fields);
+    data->dirty_fields = NULL;
+}
+
 /* Free a heap-allocated NetplanWifiAccessPoint object.
  * Signature made to match the g_hash_table_foreach function.
  * @key: ignored
@@ -323,6 +332,9 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->generic_segmentation_offload = FALSE;
     netdef->generic_receive_offload = FALSE;
     netdef->large_receive_offload = FALSE;
+
+    reset_private_netdef_data(netdef->_private);
+    FREE_AND_NULLIFY(netdef->_private);
 }
 
 static void
