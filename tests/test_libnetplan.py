@@ -20,6 +20,8 @@
 import os
 import shutil
 import tempfile
+import io
+import yaml
 
 from generator.base import TestBase
 from parser.base import capture_stderr
@@ -232,6 +234,26 @@ class TestState(TestBase):
         with self.assertRaises(libnetplan.LibNetplanException):
             state.import_parser_results(parser)
 
+    def test_dump_yaml_bad_file_perms(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+        bad_file = os.path.join(self.workdir.name, 'bad.yml')
+        open(bad_file, 'a').close()
+        os.chmod(bad_file, 0o444)
+        with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with open(bad_file) as f:
+                state.dump_yaml(f)
+        self.assertIn('Invalid argument', str(context.exception))
+
+    def test_dump_yaml_empty_state(self):
+        state = libnetplan.State()
+        with tempfile.TemporaryFile() as f:
+            state.dump_yaml(f)
+            f.flush()
+            self.assertEqual(0, f.seek(0, io.SEEK_END))
+
 
 class TestNetDefinition(TestBase):
     def test_eq(self):
@@ -321,3 +343,77 @@ class TestFreeFunctions(TestBase):
     def test_NetdefIterator_with_clear_netplan(self):
         state = libnetplan.State()
         self.assertSequenceEqual(list(libnetplan._NetdefIterator(state, "ethernets")), [])
+
+    def test_dump_yaml_subtree_bad_file_perms(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w") as f, tempfile.TemporaryFile() as output:
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.dump_yaml_subtree('network', f, output)
+        self.assertIn('Invalid argument', str(context.exception))
+
+    def test_dump_yaml_subtree_bad_yaml_outside(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
+            f.write('{garbage)')
+            f.flush()
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.dump_yaml_subtree('network', f, output)
+        self.assertIn('Error parsing YAML', str(context.exception))
+
+    def test_dump_yaml_subtree_bad_yaml_inside(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
+            f.write('''network:
+  ethernets:
+    {garbage)''')
+            f.flush()
+
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.dump_yaml_subtree('network', f, output)
+        self.assertIn('Error parsing YAML', str(context.exception))
+
+    def test_dump_yaml_subtree_bad_type(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
+            f.write('''[]''')
+            f.flush()
+
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.dump_yaml_subtree('network', f, output)
+        self.assertIn('Unexpected YAML structure found', str(context.exception))
+
+    def test_dump_yaml_subtree_bad_yaml_ignored(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
+            f.write('''network:
+  ethernets: null
+ignored:
+  - [}''')
+            f.flush()
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.dump_yaml_subtree('network', f, output)
+        self.assertIn('Error parsing YAML', str(context.exception))
+
+    def test_dump_yaml_subtree_discard_tail(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
+            f.write('''network:
+  ethernets: {}
+tail:
+  - []''')
+            f.flush()
+            libnetplan.dump_yaml_subtree('network\tethernets', f, output)
+            output.seek(0)
+            self.assertEqual(yaml.safe_load(output), {})
+
+    def test_dump_yaml_absent_key(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
+            f.write('''network:
+  ethernets: {}
+tail:
+  - []''')
+            f.flush()
+            libnetplan.dump_yaml_subtree('network\tethernets\teth0', f, output)
+            output.seek(0)
+            self.assertEqual(yaml.safe_load(output), None)

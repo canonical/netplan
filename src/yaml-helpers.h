@@ -44,6 +44,11 @@
     yaml_scalar_event_initialize(event_ptr, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)scalar, strlen(scalar), 1, 0, YAML_PLAIN_SCALAR_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto err_path; \
 }
+
+#define YAML_NULL_PLAIN(event_ptr, emitter_ptr) \
+    yaml_scalar_event_initialize(event_ptr, NULL, (yaml_char_t*)YAML_NULL_TAG, (yaml_char_t*)"null", strlen("null"), 1, 0, YAML_PLAIN_SCALAR_STYLE); \
+    if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto err_path; \
+
 /* Implicit plain and quoted tags, double quoted style */
 #define YAML_SCALAR_QUOTED(event_ptr, emitter_ptr, scalar) \
 { \
@@ -70,6 +75,10 @@
     YAML_STRING_PLAIN(event_ptr, emitter_ptr, key, tmp); \
     g_free(tmp); \
 }
+
+#define YAML_NULL(event_ptr, emitter_ptr, key) \
+    YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, key); \
+    YAML_NULL_PLAIN(event_ptr, emitter_ptr); \
 
 /* open YAML emitter, document, stream and initial mapping */
 #define YAML_OUT_START(event_ptr, emitter_ptr, file) \

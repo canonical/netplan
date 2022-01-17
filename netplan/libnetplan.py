@@ -127,6 +127,9 @@ class State:
         lib.netplan_state_get_netdef.argtypes = [_NetplanStateP, c_char_p]
         lib.netplan_state_get_netdef.restype = _NetplanNetDefinitionP
 
+        lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
+        lib.netplan_state_dump_yaml.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -138,6 +141,10 @@ class State:
 
     def import_parser_results(self, parser):
         _checked_lib_call(lib.netplan_state_import_parser_results, self._ptr, parser._ptr)
+
+    def dump_yaml(self, output_file):
+        fd = output_file.fileno()
+        _checked_lib_call(lib.netplan_state_dump_yaml, self._ptr, fd)
 
     def __len__(self):
         return lib.netplan_state_get_netdefs_size(self._ptr)
@@ -242,3 +249,14 @@ def netplan_get_ids_for_devtype(devtype, rootdir):
         raise Exception(err.contents.message.decode('utf-8'))
     nds = list(_NetdefIterator(__GlobalState(), devtype))
     return [nd.id for nd in nds]
+
+
+lib.netplan_util_dump_yaml_subtree.argtypes = [c_char_p, c_int, c_int, _GErrorPP]
+lib.netplan_util_dump_yaml_subtree.restype = c_int
+
+
+def dump_yaml_subtree(prefix, input_file, output_file):
+    _checked_lib_call(lib.netplan_util_dump_yaml_subtree,
+                      prefix.encode('utf-8'),
+                      input_file.fileno(),
+                      output_file.fileno())

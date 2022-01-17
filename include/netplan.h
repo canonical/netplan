@@ -54,11 +54,13 @@ netplan_state_get_netdefs_size(const NetplanState* np_state);
 NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_state_get_netdef(const NetplanState* np_state, const char* id);
 
+/* Dump the whole yaml configuration into the given file, regardless of the origin
+ * of each definition.
+ */
 NETPLAN_PUBLIC gboolean
-netplan_state_write_yaml(
+netplan_state_dump_yaml(
         const NetplanState* np_state,
-        const char* file_hint,
-        const char* rootdir,
+        int output_fd,
         GError** error);
 
 NETPLAN_PUBLIC gboolean
