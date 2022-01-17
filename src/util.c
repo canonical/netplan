@@ -588,3 +588,16 @@ has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTabl
             || (ovs->controller.connection_mode || ovs->controller.addresses)
             || backend == NETPLAN_BACKEND_OVS;
 }
+
+void
+mark_data_as_dirty(NetplanParser* npp, void* data_ptr)
+{
+    // We don't support dirty tracking for globals yet.
+    if (!npp->current.netdef)
+        return;
+    if (!npp->current.netdef->_private)
+        npp->current.netdef->_private = g_new0(struct private_netdef_data, 1);
+    if (!npp->current.netdef->_private->dirty_fields)
+        npp->current.netdef->_private->dirty_fields = g_hash_table_new(g_direct_hash, g_direct_equal);
+    g_hash_table_insert(npp->current.netdef->_private->dirty_fields, data_ptr, data_ptr);
+}

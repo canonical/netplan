@@ -339,6 +339,12 @@ struct netplan_net_definition {
     gboolean generic_segmentation_offload;
     gboolean generic_receive_offload;
     gboolean large_receive_offload;
+
+    struct private_netdef_data* _private;
+};
+
+struct private_netdef_data {
+    GHashTable* dirty_fields;
 };
 
 typedef enum {
