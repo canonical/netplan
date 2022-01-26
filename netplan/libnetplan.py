@@ -56,19 +56,6 @@ _NetplanNetDefinitionP = ctypes.POINTER(_netplan_net_definition)
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
 
-def netplan_parse(path):
-    # Clear old NetplanNetDefinitions from libnetplan memory
-    lib.netplan_clear_netdefs()
-    err = ctypes.POINTER(_GError)()
-    ret = bool(lib.netplan_parse_yaml(path.encode(), ctypes.byref(err)))
-    if not ret:
-        raise Exception(err.contents.message.decode('utf-8'))
-    lib.netplan_finish_parse(ctypes.byref(err))
-    if err:
-        raise Exception(err.contents.message.decode('utf-8'))
-    return True
-
-
 def _checked_lib_call(fn, *args):
     err = ctypes.POINTER(_GError)()
     ret = bool(fn(*args, ctypes.byref(err)))
