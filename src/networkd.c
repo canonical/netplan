@@ -73,7 +73,14 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
      * (of the given type) */
 
     g_string_append(s, "[Match]\n");
-    if (def->match.driver)
+    if (def->match.driver && strchr(def->match.driver, '\t')) {
+        gchar **split = g_strsplit(def->match.driver, "\t", 0);
+        g_string_append_printf(s, "Driver=%s", split[0]);
+        for (unsigned i = 1; split[i]; ++i)
+            g_string_append_printf(s, " %s", split[i]);
+        g_string_append(s, "\n");
+        g_strfreev(split);
+    } else if (def->match.driver)
         g_string_append_printf(s, "Driver=%s\n", def->match.driver);
     if (def->match.mac)
         g_string_append_printf(s, "MACAddress=%s\n", def->match.mac);

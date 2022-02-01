@@ -644,7 +644,7 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, const void* _, GError
             if (!sequence)
                 sequence = g_string_new(scalar(elem));
             else
-                g_string_append_printf(sequence, " %s", scalar(elem));
+                g_string_append_printf(sequence, "\t%s", scalar(elem)); /* tab separated */
         }
 
         if (!sequence)

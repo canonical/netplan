@@ -476,6 +476,12 @@ method=ignore
     def1:
       match:
         driver: ["bcmgenet", "smsc*"]''')
+        self.assert_networkd({'def1.network': '''[Match]
+Driver=bcmgenet smsc*
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
 
     def test_eth_match_by_drivers_whitespace(self):
         err = self.generate('''network:

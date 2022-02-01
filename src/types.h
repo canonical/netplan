@@ -233,7 +233,7 @@ struct netplan_net_definition {
     /* these properties are only valid for physical interfaces (type < ND_VIRTUAL) */
     char* set_name;
     struct {
-        /* A glob (or whitespace separated list of globs) to match a specific driver */
+        /* A glob (or tab-separated list of globs) to match a specific driver */
         char* driver;
         char* mac;
         char* original_name;
