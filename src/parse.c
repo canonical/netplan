@@ -620,8 +620,47 @@ handle_netdef_datalist(NetplanParser* npp, yaml_node_t* node, const void* data, 
  * Grammar and handlers for network config "match" entry
  ****************************************************/
 
+static gboolean
+handle_match_driver(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
+{
+    gboolean ret = FALSE;
+    yaml_node_t *elem = NULL;
+    GString *sequence = NULL;
+
+    /* We overload the 'driver' setting for matches; such that it can either be a
+     * single scalar specifying a single driver glob/match, or a sequence of many
+     * globs any of which must match. */
+    if (node->type == YAML_SCALAR_NODE) {
+        if (g_strrstr(scalar(node), " "))
+            return yaml_error(npp, node, error, "A 'driver' glob cannot contain whitespace");
+        ret = handle_netdef_str(npp, node, netdef_offset(match.driver), error);
+    } else if (node->type == YAML_SEQUENCE_NODE) {
+        for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
+            elem = yaml_document_get_node(&npp->doc, *iter);
+            assert_type(npp, elem, YAML_SCALAR_NODE);
+            if (g_strrstr(scalar(elem), " "))
+                return yaml_error(npp, node, error, "A 'driver' glob cannot contain whitespace");
+
+            if (!sequence)
+                sequence = g_string_new(scalar(elem));
+            else
+                g_string_append_printf(sequence, "\t%s", scalar(elem)); /* tab separated */
+        }
+
+        if (!sequence)
+            return yaml_error(npp, node, error, "invalid sequence for 'driver'");
+
+        npp->current.netdef->match.driver = g_strdup(sequence->str);
+        g_string_free(sequence, TRUE);
+        ret = TRUE;
+    } else
+        return yaml_error(npp, node, error, "invalid type for 'driver': must be a scalar or a sequence of scalars");
+
+    return ret;
+}
+
 static const mapping_entry_handler match_handlers[] = {
-    {"driver", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(match.driver)},
+    {"driver", YAML_NO_NODE, {.generic=handle_match_driver}},
     {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_id}, netdef_offset(match.original_name)},
     {NULL}
