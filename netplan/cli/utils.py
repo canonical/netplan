@@ -158,7 +158,7 @@ def is_interface_matching_name(interface, match_name):
 
 def is_interface_matching_driver_name(interface, match_driver):
     driver_globs = match_driver
-    if not isinstance(driver_globs, list):
+    if isinstance(driver_globs, str):
         driver_globs = [match_driver]
     driver_name = get_interface_driver_name(interface)
     # globs are supported
