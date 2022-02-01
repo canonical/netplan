@@ -255,6 +255,7 @@ class _CommonTests():
                                   'br-eth42.100'])
 
         # Check that the underlying bridge is still present but the vlan interface is now absent
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
         self.assertIn(b'    Bridge br-%b' % self.dev_e_client.encode(), out)
         self.assertNotIn(b'Port br-%(ec)b.100' % {b'ec': self.dev_e_client.encode()}, out)
 
