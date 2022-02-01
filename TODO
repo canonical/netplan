@@ -47,3 +47,5 @@
 - change route->scope to ENUM
 
 - move tunnel_ttl into tunnel struct
+
+- store match.driver as a list rather than a string
