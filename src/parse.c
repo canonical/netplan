@@ -660,7 +660,7 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, const void* _, GError
 }
 
 static const mapping_entry_handler match_handlers[] = {
-    {"driver", YAML_NO_NODE, {.generic=handle_match_driver}},
+    {"driver", YAML_NO_NODE, {.variable=handle_match_driver}},
     {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_id}, netdef_offset(match.original_name)},
     {NULL}
