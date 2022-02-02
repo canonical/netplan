@@ -24,6 +24,7 @@ from collections import defaultdict
 from unittest.mock import patch, mock_open, call
 
 import netplan.cli.sriov as sriov
+import netplan.libnetplan as libnetplan
 
 from netplan.configmanager import ConfigManager, ConfigurationError
 from generator.base import TestBase
@@ -506,10 +507,6 @@ class TestSRIOV(unittest.TestCase):
       renderer: sriov
       id: 15
       link: customvf1
-    vf1.16:
-      renderer: sriov
-      id: 16
-      link: foobar
 ''', file=fd)
         # set up all the mock objects
         netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
@@ -520,7 +517,7 @@ class TestSRIOV(unittest.TestCase):
         gim.return_value = '00:01:02:03:04:05'
 
         # call method under test
-        sriov.apply_sriov_config(self.configmanager)
+        sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
 
         # make sure config_manager.parse() has been called
         self.assertTrue(self.configmanager.config)
@@ -579,12 +576,30 @@ class TestSRIOV(unittest.TestCase):
         gim.return_value = '00:01:02:03:04:05'
 
         # call method under test
-        with self.assertRaises(ConfigurationError) as e:
-            sriov.apply_sriov_config(self.configmanager)
+        with self.assertRaises(libnetplan.LibNetplanException) as e:
+            sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
 
-        self.assertIn('no id property defined for SR-IOV vlan vf1.15',
-                      str(e.exception))
+        self.assertIn('vf1.15: missing \'id\' property', str(e.exception))
         self.assertEqual(apply_vlan.call_count, 0)
+
+    def test_apply_sriov_invalid_link_no_vf(self):
+        # set up the environment
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  ethernets:
+    enp1: {}
+  vlans:
+    vf1.15:
+      renderer: sriov
+      id: 15
+      link: enp1
+''', file=fd)
+        # call method under test
+        with self.assertLogs() as logs:
+            sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+            self.assertIn('SR-IOV vlan defined for vf1.15 but link enp1 is '
+                          'either not a VF or has no matches',
+                          logs.output[0])
 
     @patch('netifaces.interfaces')
     @patch('netplan.cli.sriov.get_vf_count_and_functions')
@@ -635,7 +650,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call method under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.apply_sriov_config(self.configmanager)
+            sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
 
         self.assertIn('interface enp2s16f1 for netplan device customvf1 (vf1.16) already has an SR-IOV vlan defined',
                       str(e.exception))
@@ -681,7 +696,7 @@ class TestSRIOV(unittest.TestCase):
 
         # call method under test
         with self.assertRaises(ConfigurationError) as e:
-            sriov.apply_sriov_config(self.configmanager)
+            sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
 
         self.assertIn('matched more than one interface for a VF device: customvf1',
                       str(e.exception))

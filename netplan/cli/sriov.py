@@ -502,10 +502,6 @@ def apply_sriov_config(config_manager, rootdir='/'):
             # this only works for SR-IOV VF interfaces
             link = settings.get('link')
             vlan_id = settings.get('id')
-            if not vlan_id:
-                raise ConfigurationError(
-                    'no id property defined for SR-IOV vlan %s' % vlan)
-
             vf = vfs.get(link)
             if not vf:
                 # it is possible this is not an error, for instance when
