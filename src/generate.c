@@ -38,7 +38,6 @@
 static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd = FALSE;
-static gboolean any_sriov;
 static gchar* mapping_iface;
 
 static GOptionEntry options[] = {
@@ -254,8 +253,7 @@ int main(int argc, char** argv)
     netplan_networkd_cleanup(rootdir);
     netplan_nm_cleanup(rootdir);
     netplan_ovs_cleanup(rootdir);
-
-    cleanup_sriov_conf(rootdir);
+    netplan_sriov_cleanup(rootdir);
 
     if (mapping_iface && np_state->netdefs) {
         error_code = find_interface(mapping_iface, np_state->netdefs);
@@ -274,13 +272,10 @@ int main(int argc, char** argv)
 
             CHECK_CALL(netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error));
             CHECK_CALL(netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error));
-
-            if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link)
-                any_sriov = TRUE;
         }
 
         CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error));
-        if (any_sriov) write_sriov_conf_finish(rootdir);
+        CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error));
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only
          * invalidates cache at most every 3 seconds. Not sure if this

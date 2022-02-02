@@ -29,6 +29,7 @@
 #include "names.h"
 #include "networkd.h"
 #include "nm.h"
+#include "sriov.h"
 #include "openvswitch.h"
 #include "util.h"
 
@@ -185,6 +186,19 @@ NETPLAN_INTERNAL void
 cleanup_ovs_conf(const char* rootdir)
 {
     netplan_ovs_cleanup(rootdir);
+}
+
+NETPLAN_INTERNAL void
+write_sriov_conf_finish(const char* rootdir)
+{
+    /* Original implementation had no error possible!! */
+    g_assert(netplan_state_finish_sriov_write(&global_state, rootdir, NULL));
+}
+
+NETPLAN_INTERNAL void
+cleanup_sriov_conf(const char* rootdir)
+{
+    netplan_sriov_cleanup(rootdir);
 }
 // LCOV_EXCL_STOP
 

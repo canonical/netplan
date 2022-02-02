@@ -456,3 +456,10 @@ class TestBase(unittest.TestCase):
                 self.assertEqual(link_target,
                                  os.path.join(
                                     '/', 'run', 'systemd', 'system', fname))
+
+    def assert_sriov(self, file_contents_map):
+        systemd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        sriov_systemd_dir = glob.glob(os.path.join(systemd_dir, '*netplan-sriov-*.service'))
+        self.assertEqual(set(os.path.basename(file) for file in sriov_systemd_dir),
+                         {'netplan-sriov-' + f for f in file_contents_map})
+        self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
