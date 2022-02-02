@@ -860,8 +860,48 @@ class TestParser(TestBase):
     engreen:
       embedded-switch-mode: switchdev
       delay-virtual-functions-rebind: true
+    enblue:
+      match: {driver: dummy_driver}
+      set-name: enblue
+      embedded-switch-mode: legacy
+      delay-virtual-functions-rebind: true
+      virtual-function-count: 4
+    sriov_vf0:
+      link: engreen''')
+        self.assert_sriov({'rebind.service': '''[Unit]
+Description=(Re-)bind SR-IOV Virtual Functions to their driver
+After=network.target
+After=sys-subsystem-net-devices-enblue.device
+After=sys-subsystem-net-devices-engreen.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan rebind enblue engreen
+'''})
+
+    def test_rebind_not_delayed(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      embedded-switch-mode: switchdev
+      delay-virtual-functions-rebind: false
     sriov_vf:
       link: engreen''')
+        self.assert_sriov({})
+
+    def test_rebind_no_iface(self):
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      match: {name: 'enp4f[1-3]'}
+      embedded-switch-mode: switchdev
+      delay-virtual-functions-rebind: true
+    sriov_vf:
+      link: engreen''')
+        self.assert_sriov({})
+        self.assertIn('engreen: Cannot rebind SR-IOV virtual functions, unknown interface name.', out)
 
     def test_invalid_not_a_pf(self):
         err = self.generate('''network:
