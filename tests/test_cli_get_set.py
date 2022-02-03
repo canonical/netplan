@@ -306,13 +306,13 @@ class TestSet(unittest.TestCase):
         file2 = os.path.join(self.workdir.name, 'etc', 'netplan', 'eth1.yaml')
         with open(file2, 'w') as f:
             f.write(r'network: {ethernets: {eth1: {dhcp4: true}}}')
-        self._set([(r'network={renderer: NetworkManager, version: 2,'
-                    r'ethernets:{'
-                    r'eth1:{dhcp4: false},'
-                    r'eth0.1:{dhcp4: false},'
-                    r'eth0.2:{dhcp4: false}},'
-                    r'bridges:{'
-                    r'br99:{dhcp4: false}}}')])
+        self._set([(r'network={"renderer": "NetworkManager", "version":2,'
+                    r'"ethernets":{'
+                    r'"eth1":{"dhcp4":false},'
+                    r'"eth0.1":{"dhcp4":false},'
+                    r'"eth0.2":{"dhcp4":false}},'
+                    r'"bridges":{'
+                    r'"br99":{"dhcp4":false}}}')])
         self.assertTrue(os.path.isfile(file1))
         with open(file1, 'r') as f:
             self.assertIn('network:\n  ethernets:\n    eth0.1:\n      dhcp4: false', f.read())
