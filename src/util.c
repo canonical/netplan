@@ -237,14 +237,13 @@ netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, 
         if (!yaml_emitter_emit(&emitter, &event))
             goto err_path; // LCOV_EXCL_LINE
     }
-    void* last_head = emitter.events.head;
 
     if (!emit_yaml_subtree(&parser, &emitter, yaml_path, error)) {
         ret = FALSE;
         goto cleanup;
     }
 
-    if (emitter.events.head == last_head) {
+    if (emitter.events.head != emitter.events.tail) {
         YAML_NULL_PLAIN(&event, &emitter);
     }
 

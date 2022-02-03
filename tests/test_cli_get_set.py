@@ -443,3 +443,19 @@ class TestGet(unittest.TestCase):
             f.write('network:\n  version: 2\n  renderer: NetworkManager')
         out = yaml.safe_load(self._get(['networkINVALID']))
         self.assertIsNone(out)
+
+    def test_get_yaml_document_end_failure(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      match:
+        name: "test"
+      mtu: 9000
+      set-name: "yo"
+      dhcp4: true
+      virtual-function-count: 2
+''')
+        # this shall not throw any (YAML DOCUMENT-END) exception
+        out = yaml.safe_load(self._get(['ethernets.eth0']))
+        self.assertListEqual(['match', 'dhcp4', 'set-name', 'mtu', 'virtual-function-count'], list(out))
