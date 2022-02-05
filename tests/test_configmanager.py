@@ -246,6 +246,22 @@ class TestConfigManager(unittest.TestCase):
         self.configmanager.cleanup()
         self.assertFalse(os.path.exists(backup_dir))
 
+    def test_destruction(self):
+        backup_dir = self.configmanager.tempdir
+        self.assertTrue(os.path.exists(backup_dir))
+        del self.configmanager
+        self.assertFalse(os.path.exists(backup_dir))
+
+    def test_cleanup_and_destruction(self):
+        backup_dir = self.configmanager.tempdir
+        self.assertTrue(os.path.exists(backup_dir))
+        self.configmanager.cleanup()
+        self.assertFalse(os.path.exists(backup_dir))
+        # This tests that the rmtree in the destructor does not throw an error
+        # if cleanup was already called
+        del self.configmanager
+        self.assertFalse(os.path.exists(backup_dir))
+
     def test__copy_tree(self):
         self.configmanager._copy_tree(os.path.join(self.workdir.name, "etc"),
                                       os.path.join(self.workdir.name, "etc2"))
