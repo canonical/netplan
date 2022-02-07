@@ -144,7 +144,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                     # Skip cleanup if this OVS interface is part of the current netplan OVS config
                     if iface in ovs_ifaces:
                         continue
-                    if t[0] == 'Interface' and subprocess.run([OPENVSWITCH_OVS_VSCTL, 'iface-to-br', iface]).returncode > 0:
+                    if t[0] == 'Interface' and subprocess.run([OPENVSWITCH_OVS_VSCTL, 'br-exists', iface]).returncode > 0:
                         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', 'del-bond-iface', iface])
                     else:
                         subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])

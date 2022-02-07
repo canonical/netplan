@@ -202,6 +202,61 @@ class _CommonTests():
                       ['ovs-vsctl', 'br-to-parent', 'br-%s.100' % self.dev_e_client]))
         self.assertIn(b'br-%b' % self.dev_e_client.encode(), out)
 
+    def test_bridge_vlan_deletion(self):
+        self.setup_eth(None, True)
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s' % self.dev_e_client])
+        self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'br-%s.100' % self.dev_e_client])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    ethernets:
+        %(ec)s:
+            mtu: 9000
+    bridges:
+        br-%(ec)s:
+            dhcp4: true
+            mtu: 9000
+            interfaces: [%(ec)s]
+            openvswitch: {}
+    vlans:
+        #implicitly handled by OVS because of its link
+        br-%(ec)s.100:
+            id: 100
+            link: br-%(ec)s''' % {'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client,
+                                  self.state_dhcp4('br-eth42'),
+                                  'br-eth42.100'])
+
+        # Basic verification that the underlying bridge and vlan interface are configured
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge br-%b' % self.dev_e_client.encode(), out)
+        self.assertIn(b'''        Port br-%(ec)b.100
+            tag: 100
+            Interface br-%(ec)b.100
+                type: internal''' % {b'ec': self.dev_e_client.encode()}, out)
+        self.assertIn(b'100', subprocess.check_output(['ovs-vsctl', 'br-to-vlan',
+                      'br-%s.100' % self.dev_e_client]))
+
+        # Write a network configuration that has the .100 vlan interface removed
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    ethernets:
+        %(ec)s:
+            mtu: 9000
+    bridges:
+        br-%(ec)s:
+            dhcp4: true
+            mtu: 9000
+            interfaces: [%(ec)s]
+            openvswitch: {}''' % {'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, self.state_dhcp4('br-eth42')])
+
+        # Check that the underlying bridge is still present but the vlan interface is now absent
+        out = subprocess.check_output(['ovs-vsctl', 'show'])
+        self.assertIn(b'    Bridge br-%b' % self.dev_e_client.encode(), out)
+        self.assertNotIn(b'Port br-%(ec)b.100' % {b'ec': self.dev_e_client.encode()}, out)
+
     def test_bridge_base(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '--if-exists', 'del-br', 'ovsbr'])
