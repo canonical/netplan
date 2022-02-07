@@ -224,6 +224,13 @@ class ConfigManager(object):
     def cleanup(self):
         shutil.rmtree(self.tempdir)
 
+    def __del__(self):
+        try:
+            self.cleanup()
+        except FileNotFoundError:
+            # If cleanup() was called before, there is nothing to delete
+            pass
+
     def _copy_file(self, src, dst):
         shutil.copy(src, dst)
 
