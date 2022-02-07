@@ -250,9 +250,7 @@ class _CommonTests():
             mtu: 9000
             interfaces: [%(ec)s]
             openvswitch: {}''' % {'ec': self.dev_e_client})
-        self.generate_and_settle([self.dev_e_client,
-                                  self.state_dhcp4('br-eth42'),
-                                  'br-eth42.100'])
+        self.generate_and_settle([self.dev_e_client, self.state_dhcp4('br-eth42')])
 
         # Check that the underlying bridge is still present but the vlan interface is now absent
         out = subprocess.check_output(['ovs-vsctl', 'show'])
