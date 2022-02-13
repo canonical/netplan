@@ -204,8 +204,6 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
     }
 
     /* Validate local/remote IPs */
-    if (!nd->tunnel.local_ip)
-        return yaml_error(npp, node, error, "%s: missing 'local' property for tunnel", nd->id);
     if (!nd->tunnel.remote_ip)
         return yaml_error(npp, node, error, "%s: missing 'remote' property for tunnel", nd->id);
     if (nd->tunnel_ttl && nd->tunnel_ttl > 255)
@@ -224,7 +222,7 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
             break;
 
         default:
-            if (!is_ip4_address(nd->tunnel.local_ip))
+            if (nd->tunnel.local_ip && !is_ip4_address(nd->tunnel.local_ip))
                 return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
             if (!is_ip4_address(nd->tunnel.remote_ip))
                 return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
