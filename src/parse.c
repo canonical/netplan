@@ -1215,6 +1215,12 @@ handle_bridge_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data
                 g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
                 npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
             }
+            /* If the bridge has a OVS backend then any gretap or ip6gretap tunnels attached to the bridge must also be OVS */
+            if (component->type == NETPLAN_DEF_TYPE_TUNNEL &&
+                    (component->tunnel.mode == NETPLAN_TUNNEL_MODE_GRETAP || component->tunnel.mode == NETPLAN_TUNNEL_MODE_IP6GRETAP) &&
+                    npp->current.netdef->backend == NETPLAN_BACKEND_OVS) {
+                component->backend = NETPLAN_BACKEND_OVS;
+            }
         }
     }
 
