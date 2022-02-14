@@ -252,9 +252,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     %(ec)s:
       dhcp6: no
       accept-ra: yes
-      addresses: [ '192.168.1.100/24' ]
-    %(e2c)s: {}''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
-        self.generate_and_settle()
+      addresses: [ '192.168.1.100/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], [])
 
     def test_eth_dhcp6_off_no_accept_ra(self):
