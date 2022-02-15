@@ -1019,3 +1019,14 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
                               'Bond=non-ovs-bond'),
                               'ovs-br.network': ND_EMPTY % ('ovs-br', 'ipv6'),
                               'non-ovs-bond.netdev': '[NetDev]\nName=non-ovs-bond\nKind=bond\n'})
+
+    def test_ovs_invalid_networkd_config(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      openvswitch: {}
+      ipv6-address-generation: stable-privacy
+''', expect_fail=True)
+        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+        self.assertIn('br0: ipv6-address-generation mode is not supported by networkd', err)
