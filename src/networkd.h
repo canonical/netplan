@@ -39,11 +39,3 @@ netplan_netdef_write_network_file(
 
 NETPLAN_INTERNAL void
 netplan_networkd_cleanup(const char* rootdir);
-
-/* Deprecated API */
-NETPLAN_INTERNAL gboolean
-write_networkd_conf(const NetplanNetDefinition* def, const char* rootdir);
-NETPLAN_INTERNAL void
-write_network_file(const NetplanNetDefinition* def, const char* rootdir, const char* path);
-NETPLAN_INTERNAL void
-cleanup_networkd_conf(const char* rootdir);

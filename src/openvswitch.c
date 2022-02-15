@@ -413,7 +413,8 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
 
         /* Try writing out a base config */
         base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
-        write_network_file(def, rootdir, base_config_path);
+        if (!netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
+            return FALSE;
     } else {
         /* Other interfaces must be part of an OVS bridge or bond to carry additional data */
         if (   (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0)

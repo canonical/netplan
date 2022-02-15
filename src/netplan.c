@@ -1003,8 +1003,3 @@ netplan_state_dump_yaml(const NetplanState* np_state, int out_fd, GError** error
 
     return netplan_netdef_list_write_yaml(np_state, np_state->netdefs_ordered, out_fd, error);
 }
-
-/* XXX: implement the following functions, once needed:
-void write_netplan_conf_finish(const char* rootdir)
-void cleanup_netplan_conf(const char* rootdir)
-*/

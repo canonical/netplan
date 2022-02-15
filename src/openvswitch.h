@@ -35,11 +35,3 @@ netplan_state_finish_ovs_write(
 
 NETPLAN_INTERNAL gboolean
 netplan_ovs_cleanup(const char* rootdir);
-
-/* Deprecated API */
-NETPLAN_INTERNAL void
-write_ovs_conf(const NetplanNetDefinition* def, const char* rootdir);
-NETPLAN_INTERNAL void
-write_ovs_conf_finish(const char* rootdir);
-NETPLAN_INTERNAL void
-cleanup_ovs_conf(const char* rootdir);
