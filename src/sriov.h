@@ -26,9 +26,3 @@ netplan_state_finish_sriov_write(
 
 NETPLAN_INTERNAL gboolean
 netplan_sriov_cleanup(const char* rootdir);
-
-/* Deprecated API */
-NETPLAN_INTERNAL void
-write_sriov_conf_finish(const char* rootdir);
-NETPLAN_INTERNAL void
-cleanup_sriov_conf(const char* rootdir);
