@@ -131,7 +131,7 @@ install: default
 	install -m 644 *.so.* $(DESTDIR)/$(LIBDIR)/
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) $(DESTDIR)/$(LIBDIR)/libnetplan.so
 	# headers, dev data
-	install -m 644 src/*.h $(DESTDIR)/$(INCLUDEDIR)/netplan/
+	install -m 644 include/*.h $(DESTDIR)/$(INCLUDEDIR)/netplan/
 	# TODO: install pkg-config once available
 	# docs, data
 	install -m 644 doc/*.html $(DESTDIR)/$(DOCDIR)/netplan/
