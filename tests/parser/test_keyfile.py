@@ -69,6 +69,7 @@ method=auto
 [ipv6]
 dns-search=
 method=auto
+ip6-privacy=0
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
@@ -204,6 +205,7 @@ route-metric=4242
 addr-gen-mode=eui64
 dns-search=
 method=auto
+ip6-privacy=0
 ignore-auto-routes=true
 never-default=true
 route-metric=4242
@@ -280,6 +282,7 @@ addr-gen-mode=stable-privacy
 dns-search=bar.local
 dns=dead:beef::2;
 method=manual
+ip6-privacy=2
 address1=1:2:3::9/128
 gateway=6:6::6
 route1=dead:beef::1/128,2001:1234::2
@@ -310,6 +313,7 @@ route1_options=unknown=invalid,
       gateway4: 6.6.6.6
       gateway6: 6:6::6
       ipv6-address-generation: "stable-privacy"
+      ipv6-privacy: true
       routes:
       - metric: 42
         table: 102
@@ -710,6 +714,7 @@ dns-search=
 method=ignore
 addr-gen-mode=1
 dns-search=
+ip6-privacy=0
 
 [wifi]
 ssid=my-hotspot
@@ -1018,6 +1023,7 @@ dns=8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;8.8.8.8;8.8.4.4;
 [ipv6]
 method=auto
 addr-gen-mode=1
+ip6-privacy=0
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
@@ -1080,6 +1086,7 @@ address2=dcba::beef/56
 dns=1::cafe;2::cafe;
 dns-search=wallaceandgromit.com;
 method=manual
+ip6-privacy=1
 route1=1:2:3:4:5:6:7:8/64,8:7:6:5:4:3:2:1,3
 route2=2001::1000/56,2001::1111,1
 route3=4:5:6:7:8:9:0:1/63,::,5
@@ -1151,6 +1158,7 @@ route4=5:6:7:8:9:0:1:2/62
           ipv4.route4: "3.3.3.3/6,0.0.0.0,4"
           ipv4.route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
           ipv6.dns-search: "wallaceandgromit.com;"
+          ipv6.ip6-privacy: "1"
           proxy._: ""
 '''.format(UUID, UUID)})
 
@@ -1201,4 +1209,36 @@ method=auto
           ipv6.dns-search: ""
           ipv6.method: "auto"
           proxy._: ""
+'''.format(UUID, UUID)})
+
+    def test_keyfile_ip6_privacy_default_netplan_0104_compat(self):
+        self.generate_from_keyfile('''[connection]
+id=Test
+uuid={}
+type=ethernet
+
+[ethernet]
+mac-address=99:88:77:66:55:44
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        macaddress: "99:88:77:66:55:44"
+      dhcp4: true
+      dhcp6: true
+      wakeonlan: true
+      networkmanager:
+        uuid: "{}"
+        name: "Test"
+        passthrough:
+          ipv6.ip6-privacy: "-1"
 '''.format(UUID, UUID)})

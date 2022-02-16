@@ -284,3 +284,34 @@ method=auto
 [ipv6]
 method=ignore
 '''})
+
+    def test_passthrough_ip6_privacy_default(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: true
+      networkmanager:
+        uuid: 626dd384-8b3d-3690-9511-192b2c79b3fd
+        name: "netplan-eth0"
+        passthrough:
+          "ipv6.ip6-privacy": "-1"
+''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+uuid=626dd384-8b3d-3690-9511-192b2c79b3fd
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+'''})

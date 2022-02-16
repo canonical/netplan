@@ -497,6 +497,15 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     if (nd_type == NETPLAN_DEF_TYPE_NM)
         goto only_passthrough; //do not try to handle any keys for connections types unknown to netplan
 
+    /* Handle some differing NM/netplan defaults */
+    tmp_str = g_key_file_get_string(kf, "ipv6", "method", NULL);
+    if ( g_key_file_has_group(kf, "ipv6") && g_strcmp0(tmp_str, "ignore") != 0 &&
+        !g_key_file_has_key(kf, "ipv6", "ip6-privacy", NULL)) {
+        /* put NM's default into passthrough, as this is not currently supported by netplan */
+        g_key_file_set_integer(kf, "ipv6", "ip6-privacy", -1);
+    }
+    g_free(tmp_str);
+
     /* remove supported values from passthrough, which have been handled */
     if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
         || nd_type == NETPLAN_DEF_TYPE_WIFI
@@ -555,6 +564,21 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     }
     g_free(tmp_str);
     handle_generic_str(kf, "ipv6", "token", &nd->ip6_addr_gen_token);
+
+    /* ip6-privacy is not fully supported, NM supports additional modes, like -1 or 1
+     * handle known modes, but keep any unsupported "ip6-privacy" value in passthrough */
+    if (g_key_file_has_group(kf, "ipv6")) {
+        if (g_key_file_has_key(kf, "ipv6", "ip6-privacy", NULL)) {
+            int ip6_privacy = g_key_file_get_integer(kf, "ipv6", "ip6-privacy", NULL);
+            if (ip6_privacy == 0) {
+                nd->ip6_privacy = FALSE;
+                _kf_clear_key(kf, "ipv6", "ip6-privacy");
+            } else if (ip6_privacy == 2) {
+                nd->ip6_privacy = TRUE;
+                _kf_clear_key(kf, "ipv6", "ip6-privacy");
+            }
+        }
+    }
 
     /* Modem parameters
      * NM differentiates between GSM and CDMA connections, while netplan
