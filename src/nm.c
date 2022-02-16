@@ -531,7 +531,12 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
     /* delete the dummy key, if this was just an empty group */
     if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
         g_key_file_remove_key(kf, group, k, NULL);
-    else if (!has_key) {
+    /* handle differing defaults:
+     * ipv6.ip6-privacy is "-1 (unknown)" by default in NM, it is "0 (off)" in netplan */
+    else if (g_strcmp0(key, "ipv6.ip6-privacy") == 0 && g_strcmp0(val, "-1") == 0) {
+        g_debug("NetworkManager: default override: clearing %s.%s", group, k);
+        g_key_file_remove_key(kf, group, k, NULL);
+    } else if (!has_key) {
         g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
         g_key_file_set_comment(kf, group, k, "Netplan: passthrough setting", NULL);
     } else if (!!g_strcmp0(val, old_key)) {
