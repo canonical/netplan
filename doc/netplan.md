@@ -640,7 +640,7 @@ eth1:
 :    The ``routes`` block defines standard static routes for an interface.
      At least ``to`` must be specified. If type is ``local`` or ``nat`` a
      default scope of ``host`` is assumed.
-     If type is ``unicast`` and no gateway (``via``) is given or type is 
+     If type is ``unicast`` and no gateway (``via``) is given or type is
      ``broadcast``, ``multicast`` or ``anycast`` a default scope of ``link``
      is assumend. Otherwise, a ``global`` scope is the default setting.
 
