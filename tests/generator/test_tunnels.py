@@ -19,7 +19,7 @@
 from .base import TestBase, ND_WITHIPGW, ND_EMPTY, NM_WG, ND_WG
 
 
-def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
+def prepare_config_for_mode(renderer, mode, key=None, ttl=None, omit_local_ip=False):
     config = """network:
   version: 2
   renderer: {}
@@ -41,11 +41,15 @@ def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
   tunnels:
     tun0:
       mode: {}
-      local: {}
       remote: {}{}
       addresses: [ 15.15.15.15/24 ]
       gateway4: 20.20.20.21
-""".format(mode, local_ip, remote_ip, append_ttl)
+""".format(mode, remote_ip, append_ttl)
+
+    if not omit_local_ip:
+        config += """
+      local: {}
+""".format(local_ip)
 
     # Handle key/keys as str or dict as required by the test
     if type(key) is str:
@@ -797,6 +801,29 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
+    def test_gre_no_local_ip(self):
+        """[networkd] Validate generation of GRE tunnels"""
+        config = prepare_config_for_mode('networkd', 'gre', omit_local_ip=True)
+        self.generate(config)
+        self.assert_networkd({'tun0.netdev': '''[NetDev]
+Name=tun0
+Kind=gre
+
+[Tunnel]
+Independent=true
+Local=any
+Remote=20.20.20.20
+''',
+                              'tun0.network': '''[Match]
+Name=tun0
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=15.15.15.15/24
+Gateway=20.20.20.21
+ConfigureWithoutCarrier=yes
+'''})
+
     def test_ip6gre(self):
         """[networkd] Validate generation of IP6GRE tunnels"""
         config = prepare_config_for_mode('networkd', 'ip6gre')
@@ -1105,6 +1132,29 @@ interface-name=tun0
 [ip-tunnel]
 mode=2
 local=10.10.10.10
+remote=20.20.20.20
+
+[ipv4]
+method=manual
+address1=15.15.15.15/24
+gateway=20.20.20.21
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_gre_no_local_ip(self):
+        """[NetworkManager] Validate generation of GRE tunnels"""
+        config = prepare_config_for_mode('NetworkManager', 'gre', omit_local_ip=True)
+        self.generate(config)
+        self.assert_nm({'tun0': '''[connection]
+id=netplan-tun0
+type=ip-tunnel
+interface-name=tun0
+
+[ip-tunnel]
+mode=2
+local=
 remote=20.20.20.20
 
 [ipv4]
