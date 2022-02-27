@@ -418,7 +418,7 @@ static void
 write_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
 {
     g_key_file_set_integer(kf, "ip-tunnel", "mode", def->tunnel.mode);
-    g_key_file_set_string(kf, "ip-tunnel", "local", def->tunnel.local_ip);
+    g_key_file_set_string(kf, "ip-tunnel", "local", (def->tunnel.local_ip ? def->tunnel.local_ip : ""));
     g_key_file_set_string(kf, "ip-tunnel", "remote", def->tunnel.remote_ip);
     if (def->tunnel_ttl)
         g_key_file_set_uint64(kf, "ip-tunnel", "ttl", def->tunnel_ttl);

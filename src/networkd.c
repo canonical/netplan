@@ -151,7 +151,7 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
     g_string_printf(params, "Independent=true\n");
     if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_IPIP6 || def->tunnel.mode == NETPLAN_TUNNEL_MODE_IP6IP6)
         g_string_append_printf(params, "Mode=%s\n", netplan_tunnel_mode_name(def->tunnel.mode));
-    g_string_append_printf(params, "Local=%s\n", def->tunnel.local_ip);
+    g_string_append_printf(params, "Local=%s\n", (def->tunnel.local_ip ? def->tunnel.local_ip : "any"));
     g_string_append_printf(params, "Remote=%s\n", def->tunnel.remote_ip);
     if (def->tunnel_ttl)
         g_string_append_printf(params, "TTL=%u\n", def->tunnel_ttl);
