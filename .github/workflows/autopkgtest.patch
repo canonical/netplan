@@ -1,0 +1,9 @@
+@@ -70,6 +70,8 @@
+ 
+     sleep 5
+     if lxc exec "$CONTAINER" -- systemctl mask serial-getty@getty.service; then
++       lxc exec "$CONTAINER" -- systemctl mask snapd.service
++       lxc exec "$CONTAINER" -- systemctl mask snapd.seeded.service
+        lxc exec "$CONTAINER" -- reboot
+     fi
+ 
