@@ -1,0 +1,54 @@
+name: Autopkgtest DebCI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch
+on:
+  push:
+    branches: [ main, 'stable/**' ]
+  pull_request:
+    branches: [ '**' ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  lxc-debian-testing:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-22.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - run: |
+          git fetch --unshallow --tags
+      # Install openvswitch-switch to make the OVS integration tests work
+      # Install linux-modules-extra-azure to provide the 'vrf' kernel module,
+      # it's needed (will be auto-loaded) by routing.test_vrf_basic
+      - name: Install dependencies
+        run: |
+          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
+          sudo apt update
+          sudo apt install debci lxc lxc-templates debian-archive-keyring autopkgtest ubuntu-dev-tools devscripts linux-modules-extra-$(uname -r) #openvswitch-switch
+      # See: https://discourse.ubuntu.com/t/containers-lxc/11526 (Apparmor section)
+      #      (LP: #1950787, LP: #1998943)
+      - name: Preparing autopkgtest-build-lxc
+        run: |
+          # Fix Docker blocking LXC networking:
+          # https://discuss.linuxcontainers.org/t/9953/4
+          sudo iptables -I DOCKER-USER  -j ACCEPT
+          sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
+          sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
+          echo "lxc.apparmor.profile = unconfined" | sudo tee -a /etc/lxc/default.conf
+          sudo debci setup -s testing -a amd64 -b lxc
+      - name: Prepare test
+        run: |
+          # pull-debian-source netplan.io  # snapshot.debian.org is not up-to-date
+          V=$(rmadison -u debian -s unstable netplan.io | cut -d"|" -f2 | xargs)
+          dget -u "https://deb.debian.org/debian/pool/main/n/netplan.io/netplan.io_$V.dsc"
+          cp -r netplan.io-*/debian .
+          rm -r debian/patches/  # clear any distro patches
+          dch -v $(git describe --long --tags $(git rev-list --tags --max-count=1)) "Autopkgtest CI testing (Debian testing)"
+      - name: Run autopkgtest (incl. build)
+        run: |
+          # using --setup-commands='apt -y install ...' temporarily to install
+          # (test-/build-) deps until they become part of the packaging
+          sudo autopkgtest . -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxc autopkgtest-testing-amd64 || test $? -eq 2  # allow OVS test to be skipped (exit code = 2)
