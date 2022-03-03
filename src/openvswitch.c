@@ -59,7 +59,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
         g_string_append_printf(s, "After=netplan-ovs-%s.service\n", dependency);
     }
 
-    g_string_append(s, "\n[Service]\nType=oneshot\n");
+    g_string_append(s, "\n[Service]\nType=oneshot\nTimeoutStartSec=10s\n");
     g_string_append(s, cmds->str);
 
     g_string_free_to_file(s, rootdir, path, NULL);
