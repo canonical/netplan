@@ -55,6 +55,9 @@ default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.serv
 %.o: src/%.c
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
+dbus.o: src/dbus.c src/_features.h
+	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $< `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
+
 libnetplan.so.$(NETPLAN_SOVER): $(SRCS) abicompat.lds
 	$(CC) -shared -Wl,-soname,libnetplan.so.$(NETPLAN_SOVER) $(BUILDFLAGS) $(CFLAGS) -fvisibility=hidden $(LDFLAGS) -o $@ $(SRCS) -T abicompat.lds `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 	ln -snf libnetplan.so.$(NETPLAN_SOVER) libnetplan.so
