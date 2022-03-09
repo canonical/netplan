@@ -118,6 +118,22 @@ r'Press ENTER before the timeout to accept the new configuration\n\n\n'
 r'(Changes will revert in \d+ seconds\n)+'
 r'Reverting\.')
 
+    def test_apply_networkd_inactive_lp1962095(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  ethernets:
+    %(ec)s:
+      dhcp4: true
+    %(e2c)s:
+      dhcp4: true
+  version: 2''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        # stop networkd to simulate the failure case
+        subprocess.check_call(['systemctl', 'stop', 'systemd-networkd.service', 'systemd-networkd.socket'])
+        self.generate_and_settle([self.state_dhcp4(self.dev_e_client), self.state_dhcp4(self.dev_e2_client)])
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])
+        self.assert_iface_up(self.dev_e2_client, ['inet 192.168.6.[0-9]+/24'])
+
 
 @unittest.skipIf("NetworkManager" not in test_backends,
                      "skipping as NetworkManager backend tests are disabled")
