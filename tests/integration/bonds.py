@@ -315,14 +315,12 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
     ethbn:
       match:
         name: %(ec)s
-        macaddress: %(ec_mac)s
   bonds:
     mybond:
       interfaces: [ethbn]
       macaddress: 00:01:02:03:04:05
       dhcp4: yes''' % {'r': self.backend,
-                       'ec': self.dev_e_client,
-                       'ec_mac': self.dev_e_client_mac})
+                       'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
         self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24', '00:01:02:03:04:05'])

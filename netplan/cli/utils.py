@@ -95,12 +95,15 @@ def networkd_interfaces():
     for line in out.splitlines():
         s = line.strip().split(' ')
         if s[0].isnumeric() and s[-1] not in ['unmanaged', 'linger']:
-            interfaces.add(s[1])
+            interfaces.add(s[0])
     return interfaces
 
 
-def networkctl_reconfigure(interfaces):
+def networkctl_reload():
     subprocess.check_call(['networkctl', 'reload'])
+
+
+def networkctl_reconfigure(interfaces):
     if len(interfaces) >= 1:
         subprocess.check_call(['networkctl', 'reconfigure'] + list(interfaces))
 

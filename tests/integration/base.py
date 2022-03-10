@@ -300,7 +300,12 @@ class IntegrationTestsBase(unittest.TestCase):
         cmd = ['netplan', 'apply']
         if state_dir:
             cmd = cmd + ['--state', state_dir]
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, universal_newlines=True)
+        out = ''
+        try:
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, universal_newlines=True)
+        except subprocess.CalledProcessError as e:
+            self.assertTrue(False, 'netplan apply failed: {}'.format(e.output))
+
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             self.fail('systemd units changed without reload')
         # start NM so that we can verify that it does not manage anything

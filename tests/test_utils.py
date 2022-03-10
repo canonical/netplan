@@ -215,17 +215,25 @@ class TestUtils(unittest.TestCase):
 174 wwan0           wwan     off        linger''')
         res = utils.networkd_interfaces()
         self.assertEquals(self.mock_networkctl.calls(), [['networkctl', '--no-pager', '--no-legend']])
-        self.assertIn('wlan0', res)
-        self.assertIn('ens3', res)
+        self.assertIn('2', res)
+        self.assertIn('3', res)
+
+    def test_networkctl_reload(self):
+        self.mock_networkctl = MockCmd('networkctl')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
+        utils.networkctl_reload()
+        self.assertEquals(self.mock_networkctl.calls(), [
+            ['networkctl', 'reload']
+        ])
 
     def test_networkctl_reconfigure(self):
         self.mock_networkctl = MockCmd('networkctl')
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
-        utils.networkctl_reconfigure(['eth0', 'eth1'])
+        utils.networkctl_reconfigure(['3', '5'])
         self.assertEquals(self.mock_networkctl.calls(), [
-            ['networkctl', 'reload'],
-            ['networkctl', 'reconfigure', 'eth0', 'eth1']
+            ['networkctl', 'reconfigure', '3', '5']
         ])
 
     def test_is_nm_snap_enabled(self):

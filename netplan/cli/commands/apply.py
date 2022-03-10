@@ -252,7 +252,13 @@ class NetplanApply(utils.NetplanCommand):
                            if not f.endswith('/' + OVS_CLEANUP_SERVICE)]
             # Run 'systemctl start' command synchronously, to avoid race conditions
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
-            utils.networkctl_reconfigure(utils.networkd_interfaces())
+            try:
+                utils.networkctl_reload()
+                utils.networkctl_reconfigure(utils.networkd_interfaces())
+            except subprocess.CalledProcessError:
+                # (re-)start systemd-networkd if it is not running, yet
+                logging.warning('Falling back to a hard restart of systemd-networkd.service')
+                utils.systemctl('restart', ['systemd-networkd.service'], sync=True)
             # 1st: execute OVS cleanup, to avoid races while applying OVS config
             utils.systemctl('start', [OVS_CLEANUP_SERVICE], sync=True)
             # 2nd: start all other services
