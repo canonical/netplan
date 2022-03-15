@@ -52,7 +52,7 @@ NOSETESTS3 ?= $(shell command -v nosetests-3 || command -v nosetests3 || echo tr
 
 default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8 doc/netplan-dbus.8 doc/netplan-get.8 doc/netplan-set.8
 
-%.o: src/%.c
+%.o: src/%.c src/_features.h
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -c $^ `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 libnetplan.so.$(NETPLAN_SOVER): $(SRCS) abicompat.lds
@@ -62,7 +62,7 @@ libnetplan.so.$(NETPLAN_SOVER): $(SRCS) abicompat.lds
 generate: libnetplan.so.$(NETPLAN_SOVER) generate.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter-out $<,$^) -L. -lnetplan `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid`
 
-netplan-dbus: libnetplan.so.$(NETPLAN_SOVER) src/_features.h dbus.o
+netplan-dbus: libnetplan.so.$(NETPLAN_SOVER) dbus.o
 	$(CC) $(BUILDFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(filter-out $<,$(patsubst %.h,,$^)) -L. -lnetplan `pkg-config --cflags --libs libsystemd glib-2.0 gio-2.0 yaml-0.1 uuid`
 
 src/_features.h: src/[^_]*.[hc]
