@@ -281,6 +281,16 @@ class TestState(TestBase):
         with self.assertRaises(libnetplan.LibNetplanException):
             state.write_yaml_file('target.yml', self.workdir.name)
 
+    def test_update_yaml_hierarchy_no_confdir(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+        shutil.rmtree(self.confdir)
+        with self.assertRaises(libnetplan.LibNetplanException) as context:
+            state.update_yaml_hierarchy("bogus", self.workdir.name)
+        self.assertIn('No such file or directory', str(context.exception))
+
     def test_write_yaml_file_remove_directory(self):
         state = libnetplan.State()
         os.makedirs(self.confdir)

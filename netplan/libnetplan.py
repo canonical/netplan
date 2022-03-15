@@ -146,6 +146,9 @@ class State:
         lib.netplan_state_write_yaml_file.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
         lib.netplan_state_write_yaml_file.restype = c_int
 
+        lib.netplan_state_update_yaml_hierarchy.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
+        lib.netplan_state_update_yaml_hierarchy.restype = c_int
+
         lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
         lib.netplan_state_dump_yaml.restype = c_int
 
@@ -171,6 +174,11 @@ class State:
         name = filename.encode('utf-8') if filename else None
         root = rootdir.encode('utf-8') if rootdir else None
         _checked_lib_call(lib.netplan_state_write_yaml_file, self._ptr, name, root)
+
+    def update_yaml_hierarchy(self, default_filename, rootdir):
+        name = default_filename.encode('utf-8')
+        root = rootdir.encode('utf-8') if rootdir else None
+        _checked_lib_call(lib.netplan_state_update_yaml_hierarchy, self._ptr, name, root)
 
     def dump_yaml(self, output_file):
         fd = output_file.fileno()

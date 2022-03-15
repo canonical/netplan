@@ -26,7 +26,6 @@ import glob
 import yaml
 
 from tests.test_utils import call_cli
-from netplan.libnetplan import LibNetplanException
 
 
 class TestSet(unittest.TestCase):
