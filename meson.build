@@ -13,6 +13,12 @@ gio  = dependency('gio-2.0')
 yaml = dependency('yaml-0.1')
 uuid = dependency('uuid')
 
+systemd = dependency('systemd')
+completions = dependency('bash-completion')
+systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')
+systemd_unit_dir = systemd.get_variable(pkgconfig: 'systemdsystemunitdir')
+bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
+
 add_project_arguments(
     '-DSBINDIR="' + get_option('sbindir') + '"',
     '-D_XOPEN_SOURCE=500',
