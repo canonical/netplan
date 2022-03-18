@@ -14,6 +14,15 @@ An overview of the architecture can be found at [netplan.io/design](https://netp
 
 The full documentation for netplan is available in the [doc/netplan.md file](../master/doc/netplan.md)
 
+# Build using Meson
+
+Steps to build netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
+
+* meson setup build --prefix=/usr
+* meson compile -C build
+* meson install -C build --destdir ../tmp && tree tmp/
+* meson test -C build
+
 # Bug reports
 
 Please file bug reports in [Launchpad](https://bugs.launchpad.net/netplan/+filebug).
