@@ -20,6 +20,8 @@ systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratord
 systemd_unit_dir = systemd.get_variable(pkgconfig: 'systemdsystemunitdir')
 bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
 
+pandoc = find_program('pandoc', required: false)
+
 add_project_arguments(
     '-DSBINDIR="' + get_option('sbindir') + '"',
     '-D_XOPEN_SOURCE=500',
@@ -34,6 +36,7 @@ inc = include_directories('include')
 subdir('include')
 subdir('src')
 subdir('netplan')
+subdir('doc')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
