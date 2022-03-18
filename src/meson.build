@@ -34,6 +34,6 @@ executable(
     install: true)
 install_symlink(
     'netplan',
-    pointing_to: join_paths('..', '..', '..', libexec_netplan, 'generate'),
-    install_dir: get_option('prefix') + systemd_generator_dir)
+    pointing_to: join_paths('..', '..', '..') + join_paths(get_option('prefix'), libexec_netplan, 'generate'),
+    install_dir: systemd_generator_dir)
 

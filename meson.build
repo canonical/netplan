@@ -18,7 +18,6 @@ libsystemd = dependency('libsystemd')
 systemd = dependency('systemd')
 completions = dependency('bash-completion')
 systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')
-systemd_unit_dir = systemd.get_variable(pkgconfig: 'systemdsystemunitdir')
 bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
 
 pandoc = find_program('pandoc', required: false)
