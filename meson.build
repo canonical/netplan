@@ -33,9 +33,13 @@ inc = include_directories('include')
 subdir('include')
 subdir('src')
 
-#TODO: ship pkgconfig
-#pkg_mod = import('pkgconfig')
-#pkg_mod.generate(libraries: libnetplan, ...)
+pkg_mod = import('pkgconfig')
+pkg_mod.generate(
+    libraries: libnetplan,
+    subdirs: ['netplan'],
+    name: 'libnetplan',
+    filebase: 'netplan',
+    description: 'YAML network configuration abstraction runtime library')
 
 #TODO: unit tests
 #test_common = find_program('tests/generator/test_common.py')
