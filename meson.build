@@ -48,6 +48,11 @@ pkg_mod.generate(
     filebase: 'netplan',
     description: 'YAML network configuration abstraction runtime library')
 
+install_data(
+    'netplan.completions',
+    rename: 'netplan',
+    install_dir: bash_completions_dir)
+
 #TODO: unit tests
 #test_common = find_program('tests/generator/test_common.py')
 #test('common', test_common)
