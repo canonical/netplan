@@ -20,11 +20,15 @@ completions = dependency('bash-completion')
 systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')
 bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
 
+# Order: Fedora/Mageia/openSUSE || Debian/Ubuntu
+pyflakes = find_program('pyflakes-3', 'pyflakes3', required: false)
+pycodestyle = find_program('pycodestyle-3', 'pycodestyle', 'pep8', required: false)
+nose = find_program('nosetests-3', 'nosetests3')
 pandoc = find_program('pandoc', required: false)
 find = find_program('find')
 
 add_project_arguments(
-    '-DSBINDIR="' + get_option('sbindir') + '"',
+    '-DSBINDIR="' + join_paths(get_option('prefix'), get_option('sbindir')) + '"',
     '-D_XOPEN_SOURCE=500',
     language: 'c')
 
@@ -54,6 +58,67 @@ install_data(
     rename: 'netplan',
     install_dir: bash_completions_dir)
 
-#TODO: unit tests
-#test_common = find_program('tests/generator/test_common.py')
-#test('common', test_common)
+###########
+# Testing #
+###########
+test_env = [
+    'PYTHONPATH=' + meson.current_source_dir(),
+    'LD_LIBRARY_PATH=' + join_paths(meson.current_build_dir(), 'src'),
+    'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
+    'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
+]
+test('linting',
+     pyflakes,
+     args: [meson.current_source_dir()])
+test('codestyle',
+     pycodestyle,
+     args: ['--max-line-length=130', meson.current_source_dir()])
+test('documentation',
+     find_program('tests/validate_docs.sh'),
+     workdir: meson.current_source_dir())
+test('legacy-tests',
+     find_program('tests/cli.py'),
+     timeout: 120,
+     env: test_env)
+#TODO: split out dbus tests into own test() instance, to run in parallel
+test('unit-tests',
+     nose,
+     args: ['-v', '--with-coverage', meson.current_source_dir()],
+     timeout: 600,
+     env: test_env)
+
+#TODO: the coverage section should probably be cleaned up a bit
+if get_option('b_coverage')
+    message('Find coverage reports in <BUILDDIR>/meson-logs/coveragereport[-py]/')
+    # Using gcovr instead of lcov/gcov.
+    # The 'ninja coverage' command will produce the html/txt reports for C implicitly
+    #lcov = find_program('lcov')
+    #gcov = find_program('gcov')
+    #genhtml = find_program('genhtml')
+    gcovr = find_program('gcovr')
+    ninja = find_program('ninja')
+    grep  = find_program('grep')
+    pycoverage = find_program('python3-coverage')
+    test('coverage-c-output',
+         find_program('ninja'),
+         args: ['-C', meson.current_build_dir(), 'coverage'],
+         priority: -90, # run before 'coverage-c'
+         is_parallel: false)
+    test('coverage-c',
+         grep,
+         args: ['^TOTAL.*100%$', join_paths(meson.current_build_dir(), 'meson-logs', 'coverage.txt')],
+         priority: -99, # run last
+         is_parallel: false)
+    test('coverage-py-output',
+         pycoverage,
+         args: ['html', '-d', join_paths(meson.current_build_dir(),
+                'meson-logs', 'coveragereport-py'), '--omit=/usr*'],
+         priority: -99, # run last
+         is_parallel: false)
+    test('coverage-py',
+         pycoverage,
+         args: ['report', '--omit=/usr*', '--show-missing', '--fail-under=100'],
+         priority: -99, # run last
+         is_parallel: false)
+endif
+

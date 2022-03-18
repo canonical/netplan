@@ -18,10 +18,10 @@ The full documentation for netplan is available in the [doc/netplan.md file](../
 
 Steps to build netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
 
-* meson setup build --prefix=/usr
+* meson setup build --prefix=/usr -Db_coverage=true
 * meson compile -C build
-* meson install -C build --destdir ../tmp && tree tmp/
-* meson test -C build
+* meson test -C build --verbose [TEST_NAME]
+* meson install -C build --destdir ../tmproot
 
 # Bug reports
 
