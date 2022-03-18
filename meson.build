@@ -22,6 +22,7 @@ systemd_unit_dir = systemd.get_variable(pkgconfig: 'systemdsystemunitdir')
 bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
 
 pandoc = find_program('pandoc', required: false)
+find = find_program('find')
 
 add_project_arguments(
     '-DSBINDIR="' + get_option('sbindir') + '"',
@@ -36,9 +37,10 @@ run_command('features_py_generator.sh', check: true)
 inc = include_directories('include')
 subdir('include')
 subdir('src')
-subdir('netplan')
-subdir('doc')
 subdir('dbus')
+subdir('netplan')
+subdir('examples')
+subdir('doc')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
