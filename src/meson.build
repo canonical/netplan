@@ -23,13 +23,17 @@ libnetplan = library(
     soversion: '0.0',
     install: true)
 
-#TODO: symlink to systemd_generator_dir
+libexec_netplan = join_paths(get_option('libexecdir'), 'netplan')
 executable(
     'generate',
     'generate.c',
     include_directories: inc,
     link_with: libnetplan,
     dependencies: [glib, gio, yaml, uuid],
-    install_dir: join_paths(get_option('libexecdir'), 'netplan'),
+    install_dir: libexec_netplan,
     install: true)
+install_symlink(
+    'netplan',
+    pointing_to: join_paths('..', '..', '..', libexec_netplan, 'generate'),
+    install_dir: get_option('prefix') + systemd_generator_dir)
 
