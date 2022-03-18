@@ -13,6 +13,7 @@ glib = dependency('glib-2.0')
 gio  = dependency('gio-2.0')
 yaml = dependency('yaml-0.1')
 uuid = dependency('uuid')
+libsystemd = dependency('libsystemd')
 
 systemd = dependency('systemd')
 completions = dependency('bash-completion')
@@ -37,6 +38,7 @@ subdir('include')
 subdir('src')
 subdir('netplan')
 subdir('doc')
+subdir('dbus')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
