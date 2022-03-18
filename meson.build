@@ -6,6 +6,7 @@ project('netplan', 'c',
             'warning_level=1',
             'werror=true',
         ],
+        meson_version: '>= 0.61.0',
 )
 
 glib = dependency('glib-2.0')
@@ -32,6 +33,7 @@ run_command('features_py_generator.sh', check: true)
 inc = include_directories('include')
 subdir('include')
 subdir('src')
+subdir('netplan')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
