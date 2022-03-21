@@ -249,7 +249,7 @@ class _CommonTests():
 
 
 @unittest.skipIf("networkd" not in test_backends,
-                     "skipping as networkd backend tests are disabled")
+                 "skipping as networkd backend tests are disabled")
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
@@ -310,7 +310,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
-                     "skipping as NetworkManager backend tests are disabled")
+                 "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 

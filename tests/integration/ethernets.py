@@ -71,7 +71,7 @@ class _CommonTests():
     englob:
       match: {name: "eth?2"}
       addresses: ["172.16.42.99/18", "1234:FFFF::42/64"]
-''' % {'r': self.backend}) # globbing match on "eth42", i.e. self.dev_e_client
+''' % {'r': self.backend})  # globbing match on "eth42", i.e. self.dev_e_client
         self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet 172.16.42.99/18', 'inet6 1234:ffff::42/64'])
 
@@ -117,7 +117,7 @@ class _CommonTests():
             self.assertRegex(out, r'%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
         with open('/etc/resolv.conf') as f:
-                resolv_conf = f.read()
+            resolv_conf = f.read()
 
         if self.backend == 'NetworkManager' and nm_uses_dnsmasq:
             sys.stdout.write('[NM with dnsmasq] ')
@@ -238,7 +238,7 @@ class _CommonTests():
 
 
 @unittest.skipIf("networkd" not in test_backends,
-                     "skipping as networkd backend tests are disabled")
+                 "skipping as networkd backend tests are disabled")
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
@@ -312,8 +312,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                           ['inet6 9876:bbbb::11/70', 'inet 172.16.5.3/20'],
                           ['inet6 fe80:', 'inet 169.254.'])
 
+
 @unittest.skipIf("NetworkManager" not in test_backends,
-                     "skipping as NetworkManager backend tests are disabled")
+                 "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 

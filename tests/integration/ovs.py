@@ -52,12 +52,12 @@ class _CommonTests():
         # Get bond settings
         for col in ('bond_mode', 'lacp'):
             d['%s-Bond' % col] = subprocess.check_output(['ovs-vsctl', '--columns=name,%s' % col, '-f', 'csv', '-d', 'bare',
-                                                           '--no-headings', 'list', 'Port'])
+                                                          '--no-headings', 'list', 'Port'])
         # Get bridge settings
         d['set-fail-mode-Bridge'] = subprocess.check_output(['ovs-vsctl', 'get-fail-mode', bridge0])
         for col in ('mcast_snooping_enable', 'rstp_enable', 'protocols'):
             d['%s-Bridge' % col] = subprocess.check_output(['ovs-vsctl', '--columns=name,%s' % col, '-f', 'csv', '-d', 'bare',
-                                                             '--no-headings', 'list', 'Bridge'])
+                                                            '--no-headings', 'list', 'Bridge'])
         # Get controller settings
         d['set-controller-Bridge'] = subprocess.check_output(['ovs-vsctl', 'get-controller', bridge0])
         for col in ('connection_mode',):
@@ -604,7 +604,7 @@ class _CommonTests():
 
 
 @unittest.skipIf("networkd" not in test_backends,
-                     "skipping as networkd backend tests are disabled")
+                 "skipping as networkd backend tests are disabled")
 class TestOVS(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 

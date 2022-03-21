@@ -600,7 +600,8 @@ mode=ap'''.format(UUID))
         self._template_keyfile_type_wifi('infrastructure', 'mesh')
 
     def test_keyfile_type_wifi_missing_ssid(self):
-        err = self.generate_from_keyfile('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''.format(UUID), expect_fail=True)
+        err = self.generate_from_keyfile('''[connection]\ntype=wifi\nuuid={}\nid=myid with spaces'''
+                                         .format(UUID), expect_fail=True)
         self.assertFalse(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
         self.assertIn('netplan: Keyfile: cannot find SSID for WiFi connection', err)
 

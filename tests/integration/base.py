@@ -75,7 +75,8 @@ class IntegrationTestsBase(unittest.TestCase):
 
         os.makedirs('/etc/NetworkManager/conf.d', exist_ok=True)
         with open('/etc/NetworkManager/conf.d/99-test-ignore.conf', 'w') as f:
-            f.write('[keyfile]\nunmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,interface-name:veth43')
+            f.write('''[keyfile]
+unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,interface-name:veth43''')
         subprocess.check_call(['netplan', 'apply'])
         subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=30'])
 
