@@ -31,8 +31,6 @@ exe_cli = [os.path.join(rootdir, 'src', 'netplan.script')]
 if shutil.which('python3-coverage'):
     exe_cli = ['python3-coverage', 'run', '--append', '--'] + exe_cli
 
-# Make sure we can import our development netplan.
-os.environ.update({'PYTHONPATH': '.'})
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
 
 
@@ -54,7 +52,8 @@ class TestArgs(unittest.TestCase):
         self.assertIn(b'--root-dir', out)
 
     def test_no_command(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         p = subprocess.Popen(exe_cli, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
@@ -102,7 +101,8 @@ class TestGenerate(unittest.TestCase):
                          ['10-netplan-enlol.network'])
 
     def test_mapping_for_unknown_iface(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
@@ -118,7 +118,8 @@ class TestGenerate(unittest.TestCase):
         self.assertNotIn(b'nonexistent', out)
 
     def test_mapping_for_interface(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
@@ -132,7 +133,8 @@ class TestGenerate(unittest.TestCase):
         self.assertIn('enlol', out.decode('utf-8'))
 
     def test_mapping_for_renamed_iface(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
@@ -609,7 +611,8 @@ class TestIp(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
 
     def test_ip_leases_networkd(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
@@ -640,7 +643,8 @@ class TestIp(unittest.TestCase):
                       "This is tested in integration tests.")
 
     def test_ip_leases_no_networkd_lease(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
@@ -664,7 +668,8 @@ class TestIp(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
 
     def test_ip_leases_no_nm_lease(self):
-        os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
+        if not os.environ.get('NETPLAN_GENERATE_PATH'):
+            os.environ['NETPLAN_GENERATE_PATH'] = os.path.join(rootdir, 'generate')
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:

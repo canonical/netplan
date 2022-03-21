@@ -86,8 +86,8 @@ clean:
 	find . | grep -E "(__pycache__|\.pyc)" | xargs rm -rf
 
 check: default linting
-	tests/cli.py
-	LD_LIBRARY_PATH=. $(NOSETESTS3) -v --with-coverage
+	PYTHONPATH=. LD_LIBRARY_PATH=. tests/cli.py
+	PYTHONPATH=. LD_LIBRARY_PATH=. $(NOSETESTS3) -v --with-coverage
 	tests/validate_docs.sh
 
 linting:

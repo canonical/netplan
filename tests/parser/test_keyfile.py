@@ -25,8 +25,6 @@ from .base import TestKeyfileBase
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
-# Make sure we can import our development netplan.
-os.environ.update({'PYTHONPATH': '.'})
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
