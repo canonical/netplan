@@ -29,6 +29,7 @@ NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
 
 
 def get_generator_path():
+    # FIXME: meson build uses proper libexecdir (+symlink)
     return os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
 
 
