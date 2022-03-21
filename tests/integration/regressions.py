@@ -122,6 +122,7 @@ r'Reverting\.')
         self.setup_eth(None)
         with open(self.config, 'w') as f:
             f.write('''network:
+  renderer: %(r)s
   ethernets:
     %(ec)s:
       dhcp4: true

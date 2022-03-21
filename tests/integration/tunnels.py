@@ -23,7 +23,6 @@
 
 import sys
 import subprocess
-import time
 import unittest
 
 from base import IntegrationTestsBase, test_backends
