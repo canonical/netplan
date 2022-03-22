@@ -426,6 +426,37 @@ handle_generic_bool(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
  * Handler for setting a HashTable field from a mapping node, inside a given struct
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
+ */
+static gboolean
+handle_generic_tristate(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr);
+    NetplanTristate v;
+    guint offset = GPOINTER_TO_UINT(data);
+    NetplanTristate* dest = ((void*) entryptr + offset);
+
+    if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        v = NETPLAN_TRISTATE_TRUE;
+    else if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        v = NETPLAN_TRISTATE_FALSE;
+    else
+        return yaml_error(npp, node, error, "invalid boolean value '%s'", scalar(node));
+
+    *dest = v;
+    mark_data_as_dirty(npp, dest);
+    return TRUE;
+}
+
+/*
+ * Handler for setting a HashTable field from a mapping node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the boolean field to write is located
 */
 static gboolean
 handle_generic_map(NetplanParser *npp, yaml_node_t* node, const char* key_prefix, void* entryptr, const void* data, GError** error)
@@ -579,6 +610,16 @@ static gboolean
 handle_netdef_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_bool(npp, node, npp->current.netdef, data, error);
+}
+
+/**
+ * Generic handler for tri-state settings that can bei "UNSET", "TRUE", or "FALSE".
+ * @data: offset into NetplanNetDefinition where the guint field to write is located
+ */
+static gboolean
+handle_netdef_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_tristate(npp, node, npp->current.netdef, data, error);
 }
 
 /**
@@ -2438,13 +2479,13 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"wakeonlan", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(wake_on_lan)}, \
     {"wakeonwlan", YAML_SEQUENCE_NODE, {.generic=handle_wowlan}, netdef_offset(wowlan)}, \
     {"emit-lldp", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(emit_lldp)}, \
-    {"receive-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(receive_checksum_offload)}, \
-    {"transmit-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(transmit_checksum_offload)}, \
-    {"tcp-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(tcp_segmentation_offload)}, \
-    {"tcp6-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(tcp6_segmentation_offload)}, \
-    {"generic-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(generic_segmentation_offload)}, \
-    {"generic-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(generic_receive_offload)}, \
-    {"large-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(large_receive_offload)}
+    {"receive-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(receive_checksum_offload_tristate)}, \
+    {"transmit-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(transmit_checksum_offload_tristate)}, \
+    {"tcp-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(tcp_segmentation_offload_tristate)}, \
+    {"tcp6-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(tcp6_segmentation_offload_tristate)}, \
+    {"generic-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(generic_segmentation_offload_tristate)}, \
+    {"generic-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(generic_receive_offload_tristate)}, \
+    {"large-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(large_receive_offload_tristate)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,

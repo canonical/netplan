@@ -752,13 +752,20 @@ _serialize_yaml(
     YAML_BOOL_TRUE(def, event, emitter, "wakeonlan", def->wake_on_lan);
 
     /* Offload options */
-    YAML_BOOL_TRUE(def, event, emitter, "receive-checksum-offload", def->receive_checksum_offload);
-    YAML_BOOL_TRUE(def, event, emitter, "transmit-checksum-offload", def->transmit_checksum_offload);
-    YAML_BOOL_TRUE(def, event, emitter, "tcp-segmentation-offload", def->tcp_segmentation_offload);
-    YAML_BOOL_TRUE(def, event, emitter, "tcp6-segmentation-offload", def->tcp6_segmentation_offload);
-    YAML_BOOL_TRUE(def, event, emitter, "generic-segmentation-offload", def->generic_segmentation_offload);
-    YAML_BOOL_TRUE(def, event, emitter, "generic-receive-offload", def->generic_receive_offload);
-    YAML_BOOL_TRUE(def, event, emitter, "large-receive-offload", def->large_receive_offload);
+    if (def->receive_checksum_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "receive-checksum-offload", def->receive_checksum_offload_tristate);
+    if (def->transmit_checksum_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "transmit-checksum-offload", def->transmit_checksum_offload_tristate);
+    if (def->tcp_segmentation_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "tcp-segmentation-offload", def->tcp_segmentation_offload_tristate);
+    if (def->tcp6_segmentation_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "tcp6-segmentation-offload", def->tcp6_segmentation_offload_tristate);
+    if (def->generic_segmentation_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "generic-segmentation-offload", def->generic_segmentation_offload_tristate);
+    if (def->generic_receive_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "generic-receive-offload", def->generic_receive_offload_tristate);
+    if (def->large_receive_offload_tristate != NETPLAN_TRISTATE_UNSET)
+        YAML_BOOL_TRUE(def, event, emitter, "large-receive-offload", def->large_receive_offload_tristate);
 
     if (def->wowlan && def->wowlan != NETPLAN_WIFI_WOWLAN_DEFAULT) {
         YAML_SCALAR_PLAIN(event, emitter, "wakeonwlan");

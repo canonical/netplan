@@ -345,6 +345,14 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
 
     reset_private_netdef_data(netdef->_private);
     FREE_AND_NULLIFY(netdef->_private);
+
+    netdef->receive_checksum_offload_tristate = NETPLAN_TRISTATE_UNSET;
+    netdef->transmit_checksum_offload_tristate = NETPLAN_TRISTATE_UNSET;
+    netdef->tcp_segmentation_offload_tristate = NETPLAN_TRISTATE_UNSET;
+    netdef->tcp6_segmentation_offload_tristate = NETPLAN_TRISTATE_UNSET;
+    netdef->generic_segmentation_offload_tristate = NETPLAN_TRISTATE_UNSET;
+    netdef->generic_receive_offload_tristate = NETPLAN_TRISTATE_UNSET;
+    netdef->large_receive_offload_tristate = NETPLAN_TRISTATE_UNSET;
 }
 
 static void

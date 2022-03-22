@@ -149,6 +149,27 @@ typedef union {
     } networkd;
 } NetplanBackendSettings;
 
+typedef enum
+{
+    /**
+     * @brief Tristate enum type
+     *
+     * This type defines a boolean which can be unset, i.e.
+     * this type has three states. The enum is ordered so
+     * that
+     *
+     * UNSET -> -1
+     * FALSE -> 0
+     * TRUE  -> 1
+     *
+     * And the integer values can be used directly when
+     * converting to string.
+     */
+    NETPLAN_TRISTATE_UNSET = -1, /* -1 */
+    NETPLAN_TRISTATE_FALSE,      /*  0 */
+    NETPLAN_TRISTATE_TRUE,       /*  1 */
+} NetplanTristate;
+
 /* Keep 'struct netplan_net_definition' in a separate header file, to allow for
  * abidiff to consider it "public API" (although it isn't) and notify us about
  * ABI compatibility issues. */
@@ -313,7 +334,7 @@ struct netplan_net_definition {
     /* configure without carrier */
     gboolean ignore_carrier;
 
-    /* offload options */
+    /* offload options (deprecated) */
     gboolean receive_checksum_offload;
     gboolean transmit_checksum_offload;
     gboolean tcp_segmentation_offload;
@@ -327,4 +348,13 @@ struct netplan_net_definition {
     /* netplan-feature: eswitch-mode */
     char* embedded_switch_mode;
     gboolean sriov_delay_virtual_functions_rebind;
+
+    /* Tristate offload options */
+    NetplanTristate receive_checksum_offload_tristate;
+    NetplanTristate transmit_checksum_offload_tristate;
+    NetplanTristate tcp_segmentation_offload_tristate;
+    NetplanTristate tcp6_segmentation_offload_tristate;
+    NetplanTristate generic_segmentation_offload_tristate;
+    NetplanTristate generic_receive_offload_tristate;
+    NetplanTristate large_receive_offload_tristate;
 };

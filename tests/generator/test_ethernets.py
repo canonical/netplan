@@ -772,11 +772,11 @@ method=ignore
   ethernets:
     eth1:
       receive-checksum-offload: true
-      transmit-checksum-offload: true
+      transmit-checksum-offload: off
       tcp-segmentation-offload: true
-      tcp6-segmentation-offload: true
+      tcp6-segmentation-offload: false
       generic-segmentation-offload: true
-      generic-receive-offload: true
+      generic-receive-offload: no
       large-receive-offload: true''')
 
         self.assert_networkd({'eth1.link': '''[Match]
@@ -784,13 +784,13 @@ OriginalName=eth1
 
 [Link]
 WakeOnLan=off
-ReceiveChecksumOffload=1
-TransmitChecksumOffload=1
-TCPSegmentationOffload=1
-TCP6SegmentationOffload=1
-GenericSegmentationOffload=1
-GenericReceiveOffload=1
-LargeReceiveOffload=1
+ReceiveChecksumOffload=on
+TransmitChecksumOffload=off
+TCPSegmentationOffload=on
+TCP6SegmentationOffload=off
+GenericSegmentationOffload=on
+GenericReceiveOffload=off
+LargeReceiveOffload=on
 ''',
                               'eth1.network': '''[Match]
 Name=eth1
@@ -799,3 +799,17 @@ Name=eth1
 LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev(None)
+
+    def test_offload_invalid(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eth1:
+      generic-receive-offload: n
+      receive-checksum-offload: true
+      tcp-segmentation-offload: true
+      tcp6-segmentation-offload: false
+      generic-segmentation-offload: true
+      transmit-checksum-offload: xx
+      large-receive-offload: true''', expect_fail=True)
+        self.assertIn('invalid boolean value \'xx\'', err)
