@@ -1,4 +1,4 @@
-name: Build
+name: Build & ABI compatibility
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
@@ -26,8 +26,14 @@ jobs:
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           #sudo apt install lcov python3-coverage curl
+          sudo apt install abigail-tools
           sudo apt build-dep netplan.io
 
       # Runs the build
       - name: Run build
         run: make
+
+      # Abigail ABI checker
+      # TODO: move to meson build (on Jammy), once available
+      - name: Check ABI compatibility
+        run: abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/
