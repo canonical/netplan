@@ -13,11 +13,13 @@ sources = files(
     'util.c',
     'validation.c')
 
+linker_script = meson.project_source_root() / 'abicompat.lds'
 libnetplan = library(
     'netplan',
     sources,
     gnu_symbol_visibility: 'hidden',
-    link_args: ['-T', '../abicompat.lds'],
+    link_args: ['-T', linker_script],
+    link_depends: linker_script,
     dependencies: [glib, gio, yaml, uuid],
     include_directories: inc,
     soversion: '0.0',
