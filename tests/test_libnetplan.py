@@ -34,8 +34,6 @@ import netplan.libnetplan as libnetplan
 lib = libnetplan.lib
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
-# Make sure we can import our development netplan.
-os.environ.update({'PYTHONPATH': '.'})
 
 
 class TestRawLibnetplan(TestBase):

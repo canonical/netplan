@@ -113,13 +113,13 @@ wpa_passphrase=12345678
 
 
 @unittest.skipIf("networkd" not in test_backends,
-                     "skipping as networkd backend tests are disabled")
+                 "skipping as networkd backend tests are disabled")
 class TestNetworkd(IntegrationTestsWifi, _CommonTests):
     backend = 'networkd'
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
-                     "skipping as NetworkManager backend tests are disabled")
+                 "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
     backend = 'NetworkManager'
 

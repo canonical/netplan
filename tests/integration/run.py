@@ -29,8 +29,8 @@ import sys
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 
-default_backends = [ 'networkd', 'NetworkManager' ]
-fixtures = [ "__init__.py", "base.py", "run.py" ]
+default_backends = ['networkd', 'NetworkManager']
+fixtures = ["__init__.py", "base.py", "run.py"]
 
 possible_tests = []
 testfiles = glob.glob(os.path.join(tests_dir, "*.py"))
@@ -39,6 +39,7 @@ for pyfile in testfiles:
     if filename not in fixtures:
         possible_tests.append(filename.split('.')[0])
 
+
 def dedupe(duped_list):
     deduped = set()
     for item in duped_list:
@@ -46,6 +47,7 @@ def dedupe(duped_list):
         for real_item in real_items:
             deduped.add(real_item)
     return deduped
+
 
 # XXX: omg, this is ugly :)
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,

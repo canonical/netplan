@@ -30,8 +30,9 @@ import ctypes.util
 import contextlib
 import subprocess
 
-exe_generate = os.path.join(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))), 'generate')
+exe_generate = os.environ.get('NETPLAN_GENERATE_PATH',
+                              os.path.join(os.path.dirname(os.path.dirname(
+                                           os.path.dirname(os.path.abspath(__file__)))), 'generate'))
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
