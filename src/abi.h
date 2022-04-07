@@ -15,7 +15,139 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../src/types.h"
+#pragma once
+#include <glib.h>
+#include <parse.h>
+#include <uuid.h>
+
+/* Those types are part of our ABI as they have been exposed in older versions */
+
+typedef enum {
+    NETPLAN_OPTIONAL_IPV4_LL = 1<<0,
+    NETPLAN_OPTIONAL_IPV6_RA = 1<<1,
+    NETPLAN_OPTIONAL_DHCP4   = 1<<2,
+    NETPLAN_OPTIONAL_DHCP6   = 1<<3,
+    NETPLAN_OPTIONAL_STATIC  = 1<<4,
+} NetplanOptionalAddressFlag;
+
+/* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
+typedef struct dhcp_overrides {
+    gboolean use_dns;
+    gboolean use_ntp;
+    gboolean send_hostname;
+    gboolean use_hostname;
+    gboolean use_mtu;
+    gboolean use_routes;
+    char* use_domains; /* netplan-feature: dhcp-use-domains */
+    char* hostname;
+    guint metric;
+} NetplanDHCPOverrides;
+
+typedef enum {
+    NETPLAN_RA_MODE_KERNEL,
+    NETPLAN_RA_MODE_ENABLED,
+    NETPLAN_RA_MODE_DISABLED,
+} NetplanRAMode;
+
+typedef enum {
+    NETPLAN_WIFI_WOWLAN_DEFAULT           = 1<<0,
+    NETPLAN_WIFI_WOWLAN_ANY               = 1<<1,
+    NETPLAN_WIFI_WOWLAN_DISCONNECT        = 1<<2,
+    NETPLAN_WIFI_WOWLAN_MAGIC             = 1<<3,
+    NETPLAN_WIFI_WOWLAN_GTK_REKEY_FAILURE = 1<<4,
+    NETPLAN_WIFI_WOWLAN_EAP_IDENTITY_REQ  = 1<<5,
+    NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE    = 1<<6,
+    NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE    = 1<<7,
+    NETPLAN_WIFI_WOWLAN_TCP               = 1<<8,
+} NetplanWifiWowlanFlag;
+
+struct NetplanWifiWowlanType {
+    char* name;
+    NetplanWifiWowlanFlag flag;
+};
+
+/* Tunnel mode enum; sync with NetworkManager's DBUS API */
+/* TODO: figure out whether networkd's GRETAP and NM's ISATAP
+ *       are the same thing.
+ */
+typedef enum {
+    NETPLAN_TUNNEL_MODE_UNKNOWN     = 0,
+    NETPLAN_TUNNEL_MODE_IPIP        = 1,
+    NETPLAN_TUNNEL_MODE_GRE         = 2,
+    NETPLAN_TUNNEL_MODE_SIT         = 3,
+    NETPLAN_TUNNEL_MODE_ISATAP      = 4,  // NM only.
+    NETPLAN_TUNNEL_MODE_VTI         = 5,
+    NETPLAN_TUNNEL_MODE_IP6IP6      = 6,
+    NETPLAN_TUNNEL_MODE_IPIP6       = 7,
+    NETPLAN_TUNNEL_MODE_IP6GRE      = 8,
+    NETPLAN_TUNNEL_MODE_VTI6        = 9,
+
+    /* systemd-only, apparently? */
+    NETPLAN_TUNNEL_MODE_GRETAP      = 101,
+    NETPLAN_TUNNEL_MODE_IP6GRETAP   = 102,
+    NETPLAN_TUNNEL_MODE_WIREGUARD   = 103,
+
+    NETPLAN_TUNNEL_MODE_MAX_,
+} NetplanTunnelMode;
+
+typedef enum {
+    NETPLAN_AUTH_KEY_MANAGEMENT_NONE,
+    NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK,
+    NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP,
+    NETPLAN_AUTH_KEY_MANAGEMENT_8021X,
+    NETPLAN_AUTH_KEY_MANAGEMENT_MAX,
+} NetplanAuthKeyManagementType;
+
+typedef enum {
+    NETPLAN_AUTH_EAP_NONE,
+    NETPLAN_AUTH_EAP_TLS,
+    NETPLAN_AUTH_EAP_PEAP,
+    NETPLAN_AUTH_EAP_TTLS,
+    NETPLAN_AUTH_EAP_METHOD_MAX,
+} NetplanAuthEAPMethod;
+
+typedef struct authentication_settings {
+    NetplanAuthKeyManagementType key_management;
+    NetplanAuthEAPMethod eap_method;
+    char* identity;
+    char* anonymous_identity;
+    char* password;
+    char* ca_certificate;
+    char* client_certificate;
+    char* client_key;
+    char* client_key_password;
+    char* phase2_auth;  /* netplan-feature: auth-phase2 */
+} NetplanAuthenticationSettings;
+
+typedef struct ovs_controller {
+    char* connection_mode;
+    GArray* addresses;
+} NetplanOVSController;
+
+typedef struct ovs_settings {
+    GHashTable* external_ids;
+    GHashTable* other_config;
+    char* lacp;
+    char* fail_mode;
+    gboolean mcast_snooping;
+    GArray* protocols;
+    gboolean rstp;
+    NetplanOVSController controller;
+    NetplanAuthenticationSettings ssl;
+} NetplanOVSSettings;
+
+typedef union {
+    struct NetplanNMSettings {
+        char *name;
+        char *uuid;
+        char *stable_id;
+        char *device;
+        GData* passthrough; /* See g_datalist* functions */
+    } nm;
+    struct NetplanNetworkdSettings {
+        char *unit;
+    } networkd;
+} NetplanBackendSettings;
 
 /* Keep 'struct netplan_net_definition' in a separate header file, to allow for
  * abidiff to consider it "public API" (although it isn't) and notify us about

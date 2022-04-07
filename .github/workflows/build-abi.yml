@@ -36,4 +36,6 @@ jobs:
       # Abigail ABI checker
       # TODO: move to meson build (on Jammy), once available
       - name: Check ABI compatibility
-        run: abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/
+        run: |
+          mv src/abi.h include/
+          abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/

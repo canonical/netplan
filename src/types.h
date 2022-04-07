@@ -22,19 +22,9 @@
 #include <yaml.h>
 #include <uuid.h>
 
-typedef enum {
-    NETPLAN_RA_MODE_KERNEL,
-    NETPLAN_RA_MODE_ENABLED,
-    NETPLAN_RA_MODE_DISABLED,
-} NetplanRAMode;
-
-typedef enum {
-    NETPLAN_OPTIONAL_IPV4_LL = 1<<0,
-    NETPLAN_OPTIONAL_IPV6_RA = 1<<1,
-    NETPLAN_OPTIONAL_DHCP4   = 1<<2,
-    NETPLAN_OPTIONAL_DHCP6   = 1<<3,
-    NETPLAN_OPTIONAL_STATIC  = 1<<4,
-} NetplanOptionalAddressFlag;
+// Quite a few types are part of our current ABI, and so were isolated
+// in order to make it easier to tell what's fair game.
+#include "abi.h"
 
 typedef enum {
     NETPLAN_ADDRGEN_DEFAULT,
@@ -51,125 +41,12 @@ struct NetplanOptionalAddressType {
 // Not strictly speaking a type, but seems fair to keep it around.
 extern struct NetplanOptionalAddressType NETPLAN_OPTIONAL_ADDRESS_TYPES[];
 
-/* Tunnel mode enum; sync with NetworkManager's DBUS API */
-/* TODO: figure out whether networkd's GRETAP and NM's ISATAP
- *       are the same thing.
- */
-typedef enum {
-    NETPLAN_TUNNEL_MODE_UNKNOWN     = 0,
-    NETPLAN_TUNNEL_MODE_IPIP        = 1,
-    NETPLAN_TUNNEL_MODE_GRE         = 2,
-    NETPLAN_TUNNEL_MODE_SIT         = 3,
-    NETPLAN_TUNNEL_MODE_ISATAP      = 4,  // NM only.
-    NETPLAN_TUNNEL_MODE_VTI         = 5,
-    NETPLAN_TUNNEL_MODE_IP6IP6      = 6,
-    NETPLAN_TUNNEL_MODE_IPIP6       = 7,
-    NETPLAN_TUNNEL_MODE_IP6GRE      = 8,
-    NETPLAN_TUNNEL_MODE_VTI6        = 9,
-
-    /* systemd-only, apparently? */
-    NETPLAN_TUNNEL_MODE_GRETAP      = 101,
-    NETPLAN_TUNNEL_MODE_IP6GRETAP   = 102,
-    NETPLAN_TUNNEL_MODE_WIREGUARD   = 103,
-
-    NETPLAN_TUNNEL_MODE_MAX_,
-} NetplanTunnelMode;
-
-typedef enum {
-    NETPLAN_WIFI_WOWLAN_DEFAULT           = 1<<0,
-    NETPLAN_WIFI_WOWLAN_ANY               = 1<<1,
-    NETPLAN_WIFI_WOWLAN_DISCONNECT        = 1<<2,
-    NETPLAN_WIFI_WOWLAN_MAGIC             = 1<<3,
-    NETPLAN_WIFI_WOWLAN_GTK_REKEY_FAILURE = 1<<4,
-    NETPLAN_WIFI_WOWLAN_EAP_IDENTITY_REQ  = 1<<5,
-    NETPLAN_WIFI_WOWLAN_4WAY_HANDSHAKE    = 1<<6,
-    NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE    = 1<<7,
-    NETPLAN_WIFI_WOWLAN_TCP               = 1<<8,
-} NetplanWifiWowlanFlag;
-
-struct NetplanWifiWowlanType {
-    char* name;
-    NetplanWifiWowlanFlag flag;
-};
-
 extern struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[];
-
-typedef enum {
-    NETPLAN_AUTH_KEY_MANAGEMENT_NONE,
-    NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK,
-    NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP,
-    NETPLAN_AUTH_KEY_MANAGEMENT_8021X,
-    NETPLAN_AUTH_KEY_MANAGEMENT_MAX,
-} NetplanAuthKeyManagementType;
-
-typedef enum {
-    NETPLAN_AUTH_EAP_NONE,
-    NETPLAN_AUTH_EAP_TLS,
-    NETPLAN_AUTH_EAP_PEAP,
-    NETPLAN_AUTH_EAP_TTLS,
-    NETPLAN_AUTH_EAP_METHOD_MAX,
-} NetplanAuthEAPMethod;
 
 typedef struct missing_node {
     char* netdef_id;
     const yaml_node_t* node;
 } NetplanMissingNode;
-
-typedef struct authentication_settings {
-    NetplanAuthKeyManagementType key_management;
-    NetplanAuthEAPMethod eap_method;
-    char* identity;
-    char* anonymous_identity;
-    char* password;
-    char* ca_certificate;
-    char* client_certificate;
-    char* client_key;
-    char* client_key_password;
-    char* phase2_auth;  /* netplan-feature: auth-phase2 */
-} NetplanAuthenticationSettings;
-
-/* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
-typedef struct dhcp_overrides {
-    gboolean use_dns;
-    gboolean use_ntp;
-    gboolean send_hostname;
-    gboolean use_hostname;
-    gboolean use_mtu;
-    gboolean use_routes;
-    char* use_domains; /* netplan-feature: dhcp-use-domains */
-    char* hostname;
-    guint metric;
-} NetplanDHCPOverrides;
-
-typedef struct ovs_controller {
-    char* connection_mode;
-    GArray* addresses;
-} NetplanOVSController;
-
-typedef struct ovs_settings {
-    GHashTable* external_ids;
-    GHashTable* other_config;
-    char* lacp;
-    char* fail_mode;
-    gboolean mcast_snooping;
-    GArray* protocols;
-    gboolean rstp;
-    NetplanOVSController controller;
-    NetplanAuthenticationSettings ssl;
-} NetplanOVSSettings;
-
-typedef union {
-    struct NetplanNMSettings {
-        char *name;
-        char *uuid;
-        char *stable_id;
-        char *device;
-        GData* passthrough; /* See g_datalist* functions */
-    } nm;
-    struct NetplanNetworkdSettings {
-        char *unit;
-    } networkd;
-} NetplanBackendSettings;
 
 struct private_netdef_data {
     GHashTable* dirty_fields;
@@ -351,4 +228,4 @@ netplan_state_has_nondefault_globals(const NetplanState* np_state);
 
 /* The netplan_net_definition' struct is kept separate, to allow for ABI
  * compatibility checks using 'abidiff' (abigail-tools). */
-#include "../include/abi.h"
+#include "abi.h"
