@@ -512,10 +512,11 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         // LCOV_EXCL_STOP
 
     /* wait for the /run/netplan/netplan-try.ready stamp file to appear */
-    guint poll_timeout = 500;
-    if (seconds > 0 && seconds < 5)
+    guint poll_timeout = 1000;
+    /* Replace the default timeout with the one specified by the caller */
+    if (seconds > 0)
         poll_timeout = seconds * 100;
-    /* Timeout after up to 5 sec of waiting for the stamp file */
+    /* Timeout after up to 10 sec of waiting for the stamp file */
     for (int i = 0; i < poll_timeout; i++) {
         if (stat(netplan_try_stamp, &buf) == 0)
             break;
