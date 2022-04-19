@@ -87,18 +87,18 @@
     <elf-symbol name='wifi_frequency_5' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
   </elf-variable-symbols>
   <abi-instr version='1.0' address-size='64' path='src/abi_compat.c' comp-dir-path='/root/netplan' language='LANG_C99'>
-    <class-decl name='netplan_state' size-in-bits='1344' is-struct='yes' visibility='default' filepath='src/types.h' line='256' column='1' id='type-id-1'>
+    <class-decl name='netplan_state' size-in-bits='1344' is-struct='yes' visibility='default' filepath='src/types.h' line='133' column='1' id='type-id-1'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='netdefs' type-id='type-id-2' visibility='default' filepath='src/types.h' line='262' column='1'/>
+        <var-decl name='netdefs' type-id='type-id-2' visibility='default' filepath='src/types.h' line='139' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='netdefs_ordered' type-id='type-id-3' visibility='default' filepath='src/types.h' line='263' column='1'/>
+        <var-decl name='netdefs_ordered' type-id='type-id-3' visibility='default' filepath='src/types.h' line='140' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='backend' type-id='type-id-4' visibility='default' filepath='src/types.h' line='264' column='1'/>
+        <var-decl name='backend' type-id='type-id-4' visibility='default' filepath='src/types.h' line='141' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='ovs_settings' type-id='type-id-5' visibility='default' filepath='src/types.h' line='265' column='1'/>
+        <var-decl name='ovs_settings' type-id='type-id-5' visibility='default' filepath='src/types.h' line='142' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='_GHashTable' is-struct='yes' visibility='default' is-declaration-only='yes' id='type-id-6'/>
@@ -130,33 +130,33 @@
       <enumerator name='NETPLAN_BACKEND_MAX_' value='4'/>
     </enum-decl>
     <typedef-decl name='NetplanBackend' type-id='type-id-14' filepath='/root/netplan/include/netplan.h' line='37' column='1' id='type-id-4'/>
-    <class-decl name='ovs_settings' size-in-bits='1152' is-struct='yes' visibility='default' filepath='src/types.h' line='149' column='1' id='type-id-15'>
+    <class-decl name='ovs_settings' size-in-bits='1152' is-struct='yes' visibility='default' filepath='src/abi.h' line='127' column='1' id='type-id-15'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='external_ids' type-id='type-id-2' visibility='default' filepath='src/types.h' line='150' column='1'/>
+        <var-decl name='external_ids' type-id='type-id-2' visibility='default' filepath='src/abi.h' line='128' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='other_config' type-id='type-id-2' visibility='default' filepath='src/types.h' line='151' column='1'/>
+        <var-decl name='other_config' type-id='type-id-2' visibility='default' filepath='src/abi.h' line='129' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='lacp' type-id='type-id-16' visibility='default' filepath='src/types.h' line='152' column='1'/>
+        <var-decl name='lacp' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='130' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='fail_mode' type-id='type-id-16' visibility='default' filepath='src/types.h' line='153' column='1'/>
+        <var-decl name='fail_mode' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='131' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='mcast_snooping' type-id='type-id-17' visibility='default' filepath='src/types.h' line='154' column='1'/>
+        <var-decl name='mcast_snooping' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='132' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='protocols' type-id='type-id-18' visibility='default' filepath='src/types.h' line='155' column='1'/>
+        <var-decl name='protocols' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='133' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='rstp' type-id='type-id-17' visibility='default' filepath='src/types.h' line='156' column='1'/>
+        <var-decl name='rstp' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='134' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='controller' type-id='type-id-19' visibility='default' filepath='src/types.h' line='157' column='1'/>
+        <var-decl name='controller' type-id='type-id-19' visibility='default' filepath='src/abi.h' line='135' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='576'>
-        <var-decl name='ssl' type-id='type-id-20' visibility='default' filepath='src/types.h' line='158' column='1'/>
+        <var-decl name='ssl' type-id='type-id-20' visibility='default' filepath='src/abi.h' line='136' column='1'/>
       </data-member>
     </class-decl>
     <type-decl name='char' size-in-bits='8' id='type-id-21'/>
@@ -178,48 +178,48 @@
     <typedef-decl name='guint' type-id='type-id-28' filepath='/usr/include/glib-2.0/glib/gtypes.h' line='55' column='1' id='type-id-26'/>
     <typedef-decl name='GArray' type-id='type-id-24' filepath='/usr/include/glib-2.0/glib/garray.h' line='37' column='1' id='type-id-29'/>
     <pointer-type-def type-id='type-id-29' size-in-bits='64' id='type-id-18'/>
-    <class-decl name='ovs_controller' size-in-bits='128' is-struct='yes' visibility='default' filepath='src/types.h' line='144' column='1' id='type-id-30'>
+    <class-decl name='ovs_controller' size-in-bits='128' is-struct='yes' visibility='default' filepath='src/abi.h' line='122' column='1' id='type-id-30'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='connection_mode' type-id='type-id-16' visibility='default' filepath='src/types.h' line='145' column='1'/>
+        <var-decl name='connection_mode' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='123' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='addresses' type-id='type-id-18' visibility='default' filepath='src/types.h' line='146' column='1'/>
+        <var-decl name='addresses' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='124' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanOVSController' type-id='type-id-30' filepath='src/types.h' line='147' column='1' id='type-id-19'/>
-    <class-decl name='authentication_settings' size-in-bits='576' is-struct='yes' visibility='default' filepath='src/types.h' line='118' column='1' id='type-id-31'>
+    <typedef-decl name='NetplanOVSController' type-id='type-id-30' filepath='src/abi.h' line='125' column='1' id='type-id-19'/>
+    <class-decl name='authentication_settings' size-in-bits='576' is-struct='yes' visibility='default' filepath='src/abi.h' line='109' column='1' id='type-id-31'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='key_management' type-id='type-id-32' visibility='default' filepath='src/types.h' line='119' column='1'/>
+        <var-decl name='key_management' type-id='type-id-32' visibility='default' filepath='src/abi.h' line='110' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='32'>
-        <var-decl name='eap_method' type-id='type-id-33' visibility='default' filepath='src/types.h' line='120' column='1'/>
+        <var-decl name='eap_method' type-id='type-id-33' visibility='default' filepath='src/abi.h' line='111' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='identity' type-id='type-id-16' visibility='default' filepath='src/types.h' line='121' column='1'/>
+        <var-decl name='identity' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='112' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='anonymous_identity' type-id='type-id-16' visibility='default' filepath='src/types.h' line='122' column='1'/>
+        <var-decl name='anonymous_identity' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='113' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='password' type-id='type-id-16' visibility='default' filepath='src/types.h' line='123' column='1'/>
+        <var-decl name='password' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='114' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='ca_certificate' type-id='type-id-16' visibility='default' filepath='src/types.h' line='124' column='1'/>
+        <var-decl name='ca_certificate' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='115' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='client_certificate' type-id='type-id-16' visibility='default' filepath='src/types.h' line='125' column='1'/>
+        <var-decl name='client_certificate' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='116' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='client_key' type-id='type-id-16' visibility='default' filepath='src/types.h' line='126' column='1'/>
+        <var-decl name='client_key' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='117' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='client_key_password' type-id='type-id-16' visibility='default' filepath='src/types.h' line='127' column='1'/>
+        <var-decl name='client_key_password' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='118' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='512'>
-        <var-decl name='phase2_auth' type-id='type-id-16' visibility='default' filepath='src/types.h' line='128' column='1'/>
+        <var-decl name='phase2_auth' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='119' column='1'/>
       </data-member>
     </class-decl>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='97' column='1' id='type-id-34'>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/abi.h' line='93' column='1' id='type-id-34'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_AUTH_KEY_MANAGEMENT_NONE' value='0'/>
       <enumerator name='NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK' value='1'/>
@@ -227,8 +227,8 @@
       <enumerator name='NETPLAN_AUTH_KEY_MANAGEMENT_8021X' value='3'/>
       <enumerator name='NETPLAN_AUTH_KEY_MANAGEMENT_MAX' value='4'/>
     </enum-decl>
-    <typedef-decl name='NetplanAuthKeyManagementType' type-id='type-id-34' filepath='src/types.h' line='103' column='1' id='type-id-32'/>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='105' column='1' id='type-id-35'>
+    <typedef-decl name='NetplanAuthKeyManagementType' type-id='type-id-34' filepath='src/abi.h' line='99' column='1' id='type-id-32'/>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/abi.h' line='101' column='1' id='type-id-35'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_AUTH_EAP_NONE' value='0'/>
       <enumerator name='NETPLAN_AUTH_EAP_TLS' value='1'/>
@@ -236,9 +236,9 @@
       <enumerator name='NETPLAN_AUTH_EAP_TTLS' value='3'/>
       <enumerator name='NETPLAN_AUTH_EAP_METHOD_MAX' value='4'/>
     </enum-decl>
-    <typedef-decl name='NetplanAuthEAPMethod' type-id='type-id-35' filepath='src/types.h' line='111' column='1' id='type-id-33'/>
-    <typedef-decl name='NetplanAuthenticationSettings' type-id='type-id-31' filepath='src/types.h' line='129' column='1' id='type-id-20'/>
-    <typedef-decl name='NetplanOVSSettings' type-id='type-id-15' filepath='src/types.h' line='159' column='1' id='type-id-5'/>
+    <typedef-decl name='NetplanAuthEAPMethod' type-id='type-id-35' filepath='src/abi.h' line='107' column='1' id='type-id-33'/>
+    <typedef-decl name='NetplanAuthenticationSettings' type-id='type-id-31' filepath='src/abi.h' line='120' column='1' id='type-id-20'/>
+    <typedef-decl name='NetplanOVSSettings' type-id='type-id-15' filepath='src/abi.h' line='137' column='1' id='type-id-5'/>
     <typedef-decl name='NetplanState' type-id='type-id-1' filepath='/root/netplan/include/netplan.h' line='29' column='1' id='type-id-36'/>
     <var-decl name='global_state' type-id='type-id-36' mangled-name='global_state' visibility='default' filepath='src/abi_compat.c' line='64' column='1' elf-symbol-id='global_state'/>
     <class-decl name='netdef_pertype_iter' size-in-bits='448' is-struct='yes' visibility='default' is-declaration-only='yes' id='type-id-37'/>
@@ -293,216 +293,216 @@
       <parameter type-id='type-id-40' name='rootdir' filepath='src/abi_compat.c' line='173' column='1'/>
       <return type-id='type-id-10'/>
     </function-decl>
-    <class-decl name='netplan_net_definition' size-in-bits='8832' is-struct='yes' visibility='default' filepath='src/../include/abi.h' line='23' column='1' id='type-id-47'>
+    <class-decl name='netplan_net_definition' size-in-bits='8832' is-struct='yes' visibility='default' filepath='src/abi.h' line='155' column='1' id='type-id-47'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='type' type-id='type-id-48' visibility='default' filepath='src/../include/abi.h' line='24' column='1'/>
+        <var-decl name='type' type-id='type-id-48' visibility='default' filepath='src/abi.h' line='156' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='32'>
-        <var-decl name='backend' type-id='type-id-4' visibility='default' filepath='src/../include/abi.h' line='25' column='1'/>
+        <var-decl name='backend' type-id='type-id-4' visibility='default' filepath='src/abi.h' line='157' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='id' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='26' column='1'/>
+        <var-decl name='id' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='158' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='uuid' type-id='type-id-49' visibility='default' filepath='src/../include/abi.h' line='28' column='1'/>
+        <var-decl name='uuid' type-id='type-id-49' visibility='default' filepath='src/abi.h' line='160' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='optional' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='31' column='1'/>
+        <var-decl name='optional' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='163' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='288'>
-        <var-decl name='optional_addresses' type-id='type-id-50' visibility='default' filepath='src/../include/abi.h' line='32' column='1'/>
+        <var-decl name='optional_addresses' type-id='type-id-50' visibility='default' filepath='src/abi.h' line='164' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='critical' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='33' column='1'/>
+        <var-decl name='critical' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='165' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='352'>
-        <var-decl name='dhcp4' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='36' column='1'/>
+        <var-decl name='dhcp4' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='168' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='dhcp6' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='37' column='1'/>
+        <var-decl name='dhcp6' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='169' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='dhcp_identifier' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='38' column='1'/>
+        <var-decl name='dhcp_identifier' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='170' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='512'>
-        <var-decl name='dhcp4_overrides' type-id='type-id-51' visibility='default' filepath='src/../include/abi.h' line='39' column='1'/>
+        <var-decl name='dhcp4_overrides' type-id='type-id-51' visibility='default' filepath='src/abi.h' line='171' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='896'>
-        <var-decl name='dhcp6_overrides' type-id='type-id-51' visibility='default' filepath='src/../include/abi.h' line='40' column='1'/>
+        <var-decl name='dhcp6_overrides' type-id='type-id-51' visibility='default' filepath='src/abi.h' line='172' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1280'>
-        <var-decl name='accept_ra' type-id='type-id-52' visibility='default' filepath='src/../include/abi.h' line='41' column='1'/>
+        <var-decl name='accept_ra' type-id='type-id-52' visibility='default' filepath='src/abi.h' line='173' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1344'>
-        <var-decl name='ip4_addresses' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='42' column='1'/>
+        <var-decl name='ip4_addresses' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='174' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1408'>
-        <var-decl name='ip6_addresses' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='43' column='1'/>
+        <var-decl name='ip6_addresses' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='175' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1472'>
-        <var-decl name='address_options' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='44' column='1'/>
+        <var-decl name='address_options' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='176' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1536'>
-        <var-decl name='ip6_privacy' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='45' column='1'/>
+        <var-decl name='ip6_privacy' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='177' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1568'>
-        <var-decl name='ip6_addr_gen_mode' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='46' column='1'/>
+        <var-decl name='ip6_addr_gen_mode' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='178' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1600'>
-        <var-decl name='ip6_addr_gen_token' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='47' column='1'/>
+        <var-decl name='ip6_addr_gen_token' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='179' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1664'>
-        <var-decl name='gateway4' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='48' column='1'/>
+        <var-decl name='gateway4' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='180' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1728'>
-        <var-decl name='gateway6' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='49' column='1'/>
+        <var-decl name='gateway6' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='181' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1792'>
-        <var-decl name='ip4_nameservers' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='50' column='1'/>
+        <var-decl name='ip4_nameservers' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='182' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1856'>
-        <var-decl name='ip6_nameservers' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='51' column='1'/>
+        <var-decl name='ip6_nameservers' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='183' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1920'>
-        <var-decl name='search_domains' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='52' column='1'/>
+        <var-decl name='search_domains' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='184' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1984'>
-        <var-decl name='routes' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='53' column='1'/>
+        <var-decl name='routes' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='185' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2048'>
-        <var-decl name='ip_rules' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='54' column='1'/>
+        <var-decl name='ip_rules' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='186' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2112'>
-        <var-decl name='wireguard_peers' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='55' column='1'/>
+        <var-decl name='wireguard_peers' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='187' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2176'>
-        <var-decl name='linklocal' type-id='type-id-53' visibility='default' filepath='src/../include/abi.h' line='59' column='1'/>
+        <var-decl name='linklocal' type-id='type-id-53' visibility='default' filepath='src/abi.h' line='191' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2240'>
-        <var-decl name='bridge' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='62' column='1'/>
+        <var-decl name='bridge' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='194' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2304'>
-        <var-decl name='bond' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='63' column='1'/>
+        <var-decl name='bond' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='195' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2368'>
-        <var-decl name='peer' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='66' column='1'/>
+        <var-decl name='peer' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='198' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2432'>
-        <var-decl name='vlan_id' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='69' column='1'/>
+        <var-decl name='vlan_id' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='201' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2496'>
-        <var-decl name='vlan_link' type-id='type-id-54' visibility='default' filepath='src/../include/abi.h' line='70' column='1'/>
+        <var-decl name='vlan_link' type-id='type-id-54' visibility='default' filepath='src/abi.h' line='202' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2560'>
-        <var-decl name='has_vlans' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='71' column='1'/>
+        <var-decl name='has_vlans' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='203' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2624'>
-        <var-decl name='set_mac' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='74' column='1'/>
+        <var-decl name='set_mac' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='206' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2688'>
-        <var-decl name='mtubytes' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='77' column='1'/>
+        <var-decl name='mtubytes' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='209' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2720'>
-        <var-decl name='ipv6_mtubytes' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='80' column='1'/>
+        <var-decl name='ipv6_mtubytes' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='212' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2752'>
-        <var-decl name='set_name' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='83' column='1'/>
+        <var-decl name='set_name' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='215' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2816'>
-        <var-decl name='match' type-id='type-id-55' visibility='default' filepath='src/../include/abi.h' line='89' column='1'/>
+        <var-decl name='match' type-id='type-id-55' visibility='default' filepath='src/abi.h' line='221' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='3008'>
-        <var-decl name='has_match' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='90' column='1'/>
+        <var-decl name='has_match' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='222' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='3040'>
-        <var-decl name='wake_on_lan' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='91' column='1'/>
+        <var-decl name='wake_on_lan' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='223' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='3072'>
-        <var-decl name='wowlan' type-id='type-id-56' visibility='default' filepath='src/../include/abi.h' line='92' column='1'/>
+        <var-decl name='wowlan' type-id='type-id-56' visibility='default' filepath='src/abi.h' line='224' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='3104'>
-        <var-decl name='emit_lldp' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='93' column='1'/>
+        <var-decl name='emit_lldp' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='225' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='3136'>
-        <var-decl name='access_points' type-id='type-id-2' visibility='default' filepath='src/../include/abi.h' line='96' column='1'/>
+        <var-decl name='access_points' type-id='type-id-2' visibility='default' filepath='src/abi.h' line='228' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='3200'>
-        <var-decl name='bond_params' type-id='type-id-57' visibility='default' filepath='src/../include/abi.h' line='120' column='1'/>
+        <var-decl name='bond_params' type-id='type-id-57' visibility='default' filepath='src/abi.h' line='252' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='4416'>
-        <var-decl name='modem_params' type-id='type-id-58' visibility='default' filepath='src/../include/abi.h' line='134' column='1'/>
+        <var-decl name='modem_params' type-id='type-id-58' visibility='default' filepath='src/abi.h' line='266' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='5056'>
-        <var-decl name='bridge_params' type-id='type-id-59' visibility='default' filepath='src/../include/abi.h' line='145' column='1'/>
+        <var-decl name='bridge_params' type-id='type-id-59' visibility='default' filepath='src/abi.h' line='277' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='5440'>
-        <var-decl name='custom_bridging' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='146' column='1'/>
+        <var-decl name='custom_bridging' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='278' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='5504'>
-        <var-decl name='tunnel' type-id='type-id-60' visibility='default' filepath='src/../include/abi.h' line='157' column='1'/>
+        <var-decl name='tunnel' type-id='type-id-60' visibility='default' filepath='src/abi.h' line='289' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='5952'>
-        <var-decl name='auth' type-id='type-id-20' visibility='default' filepath='src/../include/abi.h' line='159' column='1'/>
+        <var-decl name='auth' type-id='type-id-20' visibility='default' filepath='src/abi.h' line='291' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='6528'>
-        <var-decl name='has_auth' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='160' column='1'/>
+        <var-decl name='has_auth' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='292' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='6592'>
-        <var-decl name='sriov_link' type-id='type-id-61' visibility='default' filepath='src/../include/abi.h' line='164' column='1'/>
+        <var-decl name='sriov_link' type-id='type-id-61' visibility='default' filepath='src/abi.h' line='296' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='6656'>
-        <var-decl name='sriov_vlan_filter' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='165' column='1'/>
+        <var-decl name='sriov_vlan_filter' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='297' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='6688'>
-        <var-decl name='sriov_explicit_vf_count' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='166' column='1'/>
+        <var-decl name='sriov_explicit_vf_count' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='298' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='6720'>
-        <var-decl name='ovs_settings' type-id='type-id-5' visibility='default' filepath='src/../include/abi.h' line='170' column='1'/>
+        <var-decl name='ovs_settings' type-id='type-id-5' visibility='default' filepath='src/abi.h' line='302' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='7872'>
-        <var-decl name='backend_settings' type-id='type-id-62' visibility='default' filepath='src/../include/abi.h' line='172' column='1'/>
+        <var-decl name='backend_settings' type-id='type-id-62' visibility='default' filepath='src/abi.h' line='304' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8192'>
-        <var-decl name='filename' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='174' column='1'/>
+        <var-decl name='filename' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='306' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8256'>
-        <var-decl name='tunnel_ttl' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='176' column='1'/>
+        <var-decl name='tunnel_ttl' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='308' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8320'>
-        <var-decl name='activation_mode' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='179' column='1'/>
+        <var-decl name='activation_mode' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='311' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8384'>
-        <var-decl name='ignore_carrier' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='182' column='1'/>
+        <var-decl name='ignore_carrier' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='314' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8416'>
-        <var-decl name='receive_checksum_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='185' column='1'/>
+        <var-decl name='receive_checksum_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='317' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8448'>
-        <var-decl name='transmit_checksum_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='186' column='1'/>
+        <var-decl name='transmit_checksum_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='318' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8480'>
-        <var-decl name='tcp_segmentation_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='187' column='1'/>
+        <var-decl name='tcp_segmentation_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='319' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8512'>
-        <var-decl name='tcp6_segmentation_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='188' column='1'/>
+        <var-decl name='tcp6_segmentation_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='320' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8544'>
-        <var-decl name='generic_segmentation_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='189' column='1'/>
+        <var-decl name='generic_segmentation_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='321' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8576'>
-        <var-decl name='generic_receive_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='190' column='1'/>
+        <var-decl name='generic_receive_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='322' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8608'>
-        <var-decl name='large_receive_offload' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='191' column='1'/>
+        <var-decl name='large_receive_offload' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='323' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8640'>
-        <var-decl name='_private' type-id='type-id-63' visibility='default' filepath='src/../include/abi.h' line='195' column='1'/>
+        <var-decl name='_private' type-id='type-id-63' visibility='default' filepath='src/abi.h' line='325' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8704'>
-        <var-decl name='embedded_switch_mode' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='198' column='1'/>
+        <var-decl name='embedded_switch_mode' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='328' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='8768'>
-        <var-decl name='sriov_delay_virtual_functions_rebind' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='199' column='1'/>
+        <var-decl name='sriov_delay_virtual_functions_rebind' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='329' column='1'/>
       </data-member>
     </class-decl>
     <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='/root/netplan/include/parse.h' line='26' column='1' id='type-id-64'>
@@ -529,7 +529,7 @@
 
     </array-type-def>
     <typedef-decl name='uuid_t' type-id='type-id-67' filepath='/usr/include/uuid/uuid.h' line='44' column='1' id='type-id-49'/>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='31' column='1' id='type-id-69'>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/abi.h' line='25' column='1' id='type-id-69'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_OPTIONAL_IPV4_LL' value='1'/>
       <enumerator name='NETPLAN_OPTIONAL_IPV6_RA' value='2'/>
@@ -537,66 +537,66 @@
       <enumerator name='NETPLAN_OPTIONAL_DHCP6' value='8'/>
       <enumerator name='NETPLAN_OPTIONAL_STATIC' value='16'/>
     </enum-decl>
-    <typedef-decl name='NetplanOptionalAddressFlag' type-id='type-id-69' filepath='src/types.h' line='37' column='1' id='type-id-50'/>
-    <class-decl name='dhcp_overrides' size-in-bits='384' is-struct='yes' visibility='default' filepath='src/types.h' line='132' column='1' id='type-id-70'>
+    <typedef-decl name='NetplanOptionalAddressFlag' type-id='type-id-69' filepath='src/abi.h' line='31' column='1' id='type-id-50'/>
+    <class-decl name='dhcp_overrides' size-in-bits='384' is-struct='yes' visibility='default' filepath='src/abi.h' line='34' column='1' id='type-id-70'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='use_dns' type-id='type-id-17' visibility='default' filepath='src/types.h' line='133' column='1'/>
+        <var-decl name='use_dns' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='35' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='32'>
-        <var-decl name='use_ntp' type-id='type-id-17' visibility='default' filepath='src/types.h' line='134' column='1'/>
+        <var-decl name='use_ntp' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='36' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='send_hostname' type-id='type-id-17' visibility='default' filepath='src/types.h' line='135' column='1'/>
+        <var-decl name='send_hostname' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='37' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='96'>
-        <var-decl name='use_hostname' type-id='type-id-17' visibility='default' filepath='src/types.h' line='136' column='1'/>
+        <var-decl name='use_hostname' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='38' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='use_mtu' type-id='type-id-17' visibility='default' filepath='src/types.h' line='137' column='1'/>
+        <var-decl name='use_mtu' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='39' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='160'>
-        <var-decl name='use_routes' type-id='type-id-17' visibility='default' filepath='src/types.h' line='138' column='1'/>
+        <var-decl name='use_routes' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='40' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='use_domains' type-id='type-id-16' visibility='default' filepath='src/types.h' line='139' column='1'/>
+        <var-decl name='use_domains' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='41' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='hostname' type-id='type-id-16' visibility='default' filepath='src/types.h' line='140' column='1'/>
+        <var-decl name='hostname' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='42' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='metric' type-id='type-id-26' visibility='default' filepath='src/types.h' line='141' column='1'/>
+        <var-decl name='metric' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='43' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanDHCPOverrides' type-id='type-id-70' filepath='src/types.h' line='142' column='1' id='type-id-51'/>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='25' column='1' id='type-id-71'>
+    <typedef-decl name='NetplanDHCPOverrides' type-id='type-id-70' filepath='src/abi.h' line='44' column='1' id='type-id-51'/>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/abi.h' line='46' column='1' id='type-id-71'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_RA_MODE_KERNEL' value='0'/>
       <enumerator name='NETPLAN_RA_MODE_ENABLED' value='1'/>
       <enumerator name='NETPLAN_RA_MODE_DISABLED' value='2'/>
     </enum-decl>
-    <typedef-decl name='NetplanRAMode' type-id='type-id-71' filepath='src/types.h' line='29' column='1' id='type-id-52'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='64' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/../include/abi.h' line='56' column='1' id='type-id-53'>
+    <typedef-decl name='NetplanRAMode' type-id='type-id-71' filepath='src/abi.h' line='50' column='1' id='type-id-52'/>
+    <class-decl name='__anonymous_struct__' size-in-bits='64' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='188' column='1' id='type-id-53'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='ipv4' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='57' column='1'/>
+        <var-decl name='ipv4' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='189' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='32'>
-        <var-decl name='ipv6' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='58' column='1'/>
+        <var-decl name='ipv6' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='190' column='1'/>
       </data-member>
     </class-decl>
     <typedef-decl name='NetplanNetDefinition' type-id='type-id-47' filepath='/root/netplan/include/netplan.h' line='28' column='1' id='type-id-72'/>
     <pointer-type-def type-id='type-id-72' size-in-bits='64' id='type-id-54'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='192' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/../include/abi.h' line='84' column='1' id='type-id-55'>
+    <class-decl name='__anonymous_struct__' size-in-bits='192' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='216' column='1' id='type-id-55'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='driver' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='86' column='1'/>
+        <var-decl name='driver' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='218' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='mac' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='87' column='1'/>
+        <var-decl name='mac' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='219' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='original_name' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='88' column='1'/>
+        <var-decl name='original_name' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='220' column='1'/>
       </data-member>
     </class-decl>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='78' column='1' id='type-id-73'>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/abi.h' line='52' column='1' id='type-id-73'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_WIFI_WOWLAN_DEFAULT' value='1'/>
       <enumerator name='NETPLAN_WIFI_WOWLAN_ANY' value='2'/>
@@ -608,154 +608,154 @@
       <enumerator name='NETPLAN_WIFI_WOWLAN_RFKILL_RELEASE' value='128'/>
       <enumerator name='NETPLAN_WIFI_WOWLAN_TCP' value='256'/>
     </enum-decl>
-    <typedef-decl name='NetplanWifiWowlanFlag' type-id='type-id-73' filepath='src/types.h' line='88' column='1' id='type-id-56'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='1216' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/../include/abi.h' line='98' column='1' id='type-id-57'>
+    <typedef-decl name='NetplanWifiWowlanFlag' type-id='type-id-73' filepath='src/abi.h' line='62' column='1' id='type-id-56'/>
+    <class-decl name='__anonymous_struct__' size-in-bits='1216' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='230' column='1' id='type-id-57'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='mode' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='99' column='1'/>
+        <var-decl name='mode' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='231' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='lacp_rate' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='100' column='1'/>
+        <var-decl name='lacp_rate' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='232' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='monitor_interval' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='101' column='1'/>
+        <var-decl name='monitor_interval' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='233' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='min_links' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='102' column='1'/>
+        <var-decl name='min_links' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='234' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='transmit_hash_policy' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='103' column='1'/>
+        <var-decl name='transmit_hash_policy' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='235' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='selection_logic' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='104' column='1'/>
+        <var-decl name='selection_logic' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='236' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='all_slaves_active' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='105' column='1'/>
+        <var-decl name='all_slaves_active' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='237' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='arp_interval' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='106' column='1'/>
+        <var-decl name='arp_interval' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='238' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='512'>
-        <var-decl name='arp_ip_targets' type-id='type-id-18' visibility='default' filepath='src/../include/abi.h' line='107' column='1'/>
+        <var-decl name='arp_ip_targets' type-id='type-id-18' visibility='default' filepath='src/abi.h' line='239' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='576'>
-        <var-decl name='arp_validate' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='108' column='1'/>
+        <var-decl name='arp_validate' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='240' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='640'>
-        <var-decl name='arp_all_targets' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='109' column='1'/>
+        <var-decl name='arp_all_targets' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='241' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='704'>
-        <var-decl name='up_delay' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='110' column='1'/>
+        <var-decl name='up_delay' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='242' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='768'>
-        <var-decl name='down_delay' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='111' column='1'/>
+        <var-decl name='down_delay' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='243' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='832'>
-        <var-decl name='fail_over_mac_policy' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='112' column='1'/>
+        <var-decl name='fail_over_mac_policy' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='244' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='896'>
-        <var-decl name='gratuitous_arp' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='113' column='1'/>
+        <var-decl name='gratuitous_arp' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='245' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='928'>
-        <var-decl name='packets_per_slave' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='115' column='1'/>
+        <var-decl name='packets_per_slave' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='247' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='960'>
-        <var-decl name='primary_reselect_policy' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='116' column='1'/>
+        <var-decl name='primary_reselect_policy' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='248' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1024'>
-        <var-decl name='resend_igmp' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='117' column='1'/>
+        <var-decl name='resend_igmp' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='249' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1088'>
-        <var-decl name='learn_interval' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='118' column='1'/>
+        <var-decl name='learn_interval' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='250' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1152'>
-        <var-decl name='primary_slave' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='119' column='1'/>
+        <var-decl name='primary_slave' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='251' column='1'/>
       </data-member>
     </class-decl>
-    <class-decl name='__anonymous_struct__' size-in-bits='640' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/../include/abi.h' line='123' column='1' id='type-id-58'>
+    <class-decl name='__anonymous_struct__' size-in-bits='640' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='255' column='1' id='type-id-58'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='apn' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='124' column='1'/>
+        <var-decl name='apn' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='256' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='auto_config' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='125' column='1'/>
+        <var-decl name='auto_config' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='257' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='device_id' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='126' column='1'/>
+        <var-decl name='device_id' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='258' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='network_id' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='127' column='1'/>
+        <var-decl name='network_id' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='259' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='number' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='128' column='1'/>
+        <var-decl name='number' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='260' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='password' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='129' column='1'/>
+        <var-decl name='password' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='261' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='pin' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='130' column='1'/>
+        <var-decl name='pin' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='262' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='sim_id' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='131' column='1'/>
+        <var-decl name='sim_id' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='263' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='512'>
-        <var-decl name='sim_operator_id' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='132' column='1'/>
+        <var-decl name='sim_operator_id' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='264' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='576'>
-        <var-decl name='username' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='133' column='1'/>
+        <var-decl name='username' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='265' column='1'/>
       </data-member>
     </class-decl>
-    <class-decl name='__anonymous_struct__' size-in-bits='384' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/../include/abi.h' line='136' column='1' id='type-id-59'>
+    <class-decl name='__anonymous_struct__' size-in-bits='384' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='268' column='1' id='type-id-59'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='ageing_time' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='137' column='1'/>
+        <var-decl name='ageing_time' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='269' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='priority' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='138' column='1'/>
+        <var-decl name='priority' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='270' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='96'>
-        <var-decl name='port_priority' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='139' column='1'/>
+        <var-decl name='port_priority' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='271' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='forward_delay' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='140' column='1'/>
+        <var-decl name='forward_delay' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='272' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='hello_time' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='141' column='1'/>
+        <var-decl name='hello_time' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='273' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='max_age' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='142' column='1'/>
+        <var-decl name='max_age' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='274' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='path_cost' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='143' column='1'/>
+        <var-decl name='path_cost' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='275' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='352'>
-        <var-decl name='stp' type-id='type-id-17' visibility='default' filepath='src/../include/abi.h' line='144' column='1'/>
+        <var-decl name='stp' type-id='type-id-17' visibility='default' filepath='src/abi.h' line='276' column='1'/>
       </data-member>
     </class-decl>
-    <class-decl name='__anonymous_struct__' size-in-bits='448' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/../include/abi.h' line='148' column='1' id='type-id-60'>
+    <class-decl name='__anonymous_struct__' size-in-bits='448' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='280' column='1' id='type-id-60'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='mode' type-id='type-id-74' visibility='default' filepath='src/../include/abi.h' line='149' column='1'/>
+        <var-decl name='mode' type-id='type-id-74' visibility='default' filepath='src/abi.h' line='281' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='local_ip' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='150' column='1'/>
+        <var-decl name='local_ip' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='282' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='remote_ip' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='151' column='1'/>
+        <var-decl name='remote_ip' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='283' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='input_key' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='152' column='1'/>
+        <var-decl name='input_key' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='284' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='output_key' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='153' column='1'/>
+        <var-decl name='output_key' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='285' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='private_key' type-id='type-id-16' visibility='default' filepath='src/../include/abi.h' line='154' column='1'/>
+        <var-decl name='private_key' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='286' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='fwmark' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='155' column='1'/>
+        <var-decl name='fwmark' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='287' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='416'>
-        <var-decl name='port' type-id='type-id-26' visibility='default' filepath='src/../include/abi.h' line='156' column='1'/>
+        <var-decl name='port' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='288' column='1'/>
       </data-member>
     </class-decl>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='58' column='1' id='type-id-75'>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/abi.h' line='73' column='1' id='type-id-75'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_TUNNEL_MODE_UNKNOWN' value='0'/>
       <enumerator name='NETPLAN_TUNNEL_MODE_IPIP' value='1'/>
@@ -772,45 +772,45 @@
       <enumerator name='NETPLAN_TUNNEL_MODE_WIREGUARD' value='103'/>
       <enumerator name='NETPLAN_TUNNEL_MODE_MAX_' value='104'/>
     </enum-decl>
-    <typedef-decl name='NetplanTunnelMode' type-id='type-id-75' filepath='src/types.h' line='76' column='1' id='type-id-74'/>
+    <typedef-decl name='NetplanTunnelMode' type-id='type-id-75' filepath='src/abi.h' line='91' column='1' id='type-id-74'/>
     <pointer-type-def type-id='type-id-47' size-in-bits='64' id='type-id-61'/>
-    <union-decl name='__anonymous_union__' size-in-bits='320' is-anonymous='yes' visibility='default' filepath='src/types.h' line='161' column='1' id='type-id-76'>
+    <union-decl name='__anonymous_union__' size-in-bits='320' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='139' column='1' id='type-id-76'>
       <data-member access='private'>
-        <var-decl name='nm' type-id='type-id-77' visibility='default' filepath='src/types.h' line='168' column='1'/>
+        <var-decl name='nm' type-id='type-id-77' visibility='default' filepath='src/abi.h' line='146' column='1'/>
       </data-member>
       <data-member access='private'>
-        <var-decl name='networkd' type-id='type-id-78' visibility='default' filepath='src/types.h' line='171' column='1'/>
+        <var-decl name='networkd' type-id='type-id-78' visibility='default' filepath='src/abi.h' line='149' column='1'/>
       </data-member>
     </union-decl>
-    <class-decl name='NetplanNMSettings' size-in-bits='320' is-struct='yes' visibility='default' filepath='src/types.h' line='162' column='1' id='type-id-77'>
+    <class-decl name='NetplanNMSettings' size-in-bits='320' is-struct='yes' visibility='default' filepath='src/abi.h' line='140' column='1' id='type-id-77'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='name' type-id='type-id-16' visibility='default' filepath='src/types.h' line='163' column='1'/>
+        <var-decl name='name' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='141' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='uuid' type-id='type-id-16' visibility='default' filepath='src/types.h' line='164' column='1'/>
+        <var-decl name='uuid' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='142' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='stable_id' type-id='type-id-16' visibility='default' filepath='src/types.h' line='165' column='1'/>
+        <var-decl name='stable_id' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='143' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='device' type-id='type-id-16' visibility='default' filepath='src/types.h' line='166' column='1'/>
+        <var-decl name='device' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='144' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='passthrough' type-id='type-id-79' visibility='default' filepath='src/types.h' line='167' column='1'/>
+        <var-decl name='passthrough' type-id='type-id-79' visibility='default' filepath='src/abi.h' line='145' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='_GData' is-struct='yes' visibility='default' is-declaration-only='yes' id='type-id-80'/>
     <typedef-decl name='GData' type-id='type-id-80' filepath='/usr/include/glib-2.0/glib/gdataset.h' line='36' column='1' id='type-id-81'/>
     <pointer-type-def type-id='type-id-81' size-in-bits='64' id='type-id-79'/>
-    <class-decl name='NetplanNetworkdSettings' size-in-bits='64' is-struct='yes' visibility='default' filepath='src/types.h' line='169' column='1' id='type-id-78'>
+    <class-decl name='NetplanNetworkdSettings' size-in-bits='64' is-struct='yes' visibility='default' filepath='src/abi.h' line='147' column='1' id='type-id-78'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='unit' type-id='type-id-16' visibility='default' filepath='src/types.h' line='170' column='1'/>
+        <var-decl name='unit' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='148' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanBackendSettings' type-id='type-id-76' filepath='src/types.h' line='172' column='1' id='type-id-62'/>
-    <class-decl name='private_netdef_data' size-in-bits='64' is-struct='yes' visibility='default' filepath='src/types.h' line='174' column='1' id='type-id-82'>
+    <typedef-decl name='NetplanBackendSettings' type-id='type-id-76' filepath='src/abi.h' line='150' column='1' id='type-id-62'/>
+    <class-decl name='private_netdef_data' size-in-bits='64' is-struct='yes' visibility='default' filepath='src/types.h' line='51' column='1' id='type-id-82'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='dirty_fields' type-id='type-id-2' visibility='default' filepath='src/types.h' line='175' column='1'/>
+        <var-decl name='dirty_fields' type-id='type-id-2' visibility='default' filepath='src/types.h' line='52' column='1'/>
       </data-member>
     </class-decl>
     <pointer-type-def type-id='type-id-82' size-in-bits='64' id='type-id-63'/>
@@ -937,12 +937,12 @@
     </function-decl>
   </abi-instr>
   <abi-instr version='1.0' address-size='64' path='src/parse.c' comp-dir-path='/root/netplan' language='LANG_C99'>
-    <class-decl name='NetplanWifiWowlanType' size-in-bits='128' is-struct='yes' visibility='default' filepath='src/types.h' line='90' column='1' id='type-id-92'>
+    <class-decl name='NetplanWifiWowlanType' size-in-bits='128' is-struct='yes' visibility='default' filepath='src/abi.h' line='64' column='1' id='type-id-92'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='name' type-id='type-id-16' visibility='default' filepath='src/types.h' line='91' column='1'/>
+        <var-decl name='name' type-id='type-id-16' visibility='default' filepath='src/abi.h' line='65' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='flag' type-id='type-id-56' visibility='default' filepath='src/types.h' line='92' column='1'/>
+        <var-decl name='flag' type-id='type-id-56' visibility='default' filepath='src/abi.h' line='66' column='1'/>
       </data-member>
     </class-decl>
 
@@ -950,13 +950,13 @@
       <subrange length='infinite' id='type-id-94'/>
 
     </array-type-def>
-    <var-decl name='NETPLAN_WIFI_WOWLAN_TYPES' type-id='type-id-93' mangled-name='NETPLAN_WIFI_WOWLAN_TYPES' visibility='default' filepath='src/types.h' line='95' column='1' elf-symbol-id='NETPLAN_WIFI_WOWLAN_TYPES'/>
-    <class-decl name='NetplanOptionalAddressType' size-in-bits='128' is-struct='yes' visibility='default' filepath='src/types.h' line='46' column='1' id='type-id-95'>
+    <var-decl name='NETPLAN_WIFI_WOWLAN_TYPES' type-id='type-id-93' mangled-name='NETPLAN_WIFI_WOWLAN_TYPES' visibility='default' filepath='src/types.h' line='44' column='1' elf-symbol-id='NETPLAN_WIFI_WOWLAN_TYPES'/>
+    <class-decl name='NetplanOptionalAddressType' size-in-bits='128' is-struct='yes' visibility='default' filepath='src/types.h' line='36' column='1' id='type-id-95'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='name' type-id='type-id-16' visibility='default' filepath='src/types.h' line='47' column='1'/>
+        <var-decl name='name' type-id='type-id-16' visibility='default' filepath='src/types.h' line='37' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='flag' type-id='type-id-50' visibility='default' filepath='src/types.h' line='48' column='1'/>
+        <var-decl name='flag' type-id='type-id-50' visibility='default' filepath='src/types.h' line='38' column='1'/>
       </data-member>
     </class-decl>
 
@@ -964,34 +964,34 @@
       <subrange length='infinite' id='type-id-94'/>
 
     </array-type-def>
-    <var-decl name='NETPLAN_OPTIONAL_ADDRESS_TYPES' type-id='type-id-96' mangled-name='NETPLAN_OPTIONAL_ADDRESS_TYPES' visibility='default' filepath='src/types.h' line='52' column='1' elf-symbol-id='NETPLAN_OPTIONAL_ADDRESS_TYPES'/>
-    <class-decl name='netplan_parser' size-in-bits='2944' is-struct='yes' visibility='default' filepath='src/types.h' line='268' column='1' id='type-id-97'>
+    <var-decl name='NETPLAN_OPTIONAL_ADDRESS_TYPES' type-id='type-id-96' mangled-name='NETPLAN_OPTIONAL_ADDRESS_TYPES' visibility='default' filepath='src/types.h' line='42' column='1' elf-symbol-id='NETPLAN_OPTIONAL_ADDRESS_TYPES'/>
+    <class-decl name='netplan_parser' size-in-bits='2944' is-struct='yes' visibility='default' filepath='src/types.h' line='145' column='1' id='type-id-97'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='doc' type-id='type-id-98' visibility='default' filepath='src/types.h' line='269' column='1'/>
+        <var-decl name='doc' type-id='type-id-98' visibility='default' filepath='src/types.h' line='146' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='832'>
-        <var-decl name='parsed_defs' type-id='type-id-2' visibility='default' filepath='src/types.h' line='272' column='1'/>
+        <var-decl name='parsed_defs' type-id='type-id-2' visibility='default' filepath='src/types.h' line='149' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='896'>
-        <var-decl name='ordered' type-id='type-id-3' visibility='default' filepath='src/types.h' line='275' column='1'/>
+        <var-decl name='ordered' type-id='type-id-3' visibility='default' filepath='src/types.h' line='152' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='960'>
-        <var-decl name='global_backend' type-id='type-id-4' visibility='default' filepath='src/types.h' line='276' column='1'/>
+        <var-decl name='global_backend' type-id='type-id-4' visibility='default' filepath='src/types.h' line='153' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1024'>
-        <var-decl name='global_ovs_settings' type-id='type-id-5' visibility='default' filepath='src/types.h' line='277' column='1'/>
+        <var-decl name='global_ovs_settings' type-id='type-id-5' visibility='default' filepath='src/types.h' line='154' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2176'>
-        <var-decl name='current' type-id='type-id-99' visibility='default' filepath='src/types.h' line='297' column='1'/>
+        <var-decl name='current' type-id='type-id-99' visibility='default' filepath='src/types.h' line='174' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2752'>
-        <var-decl name='missing_id' type-id='type-id-2' visibility='default' filepath='src/types.h' line='307' column='1'/>
+        <var-decl name='missing_id' type-id='type-id-2' visibility='default' filepath='src/types.h' line='184' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2816'>
-        <var-decl name='ids_in_file' type-id='type-id-2' visibility='default' filepath='src/types.h' line='315' column='1'/>
+        <var-decl name='ids_in_file' type-id='type-id-2' visibility='default' filepath='src/types.h' line='192' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='2880'>
-        <var-decl name='missing_ids_found' type-id='type-id-22' visibility='default' filepath='src/types.h' line='316' column='1'/>
+        <var-decl name='missing_ids_found' type-id='type-id-22' visibility='default' filepath='src/types.h' line='193' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='yaml_document_s' size-in-bits='832' is-struct='yes' visibility='default' filepath='/usr/include/yaml.h' line='780' column='1' id='type-id-100'>
@@ -1195,66 +1195,66 @@
     <typedef-decl name='yaml_tag_directive_t' type-id='type-id-134' filepath='/usr/include/yaml.h' line='96' column='1' id='type-id-135'/>
     <pointer-type-def type-id='type-id-135' size-in-bits='64' id='type-id-133'/>
     <typedef-decl name='yaml_document_t' type-id='type-id-100' filepath='/usr/include/yaml.h' line='813' column='1' id='type-id-98'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='576' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/types.h' line='280' column='1' id='type-id-99'>
+    <class-decl name='__anonymous_struct__' size-in-bits='576' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/types.h' line='157' column='1' id='type-id-99'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='netdef' type-id='type-id-54' visibility='default' filepath='src/types.h' line='282' column='1'/>
+        <var-decl name='netdef' type-id='type-id-54' visibility='default' filepath='src/types.h' line='159' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='auth' type-id='type-id-136' visibility='default' filepath='src/types.h' line='283' column='1'/>
+        <var-decl name='auth' type-id='type-id-136' visibility='default' filepath='src/types.h' line='160' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='access_point' type-id='type-id-137' visibility='default' filepath='src/types.h' line='286' column='1'/>
+        <var-decl name='access_point' type-id='type-id-137' visibility='default' filepath='src/types.h' line='163' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='wireguard_peer' type-id='type-id-138' visibility='default' filepath='src/types.h' line='287' column='1'/>
+        <var-decl name='wireguard_peer' type-id='type-id-138' visibility='default' filepath='src/types.h' line='164' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='addr_options' type-id='type-id-139' visibility='default' filepath='src/types.h' line='288' column='1'/>
+        <var-decl name='addr_options' type-id='type-id-139' visibility='default' filepath='src/types.h' line='165' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='route' type-id='type-id-140' visibility='default' filepath='src/types.h' line='289' column='1'/>
+        <var-decl name='route' type-id='type-id-140' visibility='default' filepath='src/types.h' line='166' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='ip_rule' type-id='type-id-141' visibility='default' filepath='src/types.h' line='290' column='1'/>
+        <var-decl name='ip_rule' type-id='type-id-141' visibility='default' filepath='src/types.h' line='167' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='filename' type-id='type-id-40' visibility='default' filepath='src/types.h' line='291' column='1'/>
+        <var-decl name='filename' type-id='type-id-40' visibility='default' filepath='src/types.h' line='168' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='512'>
-        <var-decl name='backend' type-id='type-id-4' visibility='default' filepath='src/types.h' line='296' column='1'/>
+        <var-decl name='backend' type-id='type-id-4' visibility='default' filepath='src/types.h' line='173' column='1'/>
       </data-member>
     </class-decl>
     <pointer-type-def type-id='type-id-20' size-in-bits='64' id='type-id-136'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='1280' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-142' visibility='default' filepath='src/types.h' line='206' column='1' id='type-id-143'>
+    <class-decl name='__anonymous_struct__' size-in-bits='1280' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-142' visibility='default' filepath='src/types.h' line='83' column='1' id='type-id-143'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='mode' type-id='type-id-144' visibility='default' filepath='src/types.h' line='207' column='1'/>
+        <var-decl name='mode' type-id='type-id-144' visibility='default' filepath='src/types.h' line='84' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='ssid' type-id='type-id-16' visibility='default' filepath='src/types.h' line='208' column='1'/>
+        <var-decl name='ssid' type-id='type-id-16' visibility='default' filepath='src/types.h' line='85' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='band' type-id='type-id-145' visibility='default' filepath='src/types.h' line='209' column='1'/>
+        <var-decl name='band' type-id='type-id-145' visibility='default' filepath='src/types.h' line='86' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='bssid' type-id='type-id-16' visibility='default' filepath='src/types.h' line='210' column='1'/>
+        <var-decl name='bssid' type-id='type-id-16' visibility='default' filepath='src/types.h' line='87' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='hidden' type-id='type-id-17' visibility='default' filepath='src/types.h' line='211' column='1'/>
+        <var-decl name='hidden' type-id='type-id-17' visibility='default' filepath='src/types.h' line='88' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='288'>
-        <var-decl name='channel' type-id='type-id-26' visibility='default' filepath='src/types.h' line='212' column='1'/>
+        <var-decl name='channel' type-id='type-id-26' visibility='default' filepath='src/types.h' line='89' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='auth' type-id='type-id-20' visibility='default' filepath='src/types.h' line='214' column='1'/>
+        <var-decl name='auth' type-id='type-id-20' visibility='default' filepath='src/types.h' line='91' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='896'>
-        <var-decl name='has_auth' type-id='type-id-17' visibility='default' filepath='src/types.h' line='215' column='1'/>
+        <var-decl name='has_auth' type-id='type-id-17' visibility='default' filepath='src/types.h' line='92' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='960'>
-        <var-decl name='backend_settings' type-id='type-id-62' visibility='default' filepath='src/types.h' line='217' column='1'/>
+        <var-decl name='backend_settings' type-id='type-id-62' visibility='default' filepath='src/types.h' line='94' column='1'/>
       </data-member>
     </class-decl>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='178' column='1' id='type-id-146'>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='55' column='1' id='type-id-146'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_WIFI_MODE_INFRASTRUCTURE' value='0'/>
       <enumerator name='NETPLAN_WIFI_MODE_ADHOC' value='1'/>
@@ -1262,112 +1262,112 @@
       <enumerator name='NETPLAN_WIFI_MODE_OTHER' value='3'/>
       <enumerator name='NETPLAN_WIFI_MODE_MAX_' value='4'/>
     </enum-decl>
-    <typedef-decl name='NetplanWifiMode' type-id='type-id-146' filepath='src/types.h' line='184' column='1' id='type-id-144'/>
-    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='194' column='1' id='type-id-147'>
+    <typedef-decl name='NetplanWifiMode' type-id='type-id-146' filepath='src/types.h' line='61' column='1' id='type-id-144'/>
+    <enum-decl name='__anonymous_enum__' is-anonymous='yes' filepath='src/types.h' line='71' column='1' id='type-id-147'>
       <underlying-type type-id='type-id-13'/>
       <enumerator name='NETPLAN_WIFI_BAND_DEFAULT' value='0'/>
       <enumerator name='NETPLAN_WIFI_BAND_5' value='1'/>
       <enumerator name='NETPLAN_WIFI_BAND_24' value='2'/>
     </enum-decl>
-    <typedef-decl name='NetplanWifiBand' type-id='type-id-147' filepath='src/types.h' line='198' column='1' id='type-id-145'/>
-    <typedef-decl name='NetplanWifiAccessPoint' type-id='type-id-143' filepath='src/types.h' line='218' column='1' id='type-id-142'/>
+    <typedef-decl name='NetplanWifiBand' type-id='type-id-147' filepath='src/types.h' line='75' column='1' id='type-id-145'/>
+    <typedef-decl name='NetplanWifiAccessPoint' type-id='type-id-143' filepath='src/types.h' line='95' column='1' id='type-id-142'/>
     <pointer-type-def type-id='type-id-142' size-in-bits='64' id='type-id-137'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='320' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-148' visibility='default' filepath='src/types.h' line='186' column='1' id='type-id-149'>
+    <class-decl name='__anonymous_struct__' size-in-bits='320' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-148' visibility='default' filepath='src/types.h' line='63' column='1' id='type-id-149'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='endpoint' type-id='type-id-16' visibility='default' filepath='src/types.h' line='187' column='1'/>
+        <var-decl name='endpoint' type-id='type-id-16' visibility='default' filepath='src/types.h' line='64' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='public_key' type-id='type-id-16' visibility='default' filepath='src/types.h' line='188' column='1'/>
+        <var-decl name='public_key' type-id='type-id-16' visibility='default' filepath='src/types.h' line='65' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='preshared_key' type-id='type-id-16' visibility='default' filepath='src/types.h' line='189' column='1'/>
+        <var-decl name='preshared_key' type-id='type-id-16' visibility='default' filepath='src/types.h' line='66' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='allowed_ips' type-id='type-id-18' visibility='default' filepath='src/types.h' line='190' column='1'/>
+        <var-decl name='allowed_ips' type-id='type-id-18' visibility='default' filepath='src/types.h' line='67' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='keepalive' type-id='type-id-26' visibility='default' filepath='src/types.h' line='191' column='1'/>
+        <var-decl name='keepalive' type-id='type-id-26' visibility='default' filepath='src/types.h' line='68' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanWireguardPeer' type-id='type-id-149' filepath='src/types.h' line='192' column='1' id='type-id-148'/>
+    <typedef-decl name='NetplanWireguardPeer' type-id='type-id-149' filepath='src/types.h' line='69' column='1' id='type-id-148'/>
     <pointer-type-def type-id='type-id-148' size-in-bits='64' id='type-id-138'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='192' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-150' visibility='default' filepath='src/types.h' line='200' column='1' id='type-id-151'>
+    <class-decl name='__anonymous_struct__' size-in-bits='192' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-150' visibility='default' filepath='src/types.h' line='77' column='1' id='type-id-151'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='address' type-id='type-id-16' visibility='default' filepath='src/types.h' line='201' column='1'/>
+        <var-decl name='address' type-id='type-id-16' visibility='default' filepath='src/types.h' line='78' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='lifetime' type-id='type-id-16' visibility='default' filepath='src/types.h' line='202' column='1'/>
+        <var-decl name='lifetime' type-id='type-id-16' visibility='default' filepath='src/types.h' line='79' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='label' type-id='type-id-16' visibility='default' filepath='src/types.h' line='203' column='1'/>
+        <var-decl name='label' type-id='type-id-16' visibility='default' filepath='src/types.h' line='80' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanAddressOptions' type-id='type-id-151' filepath='src/types.h' line='204' column='1' id='type-id-150'/>
+    <typedef-decl name='NetplanAddressOptions' type-id='type-id-151' filepath='src/types.h' line='81' column='1' id='type-id-150'/>
     <pointer-type-def type-id='type-id-150' size-in-bits='64' id='type-id-139'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='640' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-152' visibility='default' filepath='src/types.h' line='220' column='1' id='type-id-153'>
+    <class-decl name='__anonymous_struct__' size-in-bits='640' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-152' visibility='default' filepath='src/types.h' line='97' column='1' id='type-id-153'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='family' type-id='type-id-26' visibility='default' filepath='src/types.h' line='221' column='1'/>
+        <var-decl name='family' type-id='type-id-26' visibility='default' filepath='src/types.h' line='98' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='type' type-id='type-id-16' visibility='default' filepath='src/types.h' line='222' column='1'/>
+        <var-decl name='type' type-id='type-id-16' visibility='default' filepath='src/types.h' line='99' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='scope' type-id='type-id-16' visibility='default' filepath='src/types.h' line='223' column='1'/>
+        <var-decl name='scope' type-id='type-id-16' visibility='default' filepath='src/types.h' line='100' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='table' type-id='type-id-26' visibility='default' filepath='src/types.h' line='224' column='1'/>
+        <var-decl name='table' type-id='type-id-26' visibility='default' filepath='src/types.h' line='101' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='from' type-id='type-id-16' visibility='default' filepath='src/types.h' line='226' column='1'/>
+        <var-decl name='from' type-id='type-id-16' visibility='default' filepath='src/types.h' line='103' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='320'>
-        <var-decl name='to' type-id='type-id-16' visibility='default' filepath='src/types.h' line='227' column='1'/>
+        <var-decl name='to' type-id='type-id-16' visibility='default' filepath='src/types.h' line='104' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='via' type-id='type-id-16' visibility='default' filepath='src/types.h' line='228' column='1'/>
+        <var-decl name='via' type-id='type-id-16' visibility='default' filepath='src/types.h' line='105' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
-        <var-decl name='onlink' type-id='type-id-17' visibility='default' filepath='src/types.h' line='230' column='1'/>
+        <var-decl name='onlink' type-id='type-id-17' visibility='default' filepath='src/types.h' line='107' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='480'>
-        <var-decl name='metric' type-id='type-id-26' visibility='default' filepath='src/types.h' line='234' column='1'/>
+        <var-decl name='metric' type-id='type-id-26' visibility='default' filepath='src/types.h' line='111' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='512'>
-        <var-decl name='mtubytes' type-id='type-id-26' visibility='default' filepath='src/types.h' line='236' column='1'/>
+        <var-decl name='mtubytes' type-id='type-id-26' visibility='default' filepath='src/types.h' line='113' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='544'>
-        <var-decl name='congestion_window' type-id='type-id-26' visibility='default' filepath='src/types.h' line='237' column='1'/>
+        <var-decl name='congestion_window' type-id='type-id-26' visibility='default' filepath='src/types.h' line='114' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='576'>
-        <var-decl name='advertised_receive_window' type-id='type-id-26' visibility='default' filepath='src/types.h' line='238' column='1'/>
+        <var-decl name='advertised_receive_window' type-id='type-id-26' visibility='default' filepath='src/types.h' line='115' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanIPRoute' type-id='type-id-153' filepath='src/types.h' line='239' column='1' id='type-id-152'/>
+    <typedef-decl name='NetplanIPRoute' type-id='type-id-153' filepath='src/types.h' line='116' column='1' id='type-id-152'/>
     <pointer-type-def type-id='type-id-152' size-in-bits='64' id='type-id-140'/>
-    <class-decl name='__anonymous_struct__' size-in-bits='320' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-154' visibility='default' filepath='src/types.h' line='241' column='1' id='type-id-155'>
+    <class-decl name='__anonymous_struct__' size-in-bits='320' is-struct='yes' is-anonymous='yes' naming-typedef-id='type-id-154' visibility='default' filepath='src/types.h' line='118' column='1' id='type-id-155'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='family' type-id='type-id-26' visibility='default' filepath='src/types.h' line='242' column='1'/>
+        <var-decl name='family' type-id='type-id-26' visibility='default' filepath='src/types.h' line='119' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='from' type-id='type-id-16' visibility='default' filepath='src/types.h' line='244' column='1'/>
+        <var-decl name='from' type-id='type-id-16' visibility='default' filepath='src/types.h' line='121' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='to' type-id='type-id-16' visibility='default' filepath='src/types.h' line='245' column='1'/>
+        <var-decl name='to' type-id='type-id-16' visibility='default' filepath='src/types.h' line='122' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='table' type-id='type-id-26' visibility='default' filepath='src/types.h' line='248' column='1'/>
+        <var-decl name='table' type-id='type-id-26' visibility='default' filepath='src/types.h' line='125' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='224'>
-        <var-decl name='priority' type-id='type-id-26' visibility='default' filepath='src/types.h' line='249' column='1'/>
+        <var-decl name='priority' type-id='type-id-26' visibility='default' filepath='src/types.h' line='126' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='fwmark' type-id='type-id-26' visibility='default' filepath='src/types.h' line='251' column='1'/>
+        <var-decl name='fwmark' type-id='type-id-26' visibility='default' filepath='src/types.h' line='128' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='288'>
-        <var-decl name='tos' type-id='type-id-26' visibility='default' filepath='src/types.h' line='253' column='1'/>
+        <var-decl name='tos' type-id='type-id-26' visibility='default' filepath='src/types.h' line='130' column='1'/>
       </data-member>
     </class-decl>
-    <typedef-decl name='NetplanIPRule' type-id='type-id-155' filepath='src/types.h' line='254' column='1' id='type-id-154'/>
+    <typedef-decl name='NetplanIPRule' type-id='type-id-155' filepath='src/types.h' line='131' column='1' id='type-id-154'/>
     <pointer-type-def type-id='type-id-154' size-in-bits='64' id='type-id-141'/>
     <typedef-decl name='NetplanParser' type-id='type-id-97' filepath='/root/netplan/include/parse.h' line='44' column='1' id='type-id-156'/>
     <pointer-type-def type-id='type-id-156' size-in-bits='64' id='type-id-157'/>
