@@ -55,6 +55,14 @@ type_from_str(const char* type_str)
     else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
         return NETPLAN_DEF_TYPE_TUNNEL;
     */
+    /* TODO: Vxlans are not yet fully supported by the keyfile parser
+    else if (!g_strcmp0(type_str, "vxlan"))
+        return NETPLAN_DEF_TYPE_VXLAN;
+    */
+    /* TODO: Vrfs are not yet fully supported by the keyfile parser
+    else if (!g_strcmp0(type_str, "vrf"))
+        return NETPLAN_DEF_TYPE_VRF;
+    */
     /* Unsupported type, needs to be specified via passthrough */
     return NETPLAN_DEF_TYPE_NM;
 }

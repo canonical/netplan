@@ -23,6 +23,20 @@ from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, UDEV_SRIO
 
 class TestNetworkd(TestBase):
 
+    def test_set_vxlans(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    lo:
+      dhcp4: no''')
+
+        self.assert_networkd({'lo.network': '''[Match]
+Name=lo
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+
     def test_eth_wol(self):
         self.generate('''network:
   version: 2

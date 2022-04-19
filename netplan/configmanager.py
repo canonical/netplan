@@ -52,6 +52,8 @@ class ConfigManager(object):
         interfaces.update(self.bonds)
         interfaces.update(self.tunnels)
         interfaces.update(self.vlans)
+        interfaces.update(self.vxlans)
+        interfaces.update(self.vrfs)
         return interfaces
 
     @property
@@ -70,6 +72,8 @@ class ConfigManager(object):
         interfaces.update(self.bonds)
         interfaces.update(self.tunnels)
         interfaces.update(self.vlans)
+        interfaces.update(self.vxlans)
+        interfaces.update(self.vrfs)
         return interfaces
 
     @property
@@ -107,6 +111,14 @@ class ConfigManager(object):
     @property
     def vlans(self):
         return self.network['vlans']
+
+    @property
+    def vxlans(self):
+        return self.network['vxlans']
+
+    @property
+    def vrfs(self):
+        return self.network['vrfs']
 
     @property
     def nm_devices(self):
@@ -167,6 +179,8 @@ class ConfigManager(object):
             'bonds': {},
             'tunnels': {},
             'vlans': {},
+            'vxlans': {},
+            'vrfs': {},
             'nm-devices': {},
             'version': None,
             'renderer': None
@@ -316,6 +330,12 @@ class ConfigManager(object):
                         new_interfaces |= new
                     if 'vlans' in network:
                         new = self._merge_interface_config(self.vlans, network.get('vlans'))
+                        new_interfaces |= new
+                    if 'vxlans' in network:
+                        new = self._merge_interface_config(self.vxlans, network.get('vxlans'))
+                        new_interfaces |= new
+                    if 'vrfs' in network:
+                        new = self._merge_interface_config(self.vrfs, network.get('vrfs'))
                         new_interfaces |= new
                     if 'nm-devices' in network:
                         new = self._merge_interface_config(self.nm_devices, network.get('nm-devices'))

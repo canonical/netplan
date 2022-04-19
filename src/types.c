@@ -248,6 +248,12 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->vlan_link = NULL;
     netdef->has_vlans = FALSE;
 
+    netdef->vxlan_vni = G_MAXUINT;
+    netdef->vxlan_link = NULL;
+
+    netdef->vrf_table = G_MAXUINT;
+    netdef->vrf_link = NULL;
+
     FREE_AND_NULLIFY(netdef->set_mac);
     netdef->mtubytes = 0;
     netdef->ipv6_mtubytes = 0;
@@ -283,6 +289,36 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->bond_params.learn_interval);
     FREE_AND_NULLIFY(netdef->bond_params.primary_slave);
     memset(&netdef->bond_params, 0, sizeof(netdef->bond_params));
+
+    FREE_AND_NULLIFY(netdef->vxlan_params.remote);
+    FREE_AND_NULLIFY(netdef->vxlan_params.local);
+    FREE_AND_NULLIFY(netdef->vxlan_params.group);
+    netdef->vxlan_params.tos = 0;
+    netdef->vxlan_params.ttl = 0;
+    netdef->vxlan_params.mac_learning = FALSE;
+    netdef->vxlan_params.fdb_ageing = 0;
+    netdef->vxlan_params.max_fdb_entries = 0;
+    netdef->vxlan_params.reduce_arp_proxy = FALSE;
+    netdef->vxlan_params.l2_miss_notification = FALSE;
+    netdef->vxlan_params.l3_miss_notification = FALSE;
+    netdef->vxlan_params.route_short_circuit = FALSE;
+    netdef->vxlan_params.udp_checksum = FALSE;
+    netdef->vxlan_params.udp6_zero_checksum_tx = FALSE;
+    netdef->vxlan_params.udp6_zero_checksum_rx = FALSE;
+    netdef->vxlan_params.remote_checksum_tx = FALSE;
+    netdef->vxlan_params.remote_checksum_rx = FALSE;
+    netdef->vxlan_params.group_policy_extension = FALSE;
+    netdef->vxlan_params.generic_protocol_extension = FALSE;
+    netdef->vxlan_params.destination_port = 0;
+    FREE_AND_NULLIFY(netdef->vxlan_params.port_range);
+    netdef->vxlan_params.flow_label = 0;
+    netdef->vxlan_params.ip_do_not_fragment = FALSE;
+    netdef->vxlan_params.independent = FALSE;
+    netdef->vxlan_bridge = NULL;
+    netdef->vrf = NULL;
+    netdef->neigh_suppress = FALSE;
+    free_garray_with_destructor(&netdef->vxlans, g_free);
+    memset(&netdef->vxlan_params, 0, sizeof(netdef->vxlan_params));
 
     FREE_AND_NULLIFY(netdef->modem_params.apn);
     FREE_AND_NULLIFY(netdef->modem_params.device_id);

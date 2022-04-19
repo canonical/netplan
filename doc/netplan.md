@@ -520,6 +520,20 @@ similar to ``gateway*``, and ``search:`` is a list of search domains.
 
 :   Configure policy routing for the device; see the ``Routing`` section below.
 
+``vrf`` (scalar)
+
+:   VRF interface to add the link to.
+
+``vxlans`` (scalar)
+
+    ``names`` (sequence of scalars)
+    :   The names of VXLANs be created on the link.
+
+``neigh-suppress`` (scalar)
+
+:   Takes a boolean. Configures whether ARP and ND neighbor suppression is enabled for this port.
+    When unset, the kernel's default will be used.
+
 ## DHCP Overrides
 Several DHCP behavior overrides are available. Most currently only have any
 effect when using the ``networkd`` backend, with the exception of ``use-routes``
@@ -1376,6 +1390,111 @@ Example:
         id: 2
         link: eno1
         addresses: ...
+
+## Properties for device type ``vxlans:``
+
+``vni`` (scalar)
+
+:    The VXLAN Network Identifier (or VXLAN Segment ID).
+     Takes a number in the range 1…16777215.
+
+``bridge`` (scalar)
+
+:    The name of the bridge interface to add the link to.
+
+``parameters`` (mapping)
+
+:    Customization parameters for special vxlan options.
+
+     ``remote`` (scalar)
+     :    Configures destination IP address.
+
+     ``local`` (scalar)
+     :    Configures local IP address.
+
+     ``group`` (scalar)
+     :    Configures VXLAN multicast group IP address.
+
+     ``tos`` (scalar)
+     :    The Type Of Service byte value for a vxlan interface.
+
+     ``ttl`` (scalar)
+     :    A fixed Time To Live N on Virtual eXtensible Local Area Network packets.
+          Takes a number in the range 0…255.
+
+     ``mac-learning`` (scalar)
+     :    Takes a boolean. When true, enables dynamic MAC learning to
+          discover remote MAC addresses.
+
+     ``fdb-ageing`` (scalar)
+     :    The lifetime of Forwarding Database entry learnt by the kernel, in seconds.
+
+     ``max-fdb-entries`` (scalar)
+     :    Configures maximum number of FDB entries.
+
+     ``reduce-arp-proxy`` (scalar)
+     :    Takes a boolean. When true, bridge-connected VXLAN tunnel endpoint answers
+          ARP requests from the local bridge on behalf of remote Distributed Overlay
+          Virtual Ethernet (DOVE) clients. Defaults to false.
+
+     ``l2-miss-notification`` (scalar)
+     :    Takes a boolean. When true, enables netlink LLADDR miss notifications.
+
+     ``l3-miss-notification`` (scalar)
+     :    Takes a boolean. When true, enables netlink IP address miss notifications.
+
+     ``route-short-circuit`` (scalar)
+     :    Takes a boolean. When true, route short circuiting is turned on.
+
+     ``udp-checksum`` (scalar)
+     :    Takes a boolean. When true, transmitting UDP checksums when doing VXLAN/IPv4 is turned on.
+
+     ``udp6-zero-checksum-tx`` (scalar)
+     :    Takes a boolean. When true, sending zero checksums in VXLAN/IPv6 is turned on.
+
+     ``udp6-zero-checksum-rx`` (scalar)
+     :    Takes a boolean. When true, receiving zero checksums in VXLAN/IPv6 is turned on.
+
+     ``remote-checksum-tx`` (scalar)
+     :    Takes a boolean. When true, remote transmit checksum offload of VXLAN is turned on.
+
+     ``remote-checksum-rx`` (scalar)
+     :    Takes a boolean. When true, remote receive checksum offload in VXLAN is turned on.
+
+     ``group-policy-extension`` (scalar)
+     :    Takes a boolean. When true, it enables Group Policy VXLAN extension security label
+          mechanism across network peers based on VXLAN. Defaults to false.
+
+     ``generic-protocol-extension`` (scalar)
+     :    Takes a boolean. When true, Generic Protocol Extension extends the existing VXLAN protocol
+          to provide protocol typing, OAM, and versioning capabilities. Defaults to false.
+
+     ``destination-port`` (scalar)
+     :    Configures the default destination UDP port. If the destination port is not specified
+          then Linux kernel default will be used. Set to 4789 to get the IANA assigned value.
+
+     ``port-range`` (scalar)
+     :    Configures the source port range for the VXLAN. The kernel assigns the source UDP port
+          based on the flow to help the receiver to do load balancing. When this option is not set,
+          the normal range of local UDP ports is used.
+
+     ``flow-label`` (scalar)
+     :    Specifies the flow label to use in outgoing packets. The valid range is 0-1048575.
+
+     ``ip-do-not-fragment`` (scalar)
+     :    Allows setting the IPv4 Do not Fragment (DF) bit in outgoing packets. Takes a boolean value.
+          When unset, the kernel's default will be used.
+
+     ``independent`` (scalar)
+     :    Takes a boolean. When true, the vxlan interface is created without any underlying network interface.
+          Defaults to false, which means that a .network file that requests this VXLAN interface using VXLAN=
+          is required for the VXLAN to be created.
+
+## Properties for device type ``vrfs:``
+
+``table`` (scalar)
+
+:    The numeric routing table identifier. This setting is compulsory.
 
 ## Properties for device type ``nm-devices:``
 
