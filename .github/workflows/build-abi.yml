@@ -30,11 +30,13 @@ jobs:
           sudo apt build-dep netplan.io
 
       # Runs the build
+      # TODO: move to meson build (on Jammy), once available
       - name: Run build
         run: make
 
       # Abigail ABI checker
-      # TODO: move to meson build (on Jammy), once available
+      # TODO: make use of "--header-file2 src/abi.h" instead of moving abi.h
+      #       (once we can switch to a newer version of abigail-tools in CI)
       - name: Check ABI compatibility
         run: |
           mv src/abi.h include/
