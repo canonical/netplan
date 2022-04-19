@@ -1,0 +1,12 @@
+network:
+  renderer: networkd
+  vrfs:
+    vrf1005:
+      table: 1005
+  bridges:
+    br1:
+      interfaces: []
+      vrf: vrf1005
+    br1005:
+      interfaces: []
+      vrf: vrf1005

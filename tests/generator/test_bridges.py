@@ -49,6 +49,26 @@ UseMTU=true
 ''',
                               'br0.netdev': '[NetDev]\nName=br0\nMACAddress=00:01:02:03:04:05\nKind=bridge\n'})
 
+    def test_bridge_set_vrf(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      vrf: vrf1005''')
+
+        self.assert_networkd({'br0.network': '''[Match]
+Name=br0
+
+[Network]
+VRF=vrf1005
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'br0.netdev': '''[NetDev]
+Name=br0
+Kind=bridge
+'''})
+
     def test_bridge_dhcp6_no_accept_ra(self):
         self.generate('''network:
   version: 2
