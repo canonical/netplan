@@ -22,8 +22,9 @@
 #include <yaml.h>
 #include <uuid.h>
 
-// Quite a few types are part of our current ABI, and so were isolated
-// in order to make it easier to tell what's fair game.
+/* Quite a few types are part of our current ABI, and so were isolated
+ * in order to make it easier to tell what's fair game and allow for ABI
+ * compatibility checks using 'abidiff' (abigail-tools). */
 #include "abi.h"
 
 typedef enum {
@@ -225,7 +226,3 @@ route_clear(NetplanIPRoute** route);
 
 gboolean
 netplan_state_has_nondefault_globals(const NetplanState* np_state);
-
-/* The netplan_net_definition' struct is kept separate, to allow for ABI
- * compatibility checks using 'abidiff' (abigail-tools). */
-#include "abi.h"
