@@ -26,6 +26,8 @@ jobs:
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           #sudo apt install lcov python3-coverage curl
+          sudo apt install software-properties-common
+          sudo add-apt-repository -y ppa:slyon/ci-netplan
           sudo apt install abigail-tools
           sudo apt build-dep netplan.io
 
@@ -39,5 +41,4 @@ jobs:
       #       (once we can switch to a newer version of abigail-tools in CI)
       - name: Check ABI compatibility
         run: |
-          mv src/abi.h include/
-          abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/
+          abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/ --header-file2 src/abi.h
