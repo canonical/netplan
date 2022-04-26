@@ -98,6 +98,9 @@ class Parser:
         lib.netplan_parser_load_yaml_from_fd.argtypes = [_NetplanParserP, c_int, _GErrorPP]
         lib.netplan_parser_load_yaml_from_fd.restype = c_int
 
+        lib.netplan_parser_load_nullable_fields.argtypes = [_NetplanParserP, c_int, _GErrorPP]
+        lib.netplan_parser_load_nullable_fields.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -115,6 +118,9 @@ class Parser:
 
     def load_yaml_hierarchy(self, rootdir):
         _checked_lib_call(lib.netplan_parser_load_yaml_hierarchy, self._ptr, rootdir.encode('utf-8'))
+
+    def load_nullable_fields(self, input_file: IO):
+        _checked_lib_call(lib.netplan_parser_load_nullable_fields, self._ptr, input_file.fileno())
 
 
 class State:
