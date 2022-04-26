@@ -199,6 +199,9 @@ struct netplan_parser {
      * */
     GHashTable* ids_in_file;
     int missing_ids_found;
+
+    /* Which fields have been nullified by a subsequent patch? */
+    GHashTable* null_fields;
 };
 
 #define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
