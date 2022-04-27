@@ -554,7 +554,7 @@ write_route(NetplanIPRoute* r, GString* s)
     if (g_strcmp0(r->type, "unicast") != 0)
         g_string_append_printf(s, "Type=%s\n", r->type);
     if (r->onlink)
-        g_string_append_printf(s, "GatewayOnlink=true\n");
+        g_string_append_printf(s, "GatewayOnLink=true\n");
     if (r->metric != NETPLAN_METRIC_UNSPEC)
         g_string_append_printf(s, "Metric=%d\n", r->metric);
     if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
