@@ -350,7 +350,7 @@ def perform_hardware_specific_quirks(pf):
 
     combined_id = ':'.join([vendor_id, device_id])
     quirk_devices = ()  # TODO: add entries to the list
-    if combined_id in quirk_devices:
+    if combined_id in quirk_devices:  # pragma: nocover (empty quirk_devices)
         # some devices need special handling, so this is the place
 
         # Currently this part is empty, but has been added as a preemptive
