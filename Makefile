@@ -77,7 +77,7 @@ netplan/_features.py: src/[^_]*.[hc]
 	echo "]" >> $@
 
 clean:
-	rm -f netplan/_features.py src/_features.h
+	rm -f netplan/_features.py src/_features.h src/_features.h.gch
 	rm -f generate doc/*.html doc/*.[1-9]
 	rm -f *.o *.so*
 	rm -f netplan-dbus dbus/*.service
