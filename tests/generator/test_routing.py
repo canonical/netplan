@@ -176,7 +176,7 @@ Address=192.168.14.2/24
 [Route]
 Destination=10.10.10.0/24
 Gateway=192.168.14.20
-GatewayOnlink=true
+GatewayOnLink=true
 Metric=100
 '''})
 
