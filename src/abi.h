@@ -202,7 +202,6 @@ struct netplan_net_definition {
     NetplanNetDefinition* vlan_link;
     gboolean has_vlans;
 
-<<<<<<< HEAD
     /* vxlan */
     guint vxlan_vni;
     NetplanNetDefinition* vxlan_link;
@@ -215,8 +214,6 @@ struct netplan_net_definition {
     guint vrf_table;
     NetplanNetDefinition* vrf_link;
 
-=======
->>>>>>> 056c27ef456c982a4836cd413bd373019fcd42cc
     /* Configured custom MAC address */
     char* set_mac;
 
@@ -266,7 +263,6 @@ struct netplan_net_definition {
         char* primary_slave;
     } bond_params;
 
-<<<<<<< HEAD
     struct {
         char* remote;
         char* local;
@@ -294,8 +290,6 @@ struct netplan_net_definition {
         gboolean independent;
     } vxlan_params;
 
-=======
->>>>>>> 056c27ef456c982a4836cd413bd373019fcd42cc
     /* netplan-feature: modems */
     struct {
         char* apn;
