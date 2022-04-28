@@ -65,7 +65,7 @@ class IntegrationTestsBase(unittest.TestCase):
         # configured. It should be running all the time, independently of netplan
         os.makedirs('/etc/systemd/network', exist_ok=True)
         with open('/etc/systemd/network/20-wired.network', 'w') as f:
-            f.write('[Match]\nName=eth0 en*\n\n[Network]\nDHCP=ipv4')
+            f.write('[Match]\nName=eth0 en*\n\n[Network]\nDHCP=yes\nKeepConfiguration=yes')
 
         # ensure NM can manage our fake eths
         os.makedirs('/run/udev/rules.d', exist_ok=True)
