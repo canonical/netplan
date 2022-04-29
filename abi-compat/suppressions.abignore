@@ -1,0 +1,9 @@
+# Ignore this type/file/function/variable during ABI checks
+# passed to abidiff using the --suppressions parameter
+#
+# Documentation about the syntax can be found here:
+# https://sourceware.org/libabigail/manual/libabigail-concepts.html#suppression-specifications
+
+[suppress_variable]
+  name = global_state
+  type_name = NetplanState
