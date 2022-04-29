@@ -244,6 +244,10 @@ validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd
                 case NETPLAN_TUNNEL_MODE_VTI:
                 case NETPLAN_TUNNEL_MODE_VTI6:
                 case NETPLAN_TUNNEL_MODE_WIREGUARD:
+                case NETPLAN_TUNNEL_MODE_GRE:
+                case NETPLAN_TUNNEL_MODE_IP6GRE:
+                case NETPLAN_TUNNEL_MODE_GRETAP:
+                case NETPLAN_TUNNEL_MODE_IP6GRETAP:
                     break;
 
                 /* TODO: Remove this exception and fix ISATAP handling with the
