@@ -799,7 +799,7 @@ ConfigureWithoutCarrier=yes
 
     def test_ip6gre(self):
         """[networkd] Validate generation of IP6GRE tunnels"""
-        config = prepare_config_for_mode('networkd', 'ip6gre')
+        config = prepare_config_for_mode('networkd', 'ip6gre', '33490175')
         self.generate(config)
         self.assert_networkd({'tun0.netdev': '''[NetDev]
 Name=tun0
@@ -809,6 +809,8 @@ Kind=ip6gre
 Independent=true
 Local=fe80::dead:beef
 Remote=2001:fe:ad:de:ad:be:ef:1
+InputKey=33490175
+OutputKey=33490175
 ''',
                               'tun0.network': '''[Match]
 Name=tun0
