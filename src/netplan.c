@@ -1012,7 +1012,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
 
     while (iter) {
         NetplanNetDefinition* netdef = iter->data;
-        const char* fname = netdef->filename ? netdef->filename : path;
+        const char* fname = netdef->filepath ? netdef->filepath : path;
         if (g_strcmp0(fname, path) == 0)
             to_write = g_list_append(to_write, netdef);
         iter = iter->next;
@@ -1097,7 +1097,7 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
         GList* iter = np_state->netdefs_ordered;
         while (iter) {
             NetplanNetDefinition* netdef = iter->data;
-            const char* filename = netdef->filename ? netdef->filename : default_path;
+            const char* filename = netdef->filepath ? netdef->filepath : default_path;
             GList* list = NULL;
             g_hash_table_steal_extended(perfile_netdefs, filename, NULL, (gpointer*)&list);
             g_hash_table_insert(perfile_netdefs, (gpointer)filename, g_list_append(list, netdef));

@@ -173,7 +173,7 @@ struct netplan_parser {
         NetplanAddressOptions* addr_options;
         NetplanIPRoute* route;
         NetplanIPRule* ip_rule;
-        const char *filename;
+        const char *filepath;
 
         /* Plain old data representing the backend for which we are
          * currently parsing. Not necessarily the same as the global

@@ -189,7 +189,7 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
 {
     NetplanParser* npp = netplan_parser_new();
     NetplanState* np_state = netplan_state_new();
-    char *filename = NULL;
+    char *filepath = NULL;
     GError* error = NULL;
 
     if (!netplan_parser_load_yaml_hierarchy(npp, rootdir, &error) ||
@@ -201,9 +201,9 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
 
     NetplanNetDefinition* netdef = netplan_state_get_netdef(np_state, netdef_id);
     if (netdef)
-        filename = g_strdup(netplan_netdef_get_filename(netdef));
+        filepath = g_strdup(netdef->filepath);
     netplan_state_clear(&np_state);
-    return filename;
+    return filepath;
 }
 
 // LCOV_EXCL_START
@@ -214,5 +214,12 @@ NETPLAN_INTERNAL struct netdef_pertype_iter*
 _netplan_iter_defs_per_devtype_init(const char *devtype)
 {
     return _netplan_state_new_netdef_pertype_iter(&global_state, devtype);
+}
+
+NETPLAN_ABI const char *
+netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->filepath;
 }
 // LCOV_EXCL_STOP

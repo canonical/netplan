@@ -327,6 +327,14 @@ class TestNetDefinition(TestBase):
         # Test against a weird singleton to ensure consistency against other types
         self.assertNotEqual(state['eth0'], True)
 
+    def test_filepath(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''', filename="a.yaml")
+        netdef = state['eth0']
+        self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef.filepath)
+
 
 class TestFreeFunctions(TestBase):
     def setUp(self):

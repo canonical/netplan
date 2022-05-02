@@ -17,10 +17,13 @@
 
 #pragma once
 #include <glib.h>
+#include <stdlib.h>
 
 #define NETPLAN_PUBLIC __attribute__ ((visibility("default")))
 #define NETPLAN_INTERNAL __attribute__ ((visibility("default")))
 #define NETPLAN_ABI __attribute__ ((visibility("default")))
+
+#define NETPLAN_DEPRECATED __attribute__ ((deprecated))
 
 #define NETPLAN_BUFFER_TOO_SMALL -2
 
@@ -92,7 +95,12 @@ netplan_netdef_write_yaml(
         const char* rootdir,
         GError** error);
 
-NETPLAN_PUBLIC const char *
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
+
+/********** Old API below this ***********/
+
+NETPLAN_DEPRECATED NETPLAN_PUBLIC const char *
 netplan_netdef_get_filename(const NetplanNetDefinition* netdef);
 
 NETPLAN_PUBLIC void
