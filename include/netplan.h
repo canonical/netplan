@@ -22,6 +22,8 @@
 #define NETPLAN_INTERNAL __attribute__ ((visibility("default")))
 #define NETPLAN_ABI __attribute__ ((visibility("default")))
 
+#define NETPLAN_BUFFER_TOO_SMALL -2
+
 /**
  * Represent a configuration stanza
  */
