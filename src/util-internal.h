@@ -91,3 +91,6 @@ process_yaml_hierarchy(const char* rootdir);
 
 gboolean
 has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports);
+
+ssize_t
+netplan_copy_string(const char* input, char* out_buffer, size_t out_size);

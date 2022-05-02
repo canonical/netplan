@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <string.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -704,4 +705,30 @@ mark_data_as_dirty(NetplanParser* npp, void* data_ptr)
     if (!npp->current.netdef->_private->dirty_fields)
         npp->current.netdef->_private->dirty_fields = g_hash_table_new(g_direct_hash, g_direct_equal);
     g_hash_table_insert(npp->current.netdef->_private->dirty_fields, data_ptr, data_ptr);
+}
+
+/**
+ * Copy a NUL-terminated string into a sized buffer, and returns the size of
+ * the copied string, including the final NUL character. If the buffer is too
+ * small, returns NETPLAN_BUFFER_TOO_SMALL instead.
+ *
+ * In all cases the contents of the output buffer will be entirely overwritten,
+ * except if the input string is NULL. Notably, if the buffer is too small its
+ * content will NOT be NUL-terminated.
+ *
+ * @input: the input string
+ * @out_buffer: a pointer to a buffer into which we want to copy the string
+ * @out_size: the size of the output buffer
+ */
+ssize_t
+netplan_copy_string(const char* input, char* out_buffer, size_t out_size)
+{
+    if (input == NULL)
+        return 0; // LCOV_EXCL_LINE
+    char* end = stpncpy(out_buffer, input, out_size);
+    // If it point to the first byte past the buffer, we don't have enough
+    // space in the buffer.
+    if (end - out_buffer == out_size)
+        return NETPLAN_BUFFER_TOO_SMALL;
+    return end - out_buffer + 1;
 }
