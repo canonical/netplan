@@ -41,4 +41,4 @@ jobs:
       #       (once we can switch to a newer version of abigail-tools in CI)
       - name: Check ABI compatibility
         run: |
-          abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/ --header-file2 src/abi.h
+          abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
