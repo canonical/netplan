@@ -2693,8 +2693,8 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         } else {
             npp->current.netdef = netplan_netdef_new(npp, scalar(key), GPOINTER_TO_UINT(data), npp->current.backend);
         }
-        if (npp->current.filename)
-            npp->current.netdef->filename = g_strdup(npp->current.filename);
+        if (npp->current.filepath)
+            npp->current.netdef->filepath = g_strdup(npp->current.filepath);
 
         // XXX: breaks multi-pass parsing.
         //if (!g_hash_table_add(ids_in_file, npp->current.netdef->id))
@@ -2836,12 +2836,12 @@ process_document(NetplanParser* npp, GError** error)
 }
 
 static gboolean
-_netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filename, yaml_document_t *doc, GError** error)
+_netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filepath, yaml_document_t *doc, GError** error)
 {
     int ret = FALSE;
 
-    if (opt_filename) {
-        char* source = g_strdup(opt_filename);
+    if (opt_filepath) {
+        char* source = g_strdup(opt_filepath);
         if (!npp->sources)
             npp->sources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
         g_hash_table_add(npp->sources, source);
@@ -2854,10 +2854,10 @@ _netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filename, y
     g_assert(npp->ids_in_file == NULL);
     npp->ids_in_file = g_hash_table_new(g_str_hash, NULL);
 
-    npp->current.filename = opt_filename? g_strdup(opt_filename) : NULL;
+    npp->current.filepath = opt_filepath? g_strdup(opt_filepath) : NULL;
     ret = process_document(npp, error);
-    g_free((void *)npp->current.filename);
-    npp->current.filename = NULL;
+    g_free((void *)npp->current.filepath);
+    npp->current.filepath = NULL;
 
     yaml_document_delete(doc);
     g_hash_table_destroy(npp->ids_in_file);
@@ -3005,8 +3005,8 @@ netplan_parser_reset(NetplanParser* npp)
     address_options_clear(&npp->current.addr_options);
     route_clear(&npp->current.route);
     ip_rule_clear(&npp->current.ip_rule);
-    g_free((void *)npp->current.filename);
-    npp->current.filename = NULL;
+    g_free((void *)npp->current.filepath);
+    npp->current.filepath = NULL;
 
     //LCOV_EXCL_START
     if (npp->ids_in_file) {

@@ -18,7 +18,7 @@
 
 import ctypes
 import ctypes.util
-from ctypes import c_char_p, c_void_p, c_int
+from ctypes import c_char_p, c_void_p, c_int, c_size_t
 from typing import List, Union, IO
 
 
@@ -54,6 +54,24 @@ _NetplanStateP = ctypes.POINTER(_netplan_state)
 _NetplanNetDefinitionP = ctypes.POINTER(_netplan_net_definition)
 
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
+
+
+def _string_realloc_call_no_error(function):
+    size = 16
+    while size < 1073741824:  # 1MB
+        buffer = ctypes.create_string_buffer(size)
+        code = function(buffer)
+        if code == -2:
+            size = size * 2
+            continue
+
+        if code < 0:
+            raise LibNetplanException("Unknown error: %d" % code)
+        elif code == 0:
+            return None  # pragma: nocover as it's hard to trigger for now
+        else:
+            return buffer.value.decode('utf-8')
+    raise LibNetplanException('Aborting due to string buffer size > 1M')  # pragma: nocover
 
 
 def _checked_lib_call(fn, *args):
@@ -192,6 +210,9 @@ class NetDefinition:
         lib.netplan_netdef_get_id.argtypes = [_NetplanNetDefinitionP]
         lib.netplan_netdef_get_id.restype = c_char_p
 
+        lib.netplan_netdef_get_filepath.argtypes = [_NetplanNetDefinitionP, c_char_p, c_size_t]
+        lib.netplan_netdef_get_filepath.restype = c_int
+
         cls._abi_loaded = True
 
     def __eq__(self, other):
@@ -209,6 +230,10 @@ class NetDefinition:
     @property
     def id(self):
         return lib.netplan_netdef_get_id(self._ptr).decode('utf-8')
+
+    @property
+    def filepath(self):
+        return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_filepath(self._ptr, b, len(b)))
 
     @property
     def embedded_switch_mode(self):

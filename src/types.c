@@ -330,7 +330,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     reset_ovs_settings(&netdef->ovs_settings);
     reset_backend_settings(&netdef->backend_settings, backend);
 
-    FREE_AND_NULLIFY(netdef->filename);
+    FREE_AND_NULLIFY(netdef->filepath);
     netdef->tunnel_ttl = 0;
     FREE_AND_NULLIFY(netdef->activation_mode);
     netdef->ignore_carrier = FALSE;
@@ -449,11 +449,11 @@ netplan_state_get_netdef(const NetplanState* np_state, const char* id)
     return g_hash_table_lookup(np_state->netdefs, id);
 }
 
-NETPLAN_PUBLIC const char *
-netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
     g_assert(netdef);
-    return netdef->filename;
+    return netplan_copy_string(netdef->filepath, out_buffer, out_buf_size);
 }
 
 NETPLAN_INTERNAL const char*

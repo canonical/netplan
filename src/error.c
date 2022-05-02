@@ -43,7 +43,7 @@ static char *
 get_syntax_error_context(const NetplanParser* npp, const int line_num, const int column, GError **error)
 {
     GString *message = NULL;
-    GFile *cur_file = g_file_new_for_path(npp->current.filename);
+    GFile *cur_file = g_file_new_for_path(npp->current.filepath);
     GFileInputStream *file_stream;
     GDataInputStream *stream;
     gsize len;
@@ -159,7 +159,7 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
         error_context = get_syntax_error_context(npp, node->start_mark.line, node->start_mark.column, error);
         g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
                     "%s:%zu:%zu: Error in network definition: %s\n%s",
-                    npp->current.filename,
+                    npp->current.filepath,
                     node->start_mark.line + 1,
                     node->start_mark.column + 1,
                     s,
