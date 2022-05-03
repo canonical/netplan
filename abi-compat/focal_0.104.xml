@@ -380,7 +380,7 @@
       </data-member>
     </class-decl>
     <typedef-decl name='NetplanBackendSettings' type-id='type-id-66' filepath='src/abi.h' line='150' column='1' id='type-id-65'/>
-    <class-decl name='netplan_net_definition' size-in-bits='8832' is-struct='yes' visibility='default' filepath='src/abi.h' line='155' column='1' id='type-id-16'>
+    <class-decl name='netplan_net_definition' size-in-bits='10240' is-struct='yes' visibility='default' filepath='src/abi.h' line='155' column='1' id='type-id-16'>
       <data-member access='public' layout-offset-in-bits='0'>
         <var-decl name='type' type-id='type-id-5' visibility='default' filepath='src/abi.h' line='156' column='1'/>
       </data-member>
