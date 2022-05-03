@@ -18,7 +18,9 @@
 
 import os
 
-from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, UDEV_SRIOV_RULE
+from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, UDEV_SRIOV_RULE, \
+    NM_MANAGED, NM_UNMANAGED, NM_MANAGED_MAC, NM_UNMANAGED_MAC, \
+    NM_MANAGED_DRIVER, NM_UNMANAGED_DRIVER
 
 
 class TestNetworkd(TestBase):
@@ -39,10 +41,8 @@ Name=eth0
 LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev(None)
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:eth0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth0')
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
@@ -140,8 +140,8 @@ LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('ixgbe', 'lom1'))})
         # NM cannot match by driver, so blacklisting needs to happen via udev
-        self.assert_nm(None, None)
-        self.assert_nm_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'lom1' + NM_UNMANAGED_DRIVER % 'ixgbe')
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
@@ -161,10 +161,8 @@ Name=lom1
 LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=mac:11:22:33:44:55:66,interface-name:lom1,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'lom1' + NM_UNMANAGED_MAC % '11:22:33:44:55:66')
 
     def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
@@ -197,7 +195,7 @@ RouteMetric=100
 UseMTU=true
 '''})
         self.assert_networkd_udev(None)
-        self.assert_nm_udev('ACTION=="add|change", SUBSYSTEM=="net", ENV{ID_NET_DRIVER}=="ixgbe", ENV{NM_UNMANAGED}="1"\n')
+        self.assert_nm_udev(NM_UNMANAGED_DRIVER % 'ixgbe')
 
     def test_eth_match_name(self):
         self.generate('''network:
@@ -210,10 +208,8 @@ UseMTU=true
 
         self.assert_networkd({'def1.network': ND_DHCP4 % 'green'})
         self.assert_networkd_udev(None)
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:green,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'green')
 
     def test_eth_set_mac(self):
         self.generate('''network:
@@ -247,9 +243,8 @@ unmanaged-devices+=interface-name:green,''')
         # The udev rules engine does support renaming by name
         self.assert_networkd_udev(None)
 
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:blue,''')
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'blue' + NM_UNMANAGED % 'green')
 
     def test_eth_match_all_names(self):
         self.generate('''network:
@@ -261,10 +256,8 @@ unmanaged-devices+=interface-name:blue,''')
 
         self.assert_networkd({'def1.network': ND_DHCP4 % '*'})
         self.assert_networkd_udev(None)
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:*,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % '*')
 
     def test_eth_match_all(self):
         self.generate('''network:
@@ -277,9 +270,9 @@ unmanaged-devices+=interface-name:*,''')
         self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n'
                                               '[DHCP]\nRouteMetric=100\nUseMTU=true\n'})
         self.assert_networkd_udev(None)
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=type:ethernet,''')
+        self.assert_nm(None, '''[device-netplan.ethernets.def1]
+match-device=type:ethernet
+managed=0\n\n''')
         self.assert_nm_udev(None)
 
     def test_match_multiple(self):
@@ -303,9 +296,9 @@ LinkLocalAddressing=ipv6
 RouteMetric=100
 UseMTU=true
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=mac:00:11:22:33:44:55,interface-name:en1s*,''')
+        self.assert_nm(None)
+        self.assert_nm_udev('SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_NAME}=="en1s*", '
+                            'ATTR{address}=="00:11:22:33:44:55", ENV{NM_UNMANAGED}="1"\n')
 
 
 class TestNetworkManager(TestBase):
@@ -335,7 +328,7 @@ method=ignore
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
         self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=magic\n'})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eth0')
 
     def test_eth_mtu(self):
         self.generate('''network:
@@ -547,7 +540,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'lom1' + NM_MANAGED_DRIVER % 'ixgbe')
 
     def test_eth_match_by_mac_rename(self):
         self.generate('''network:
@@ -575,7 +568,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'lom1' + NM_MANAGED_MAC % '11:22:33:44:55:66')
 
     def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
@@ -652,7 +645,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'green')
 
     def test_eth_match_name_rename(self):
         self.generate('''network:
@@ -685,7 +678,7 @@ method=ignore
 '''})
         # ... while udev renames it
         self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'blue' + NM_MANAGED % 'green')
 
     def test_eth_match_name_glob(self):
         self.generate('''network:
@@ -735,7 +728,10 @@ method=auto
 
 [ipv6]
 method=ignore
-'''})
+'''}, '''[device-netplan.ethernets.def1]
+match-device=type:ethernet
+managed=1\n\n''')
+        self.assert_nm_udev(None)
         self.assert_networkd({})
 
     def test_match_multiple(self):
@@ -764,7 +760,8 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev('SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_NAME}=="engreen", '
+                            'ATTR{address}=="00:11:22:33:44:55", ENV{NM_UNMANAGED}="0"\n')
 
     def test_offload(self):
         self.generate('''network:

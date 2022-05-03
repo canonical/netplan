@@ -19,7 +19,7 @@
 import os
 import stat
 
-from .base import TestBase, ND_DHCP4, ND_WIFI_DHCP4, SD_WPA
+from .base import TestBase, ND_DHCP4, ND_WIFI_DHCP4, SD_WPA, NM_MANAGED, NM_UNMANAGED
 
 
 class TestNetworkd(TestBase):
@@ -83,10 +83,8 @@ class TestNetworkd(TestBase):
       ''')
 
         self.assert_networkd({'wl0.network': ND_WIFI_DHCP4 % 'wl0'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:wl0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'wl0')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
@@ -201,10 +199,8 @@ network={
       ''')
 
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:eth0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth0')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-eth0.conf')) as f:
@@ -458,7 +454,7 @@ method=ignore
 ssid=peer2peer
 mode=adhoc
 '''})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'wl0')
 
     def test_auth_wired(self):
         self.generate('''network:
@@ -502,7 +498,7 @@ private-key=/etc/ssl/cust-key.pem
 private-key-password=d3cryptPr1v4t3K3y
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eth0')
 
 
 class TestConfigErrors(TestBase):

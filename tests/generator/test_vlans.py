@@ -20,7 +20,8 @@ import os
 import re
 import unittest
 
-from .base import TestBase, ND_VLAN, ND_EMPTY, ND_WITHIP, ND_DHCP6_WOCARRIER
+from .base import TestBase, ND_VLAN, ND_EMPTY, ND_WITHIP, ND_DHCP6_WOCARRIER, \
+    NM_MANAGED, NM_UNMANAGED, NM_MANAGED_MAC, NM_UNMANAGED_MAC
 
 
 class TestNetworkd(TestBase):
@@ -66,10 +67,9 @@ Id=3
                               .replace('[Network]', '[Link]\nMACAddress=aa:bb:cc:dd:ee:11\n\n[Network]'),
                               'engreen.network': (ND_DHCP6_WOCARRIER % 'engreen')})
 
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:enred,interface-name:engreen,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'en1' + NM_UNMANAGED % 'enblue' + NM_UNMANAGED % 'enred' +
+                            NM_UNMANAGED_MAC % 'aa:bb:cc:dd:ee:11' + NM_UNMANAGED % 'engreen')
 
     def test_vlan_sriov(self):
         # we need to make sure renderer: sriov vlans are not saved as part of
@@ -95,10 +95,8 @@ VLAN=engreen
                               'engreen.netdev': ND_VLAN % ('engreen', 2),
                               'engreen.network': (ND_DHCP6_WOCARRIER % 'engreen')})
 
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:en1,interface-name:enblue,interface-name:engreen,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'en1' + NM_UNMANAGED % 'enblue' + NM_UNMANAGED % 'engreen')
 
     # see LP: #1888726
     def test_vlan_parent_match(self):
@@ -137,10 +135,8 @@ MTUBytes=9000
                               'vlan20.network': ND_EMPTY % ('vlan20', 'ipv6'),
                               'vlan20.netdev': ND_VLAN % ('vlan20', 20)})
 
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=mac:11:22:33:44:55:66,interface-name:lan,interface-name:vlan20,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'lan' + NM_UNMANAGED_MAC % '11:22:33:44:55:66' + NM_UNMANAGED % 'vlan20')
 
 
 class TestNetworkManager(TestBase):
@@ -205,7 +201,7 @@ method=link-local
 method=auto
 ip6-privacy=0
 '''})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'en1' + NM_MANAGED % 'enblue' + NM_MANAGED % 'engreen')
 
     def test_vlan_parent_match(self):
         self.generate('''network:
@@ -256,7 +252,7 @@ method=auto
 [ipv6]
 method=ignore
 ''' % uuid})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED_MAC % '11:22:33:44:55:66' + NM_MANAGED % 'engreen')
 
     def test_vlan_sriov(self):
         # we need to make sure renderer: sriov vlans are not saved as part of
@@ -305,4 +301,4 @@ method=link-local
 method=auto
 ip6-privacy=0
 '''})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'en1' + NM_MANAGED % 'enblue' + NM_MANAGED % 'engreen')

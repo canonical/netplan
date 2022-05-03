@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase
+from .base import TestBase, NM_MANAGED, NM_UNMANAGED
 
 
 class TestNetworkd(TestBase):
@@ -79,10 +79,8 @@ ConfigureWithoutCarrier=yes
 RouteMetric=100
 UseMTU=true
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:bn0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'bn0')
 
     def test_bond_components(self):
         self.generate('''network:
@@ -460,7 +458,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
 
     def test_bond_empty_params(self):
         self.generate('''network:
@@ -521,7 +519,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
 
     def test_bond_with_params(self):
         self.generate('''network:
@@ -625,7 +623,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
 
     def test_bond_primary_slave(self):
         self.generate('''network:
@@ -692,7 +690,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
 
 
 class TestConfigErrors(TestBase):

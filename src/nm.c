@@ -26,58 +26,15 @@
 #include <glib/gprintf.h>
 #include <uuid.h>
 
+#include "names.h"
 #include "netplan.h"
 #include "nm.h"
 #include "parse.h"
 #include "parse-globals.h"
+#include "parse-nm.h"
 #include "util.h"
 #include "util-internal.h"
 #include "validation.h"
-#include "parse-nm.h"
-
-GString* udev_rules;
-
-/**
- * Append NM device specifier of @def to @s.
- */
-static void
-g_string_append_netdef_match(GString* s, const NetplanNetDefinition* def)
-{
-    g_assert(!def->match.driver || def->set_name);
-    if (def->match.mac || def->match.original_name || def->set_name || def->type >= NETPLAN_DEF_TYPE_VIRTUAL) {
-        if (def->match.mac) {
-            g_string_append_printf(s, "mac:%s,", def->match.mac);
-        }
-        /* MAC could change, e.g. for bond slaves. Ignore by interface-name as well */
-        if (def->match.original_name || def->set_name || def->type >= NETPLAN_DEF_TYPE_VIRTUAL) {
-            /* we always have the renamed name here */
-            g_string_append_printf(s, "interface-name:%s,",
-                    (def->type >= NETPLAN_DEF_TYPE_VIRTUAL) ? def->id
-                                            : (def->set_name ?: def->match.original_name));
-        }
-    } else {
-        /* no matches → match all devices of that type */
-        switch (def->type) {
-            case NETPLAN_DEF_TYPE_ETHERNET:
-                g_string_append(s, "type:ethernet,");
-                break;
-            /* This cannot be reached with just NM and networkd backends, as
-             * networkd does not support wifi and thus we'll never blacklist a
-             * wifi device from NM. This would become relevant with another
-             * wifi-supporting backend, but until then this just spoils 100%
-             * code coverage.
-            case NETPLAN_DEF_TYPE_WIFI:
-                g_string_append(s, "type:wifi");
-                break;
-            */
-
-            // LCOV_EXCL_START
-            default:
-                g_assert_not_reached();
-            // LCOV_EXCL_STOP
-        }
-    }
-}
 
 /**
  * Infer if this is a modem netdef of type GSM.
@@ -962,49 +919,108 @@ netplan_netdef_write_nm(
     return no_error;
 }
 
-static void
-nd_append_non_nm_ids(gpointer data, gpointer str)
-{
-    const NetplanNetDefinition* nd = data;
-
-    if (nd->backend != NETPLAN_BACKEND_NM) {
-        if (nd->match.driver) {
-            /* TODO: NetworkManager supports (non-globbing) "driver:..." matching nowadays */
-            /* NM cannot match on drivers, so ignore these via udev rules */
-            if (!udev_rules)
-                udev_rules = g_string_new(NULL);
-            g_string_append_printf(udev_rules, "ACTION==\"add|change\", SUBSYSTEM==\"net\", ENV{ID_NET_DRIVER}==\"%s\", ENV{NM_UNMANAGED}=\"1\"\n", nd->match.driver);
-        } else {
-            g_string_append_netdef_match((GString*) str, nd);
-        }
-    }
-}
-
 gboolean
 netplan_state_finish_nm_write(
         const NetplanState* np_state,
         const char* rootdir,
         GError** error)
 {
-    GString *s = NULL;
-    gsize len;
+    GString* udev_rules = g_string_new(NULL);
+    GString *nm_conf = g_string_new(NULL);
 
     if (netplan_state_get_netdefs_size(np_state) == 0)
         return TRUE; // LCOV_EXCL_LINE as generate.c already deals with it.
 
     /* Set all devices not managed by us to unmanaged, so that NM does not
-     * auto-connect and interferes */
-    s = g_string_new("[keyfile]\n# devices managed by networkd\nunmanaged-devices+=");
-    len = s->len;
-    g_list_foreach(np_state->netdefs_ordered, nd_append_non_nm_ids, s);
-    if (s->len > len)
-        g_string_free_to_file(s, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL);
+     * auto-connect and interferes.
+     * Also, mark all devices managed by us explicitly, so it won't get in
+     * conflict with the system's udev rules that might ignore some devices
+     * in containers via usr/lib/udev/rules.d/85-nm-unmanaged-devices.rules */
+    GList* iter = np_state->netdefs_ordered;
+    while (iter) {
+        const NetplanNetDefinition* nd = iter->data;
+        const gchar* nm_type;
+        GString *tmp = NULL;
+        guint unmanaged = nd->backend == NETPLAN_BACKEND_NM ? 0 : 1;
+
+        /* Special case: manage or ignore any device of given type on empty "match: {}" stanza */
+        if (nd->has_match && !nd->match.driver && !nd->match.mac && !nd->match.original_name) {
+            nm_type = type_str(nd);
+            g_assert(nm_type);
+            g_string_append_printf(nm_conf, "[device-netplan.%s.%s]\nmatch-device=type:%s\n"
+                                            "managed=%d\n\n", netplan_def_type_name(nd->type),
+                                            nd->id, nm_type, !unmanaged);
+        }
+        /* Normal case: manage or ignore devices by specific udev rules */
+        else {
+            const gchar *prefix = "SUBSYSTEM==\"net\", ACTION==\"add|change|move\",";
+            const gchar *suffix = nd->backend == NETPLAN_BACKEND_NM ? " ENV{NM_UNMANAGED}=\"0\"\n" : " ENV{NM_UNMANAGED}=\"1\"\n";
+            g_string_append_printf(udev_rules, "# netplan: network.%s.%s (on NetworkManager %s)\n",
+                                   netplan_def_type_name(nd->type), nd->id,
+                                   unmanaged ? "deny-list" : "allow-list");
+            /* Match by explicit interface name, if possible */
+            if (nd->set_name) {
+                // simple case: explicit new interface name
+                g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, nd->set_name, suffix);
+            } else if (!nd->has_match) {
+                // simple case: explicit netplan ID is interface name
+                g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, nd->id, suffix);
+            }
+            /* Also, match by explicit (new) MAC, if available */
+            if (nd->set_mac) {
+                tmp = g_string_new(nd->set_mac);
+                g_string_append_printf(udev_rules, "%s ATTR{address}==\"%s\",%s", prefix, g_string_ascii_down(tmp)->str, suffix);
+                g_string_free(tmp, TRUE);
+            }
+            /* Finally, add a full match, using all rules & globs available
+             * from the "match" stanza (e.g. original_name/mac/drivers)
+             * This will match the "old" interface (i.e. original MAC and/or
+             * interface name) if it got changed */
+            if (nd->has_match && (nd->match.original_name || nd->match.mac || nd->match.driver)) {
+                // match on original name glob
+                // TODO: maybe support matching on multiple name globs in the future (like drivers)
+                g_string_append(udev_rules, prefix);
+                if (nd->match.original_name)
+                    g_string_append_printf(udev_rules, " ENV{ID_NET_NAME}==\"%s\",", nd->match.original_name);
+
+                // match on (explicit) MAC address. Yes this would be unique on its own, but we
+                // keep it within the "full match" to make the logic more comprehensible.
+                if (nd->match.mac) {
+                    tmp = g_string_new(nd->match.mac);
+                    g_string_append_printf(udev_rules, " ATTR{address}==\"%s\",", g_string_ascii_down(tmp)->str);
+                    g_string_free(tmp, TRUE);
+                }
+
+                // match on (multiple) driver globs
+                if (nd->match.driver) {
+                    gchar *drivers = NULL;
+                    if (strchr(nd->match.driver, '\t')) {
+                        gchar **split = g_strsplit(nd->match.driver, "\t", -1);
+                        drivers = g_strjoinv("|", split);
+                        g_strfreev(split);
+                    } else
+                        drivers = g_strdup(nd->match.driver);
+                    g_string_append_printf(udev_rules, " ENV{ID_NET_DRIVER}==\"%s\",", drivers);
+                    g_free(drivers);
+                }
+                g_string_append(udev_rules, suffix);
+            }
+        }
+        iter = iter->next;
+    }
+
+    /* write generated NetworkManager drop-in config */
+    if (nm_conf->len > 0)
+        g_string_free_to_file(nm_conf, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL);
     else
-        g_string_free(s, TRUE);
+        g_string_free(nm_conf, TRUE);
 
     /* write generated udev rules */
-    if (udev_rules)
+    if (udev_rules->len > 0)
         g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL);
+    else
+        g_string_free(udev_rules, TRUE);
+
     return TRUE;
 }
 

@@ -92,6 +92,12 @@ Wants=network.target
 Type=simple
 ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%(iface)s.conf -i%(iface)s -D%(drivers)s
 '''
+NM_MANAGED = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_NAME}=="%s", ENV{NM_UNMANAGED}="0"\n'
+NM_UNMANAGED = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_NAME}=="%s", ENV{NM_UNMANAGED}="1"\n'
+NM_MANAGED_MAC = 'SUBSYSTEM=="net", ACTION=="add|change|move", ATTR{address}=="%s", ENV{NM_UNMANAGED}="0"\n'
+NM_UNMANAGED_MAC = 'SUBSYSTEM=="net", ACTION=="add|change|move", ATTR{address}=="%s", ENV{NM_UNMANAGED}="1"\n'
+NM_MANAGED_DRIVER = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_DRIVER}=="%s", ENV{NM_UNMANAGED}="0"\n'
+NM_UNMANAGED_DRIVER = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_DRIVER}=="%s", ENV{NM_UNMANAGED}="1"\n'
 
 
 class NetplanV2Normalizer():
@@ -432,7 +438,12 @@ class TestBase(unittest.TestCase):
             self.assertFalse(os.path.exists(rule_path))
             return
         with open(rule_path) as f:
-            self.assertEqual(f.read(), contents)
+            lines = []
+            for line in f.readlines():
+                # ignore any comment in udev rules.d file
+                if not line.startswith('#'):
+                    lines.append(line)
+            self.assertEqual(''.join(lines), contents)
 
     def assert_ovs(self, file_contents_map):
         systemd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')

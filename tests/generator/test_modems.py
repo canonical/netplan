@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase
+from .base import TestBase, NM_MANAGED
 
 
 class TestNetworkd(TestBase):
@@ -67,7 +67,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_auto_config(self):
         self.generate('''network:
@@ -91,7 +91,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_auto_config_implicit(self):
         self.generate('''network:
@@ -120,7 +120,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_apn(self):
         self.generate('''network:
@@ -144,7 +144,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_apn_username_password(self):
         self.generate('''network:
@@ -172,7 +172,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_device_id(self):
         self.generate('''network:
@@ -197,7 +197,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_network_id(self):
         self.generate('''network:
@@ -222,7 +222,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_pin(self):
         self.generate('''network:
@@ -247,7 +247,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_sim_id(self):
         self.generate('''network:
@@ -272,7 +272,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_sim_operator_id(self):
         self.generate('''network:
@@ -297,7 +297,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_gsm_example(self):
         self.generate('''network:
@@ -339,7 +339,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'cdc-wdm1')
 
     def test_modem_nm_integration(self):
         self.generate('''network:
@@ -366,7 +366,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'mobilephone')
 
     def test_modem_nm_integration_gsm_cdma(self):
         self.generate('''network:
@@ -421,6 +421,8 @@ method=auto
 [ipv6]
 #Netplan: passthrough override
 method=auto
-'''})
+'''}, '''[device-netplan.modems.NM-a08c5805-7cf5-43f7-afb9-12cb30f6eca3]
+match-device=type:gsm
+managed=1\n\n''')
         self.assert_networkd({})
         self.assert_nm_udev(None)
