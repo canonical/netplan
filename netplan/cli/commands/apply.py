@@ -248,6 +248,9 @@ class NetplanApply(utils.NetplanCommand):
                                       stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
 
+        # Reloading of udev rules happens during 'netplan generate' already
+        # subprocess.check_call(['udevadm', 'control', '--reload-rules'])
+        subprocess.check_call(['udevadm', 'trigger', '--attr-match=subsystem=net'])
         subprocess.check_call(['udevadm', 'settle'])
 
         # apply any SR-IOV related changes, if applicable
@@ -277,6 +280,9 @@ class NetplanApply(utils.NetplanCommand):
             # new, non netplan-* connection profiles, using the existing IPs.
             for iface in utils.nm_interfaces(restart_nm_glob, devices):
                 utils.ip_addr_flush(iface)
+            # clear NM state, especially the [device].managed=true config, as that might have been
+            # re-set via an udev rule setting "NM_UNMANAGED=1"
+            subprocess.check_call(['rm', '-rf', '/run/NetworkManager/devices'])
             utils.systemctl_network_manager('start', sync=sync)
             if sync:
                 # wait up to 2 sec for 'STATE=connected (site/local-only)' or
