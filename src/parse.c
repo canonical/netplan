@@ -2021,9 +2021,9 @@ static const mapping_entry_handler vxlan_params_handlers[] = {
 };
 
 static gboolean
-handle_vxlan_params(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
+handle_vxlan_params(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* _, GError** error)
 {
-    return process_mapping(npp, node, vxlan_params_handlers, NULL, error);
+    return process_mapping(npp, node, key_prefix, vxlan_params_handlers, NULL, error);
 }
 
 static gboolean
