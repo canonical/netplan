@@ -133,10 +133,12 @@
       <enumerator name='NETPLAN_DEF_TYPE_VLAN' value='6'/>
       <enumerator name='NETPLAN_DEF_TYPE_TUNNEL' value='7'/>
       <enumerator name='NETPLAN_DEF_TYPE_PORT' value='8'/>
-      <enumerator name='NETPLAN_DEF_TYPE_NM' value='9'/>
-      <enumerator name='NETPLAN_DEF_TYPE_MAX_' value='10'/>
+      <enumerator name='NETPLAN_DEF_TYPE_VXLAN' value='9'/>
+      <enumerator name='NETPLAN_DEF_TYPE_VRF' value='10'/>
+      <enumerator name='NETPLAN_DEF_TYPE_NM' value='11'/>
+      <enumerator name='NETPLAN_DEF_TYPE_MAX_' value='12'/>
     </enum-decl>
-    <typedef-decl name='NetplanDefType' type-id='type-id-22' filepath='/root/netplan/include/parse.h' line='42' column='1' id='type-id-5'/>
+    <typedef-decl name='NetplanDefType' type-id='type-id-22' filepath='/root/netplan/include/parse.h' line='44' column='1' id='type-id-5'/>
     <typedef-decl name='GArray' type-id='type-id-23' filepath='/usr/include/glib-2.0/glib/garray.h' line='37' column='1' id='type-id-24'/>
     <class-decl name='_GArray' size-in-bits='128' is-struct='yes' visibility='default' filepath='/usr/include/glib-2.0/glib/garray.h' line='41' column='1' id='type-id-23'>
       <data-member access='public' layout-offset-in-bits='0'>
@@ -589,6 +591,33 @@
       <data-member access='public' layout-offset-in-bits='8768'>
         <var-decl name='sriov_delay_virtual_functions_rebind' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='329' column='1'/>
       </data-member>
+      <data-member access='public' layout-offset-in-bits='8800'>
+        <var-decl name='vxlan_vni' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='332' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='8832'>
+        <var-decl name='vxlan_link' type-id='type-id-71' visibility='default' filepath='src/abi.h' line='333' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='8896'>
+        <var-decl name='vxlan_bridge' type-id='type-id-45' visibility='default' filepath='src/abi.h' line='334' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='8960'>
+        <var-decl name='vxlans' type-id='type-id-60' visibility='default' filepath='src/abi.h' line='335' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='9024'>
+        <var-decl name='neigh_suppress' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='336' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='9088'>
+        <var-decl name='vrf' type-id='type-id-45' visibility='default' filepath='src/abi.h' line='339' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='9152'>
+        <var-decl name='vrf_table' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='340' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='9216'>
+        <var-decl name='vrf_link' type-id='type-id-71' visibility='default' filepath='src/abi.h' line='341' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='9280'>
+        <var-decl name='vxlan_params' type-id='type-id-180' visibility='default' filepath='src/abi.h' line='368' column='1'/>
+      </data-member>
     </class-decl>
     <class-decl name='__anonymous_struct__' size-in-bits='64' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='188' column='1' id='type-id-70'>
       <data-member access='public' layout-offset-in-bits='0'>
@@ -753,6 +782,80 @@
       </data-member>
       <data-member access='public' layout-offset-in-bits='416'>
         <var-decl name='port' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='288' column='1'/>
+      </data-member>
+    </class-decl>
+    <class-decl name='__anonymous_struct__8' size-in-bits='1472' is-struct='yes' is-anonymous='yes' visibility='default' filepath='src/abi.h' line='343' column='1' id='type-id-180'>
+      <data-member access='public' layout-offset-in-bits='0'>
+        <var-decl name='remote' type-id='type-id-83' visibility='default' filepath='src/abi.h' line='344' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='64'>
+        <var-decl name='local' type-id='type-id-83' visibility='default' filepath='src/abi.h' line='345' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='128'>
+        <var-decl name='group' type-id='type-id-83' visibility='default' filepath='src/abi.h' line='346' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='192'>
+        <var-decl name='tos' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='347' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='256'>
+        <var-decl name='ttl' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='348' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='320'>
+        <var-decl name='mac_learning' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='349' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='384'>
+        <var-decl name='fdb_ageing' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='350' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='448'>
+        <var-decl name='max_fdb_entries' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='351' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='512'>
+        <var-decl name='reduce_arp_proxy' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='352' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='576'>
+        <var-decl name='l2_miss_notification' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='353' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='640'>
+        <var-decl name='l3_miss_notification' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='354' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='704'>
+        <var-decl name='route_short_circuit' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='355' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='768'>
+        <var-decl name='udp_checksum' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='356' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='832'>
+        <var-decl name='udp6_zero_checksum_tx' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='357' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='896'>
+        <var-decl name='udp6_zero_checksum_rx' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='358' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='928'>
+        <var-decl name='remote_checksum_tx' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='359' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='960'>
+        <var-decl name='remote_checksum_rx' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='360' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1024'>
+        <var-decl name='group_policy_extension' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='361' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1088'>
+        <var-decl name='generic_protocol_extension' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='362' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1152'>
+        <var-decl name='destination_port' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='363' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1216'>
+        <var-decl name='port_range' type-id='type-id-83' visibility='default' filepath='src/abi.h' line='364' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1280'>
+        <var-decl name='flow_label' type-id='type-id-26' visibility='default' filepath='src/abi.h' line='365' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1344'>
+        <var-decl name='ip_do_not_fragment' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='366' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='1408'>
+        <var-decl name='independent' type-id='type-id-39' visibility='default' filepath='src/abi.h' line='367' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='private_netdef_data' size-in-bits='64' is-struct='yes' visibility='default' filepath='src/types.h' line='51' column='1' id='type-id-79'>
@@ -958,7 +1061,7 @@
     <array-type-def dimensions='1' type-id='type-id-97' size-in-bits='infinite' id='type-id-98'>
       <subrange length='infinite' id='type-id-96'/>
     </array-type-def>
-    <typedef-decl name='NetplanParser' type-id='type-id-99' filepath='/root/netplan/include/parse.h' line='44' column='1' id='type-id-100'/>
+    <typedef-decl name='NetplanParser' type-id='type-id-99' filepath='/root/netplan/include/parse.h' line='46' column='1' id='type-id-100'/>
     <typedef-decl name='yaml_char_t' type-id='type-id-10' filepath='/usr/include/yaml.h' line='80' column='1' id='type-id-101'/>
     <class-decl name='yaml_version_directive_s' size-in-bits='64' is-struct='yes' visibility='default' filepath='/usr/include/yaml.h' line='83' column='1' id='type-id-102'>
       <data-member access='public' layout-offset-in-bits='0'>
