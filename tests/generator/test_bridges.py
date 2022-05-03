@@ -19,7 +19,7 @@
 import os
 import unittest
 
-from .base import TestBase
+from .base import TestBase, NM_UNMANAGED, NM_MANAGED
 
 
 class TestNetworkd(TestBase):
@@ -108,10 +108,8 @@ ConfigureWithoutCarrier=yes
 RouteMetric=100
 UseMTU=true
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:br0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'br0')
 
     def test_bridge_type_renderer(self):
         self.generate('''network:
@@ -135,10 +133,8 @@ ConfigureWithoutCarrier=yes
 RouteMetric=100
 UseMTU=true
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:br0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'br0')
 
     def test_bridge_def_renderer(self):
         self.generate('''network:
@@ -165,10 +161,8 @@ ConfigureWithoutCarrier=yes
 RouteMetric=100
 UseMTU=true
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:br0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'br0')
 
     def test_bridge_forward_declaration(self):
         self.generate('''network:
@@ -215,9 +209,8 @@ UseMTU=true
     mybr:
       interfaces: [ethbr]
       dhcp4: yes''')
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:eth42,interface-name:eth43,interface-name:mybr,''')
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth42' + NM_UNMANAGED % 'eth43' + NM_UNMANAGED % 'mybr')
 
     def test_bridge_components(self):
         self.generate('''network:
@@ -322,7 +315,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'br0')
 
     def test_bridge_type_renderer(self):
         self.generate('''network:
@@ -345,7 +338,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'br0')
 
     def test_bridge_set_mac(self):
         self.generate('''network:
@@ -395,7 +388,7 @@ address1=1.2.3.4/12
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'br0')
 
     def test_bridge_forward_declaration(self):
         self.generate('''network:
@@ -456,7 +449,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'br0' + NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1')
 
     def test_bridge_components(self):
         self.generate('''network:
@@ -516,7 +509,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'br0')
 
     def test_bridge_params(self):
         self.generate('''network:
@@ -599,7 +592,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'br0')
 
 
 class TestNetplanYAMLv2(TestBase):

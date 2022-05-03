@@ -56,7 +56,9 @@ method=link-local
 
 [ipv6]
 method=ignore
-'''})
+'''}, '''[device-netplan.ethernets.NM-87749f1d-334f-40b2-98d4-55db58965f5f]
+match-device=type:ethernet
+managed=1\n\n''')
 
     def test_passthrough_wifi(self):
         self.generate('''network:
@@ -107,7 +109,9 @@ method=ignore
 ssid=OTHER-SSID
 mode=infrastructure
 hidden=true
-'''})
+'''}, '''[device-netplan.wifis.NM-87749f1d-334f-40b2-98d4-55db58965f5f]
+match-device=type:wifi
+managed=1\n\n''')
 
     def test_passthrough_type_nm_devices(self):
         self.generate('''network:
@@ -132,7 +136,9 @@ method=link-local
 
 [ipv6]
 method=ignore
-'''})
+'''}, '''[device-netplan.nm-devices.NM-87749f1d-334f-40b2-98d4-55db58965f5f]
+match-device=type:dummy
+managed=1\n\n''')
 
     def test_passthrough_dotted_group(self):
         self.generate('''network:
@@ -159,7 +165,9 @@ method=ignore
 [wireguard-peer.some-key]
 #Netplan: passthrough setting
 endpoint=1.2.3.4
-'''})
+'''}, '''[device-netplan.nm-devices.dotted-group-test]
+match-device=type:wireguard
+managed=1\n\n''')
 
     def test_passthrough_dotted_key(self):
         self.generate('''network:
@@ -193,7 +201,9 @@ qdisc.root=something
 qdisc.fff1=:abc
 #Netplan: passthrough setting
 filters.test=test
-'''})
+'''}, '''[device-netplan.ethernets.dotted-key-test]
+match-device=type:ethernet
+managed=1\n\n''')
 
     def test_passthrough_unsupported_setting(self):
         self.generate('''network:
@@ -221,7 +231,9 @@ method=ignore
 ssid=SOME-SSID
 #Netplan: passthrough override
 mode=mesh
-'''})
+'''}, '''[device-netplan.wifis.test]
+match-device=type:wifi
+managed=1\n\n''')
 
     def test_passthrough_empty_group(self):
         self.generate('''network:
@@ -247,7 +259,9 @@ method=link-local
 method=ignore
 
 [proxy]
-'''})
+'''}, '''[device-netplan.ethernets.test]
+match-device=type:ethernet
+managed=1\n\n''')
 
     def test_passthrough_interface_rename_existing_id(self):
         self.generate('''network:

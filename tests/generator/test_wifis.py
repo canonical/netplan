@@ -19,7 +19,7 @@
 import os
 import stat
 
-from .base import TestBase, ND_WIFI_DHCP4, SD_WPA
+from .base import TestBase, ND_WIFI_DHCP4, SD_WPA, NM_MANAGED, NM_UNMANAGED
 
 
 class TestNetworkd(TestBase):
@@ -57,10 +57,8 @@ class TestNetworkd(TestBase):
       dhcp4: yes''')
 
         self.assert_networkd({'wl0.network': ND_WIFI_DHCP4 % 'wl0'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:wl0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'wl0')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
@@ -240,10 +238,8 @@ RouteMetric=600
 UseMTU=true
 '''})
 
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:wl0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'wl0')
 
     def test_wifi_match(self):
         err = self.generate('''network:
@@ -292,10 +288,8 @@ Name=wl0
 [Network]
 LinkLocalAddressing=ipv6
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:wl0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'wl0')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
@@ -328,10 +322,8 @@ Name=wl0
 [Network]
 LinkLocalAddressing=ipv6
 '''})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:wl0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'wl0')
 
         # generates wpa config and enables wpasupplicant unit
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
@@ -495,7 +487,7 @@ mode=infrastructure
 band=a
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'wl0')
 
     def test_wifi_match_mac(self):
         self.generate('''network:
@@ -547,7 +539,9 @@ method=ignore
 [wifi]
 ssid=workplace
 mode=infrastructure
-'''})
+'''}, '''[device-netplan.wifis.all]
+match-device=type:wifi
+managed=1\n\n''')
 
     def test_wifi_ap(self):
         self.generate('''network:
@@ -580,7 +574,7 @@ key-mgmt=wpa-psk
 psk=s0s3cret
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'wl0')
 
     def test_wifi_adhoc(self):
         self.generate('''network:

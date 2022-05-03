@@ -19,7 +19,7 @@
 import os
 import textwrap
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, ND_EMPTY
+from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, ND_EMPTY, NM_MANAGED, NM_UNMANAGED
 
 
 class TestNetworkd(TestBase):
@@ -184,10 +184,8 @@ Bond=bond0
       dhcp4: true''')
 
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:eth0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth0')
         # should not allow NM to manage everything
         self.assertFalse(os.path.exists(self.nm_enable_all_conf))
 
@@ -201,12 +199,10 @@ unmanaged-devices+=interface-name:eth0,''')
       dhcp4: true''')
 
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:eth0,''')
+        self.assert_nm(None)
         # should allow NM to manage everything else
         self.assertTrue(os.path.exists(self.nm_enable_all_conf))
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth0')
 
     def test_eth_def_renderer(self):
         self.generate('''network:
@@ -220,10 +216,8 @@ unmanaged-devices+=interface-name:eth0,''')
 
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
         self.assert_networkd_udev(None)
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:eth0,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth0')
 
     def test_eth_dhcp6(self):
         self.generate('''network:
@@ -931,7 +925,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eth0')
 
     def test_ipv6_mtu(self):
         self.generate(textwrap.dedent("""
@@ -966,7 +960,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eth0')
 
     def test_eth_type_renderer(self):
         self.generate('''network:
@@ -992,7 +986,7 @@ method=auto
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eth0')
 
     def test_eth_def_renderer(self):
         self.generate('''network:
@@ -1018,7 +1012,7 @@ method=link-local
 method=ignore
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'eth0')
 
     def test_global_renderer_only(self):
         self.generate(None, confs={'01-default-nm.yaml': 'network: {version: 2, renderer: NetworkManager}'})
@@ -1193,7 +1187,7 @@ address1=2001:FFfe::1/64
 ip6-privacy=0
 '''})
         self.assert_networkd({})
-        self.assert_nm_udev(None)
+        self.assert_nm_udev(NM_MANAGED % 'engreen')
 
     def test_eth_manual_addresses_dhcp(self):
         self.generate('''network:
@@ -1545,10 +1539,8 @@ class TestMerging(TestBase):
                       confs={'backend': 'network:\n  renderer: networkd'})
 
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:engreen,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'engreen')
 
     def test_add_def(self):
         self.generate('''network:
@@ -1568,10 +1560,8 @@ unmanaged-devices+=interface-name:engreen,''')
         # releases, so we can't depend on the exact order.
         # TODO: (cyphermox) turn this into an "assert_in_nm()" function.
         if "CODECOV_TOKEN" not in os.environ:  # pragma: nocover
-            self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:engreen,interface-name:enblue,''')
-        self.assert_nm_udev(None)
+            self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'engreen' + NM_UNMANAGED % 'enblue')
 
     def test_change_def(self):
         self.generate('''network:
@@ -1608,10 +1598,8 @@ unmanaged-devices+=interface-name:engreen,interface-name:enblue,''')
     engreen: {dhcp4: true}''')
 
         self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen'})
-        self.assert_nm(None, '''[keyfile]
-# devices managed by networkd
-unmanaged-devices+=interface-name:engreen,''')
-        self.assert_nm_udev(None)
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'engreen')
 
     def test_ref(self):
         self.generate('''network:
