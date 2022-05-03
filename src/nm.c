@@ -128,7 +128,9 @@ type_str(const NetplanNetDefinition* def)
             return "ip-tunnel";
         case NETPLAN_DEF_TYPE_NM:
             /* needs to be overriden by passthrough "connection.type" setting */
-            return NULL;
+            g_assert(def->backend_settings.nm.passthrough);
+            GData *passthrough = def->backend_settings.nm.passthrough;
+            return g_datalist_get_data(&passthrough, "connection.type");
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -595,7 +597,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     }
 
     nm_type = type_str(def);
-    if (nm_type)
+    if (nm_type && def->type != NETPLAN_DEF_TYPE_NM)
         g_key_file_set_string(kf, "connection", "type", nm_type);
 
     if (ap && ap->backend_settings.nm.uuid)
