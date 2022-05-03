@@ -54,6 +54,26 @@ netplan_state_get_netdefs_size(const NetplanState* np_state);
 NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_state_get_netdef(const NetplanState* np_state, const char* id);
 
+/* Write the selected yaml file. All definitions that originate from this file,
+ * as well as those without any given origin, are written to it.
+ */
+NETPLAN_PUBLIC gboolean
+netplan_state_write_yaml_file(
+        const NetplanState* np_state,
+        const char* filename,
+        const char* rootdir,
+        GError** error);
+
+/* Update all the YAML files that were used to create this state.
+ * The definitions without clear origin are written to @default_filename.
+ */
+NETPLAN_PUBLIC gboolean
+netplan_state_update_yaml_hierarchy(
+        const NetplanState* np_state,
+        const char* default_filename,
+        const char* rootdir,
+        GError** error);
+
 /* Dump the whole yaml configuration into the given file, regardless of the origin
  * of each definition.
  */

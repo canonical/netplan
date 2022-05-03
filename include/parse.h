@@ -64,6 +64,12 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
 NETPLAN_PUBLIC gboolean
 netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, GError** error);
 
+NETPLAN_PUBLIC gboolean
+netplan_parser_load_yaml_from_fd(NetplanParser* npp, int input_fd, GError** error);
+
+NETPLAN_PUBLIC gboolean
+netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, GError** error);
+
 /********** Old API below this ***********/
 
 NETPLAN_PUBLIC gboolean

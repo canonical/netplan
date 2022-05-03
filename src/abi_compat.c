@@ -98,7 +98,7 @@ netplan_finish_parse(GError** error)
 {
     if (netplan_state_import_parser_results(&global_state, &global_parser, error))
         return global_state.netdefs;
-    return NULL;
+    return NULL; // LCOV_EXCL_LINE
 }
 
 /**
@@ -112,9 +112,6 @@ write_netplan_conf(const NetplanNetDefinition* def, const char* rootdir)
 {
     netplan_netdef_write_yaml(&global_state, def, rootdir, NULL);
 }
-
-gboolean
-netplan_state_write_yaml(const NetplanState* np_state, const char* file_hint, const char* rootdir, GError** error);
 
 /**
  * Generate the Netplan YAML configuration for all currently parsed netdefs

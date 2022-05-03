@@ -19,6 +19,7 @@
 import ctypes
 import ctypes.util
 from ctypes import c_char_p, c_void_p, c_int
+from typing import List, Union, IO
 
 
 class LibNetplanException(Exception):
@@ -55,19 +56,6 @@ _NetplanNetDefinitionP = ctypes.POINTER(_netplan_net_definition)
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
 
-def netplan_parse(path):
-    # Clear old NetplanNetDefinitions from libnetplan memory
-    lib.netplan_clear_netdefs()
-    err = ctypes.POINTER(_GError)()
-    ret = bool(lib.netplan_parse_yaml(path.encode(), ctypes.byref(err)))
-    if not ret:
-        raise Exception(err.contents.message.decode('utf-8'))
-    lib.netplan_finish_parse(ctypes.byref(err))
-    if err:
-        raise Exception(err.contents.message.decode('utf-8'))
-    return True
-
-
 def _checked_lib_call(fn, *args):
     err = ctypes.POINTER(_GError)()
     ret = bool(fn(*args, ctypes.byref(err)))
@@ -94,6 +82,12 @@ class Parser:
         lib.netplan_parser_load_yaml.argtypes = [_NetplanParserP, c_char_p, _GErrorPP]
         lib.netplan_parser_load_yaml.restype = c_int
 
+        lib.netplan_parser_load_yaml_from_fd.argtypes = [_NetplanParserP, c_int, _GErrorPP]
+        lib.netplan_parser_load_yaml_from_fd.restype = c_int
+
+        lib.netplan_parser_load_nullable_fields.argtypes = [_NetplanParserP, c_int, _GErrorPP]
+        lib.netplan_parser_load_nullable_fields.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -103,11 +97,17 @@ class Parser:
     def __del__(self):
         lib.netplan_parser_clear(ctypes.byref(self._ptr))
 
-    def load_yaml(self, filename):
-        _checked_lib_call(lib.netplan_parser_load_yaml, self._ptr, filename.encode('utf-8'))
+    def load_yaml(self, input_file: Union[str, IO]):
+        if isinstance(input_file, str):
+            _checked_lib_call(lib.netplan_parser_load_yaml, self._ptr, input_file.encode('utf-8'))
+        else:
+            _checked_lib_call(lib.netplan_parser_load_yaml_from_fd, self._ptr, input_file.fileno())
 
     def load_yaml_hierarchy(self, rootdir):
         _checked_lib_call(lib.netplan_parser_load_yaml_hierarchy, self._ptr, rootdir.encode('utf-8'))
+
+    def load_nullable_fields(self, input_file: IO):
+        _checked_lib_call(lib.netplan_parser_load_nullable_fields, self._ptr, input_file.fileno())
 
 
 class State:
@@ -130,6 +130,12 @@ class State:
         lib.netplan_state_get_netdef.argtypes = [_NetplanStateP, c_char_p]
         lib.netplan_state_get_netdef.restype = _NetplanNetDefinitionP
 
+        lib.netplan_state_write_yaml_file.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
+        lib.netplan_state_write_yaml_file.restype = c_int
+
+        lib.netplan_state_update_yaml_hierarchy.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
+        lib.netplan_state_update_yaml_hierarchy.restype = c_int
+
         lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
         lib.netplan_state_dump_yaml.restype = c_int
 
@@ -150,6 +156,16 @@ class State:
 
     def import_parser_results(self, parser):
         _checked_lib_call(lib.netplan_state_import_parser_results, self._ptr, parser._ptr)
+
+    def write_yaml_file(self, filename, rootdir):
+        name = filename.encode('utf-8') if filename else None
+        root = rootdir.encode('utf-8') if rootdir else None
+        _checked_lib_call(lib.netplan_state_write_yaml_file, self._ptr, name, root)
+
+    def update_yaml_hierarchy(self, default_filename, rootdir):
+        name = default_filename.encode('utf-8')
+        root = rootdir.encode('utf-8') if rootdir else None
+        _checked_lib_call(lib.netplan_state_update_yaml_hierarchy, self._ptr, name, root)
 
     def dump_yaml(self, output_file):
         fd = output_file.fileno()
@@ -269,8 +285,18 @@ def netplan_get_ids_for_devtype(devtype, rootdir):
     return [nd.id for nd in nds]
 
 
+lib.netplan_util_create_yaml_patch.argtypes = [c_char_p, c_char_p, c_int, _GErrorPP]
+lib.netplan_util_create_yaml_patch.restype = c_int
+
 lib.netplan_util_dump_yaml_subtree.argtypes = [c_char_p, c_int, c_int, _GErrorPP]
 lib.netplan_util_dump_yaml_subtree.restype = c_int
+
+
+def create_yaml_patch(patch_object_path: List[str], patch_payload: str, patch_output):
+    _checked_lib_call(lib.netplan_util_create_yaml_patch,
+                      '\t'.join(patch_object_path).encode('utf-8'),
+                      patch_payload.encode('utf-8'),
+                      patch_output.fileno())
 
 
 def dump_yaml_subtree(prefix, input_file, output_file):

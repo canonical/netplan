@@ -130,7 +130,7 @@ class TestRawLibnetplan(TestBase):
         self.assertTrue(os.path.isfile(orig))
         # Verify the file still exists and still contains the other connection
         with open(orig, 'r') as f:
-            self.assertEqual(f.read(), 'network:\n  ethernets:\n    other-id:\n      dhcp6: true\n')
+            self.assertEqual(f.read(), 'network:\n  version: 2\n  ethernets:\n    other-id:\n      dhcp6: true\n')
 
     def test_write_netplan_conf(self):
         netdef_id = 'some-netplan-id'
@@ -181,6 +181,23 @@ class TestNetdefIterator(TestBase):
     br0:
       dhcp4: false''')
         self.assertSetEqual(set(["eth0", "eth1"]), set(d.id for d in libnetplan._NetdefIterator(state, "ethernets")))
+
+
+class TestParser(TestBase):
+    def test_load_yaml_from_fd_empty(self):
+        parser = libnetplan.Parser()
+        # We just don't want it to raise an exception
+        with tempfile.TemporaryFile() as f:
+            parser.load_yaml(f)
+
+    def test_load_yaml_from_fd_bad_yaml(self):
+        parser = libnetplan.Parser()
+        with tempfile.TemporaryFile() as f:
+            f.write(b'invalid: {]')
+            f.seek(0, io.SEEK_SET)
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                parser.load_yaml(f)
+            self.assertIn('Invalid YAML', str(context.exception))
 
 
 class TestState(TestBase):
@@ -251,6 +268,46 @@ class TestState(TestBase):
             state.dump_yaml(f)
             f.flush()
             self.assertEqual(0, f.seek(0, io.SEEK_END))
+
+    def test_write_yaml_file_unremovable_target(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''', filename='target.yml')
+        target = os.path.join(self.confdir, 'target.yml')
+        os.remove(target)
+        os.makedirs(target)
+
+        with self.assertRaises(libnetplan.LibNetplanException):
+            state.write_yaml_file('target.yml', self.workdir.name)
+
+    def test_update_yaml_hierarchy_no_confdir(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''')
+        shutil.rmtree(self.confdir)
+        with self.assertRaises(libnetplan.LibNetplanException) as context:
+            state.update_yaml_hierarchy("bogus", self.workdir.name)
+        self.assertIn('No such file or directory', str(context.exception))
+
+    def test_write_yaml_file_remove_directory(self):
+        state = libnetplan.State()
+        os.makedirs(self.confdir)
+        with tempfile.TemporaryDirectory(dir=self.confdir) as tmpdir:
+            hint = os.path.basename(tmpdir)
+            with self.assertRaises(libnetplan.LibNetplanException):
+                state.write_yaml_file(hint, self.workdir.name)
+
+    def test_write_yaml_file_file_no_confdir(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false''', filename='test.yml')
+        shutil.rmtree(self.confdir)
+        with self.assertRaises(libnetplan.LibNetplanException) as context:
+            state.write_yaml_file('test.yml', self.workdir.name)
+        self.assertIn('No such file or directory', str(context.exception))
 
 
 class TestNetDefinition(TestBase):
@@ -341,6 +398,14 @@ class TestFreeFunctions(TestBase):
     def test_NetdefIterator_with_clear_netplan(self):
         state = libnetplan.State()
         self.assertSequenceEqual(list(libnetplan._NetdefIterator(state, "ethernets")), [])
+
+    def test_create_yaml_patch_bad_syntax(self):
+        with tempfile.TemporaryFile() as patchfile:
+            with self.assertRaises(libnetplan.LibNetplanException) as context:
+                libnetplan.create_yaml_patch(['network'], '{invalid_yaml]', patchfile)
+            self.assertIn('Error parsing YAML', str(context.exception))
+            patchfile.seek(0, io.SEEK_END)
+            self.assertEqual(patchfile.tell(), 0)
 
     def test_dump_yaml_subtree_bad_file_perms(self):
         input_file = os.path.join(self.workdir.name, 'input.yaml')

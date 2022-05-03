@@ -147,6 +147,16 @@ reset_dhcp_overrides(NetplanDHCPOverrides* overrides)
     overrides->metric = NETPLAN_METRIC_UNSPEC;
 }
 
+void
+reset_ip_rule(NetplanIPRule* ip_rule)
+{
+    ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
+    ip_rule->priority = NETPLAN_IP_RULE_PRIO_UNSPEC;
+    ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+    ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
+    ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
+}
+
 /* Reset a backend settings object. The caller needs to specify the actual backend as it is not
  * contained within the object itself! */
 static void
@@ -420,6 +430,12 @@ netplan_state_reset(NetplanState* np_state)
 
     np_state->backend = NETPLAN_BACKEND_NONE;
     reset_ovs_settings(&np_state->ovs_settings);
+
+    if (np_state->sources) {
+        /* Properly configured at creation to clean up after itself. */
+        g_hash_table_destroy(np_state->sources);
+        np_state->sources = NULL;
+    }
 }
 
 NetplanBackend

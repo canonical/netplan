@@ -1084,6 +1084,64 @@ file_error:
 }
 
 /**
+ * Generate the YAML configuration, filtered to the data relevant to a particular file.
+ * Any data that's assigned to another file is ignored. Data that is not assigned is considered
+ * relevant.
+ *
+ * @np_state: the state for which to generate the config
+ * @filename: Relevant file basename
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ */
+gboolean
+netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename, const char* rootdir, GError** error)
+{
+    GList* iter = np_state->netdefs_ordered;
+    g_autofree gchar* path = NULL;
+    g_autofree gchar* tmp_path = NULL;
+    GList* to_write = NULL;
+    int out_fd;
+
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
+
+    while (iter) {
+        NetplanNetDefinition* netdef = iter->data;
+        const char* fname = netdef->filename ? netdef->filename : path;
+        if (g_strcmp0(fname, path) == 0)
+            to_write = g_list_append(to_write, netdef);
+        iter = iter->next;
+    }
+
+    /* Remove any existing file if there is no data to write */
+    if (to_write == NULL) {
+        if (unlink(path) && errno != ENOENT) {
+            g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    tmp_path = g_strdup_printf("%s.XXXXXX", path);
+    out_fd = mkstemp(tmp_path);
+    if (out_fd < 0) {
+        g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+        return FALSE;
+    }
+
+    gboolean ret = netplan_netdef_list_write_yaml(np_state, to_write, out_fd, error);
+    g_list_free(to_write);
+    close(out_fd);
+    if (ret) {
+        if (rename(tmp_path, path) == 0)
+            return TRUE;
+        g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+    }
+    /* Something went wrong, clean up the tempfile! */
+    unlink(tmp_path);
+    return FALSE;
+}
+
+/**
  * Dump the whole state into a single YAML file.
  *
  * @np_state: the state for which to generate the config
@@ -1096,4 +1154,84 @@ netplan_state_dump_yaml(const NetplanState* np_state, int out_fd, GError** error
         return TRUE;
 
     return netplan_netdef_list_write_yaml(np_state, np_state->netdefs_ordered, out_fd, error);
+}
+
+/**
+ * Regenerate the YAML configuration files from a given state. Any state that
+ * hasn't an associated filepath will use the default_filename output in the
+ * standard config directory.
+ *
+ * @np_state: the state for which to generate the config
+ * @default_filename: Default config file, cannot be NULL or empty
+ * @rootdir: If not %NULL, generate configuration in this root directory
+ *           (useful for testing).
+ */
+gboolean
+netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* default_filename, const char* rootdir, GError** error)
+{
+    g_autofree gchar *default_path = NULL;
+    gboolean ret = FALSE;
+    GHashTableIter hash_iter;
+    gpointer key, value;
+    GHashTable *perfile_netdefs;
+
+    g_assert(default_filename != NULL && *default_filename != '\0');
+
+    perfile_netdefs = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, (GDestroyNotify)g_list_free);
+    default_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", default_filename, NULL);
+    int out_fd = -1;
+
+    /* Dump global conf to the default path */
+    if (!np_state->netdefs || g_hash_table_size(np_state->netdefs) == 0) {
+        if ((np_state->backend != NETPLAN_BACKEND_NONE)
+                || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL)) {
+            g_hash_table_insert(perfile_netdefs, default_path, NULL);
+        }
+    } else {
+        GList* iter = np_state->netdefs_ordered;
+        while (iter) {
+            NetplanNetDefinition* netdef = iter->data;
+            const char* filename = netdef->filename ? netdef->filename : default_path;
+            GList* list = NULL;
+            g_hash_table_steal_extended(perfile_netdefs, filename, NULL, (gpointer*)&list);
+            g_hash_table_insert(perfile_netdefs, (gpointer)filename, g_list_append(list, netdef));
+            iter = iter->next;
+        }
+    }
+
+    g_hash_table_iter_init(&hash_iter, perfile_netdefs);
+    while (g_hash_table_iter_next (&hash_iter, &key, &value)) {
+        const char *filename = key;
+        GList* netdefs = value;
+        out_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+        if (out_fd < 0)
+            goto file_error;
+        if (!netplan_netdef_list_write_yaml(np_state, netdefs, out_fd, error))
+            goto cleanup; // LCOV_EXCL_LINE
+        close(out_fd);
+    }
+
+    /* Remove any referenced source file that doesn't have any associated data.
+       Presumably, it is data that has been obsoleted by files loaded
+       afterwards, typically via `netplan set`. */
+    if (np_state->sources) {
+        g_hash_table_iter_init(&hash_iter, np_state->sources);
+        while (g_hash_table_iter_next (&hash_iter, &key, &value)) {
+            if (!g_hash_table_contains(perfile_netdefs, key)) {
+                if (unlink(key) && errno != ENOENT)
+                    goto file_error; // LCOV_EXCL_LINE
+            }
+        }
+    }
+    ret = TRUE;
+    goto cleanup;
+
+file_error:
+    g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+    ret = FALSE;
+cleanup:
+    if (out_fd >= 0)
+        close(out_fd);
+    g_hash_table_destroy(perfile_netdefs);
+    return ret;
 }

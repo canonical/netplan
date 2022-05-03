@@ -106,6 +106,7 @@ gboolean
 parser_error(const yaml_parser_t* parser, const char* yaml, GError** error)
 {
     char *error_context = get_parser_error_context(parser, error);
+    yaml = yaml ? yaml : "(unnamed file)";
     if ((char)*parser->buffer.pointer == '\t')
         g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
                     "%s:%zu:%zu: Invalid YAML: tabs are not allowed for indent:\n%s",
