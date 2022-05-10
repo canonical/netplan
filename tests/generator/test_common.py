@@ -160,7 +160,7 @@ LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 VLAN=bond0.108
 ''',
-            'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=9000\n',
+            'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=false\nMTUBytes=9000\n',
             'eth1.network': '''[Match]
 Name=eth1
 
@@ -1380,7 +1380,7 @@ Type=!vlan bond bridge
 
 [Link]
 Name=eth0
-WakeOnLan=off
+WakeOnLan=false
 ''',
                               'eth0.network': '''[Match]
 MACAddress=00:01:02:03:04:05
@@ -1397,7 +1397,7 @@ Type=!vlan bond bridge
 
 [Link]
 Name=eth1
-WakeOnLan=off
+WakeOnLan=false
 ''',
                               'eth1.network': '''[Match]
 MACAddress=02:01:02:03:04:05
@@ -1502,7 +1502,7 @@ Type=!vlan bond bridge
 
 [Link]
 Name=eth0
-WakeOnLan=off
+WakeOnLan=false
 ''',
                               'eth0.network': '''[Match]
 MACAddress=00:01:02:03:04:05
@@ -1519,7 +1519,7 @@ Type=!vlan bond bridge
 
 [Link]
 Name=eth1
-WakeOnLan=off
+WakeOnLan=false
 ''',
                               'eth1.network': '''[Match]
 MACAddress=02:01:02:03:04:05

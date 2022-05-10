@@ -131,7 +131,7 @@ Type=!vlan bond bridge
 
 [Link]
 Name=lan
-WakeOnLan=off
+WakeOnLan=false
 MTUBytes=9000
 ''',
                               'vlan20.network': ND_EMPTY % ('vlan20', 'ipv6'),

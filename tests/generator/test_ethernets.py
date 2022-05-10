@@ -70,7 +70,7 @@ LinkLocalAddressing=ipv6
       mtu: 1280
       dhcp4: n''')
 
-        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n',
+        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=false\nMTUBytes=1280\n',
                               'eth1.network': '''[Match]
 Name=eth1
 
@@ -130,7 +130,7 @@ LinkLocalAddressing=ipv6
         driver: ixgbe
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=false\n',
                               'def1.network': '''[Match]
 Driver=ixgbe
 Name=lom1
@@ -152,7 +152,7 @@ LinkLocalAddressing=ipv6
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=false\n',
                               'def1.network': '''[Match]
 MACAddress=11:22:33:44:55:66
 Name=lom1
@@ -241,7 +241,7 @@ unmanaged-devices+=interface-name:green,''')
       dhcp4: true''')
 
         # the .network needs to match on the renamed name
-        self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n',
+        self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=false\n',
                               'def1.network': ND_DHCP4 % 'blue'})
 
         # The udev rules engine does support renaming by name
@@ -346,7 +346,7 @@ method=ignore
       mtu: 1280
       dhcp4: n''')
 
-        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMTUBytes=1280\n'})
+        self.assert_networkd({'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=false\nMTUBytes=1280\n'})
         self.assert_nm({'eth1': '''[connection]
 id=netplan-eth1
 type=ethernet
@@ -531,7 +531,7 @@ LinkLocalAddressing=ipv6
         driver: ixgbe
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nDriver=ixgbe\n\n[Link]\nName=lom1\nWakeOnLan=false\n'})
         self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('ixgbe', 'lom1'))})
         self.assert_nm({'def1': '''[connection]
 id=netplan-def1
@@ -559,7 +559,7 @@ method=ignore
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=false\n'})
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
         self.assert_nm({'def1': '''[connection]
 id=netplan-def1
@@ -684,7 +684,7 @@ method=auto
 method=ignore
 '''})
         # ... while udev renames it
-        self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '[Match]\nOriginalName=green\n\n[Link]\nName=blue\nWakeOnLan=false\n'})
         self.assert_nm_udev(None)
 
     def test_eth_match_name_glob(self):
@@ -783,7 +783,7 @@ method=ignore
 OriginalName=eth1
 
 [Link]
-WakeOnLan=off
+WakeOnLan=false
 ReceiveChecksumOffload=on
 TransmitChecksumOffload=off
 TCPSegmentationOffload=on
