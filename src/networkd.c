@@ -260,7 +260,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     if (def->set_name)
         g_string_append_printf(s, "Name=%s\n", def->set_name);
     /* FIXME: Should this be turned from bool to str and support multiple values? */
-    g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "off");
+    g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "false");
     if (def->mtubytes)
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
 
