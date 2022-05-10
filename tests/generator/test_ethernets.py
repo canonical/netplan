@@ -784,13 +784,13 @@ OriginalName=eth1
 
 [Link]
 WakeOnLan=false
-ReceiveChecksumOffload=on
-TransmitChecksumOffload=off
-TCPSegmentationOffload=on
-TCP6SegmentationOffload=off
-GenericSegmentationOffload=on
-GenericReceiveOffload=off
-LargeReceiveOffload=on
+ReceiveChecksumOffload=true
+TransmitChecksumOffload=false
+TCPSegmentationOffload=true
+TCP6SegmentationOffload=false
+GenericSegmentationOffload=true
+GenericReceiveOffload=false
+LargeReceiveOffload=true
 ''',
                               'eth1.network': '''[Match]
 Name=eth1
