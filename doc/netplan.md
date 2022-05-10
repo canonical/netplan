@@ -79,6 +79,10 @@ Virtual devices
 
 ## Common properties for physical device types
 
+     **Note:** These options will not work reliably for devices matched by name
+     only and rendered by networkd, due to interactions with device renaming in
+     udev. Match devices by MAC when setting the following options.
+
 ``match`` (mapping)
 
 :    This selects a subset of available physical devices by various hardware
@@ -138,10 +142,6 @@ Virtual devices
 ``wakeonlan`` (bool)
 
 :    Enable wake on LAN. Off by default.
-
-     **Note:** This will not work reliably for devices matched by name
-     only and rendered by networkd, due to interactions with device
-     renaming in udev. Match devices by MAC when setting wake on LAN.
 
 ``emit-lldp`` (bool) – since **0.99**
 
