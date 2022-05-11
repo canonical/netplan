@@ -37,6 +37,8 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
+          # temporary until 'ethtool' is a proper test dependency
+          sed -i 's/wpasupplicant,/wpasupplicant, ethtool,/g' debian/tests/control
           dch -v $(git describe --tags) "Autopkgtest CI testing (Jammy)"
       - name: Run autopkgtest (incl. build)
         run: |
