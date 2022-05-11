@@ -334,27 +334,18 @@ struct netplan_net_definition {
     /* configure without carrier */
     gboolean ignore_carrier;
 
-    /* offload options (deprecated) */
-    gboolean receive_checksum_offload;
-    gboolean transmit_checksum_offload;
-    gboolean tcp_segmentation_offload;
-    gboolean tcp6_segmentation_offload;
-    gboolean generic_segmentation_offload;
-    gboolean generic_receive_offload;
-    gboolean large_receive_offload;
+    /* offload options */
+    NetplanTristate receive_checksum_offload;
+    NetplanTristate transmit_checksum_offload;
+    NetplanTristate tcp_segmentation_offload;
+    NetplanTristate tcp6_segmentation_offload;
+    NetplanTristate generic_segmentation_offload;
+    NetplanTristate generic_receive_offload;
+    NetplanTristate large_receive_offload;
 
     struct private_netdef_data* _private;
 
     /* netplan-feature: eswitch-mode */
     char* embedded_switch_mode;
     gboolean sriov_delay_virtual_functions_rebind;
-
-    /* Tristate offload options */
-    NetplanTristate receive_checksum_offload_tristate;
-    NetplanTristate transmit_checksum_offload_tristate;
-    NetplanTristate tcp_segmentation_offload_tristate;
-    NetplanTristate tcp6_segmentation_offload_tristate;
-    NetplanTristate generic_segmentation_offload_tristate;
-    NetplanTristate generic_receive_offload_tristate;
-    NetplanTristate large_receive_offload_tristate;
 };

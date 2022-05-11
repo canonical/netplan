@@ -2479,13 +2479,13 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"wakeonlan", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(wake_on_lan)}, \
     {"wakeonwlan", YAML_SEQUENCE_NODE, {.generic=handle_wowlan}, netdef_offset(wowlan)}, \
     {"emit-lldp", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(emit_lldp)}, \
-    {"receive-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(receive_checksum_offload_tristate)}, \
-    {"transmit-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(transmit_checksum_offload_tristate)}, \
-    {"tcp-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(tcp_segmentation_offload_tristate)}, \
-    {"tcp6-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(tcp6_segmentation_offload_tristate)}, \
-    {"generic-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(generic_segmentation_offload_tristate)}, \
-    {"generic-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(generic_receive_offload_tristate)}, \
-    {"large-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(large_receive_offload_tristate)}
+    {"receive-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(receive_checksum_offload)}, \
+    {"transmit-checksum-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(transmit_checksum_offload)}, \
+    {"tcp-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(tcp_segmentation_offload)}, \
+    {"tcp6-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(tcp6_segmentation_offload)}, \
+    {"generic-segmentation-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(generic_segmentation_offload)}, \
+    {"generic-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(generic_receive_offload)}, \
+    {"large-receive-offload", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(large_receive_offload)}
 
 static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
