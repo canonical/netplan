@@ -79,9 +79,9 @@ Virtual devices
 
 ## Common properties for physical device types
 
-     **Note:** These options will not work reliably for devices matched by name
-     only and rendered by networkd, due to interactions with device renaming in
-     udev. Match devices by MAC when setting the following options.
+**Note:** Some options will not work reliably for devices matched by name only
+and rendered by networkd, due to interactions with device renaming in udev.
+Match devices by MAC when setting options like: ``wakeonlan`` or ``*-offload``.
 
 ``match`` (mapping)
 
@@ -185,8 +185,8 @@ Virtual devices
 
 ``large-receive-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true (false), the Generic Receive
-     Offload (GRO) is enabled (disabled). When unset, the kernel's default will
+:    (networkd backend only) If set to true (false), the Large Receive Offload
+     (LRO) is enabled (disabled). When unset, the kernel's default will
      be used.
 
 ``openvswitch`` (mapping) – since **0.100**
