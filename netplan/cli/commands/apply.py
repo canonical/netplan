@@ -221,13 +221,22 @@ class NetplanApply(utils.NetplanCommand):
                                        '/sys/class/net/' + device],
                                       stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
+                subprocess.check_call(['udevadm', 'test',
+                                       '/sys/class/net/' + device],
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
             except subprocess.CalledProcessError:
                 logging.debug('Ignoring device without syspath: %s', device)
 
+        devices_after_udev = netifaces.interfaces()
         # apply some more changes manually
         for iface, settings in changes.items():
             # rename non-critical network interfaces
-            if settings.get('name'):
+            new_name = settings.get('name')
+            if new_name:
+                if iface in devices and new_name in devices_after_udev:
+                    logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
+                    continue  # re-name already happened via 'udevadm test'
                 # bring down the interface, using its current (matched) interface name
                 subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
                                       stdout=subprocess.DEVNULL,
