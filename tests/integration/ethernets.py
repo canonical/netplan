@@ -236,6 +236,65 @@ class _CommonTests():
         self.assert_iface_up('iface1', ['inet 10.10.10.11'])
         self.assert_iface_up('iface2', ['inet 10.10.10.22'])
 
+    def test_link_offloading(self):
+        self.setup_eth(None, False)
+        # check kernel defaults
+        out = subprocess.check_output(['ethtool', '-k', self.dev_e_client])
+        self.assertIn(b'rx-checksumming: on', out)
+        self.assertIn(b'tx-checksumming: on', out)
+        self.assertIn(b'tcp-segmentation-offload: on', out)
+        self.assertIn(b'tx-tcp6-segmentation: on', out)
+        self.assertIn(b'generic-segmentation-offload: on', out)
+        self.assertIn(b'generic-receive-offload: off', out)  # off by default
+        # validate turning off
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: [10.10.10.22/24]
+      receive-checksum-offload: off
+      transmit-checksum-offload: off
+      tcp-segmentation-offload: off
+      tcp6-segmentation-offload: off
+      generic-segmentation-offload: off
+      generic-receive-offload: off
+      #large-receive-offload: off # not possible on veth
+''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22'])
+        out = subprocess.check_output(['ethtool', '-k', self.dev_e_client])
+        self.assertIn(b'rx-checksumming: off', out)
+        self.assertIn(b'tx-checksumming: off', out)
+        self.assertIn(b'tcp-segmentation-offload: off', out)
+        self.assertIn(b'tx-tcp6-segmentation: off', out)
+        self.assertIn(b'generic-segmentation-offload: off', out)
+        self.assertIn(b'generic-receive-offload: off', out)
+        # validate turning on
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: [10.10.10.22/24]
+      receive-checksum-offload: true
+      transmit-checksum-offload: true
+      tcp-segmentation-offload: true
+      tcp6-segmentation-offload: true
+      generic-segmentation-offload: true
+      generic-receive-offload: true
+      #large-receive-offload: true # not possible on veth
+''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22'])
+        out = subprocess.check_output(['ethtool', '-k', self.dev_e_client])
+        self.assertIn(b'rx-checksumming: on', out)
+        self.assertIn(b'tx-checksumming: on', out)
+        self.assertIn(b'tcp-segmentation-offload: on', out)
+        self.assertIn(b'tx-tcp6-segmentation: on', out)
+        self.assertIn(b'generic-segmentation-offload: on', out)
+        self.assertIn(b'generic-receive-offload: on', out)
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")

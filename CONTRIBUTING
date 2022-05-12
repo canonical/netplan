@@ -51,6 +51,6 @@ used in the code. We do insist on proper indentation (4 spaces), but we will
 not block good features and bug fixes on purely style issues. Please exercise
 your best judgement: if it looks odd or too clever to you, chances are it will
 look odd or too clever to code reviewers. In that case, you may be asked for
-some styles changes in a pull request. Similary, if you see code that you
+some styles changes in a pull request. Similarly, if you see code that you
 find hard to understand, we do encourage that you submit pull requests that
 help make the code easier to understand and maintain.

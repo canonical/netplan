@@ -243,13 +243,13 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     if (!def->set_name &&
         !def->wake_on_lan &&
         !def->mtubytes &&
-        !def->receive_checksum_offload &&
-        !def->transmit_checksum_offload &&
-        !def->tcp_segmentation_offload &&
-        !def->tcp6_segmentation_offload &&
-        !def->generic_segmentation_offload &&
-        !def->generic_receive_offload &&
-        !def->large_receive_offload)
+        (def->receive_checksum_offload == NETPLAN_TRISTATE_UNSET) &&
+        (def->transmit_checksum_offload == NETPLAN_TRISTATE_UNSET) &&
+        (def->tcp_segmentation_offload == NETPLAN_TRISTATE_UNSET) &&
+        (def->tcp6_segmentation_offload == NETPLAN_TRISTATE_UNSET) &&
+        (def->generic_segmentation_offload == NETPLAN_TRISTATE_UNSET) &&
+        (def->generic_receive_offload == NETPLAN_TRISTATE_UNSET) &&
+        (def->large_receive_offload == NETPLAN_TRISTATE_UNSET))
         return;
 
     /* build file contents */
@@ -265,26 +265,33 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
 
     /* Offload options */
-    if (def->receive_checksum_offload)
-        g_string_append_printf(s, "ReceiveChecksumOffload=%u\n", def->receive_checksum_offload);
+    if (def->receive_checksum_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "ReceiveChecksumOffload=%s\n",
+        (def->receive_checksum_offload ? "true" : "false"));
 
-    if (def->transmit_checksum_offload)
-        g_string_append_printf(s, "TransmitChecksumOffload=%u\n", def->transmit_checksum_offload);
+    if (def->transmit_checksum_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "TransmitChecksumOffload=%s\n",
+        (def->transmit_checksum_offload ? "true" : "false"));
 
-    if (def->tcp_segmentation_offload)
-        g_string_append_printf(s, "TCPSegmentationOffload=%u\n", def->tcp_segmentation_offload);
+    if (def->tcp_segmentation_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "TCPSegmentationOffload=%s\n",
+        (def->tcp_segmentation_offload ? "true" : "false"));
 
-    if (def->tcp6_segmentation_offload)
-        g_string_append_printf(s, "TCP6SegmentationOffload=%u\n", def->tcp6_segmentation_offload);
+    if (def->tcp6_segmentation_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "TCP6SegmentationOffload=%s\n",
+        (def->tcp6_segmentation_offload ? "true" : "false"));
 
-    if (def->generic_segmentation_offload)
-        g_string_append_printf(s, "GenericSegmentationOffload=%u\n", def->generic_segmentation_offload);
+    if (def->generic_segmentation_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "GenericSegmentationOffload=%s\n",
+        (def->generic_segmentation_offload ? "true" : "false"));
 
-    if (def->generic_receive_offload)
-        g_string_append_printf(s, "GenericReceiveOffload=%u\n", def->generic_receive_offload);
+    if (def->generic_receive_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "GenericReceiveOffload=%s\n",
+        (def->generic_receive_offload ? "true" : "false"));
 
-    if (def->large_receive_offload)
-        g_string_append_printf(s, "LargeReceiveOffload=%u\n", def->large_receive_offload);
+    if (def->large_receive_offload != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(s, "LargeReceiveOffload=%s\n",
+        (def->large_receive_offload ? "true" : "false"));
 
     orig_umask = umask(022);
     g_string_free_to_file(s, rootdir, path, ".link");

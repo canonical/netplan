@@ -79,6 +79,10 @@ Virtual devices
 
 ## Common properties for physical device types
 
+**Note:** Some options will not work reliably for devices matched by name only
+and rendered by networkd, due to interactions with device renaming in udev.
+Match devices by MAC when setting options like: ``wakeonlan`` or ``*-offload``.
+
 ``match`` (mapping)
 
 :    This selects a subset of available physical devices by various hardware
@@ -139,54 +143,50 @@ Virtual devices
 
 :    Enable wake on LAN. Off by default.
 
-     **Note:** This will not work reliably for devices matched by name
-     only and rendered by networkd, due to interactions with device
-     renaming in udev. Match devices by MAC when setting wake on LAN.
-
 ``emit-lldp`` (bool) – since **0.99**
 
 :    (networkd backend only) Whether to emit LLDP packets. Off by default.
 
 ``receive-checksum-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the hardware offload for
-     checksumming of ingress network packets is enabled. When unset,
+:    (networkd backend only) If set to true (false), the hardware offload for
+     checksumming of ingress network packets is enabled (disabled). When unset,
      the kernel's default will be used.
 
 ``transmit-checksum-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the hardware offload for
-     checksumming of egress network packets is enabled. When unset,
+:    (networkd backend only) If set to true (false), the hardware offload for
+     checksumming of egress network packets is enabled (disabled). When unset,
      the kernel's default will be used.
 
 ``tcp-segmentation-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the TCP Segmentation
-     Offload (TSO) is enabled. When unset, the kernel's default will
+:    (networkd backend only) If set to true (false), the TCP Segmentation
+     Offload (TSO) is enabled (disabled). When unset, the kernel's default will
      be used.
 
 ``tcp6-segmentation-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the TCP6 Segmentation
-     Offload (tx-tcp6-segmentation) is enabled. When unset, the
+:    (networkd backend only) If set to true (false), the TCP6 Segmentation
+     Offload (tx-tcp6-segmentation) is enabled (disabled). When unset, the
      kernel's default will be used.
 
 ``generic-segmentation-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the Generic Segmentation
-     Offload (GSO) is enabled. When unset, the kernel's default will
+:    (networkd backend only) If set to true (false), the Generic Segmentation
+     Offload (GSO) is enabled (disabled). When unset, the kernel's default will
      be used.
 
 ``generic-receive-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the Generic Receive
-     Offload (GRO) is enabled. When unset, the kernel's default will
+:    (networkd backend only) If set to true (false), the Generic Receive
+     Offload (GRO) is enabled (disabled). When unset, the kernel's default will
      be used.
 
 ``large-receive-offload`` (bool) – since **0.104**
 
-:    (networkd backend only) If set to true, the Generic Receive
-     Offload (GRO) is enabled. When unset, the kernel's default will
+:    (networkd backend only) If set to true (false), the Large Receive Offload
+     (LRO) is enabled (disabled). When unset, the kernel's default will
      be used.
 
 ``openvswitch`` (mapping) – since **0.100**
