@@ -65,7 +65,7 @@ def _string_realloc_call_no_error(function):
             size = size * 2
             continue
 
-        if code < 0:
+        if code < 0:  # pragma: nocover
             raise LibNetplanException("Unknown error: %d" % code)
         elif code == 0:
             return None  # pragma: nocover as it's hard to trigger for now
