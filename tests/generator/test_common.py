@@ -1369,34 +1369,30 @@ ConfigureWithoutCarrier=yes
 Bridge=br0
 ''',
                               'eth0.link': '''[Match]
-MACAddress=00:01:02:03:04:05
-Type=!vlan bond bridge
+PermanentMACAddress=00:01:02:03:04:05
 
 [Link]
 Name=eth0
 WakeOnLan=off
 ''',
                               'eth0.network': '''[Match]
-MACAddress=00:01:02:03:04:05
+PermanentMACAddress=00:01:02:03:04:05
 Name=eth0
-Type=!vlan bond bridge
 
 [Network]
 LinkLocalAddressing=no
 Bond=bond0
 ''',
                               'eth1.link': '''[Match]
-MACAddress=02:01:02:03:04:05
-Type=!vlan bond bridge
+PermanentMACAddress=02:01:02:03:04:05
 
 [Link]
 Name=eth1
 WakeOnLan=off
 ''',
                               'eth1.network': '''[Match]
-MACAddress=02:01:02:03:04:05
+PermanentMACAddress=02:01:02:03:04:05
 Name=eth1
-Type=!vlan bond bridge
 
 [Network]
 LinkLocalAddressing=no
@@ -1491,34 +1487,30 @@ ConfigureWithoutCarrier=yes
 Bond=bond0
 ''',
                               'eth0.link': '''[Match]
-MACAddress=00:01:02:03:04:05
-Type=!vlan bond bridge
+PermanentMACAddress=00:01:02:03:04:05
 
 [Link]
 Name=eth0
 WakeOnLan=off
 ''',
                               'eth0.network': '''[Match]
-MACAddress=00:01:02:03:04:05
+PermanentMACAddress=00:01:02:03:04:05
 Name=eth0
-Type=!vlan bond bridge
 
 [Network]
 LinkLocalAddressing=no
 Bond=bond0
 ''',
                               'eth1.link': '''[Match]
-MACAddress=02:01:02:03:04:05
-Type=!vlan bond bridge
+PermanentMACAddress=02:01:02:03:04:05
 
 [Link]
 Name=eth1
 WakeOnLan=off
 ''',
                               'eth1.network': '''[Match]
-MACAddress=02:01:02:03:04:05
+PermanentMACAddress=02:01:02:03:04:05
 Name=eth1
-Type=!vlan bond bridge
 
 [Network]
 LinkLocalAddressing=no
