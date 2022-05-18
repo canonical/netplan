@@ -1241,3 +1241,54 @@ method=auto
         passthrough:
           ipv6.ip6-privacy: "-1"
 '''.format(UUID, UUID)})
+
+    def test_keyfile_wpa3_sae(self):
+        self.generate_from_keyfile('''[connection]
+id=test2
+uuid={}
+type=wifi
+interface-name=wlan0
+
+[wifi]
+mode=infrastructure
+ssid=ubuntu-wpa2-wpa3-mixed
+
+[wifi-security]
+key-mgmt=sae
+psk=test1234
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+method=auto
+
+[proxy]
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlan0"
+      dhcp4: true
+      dhcp6: true
+      ipv6-address-generation: "stable-privacy"
+      access-points:
+        "ubuntu-wpa2-wpa3-mixed":
+          auth:
+            key-management: "none"
+            password: "test1234"
+          networkmanager:
+            uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
+            name: "test2"
+            passthrough:
+              wifi-security.key-mgmt: "sae"
+              ipv6.ip6-privacy: "-1"
+              proxy._: ""
+      networkmanager:
+        uuid: "{}"
+        name: "test2"
+'''.format(UUID, UUID)})

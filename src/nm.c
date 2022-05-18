@@ -431,9 +431,6 @@ write_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
 static void
 write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *kf)
 {
-    if (auth->eap_method == NETPLAN_AUTH_EAP_NONE)
-        return;
-
     switch (auth->eap_method) {
         case NETPLAN_AUTH_EAP_TLS:
             g_key_file_set_string(kf, "802-1x", "eap", "tls");
@@ -468,14 +465,11 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile 
 static void
 write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *kf)
 {
-    if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_NONE)
-        return;
-
     switch (auth->key_management) {
+        case NETPLAN_AUTH_KEY_MANAGEMENT_NONE:
+            break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-psk");
-            if (auth->password)
-                g_key_file_set_string(kf, "wifi-security", "psk", auth->password);
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-eap");
@@ -486,7 +480,10 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
         default: break; // LCOV_EXCL_LINE
     }
 
-    write_dot1x_auth_parameters(auth, kf);
+    if (auth->eap_method != NETPLAN_AUTH_EAP_NONE)
+        write_dot1x_auth_parameters(auth, kf);
+    else if (auth->password)
+        g_key_file_set_string(kf, "wifi-security", "psk", auth->password);
 }
 
 static void
