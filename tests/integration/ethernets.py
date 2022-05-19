@@ -245,7 +245,8 @@ class _CommonTests():
         self.assertIn(b'tcp-segmentation-offload: on', out)
         self.assertIn(b'tx-tcp6-segmentation: on', out)
         self.assertIn(b'generic-segmentation-offload: on', out)
-        self.assertIn(b'generic-receive-offload: off', out)  # off by default
+        # enabled for armhf on autopkgtest.u.c but 'off' elsewhere
+        # self.assertIn(b'generic-receive-offload: off', out)
         # validate turning off
         with open(self.config, 'w') as f:
             f.write('''network:
