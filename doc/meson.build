@@ -2,7 +2,7 @@ if pandoc.found()
     custom_target(
         input: ['manpage-header.md', 'netplan.md', 'manpage-footer.md'],
         output: 'netplan.5',
-        command: [pandoc, '-s', '-o', '@OUTPUT@', '@INPUT@'],
+        command: [pandoc, '-s', '-o', '@OUTPUT@', '--from=markdown-smart', '@INPUT@'],
         install: true,
         install_dir: join_paths(get_option('mandir'), 'man5'))
     custom_target(
@@ -17,7 +17,7 @@ if pandoc.found()
         custom_target(
             input: markdown,
             output: manpage,
-            command: [pandoc, '-s', '-o', '@OUTPUT@', '@INPUT@'],
+            command: [pandoc, '-s', '-o', '@OUTPUT@', '--from=markdown-smart', '@INPUT@'],
             install: true,
             install_dir: join_paths(get_option('mandir'), 'man8'))
     endforeach

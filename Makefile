@@ -153,9 +153,9 @@ install: default
 	pandoc -s --metadata title="Netplan reference" --toc -o $@ $<
 
 doc/netplan.5: doc/manpage-header.md doc/netplan.md doc/manpage-footer.md
-	pandoc -s -o $@ $^
+	pandoc -s -o $@ --from=markdown-smart $^
 
 %.8: %.md
-	pandoc -s -o $@ $^
+	pandoc -s -o $@ --from=markdown-smart $^
 
 .PHONY: clean
