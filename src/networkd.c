@@ -1032,6 +1032,10 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
             if (!append_wifi_wowlan_flags(def->wowlan, s, error))
                 return FALSE;
         }
+        /* available as of wpa_supplicant version 0.6.7 */
+        if (def->regulatory_domain) {
+            g_string_append_printf(s, "country=%s\n", def->regulatory_domain);
+        }
         NetplanWifiAccessPoint* ap;
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {

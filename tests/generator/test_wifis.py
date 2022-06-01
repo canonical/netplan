@@ -29,6 +29,7 @@ class TestNetworkd(TestBase):
   version: 2
   wifis:
     wl0:
+      regulatory-domain: "DE"
       access-points:
         "Joe's Home":
           password: "s0s3kr1t"
@@ -129,6 +130,7 @@ network={
   psk="s0s3kr1t"
 }
 ''', new_config)
+            self.assertIn('country=DE\n', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.isfile(os.path.join(
             self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
