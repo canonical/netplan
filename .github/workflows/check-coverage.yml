@@ -13,24 +13,28 @@ jobs:
   # This workflow contains a single job called "test-and-coverage"
   test-and-coverage:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Installs the build dependencies
+      # Installs the build dependencies, simulating a TTY/PTY via 'unbuffer' to
+      # to fix test_terminal.py on GA (https://github.com/actions/runner/issues/241)
       - name: Install build depends
         run: |
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          sudo apt install lcov python3-coverage curl
+          sudo apt install python3-coverage curl meson gcovr expect
           sudo apt build-dep netplan.io
 
       # Runs the unit tests with coverage
       - name: Run unit tests
-        run: make coverage
+        run: |
+          meson setup _build --prefix=/usr -Db_coverage=true
+          meson compile -C _build
+          unbuffer meson test -C _build --verbose
 
       # Checks the coverage diff to the main branch
       - name: Upload coverage to Codecov
