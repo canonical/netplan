@@ -3,6 +3,7 @@ network:
   renderer: networkd
   wifis:
     wlp2s0b1:
+      regulatory-domain: "GB"
       dhcp4: no
       dhcp6: no
       addresses: [192.168.0.21/24]
