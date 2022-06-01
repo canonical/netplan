@@ -13,7 +13,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -26,19 +26,17 @@ jobs:
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           #sudo apt install lcov python3-coverage curl
-          sudo apt install software-properties-common
-          sudo add-apt-repository -y ppa:slyon/ci-netplan
-          sudo apt install abigail-tools
+          sudo apt install abigail-tools meson
           sudo apt build-dep netplan.io
 
       # Runs the build
       # TODO: move to meson build (on Jammy), once available
       - name: Run build
-        run: make
+        run: |
+          meson setup _build --prefix=/usr
+          meson compile -C _build
 
       # Abigail ABI checker
-      # TODO: make use of "--header-file2 src/abi.h" instead of moving abi.h
-      #       (once we can switch to a newer version of abigail-tools in CI)
       - name: Check ABI compatibility
         run: |
-          abidiff abi-compat/focal_0.104.xml libnetplan.so.0.0 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
+          abidiff abi-compat/jammy_0.104.xml _build/src/libnetplan.so.0.0 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
