@@ -239,6 +239,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
 
     FREE_AND_NULLIFY(netdef->gateway4);
     FREE_AND_NULLIFY(netdef->gateway6);
+    FREE_AND_NULLIFY(netdef->regulatory_domain);
     free_garray_with_destructor(&netdef->ip4_nameservers, g_free);
     free_garray_with_destructor(&netdef->ip6_nameservers, g_free);
     free_garray_with_destructor(&netdef->search_domains, g_free);

@@ -2518,6 +2518,7 @@ static const mapping_entry_handler wifi_def_handlers[] = {
     PHYSICAL_LINK_HANDLERS,
     {"access-points", YAML_MAPPING_NODE, {.map={.custom=handle_wifi_access_points}}},
     {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_auth}}},
+    {"regulatory-domain", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(regulatory_domain)},
     {NULL}
 };
 

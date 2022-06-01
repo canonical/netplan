@@ -357,4 +357,7 @@ struct netplan_net_definition {
 
     /* netplan-feature: infiniband */
     NetplanInfinibandMode ib_mode; /* IPoIB */
+
+    /* netplan-feature: regdom */
+    char* regulatory_domain;
 };
