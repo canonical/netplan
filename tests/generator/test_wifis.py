@@ -657,6 +657,29 @@ ssid=homenet
 mode=infrastructure
 '''})
 
+    def test_wifi_regdom(self):
+        out = self.generate('''network:
+  wifis:
+    wl0:
+      regulatory-domain: GB
+      access-points:
+        homenet: {mode: infrastructure}
+    wl1:
+      regulatory-domain: DE
+      access-points:
+        homenet2: {mode: infrastructure}''')
+
+        self.assertIn('wl1: Conflicting regulatory-domain (GB vs DE)', out)
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
+            new_config = f.read()
+            self.assertIn('country=GB\n', new_config)
+        with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl1.conf')) as f:
+            new_config = f.read()
+            self.assertIn('country=DE\n', new_config)
+        with open(os.path.join(self.workdir.name, 'run/systemd/system/netplan-regdom.service')) as f:
+            new_config = f.read()
+            self.assertIn('ExecStart=/usr/sbin/iw reg set DE\n', new_config)
+
 
 class TestConfigErrors(TestBase):
 

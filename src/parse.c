@@ -2973,6 +2973,7 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
         GError *recoverable = NULL;
         GHashTableIter iter;
         gpointer key, value;
+        char *regdom = NULL;
         g_debug("We have some netdefs, pass them through a final round of validation");
         if (!validate_default_route_consistency(npp, npp->parsed_defs, &recoverable)) {
             g_warning("Problem encountered while validating default route consistency."
@@ -2986,7 +2987,15 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
         while (g_hash_table_iter_next (&iter, &key, &value)) {
             g_assert(np_state->netdefs == NULL ||
                     g_hash_table_lookup(np_state->netdefs, key) == NULL);
-            if (!finish_iterator(npp, (NetplanNetDefinition *) value, error))
+            NetplanNetDefinition *nd = value;
+            if (nd->regulatory_domain) {
+                if (!regdom)
+                    regdom = nd->regulatory_domain;
+                else if (g_strcmp0(regdom, nd->regulatory_domain) != 0)
+                    g_warning("%s: Conflicting regulatory-domain (%s vs %s)",
+                              nd->id, regdom, nd->regulatory_domain);
+            }
+            if (!finish_iterator(npp, nd, error))
                 return FALSE;
             g_debug("Configuration is valid");
         }
