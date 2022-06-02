@@ -74,6 +74,7 @@ netplan_get_global_backend()
 /**
  * Clear NetplanNetDefinition hashtable
  */
+// LCOV_EXCL_START
 guint
 netplan_clear_netdefs()
 {
