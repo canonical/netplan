@@ -348,7 +348,7 @@
       </data-member>
     </class-decl>
     <typedef-decl name='NetplanBackendSettings' type-id='type-id-62' filepath='../src/abi.h' line='150' column='1' id='type-id-61'/>
-    <class-decl name='netplan_net_definition' size-in-bits='8832' is-struct='yes' visibility='default' filepath='../src/abi.h' line='155' column='1' id='type-id-27'>
+    <class-decl name='netplan_net_definition' size-in-bits='8896' is-struct='yes' visibility='default' filepath='../src/abi.h' line='176' column='1' id='type-id-27'>
       <data-member access='public' layout-offset-in-bits='0'>
         <var-decl name='type' type-id='type-id-13' visibility='default' filepath='../src/abi.h' line='156' column='1'/>
       </data-member>
@@ -558,6 +558,9 @@
       </data-member>
       <data-member access='public' layout-offset-in-bits='8768'>
         <var-decl name='sriov_delay_virtual_functions_rebind' type-id='type-id-39' visibility='default' filepath='../src/abi.h' line='329' column='1'/>
+      </data-member>
+      <data-member access='public' layout-offset-in-bits='8832'>
+        <var-decl name='regulatory_domain' type-id='type-id-40' visibility='default' filepath='../src/abi.h' line='353' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='__anonymous_struct__' size-in-bits='64' is-struct='yes' is-anonymous='yes' visibility='default' filepath='../src/abi.h' line='188' column='1' id='type-id-67'>
