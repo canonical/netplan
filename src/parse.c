@@ -381,12 +381,12 @@ handle_generic_mac(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
     g_assert(node->type == YAML_SCALAR_NODE);
 
     if (!re_inited) {
-        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]$", REG_EXTENDED|REG_NOSUB) == 0);
+        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]](:[[:xdigit:]][[:xdigit:]]){5}((:[[:xdigit:]][[:xdigit:]]){14})?$", REG_EXTENDED|REG_NOSUB) == 0);
         re_inited = TRUE;
     }
 
     if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
-        return yaml_error(npp, node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
+        return yaml_error(npp, node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX or XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX", scalar(node));
 
     return handle_generic_str(npp, node, entryptr, data, error);
 }

@@ -149,7 +149,8 @@ class TestConfigErrors(TestBase):
       match:
         macaddress: 00:11:ZZ
       dhcp4: true''', expect_fail=True)
-        self.assertIn("Invalid MAC address '00:11:ZZ', must be XX:XX:XX:XX:XX:XX", err)
+        self.assertIn("Invalid MAC address '00:11:ZZ', must be XX:XX:XX:XX:XX:XX "
+                      "or XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX", err)
 
     def test_glob_in_id(self):
         err = self.generate('''network:
