@@ -748,7 +748,7 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             if args[0].endswith('mlx5_core/bind') or args[0].endswith('mlx5_core/unbind'):
                 return handle(*args, **kwargs)
             # unpatched version for every other path
-            return builtin_open(*args, **kwargs)
+            return builtin_open(*args, **kwargs)  # pragma: nocover
 
         # set up the mock sysfs environment
         self._prepare_sysfs_dir_structure(pf=('enp1', '0000:03:00.0'),
