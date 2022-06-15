@@ -18,7 +18,7 @@
 
 import ctypes
 import ctypes.util
-from ctypes import c_char_p, c_void_p, c_int, c_size_t
+from ctypes import c_char_p, c_void_p, c_int, c_size_t, c_ssize_t
 from typing import List, Union, IO
 
 
@@ -207,11 +207,11 @@ class NetDefinition:
         if cls._abi_loaded:
             return
 
-        lib.netplan_netdef_get_id.argtypes = [_NetplanNetDefinitionP]
-        lib.netplan_netdef_get_id.restype = c_char_p
+        lib.netplan_netdef_get_id.argtypes = [_NetplanNetDefinitionP, c_char_p, c_size_t]
+        lib.netplan_netdef_get_id.restype = c_ssize_t
 
         lib.netplan_netdef_get_filepath.argtypes = [_NetplanNetDefinitionP, c_char_p, c_size_t]
-        lib.netplan_netdef_get_filepath.restype = c_int
+        lib.netplan_netdef_get_filepath.restype = c_ssize_t
 
         cls._abi_loaded = True
 
@@ -229,7 +229,7 @@ class NetDefinition:
 
     @property
     def id(self):
-        return lib.netplan_netdef_get_id(self._ptr).decode('utf-8')
+        return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_id(self._ptr, b, len(b)))
 
     @property
     def filepath(self):
