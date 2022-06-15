@@ -822,6 +822,11 @@ netplan_netdef_write_network_file(
             g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
     }
 
+    /* IP-over-InfiniBand, IPoIB */
+    if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
+        g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
+    }
+
     if (network->len > 0 || link->len > 0) {
         s = g_string_sized_new(200);
         append_match_section(def, s, TRUE);

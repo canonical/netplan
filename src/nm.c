@@ -65,7 +65,11 @@ type_str(const NetplanNetDefinition* def)
     const NetplanDefType type = def->type;
     switch (type) {
         case NETPLAN_DEF_TYPE_ETHERNET:
-            return "ethernet";
+            /* 20-byte IPoIB MAC + colons */
+            if (def->ib_mode || (def->match.mac && strlen(def->match.mac) == 59))
+                return "infiniband";
+            else
+                return "ethernet";
         case NETPLAN_DEF_TYPE_MODEM:
             if (modem_is_gsm(def))
                 return "gsm";
@@ -666,6 +670,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
                 g_key_file_set_uint64(kf, nm_type, "mtu", def->mtubytes);
             if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
                 g_key_file_set_uint64(kf, nm_type, "wake-on-wlan", def->wowlan);
+            if (def->ib_mode != NETPLAN_IB_MODE_KERNEL)
+                g_key_file_set_string(kf, nm_type, "transport-mode", netplan_infiniband_mode_name(def->ib_mode));
         }
     } else {
         if (def->set_mac)
