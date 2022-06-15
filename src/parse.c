@@ -559,6 +559,18 @@ handle_embedded_switch_mode(NetplanParser* npp, yaml_node_t* node, const void* d
     return handle_netdef_str(npp, node, data, error);
 }
 
+static gboolean
+handle_ib_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_strcmp0(scalar(node), "datagram") == 0)
+        npp->current.netdef->ib_mode = NETPLAN_IB_MODE_DATAGRAM;
+    else if (g_strcmp0(scalar(node), "connected") == 0)
+        npp->current.netdef->ib_mode = NETPLAN_IB_MODE_CONNECTED;
+    else
+        return yaml_error(npp, node, error, "Value of 'infiniband-mode' needs to be 'datagram' or 'connected'");
+    return TRUE;
+}
+
 /**
  * Generic handler for setting a npp->current.netdef ID/iface name field referring to an
  * existing ID from a scalar node. This handler also includes a special case
@@ -2496,6 +2508,7 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     {"virtual-function-count", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(sriov_explicit_vf_count)},
     {"embedded-switch-mode", YAML_SCALAR_NODE, {.generic=handle_embedded_switch_mode}, netdef_offset(embedded_switch_mode)},
     {"delay-virtual-functions-rebind", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(sriov_delay_virtual_functions_rebind)},
+    {"infiniband-mode", YAML_SCALAR_NODE, {.generic=handle_ib_mode}, netdef_offset(ib_mode)},
     {NULL}
 };
 

@@ -41,5 +41,8 @@ netplan_addr_gen_mode_name(NetplanAddrGenMode val);
 const char*
 netplan_wifi_mode_name(NetplanWifiMode val);
 
+const char*
+netplan_infiniband_mode_name(NetplanInfinibandMode val);
+
 NetplanDefType
 netplan_def_type_from_name(const char* val);

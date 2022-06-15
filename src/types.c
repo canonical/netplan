@@ -353,6 +353,8 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->generic_segmentation_offload = NETPLAN_TRISTATE_UNSET;
     netdef->generic_receive_offload = NETPLAN_TRISTATE_UNSET;
     netdef->large_receive_offload = NETPLAN_TRISTATE_UNSET;
+
+    netdef->ib_mode = NETPLAN_IB_MODE_KERNEL;
 }
 
 static void

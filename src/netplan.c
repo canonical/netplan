@@ -819,6 +819,12 @@ _serialize_yaml(
 
     write_openvswitch(event, emitter, &def->ovs_settings, def->backend, NULL);
 
+    /* InfiniBand */
+    if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
+        const char* ib_mode_str = netplan_infiniband_mode_name(def->ib_mode);
+        YAML_STRING(def, event, emitter, "infiniband-mode", ib_mode_str);
+    }
+
     if (def->type == NETPLAN_DEF_TYPE_MODEM)
         write_modem_params(event, emitter, def);
 
