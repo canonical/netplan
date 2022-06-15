@@ -1237,8 +1237,7 @@ more general information about tunnels.
     private key or (as of ``networkd`` v242+) an absolute path to a file,
     containing the private key (since 0.100).
     It is used for identification of IP transforms. This is only required
-    for ``vti`` and ``vti6`` when using the networkd backend, and for
-    ``gre`` or ``ip6gre`` tunnels when using the NetworkManager backend.
+    for ``vti`` and ``vti6`` when using the networkd backend.
 
     This field may be used as a scalar (meaning that a single key is
     specified and to be used for input, output and private key), or as a
