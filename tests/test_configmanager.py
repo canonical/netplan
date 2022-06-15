@@ -59,7 +59,7 @@ class TestConfigManager(unittest.TestCase):
             print('''network:
   version: 2
   openvswitch:
-    ports: [[patchx, patcha], [patchy, patchb]]
+    ports: [[patchx, patchc], [patchy, patchd]]
   bridges:
     ovs0: {openvswitch: {}}
 ''', file=fd)
@@ -95,7 +95,7 @@ class TestConfigManager(unittest.TestCase):
   vlans:
     vlan2:
       id: 2
-      link: eth99
+      link: eth0
   bridges:
     br3:
       interfaces: [ ethbr1 ]
