@@ -217,6 +217,12 @@ _netplan_iter_defs_per_devtype_init(const char *devtype)
     return _netplan_state_new_netdef_pertype_iter(&global_state, devtype);
 }
 
+NETPLAN_INTERNAL const char*
+_netplan_netdef_id(NetplanNetDefinition* netdef)
+{
+    return netdef->id;
+}
+
 NETPLAN_ABI const char *
 netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
 {

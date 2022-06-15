@@ -466,15 +466,12 @@ netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer
     return netplan_copy_string(netdef->filepath, out_buffer, out_buf_size);
 }
 
-NETPLAN_INTERNAL const char*
-netplan_netdef_get_id(const NetplanNetDefinition* netdef)
+NETPLAN_INTERNAL ssize_t
+netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
     g_assert(netdef);
-    return netdef->id;
+    return netplan_copy_string(netdef->id, out_buffer, out_buf_size);
 }
-
-NETPLAN_INTERNAL const char*
-_netplan_netdef_id(NetplanNetDefinition* netdef) __attribute__((alias("netplan_netdef_get_id")));
 
 gboolean
 netplan_state_has_nondefault_globals(const NetplanState* np_state)
