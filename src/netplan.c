@@ -89,16 +89,6 @@ gchar *tmp = NULL;
     } \
 }\
 
-static gboolean
-complex_object_is_dirty(const NetplanNetDefinition* def, char* obj, size_t obj_size) {
-    /* We literally check every address in the object! Ugly, but it works. */
-    for (size_t i = 0; i < obj_size; ++i) {
-        if (DIRTY_REF(def, obj+i))
-            return TRUE;
-    }
-    return FALSE;
-}
-
 #define DIRTY_COMPLEX(_def, _data) complex_object_is_dirty(_def, (char*)(&_data), sizeof(_data))
 
 static gboolean

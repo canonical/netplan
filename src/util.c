@@ -708,6 +708,18 @@ mark_data_as_dirty(NetplanParser* npp, void* data_ptr)
     g_hash_table_insert(npp->current.netdef->_private->dirty_fields, data_ptr, data_ptr);
 }
 
+gboolean
+complex_object_is_dirty(const NetplanNetDefinition* def, const void* obj, size_t obj_size) {
+    const char* ptr = obj;
+    if (def->_private == NULL || def->_private->dirty_fields == NULL)
+        return FALSE;
+    for (size_t i = 0; i < obj_size; ++i) {
+        if (g_hash_table_contains(def->_private->dirty_fields, ptr+i))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /**
  * Copy a NUL-terminated string into a sized buffer, and returns the size of
  * the copied string, including the final NUL character. If the buffer is too
