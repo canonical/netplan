@@ -298,6 +298,9 @@ class NetDefinition:
         lib._netplan_state_get_vf_count_for_def.argtypes = [_NetplanStateP, _NetplanNetDefinitionP, _GErrorPP]
         lib._netplan_state_get_vf_count_for_def.restype = c_int
 
+        lib._netplan_netdef_is_trivial_compound_itf.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_netdef_is_trivial_compound_itf.restype = c_int
+
         cls._abi_loaded = True
 
     def __eq__(self, other):
@@ -389,6 +392,14 @@ class NetDefinition:
         if count < 0:
             raise LibNetplanException(err.contents.message.decode('utf-8'))
         return count
+
+    @property
+    def is_trivial_compound_itf(self):
+        '''
+        Returns True if the interface is a compound interface (bond or bridge),
+        and its configuration is trivial, without any variation from the defaults.
+        '''
+        return bool(lib._netplan_netdef_is_trivial_compound_itf(self._ptr))
 
 
 class _NetdefIterator:

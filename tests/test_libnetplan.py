@@ -415,6 +415,23 @@ class TestNetDefinition(TestBase):
         self.assertIsNone(state['eth0'].vlan_id)
         self.assertIsNone(state['eth0'].vlan_link)
 
+    def test_is_trivial_compound_itf(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  bridges:
+    br0:
+      dhcp4: false
+    br1:
+      parameters:
+        priority: 42
+      ''')
+
+        self.assertFalse(state['eth0'].is_trivial_compound_itf)
+        self.assertTrue(state['br0'].is_trivial_compound_itf)
+        self.assertFalse(state['br1'].is_trivial_compound_itf)
+
 
 class TestFreeFunctions(TestBase):
     def test_create_yaml_patch_bad_syntax(self):
