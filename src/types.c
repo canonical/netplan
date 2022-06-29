@@ -540,3 +540,14 @@ _netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
 {
     return netdef->critical;
 }
+
+NETPLAN_INTERNAL gboolean
+_netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    if (netdef->type == NETPLAN_DEF_TYPE_BOND)
+        return !complex_object_is_dirty(netdef, &netdef->bond_params, sizeof(netdef->bond_params));
+    else if (netdef->type == NETPLAN_DEF_TYPE_BRIDGE)
+        return !complex_object_is_dirty(netdef, &netdef->bridge_params, sizeof(netdef->bridge_params));
+    return FALSE;
+}

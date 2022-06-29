@@ -28,6 +28,7 @@ from netplan.configmanager import ConfigManager
 import netplan.cli.utils as utils
 from netplan.cli.commands.apply import NetplanApply
 import netplan.terminal
+import netplan.libnetplan as libnetplan
 
 # Keep a timeout long enough to allow the network to converge, 60 seconds may
 # be slightly short given some complex configs, i.e. if STP must reconverge.
