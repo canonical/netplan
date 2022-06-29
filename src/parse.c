@@ -381,12 +381,12 @@ handle_generic_mac(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
     g_assert(node->type == YAML_SCALAR_NODE);
 
     if (!re_inited) {
-        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]:[[:xdigit:]][[:xdigit:]]$", REG_EXTENDED|REG_NOSUB) == 0);
+        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]](:[[:xdigit:]][[:xdigit:]]){5}((:[[:xdigit:]][[:xdigit:]]){14})?$", REG_EXTENDED|REG_NOSUB) == 0);
         re_inited = TRUE;
     }
 
     if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
-        return yaml_error(npp, node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX", scalar(node));
+        return yaml_error(npp, node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX or XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX", scalar(node));
 
     return handle_generic_str(npp, node, entryptr, data, error);
 }
@@ -557,6 +557,18 @@ handle_embedded_switch_mode(NetplanParser* npp, yaml_node_t* node, const void* d
         return yaml_error(npp, node, error, "Value of 'embedded-switch-mode' needs to be 'switchdev' or 'legacy'");
 
     return handle_netdef_str(npp, node, data, error);
+}
+
+static gboolean
+handle_ib_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_strcmp0(scalar(node), "datagram") == 0)
+        npp->current.netdef->ib_mode = NETPLAN_IB_MODE_DATAGRAM;
+    else if (g_strcmp0(scalar(node), "connected") == 0)
+        npp->current.netdef->ib_mode = NETPLAN_IB_MODE_CONNECTED;
+    else
+        return yaml_error(npp, node, error, "Value of 'infiniband-mode' needs to be 'datagram' or 'connected'");
+    return TRUE;
 }
 
 /**
@@ -2496,6 +2508,7 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     {"virtual-function-count", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(sriov_explicit_vf_count)},
     {"embedded-switch-mode", YAML_SCALAR_NODE, {.generic=handle_embedded_switch_mode}, netdef_offset(embedded_switch_mode)},
     {"delay-virtual-functions-rebind", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(sriov_delay_virtual_functions_rebind)},
+    {"infiniband-mode", YAML_SCALAR_NODE, {.generic=handle_ib_mode}, netdef_offset(ib_mode)},
     {NULL}
 };
 

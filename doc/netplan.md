@@ -97,8 +97,8 @@ Match devices by MAC when setting options like: ``wakeonlan`` or ``*-offload``.
          (``NetworkManager``: as of v1.14.0)
 
      ``macaddress`` (scalar)
-     :   Device's MAC address in the form "XX:XX:XX:XX:XX:XX". Globs are not
-         allowed.
+     :   Device's 6-byte MAC address in the form "XX:XX:XX:XX:XX:XX" or 20
+         bytes for InfiniBand devices (IPoIB). Globs are not allowed.
 
      ``driver`` (scalar or sequence of scalars) – sequence since **0.104**
      :   Kernel driver name, corresponding to the ``DRIVER`` udev property.
@@ -830,6 +830,14 @@ Example:
      Can be enabled when bonding/VF LAG is in use. Defaults to ``false``.
 
      **Requires feature: eswitch-mode**
+
+``infiniband-mode`` (scalar) – since **0.105**
+
+:    (InfiniBand devices only) Change the operational mode of a IPoIB device.
+     Possible values are ``datagram`` or ``connected``. If unspecified the
+     kernel's default configuration is used.
+
+     **Requires feature: infiniband**
 
 ## Properties for device type ``modems:``
 GSM/CDMA modem configuration is only supported for the ``NetworkManager``

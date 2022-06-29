@@ -50,6 +50,12 @@ typedef enum {
 } NetplanRAMode;
 
 typedef enum {
+    NETPLAN_IB_MODE_KERNEL,
+    NETPLAN_IB_MODE_DATAGRAM,
+    NETPLAN_IB_MODE_CONNECTED,
+} NetplanInfinibandMode;
+
+typedef enum {
     NETPLAN_WIFI_WOWLAN_DEFAULT           = 1<<0,
     NETPLAN_WIFI_WOWLAN_ANY               = 1<<1,
     NETPLAN_WIFI_WOWLAN_DISCONNECT        = 1<<2,
@@ -348,4 +354,7 @@ struct netplan_net_definition {
     /* netplan-feature: eswitch-mode */
     char* embedded_switch_mode;
     gboolean sriov_delay_virtual_functions_rebind;
+
+    /* netplan-feature: infiniband */
+    NetplanInfinibandMode ib_mode; /* IPoIB */
 };

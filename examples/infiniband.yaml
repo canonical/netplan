@@ -1,0 +1,9 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ib0:
+      match:
+        macaddress: "11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00"
+      dhcp4: true
+      infiniband-mode: "connected"

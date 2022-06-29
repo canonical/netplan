@@ -92,6 +92,13 @@ netplan_addr_gen_mode_to_str[NETPLAN_ADDRGEN_MAX] = {
     [NETPLAN_ADDRGEN_STABLEPRIVACY] = "stable-privacy"
 };
 
+static const char* const
+netplan_infiniband_mode_to_str[NETPLAN_ADDRGEN_MAX] = {
+    [NETPLAN_IB_MODE_KERNEL] = NULL,
+    [NETPLAN_IB_MODE_DATAGRAM] = "datagram",
+    [NETPLAN_IB_MODE_CONNECTED] = "connected"
+};
+
 #define NAME_FUNCTION(_radical, _type) const char *netplan_ ## _radical ## _name( _type val) \
 { \
     return (val < sizeof( netplan_ ## _radical ## _to_str )) ?  netplan_ ## _radical ## _to_str [val] : NULL; \
@@ -104,6 +111,7 @@ NAME_FUNCTION(auth_eap_method, NetplanAuthEAPMethod);
 NAME_FUNCTION(tunnel_mode, NetplanTunnelMode);
 NAME_FUNCTION(addr_gen_mode, NetplanAddrGenMode);
 NAME_FUNCTION(wifi_mode, NetplanWifiMode);
+NAME_FUNCTION(infiniband_mode, NetplanInfinibandMode);
 
 #define ENUM_FUNCTION(_radical, _type) _type netplan_ ## _radical ## _from_name(const char* val) \
 { \

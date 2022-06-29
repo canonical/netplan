@@ -149,7 +149,17 @@ class TestConfigErrors(TestBase):
       match:
         macaddress: 00:11:ZZ
       dhcp4: true''', expect_fail=True)
-        self.assertIn("Invalid MAC address '00:11:ZZ', must be XX:XX:XX:XX:XX:XX", err)
+        self.assertIn("Invalid MAC address '00:11:ZZ', must be XX:XX:XX:XX:XX:XX "
+                      "or XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX", err)
+
+    def test_invalid_ipoib_mode(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    ib0:
+      dhcp4: true
+      infiniband-mode: invalid''', expect_fail=True)
+        self.assertIn("Value of 'infiniband-mode' needs to be 'datagram' or 'connected'", err)
 
     def test_glob_in_id(self):
         err = self.generate('''network:

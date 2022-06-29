@@ -65,7 +65,11 @@ type_str(const NetplanNetDefinition* def)
     const NetplanDefType type = def->type;
     switch (type) {
         case NETPLAN_DEF_TYPE_ETHERNET:
-            return "ethernet";
+            /* 20-byte IPoIB MAC + colons */
+            if (def->ib_mode || (def->match.mac && strlen(def->match.mac) == 59))
+                return "infiniband";
+            else
+                return "ethernet";
         case NETPLAN_DEF_TYPE_MODEM:
             if (modem_is_gsm(def))
                 return "gsm";
@@ -654,29 +658,20 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     }
 
     if (def->type < NETPLAN_DEF_TYPE_VIRTUAL) {
-        if (def->type == NETPLAN_DEF_TYPE_ETHERNET)
-            g_key_file_set_integer(kf, "ethernet", "wake-on-lan", def->wake_on_lan ? 1 : 0);
-
-        const char* con_type = NULL;
-        switch (def->type) {
-            case NETPLAN_DEF_TYPE_WIFI:
-                con_type = "wifi";
-            case NETPLAN_DEF_TYPE_MODEM:
-                /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
-                break;
-            default:
-                con_type = "ethernet";
-        }
-
-        if (con_type) {
+        /* Avoid adding an [ethernet] section into the [gsm/cdma] description. */
+        if (g_strcmp0(nm_type, "gsm") != 0 || g_strcmp0(nm_type, "cdma") != 0) {
+            if (g_strcmp0(nm_type, "ethernet") == 0)
+                g_key_file_set_integer(kf, nm_type, "wake-on-lan", def->wake_on_lan ? 1 : 0);
             if (!def->set_name && def->match.mac)
-                g_key_file_set_string(kf, con_type, "mac-address", def->match.mac);
+                g_key_file_set_string(kf, nm_type, "mac-address", def->match.mac);
             if (def->set_mac)
-                g_key_file_set_string(kf, con_type, "cloned-mac-address", def->set_mac);
+                g_key_file_set_string(kf, nm_type, "cloned-mac-address", def->set_mac);
             if (def->mtubytes)
-                g_key_file_set_uint64(kf, con_type, "mtu", def->mtubytes);
+                g_key_file_set_uint64(kf, nm_type, "mtu", def->mtubytes);
             if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
-                g_key_file_set_uint64(kf, con_type, "wake-on-wlan", def->wowlan);
+                g_key_file_set_uint64(kf, nm_type, "wake-on-wlan", def->wowlan);
+            if (def->ib_mode != NETPLAN_IB_MODE_KERNEL)
+                g_key_file_set_string(kf, nm_type, "transport-mode", netplan_infiniband_mode_name(def->ib_mode));
         }
     } else {
         if (def->set_mac)

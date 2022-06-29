@@ -164,6 +164,34 @@ LinkLocalAddressing=ipv6
         self.assert_nm(None)
         self.assert_nm_udev(NM_UNMANAGED % 'lom1' + NM_UNMANAGED_MAC % '11:22:33:44:55:66')
 
+    # https://bugs.launchpad.net/netplan/+bug/1848474
+    def test_eth_match_by_mac_infiniband(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    ib0:
+      match:
+        macaddress: 11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
+      dhcp4: true
+      infiniband-mode: connected''')
+
+        self.assert_networkd({'ib0.network': '''[Match]
+MACAddress=11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+
+[IPoIB]
+Mode=connected
+'''})
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED_MAC % '11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00')
+
     def test_eth_implicit_name_match_dhcp4(self):
         self.generate('''network:
   version: 2
@@ -810,3 +838,32 @@ LinkLocalAddressing=ipv6
       transmit-checksum-offload: xx
       large-receive-offload: true''', expect_fail=True)
         self.assertIn('invalid boolean value \'xx\'', err)
+
+    # https://bugs.launchpad.net/netplan/+bug/1848474
+    def test_eth_match_by_mac_infiniband(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    ib0:
+      match:
+        macaddress: 11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
+      dhcp4: true
+      infiniband-mode: datagram''')
+
+        self.assert_networkd(None)
+        self.assert_nm({'ib0': '''[connection]
+id=netplan-ib0
+type=infiniband
+
+[infiniband]
+mac-address=11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
+transport-mode=datagram
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_nm_udev(NM_MANAGED_MAC % '11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00')
