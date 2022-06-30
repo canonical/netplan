@@ -66,7 +66,7 @@ netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payloa
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
 
 void
-mark_data_as_dirty(NetplanParser* npp, void* data_ptr);
+mark_data_as_dirty(NetplanParser* npp, const void* data_ptr);
 
 const char*
 tunnel_mode_to_string(NetplanTunnelMode mode);

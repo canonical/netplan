@@ -342,7 +342,7 @@ handle_generic_guint(NetplanParser* npp, yaml_node_t* node, const void* entryptr
     if (*endptr != '\0' || v > G_MAXUINT)
         return yaml_error(npp, node, error, "invalid unsigned int value '%s'", scalar(node));
 
-    mark_data_as_dirty(npp, endptr);
+    mark_data_as_dirty(npp, entryptr + offset);
     *((guint*) ((void*) entryptr + offset)) = (guint) v;
     return TRUE;
 }
