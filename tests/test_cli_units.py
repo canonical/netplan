@@ -34,6 +34,7 @@ class TestCLI(unittest.TestCase):
     def setUp(self):
         self.tmproot = tempfile.mkdtemp()
         os.mkdir(os.path.join(self.tmproot, 'run'))
+        os.makedirs(os.path.join(self.tmproot, 'etc/netplan'))
         os.environ['DBUS_TEST_NETPLAN_ROOT'] = self.tmproot
 
     def tearDown(self):
@@ -103,3 +104,28 @@ class TestCLI(unittest.TestCase):
         self.assertTrue(os.path.isfile(stamp_file))
         self.assertTrue(cmd.clear_ready_stamp())
         self.assertFalse(os.path.isfile(stamp_file))
+
+    def test_netplan_try_is_revertable(self):
+        with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
+            f.write('''network:
+  bridges:
+    br54:
+      dhcp4: false
+''')
+        cmd = NetplanTry()
+        self.assertTrue(cmd.is_revertable())
+
+    def test_netplan_try_is_not_revertable(self):
+        with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+  bonds:
+    bn0:
+      interfaces: [eth0]
+      parameters:
+        mode: balance-rr
+''')
+        cmd = NetplanTry()
+        self.assertFalse(cmd.is_revertable())

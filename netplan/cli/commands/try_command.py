@@ -44,6 +44,7 @@ class NetplanTry(utils.NetplanCommand):
                          leaf=True)
         self.configuration_changed = False
         self.new_interfaces = None
+        self.config_file = None
         self._config_manager = None
         self.t_settings = None
         self.t = None
@@ -53,7 +54,7 @@ class NetplanTry(utils.NetplanCommand):
     @property
     def config_manager(self):  # pragma: nocover (called by later commands)
         if not self._config_manager:
-            self._config_manager = ConfigManager()
+            self._config_manager = ConfigManager(prefix=self._rootdir)
         return self._config_manager
 
     def clear_ready_stamp(self):
@@ -147,7 +148,7 @@ class NetplanTry(utils.NetplanCommand):
     def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()
 
-    def is_revertable(self):  # pragma: nocover (requires user input)
+    def is_revertable(self):
         '''
         Check if the configuration is revertable, if it doesn't contain bits
         that we know are likely to render the system unstable if we apply it,
@@ -162,7 +163,7 @@ class NetplanTry(utils.NetplanCommand):
         '''
 
         extra_config = []
-        if self.config_file:
+        if self.config_file:  # pragma: nocover
             extra_config.append(self.config.file)
         np_state = self.config_manager.parse(extra_config=extra_config)
         revert_unsupported = []
@@ -171,13 +172,13 @@ class NetplanTry(utils.NetplanCommand):
         # more than one device in them, and they can be set with special parameters
         # to tweak their behavior, which are really hard to "revert", especially
         # as systemd-networkd doesn't necessarily touch them when config changes.
-        multi_iface = {}
+        multi_iface = {}  # type: dict[str, libnetplan.NetDefinition]
         multi_iface.update(np_state.bridges)
         multi_iface.update(np_state.bonds)
-        for ifname, settings in multi_iface.items():
-            if settings and 'parameters' in settings:
+        for itf in multi_iface.values():
+            if not itf.is_trivial_compound_itf:
                 reason = "reverting custom parameters for bridges and bonds is not supported"
-                revert_unsupported.append((ifname, reason))
+                revert_unsupported.append((itf.id, reason))
 
         if revert_unsupported:
             for ifname, reason in revert_unsupported:
