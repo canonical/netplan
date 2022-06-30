@@ -31,7 +31,7 @@ lease_path = {
         'method': 'ifindex',
     },
     'NetworkManager': {
-        'pattern': 'var/lib/NetworkManager/dhclient-{lease_id}-{interface}.lease',
+        'pattern': 'var/lib/NetworkManager/internal-{lease_id}-{interface}.lease',
         'method': 'nm_connection',
     },
 }
