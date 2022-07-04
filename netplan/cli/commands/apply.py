@@ -156,13 +156,13 @@ class NetplanApply(utils.NetplanCommand):
         if not restart_nm and old_files_nm:
             restart_nm = True
 
+        # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
+        # so let's make sure we only run it iff we're willing to run 'netplan generate'
+        if run_generate:
+            utils.systemctl_daemon_reload()
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration changed, reloading networkd')
-            # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
-            # so let's make sure we only run it iff we're willing to run 'netplan generate'
-            if run_generate:
-                utils.systemctl_daemon_reload()
             # Clean up any old netplan related OVS ports/bonds/bridges, if applicable
             NetplanApply.process_ovs_cleanup(config_manager, old_files_ovs, restart_ovs, exit_on_error)
             wpa_services = ['netplan-wpa-*.service']
@@ -256,6 +256,9 @@ class NetplanApply(utils.NetplanCommand):
         # apply any SR-IOV related changes, if applicable
         NetplanApply.process_sriov_config(config_manager, exit_on_error)
 
+        # (re)set global regulatory domain
+        if os.path.exists('/run/systemd/system/netplan-regdom.service'):
+            utils.systemctl('start', ['netplan-regdom.service'])
         # (re)start backends
         if restart_networkd:
             netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]

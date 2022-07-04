@@ -111,6 +111,33 @@ wpa_passphrase=12345678
                                           universal_newlines=True)
             self.assertRegex(out, 'DNS.*192.168.5.1')
 
+    def test_wifi_regdom(self):
+        self.setup_ap('''hw_mode=g
+channel=1
+ssid=fake net
+wpa=1
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+wpa_passphrase=12345678
+''', None)
+
+        out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+        self.assertNotIn('country GB', out)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  wifis:
+    %(wc)s:
+      addresses: ["192.168.1.42/24"]
+      regulatory-domain: GB
+      access-points:
+        "fake net":
+          password: 12345678''' % {'r': self.backend, 'wc': self.dev_w_client})
+        self.generate_and_settle([self.dev_w_client])
+        self.assert_iface_up(self.dev_w_client, ['inet 192.168.1.42/24'])
+        out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+        self.assertIn('global\ncountry GB', out)
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")

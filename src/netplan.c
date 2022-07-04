@@ -780,6 +780,8 @@ _serialize_yaml(
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
 
+    YAML_STRING(def, event, emitter, "regulatory-domain", def->regulatory_domain);
+
     if (def->optional_addresses) {
         YAML_SCALAR_PLAIN(event, emitter, "optional-addresses");
         YAML_SEQUENCE_OPEN(event, emitter);

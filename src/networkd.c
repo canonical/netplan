@@ -298,6 +298,32 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     umask(orig_umask);
 }
 
+static gboolean
+write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** error)
+{
+    g_assert(def->regulatory_domain);
+    g_autofree gchar* id_escaped = NULL;
+    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/network.target.wants/netplan-regdom.service", NULL);
+    g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-regdom.service", NULL);
+
+    GString* s = g_string_new("[Unit]\n");
+    g_string_append(s, "Description=Netplan regulatory-domain configuration\n");
+    g_string_append(s, "After=network.target\n");
+    g_string_append(s, "ConditionFileIsExecutable="SBINDIR"/iw\n");
+    g_string_append(s, "\n[Service]\nType=oneshot\n");
+    g_string_append_printf(s, "ExecStart="SBINDIR"/iw reg set %s\n", def->regulatory_domain);
+
+    g_string_free_to_file(s, rootdir, path, NULL);
+    safe_mkdir_p_dir(link);
+    if (symlink(path, link) < 0 && errno != EEXIST) {
+        // LCOV_EXCL_START
+        g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED, "failed to create enablement symlink: %m\n");
+        return FALSE;
+        // LCOV_EXCL_STOP
+    }
+    return TRUE;
+}
+
 
 static gboolean
 interval_has_suffix(const char* param) {
@@ -1032,6 +1058,10 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
             if (!append_wifi_wowlan_flags(def->wowlan, s, error))
                 return FALSE;
         }
+        /* available as of wpa_supplicant version 0.6.7 */
+        if (def->regulatory_domain) {
+            g_string_append_printf(s, "country=%s\n", def->regulatory_domain);
+        }
         NetplanWifiAccessPoint* ap;
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
@@ -1125,9 +1155,12 @@ netplan_netdef_write_networkd(
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
     /* We want this for all backends when renaming, as *.link and *.rules files are
-     * evaluated by udev, not networkd itself or NetworkManager. */
+     * evaluated by udev, not networkd itself or NetworkManager. The regulatory
+     * domain applies to all backends, too. */
     write_link_file(def, rootdir, path_base);
     write_rules_file(def, rootdir);
+    if (def->regulatory_domain)
+        write_regdom(def, rootdir, NULL); /* overwrites global regdom */
 
     if (def->backend != NETPLAN_BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
@@ -1185,6 +1218,8 @@ netplan_networkd_cleanup(const char* rootdir)
     unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-*.service");
     unlink_glob(rootdir, "/run/systemd/system/netplan-wpa-*.service");
     unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
+    unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
+    unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
      * upgraded system, we need to make sure to clean those up. */
     unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");

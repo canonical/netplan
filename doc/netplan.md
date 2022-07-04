@@ -957,6 +957,16 @@ wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
      ``rfkill_release`` or ``tcp`` (NetworkManager only). Or the exclusive
      ``default`` flag (the default).
 
+``regulatory-domain`` (scalar) – since **0.105**
+
+:    This can be used to define the radio's regulatory domain, to make use of
+     additional WiFi channels outside the "world domain". Takes an ISO /
+     IEC 3166 country code (like `GB`) or `00` to reset to the "world domain".
+     See [wireless-regdb](https://git.kernel.org/pub/scm/linux/kernel/git/sforshee/wireless-regdb.git/tree/db.txt) for available values.
+
+     **Requires dependency: iw**, if it is to be used outside the `networkd`
+     (wpa_supplicant) backend.
+
 ## Properties for device type ``bridges:``
 
 ``interfaces`` (sequence of scalars)
