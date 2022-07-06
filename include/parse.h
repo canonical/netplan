@@ -36,6 +36,7 @@ typedef enum {
     NETPLAN_DEF_TYPE_VLAN,
     NETPLAN_DEF_TYPE_TUNNEL,
     NETPLAN_DEF_TYPE_PORT,
+    NETPLAN_DEF_TYPE_VRF,
     /* Type fallback/passthrough */
     NETPLAN_DEF_TYPE_NM,
     NETPLAN_DEF_TYPE_MAX_

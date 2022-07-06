@@ -2023,6 +2023,29 @@ static const mapping_entry_handler bond_params_handlers[] = {
 };
 
 static gboolean
+handle_vrf_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    /* all entries must refer to already defined IDs */
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        NetplanNetDefinition *component;
+
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+        component = g_hash_table_lookup(npp->parsed_defs, scalar(entry));
+        if (!component) {
+            add_missing_node(npp, entry);
+        } else {
+            if (component->vrf_link && component->vrf_link != npp->current.netdef)
+                return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to vrf %s",
+                                  npp->current.netdef->id, scalar(entry), component->vrf_link->id);
+            component->vrf_link = npp->current.netdef;
+        }
+    }
+
+    return TRUE;
+}
+
+static gboolean
 handle_bonding(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* _, GError** error)
 {
     return process_mapping(npp, node, key_prefix, bond_params_handlers, NULL, error);
@@ -2546,6 +2569,16 @@ static const mapping_entry_handler vlan_def_handlers[] = {
     {NULL}
 };
 
+static const mapping_entry_handler vrf_def_handlers[] = {
+    COMMON_BACKEND_HANDLERS,
+    {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}},
+    {"interfaces", YAML_SEQUENCE_NODE, {.generic=handle_vrf_interfaces}, NULL},
+    {"table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(vrf_table)},
+    {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}},
+    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}},
+    {NULL}
+};
+
 static const mapping_entry_handler modem_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
@@ -2763,6 +2796,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             case NETPLAN_DEF_TYPE_MODEM: handlers = modem_def_handlers; break;
             case NETPLAN_DEF_TYPE_TUNNEL: handlers = tunnel_def_handlers; break;
             case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
+            case NETPLAN_DEF_TYPE_VRF: handlers = vrf_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
             case NETPLAN_DEF_TYPE_NM:
                 g_warning("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", npp->current.netdef->id);
@@ -2822,6 +2856,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"tunnels", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_TUNNEL)},
     {"version", YAML_SCALAR_NODE, {.generic=handle_network_version}},
     {"vlans", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
+    {"vrfs", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VRF)},
     {"wifis", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
     {"modems", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
     {"nm-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_NM)},
@@ -2975,6 +3010,11 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
         gpointer key, value;
         char *regdom = NULL;
         g_debug("We have some netdefs, pass them through a final round of validation");
+
+        /* Check/adopt VRF routes before route consistency and validation */
+        if (!adopt_and_validate_vrf_routes(npp, npp->parsed_defs, error))
+            return FALSE;
+
         if (!validate_default_route_consistency(npp, npp->parsed_defs, &recoverable)) {
             g_warning("Problem encountered while validating default route consistency."
                       "Please set up multiple routing tables and use `routing-policy` instead.\n"
