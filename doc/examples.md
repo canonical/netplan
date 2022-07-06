@@ -522,6 +522,15 @@ This is a complex example which shows most available features
       # if specified, can only realistically have that value, as networkd cannot
       # render wifi/3G.
       renderer: NetworkManager
+      vrfs:
+        mgmt-vrf:
+          table: 10
+          interfaces:
+            - id1
+          routes:
+            - to: default
+              via: 192.168.24.254
+              metric: 100
       ethernets:
         # opaque ID for physical interfaces, only referred to by other stanzas
         id0:
@@ -557,6 +566,13 @@ This is a complex example which shows most available features
               priority: 50
           # only networkd can render on-link routes and routing policies
           renderer: networkd
+        id1:
+          match:
+            macaddress: 00:11:22:33:44:56
+          wakeonlan: true
+          dhcp4: true
+          addresses:
+            - 192.168.24.2/24
         lom:
           match:
             driver: ixgbe

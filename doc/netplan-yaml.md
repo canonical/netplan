@@ -75,7 +75,7 @@ Physical devices
 
 Virtual devices
 
-> (Examples: veth, bridge, bond) These are fully under the control of the
+> (Examples: veth, bridge, bond, vrf) These are fully under the control of the
 > config file(s) and the network stack. I. e. these devices are being created
 > instead of matched. Thus `match:` and `set-name:` are not applicable for
 > these, and the ID field is the name of the created virtual device.
@@ -1536,6 +1536,46 @@ vlans:
     id: 2
     link: eno1
     addresses: [...]
+```
+
+## Properties for device type `vrfs:`
+
+- **table** (scalar) – since **0.105**
+
+  > The numeric routing table identifier. This setting is compulsory.
+
+- **interfaces** (sequence of scalars) – since **0.105**
+
+  > All devices matching this ID list will be added to the vrf. This may
+  > be an empty list, in which case the vrf will be brought online with
+  > no member interfaces.
+
+- **routes** (sequence of mappings) – since **0.105**
+
+  > Configure static routing for the device; see the `Routing` section.
+  > The `table` value is implicitly set to the VRF's `table`.
+
+- **routing-policy** (sequence of mappings) – since **0.105**
+
+  > Configure policy routing for the device; see the ``Routing`` section.
+  > The `table` value is implicitly set to the VRF's `table`.
+
+Example:
+
+```yaml
+vrfs:
+  vrf20:
+    table: 20
+    interfaces: [ br0 ]
+    routes:
+      - to: default
+        via: 10.10.10.3
+    routing-policy:
+      - from: 10.10.10.42
+  [...]
+  bridges:
+    br0:
+      interfaces: []
 ```
 
 ## Properties for device type `nm-devices:`
