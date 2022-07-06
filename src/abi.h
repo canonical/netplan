@@ -360,4 +360,9 @@ struct netplan_net_definition {
 
     /* netplan-feature: regdom */
     char* regulatory_domain;
+
+    /* vrf */
+    /* netplan-feature: vrf */
+    NetplanNetDefinition* vrf_link;
+    guint vrf_table;
 };

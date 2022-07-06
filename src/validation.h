@@ -41,3 +41,6 @@ validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError*
 
 gboolean
 validate_default_route_consistency(const NetplanParser* npp, GHashTable* netdefs, GError** error);
+
+gboolean
+adopt_and_validate_vrf_routes(const NetplanParser* npp, GHashTable* netdefs, GError** error);

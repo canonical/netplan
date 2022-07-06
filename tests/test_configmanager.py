@@ -113,6 +113,15 @@ class TestConfigManager(unittest.TestCase):
       interfaces: [ ethbr2 ]
       parameters:
         stp: on
+  vrfs:
+    vrf1005:
+      table: 1005
+      interfaces:
+        - br3
+        - br4
+    vrf1006:
+      table: 1006
+      interfaces: []
   bonds:
     bond5:
       interfaces: [ ethbond1 ]
@@ -163,6 +172,7 @@ class TestConfigManager(unittest.TestCase):
         self.assertEqual('networkd', state.backend)
         self.assertIn('fallback',    state.nm_devices)
 
+        self.assertIn('vrf1005', self.configmanager.virtual_interfaces)
         self.assertIn('vlan2',   self.configmanager.virtual_interfaces)
         self.assertIn('br3',     self.configmanager.virtual_interfaces)
         self.assertIn('br4',     self.configmanager.virtual_interfaces)

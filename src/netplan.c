@@ -495,7 +495,9 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
             if (r->scope && g_strcmp0(r->scope, "global") != 0)
                 YAML_NONNULL_STRING(event, emitter, "scope", r->scope);
             YAML_UINT_DEFAULT(def, event, emitter, "metric", r->metric, NETPLAN_METRIC_UNSPEC);
-            YAML_UINT_DEFAULT(def, event, emitter, "table", r->table, NETPLAN_ROUTE_TABLE_UNSPEC);
+            /* VRF devices use the VRF routing table implicitly */
+            if (def->type != NETPLAN_DEF_TYPE_VRF)
+                YAML_UINT_DEFAULT(def, event, emitter, "table", r->table, NETPLAN_ROUTE_TABLE_UNSPEC);
             YAML_UINT_0(def, event, emitter, "mtu", r->mtubytes);
             YAML_UINT_0(def, event, emitter, "congestion-window", r->congestion_window);
             YAML_UINT_0(def, event, emitter, "advertised-receive-window", r->advertised_receive_window);
@@ -514,7 +516,9 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
         for (unsigned i = 0; i < def->ip_rules->len; ++i) {
             NetplanIPRule *r = g_array_index(def->ip_rules, NetplanIPRule*, i);
             YAML_MAPPING_OPEN(event, emitter);
-            YAML_UINT_DEFAULT(def, event, emitter, "table", r->table, NETPLAN_ROUTE_TABLE_UNSPEC);
+            /* VRF devices use the VRF routing table implicitly */
+            if (def->type != NETPLAN_DEF_TYPE_VRF)
+                YAML_UINT_DEFAULT(def, event, emitter, "table", r->table, NETPLAN_ROUTE_TABLE_UNSPEC);
             YAML_UINT_DEFAULT(def, event, emitter, "priority", r->priority, NETPLAN_IP_RULE_PRIO_UNSPEC);
             YAML_UINT_DEFAULT(def, event, emitter, "type-of-service", r->tos, NETPLAN_IP_RULE_TOS_UNSPEC);
             YAML_UINT_DEFAULT(def, event, emitter, "mark", r->fwmark, NETPLAN_IP_RULE_FW_MARK_UNSPEC);
@@ -702,12 +706,12 @@ _serialize_yaml(
                    def->sriov_delay_virtual_functions_rebind);
 
     /* Search interfaces */
-    if (def->type == NETPLAN_DEF_TYPE_BRIDGE || def->type == NETPLAN_DEF_TYPE_BOND) {
+    if (def->type == NETPLAN_DEF_TYPE_BRIDGE || def->type == NETPLAN_DEF_TYPE_BOND || def->type == NETPLAN_DEF_TYPE_VRF) {
         tmp_arr = g_array_new(FALSE, FALSE, sizeof(NetplanNetDefinition*));
         g_hash_table_iter_init(&iter, np_state->netdefs);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
             NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
-            if (g_strcmp0(nd->bond, def->id) == 0 || g_strcmp0(nd->bridge, def->id) == 0)
+            if (g_strcmp0(nd->bond, def->id) == 0 || g_strcmp0(nd->bridge, def->id) == 0 || nd->vrf_link == def)
                 g_array_append_val(tmp_arr, nd);
         }
         if (tmp_arr->len > 0) {
@@ -732,6 +736,10 @@ _serialize_yaml(
         if (def->vlan_link)
             YAML_STRING(def, event, emitter, "link", def->vlan_link->id);
     }
+
+    /* VRF settings */
+    if (def->type == NETPLAN_DEF_TYPE_VRF)
+        YAML_UINT_DEFAULT(def, event, emitter, "table", def->vrf_table, G_MAXUINT);
 
     /* Tunnel settings */
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {

@@ -259,6 +259,9 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->vlan_link = NULL;
     netdef->has_vlans = FALSE;
 
+    netdef->vrf_link = NULL;
+    netdef->vrf_table = G_MAXUINT;
+
     FREE_AND_NULLIFY(netdef->set_mac);
     netdef->mtubytes = 0;
     netdef->ipv6_mtubytes = 0;
