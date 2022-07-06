@@ -32,6 +32,7 @@ import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
 from netplan.cli.sriov import apply_sriov_config
 from netplan.cli.ovs import apply_ovs_cleanup
+from netplan.libnetplan import LibNetplanException
 
 
 OVS_CLEANUP_SERVICE = 'netplan-ovs-cleanup.service'
@@ -388,7 +389,7 @@ class NetplanApply(utils.NetplanCommand):
     def process_sriov_config(config_manager, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
         try:
             apply_sriov_config(config_manager)
-        except (ConfigurationError, RuntimeError) as e:
+        except (ConfigurationError, RuntimeError, LibNetplanException) as e:
             logging.error(str(e))
             if exit_on_error:
                 sys.exit(1)

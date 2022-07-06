@@ -17,6 +17,7 @@
 
 '''netplan try command line'''
 
+import logging
 import os
 import time
 import shutil
@@ -24,7 +25,7 @@ import signal
 import sys
 import tempfile
 
-from netplan.configmanager import ConfigManager
+from netplan.configmanager import ConfigManager, ConfigurationError
 import netplan.cli.utils as utils
 from netplan.cli.commands.apply import NetplanApply
 import netplan.terminal
@@ -165,7 +166,13 @@ class NetplanTry(utils.NetplanCommand):
         extra_config = []
         if self.config_file:  # pragma: nocover
             extra_config.append(self.config_file)
-        np_state = self.config_manager.parse(extra_config=extra_config)
+        np_state = libnetplan.State()
+        try:
+            np_state = self.config_manager.parse(extra_config=extra_config)
+        except (libnetplan.LibNetplanException, ConfigurationError) as e:
+            logging.error(e)
+            sys.exit(os.EX_CONFIG)
+
         revert_unsupported = []
 
         # Bridges and bonds are special. They typically include (or could include)
