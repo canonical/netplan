@@ -453,6 +453,10 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
             g_string_append_printf(s, "Kind=vlan\n\n[VLAN]\nId=%u\n", def->vlan_id);
             break;
 
+        case NETPLAN_DEF_TYPE_VRF:
+            g_string_append_printf(s, "Kind=vrf\n\n[VRF]\nTable=%u\n", def->vrf_table);
+            break;
+
         case NETPLAN_DEF_TYPE_TUNNEL:
             switch(def->tunnel.mode) {
                 case NETPLAN_TUNNEL_MODE_GRE:
@@ -778,6 +782,10 @@ netplan_netdef_write_network_file(
                 g_string_append_printf(network, "VLAN=%s\n", nd->id);
         }
     }
+
+    /* VRF linkage */
+    if (def->vrf_link)
+        g_string_append_printf(network, "VRF=%s\n", def->vrf_link->id);
 
     if (def->routes != NULL) {
         for (unsigned i = 0; i < def->routes->len; ++i) {
