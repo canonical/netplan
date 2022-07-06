@@ -1,0 +1,18 @@
+network:
+  renderer: networkd
+  vrfs:
+    vrf1005:
+      table: 1005
+      interfaces:
+        - br1
+        - br1005
+      routes:
+        - to: default
+          via: 10.10.10.4
+      routing-policy:
+        - from: 10.10.10.42
+  bridges:
+    br1:
+      interfaces: []
+    br1005:
+      interfaces: []
