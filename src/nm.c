@@ -83,6 +83,8 @@ type_str(const NetplanNetDefinition* def)
             return "bond";
         case NETPLAN_DEF_TYPE_VLAN:
             return "vlan";
+        case NETPLAN_DEF_TYPE_VRF:
+            return "vrf";
         case NETPLAN_DEF_TYPE_TUNNEL:
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
@@ -606,6 +608,11 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
 
         if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
             write_bridge_params(def, kf);
+        if (def->type == NETPLAN_DEF_TYPE_VRF) {
+            g_key_file_set_uint64(kf, "vrf", "table", def->vrf_table);
+            write_routes(def, kf, AF_INET, error);
+            write_routes(def, kf, AF_INET6, error);
+        }
     }
     if (def->type == NETPLAN_DEF_TYPE_MODEM) {
         const char* modem_type = modem_is_gsm(def) ? "gsm" : "cdma";
@@ -650,6 +657,11 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     if (def->bond) {
         g_key_file_set_string(kf, "connection", "slave-type", "bond");
         g_key_file_set_string(kf, "connection", "master", def->bond);
+    }
+
+    if (def->vrf_link) {
+        g_key_file_set_string(kf, "connection", "slave-type", "vrf");
+        g_key_file_set_string(kf, "connection", "master", def->vrf_link->id);
     }
 
     if (def->ipv6_mtubytes) {
