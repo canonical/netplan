@@ -277,6 +277,51 @@ class _CommonTests():
         self.assertIn(b'metric 99',  # check metric from static route
                       subprocess.check_output(['ip', 'route', 'show', '10.10.10.0/24']))
 
+    def test_vrf_basic(self):
+        self.setup_eth('slaac')
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'vrf0'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'route', 'flush', 'table', '1000'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['ip', 'rule', 'del', 'from', '10.10.10.42', 'table', '1000'],
+                        stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: [10.10.10.22/24]
+      routes:
+      - to: 11.11.11.0/24
+        via: 10.10.10.2
+        table: 1000
+  vrfs:
+    vrf0:
+      table: 1000
+      interfaces: [%(ec)s]
+      routes:
+      - to: 10.10.0.0/16
+        via: 10.10.10.1
+      routing-policy:
+      - from: 10.10.10.42
+''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22', 'master vrf0'])
+        self.assert_iface_up('vrf0', ['MASTER'])
+        # verify routes didn't leak into the main routing table
+        out = subprocess.check_output(['ip', 'route', 'show'], universal_newlines=True)
+        self.assertNotIn('10.10.0.0/16', out)
+        self.assertNotIn('11.11.11.0/24', out)
+        # verify routes were added to the VRF's routing table
+        out = subprocess.check_output(['ip', 'route', 'show', 'table', '1000'],
+                                      universal_newlines=True)
+        self.assertIn('10.10.0.0/16 via 10.10.10.1 dev vrf0', out)
+        self.assertIn('11.11.11.0/24 via 10.10.10.2 dev {}'.format(self.dev_e_client), out)
+
+        # verify routing policy was setup correctly to the VRF's table
+        # 'routing-policy' is not supported on NetworkManager
+        if self.backend == 'networkd':
+            out = subprocess.check_output(['ip', 'rule', 'show'], universal_newlines=True)
+            self.assertIn('from 10.10.10.42 lookup 1000', out)
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")
