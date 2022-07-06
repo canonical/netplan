@@ -21,8 +21,10 @@ jobs:
       - uses: actions/checkout@v2
 
       # Installs the build dependencies
+      # Always include phased updates (LP: #1979244)
       - name: Install build depends
         run: |
+          echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           #sudo apt install lcov python3-coverage curl

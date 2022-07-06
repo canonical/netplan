@@ -22,8 +22,10 @@ jobs:
 
       # Installs the build dependencies, simulating a TTY/PTY via 'unbuffer' to
       # to fix test_terminal.py on GA (https://github.com/actions/runner/issues/241)
+      # Always include phased updates (LP: #1979244)
       - name: Install build depends
         run: |
+          echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           sudo apt install python3-coverage curl meson gcovr expect
