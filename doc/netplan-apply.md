@@ -50,7 +50,7 @@ see **netplan**(5).
 **netplan apply** will not remove virtual devices such as bridges and bonds
 that have been created, even if they are no longer described in the netplan
 configuration. That is due to the fact that netplan operates statelessly and
-is not aware of the previously defined virtal devices.
+is not aware of the previously defined virtual devices.
 
 This can be resolved by manually removing the virtual device (for example
 ``ip link delete dev bond0``) and then running **netplan apply**, by rebooting,
