@@ -12,7 +12,7 @@ on:
 jobs:
   lxd-ubuntu-jammy:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -20,16 +20,22 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           git fetch --unshallow --tags
+      # Install openvswitch-switch to make the OVS integration tests work
+      # Install linux-modules-extra-azure to provide the 'vrf' kernel module,
+      # it's needed (will be auto-loaded) by routing.test_vrf_basic
       - name: Install dependencies
         run: |
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch
+          sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-azure
           sudo snap install lxd
           sudo lxd init --auto --storage-backend=dir
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
+          # Fix Docker blocking LXD networking:
+          # https://discuss.linuxcontainers.org/t/9953/4
+          sudo iptables -I DOCKER-USER  -j ACCEPT
           sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
           sudo autopkgtest-build-lxd ubuntu-daily:jammy
       - name: Prepare test
