@@ -1,0 +1,7 @@
+sphinx
+furo
+sphinx-design
+sphinxcontrib-spelling
+sphinx-autobuild
+pyenchant
+myst-parser
