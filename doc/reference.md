@@ -1,3 +1,7 @@
+---
+title: "YAML reference"
+---
+
 ## Introduction
 Distribution installers, cloud instantiation, image builds for particular
 devices, or any other way to deploy an operating system put its desired
