@@ -4,6 +4,7 @@
 reference
 examples
 dbus-config
+tutorials
 ```
 
 ## In this documentation
@@ -19,7 +20,7 @@ dbus-config
 [How to use DBus config API](dbus-config.md) – Using Netplan's DBus config Get/Set/Try API
 
 ### Tutorials
-TODO: list external blog posts
+[External tutorials](tutorials.md) – Listing of external Netplan tutorials
 
 ### Explanation
 [Netplan Design](https://netplan.io/design) – Network configuration abstraction via systemd-generator
