@@ -12,7 +12,7 @@ http://netplan.io
 
 An overview of the architecture can be found at [netplan.io/design](https://netplan.io/design)
 
-The full documentation for netplan is available in the [doc/netplan.md file](../master/doc/netplan.md)
+The full documentation for netplan is available in the [doc/](../main/doc/) directory.
 
 # Build using Meson
 

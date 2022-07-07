@@ -17,12 +17,12 @@ fi
 for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/parse.c | sort | uniq); do
     # it can be documented in the following ways.
     # 1. "Properties for device type ``blah:``
-    if egrep "## Properties for device type \`\`$term:\`\`" doc/netplan.md > /dev/null; then
+    if egrep "## Properties for device type \`\`$term:\`\`" doc/reference.md > /dev/null; then
         continue
     fi
 
     # 2. "[blah, ]``blah``[, ``blah2``]: (scalar|bool|...)
-    if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/netplan.md > /dev/null; then
+    if egrep "\`\`$term\`\`.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/reference.md > /dev/null; then
         continue
     fi
 
