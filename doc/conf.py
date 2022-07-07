@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'netplan'
-copyright = '2022, netplan team'
-author = 'netplan team'
+project = 'Netplan'
+copyright = '2022, Netplan team'
+author = 'Netplan team'
 
 
 # -- General configuration ---------------------------------------------------
