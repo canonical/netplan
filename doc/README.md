@@ -2,6 +2,8 @@
 
 ```{toctree}
 reference
+examples
+dbus-config
 ```
 
 ## In this documentation
@@ -12,7 +14,9 @@ reference
 [API reference](https://discourse.ubuntu.com/t/29106) – C API and Python bindings for libnetplan
 
 ### How-to guides
-TODO: DBus API usage (from dbus_config_scenario.txt)
+[Examples](examples.md) – Some YAML configuration examples for common scenarios
+<br/>
+[How to use DBus config API](dbus-config.md) – Using Netplan's DBus config Get/Set/Try API
 
 ### Tutorials
 TODO: list external blog posts
