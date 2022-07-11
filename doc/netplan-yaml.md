@@ -7,7 +7,7 @@ Distribution installers, cloud instantiation, image builds for particular
 devices, or any other way to deploy an operating system put its desired
 network configuration into YAML configuration file(s). During
 early boot, the netplan "network renderer" runs which reads
-``/{lib,etc,run}/netplan/*.yaml`` and writes configuration to ``/run`` to hand
+`/{lib,etc,run}/netplan/*.yaml` and writes configuration to `/run` to hand
 off control of devices to the specified networking daemon.
 
  - Configured devices get handled by systemd-networkd by default,
@@ -15,254 +15,279 @@ off control of devices to the specified networking daemon.
  - Devices not covered by the network config do not get touched at all.
  - Usable in initramfs (few dependencies and fast)
  - No persistent generated config, only original YAML config
- - Parser supports multiple config files to allow applications like libvirt or lxd
-   to package up expected network config (``virbr0``, ``lxdbr0``), or to change the
-   global default policy to use NetworkManager for everything.
+ - Parser supports multiple config files to allow applications like libvirt or
+   lxd to package up expected network config (`virbr0`, `lxdbr0`), or to change
+   the global default policy to use NetworkManager for everything.
  - Retains the flexibility to change backends/policy later or adjust to
    removing NetworkManager, as generated configuration is ephemeral.
 
 ## General structure
 netplan's configuration files use the
 [YAML](<http://yaml.org/spec/1.1/current.html>) format. All
-``/{lib,etc,run}/netplan/*.yaml`` are considered. Lexicographically later files
+`/{lib,etc,run}/netplan/*.yaml` are considered. Lexicographically later files
 (regardless of in which directory they are) amend (new mapping keys) or
-override (same mapping keys) previous ones. A file in ``/run/netplan``
-completely shadows a file with same name in ``/etc/netplan``, and a file in
-either of those directories shadows a file with the same name in
-``/lib/netplan``.
+override (same mapping keys) previous ones. A file in `/run/netplan`
+completely shadows a file with same name in `/etc/netplan`, and a file in
+either of those directories shadows a file with the same name in `/lib/netplan`.
 
-The top-level node in a netplan configuration file is a ``network:`` mapping
-that contains ``version: 2`` (the YAML currently being used by curtin, MaaS,
+The top-level node in a netplan configuration file is a `network:` mapping
+that contains `version: 2` (the YAML currently being used by curtin, MaaS,
 etc. is version 1), and then device definitions grouped by their type, such as
-``ethernets:``, ``modems:``, ``wifis:``, or ``bridges:``. These are the types that our
+`ethernets:`, `modems:`, `wifis:`, or `bridges:`. These are the types that our
 renderer can understand and are supported by our backends.
 
 Each type block contains device definitions as a map where the keys (called
 "configuration IDs") are defined as below.
 
 ## Device configuration IDs
-The key names below the per-device-type definition maps (like ``ethernets:``)
+The key names below the per-device-type definition maps (like `ethernets:`)
 are called "ID"s. They must be unique throughout the entire set of
 configuration files. Their primary purpose is to serve as anchor names for
 composite devices, for example to enumerate the members of a bridge that is
 currently being defined.
 
-(Since 0.97) If an interface is defined with an ID in a configuration file; it will
-be brought up by the applicable renderer. To not have netplan touch an interface
-at all, it should be completely omitted from the netplan configuration files.
+(Since 0.97) If an interface is defined with an ID in a configuration file; it
+will be brought up by the applicable renderer. To not have netplan touch an
+interface at all, it should be completely omitted from the netplan configuration
+files.
 
 There are two physically/structurally different classes of device definitions,
 and the ID field has a different interpretation for each:
 
 Physical devices
 
-:   (Examples: ethernet, modem, wifi) These can dynamically come and go between
-    reboots and even during runtime (hotplugging). In the generic case, they
-    can be selected by ``match:`` rules on desired properties, such as name/name
-    pattern, MAC address, driver, or device paths. In general these will match
-    any number of devices (unless they refer to properties which are unique
-    such as the full path or MAC address), so without further knowledge about
-    the  hardware these will always be considered as a group.
-
-    It is valid to specify no match rules at all, in which case the ID field is
-    simply the interface name to be matched. This is mostly useful if you want
-    to keep simple cases simple, and it's how network device configuration has
-    been done for a long time.
-
-    If there are ``match``: rules, then the ID field is a purely opaque name
-    which is only being used  for references from definitions of compound
-    devices in the config.
-
+> (Examples: ethernet, modem, wifi) These can dynamically come and go between
+> reboots and even during runtime (hotplugging). In the generic case, they
+> can be selected by `match:` rules on desired properties, such as name/name
+> pattern, MAC address, driver, or device paths. In general these will match
+> any number of devices (unless they refer to properties which are unique
+> such as the full path or MAC address), so without further knowledge about
+> the  hardware these will always be considered as a group.
+>
+> It is valid to specify no match rules at all, in which case the ID field is
+> simply the interface name to be matched. This is mostly useful if you want
+> to keep simple cases simple, and it's how network device configuration has
+> been done for a long time.
+>
+> If there are ``match``: rules, then the ID field is a purely opaque name
+> which is only being used  for references from definitions of compound
+> devices in the config.
 
 Virtual devices
 
-:  (Examples: veth, bridge, bond) These are fully under the control of the
-   config file(s) and the network stack. I. e. these devices are being created
-   instead of matched. Thus ``match:`` and ``set-name:`` are not applicable for
-   these, and the ID field is the name of the created virtual device.
+> (Examples: veth, bridge, bond) These are fully under the control of the
+> config file(s) and the network stack. I. e. these devices are being created
+> instead of matched. Thus `match:` and `set-name:` are not applicable for
+> these, and the ID field is the name of the created virtual device.
 
 ## Common properties for physical device types
 
 **Note:** Some options will not work reliably for devices matched by name only
 and rendered by networkd, due to interactions with device renaming in udev.
-Match devices by MAC when setting options like: ``wakeonlan`` or ``*-offload``.
+Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
-``match`` (mapping)
+- **match** (mapping)
 
-:    This selects a subset of available physical devices by various hardware
-     properties. The following configuration will then apply to all matching
-     devices, as soon as they appear. *All* specified properties must match.
+  > This selects a subset of available physical devices by various hardware
+  > properties. The following configuration will then apply to all matching
+  > devices, as soon as they appear. *All* specified properties must match.
 
-     ``name`` (scalar)
-     :   Current interface name. Globs are supported, and the primary use case
-         for matching on names, as selecting one fixed name can be more easily
-         achieved with having no ``match:`` at all and just using the ID (see
-         above).
-         (``NetworkManager``: as of v1.14.0)
+  - **name** (scalar)
 
-     ``macaddress`` (scalar)
-     :   Device's 6-byte MAC address in the form "XX:XX:XX:XX:XX:XX" or 20
-         bytes for InfiniBand devices (IPoIB). Globs are not allowed.
+    > Current interface name. Globs are supported, and the primary use case for
+    > matching on names, as selecting one fixed name can be more easily achieved
+    > with having no `match:` at all and just using the ID (see above).
+    > (`NetworkManager`: as of v1.14.0)
 
-     ``driver`` (scalar or sequence of scalars) – sequence since **0.104**
-     :   Kernel driver name, corresponding to the ``DRIVER`` udev property.
-         A sequence of globs is supported, any of which must match.
-         Matching on driver is *only* supported with networkd.
+  - **macaddress** (scalar)
 
-     Examples:
+    > Device's 6-byte MAC address in the form "XX:XX:XX:XX:XX:XX" or 20 bytes
+    > for InfiniBand devices (IPoIB). Globs are not allowed.
 
-     - all cards on second PCI bus:
+  - **driver** (scalar or sequence of scalars) – sequence since **0.104**
 
-            match:
-              name: enp2*
+    > Kernel driver name, corresponding to the `DRIVER` udev property.
+    > A sequence of globs is supported, any of which must match.
+    > Matching on driver is *only* supported with networkd.
 
-     - fixed MAC address:
+  Examples:
 
-            match:
-              macaddress: 11:22:33:AA:BB:FF
+  - All cards on second PCI bus:
+    ```yaml
+    match:
+      name: enp2*
+    ```
 
-     - first card of driver ``ixgbe``:
+  - Fixed MAC address:
+    ```yaml
+    match:
+      macaddress: 11:22:33:AA:BB:FF
+    ```
 
-            match:
-              driver: ixgbe
-              name: en*s0
+  - First card of driver ``ixgbe``:
+    ```yaml
+    match:
+      driver: ixgbe
+      name: en*s0
+    ```
 
-     - first card with a driver matching ``bcmgenet`` or ``smsc*``:
+  - First card with a driver matching ``bcmgenet`` or ``smsc*``:
+    ```yaml
+    match:
+      driver: ["bcmgenet", "smsc*"]
+      name: en*
+    ```
 
-            match:
-              driver: ["bcmgenet", "smsc*"]
-              name: en*
+- **set-name** (scalar)
 
-``set-name`` (scalar)
+  > When matching on unique properties such as path or MAC, or with additional
+  > assumptions such as "there will only ever be one wifi device", match rules
+  > can be written so that they only match one device. Then this property can be
+  > used to give that device a more specific/desirable/nicer name than the
+  > default from udev's ifnames. Any additional device that satisfies the match
+  > rules will then fail to get renamed and keep the original kernel name (and
+  > dmesg will show an error).
 
-:    When matching on unique properties such as path or MAC, or with additional
-     assumptions such as "there will only ever be one wifi device",
-     match rules can be written so that they only match one device. Then this
-     property can be used to give that device a more specific/desirable/nicer
-     name than the default from udev’s ifnames.  Any additional device that
-     satisfies the match rules will then fail to get renamed and keep the
-     original kernel name (and dmesg will show an error).
+- **wakeonlan** (bool)
 
-``wakeonlan`` (bool)
+  > Enable wake on LAN. Off by default.
 
-:    Enable wake on LAN. Off by default.
+- **emit-lldp** (bool) – since **0.99**
 
-``emit-lldp`` (bool) – since **0.99**
+  > (networkd backend only) Whether to emit LLDP packets. Off by default.
 
-:    (networkd backend only) Whether to emit LLDP packets. Off by default.
+- **receive-checksum-offload** (bool) – since **0.104**
 
-``receive-checksum-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the hardware offload for
+  > checksumming of ingress network packets is enabled (disabled). When unset,
+  > the kernel's default will be used.
 
-:    (networkd backend only) If set to true (false), the hardware offload for
-     checksumming of ingress network packets is enabled (disabled). When unset,
-     the kernel's default will be used.
+- **transmit-checksum-offload** (bool) – since **0.104**
 
-``transmit-checksum-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the hardware offload for
+  > checksumming of egress network packets is enabled (disabled). When unset,
+  > the kernel's default will be used.
 
-:    (networkd backend only) If set to true (false), the hardware offload for
-     checksumming of egress network packets is enabled (disabled). When unset,
-     the kernel's default will be used.
+- **tcp-segmentation-offload** (bool) – since **0.104**
 
-``tcp-segmentation-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the TCP Segmentation
+  > Offload (TSO) is enabled (disabled). When unset, the kernel's default will
+  > be used.
 
-:    (networkd backend only) If set to true (false), the TCP Segmentation
-     Offload (TSO) is enabled (disabled). When unset, the kernel's default will
-     be used.
+- **tcp6-segmentation-offload** (bool) – since **0.104**
 
-``tcp6-segmentation-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the TCP6 Segmentation
+  > Offload (tx-tcp6-segmentation) is enabled (disabled). When unset, the
+  > kernel's default will be used.
 
-:    (networkd backend only) If set to true (false), the TCP6 Segmentation
-     Offload (tx-tcp6-segmentation) is enabled (disabled). When unset, the
-     kernel's default will be used.
+- **generic-segmentation-offload** (bool) – since **0.104**
 
-``generic-segmentation-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the Generic Segmentation
+  > Offload (GSO) is enabled (disabled). When unset, the kernel's default will
+  > be used.
 
-:    (networkd backend only) If set to true (false), the Generic Segmentation
-     Offload (GSO) is enabled (disabled). When unset, the kernel's default will
-     be used.
+- **generic-receive-offload** (bool) – since **0.104**
 
-``generic-receive-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the Generic Receive
+  > Offload (GRO) is enabled (disabled). When unset, the kernel's default will
+  > be used.
 
-:    (networkd backend only) If set to true (false), the Generic Receive
-     Offload (GRO) is enabled (disabled). When unset, the kernel's default will
-     be used.
+- **large-receive-offload** (bool) – since **0.104**
 
-``large-receive-offload`` (bool) – since **0.104**
+  > (networkd backend only) If set to true (false), the Large Receive Offload
+  > (LRO) is enabled (disabled). When unset, the kernel's default will
+  > be used.
 
-:    (networkd backend only) If set to true (false), the Large Receive Offload
-     (LRO) is enabled (disabled). When unset, the kernel's default will
-     be used.
+- **openvswitch** (mapping) – since **0.100**
 
-``openvswitch`` (mapping) – since **0.100**
+  > This provides additional configuration for the openvswitch network device.
+  > If Open vSwitch is not available on the system, netplan treats the presence
+  > of `openvswitch` configuration as an error.
+  >
+  > Any supported network device that is declared with the `openvswitch`
+  > mapping (or any bond/bridge that includes an interface with an openvswitch
+  > configuration) will be created in openvswitch instead of the defined
+  > renderer. In the case of a `vlan` definition declared the same way,
+  > netplan will create a fake VLAN bridge in openvswitch with the requested
+  > `vlan` properties.
 
-:    This provides additional configuration for the network device for openvswitch.
-     If openvswitch is not available on the system, netplan treats the presence of
-     openvswitch configuration as an error.
+  - **external-ids** (mapping) – since **0.100**
 
-     Any supported network device that is declared with the ``openvswitch`` mapping
-     (or any bond/bridge that includes an interface with an openvswitch configuration)
-     will be created in openvswitch instead of the defined renderer.
-     In the case of a ``vlan`` definition declared the same way, netplan will create
-     a fake VLAN bridge in openvswitch with the requested vlan properties.
+    > Passed-through directly to Open vSwitch
 
-     ``external-ids`` (mapping) – since **0.100**
-     :   Passed-through directly to OpenVSwitch
+  - **other-config** (mapping) – since **0.100**
 
-     ``other-config`` (mapping) – since **0.100**
-     :   Passed-through directly to OpenVSwitch
+    > Passed-through directly to Open vSwitch
 
-     ``lacp`` (scalar) – since **0.100**
-     :   Valid for bond interfaces. Accepts ``active``, ``passive`` or ``off`` (the default).
+  - **lacp** (scalar) – since **0.100**
 
-     ``fail-mode`` (scalar) – since **0.100**
-     :   Valid for bridge interfaces. Accepts ``secure`` or ``standalone`` (the default).
+    > Valid for bond interfaces. Accepts `active`, `passive` or `off` (the
+    > default).
 
-     ``mcast-snooping`` (bool) – since **0.100**
-     :   Valid for bridge interfaces. False by default.
+  - **fail-mode** (scalar) – since **0.100**
 
-     ``protocols`` (sequence of scalars) – since **0.100**
-     :   Valid for bridge interfaces or the network section. List of protocols to be used when
-         negotiating a connection with the controller. Accepts ``OpenFlow10``, ``OpenFlow11``,
-         ``OpenFlow12``, ``OpenFlow13``, ``OpenFlow14``, ``OpenFlow15`` and ``OpenFlow16``.
+    > Valid for bridge interfaces. Accepts `secure` or `standalone` (the
+    > default).
 
-     ``rstp`` (bool) – since **0.100**
-     :   Valid for bridge interfaces. False by default.
+  - **mcast-snooping** (bool) – since **0.100**
 
-     ``controller`` (mapping) – since **0.100**
-     :   Valid for bridge interfaces. Specify an external OpenFlow controller.
+    > Valid for bridge interfaces. False by default.
 
-          ``addresses`` (sequence of scalars)
-          :   Set the list of addresses to use for the controller targets. The
-              syntax of these addresses is as defined in ovs-vsctl(8). Example:
-              addresses: ``[tcp:127.0.0.1:6653, "ssl:[fe80::1234%eth0]:6653"]``
+  - **protocols** (sequence of scalars) – since **0.100**
 
-          ``connection-mode`` (scalar)
-          :   Set the connection mode for the controller. Supported options are
-              ``in-band`` and ``out-of-band``. The default is ``in-band``.
+    > Valid for bridge interfaces or the network section. List of protocols to
+    > be used when negotiating a connection with the controller. Accepts
+    > `OpenFlow10`, `OpenFlow11`, `OpenFlow12`, `OpenFlow13`, `OpenFlow14`,
+    > `OpenFlow15` and `OpenFlow16`.
 
-     ``ports`` (sequence of sequence of scalars) – since **0.100**
-     :   OpenvSwitch patch ports. Each port is declared as a pair of names
-         which can be referenced as interfaces in dependent virtual devices
-         (bonds, bridges).
+  - **rstp** (bool) – since **0.100**
 
-         Example:
+    > Valid for bridge interfaces. False by default.
 
-             openvswitch:
-               ports:
-                 - [patch0-1, patch1-0]
+  - **controller** (mapping) – since **0.100**
 
-     ``ssl`` (mapping) – since **0.100**
-     :   Valid for global ``openvswitch`` settings. Options for configuring SSL
-         server endpoint for the switch.
+    > Valid for bridge interfaces. Specify an external OpenFlow controller.
 
-          ``ca-cert`` (scalar)
-          :   Path to a file containing the CA certificate to be used.
+    - **addresses** (sequence of scalars)
 
-          ``certificate`` (scalar)
-          :   Path to a file containing the server certificate.
+      > Set the list of addresses to use for the controller targets. The
+      > syntax of these addresses is as defined in ovs-vsctl(8). Example:
+      > addresses: `[tcp:127.0.0.1:6653, "ssl:[fe80::1234%eth0]:6653"]`
 
-          ``private-key`` (scalar)
-          :   Path to a file containing the private key for the server.
+    - **connection-mode** (scalar)
+
+      > Set the connection mode for the controller. Supported options are
+      > `in-band` and `out-of-band`. The default is `in-band`.
+
+  - **ports** (sequence of sequence of scalars) – since **0.100**
+
+    > Open vSwitch patch ports. Each port is declared as a pair of names
+    > which can be referenced as interfaces in dependent virtual devices
+    > (bonds, bridges).
+
+    Example:
+    ```yaml
+    openvswitch:
+      ports:
+        - [patch0-1, patch1-0]
+    ```
+
+  - **ssl** (mapping) – since **0.100**
+
+    > Valid for global `openvswitch` settings. Options for configuring SSL
+    > server endpoint for the switch.
+
+    - **ca-cert** (scalar)
+
+      > Path to a file containing the CA certificate to be used.
+
+    - **certificate** (scalar)
+ 
+      > Path to a file containing the server certificate.
+
+    - **private-key** (scalar)
+
+      > Path to a file containing the private key for the server.
 
 ## Common properties for all device types
 
@@ -1433,5 +1458,4 @@ consumer of that backend. Currently, this is only used with ``NetworkManager``.
      ``passthrough`` (mapping) – since **0.102**
      :    Can be used as a fallback mechanism to missing keyfile settings.
 
-<!--- vim: ft=markdown
--->
+<!--- vim: ft=markdown -->
