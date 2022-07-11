@@ -1,16 +1,21 @@
 # Examples
 
-Below are a collection of example netplan configurations for common scenarios. If you see a scenario missing or have one to contribute, please file a bug against this documentation with the example using the links at the bottom of this page. Thank you!
+Below are a collection of example netplan configurations for common scenarios.
+If you see a scenario missing or have one to contribute, please file a bug
+against this documentation with the example.
 
-Also, see [/examples](https://github.com/canonical/netplan/tree/main/examples) on GitHub.
+To configure netplan, save configuration files under `/etc/netplan/` with a
+`.yaml` extension (e.g. `/etc/netplan/config.yaml`), then run
+`sudo netplan apply`. This command parses and applies the configuration to the
+system. Configuration written to disk under `/etc/netplan/` will persist between
+reboots.
 
-## Configuration
-
-To configure netplan, save configuration files under `/etc/netplan/` with a `.yaml` extension (e.g. `/etc/netplan/config.yaml`), then run `sudo netplan apply`. This command parses and applies the configuration to the system. Configuration written to disk under `/etc/netplan/` will persist between reboots.
+Also, see [/examples](https://github.com/canonical/netplan/tree/main/examples)
+on GitHub.
 
 ## Using DHCP and static addressing
 
-To let the interface named 'enp3s0' get an address via DHCP, create a YAML file with the following:
+To let the interface named `enp3s0` get an address via DHCP, create a YAML file with the following:
 
 ```yaml
 network:
@@ -162,28 +167,32 @@ network:
           via: 10.100.1.1
 ```
 
-
 ## Using multiple addresses with multiple gateways
 
 Similar to the example above, interfaces with multiple addresses can be
-configured with multiple gateways.
+configured with multiple gateways, and static DNS nameservers (Google DNS for
+this example):
 
 ```yaml
 network:
-    version: 2
-    renderer: networkd
-    ethernets:
-        enp3s0:
-         addresses:
-            - 10.0.0.10/24
-            - 11.0.0.11/24
-            routes:
-            - to: default
-              via: 10.0.0.1
-              metric: 200
-            - to: default
-              via: 11.0.0.1
-              metric: 300
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp3s0:
+        addresses:
+          - 10.0.0.10/24
+          - 11.0.0.11/24
+        nameservers:
+          addresses:
+            - 8.8.8.8
+            - 8.8.4.4
+        routes:
+          - to: default
+            via: 10.0.0.1
+            metric: 200
+          - to: default
+            via: 11.0.0.1
+            metric: 300
 ```
 
 We configure individual routes to default (or 0.0.0.0/0) using the address of the gateway for the subnet. The `metric` value should be adjusted so the routing happens as expected.
@@ -502,4 +511,86 @@ network:
                 name: enp1s16f[2-3]
             link: eno1
             addresses : [ "10.15.99.25/24" ]
+```
+
+## Complex example
+This is a complex example which shows most available features
+
+```yaml
+    network:
+      version: 2
+      # if specified, can only realistically have that value, as networkd cannot
+      # render wifi/3G.
+      renderer: NetworkManager
+      ethernets:
+        # opaque ID for physical interfaces, only referred to by other stanzas
+        id0:
+          match:
+            macaddress: 00:11:22:33:44:55
+          wakeonlan: true
+          dhcp4: true
+          addresses:
+            - 192.168.14.2/24
+            - 192.168.14.3/24
+            - "2001:1::1/64"
+          nameservers:
+            search: [foo.local, bar.local]
+            addresses: [8.8.8.8]
+          routes:
+            - to: default
+              via: 192.168.14.1
+            - to: default
+              via: "2001:1::2"
+            - to: 0.0.0.0/0
+              via: 11.0.0.1
+              table: 70
+              on-link: true
+              metric: 3
+          routing-policy:
+            - to: 10.0.0.0/8
+              from: 192.168.14.2/24
+              table: 70
+              priority: 100
+            - to: 20.0.0.0/8
+              from: 192.168.14.3/24
+              table: 70
+              priority: 50
+          # only networkd can render on-link routes and routing policies
+          renderer: networkd
+        lom:
+          match:
+            driver: ixgbe
+          # you are responsible for setting tight enough match rules
+          # that only match one device if you use set-name
+          set-name: lom1
+          dhcp6: true
+        switchports:
+          # all cards on second PCI bus unconfigured by
+          # themselves, will be added to br0 below
+          match:
+            name: enp2*
+          mtu: 1280
+      wifis:
+        all-wlans:
+          # useful on a system where you know there is
+          # only ever going to be one device
+          match: {}
+          access-points:
+            "Joe's home":
+              # mode defaults to "infrastructure" (client)
+              password: "s3kr1t"
+        # this creates an AP on wlp1s0 using hostapd
+        # no match rules, thus the ID is the interface name
+        wlp1s0:
+          access-points:
+            "guest":
+               mode: ap
+               # no WPA config implies default of open
+      bridges:
+        # the key name is the name for virtual (created) interfaces
+        # no match: and set-name: allowed
+        br0:
+          # IDs of the components; switchports expands into multiple interfaces
+          interfaces: [wlp1s0, switchports]
+          dhcp4: true
 ```

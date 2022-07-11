@@ -1,6 +1,6 @@
 # How-to guides
 
 ```{toctree}
-dbus-config
 examples
+dbus-config
 ```
