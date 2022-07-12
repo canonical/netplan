@@ -812,56 +812,66 @@ eth1:
 
 ## Authentication
 Netplan supports advanced authentication settings for ethernet and wifi
-interfaces, as well as individual wifi networks, by means of the ``auth`` block.
+interfaces, as well as individual wifi networks, by means of the `auth` block.
 
-``auth`` (mapping)
+- **auth** (mapping)
 
-:    Specifies authentication settings for a device of type ``ethernets:``, or
-     an ``access-points:`` entry on a ``wifis:`` device.
+  > Specifies authentication settings for a device of type `ethernets:`, or
+  > an `access-points:` entry on a `wifis:` device.
+  >
+  > The `auth` block supports the following properties:
 
-     The ``auth`` block supports the following properties:
+  - **key-management** (scalar)
 
-     ``key-management`` (scalar)
-     :    The supported key management modes are ``none`` (no key management);
-          ``psk`` (WPA with pre-shared key, common for home wifi); ``eap`` (WPA
-          with EAP, common for enterprise wifi); and ``802.1x`` (used primarily
-          for wired Ethernet connections).
+    > The supported key management modes are `none` (no key management);
+    > `psk` (WPA with pre-shared key, common for home wifi); `eap` (WPA
+    > with EAP, common for enterprise wifi); and `802.1x` (used primarily
+    > for wired Ethernet connections).
 
-     ``password`` (scalar)
-     :    The password string for EAP, or the pre-shared key for WPA-PSK.
+  - **password** (scalar)
 
-     The following properties can be used if ``key-management`` is ``eap``
-     or ``802.1x``:
+    > The password string for EAP, or the pre-shared key for WPA-PSK.
 
-     ``method`` (scalar)
-     :    The EAP method to use. The supported EAP methods are ``tls`` (TLS),
-          ``peap`` (Protected EAP), and ``ttls`` (Tunneled TLS).
+    The following properties can be used if `key-management` is `eap`
+    or `802.1x`:
 
-     ``identity`` (scalar)
-     :    The identity to use for EAP.
+  - **method** (scalar)
 
-     ``anonymous-identity`` (scalar)
-     :    The identity to pass over the unencrypted channel if the chosen EAP
-          method supports passing a different tunnelled identity.
+     > The EAP method to use. The supported EAP methods are `tls` (TLS),
+    > `peap` (Protected EAP), and `ttls` (Tunneled TLS).
 
-     ``ca-certificate`` (scalar)
-     :    Path to a file with one or more trusted certificate authority (CA)
-          certificates.
+  - **identity** (scalar)
 
-     ``client-certificate`` (scalar)
-     :    Path to a file containing the certificate to be used by the client
-          during authentication.
+    > The identity to use for EAP.
 
-     ``client-key`` (scalar)
-     :    Path to a file containing the private key corresponding to
-          ``client-certificate``.
+  - **anonymous-identity** (scalar)
 
-     ``client-key-password`` (scalar)
-     :    Password to use to decrypt the private key specified in
-          ``client-key`` if it is encrypted.
+    > The identity to pass over the unencrypted channel if the chosen EAP
+    > method supports passing a different tunnelled identity.
 
-     ``phase2-auth`` (scalar) – since **0.99**
-     :    Phase 2 authentication mechanism.
+  - **ca-certificate** (scalar)
+
+    > Path to a file with one or more trusted certificate authority (CA)
+    > certificates.
+
+  - **client-certificate** (scalar)
+
+    > Path to a file containing the certificate to be used by the client
+    > during authentication.
+
+  - **client-key** (scalar)
+
+    > Path to a file containing the private key corresponding to
+    > `client-certificate`.
+
+  - **client-key-password** (scalar)
+
+    > Password to use to decrypt the private key specified in
+    > `client-key` if it is encrypted.
+
+  - **phase2-auth** (scalar) – since **0.99**
+
+    > Phase 2 authentication mechanism.
 
 
 ## Properties for device type ``ethernets:``
