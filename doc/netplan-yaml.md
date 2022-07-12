@@ -663,7 +663,7 @@ client processes as specified in the netplan YAML.
 
 ## Routing
 Complex routing is possible with netplan. Standard static routes as well
-as policy routing using routing tables are supported via the ``networkd``
+as policy routing using routing tables are supported via the `networkd`
 backend.
 
 These options are available for all types of interfaces.
@@ -671,125 +671,144 @@ These options are available for all types of interfaces.
 ### Default routes
 
 The most common need for routing concerns the definition of default routes to
-reach the wider Internet. Those default routes can only defined once per IP family
-and routing table. A typical example would look like the following:
+reach the wider Internet. Those default routes can only defined once per IP
+family and routing table. A typical example would look like the following:
 
 ```yaml
 eth0:
   [...]
   routes:
-  - to: default # could be 0/0 or 0.0.0.0/0 optionally
-    via: 10.0.0.1
-    metric: 100
-    on-link: true
-  - to: default # could be ::/0 optionally
-    via: cf02:de:ad:be:ef::2
+    - to: default # could be 0/0 or 0.0.0.0/0 optionally
+      via: 10.0.0.1
+      metric: 100
+      on-link: true
+    - to: default # could be ::/0 optionally
+      via: cf02:de:ad:be:ef::2
 eth1:
   [...]
   routes:
-  - to: default
-    via: 172.134.67.1
-    metric: 100
-    on-link: true
-    table: 76 # Not on the main routing table, does not conflict with the eth0 default route
+    - to: default
+      via: 172.134.67.1
+      metric: 100
+      on-link: true
+      # Not on the main routing table,
+      # does not conflict with the eth0 default route
+      table: 76
 ```
 
-``routes`` (mapping)
+- **routes** (mapping)
 
-:    The ``routes`` block defines standard static routes for an interface.
-     At least ``to`` must be specified. If type is ``local`` or ``nat`` a
-     default scope of ``host`` is assumed.
-     If type is ``unicast`` and no gateway (``via``) is given or type is
-     ``broadcast``, ``multicast`` or ``anycast`` a default scope of ``link``
-     is assumend. Otherwise, a ``global`` scope is the default setting.
+  > The `routes` block defines standard static routes for an interface.
+  > At least `to` must be specified. If type is `local` or `nat` a
+  > default scope of `host` is assumed.
+  > If type is `unicast` and no gateway (`via`) is given or type is
+  > `broadcast`, `multicast` or `anycast` a default scope of `link`
+  > is assumend. Otherwise, a ``global`` scope is the default setting.
+  >
+  > For `from`, `to`, and `via`, both IPv4 and IPv6 addresses are
+  > recognized, and must be in the form `addr/prefixlen` or `addr`.
 
-     For ``from``, ``to``, and ``via``, both IPv4 and IPv6 addresses are
-     recognized, and must be in the form ``addr/prefixlen`` or ``addr``.
+  - **from** (scalar)
 
-     ``from`` (scalar)
-     :    Set a source IP address for traffic going through the route.
-          (``NetworkManager``: as of v1.8.0)
+    > Set a source IP address for traffic going through the route.
+    > (`NetworkManager`: as of v1.8.0)
 
-     ``to`` (scalar)
-     :    Destination address for the route.
+  - **to** (scalar)
 
-     ``via`` (scalar)
-     :    Address to the gateway to use for this route.
+    > Destination address for the route.
 
-     ``on-link`` (bool)
-     :    When set to "true", specifies that the route is directly connected
-          to the interface.
-          (``NetworkManager``: as of v1.12.0 for IPv4 and v1.18.0 for IPv6)
+  - **via** (scalar)
 
-     ``metric`` (scalar)
-     :    The relative priority of the route. Must be a positive integer value.
+    > Address to the gateway to use for this route.
 
-     ``type`` (scalar)
-     :    The type of route. Valid options are "unicast" (default), "anycast",
-          "blackhole", "broadcast", "local", "multicast", "nat", "prohibit",
-          "throw", "unreachable" or "xresolve".
+  - **on-link** (bool)
 
-     ``scope`` (scalar)
-     :    The route scope, how wide-ranging it is to the network. Possible
-          values are "global", "link", or "host".
+    > When set to "true", specifies that the route is directly connected
+    > to the interface.
+    > (`NetworkManager`: as of v1.12.0 for IPv4 and v1.18.0 for IPv6)
 
-     ``table`` (scalar)
-     :    The table number to use for the route. In some scenarios, it may be
-          useful to set routes in a separate routing table. It may also be used
-          to refer to routing policy rules which also accept a ``table``
-          parameter. Allowed values are positive integers starting from 1.
-          Some values are already in use to refer to specific routing tables:
-          see ``/etc/iproute2/rt_tables``.
-          (``NetworkManager``: as of v1.10.0)
+  - **metric** (scalar)
 
-    ``mtu`` (scalar) – since **0.101**
-     :    The MTU to be used for the route, in bytes. Must be a positive integer
-          value.
+    > The relative priority of the route. Must be a positive integer value.
 
-    ``congestion-window`` (scalar) – since **0.102**
-     :    The congestion window to be used for the route, represented by number
-          of segments. Must be a positive integer value.
+  - **type** (scalar)
 
-    ``advertised-receive-window`` (scalar) – since **0.102**
-     :    The receive window to be advertised for the route, represented by
-          number of segments. Must be a positive integer value.
+    > The type of route. Valid options are "unicast" (default), "anycast",
+    > "blackhole", "broadcast", "local", "multicast", "nat", "prohibit",
+    > "throw", "unreachable" or "xresolve".
 
-``routing-policy`` (mapping)
+  - **scope** (scalar)
 
-:    The ``routing-policy`` block defines extra routing policy for a network,
-     where traffic may be handled specially based on the source IP, firewall
-     marking, etc.
+    > The route scope, how wide-ranging it is to the network. Possible
+    > values are "global", "link", or "host".
 
-     For ``from``, ``to``, both IPv4 and IPv6 addresses are recognized, and
-     must be in the form ``addr/prefixlen`` or ``addr``.
+  - **table** (scalar)
 
-     ``from`` (scalar)
-     :    Set a source IP address to match traffic for this policy rule.
+    > The table number to use for the route. In some scenarios, it may be
+    > useful to set routes in a separate routing table. It may also be used
+    > to refer to routing policy rules which also accept a `table`
+    > parameter. Allowed values are positive integers starting from 1.
+    > Some values are already in use to refer to specific routing tables:
+    > see `/etc/iproute2/rt_tables`.
+    > (`NetworkManager`: as of v1.10.0)
 
-     ``to`` (scalar)
-     :    Match on traffic going to the specified destination.
+  - **mtu** (scalar) – since **0.101**
 
-     ``table`` (scalar)
-     :    The table number to match for the route. In some scenarios, it may be
-          useful to set routes in a separate routing table. It may also be used
-          to refer to routes which also accept a ``table`` parameter.
-          Allowed values are positive integers starting from 1.
-          Some values are already in use to refer to specific routing tables:
-          see ``/etc/iproute2/rt_tables``.
+    > The MTU to be used for the route, in bytes. Must be a positive integer
+    > value.
 
-     ``priority`` (scalar)
-     :    Specify a priority for the routing policy rule, to influence the order
-          in which routing rules are processed. A higher number means lower
-          priority: rules are processed in order by increasing priority number.
+  - **congestion-window** (scalar) – since **0.102**
 
-     ``mark`` (scalar)
-     :    Have this routing policy rule match on traffic that has been marked
-          by the iptables firewall with this value. Allowed values are positive
-          integers starting from 1.
+    > The congestion window to be used for the route, represented by number
+    > of segments. Must be a positive integer value.
 
-     ``type-of-service`` (scalar)
-     :    Match this policy rule based on the type of service number applied to
-          the traffic.
+  - **advertised-receive-window** (scalar) – since **0.102**
+
+    > The receive window to be advertised for the route, represented by
+    > number of segments. Must be a positive integer value.
+
+- **routing-policy** (mapping)
+
+  > The `routing-policy` block defines extra routing policy for a network,
+  > where traffic may be handled specially based on the source IP, firewall
+  > marking, etc.
+  >
+  > For `from`, `to`, both IPv4 and IPv6 addresses are recognized, and
+  > must be in the form `addr/prefixlen` or `addr`.
+
+  - **from** (scalar)
+
+    > Set a source IP address to match traffic for this policy rule.
+
+  - **to** (scalar)
+
+    > Match on traffic going to the specified destination.
+
+  - **table** (scalar)
+
+    > The table number to match for the route. In some scenarios, it may be
+    > useful to set routes in a separate routing table. It may also be used
+    > to refer to routes which also accept a `table` parameter.
+    > Allowed values are positive integers starting from 1.
+    > Some values are already in use to refer to specific routing tables:
+    > see `/etc/iproute2/rt_tables`.
+
+  - **priority** (scalar)
+
+    > Specify a priority for the routing policy rule, to influence the order
+    > in which routing rules are processed. A higher number means lower
+    > priority: rules are processed in order by increasing priority number.
+
+  - **mark** (scalar)
+
+    > Have this routing policy rule match on traffic that has been marked
+    > by the iptables firewall with this value. Allowed values are positive
+    > integers starting from 1.
+
+  - **type-of-service** (scalar)
+
+    > Match this policy rule based on the type of service number applied to
+    > the traffic.
 
 ## Authentication
 Netplan supports advanced authentication settings for ethernet and wifi
