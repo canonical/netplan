@@ -1065,79 +1065,89 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
   > **Requires dependency: iw**, if it is to be used outside the `networkd`
   > (wpa_supplicant) backend.
 
-## Properties for device type ``bridges:``
+## Properties for device type `bridges:`
 
-``interfaces`` (sequence of scalars)
+- **interfaces** (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bridge. This may
-     be an empty list, in which case the bridge will be brought online with
-     no member interfaces.
+  > All devices matching this ID list will be added to the bridge. This may
+  > be an empty list, in which case the bridge will be brought online with
+  > no member interfaces.
 
-     Example:
+  Example:
 
-          ethernets:
-            switchports:
-              match: {name: "enp2*"}
-          [...]
-          bridges:
-            br0:
-              interfaces: [switchports]
+  ```yaml
+  ethernets:
+    switchports:
+      match: {name: "enp2*"}
+  [...]
+  bridges:
+    br0:
+      interfaces: [switchports]
+  ```
 
-``parameters`` (mapping)
+- **parameters** (mapping)
 
-:    Customization parameters for special bridging options. Time intervals
-     may need to be expressed as a number of seconds or milliseconds: the
-     default value type is specified below. If necessary, time intervals can
-     be qualified using a time suffix (such as "s" for seconds, "ms" for
-     milliseconds) to allow for more control over its behavior.
+  > Customization parameters for special bridging options. Time intervals
+  > may need to be expressed as a number of seconds or milliseconds: the
+  > default value type is specified below. If necessary, time intervals can
+  > be qualified using a time suffix (such as "s" for seconds, "ms" for
+  > milliseconds) to allow for more control over its behavior.
 
-     ``ageing-time`` (scalar)
-     :    Set the period of time to keep a MAC address in the forwarding
-          database after a packet is received. This maps to the AgeingTimeSec=
-          property when the networkd renderer is used. If no time suffix is
-          specified, the value will be interpreted as seconds.
+  - **ageing-time** (scalar)
 
-     ``priority`` (scalar)
-     :    Set the priority value for the bridge. This value should be a
-          number between ``0`` and ``65535``. Lower values mean higher
-          priority. The bridge with the higher priority will be elected as
-          the root bridge.
+    > Set the period of time to keep a MAC address in the forwarding
+    > database after a packet is received. This maps to the AgeingTimeSec=
+    > property when the networkd renderer is used. If no time suffix is
+    > specified, the value will be interpreted as seconds.
 
-     ``port-priority`` (scalar)
-     :    Set the port priority to <priority>. The priority value is
-          a number between ``0`` and ``63``. This metric is used in the
-          designated port and root port selection algorithms.
+  - **priority** (scalar)
 
-     ``forward-delay`` (scalar)
-     :    Specify the period of time the bridge will remain in Listening and
-          Learning states before getting to the Forwarding state. This field
-          maps to the ForwardDelaySec= property for the networkd renderer.
-          If no time suffix is specified, the value will be interpreted as
-          seconds.
+    > Set the priority value for the bridge. This value should be a
+    > number between `0` and `65535`. Lower values mean higher
+    > priority. The bridge with the higher priority will be elected as
+    > the root bridge.
 
-     ``hello-time`` (scalar)
-     :    Specify the interval between two hello packets being sent out from
-          the root and designated bridges. Hello packets communicate
-          information about the network topology. When the networkd renderer
-          is used, this maps to the HelloTimeSec= property. If no time suffix
-          is specified, the value will be interpreted as seconds.
+  - **port-priority** (scalar)
 
-     ``max-age`` (scalar)
-     :    Set the maximum age of a hello packet. If the last hello packet is
-          older than that value, the bridge will attempt to become the root
-          bridge. This maps to the MaxAgeSec= property when the networkd
-          renderer is used. If no time suffix is specified, the value will be
-          interpreted as seconds.
+    > Set the port priority to <priority>. The priority value is
+    > a number between `0` and `63`. This metric is used in the
+    > designated port and root port selection algorithms.
 
-     ``path-cost`` (scalar)
-     :    Set the cost of a path on the bridge. Faster interfaces should have
-          a lower cost. This allows a finer control on the network topology
-          so that the fastest paths are available whenever possible.
+  - **forward-delay** (scalar)
 
-     ``stp`` (bool)
-     :    Define whether the bridge should use Spanning Tree Protocol. The
-          default value is "true", which means that Spanning Tree should be
-          used.
+    > Specify the period of time the bridge will remain in Listening and
+    > Learning states before getting to the Forwarding state. This field
+    > maps to the ForwardDelaySec= property for the networkd renderer.
+    > If no time suffix is specified, the value will be interpreted as
+    > seconds.
+
+  - **hello-time** (scalar)
+
+    > Specify the interval between two hello packets being sent out from
+    > the root and designated bridges. Hello packets communicate
+    > information about the network topology. When the networkd renderer
+    > is used, this maps to the HelloTimeSec= property. If no time suffix
+    > is specified, the value will be interpreted as seconds.
+
+  - **max-age** (scalar)
+
+    > Set the maximum age of a hello packet. If the last hello packet is
+    > older than that value, the bridge will attempt to become the root
+    > bridge. This maps to the MaxAgeSec= property when the networkd
+    > renderer is used. If no time suffix is specified, the value will be
+    > interpreted as seconds.
+
+  - **path-cost** (scalar)
+
+    > Set the cost of a path on the bridge. Faster interfaces should have
+    > a lower cost. This allows a finer control on the network topology
+    > so that the fastest paths are available whenever possible.
+
+  - **stp** (bool)
+
+    > Define whether the bridge should use Spanning Tree Protocol. The
+    > default value is "true", which means that Spanning Tree should be
+    > used.
 
 
 ## Properties for device type ``bonds:``
