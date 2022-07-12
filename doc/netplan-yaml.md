@@ -1150,163 +1150,185 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > used.
 
 
-## Properties for device type ``bonds:``
+## Properties for device type `bonds:`
 
-``interfaces`` (sequence of scalars)
+- **interfaces** (sequence of scalars)
 
-:    All devices matching this ID list will be added to the bond.
+  > All devices matching this ID list will be added to the bond.
 
-     Example:
+  Example:
 
-          ethernets:
-            switchports:
-              match: {name: "enp2*"}
-          [...]
-          bonds:
-            bond0:
-              interfaces: [switchports]
+  ```yaml
+  ethernets:
+    switchports:
+      match: {name: "enp2*"}
+  [...]
+  bonds:
+    bond0:
+      interfaces: [switchports]
+  ```
 
-``parameters`` (mapping)
+- **parameters** (mapping)
 
-:    Customization parameters for special bonding options. Time intervals
-     may need to be expressed as a number of seconds or milliseconds: the
-     default value type is specified below. If necessary, time intervals can
-     be qualified using a time suffix (such as "s" for seconds, "ms" for
-     milliseconds) to allow for more control over its behavior.
+  > Customization parameters for special bonding options. Time intervals
+  > may need to be expressed as a number of seconds or milliseconds: the
+  > default value type is specified below. If necessary, time intervals can
+  > be qualified using a time suffix (such as "s" for seconds, "ms" for
+  > milliseconds) to allow for more control over its behavior.
 
-     ``mode`` (scalar)
-     :    Set the bonding mode used for the interfaces. The default is
-          ``balance-rr`` (round robin). Possible values are ``balance-rr``,
-          ``active-backup``, ``balance-xor``, ``broadcast``, ``802.3ad``,
-          ``balance-tlb``, and ``balance-alb``.
-          For OpenVSwitch ``active-backup`` and the additional modes
-          ``balance-tcp`` and ``balance-slb`` are supported.
+  - **mode** (scalar)
 
-     ``lacp-rate`` (scalar)
-     :    Set the rate at which LACPDUs are transmitted. This is only useful
-          in 802.3ad mode. Possible values are ``slow`` (30 seconds, default),
-          and ``fast`` (every second).
+    > Set the bonding mode used for the interfaces. The default is
+    > `balance-rr` (round robin). Possible values are `balance-rr`,
+    > `active-backup`, `balance-xor`, `broadcast`, `802.3ad`,
+    > `balance-tlb`, and `balance-alb`.
+    > For Open vSwitch `active-backup` and the additional modes
+    > `balance-tcp` and `balance-slb` are supported.
 
-     ``mii-monitor-interval`` (scalar)
-     :    Specifies the interval for MII monitoring (verifying if an interface
-          of the bond has carrier). The default is ``0``; which disables MII
-          monitoring. This is equivalent to the MIIMonitorSec= field for the
-          networkd backend. If no time suffix is specified, the value will be
-          interpreted as milliseconds.
+  - **lacp-rate** (scalar)
 
-     ``min-links`` (scalar)
-     :    The minimum number of links up in a bond to consider the bond
-          interface to be up.
+    > Set the rate at which LACPDUs are transmitted. This is only useful
+    > in 802.3ad mode. Possible values are `slow` (30 seconds, default),
+    > and `fast` (every second).
 
-     ``transmit-hash-policy`` (scalar)
-     :    Specifies the transmit hash policy for the selection of slaves. This
-          is only useful in balance-xor, 802.3ad and balance-tlb modes.
-          Possible values are ``layer2``, ``layer3+4``, ``layer2+3``,
-          ``encap2+3``, and ``encap3+4``.
+  - **mii-monitor-interval** (scalar)
 
-     ``ad-select`` (scalar)
-     :    Set the aggregation selection mode. Possible values are ``stable``,
-          ``bandwidth``, and ``count``. This option is only used in 802.3ad
-          mode.
+    > Specifies the interval for MII monitoring (verifying if an interface
+    > of the bond has carrier). The default is `0`; which disables MII
+    > monitoring. This is equivalent to the MIIMonitorSec= field for the
+    > networkd backend. If no time suffix is specified, the value will be
+    > interpreted as milliseconds.
 
-     ``all-slaves-active`` (bool)
-     :    If the bond should drop duplicate frames received on inactive ports,
-          set this option to ``false``. If they should be delivered, set this
-          option to ``true``. The default value is false, and is the desirable
-          behavior in most situations.
+  - **min-links** (scalar)
 
-     ``arp-interval`` (scalar)
-     :    Set the interval value for how frequently ARP link monitoring should
-          happen. The default value is ``0``, which disables ARP monitoring.
-          For the networkd backend, this maps to the ARPIntervalSec= property.
-          If no time suffix is specified, the value will be interpreted as
-          milliseconds.
+    > The minimum number of links up in a bond to consider the bond
+    > interface to be up.
 
-     ``arp-ip-targets`` (sequence of scalars)
-     :    IPs of other hosts on the link which should be sent ARP requests in
-          order to validate that a slave is up. This option is only used when
-          ``arp-interval`` is set to a value other than ``0``. At least one IP
-          address must be given for ARP link monitoring to function. Only IPv4
-          addresses are supported. You can specify up to 16 IP addresses. The
-          default value is an empty list.
+  - **transmit-hash-policy** (scalar)
 
-     ``arp-validate`` (scalar)
-     :    Configure how ARP replies are to be validated when using ARP link
-          monitoring. Possible values are ``none``, ``active``, ``backup``,
-          and ``all``.
+    > Specifies the transmit hash policy for the selection of slaves. This
+    > is only useful in balance-xor, 802.3ad and balance-tlb modes.
+    > Possible values are `layer2`, `layer3+4`, `layer2+3`,
+    > `encap2+3`, and `encap3+4`.
 
-     ``arp-all-targets`` (scalar)
-     :    Specify whether to use any ARP IP target being up as sufficient for
-          a slave to be considered up; or if all the targets must be up. This
-          is only used for ``active-backup`` mode when ``arp-validate`` is
-          enabled. Possible values are ``any`` and ``all``.
+  - **ad-select** (scalar)
 
-     ``up-delay`` (scalar)
-     :    Specify the delay before enabling a link once the link is physically
-          up. The default value is ``0``. This maps to the UpDelaySec= property
-          for the networkd renderer. This option is only valid for the miimon
-          link monitor. If no time suffix is specified, the value will be
-          interpreted as milliseconds.
+    > Set the aggregation selection mode. Possible values are `stable`,
+    > `bandwidth`, and `count`. This option is only used in 802.3ad
+    > mode.
 
-     ``down-delay`` (scalar)
-     :    Specify the delay before disabling a link once the link has been
-          lost. The default value is ``0``. This maps to the DownDelaySec=
-          property for the networkd renderer. This option is only valid for the
-          miimon link monitor. If no time suffix is specified, the value will
-          be interpreted as milliseconds.
+  - **all-slaves-active** (bool)
 
-     ``fail-over-mac-policy`` (scalar)
-     :    Set whether to set all slaves to the same MAC address when adding
-          them to the bond, or how else the system should handle MAC addresses.
-          The possible values are ``none``, ``active``, and ``follow``.
+    > If the bond should drop duplicate frames received on inactive ports,
+    > set this option to `false`. If they should be delivered, set this
+    > option to `true`. The default value is false, and is the desirable
+    > behavior in most situations.
 
-     ``gratuitous-arp`` (scalar)
-     :    Specify how many ARP packets to send after failover. Once a link is
-          up on a new slave, a notification is sent and possibly repeated if
-          this value is set to a number greater than ``1``. The default value
-          is ``1`` and valid values are between ``1`` and ``255``. This only
-          affects ``active-backup`` mode.
+  - **arp-interval** (scalar)
 
-          For historical reasons, the misspelling ``gratuitious-arp`` is also
-          accepted and has the same function.
+    > Set the interval value for how frequently ARP link monitoring should
+    > happen. The default value is `0`, which disables ARP monitoring.
+    > For the networkd backend, this maps to the ARPIntervalSec= property.
+    > If no time suffix is specified, the value will be interpreted as
+    > milliseconds.
 
-     ``packets-per-slave`` (scalar)
-     :    In ``balance-rr`` mode, specifies the number of packets to transmit
-          on a slave before switching to the next. When this value is set to
-          ``0``, slaves are chosen at random. Allowable values are between
-          ``0`` and ``65535``. The default value is ``1``. This setting is
-          only used in ``balance-rr`` mode.
+  - **arp-ip-targets** (sequence of scalars)
 
-     ``primary-reselect-policy`` (scalar)
-     :    Set the reselection policy for the primary slave. On failure of the
-          active slave, the system will use this policy to decide how the new
-          active slave will be chosen and how recovery will be handled. The
-          possible values are ``always``, ``better``, and ``failure``.
+    > IPs of other hosts on the link which should be sent ARP requests in
+    > order to validate that a slave is up. This option is only used when
+    > `arp-interval` is set to a value other than `0`. At least one IP
+    > address must be given for ARP link monitoring to function. Only IPv4
+    > addresses are supported. You can specify up to 16 IP addresses. The
+    > default value is an empty list.
 
-     ``resend-igmp`` (scalar)
-     :    In modes ``balance-rr``, ``active-backup``, ``balance-tlb`` and
-          ``balance-alb``, a failover can switch IGMP traffic from one
-          slave to another.
+  - **arp-validate** (scalar)
 
-          This parameter specifies how many IGMP membership reports
-          are issued on a failover event. Values range from 0 to 255. 0
-          disables sending membership reports. Otherwise, the first
-          membership report is sent on failover and subsequent reports
-          are sent at 200ms intervals.
+    > Configure how ARP replies are to be validated when using ARP link
+    > monitoring. Possible values are `none`, `active`, `backup`,
+    > and `all`.
 
-     ``learn-packet-interval`` (scalar)
-     :    Specify the interval between sending learning packets to
-          each slave.  The value range is between ``1`` and ``0x7fffffff``.
-          The default value is ``1``. This option only affects ``balance-tlb``
-          and ``balance-alb`` modes. Using the networkd renderer, this field
-          maps to the LearnPacketIntervalSec= property. If no time suffix is
-          specified, the value will be interpreted as seconds.
+  - **arp-all-targets** (scalar)
 
-     ``primary`` (scalar)
-     :    Specify a device to be used as a primary slave, or preferred device
-          to use as a slave for the bond (ie. the preferred device to send
-          data through), whenever it is available. This only affects
-          ``active-backup``, ``balance-alb``, and ``balance-tlb`` modes.
+    > Specify whether to use any ARP IP target being up as sufficient for
+    > a slave to be considered up; or if all the targets must be up. This
+    > is only used for `active-backup` mode when `arp-validate` is
+    > enabled. Possible values are `any` and `all`.
+
+  - **up-delay** (scalar)
+
+    > Specify the delay before enabling a link once the link is physically
+    > up. The default value is `0`. This maps to the UpDelaySec= property
+    > for the networkd renderer. This option is only valid for the miimon
+    > link monitor. If no time suffix is specified, the value will be
+    > interpreted as milliseconds.
+
+  - **down-delay** (scalar)
+
+    > Specify the delay before disabling a link once the link has been
+    > lost. The default value is `0`. This maps to the DownDelaySec=
+    > property for the networkd renderer. This option is only valid for the
+    > miimon link monitor. If no time suffix is specified, the value will
+    > be interpreted as milliseconds.
+
+  - **fail-over-mac-policy** (scalar)
+
+    > Set whether to set all slaves to the same MAC address when adding
+    > them to the bond, or how else the system should handle MAC addresses.
+    > The possible values are `none`, `active`, and `follow`.
+
+  - **gratuitous-arp** (scalar)
+
+    > Specify how many ARP packets to send after failover. Once a link is
+    > up on a new slave, a notification is sent and possibly repeated if
+    > this value is set to a number greater than `1`. The default value
+    > is `1` and valid values are between `1` and `255`. This only
+    > affects `active-backup` mode.
+    >
+    > For historical reasons, the misspelling `gratuitious-arp` is also
+    > accepted and has the same function.
+
+  - **packets-per-slave** (scalar)
+
+    > In `balance-rr` mode, specifies the number of packets to transmit
+    > on a slave before switching to the next. When this value is set to
+    > `0`, slaves are chosen at random. Allowable values are between
+    > `0` and `65535`. The default value is `1`. This setting is
+    > only used in `balance-rr` mode.
+
+  - **primary-reselect-policy** (scalar)
+
+    > Set the reselection policy for the primary slave. On failure of the
+    > active slave, the system will use this policy to decide how the new
+    > active slave will be chosen and how recovery will be handled. The
+    > possible values are `always`, `better`, and `failure`.
+
+  - **resend-igmp** (scalar)
+
+    > In modes `balance-rr`, `active-backup`, `balance-tlb` and
+    > `balance-alb`, a failover can switch IGMP traffic from one
+    > slave to another.
+    >
+    > This parameter specifies how many IGMP membership reports
+    > are issued on a failover event. Values range from 0 to 255. 0
+    > disables sending membership reports. Otherwise, the first
+    > membership report is sent on failover and subsequent reports
+    > are sent at 200ms intervals.
+
+  - **learn-packet-interval** (scalar)
+
+    > Specify the interval between sending learning packets to
+    > each slave.  The value range is between `1` and `0x7fffffff`.
+    > The default value is `1`. This option only affects `balance-tlb`
+    > and `balance-alb` modes. Using the networkd renderer, this field
+    > maps to the LearnPacketIntervalSec= property. If no time suffix is
+    > specified, the value will be interpreted as seconds.
+
+  - **primary** (scalar)
+
+    > Specify a device to be used as a primary slave, or preferred device
+    > to use as a slave for the bond (ie. the preferred device to send
+    > data through), whenever it is available. This only affects
+    > `active-backup`, `balance-alb`, and `balance-tlb` modes.
 
 
 ## Properties for device type ``tunnels:``
