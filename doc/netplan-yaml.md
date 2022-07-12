@@ -1331,173 +1331,185 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > `active-backup`, `balance-alb`, and `balance-tlb` modes.
 
 
-## Properties for device type ``tunnels:``
+## Properties for device type `tunnels:`
 
 Tunnels allow traffic to pass as if it was between systems on the same local
 network, although systems may be far from each other but reachable via the
 Internet. They may be used to support IPv6 traffic on a network where the ISP
 does not provide the service, or to extend and "connect" separate local
-networks. Please see https://en.wikipedia.org/wiki/Tunneling_protocol for
+networks. Please see <https://en.wikipedia.org/wiki/Tunneling_protocol> for
 more general information about tunnels.
 
-``mode`` (scalar)
+- **mode** (scalar)
 
-:   Defines the tunnel mode. Valid options are ``sit``, ``gre``, ``ip6gre``,
-    ``ipip``, ``ipip6``, ``ip6ip6``, ``vti``, ``vti6`` and ``wireguard``.
-    Additionally, the ``networkd`` backend also supports ``gretap`` and
-    ``ip6gretap`` modes.
-    In addition, the ``NetworkManager`` backend supports ``isatap`` tunnels.
+  > Defines the tunnel mode. Valid options are `sit`, `gre`, `ip6gre`,
+  > `ipip`, `ipip6`, `ip6ip6`, `vti`, `vti6` and `wireguard`.
+  > Additionally, the `networkd` backend also supports `gretap` and
+  > `ip6gretap` modes.
+  > In addition, the `NetworkManager` backend supports `isatap` tunnels.
 
-``local`` (scalar)
+- **local** (scalar)
 
-:   Defines the address of the local endpoint of the tunnel.
+  > Defines the address of the local endpoint of the tunnel.
 
-``remote`` (scalar)
+- **remote** (scalar)
 
-:   Defines the address of the remote endpoint of the tunnel.
+  > Defines the address of the remote endpoint of the tunnel.
 
-``ttl`` (scalar) – since **0.103**
+- **ttl** (scalar) – since **0.103**
 
-:   Defines the TTL of the tunnel.
+  > Defines the TTL of the tunnel.
 
-``key``  (scalar or mapping)
+- **key**  (scalar or mapping)
 
-:   Define keys to use for the tunnel. The key can be a number or a dotted
-    quad (an IPv4 address). For ``wireguard`` it can be a base64-encoded
-    private key or (as of ``networkd`` v242+) an absolute path to a file,
-    containing the private key (since 0.100).
-    It is used for identification of IP transforms. This is only required
-    for ``vti`` and ``vti6`` when using the networkd backend.
+  > Define keys to use for the tunnel. The key can be a number or a dotted
+  > quad (an IPv4 address). For `wireguard` it can be a base64-encoded
+  > private key or (as of `networkd` v242+) an absolute path to a file,
+  > containing the private key (since 0.100).
+  > It is used for identification of IP transforms. This is only required
+  > for `vti` and `vti6` when using the networkd backend.
+  >
+  > This field may be used as a scalar (meaning that a single key is
+  > specified and to be used for input, output and private key), or as a
+  > mapping, where you can further specify `input`/`output`/`private`.
 
-    This field may be used as a scalar (meaning that a single key is
-    specified and to be used for input, output and private key), or as a
-    mapping, where you can further specify ``input``/``output``/``private``.
+  - **input** (scalar)
 
-    ``input`` (scalar)
-    :    The input key for the tunnel
+    > The input key for the tunnel
 
-    ``output`` (scalar)
-    :    The output key for the tunnel
+  - **output** (scalar)
 
-    ``private`` (scalar) – since **0.100**
-    :    A base64-encoded private key required for WireGuard tunnels. When the
-         ``systemd-networkd`` backend (v242+) is used, this can also be an
-         absolute path to a file containing the private key.
+    > The output key for the tunnel
 
-``keys`` (scalar or mapping)
+  - **private** (scalar) – since **0.100**
 
-:   Alternate name for the ``key`` field. See above.
+    > A base64-encoded private key required for WireGuard tunnels. When the
+    > `systemd-networkd` backend (v242+) is used, this can also be an
+    > absolute path to a file containing the private key.
 
-Examples:
+- **keys** (scalar or mapping)
 
-    tunnels:
-      tun0:
-        mode: gre
-        local: ...
-        remote: ...
-        keys:
-          input: 1234
-          output: 5678
+  > Alternate name for the `key` field. See above.
 
-    tunnels:
-      tun0:
-        mode: vti6
-        local: ...
-        remote: ...
-        key: 59568549
+  Examples:
 
-    tunnels:
-      wg0:
-        mode: wireguard
-        addresses: [...]
-        peers:
-          - keys:
-              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
-              shared: /path/to/shared.key
-            ...
-        key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
-
-    tunnels:
-      wg0:
-        mode: wireguard
-        addresses: [...]
-        peers:
-          - keys:
-              public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
-            ...
-        keys:
-          private: /path/to/priv.key
+  ```yaml
+  tunnels:
+    tun0:
+      mode: gre
+      local: ...
+      remote: ...
+      keys:
+        input: 1234
+        output: 5678
+  ```
+  ```yaml
+  tunnels:
+    tun0:
+      mode: vti6
+      local: ...
+      remote: ...
+      key: 59568549
+  ```
+  ```yaml
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [...]
+      peers:
+        - keys:
+            public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+            shared: /path/to/shared.key
+          ...
+      key: mNb7OIIXTdgW4khM7OFlzJ+UPs7lmcWHV7xjPgakMkQ=
+  ```
+  ```yaml
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [...]
+      peers:
+        - keys:
+            public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+          ...
+      keys:
+        private: /path/to/priv.key
+  ```
 
 
 WireGuard specific keys:
 
-``mark`` (scalar) – since **0.100**
+- **mark** (scalar) – since **0.100**
 
-:   Firewall mark for outgoing WireGuard packets from this interface,
-     optional.
+  > Firewall mark for outgoing WireGuard packets from this interface,
+  > optional.
 
-``port`` (scalar) – since **0.100**
+- **port** (scalar) – since **0.100**
 
-:   UDP port to listen at or ``auto``. Optional, defaults to ``auto``.
+  > UDP port to listen at or `auto`. Optional, defaults to `auto`.
 
-``peers`` (sequence of mappings) – since **0.100**
+- **peers** (sequence of mappings) – since **0.100**
 
-:   A list of peers, each having keys documented below.
+  > A list of peers, each having keys documented below.
 
-Example:
+  Example:
 
-    tunnels:
-        wg0:
-            mode: wireguard
-            key: /path/to/private.key
-            mark: 42
-            port: 5182
-            peers:
-                - keys:
-                      public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
-                  allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
-                  keepalive: 23
-                  endpoint: 1.2.3.4:5
-                - keys:
-                      public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
-                      shared: /some/shared.key
-                  allowed-ips: [10.10.10.20/24]
-                  keepalive: 22
-                  endpoint: 5.4.3.2:1
+  ```yaml
+  tunnels:
+    wg0:
+      mode: wireguard
+      key: /path/to/private.key
+      mark: 42
+      port: 5182
+      peers:
+        - keys:
+            public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+          allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
+          keepalive: 23
+          endpoint: 1.2.3.4:5
+        - keys:
+            public: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+            shared: /some/shared.key
+          allowed-ips: [10.10.10.20/24]
+          keepalive: 22
+          endpoint: 5.4.3.2:1
+  ```
 
-``endpoint`` (scalar) – since **0.100**
+  - **endpoint** (scalar) – since **0.100**
 
-:   Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon
-    and a port number.
+    > Remote endpoint IPv4/IPv6 address or a hostname, followed by a colon
+    > and a port number.
 
-``allowed-ips`` (sequence of scalars) – since **0.100**
+  - **allowed-ips** (sequence of scalars) – since **0.100**
 
-:   A list of IP (v4 or v6) addresses with CIDR masks from which this peer
-    is allowed to send incoming traffic and to which outgoing traffic for
-    this peer is directed. The catch-all 0.0.0.0/0 may be specified for
-    matching all IPv4 addresses, and ::/0 may be specified for matching
-    all IPv6 addresses.
+    > A list of IP (v4 or v6) addresses with CIDR masks from which this peer
+    > is allowed to send incoming traffic and to which outgoing traffic for
+    > this peer is directed. The catch-all 0.0.0.0/0 may be specified for
+    > matching all IPv4 addresses, and ::/0 may be specified for matching
+    > all IPv6 addresses.
 
-``keepalive`` (scalar) – since **0.100**
+  - **keepalive** (scalar) – since **0.100**
 
-:   An interval in seconds, between 1 and 65535 inclusive, of how often to
-    send an authenticated empty packet to the peer for the purpose of
-    keeping a stateful firewall or NAT mapping valid persistently. Optional.
+    > An interval in seconds, between 1 and 65535 inclusive, of how often to
+    > send an authenticated empty packet to the peer for the purpose of
+    > keeping a stateful firewall or NAT mapping valid persistently. Optional.
 
-``keys`` (mapping) – since **0.100**
+  - **keys** (mapping) – since **0.100**
 
-:   Define keys to use for the WireGuard peers.
+    > Define keys to use for the WireGuard peers.
+    >
+    > This field can be used as a mapping, where you can further specify the
+    > `public` and `shared` keys.
 
-    This field can be used as a mapping, where you can further specify the
-    ``public`` and ``shared`` keys.
+    - **public** (scalar) – since **0.100**
 
-    ``public`` (scalar) – since **0.100**
-    :    A base64-encoded public key, required for WireGuard peers.
+      > A base64-encoded public key, required for WireGuard peers.
 
-    ``shared`` (scalar) – since **0.100**
-    :    A base64-encoded preshared key. Optional for WireGuard peers.
-         When the ``systemd-networkd`` backend (v242+) is used, this can
-         also be an absolute path to a file containing the preshared key.
+    - **shared** (scalar) – since **0.100**
+
+      > A base64-encoded preshared key. Optional for WireGuard peers.
+      > When the `systemd-networkd` backend (v242+) is used, this can
+      > also be an absolute path to a file containing the preshared key.
 
 ## Properties for device type ``vlans:``
 
