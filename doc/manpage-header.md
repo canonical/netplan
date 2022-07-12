@@ -4,6 +4,7 @@ section: 5
 author:
 - Mathieu Trudel-Lapierre (<cyphermox@ubuntu.com>)
 - Martin Pitt (<martin.pitt@ubuntu.com>)
+- Lukas Märdian (<slyon@ubuntu.com>)
 ...
 
 # NAME
