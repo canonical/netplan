@@ -989,73 +989,81 @@ backend. `systemd-networkd` does not support modems.
   > Specify the username used to authentiate with the carrier network. This
   > can be omitted if `auto-config` is enabled.
 
-## Properties for device type ``wifis:``
-Note that ``systemd-networkd`` does not natively support wifi, so you need
-wpasupplicant installed if you let the ``networkd`` renderer handle wifi.
+## Properties for device type `wifis:`
+Note that `systemd-networkd` does not natively support wifi, so you need
+wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
-``access-points`` (mapping)
+- **access-points** (mapping)
 
-:    This provides pre-configured connections to NetworkManager. Note that
-     users can of course select other access points/SSIDs. The keys of the
-     mapping are the SSIDs, and the values are mappings with the following
-     supported properties:
+  > This provides pre-configured connections to NetworkManager. Note that
+  > users can of course select other access points/SSIDs. The keys of the
+  > mapping are the SSIDs, and the values are mappings with the following
+  > supported properties:
 
-     ``password`` (scalar)
-     :    Enable WPA2 authentication and set the passphrase for it. If neither
-          this nor an ``auth`` block are given, the network is assumed to be
-          open. The setting
+  - **password** (scalar)
 
-              password: "S3kr1t"
+    > Enable WPA2 authentication and set the passphrase for it. If neither
+    > this nor an `auth` block are given, the network is assumed to be
+    > open. The setting
+    > ```yaml
+    > password: "S3kr1t"
+    > ```
+    > is equivalent to
+    > ```yaml
+    > auth:
+    >   key-management: psk
+    >   password: "S3kr1t"
+    > ```
 
-          is equivalent to
+  - **mode** (scalar)
 
-              auth:
-                key-management: psk
-                password: "S3kr1t"
+    > Possible access point modes are `infrastructure` (the default),
+    > `ap` (create an access point to which other devices can connect),
+    > and `adhoc` (peer to peer networks without a central access point).
+    > `ap` is only supported with NetworkManager.
 
-     ``mode`` (scalar)
-     :    Possible access point modes are ``infrastructure`` (the default),
-          ``ap`` (create an access point to which other devices can connect),
-          and ``adhoc`` (peer to peer networks without a central access point).
-          ``ap`` is only supported with NetworkManager.
+  - **bssid** (scalar) – since **0.99**
 
-     ``bssid`` (scalar) – since **0.99**
-     :    If specified, directs the device to only associate with the given
-          access point.
+    > If specified, directs the device to only associate with the given
+    > access point.
 
-     ``band`` (scalar) – since **0.99**
-     :    Possible bands are ``5GHz`` (for 5GHz 802.11a) and ``2.4GHz``
-          (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
-          network if unset (the default).
+  - **band** (scalar) – since **0.99**
 
-     ``channel`` (scalar) – since **0.99**
-     :    Wireless channel to use for the Wi-Fi connection. Because channel
-          numbers overlap between bands, this property takes effect only if
-          the ``band`` property is also set.
+    > Possible bands are `5GHz` (for 5GHz 802.11a) and `2.4GHz`
+    > (for 2.4GHz 802.11), do not restrict the 802.11 frequency band of the
+    > network if unset (the default).
 
-     ``hidden`` (bool) – since **0.100**
-     :    Set to ``true`` to change the SSID scan technique for connecting to 
-          hidden WiFi networks. Note this may have slower performance compared
-          to ``false`` (the default) when connecting to publicly broadcast
-          SSIDs.
+  - **channel** (scalar) – since **0.99**
 
-``wakeonwlan`` (sequence of scalars) – since **0.99**
+    > Wireless channel to use for the Wi-Fi connection. Because channel
+    > numbers overlap between bands, this property takes effect only if
+    > the `band` property is also set.
 
-:    This enables WakeOnWLan on supported devices. Not all drivers support all
-     options. May be any combination of ``any``, ``disconnect``, ``magic_pkt``,
-     ``gtk_rekey_failure``, ``eap_identity_req``, ``four_way_handshake``,
-     ``rfkill_release`` or ``tcp`` (NetworkManager only). Or the exclusive
-     ``default`` flag (the default).
+  - **hidden** (bool) – since **0.100**
 
-``regulatory-domain`` (scalar) – since **0.105**
+    > Set to `true` to change the SSID scan technique for connecting to 
+    > hidden WiFi networks. Note this may have slower performance compared
+    > to `false` (the default) when connecting to publicly broadcast
+    > SSIDs.
 
-:    This can be used to define the radio's regulatory domain, to make use of
-     additional WiFi channels outside the "world domain". Takes an ISO /
-     IEC 3166 country code (like `GB`) or `00` to reset to the "world domain".
-     See [wireless-regdb](https://git.kernel.org/pub/scm/linux/kernel/git/sforshee/wireless-regdb.git/tree/db.txt) for available values.
+- **wakeonwlan** (sequence of scalars) – since **0.99**
 
-     **Requires dependency: iw**, if it is to be used outside the `networkd`
-     (wpa_supplicant) backend.
+  > This enables WakeOnWLan on supported devices. Not all drivers support all
+  > options. May be any combination of `any`, `disconnect`, `magic_pkt`,
+  > `gtk_rekey_failure`, `eap_identity_req`, `four_way_handshake`,
+  > `rfkill_release` or `tcp` (NetworkManager only). Or the exclusive
+  > `default` flag (the default).
+
+- **regulatory-domain** (scalar) – since **0.105**
+
+  > This can be used to define the radio's regulatory domain, to make use of
+  > additional WiFi channels outside the "world domain". Takes an ISO /
+  > IEC 3166 country code (like `GB`) or `00` to reset to the "world domain".
+  > See [wireless-regdb](https://git.kernel.org/pub/scm/linux/kernel/git/sforshee/wireless-regdb.git/tree/db.txt)
+  > for available values.
+  >
+  > **Requires dependency: iw**, if it is to be used outside the `networkd`
+  > (wpa_supplicant) backend.
 
 ## Properties for device type ``bridges:``
 
