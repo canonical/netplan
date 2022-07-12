@@ -874,118 +874,120 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
     > Phase 2 authentication mechanism.
 
 
-## Properties for device type ``ethernets:``
+## Properties for device type `ethernets:`
 Ethernet device definitions, beyond common ones described above, also support
 some additional properties that can be used for SR-IOV devices.
 
-``link`` (scalar) – since **0.99**
+- **link** (scalar) – since **0.99**
 
-:    (SR-IOV devices only) The ``link`` property declares the device as a
-     Virtual Function of the selected Physical Function device, as identified
-     by the given netplan id.
+  > (SR-IOV devices only) The `link` property declares the device as a
+  > Virtual Function of the selected Physical Function device, as identified
+  > by the given netplan id.
 
-Example:
+  Example:
 
-    ethernets:
-      enp1: {...}
-      enp1s16f1:
-        link: enp1
+  ```yaml
+  ethernets:
+    enp1: {...}
+    enp1s16f1:
+      link: enp1
+  ```
 
-``virtual-function-count`` (scalar) – since **0.99**
+- **virtual-function-count** (scalar) – since **0.99**
 
-:    (SR-IOV devices only) In certain special cases VFs might need to be
-     configured outside of netplan. For such configurations ``virtual-function-count``
-     can be optionally used to set an explicit number of Virtual Functions for
-     the given Physical Function. If unset, the default is to create only as many
-     VFs as are defined in the netplan configuration. This should be used for special
-     cases only.
+  > (SR-IOV devices only) In certain special cases VFs might need to be
+  > configured outside of netplan. For such configurations
+  > `virtual-function-count` can be optionally used to set an explicit number of
+  > Virtual Functions for the given Physical Function. If unset, the default is
+  > to create only as many VFs as are defined in the netplan configuration. This
+  > should be used for special cases only.
+  >
+  > **Requires feature: sriov**
 
-     **Requires feature: sriov**
+- **embedded-switch-mode** (scalar) – since **0.104**
 
-``embedded-switch-mode`` (scalar) – since **0.104**
+  > (SR-IOV devices only) Change the operational mode of the embedded switch
+  > of a supported SmartNIC PCI device (e.g. Mellanox ConnectX-5). Possible
+  > values are `switchdev` or `legacy`, if unspecified the vendor's
+  > default configuration is used.
+  >
+  > **Requires feature: eswitch-mode**
 
-:    (SR-IOV devices only) Change the operational mode of the embedded switch
-     of a supported SmartNIC PCI device (e.g. Mellanox ConnectX-5). Possible
-     values are ``switchdev`` or ``legacy``, if unspecified the vendor's
-     default configuration is used.
+- **delay-virtual-functions-rebind** (bool) – since **0.104**
 
-     **Requires feature: eswitch-mode**
+  > (SR-IOV devices only) Delay rebinding of SR-IOV virtual functions to its
+  > driver after changing the embedded-switch-mode setting to a later stage.
+  > Can be enabled when bonding/VF LAG is in use. Defaults to `false`.
+  >
+  > **Requires feature: eswitch-mode**
 
-``delay-virtual-functions-rebind`` (bool) – since **0.104**
+- **infiniband-mode** (scalar) – since **0.105**
 
-:    (SR-IOV devices only) Delay rebinding of SR-IOV virtual functions to its
-     driver after changing the embedded-switch-mode setting to a later stage.
-     Can be enabled when bonding/VF LAG is in use. Defaults to ``false``.
+  > (InfiniBand devices only) Change the operational mode of a IPoIB device.
+  > Possible values are `datagram` or `connected`. If unspecified the
+  > kernel's default configuration is used.
+  >
+  > **Requires feature: infiniband**
 
-     **Requires feature: eswitch-mode**
-
-``infiniband-mode`` (scalar) – since **0.105**
-
-:    (InfiniBand devices only) Change the operational mode of a IPoIB device.
-     Possible values are ``datagram`` or ``connected``. If unspecified the
-     kernel's default configuration is used.
-
-     **Requires feature: infiniband**
-
-## Properties for device type ``modems:``
-GSM/CDMA modem configuration is only supported for the ``NetworkManager``
-backend. ``systemd-networkd`` does not support modems.
+## Properties for device type `modems:`
+GSM/CDMA modem configuration is only supported for the `NetworkManager`
+backend. `systemd-networkd` does not support modems.
 
 **Requires feature: modems**
 
-``apn`` (scalar) – since **0.99**
+- **apn** (scalar) – since **0.99**
 
-:    Set the carrier APN (Access Point Name). This can be omitted if
-     ``auto-config`` is enabled.
+  > Set the carrier APN (Access Point Name). This can be omitted if
+  > `auto-config` is enabled.
 
-``auto-config`` (bool) – since **0.99**
+- **auto-config** (bool) – since **0.99**
 
-:    Specify whether to try and autoconfigure the modem by doing a lookup of
-     the carrier against the Mobile Broadband Provider database. This may not
-     work for all carriers.
+  > Specify whether to try and autoconfigure the modem by doing a lookup of
+  > the carrier against the Mobile Broadband Provider database. This may not
+  > work for all carriers.
 
-``device-id`` (scalar) – since **0.99**
+- **device-id** (scalar) – since **0.99**
 
-:    Specify the device ID (as given by the WWAN management service) of the
-     modem to match. This can be found using ``mmcli``.
+  > Specify the device ID (as given by the WWAN management service) of the
+  > modem to match. This can be found using `mmcli`.
 
-``network-id`` (scalar) – since **0.99**
+- **network-id** (scalar) – since **0.99**
 
-:    Specify the Network ID (GSM LAI format). If this is specified, the device
-     will not roam networks.
+  > Specify the Network ID (GSM LAI format). If this is specified, the device
+  > will not roam networks.
 
-``number`` (scalar) – since **0.99**
+- **number** (scalar) – since **0.99**
 
-:    The number to dial to establish the connection to the mobile broadband
-     network. (Deprecated for GSM)
+  > The number to dial to establish the connection to the mobile broadband
+  > network. (Deprecated for GSM)
 
-``password`` (scalar) – since **0.99**
+- **password** (scalar) – since **0.99**
 
-:    Specify the password used to authenticate with the carrier network. This
-     can be omitted if ``auto-config`` is enabled.
+  > Specify the password used to authenticate with the carrier network. This
+  > can be omitted if `auto-config` is enabled.
 
-``pin`` (scalar) – since **0.99**
+- **pin** (scalar) – since **0.99**
 
-:    Specify the SIM PIN to allow it to operate if a PIN is set.
+  > Specify the SIM PIN to allow it to operate if a PIN is set.
 
-``sim-id`` (scalar) – since **0.99**
+- **sim-id** (scalar) – since **0.99**
 
-:    Specify the SIM unique identifier (as given by the WWAN management service)
-     which this connection applies to. If given, the connection will apply to
-     any device also allowed by ``device-id`` which contains a SIM card matching
-     the given identifier.
+  > Specify the SIM unique identifier (as given by the WWAN management service)
+  > which this connection applies to. If given, the connection will apply to
+  > any device also allowed by `device-id` which contains a SIM card matching
+  > the given identifier.
 
-``sim-operator-id`` (scalar) – since **0.99**
+- **sim-operator-id** (scalar) – since **0.99**
 
-:    Specify the MCC/MNC string (such as "310260" or "21601") which identifies
-     the carrier that this connection should apply to. If given, the connection
-     will apply to any device also allowed by ``device-id`` and ``sim-id``
-     which contains a SIM card provisioned by the given operator.
+  > Specify the MCC/MNC string (such as "310260" or "21601") which identifies
+  > the carrier that this connection should apply to. If given, the connection
+  > will apply to any device also allowed by `device-id` and `sim-id`
+  > which contains a SIM card provisioned by the given operator.
 
-``username`` (scalar) – since **0.99**
+- **username** (scalar) – since **0.99**
 
-:    Specify the username used to authentiate with the carrier network. This
-     can be omitted if ``auto-config`` is enabled.
+  > Specify the username used to authentiate with the carrier network. This
+  > can be omitted if `auto-config` is enabled.
 
 ## Properties for device type ``wifis:``
 Note that ``systemd-networkd`` does not natively support wifi, so you need
