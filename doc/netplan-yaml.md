@@ -57,7 +57,7 @@ and the ID field has a different interpretation for each:
 Physical devices
 
 > (Examples: ethernet, modem, wifi) These can dynamically come and go between
-> reboots and even during runtime (hotplugging). In the generic case, they
+> reboots and even during runtime (hot plugging). In the generic case, they
 > can be selected by `match:` rules on desired properties, such as name/name
 > pattern, MAC address, driver, or device paths. In general these will match
 > any number of devices (unless they refer to properties which are unique
@@ -316,10 +316,10 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > and the other information.
   >
   > If you are in an IPv6-only environment with completely stateless
-  > autoconfiguration (SLAAC with RDNSS), this option can be set to cause the
+  > auto-configuration (SLAAC with RDNSS), this option can be set to cause the
   > interface to be brought up. (Setting accept-ra alone is not sufficient.)
-  > Autoconfiguration will still honour the contents of the router advertisement
-  > and only use DHCP if requested in the RA.
+  > Auto-configuration will still honor the contents of the router
+  > advertisement and only use DHCP if requested in the RA.
   >
   > Note that **`rdnssd`**(8) is required to use RDNSS with networkd. No extra
   > software is required for NetworkManager.
@@ -435,13 +435,13 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 - **ipv6-address-generation** (scalar) – since **0.99**
 
   > Configure method for creating the address for use with RFC4862 IPv6
-  > Stateless Address Autoconfiguration (only supported with `NetworkManager`
+  > Stateless Address Auto-configuration (only supported with `NetworkManager`
   > backend). Possible values are `eui64` or `stable-privacy`.
 
 - **ipv6-address-token** (scalar) – since **0.100**
 
   > Define an IPv6 address token for creating a static interface identifier for
-  > IPv6 Stateless Address Autoconfiguration. This is mutually exclusive with
+  > IPv6 Stateless Address Auto-configuration. This is mutually exclusive with
   > `ipv6-address-generation`.
 
 - **gateway4**, **gateway6** (scalar)
@@ -703,7 +703,7 @@ eth1:
   > default scope of `host` is assumed.
   > If type is `unicast` and no gateway (`via`) is given or type is
   > `broadcast`, `multicast` or `anycast` a default scope of `link`
-  > is assumend. Otherwise, a ``global`` scope is the default setting.
+  > is assumed. Otherwise, a ``global`` scope is the default setting.
   >
   > For `from`, `to`, and `via`, both IPv4 and IPv6 addresses are
   > recognized, and must be in the form `addr/prefixlen` or `addr`.
@@ -942,7 +942,7 @@ backend. `systemd-networkd` does not support modems.
 
 - **auto-config** (bool) – since **0.99**
 
-  > Specify whether to try and autoconfigure the modem by doing a lookup of
+  > Specify whether to try and auto-configure the modem by doing a lookup of
   > the carrier against the Mobile Broadband Provider database. This may not
   > work for all carriers.
 
@@ -986,7 +986,7 @@ backend. `systemd-networkd` does not support modems.
 
 - **username** (scalar) – since **0.99**
 
-  > Specify the username used to authentiate with the carrier network. This
+  > Specify the username used to authenticate with the carrier network. This
   > can be omitted if `auto-config` is enabled.
 
 ## Properties for device type `wifis:`
@@ -1326,7 +1326,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
   - **primary** (scalar)
 
     > Specify a device to be used as a primary slave, or preferred device
-    > to use as a slave for the bond (ie. the preferred device to send
+    > to use as a slave for the bond (i.e. the preferred device to send
     > data through), whenever it is available. This only affects
     > `active-backup`, `balance-alb`, and `balance-tlb` modes.
 
