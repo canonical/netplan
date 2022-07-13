@@ -164,7 +164,7 @@ class NetplanTry(utils.NetplanCommand):
 
         extra_config = []
         if self.config_file:  # pragma: nocover
-            extra_config.append(self.config.file)
+            extra_config.append(self.config_file)
         np_state = self.config_manager.parse(extra_config=extra_config)
         revert_unsupported = []
 
