@@ -23,7 +23,7 @@ off control of devices to the specified networking daemon.
 
 ## General structure
 netplan's configuration files use the
-[YAML](<http://yaml.org/spec/1.1/current.html>) format. All
+[YAML](http://yaml.org/spec/1.1/current.html) format. All
 `/{lib,etc,run}/netplan/*.yaml` are considered. Lexicographically later files
 (regardless of in which directory they are) amend (new mapping keys) or
 override (same mapping keys) previous ones. A file in `/run/netplan`
