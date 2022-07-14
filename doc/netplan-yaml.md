@@ -293,16 +293,16 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 - **renderer** (scalar)
 
-> Use the given networking backend for this definition. Currently supported are
-> `networkd` and `NetworkManager`. This property can be specified globally
-> in `network:`, for a device type (in e. g. `ethernets:`) or
-> for a particular device definition. Default is `networkd`.
->
-> (Since 0.99) The `renderer` property has one additional acceptable value for
-> vlan objects (i. e. defined in `vlans:`): `sriov`. If a vlan is defined with
-> the `sriov` renderer for an SR-IOV Virtual Function interface, this causes
-> netplan to set up a hardware VLAN filter for it. There can be only one defined
-> per VF.
+  > Use the given networking backend for this definition. Currently supported
+  > are `networkd` and `NetworkManager`. This property can be specified globally
+  > in `network:`, for a device type (in e. g. `ethernets:`) or
+  > for a particular device definition. Default is `networkd`.
+  >
+  > (Since 0.99) The `renderer` property has one additional acceptable value for
+  > vlan objects (i. e. defined in `vlans:`): `sriov`. If a vlan is defined with
+  > the `sriov` renderer for an SR-IOV Virtual Function interface, this causes
+  > netplan to set up a hardware VLAN filter for it. There can be only one
+  > defined per VF.
 
 - **dhcp4** (bool)
 
@@ -403,9 +403,9 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > For virtual devices (bridges, bonds, vlan) if there is no address
   > configured and DHCP is disabled, the interface may still be brought online,
   > but will not be addressable from the network.
-
-  In addition to the addresses themselves one can specify configuration
-  parameters as mappings. Current supported options are:
+  >
+  > In addition to the addresses themselves one can specify configuration
+  > parameters as mappings. Current supported options are:
 
   - **lifetime** (scalar) – since **0.100**
 
