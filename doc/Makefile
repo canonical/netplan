@@ -1,4 +1,10 @@
 # Minimal makefile for Sphinx documentation
+# This is for development purposes only, e.g. to run a local Sphinx
+# development environment.  Usage:
+#
+# Setup: Run `make install` from doc/ to setup a Python virtual env
+# Devel: Run `make run` from doc/ to get a live preview of your changes
+# Test:  Run `make spelling` from doc/ to validate your spelling
 #
 
 # You can set these variables from the command line, and also
