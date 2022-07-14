@@ -67,12 +67,13 @@ test_env = [
     'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
 ]
+#FIXME: exclude doc/env/
 test('linting',
      pyflakes,
      args: [meson.current_source_dir()])
 test('codestyle',
      pycodestyle,
-     args: ['--max-line-length=130', meson.current_source_dir()])
+     args: ['--max-line-length=130', '--exclude=doc/env', meson.current_source_dir()])
 test('documentation',
      find_program('tests/validate_docs.sh'),
      workdir: meson.current_source_dir())

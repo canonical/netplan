@@ -152,7 +152,7 @@ install: default
 %.html: %.md
 	pandoc -s --metadata title="Netplan reference" --toc -o $@ $<
 
-doc/netplan.5: doc/manpage-header.md doc/netplan.md doc/manpage-footer.md
+doc/netplan.5: doc/manpage-header.md doc/netplan-yaml.md doc/manpage-footer.md
 	pandoc -s -o $@ --from=markdown-smart $^
 
 %.8: %.md
