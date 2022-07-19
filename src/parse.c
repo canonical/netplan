@@ -1524,6 +1524,62 @@ handle_optional_addresses(NetplanParser* npp, yaml_node_t* node, const void* _, 
     return TRUE;
 }
 
+/* TODO: unify optional_addresses/wowlan_types, using flags */
+static gboolean
+handle_netdef_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    assert_type(npp, node, YAML_SEQUENCE_NODE);
+    yaml_node_t* key_node = node-1; // The YAML key of given sequence `node`
+
+    guint offset = GPOINTER_TO_UINT(data);
+    const char* const* flags = NULL;
+    guint flags_size = 0;
+    NetplanFlags* out_ptr = NULL;
+    switch (offset) {
+        case offsetof(NetplanNetDefinition, vxlan.notifications):
+            out_ptr = &npp->current.netdef->vxlan.notifications;
+            flags = netplan_vxlan_notification_to_str;
+            flags_size = sizeof(netplan_vxlan_notification_to_str);
+            break;
+        case offsetof(NetplanNetDefinition, vxlan.checksums):
+            out_ptr = &npp->current.netdef->vxlan.checksums;
+            flags = netplan_vxlan_checksum_to_str;
+            flags_size = sizeof(netplan_vxlan_checksum_to_str);
+            break;
+        case offsetof(NetplanNetDefinition, vxlan.extensions):
+            out_ptr = &npp->current.netdef->vxlan.extensions;
+            flags = netplan_vxlan_extension_to_str;
+            flags_size = sizeof(netplan_vxlan_extension_to_str);
+            break;
+        default: g_assert_not_reached(); // LCOV_EXCL_LINE
+    }
+    g_assert(flags);
+    g_assert(out_ptr);
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+        int found = FALSE;
+        /* Loop through the flags to find a matching string.
+         * Once found, shift a bit to position INDEX-1 and use bitwise OR to
+         * apply it to the corresponding flags field (i.e. *out_ptr) */
+        // The minimum flag is always 0x1 (i.e. 0b0001), so start the loop at 1.
+        for (unsigned j = 1; j < flags_size/sizeof(char*); ++j) {
+            if (g_ascii_strcasecmp(scalar(entry), flags[j]) == 0) {
+                *out_ptr |= 1<<(j-1);
+                mark_data_as_dirty(npp, out_ptr);
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
+            return yaml_error(npp, node, error, "invalid value for %s: '%s'",
+                              scalar(key_node), scalar(entry));
+        }
+    }
+    return TRUE;
+}
+
 static int
 get_ip_family(const char* address)
 {

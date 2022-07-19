@@ -20,6 +20,8 @@
 #include <parse.h>
 #include <uuid.h>
 
+typedef int NetplanFlags;
+
 /* Those types are part of our ABI as they have been exposed in older versions */
 
 typedef enum {

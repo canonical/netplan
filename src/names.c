@@ -105,6 +105,14 @@ netplan_infiniband_mode_to_str[NETPLAN_IB_MODE_MAX_] = {
     return (val < sizeof( netplan_ ## _radical ## _to_str )) ?  netplan_ ## _radical ## _to_str [val] : NULL; \
 }
 
+/* @num_flags needs to account for the 0x0 value (index 0), which doesn't
+ * represent any flag, but still exists. So subtract 1 from the array length. */
+#define NAME_FUNCTION_FLAGS(_radical) const char *netplan_ ## _radical ## _name( NetplanFlags val) \
+{ \
+    size_t num_flags = sizeof(netplan_ ## _radical ## _to_str) / sizeof(char *) - 1; \
+    return (val <= 1 << (num_flags - 1)) ?  netplan_ ## _radical ## _to_str [__builtin_ffs(val)] : NULL; \
+}
+
 NAME_FUNCTION(backend, NetplanBackend);
 NAME_FUNCTION(def_type, NetplanDefType);
 NAME_FUNCTION(auth_key_management_type, NetplanAuthKeyManagementType);
@@ -113,6 +121,9 @@ NAME_FUNCTION(tunnel_mode, NetplanTunnelMode);
 NAME_FUNCTION(addr_gen_mode, NetplanAddrGenMode);
 NAME_FUNCTION(wifi_mode, NetplanWifiMode);
 NAME_FUNCTION(infiniband_mode, NetplanInfinibandMode);
+NAME_FUNCTION_FLAGS(vxlan_notification);
+NAME_FUNCTION_FLAGS(vxlan_checksum);
+NAME_FUNCTION_FLAGS(vxlan_extension);
 
 #define ENUM_FUNCTION(_radical, _type) _type netplan_ ## _radical ## _from_name(const char* val) \
 { \
