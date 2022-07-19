@@ -1778,6 +1778,7 @@ handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const char* k
 
 static const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.ageing_time)},
+    {"aging-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.ageing_time)},
     {"forward-delay", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.forward_delay)},
     {"hello-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.hello_time)},
     {"max-age", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.max_age)},
