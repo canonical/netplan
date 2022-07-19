@@ -45,6 +45,10 @@
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto err_path; \
 }
 
+#define YAML_FLAG(event_ptr, emitter_ptr, flag, flags_ptr, flags_func) \
+    if (flags_ptr & flag) \
+        YAML_SCALAR_PLAIN(event_ptr, emitter_ptr, flags_func(flag));
+
 #define YAML_NULL_PLAIN(event_ptr, emitter_ptr) \
     yaml_scalar_event_initialize(event_ptr, NULL, (yaml_char_t*)YAML_NULL_TAG, (yaml_char_t*)"null", strlen("null"), 1, 0, YAML_PLAIN_SCALAR_STYLE); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto err_path; \

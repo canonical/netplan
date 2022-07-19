@@ -39,6 +39,24 @@ struct NetplanOptionalAddressType {
     NetplanOptionalAddressFlag flag;
 };
 
+typedef enum {
+    NETPLAN_VXLAN_NOTIFICATION_L2_MISS = 1<<0,
+    NETPLAN_VXLAN_NOTIFICATION_L3_MISS = 1<<1,
+} NetplanVxlanNotificationFlags;
+
+typedef enum {
+    NETPLAN_VXLAN_CHECKSUM_UDP = 1<<0,
+    NETPLAN_VXLAN_CHECKSUM_ZERO_UDP6_TX = 1<<1,
+    NETPLAN_VXLAN_CHECKSUM_ZERO_UDP6_RX = 1<<2,
+    NETPLAN_VXLAN_CHECKSUM_REMOTE_TX = 1<<3,
+    NETPLAN_VXLAN_CHECKSUM_REMOTE_RX = 1<<4,
+} NetplanVxlanChecksumFlags;
+
+typedef enum {
+    NETPLAN_VXLAN_EXTENSION_GROUP_POLICY = 1<<0,
+    NETPLAN_VXLAN_EXTENSION_GENERIC_PROTOCOL = 1<<1,
+} NetplanVxlanExtensionFlags;
+
 // Not strictly speaking a type, but seems fair to keep it around.
 extern struct NetplanOptionalAddressType NETPLAN_OPTIONAL_ADDRESS_TYPES[];
 
