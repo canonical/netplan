@@ -94,7 +94,7 @@ netplan_addr_gen_mode_to_str[NETPLAN_ADDRGEN_MAX] = {
 };
 
 static const char* const
-netplan_infiniband_mode_to_str[NETPLAN_ADDRGEN_MAX] = {
+netplan_infiniband_mode_to_str[NETPLAN_IB_MODE_MAX_] = {
     [NETPLAN_IB_MODE_KERNEL] = NULL,
     [NETPLAN_IB_MODE_DATAGRAM] = "datagram",
     [NETPLAN_IB_MODE_CONNECTED] = "connected"

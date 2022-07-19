@@ -53,6 +53,8 @@ typedef enum {
     NETPLAN_IB_MODE_KERNEL,
     NETPLAN_IB_MODE_DATAGRAM,
     NETPLAN_IB_MODE_CONNECTED,
+
+    NETPLAN_IB_MODE_MAX_,
 } NetplanInfinibandMode;
 
 typedef enum {
