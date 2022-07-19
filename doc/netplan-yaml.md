@@ -1093,7 +1093,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
   > be qualified using a time suffix (such as "s" for seconds, "ms" for
   > milliseconds) to allow for more control over its behavior.
 
-  - **ageing-time** (scalar)
+  - **ageing-time**, **aging-time** (scalar)
 
     > Set the period of time to keep a MAC address in the forwarding
     > database after a packet is received. This maps to the AgeingTimeSec=
