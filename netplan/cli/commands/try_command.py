@@ -164,9 +164,9 @@ class NetplanTry(utils.NetplanCommand):
         '''
 
         extra_config = []
-        if self.config_file:  # pragma: nocover
+        if self.config_file:
             extra_config.append(self.config_file)
-        np_state = libnetplan.State()
+        np_state = None
         try:
             np_state = self.config_manager.parse(extra_config=extra_config)
         except (libnetplan.LibNetplanException, ConfigurationError) as e:
