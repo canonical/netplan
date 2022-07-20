@@ -88,6 +88,8 @@ type_str(const NetplanNetDefinition* def)
         case NETPLAN_DEF_TYPE_TUNNEL:
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
+            else if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
+                return "vxlan";
             return "ip-tunnel";
         case NETPLAN_DEF_TYPE_NM:
             /* needs to be overriden by passthrough "connection.type" setting */
@@ -458,6 +460,60 @@ maybe_generate_uuid(const NetplanNetDefinition* def)
         uuid_generate((unsigned char*)def->uuid);
 }
 
+static void
+write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
+{
+    g_assert(def->vxlan);
+    char uuidstr[37];
+    if (def->vxlan->ageing)
+        g_key_file_set_uint64(kf, "vxlan", "ageing", def->vxlan->ageing);
+    if (def->tunnel.port)
+        g_key_file_set_uint64(kf, "vxlan", "destination-port", def->tunnel.port);
+    if (def->vxlan->vni)
+        g_key_file_set_uint64(kf, "vxlan", "id", def->vxlan->vni);
+    if (def->vxlan->mac_learning)
+        g_key_file_set_boolean(kf, "vxlan", "learning", def->vxlan->mac_learning);
+    if (def->vxlan->limit)
+        g_key_file_set_uint64(kf, "vxlan", "limit", def->vxlan->limit);
+    if (def->tunnel.local_ip)
+        g_key_file_set_string(kf, "vxlan", "local", def->tunnel.local_ip);
+    if (def->tunnel.remote_ip)
+        g_key_file_set_string(kf, "vxlan", "remote", def->tunnel.remote_ip);
+    if (def->vxlan->arp_proxy)
+        g_key_file_set_boolean(kf, "vxlan", "proxy", def->vxlan->arp_proxy);
+    if (def->vxlan->notifications) {
+        if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L2_MISS)
+            g_key_file_set_boolean(kf, "vxlan", "l2-miss", TRUE);
+        if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L3_MISS)
+            g_key_file_set_boolean(kf, "vxlan", "l3-miss", TRUE);
+    }
+    if (def->vxlan->source_port_min && def->vxlan->source_port_max) {
+        g_key_file_set_uint64(kf, "vxlan", "source-port-min", def->vxlan->source_port_min);
+        g_key_file_set_uint64(kf, "vxlan", "source-port-max", def->vxlan->source_port_max);
+    }
+    if (def->vxlan->tos)
+        g_key_file_set_uint64(kf, "vxlan", "tos", def->vxlan->tos);
+    if (def->tunnel_ttl)
+        g_key_file_set_uint64(kf, "vxlan", "ttl", def->tunnel_ttl);
+    if (def->vxlan->short_circuit)
+        g_key_file_set_boolean(kf, "vxlan", "rsc", def->vxlan->short_circuit);
+    if (def->link) {
+        if (def->link->has_match) {
+            /* we need to refer to the parent's UUID as we don't have an
+             * interface name with match: */
+            maybe_generate_uuid(def->link);
+            uuid_unparse(def->link->uuid, uuidstr);
+            g_key_file_set_string(kf, "vxlan", "parent", uuidstr);
+        } else {
+            /* if we have an interface name, use that as parent */
+            g_key_file_set_string(kf, "vxlan", "parent", def->link->id);
+        }
+    }
+
+    if (def->vxlan->checksums || def->vxlan->extensions || def->vxlan->flow_label != G_MAXUINT || def->vxlan->do_not_fragment)
+        g_warning("%s: checksums/extensions/flow-lable/do-not-fragment are not supported by NetworkManager\n", def->id);
+}
+
 /**
  * Special handling for passthrough mode: read key-value pairs from
  * "backend_settings.nm.passthrough" and inject them into the keyfile as-is.
@@ -564,10 +620,10 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         g_key_file_set_string(kf, "connection", "uuid", ap->backend_settings.nm.uuid);
     else if (def->backend_settings.nm.uuid)
         g_key_file_set_string(kf, "connection", "uuid", def->backend_settings.nm.uuid);
-    /* VLAN devices refer to us as their parent; if our ID is not a name but we
-     * have matches, parent= must be the connection UUID, so put it into the
-     * connection */
-    if (def->has_vlans && def->has_match) {
+    /* VLAN/VXLAN devices refer to us as their parent; if our ID is not a name
+     * but we have matches, parent= must be the connection UUID, so put it into
+     * the connection */
+    if ((def->has_vlans || def->has_vxlans) && def->has_match) {
         maybe_generate_uuid(def);
         uuid_unparse(def->uuid, uuidstr);
         g_key_file_set_string(kf, "connection", "uuid", uuidstr);
@@ -715,6 +771,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
             if (!write_wireguard_params(def, kf, error))
                 return FALSE;
+        } else if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
+            write_vxlan_parameters(def, kf);
         } else
             write_tunnel_params(def, kf);
     }
