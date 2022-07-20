@@ -97,3 +97,6 @@ netplan_copy_string(const char* input, char* out_buffer, size_t out_size);
 
 gboolean
 complex_object_is_dirty(const NetplanNetDefinition* def, const void* obj, size_t obj_size);
+
+gboolean
+is_multicast_address(const char*);

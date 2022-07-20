@@ -786,3 +786,20 @@ netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buf, s
 {
     return netplan_copy_string(netdef->set_name, out_buf, out_size);
 }
+
+gboolean
+is_multicast_address(const char* address)
+{
+    struct in_addr a4;
+    struct in6_addr a6;
+
+    if (inet_pton(AF_INET, address, &a4) > 0) {
+        if (ntohl(a4.s_addr) >> 28 == 0b1110) /* 224.0.0.0/4 */
+            return TRUE;
+    } else if (inet_pton(AF_INET6, address, &a6) > 0) {
+        if (a6.s6_addr[0] == 0xff) /* FF00::/8 */
+            return TRUE;
+    }
+
+    return FALSE;
+}
