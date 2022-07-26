@@ -482,9 +482,15 @@ handle_generic_map(NetplanParser *npp, yaml_node_t* node, const char* key_prefix
                 continue;
         }
 
-        /* TODO: make sure we free all the memory here */
-        if (!g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value))))
+        char* stored_value = NULL;
+        if (g_hash_table_lookup_extended(*map, scalar(key), NULL, (void**)&stored_value)) {
+            /* We can safely skip this if it is the exact key/value match
+             * (probably caused by multi-pass processing) */
+            if (g_strcmp0(stored_value, scalar(value)) == 0)
+                continue;
             return yaml_error(npp, node, error, "duplicate map entry '%s'", scalar(key));
+        } else
+            g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value)));
     }
     mark_data_as_dirty(npp, map);
 
