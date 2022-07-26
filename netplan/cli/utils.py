@@ -25,9 +25,14 @@ import fnmatch
 import re
 
 import netplan.libnetplan as np
+from netplan.configmanager import ConfigurationError
+from netplan.libnetplan import LibNetplanException
+
 
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
+
+config_errors = (ConfigurationError, LibNetplanException, RuntimeError)
 
 
 def get_generator_path():

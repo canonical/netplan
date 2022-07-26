@@ -115,6 +115,18 @@ class TestCLI(unittest.TestCase):
         cmd = NetplanTry()
         self.assertTrue(cmd.is_revertable())
 
+    def test_netplan_try_is_revertable_fail(self):
+        extra_config = os.path.join(self.tmproot, 'extra.yaml')
+        with open(extra_config, 'w') as f:
+            f.write('''network:
+  bridges:
+    br54:
+      INVALID: kaputt
+''')
+        cmd = NetplanTry()
+        cmd.config_file = extra_config
+        self.assertRaises(SystemExit, cmd.is_revertable)
+
     def test_netplan_try_is_not_revertable(self):
         with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
             f.write('''network:

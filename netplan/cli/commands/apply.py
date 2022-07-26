@@ -388,7 +388,7 @@ class NetplanApply(utils.NetplanCommand):
     def process_sriov_config(config_manager, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)
         try:
             apply_sriov_config(config_manager)
-        except (ConfigurationError, RuntimeError) as e:
+        except utils.config_errors as e:
             logging.error(str(e))
             if exit_on_error:
                 sys.exit(1)
