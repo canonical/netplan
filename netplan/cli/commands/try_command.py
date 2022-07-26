@@ -25,7 +25,7 @@ import signal
 import sys
 import tempfile
 
-from netplan.configmanager import ConfigManager, ConfigurationError
+from netplan.configmanager import ConfigManager
 import netplan.cli.utils as utils
 from netplan.cli.commands.apply import NetplanApply
 import netplan.terminal
@@ -169,7 +169,7 @@ class NetplanTry(utils.NetplanCommand):
         np_state = None
         try:
             np_state = self.config_manager.parse(extra_config=extra_config)
-        except (libnetplan.LibNetplanException, ConfigurationError) as e:
+        except utils.config_errors as e:
             logging.error(e)
             sys.exit(os.EX_CONFIG)
 
