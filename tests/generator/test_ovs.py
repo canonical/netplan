@@ -29,6 +29,10 @@ class TestOpenVSwitch(TestBase):
     def test_interface_external_ids_other_config(self):
         self.generate('''network:
   version: 2
+  bridges: # bridges first, to trigger multi-pass processing
+    ovs0:
+      interfaces: [eth0, eth1]
+      openvswitch: {}
   ethernets:
     eth0:
       openvswitch:
@@ -41,12 +45,7 @@ class TestOpenVSwitch(TestBase):
       dhcp4: true
       openvswitch:
         other-config:
-          disable-in-band: false
-  bridges:
-    ovs0:
-      interfaces: [eth0, eth1]
-      openvswitch: {}
-''')
+          disable-in-band: false\n''')
         self.assert_ovs({'ovs0.service': OVS_VIRTUAL % {'iface': 'ovs0', 'extra': '''
 [Service]
 Type=oneshot
