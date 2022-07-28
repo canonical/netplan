@@ -202,6 +202,68 @@ err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 static gboolean
+write_vxlan(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
+{
+    if (def->type == NETPLAN_DEF_TYPE_TUNNEL && def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
+        g_assert(def->vxlan);
+        YAML_UINT_0(def, event, emitter, "id", def->vxlan->vni);
+        if (def->link)
+            YAML_STRING(def, event, emitter, "link", def->link->id);
+        if (def->vxlan->source_port_min && def->vxlan->source_port_max) {
+            YAML_SCALAR_PLAIN(event, emitter, "port-range");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            tmp = g_strdup_printf("%u", def->vxlan->source_port_min);
+            YAML_SCALAR_PLAIN(event, emitter, tmp);
+            g_free(tmp);
+            tmp = g_strdup_printf("%u", def->vxlan->source_port_max);
+            YAML_SCALAR_PLAIN(event, emitter, tmp);
+            g_free(tmp);
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+        YAML_UINT_DEFAULT(def, event, emitter, "flow-label", def->vxlan->flow_label, G_MAXUINT);
+        YAML_UINT_0(def, event, emitter, "limit", def->vxlan->limit);
+        YAML_UINT_0(def, event, emitter, "type-of-service", def->vxlan->tos);
+        YAML_UINT_0(def, event, emitter, "ageing", def->vxlan->ageing);
+        YAML_BOOL_TRUE(def, event, emitter, "mac-learning", def->vxlan->mac_learning);
+        YAML_BOOL_TRUE(def, event, emitter, "arp-proxy", def->vxlan->arp_proxy);
+        YAML_BOOL_TRUE(def, event, emitter, "short-circuit", def->vxlan->short_circuit);
+        YAML_BOOL_TRISTATE(def, event, emitter, "do-not-fragment", def->vxlan->do_not_fragment);
+        if (def->vxlan->notifications) {
+            YAML_SCALAR_PLAIN(event, emitter, "notifications");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            int f = def->vxlan->notifications;
+            const char* (*fn)(int) = &netplan_vxlan_notification_name;
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_NOTIFICATION_L2_MISS, f, (*fn));
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_NOTIFICATION_L3_MISS, f, (*fn));
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+        if (def->vxlan->checksums) {
+            YAML_SCALAR_PLAIN(event, emitter, "checksums");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            int f = def->vxlan->checksums;
+            const char* (*fn)(int) = &netplan_vxlan_checksum_name;
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_CHECKSUM_UDP, f, (*fn));
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_CHECKSUM_ZERO_UDP6_TX, f, (*fn));
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_CHECKSUM_ZERO_UDP6_RX, f, (*fn));
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_CHECKSUM_REMOTE_TX, f, (*fn));
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_CHECKSUM_REMOTE_RX, f, (*fn));
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+        if (def->vxlan->extensions) {
+            YAML_SCALAR_PLAIN(event, emitter, "extensions");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            int f = def->vxlan->extensions;
+            const char* (*fn)(int) = &netplan_vxlan_extension_name;
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_EXTENSION_GROUP_POLICY, f, (*fn));
+            YAML_FLAG(event, emitter, NETPLAN_VXLAN_EXTENSION_GENERIC_PROTOCOL, f, (*fn));
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+    }
+    return TRUE;
+err_path: return FALSE; // LCOV_EXCL_LINE
+}
+
+static gboolean
 write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def, const GArray *interfaces)
 {
     if (def->custom_bridging || DIRTY_COMPLEX(def, def->bridge_params)) {
@@ -440,6 +502,9 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
     YAML_UINT_0(def, event, emitter, "mark", def->tunnel.fwmark);
     YAML_UINT_0(def, event, emitter, "port", def->tunnel.port);
     YAML_UINT_0(def, event, emitter, "ttl", def->tunnel_ttl);
+
+    /* VXLAN settings */
+    write_vxlan(event, emitter, def);
 
     if (def->tunnel.input_key || def->tunnel.output_key || def->tunnel.private_key) {
         if (   g_strcmp0(def->tunnel.input_key, def->tunnel.output_key) == 0
@@ -737,6 +802,7 @@ _serialize_yaml(
     }
 
     write_routes(event, emitter, def);
+    YAML_BOOL_TRISTATE(def, event, emitter, "neigh-suppress", def->bridge_neigh_suppress);
 
     /* VLAN settings */
     if (def->type == NETPLAN_DEF_TYPE_VLAN) {

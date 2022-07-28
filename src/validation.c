@@ -204,10 +204,12 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
     }
 
     /* Validate local/remote IPs */
-    if (!nd->tunnel.local_ip)
-        return yaml_error(npp, node, error, "%s: missing 'local' property for tunnel", nd->id);
-    if (!nd->tunnel.remote_ip)
-        return yaml_error(npp, node, error, "%s: missing 'remote' property for tunnel", nd->id);
+    if (nd->tunnel.mode != NETPLAN_TUNNEL_MODE_VXLAN) {
+        if (!nd->tunnel.local_ip)
+            return yaml_error(npp, node, error, "%s: missing 'local' property for tunnel", nd->id);
+        if (!nd->tunnel.remote_ip)
+            return yaml_error(npp, node, error, "%s: missing 'remote' property for tunnel", nd->id);
+    }
     if (nd->tunnel_ttl && nd->tunnel_ttl > 255)
         return yaml_error(npp, node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
 
@@ -221,6 +223,12 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
                 return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
             if (!is_ip6_address(nd->tunnel.remote_ip))
                 return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
+            break;
+
+        case NETPLAN_TUNNEL_MODE_VXLAN:
+            if ((nd->tunnel.local_ip && nd->tunnel.remote_ip) &&
+                (is_ip6_address(nd->tunnel.local_ip) != is_ip6_address(nd->tunnel.remote_ip)))
+                return yaml_error(npp, node, error, "%s: 'local' and 'remote' must be of same IP family type", nd->id);
             break;
 
         default:
@@ -329,6 +337,19 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
             return yaml_error(npp, node, error, "%s: missing 'id' property", nd->id);
         if (nd->vlan_id > 4094)
             return yaml_error(npp, node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
+    }
+
+    if (nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
+        nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
+        if (nd->vxlan->vni == 0)
+            return yaml_error(npp, node, error,
+                              "%s: missing 'id' property (VXLAN VNI)", nd->id);
+        if (nd->vxlan->vni < 1 || nd->vxlan->vni > 16777215)
+            return yaml_error(npp, node, error, "%s: VXLAN 'id' (VNI) "
+                              "must be in range [1..16777215]", nd->id);
+        if (nd->vxlan->flow_label != G_MAXUINT && nd->vxlan->flow_label > 1048575)
+            return yaml_error(npp, node, error, "%s: VXLAN 'flow-label' "
+                              "must be in range [0..1048575]", nd->id);
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_VRF) {
