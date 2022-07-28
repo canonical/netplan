@@ -417,6 +417,79 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
 }
 
 static void
+write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
+{
+    g_assert(def->vxlan);
+    GString* params = NULL;
+
+    params = g_string_sized_new(200);
+
+    if (def->tunnel.remote_ip) {
+        if (is_multicast_address(def->tunnel.remote_ip))
+            g_string_append_printf(params, "\nGroup=%s", def->tunnel.remote_ip);
+        else
+            g_string_append_printf(params, "\nRemote=%s", def->tunnel.remote_ip);
+    }
+    if (def->tunnel.local_ip)
+        g_string_append_printf(params, "\nLocal=%s", def->tunnel.local_ip);
+    if (def->vxlan->tos)
+        g_string_append_printf(params, "\nTOS=%d", def->vxlan->tos);
+    if (def->tunnel_ttl)
+        g_string_append_printf(params, "\nTTL=%d", def->tunnel_ttl);
+    if (def->vxlan->mac_learning)
+        g_string_append_printf(params, "\nMacLearning=%s", def->vxlan->mac_learning ? "true" : "false");
+    if (def->vxlan->ageing)
+        g_string_append_printf(params, "\nFDBAgeingSec=%d", def->vxlan->ageing);
+    if (def->vxlan->limit)
+        g_string_append_printf(params, "\nMaximumFDBEntries=%d", def->vxlan->limit);
+    if (def->vxlan->arp_proxy)
+        g_string_append_printf(params, "\nReduceARPProxy=%s", def->vxlan->arp_proxy ? "true" : "false");
+    if (def->vxlan->notifications) {
+        if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L2_MISS)
+            g_string_append(params, "\nL2MissNotification=true");
+        if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L3_MISS)
+            g_string_append(params, "\nL3MissNotification=true");
+    }
+    if (def->vxlan->short_circuit)
+        g_string_append_printf(params, "\nRouteShortCircuit=%s", def->vxlan->short_circuit ? "true" : "false");
+    if (def->vxlan->checksums) {
+        if (def->vxlan->checksums & NETPLAN_VXLAN_CHECKSUM_UDP)
+            g_string_append(params, "\nUDPChecksum=true");
+        if (def->vxlan->checksums & NETPLAN_VXLAN_CHECKSUM_ZERO_UDP6_TX)
+            g_string_append(params, "\nUDP6ZeroChecksumTx=true");
+        if (def->vxlan->checksums & NETPLAN_VXLAN_CHECKSUM_ZERO_UDP6_RX)
+            g_string_append(params, "\nUDP6ZeroChecksumRx=true");
+        if (def->vxlan->checksums & NETPLAN_VXLAN_CHECKSUM_REMOTE_TX)
+            g_string_append(params, "\nRemoteChecksumTx=true");
+        if (def->vxlan->checksums & NETPLAN_VXLAN_CHECKSUM_REMOTE_RX)
+            g_string_append(params, "\nRemoteChecksumRx=true");
+    }
+    if (def->vxlan->extensions) {
+        if (def->vxlan->extensions & NETPLAN_VXLAN_EXTENSION_GROUP_POLICY)
+            g_string_append(params, "\nGroupPolicyExtension=true");
+        if (def->vxlan->extensions & NETPLAN_VXLAN_EXTENSION_GENERIC_PROTOCOL)
+            g_string_append(params, "\nGenericProtocolExtension=true");
+    }
+    if (def->tunnel.port)
+        g_string_append_printf(params, "\nDestinationPort=%d", def->tunnel.port);
+    if (def->vxlan->source_port_min && def->vxlan->source_port_max)
+        g_string_append_printf(params, "\nPortRange=%u-%u",
+                               def->vxlan->source_port_min,
+                               def->vxlan->source_port_max);
+    if (def->vxlan->flow_label != G_MAXUINT)
+        g_string_append_printf(params, "\nFlowLabel=%d", def->vxlan->flow_label);
+    if (def->vxlan->do_not_fragment != NETPLAN_TRISTATE_UNSET)
+        g_string_append_printf(params, "\nIPDoNotFragment=%s", def->vxlan->do_not_fragment ? "true" : "false");
+    if (!def->link)
+        g_string_append(params, "\nIndependent=true");
+
+    if (params->len)
+        g_string_append_printf(s, "%s\n", params->str);
+
+    g_string_free(params, TRUE);
+}
+
+static void
 write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -472,6 +545,10 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                                            netplan_tunnel_mode_name(def->tunnel.mode));
                     break;
 
+                case NETPLAN_TUNNEL_MODE_VXLAN:
+                    g_string_append_printf(s, "Kind=vxlan\n\n[VXLAN]\nVNI=%u", def->vxlan->vni);
+                    break;
+
                 case NETPLAN_TUNNEL_MODE_IP6IP6:
                 case NETPLAN_TUNNEL_MODE_IPIP6:
                     g_string_append(s, "Kind=ip6tnl\n");
@@ -484,6 +561,8 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
             }
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 write_wireguard_params(s, def);
+            else if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
+                write_vxlan_parameters(def, s);
             else
                 write_tunnel_params(s, def);
             break;
@@ -758,12 +837,18 @@ netplan_netdef_write_network_file(
     if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
-        if (def->bridge_params.path_cost || def->bridge_params.port_priority)
+        if (   def->bridge_params.path_cost
+            || def->bridge_params.port_priority
+            || def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET)
             g_string_append_printf(network, "\n[Bridge]\n");
         if (def->bridge_params.path_cost)
             g_string_append_printf(network, "Cost=%u\n", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
             g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
+        if (def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET) {
+            g_string_append_printf(network, "NeighborSuppression=%s\n", def->bridge_neigh_suppress ? "true" : "false");
+    }
+
     }
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
@@ -859,6 +944,19 @@ netplan_netdef_write_network_file(
     /* IP-over-InfiniBand, IPoIB */
     if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
         g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
+    }
+
+    /* VXLAN options */
+    if (def->has_vxlans) {
+        /* iterate over all netdefs to find VXLANs attached to us */
+        GList *l = np_state->netdefs_ordered;
+        const NetplanNetDefinition* nd;
+        for (; l != NULL; l = l->next) {
+            nd = l->data;
+            if (nd->link == def && nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
+                nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
+                g_string_append_printf(network, "VXLAN=%s\n", nd->id);
+        }
     }
 
     if (network->len > 0 || link->len > 0) {
