@@ -1,0 +1,40 @@
+network:
+  renderer: networkd
+  ethernets:
+    lo:
+      addresses:
+        - 192.168.10.10/32
+  vrfs:
+    vrf1005:
+      table: 1005
+      interfaces:
+        - br1
+        - br1005
+  bridges:
+    br1:
+      interfaces:
+        - vxlan1
+    br1005:
+      interfaces:
+        - vxlan1005
+  tunnels:
+    vxlan1005:
+      mode: vxlan
+      id: 1005
+      link: lo
+      mtu: 8950
+      accept-ra: no
+      neigh-suppress: true
+      mac-learning: false
+      port: 4789
+      local: 192.168.10.10
+    vxlan1:
+      mode: vxlan
+      id: 1
+      link: lo
+      mtu: 8950
+      accept-ra: no
+      neigh-suppress: true
+      mac-learning: false
+      port: 4789
+      local: 192.168.10.10
