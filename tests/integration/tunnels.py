@@ -195,6 +195,44 @@ class _CommonTests():
         out = subprocess.check_output(['ip', '-6', 'tunnel', 'show', 'tun0'], universal_newlines=True)
         self.assertIn("key 1234", out)
 
+    def test_tunnel_vxlan(self):
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'vx0'], stderr=subprocess.DEVNULL)
+        self.setup_eth(None, False)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  tunnels:
+    vx0:
+      mode: vxlan
+      id: 1337
+      link: %(ec)s
+      local: 10.10.10.42
+      remote: 224.0.0.5 # multicast group
+      ttl: 64
+      aging: 100
+      port: 4567
+      port-range: [4000, 4200]
+      mac-learning: false
+      short-circuit: true
+      notifications: [l2-miss, l3-miss]
+      checksums: [udp, zero-udp6-tx, zero-udp6-rx, remote-tx, remote-rx] # sd-networkd only
+  ethernets:
+    %(ec)s:
+        addresses: [10.10.10.42/24]
+''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'vx0'])
+        self.assert_iface('vx0', ['vxlan ', ' id 1337 ', ' group 224.0.0.5 ',
+                                  ' local 10.10.10.42 ', ' srcport 4000 4200 ',
+                                  ' dev %s ' % self.dev_e_client,
+                                  ' dstport 4567 ', ' rsc ', ' l2miss ',
+                                  ' l3miss ', ' ttl 64 ', ' ageing 100 '])
+        if self.backend == 'networkd':
+            # checksums are not supported on the NetworkManager backend
+            self.assert_iface('vx0', [' udpcsum ', ' udp6zerocsumtx ',
+                                      ' udp6zerocsumrx ', ' remcsumtx ',
+                                      ' remcsumrx '])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")

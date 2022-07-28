@@ -272,7 +272,7 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
     def assert_iface(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface has been created'''
 
-        out = subprocess.check_output(['ip', 'a', 'show', 'dev', iface],
+        out = subprocess.check_output(['ip', '-d', 'a', 'show', 'dev', iface],
                                       universal_newlines=True)
         if expected_ip_a:
             for r in expected_ip_a:
