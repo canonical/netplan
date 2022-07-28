@@ -532,6 +532,10 @@ This is a complex example which shows most available features
               via: 192.168.24.254
               metric: 100
       ethernets:
+        lo:
+          addresses:
+            - 172.16.20.20/32
+          link-local: []
         # opaque ID for physical interfaces, only referred to by other stanzas
         id0:
           match:
@@ -609,4 +613,18 @@ This is a complex example which shows most available features
           # IDs of the components; switchports expands into multiple interfaces
           interfaces: [wlp1s0, switchports]
           dhcp4: true
+        br20:
+          interfaces: [vxlan20]
+      tunnels:
+        vxlan20:
+          mode: vxlan
+          link: lo
+          id: 20
+          mtu: 8950
+          accept-ra: no
+          neigh-suppress: true
+          link-local: []
+          mac-learning: false
+          port: 4789
+          local: 172.16.20.20
 ```

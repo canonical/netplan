@@ -570,6 +570,11 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
   > Configure policy routing for the device; see the `Routing` section below.
 
+- **neigh-suppress** (scalar) – since **0.105**
+
+  > Takes a boolean. Configures whether ARP and ND neighbor suppression is
+  > enabled for this port. When unset, the kernel's default will be used.
+
 ## DHCP Overrides
 Several DHCP behavior overrides are available. Most currently only have any
 effect when using the `networkd` backend, with the exception of `use-routes`
@@ -1343,22 +1348,27 @@ more general information about tunnels.
 - **mode** (scalar)
 
   > Defines the tunnel mode. Valid options are `sit`, `gre`, `ip6gre`,
-  > `ipip`, `ipip6`, `ip6ip6`, `vti`, `vti6` and `wireguard`.
+  > `ipip`, `ipip6`, `ip6ip6`, `vti`, `vti6`, `wireguard` and `vxlan`.
   > Additionally, the `networkd` backend also supports `gretap` and
   > `ip6gretap` modes.
   > In addition, the `NetworkManager` backend supports `isatap` tunnels.
 
 - **local** (scalar)
 
-  > Defines the address of the local endpoint of the tunnel.
+  > Defines the address of the local endpoint of the tunnel. (For VXLAN) This
+  > should match one of the parent's IP addresses or make use of the networkd
+  > special values.
+
 
 - **remote** (scalar)
 
-  > Defines the address of the remote endpoint of the tunnel.
+  > Defines the address of the remote endpoint of the tunnel or multicast group
+  > IP address for VXLAN.
 
 - **ttl** (scalar) – since **0.103**
 
-  > Defines the TTL of the tunnel.
+  > Defines the Time To Live (TTL) of the tunnel.
+  > Takes a number in the range `1..255`.
 
 - **key**  (scalar or mapping)
 
@@ -1510,6 +1520,86 @@ WireGuard specific keys:
       > A base64-encoded preshared key. Optional for WireGuard peers.
       > When the `systemd-networkd` backend (v242+) is used, this can
       > also be an absolute path to a file containing the preshared key.
+
+VXLAN specific keys:
+
+- **id** (scalar) – since **0.105**
+
+  > The VXLAN Network Identifier (VNI or VXLAN Segment ID).
+  > Takes a number in the range `1..16777215`.
+
+- **link** (scalar) – since **0.105**
+
+  > netplan ID of the parent device definition to which this VXLAN gets
+  > connected.
+
+- **type-of-service** (scalar) – since **0.105**
+
+  > The Type Of Service byte value for a vxlan interface.
+
+- **mac-learning** (scalar) – since **0.105**
+
+  > Takes a boolean. When `true`, enables dynamic MAC learning to discover
+  > remote MAC addresses.
+
+- **ageing**, **aging** (scalar) – since **0.105**
+
+  > The lifetime of Forwarding Database entry learnt by the kernel, in
+  > seconds.
+
+- **limit** (scalar) – since **0.105**
+
+  > Configures maximum number of FDB entries.
+
+- **arp-proxy** (scalar) – since **0.105**
+
+  > Takes a boolean. When `true`, bridge-connected VXLAN tunnel endpoint
+  > answers ARP requests from the local bridge on behalf of remote Distributed
+  > Overlay Virtual Ethernet (DOVE) clients. Defaults to `false`.
+
+- **notifications** (sequence of scalars) – since **0.105**
+
+  > Takes the flags `l2-miss` and `l3-miss` to enable netlink LLADDR and/or
+  > netlink IP address miss notifications.
+
+- **short-circuit** (scalar) – since **0.105**
+
+  > Takes a boolean. When `true`, route short circuiting is turned on.
+
+- **checksums** (sequence of scalars) – since **0.105**
+
+  > Takes the flags `udp`, `zero-udp6-tx`, `zero-udp6-rx`, `remote-tx` and
+  > `remote-rx` to enable transmitting UDP checksums in VXLAN/IPv4,
+  > send/receive zero checksums in VXLAN/IPv6 and enable sending/receiving
+  > checksum offloading in VXLAN.
+
+- **extensions** (sequence of scalars) – since **0.105**
+
+  > Takes the flags `group-policy` and `generic-protocol` to enable the "Group
+  > Policy" and/or "Generic Protocol" VXLAN extensions.
+
+- **port** (scalar) – since **0.105**
+
+  > Configures the default destination UDP port. If the destination port is
+  > not specified then Linux kernel default will be used. Set to `4789` to get
+  > the IANA assigned value.
+
+- **port-range** (sequence of scalars) – since **0.105**
+
+  > Configures the source port range for the VXLAN. The kernel assigns the
+  > source UDP port based on the flow to help the receiver to do load
+  > balancing. When this option is not set, the normal range of local UDP
+  > ports is used. Uses the form `[LOWER, UPPER]`.
+
+- **flow-label** (scalar) – since **0.105**
+
+  > Specifies the flow label to use in outgoing packets. The valid range
+  > is `0-1048575`.
+
+- **do-not-fragment** (scalar) – since **0.105**
+
+  > Allows setting the IPv4 Do not Fragment (DF) bit in outgoing packets.
+  > Takes a boolean value. When unset, the kernel's default will be used.
 
 ## Properties for device type `vlans:`
 
