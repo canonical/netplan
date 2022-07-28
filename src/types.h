@@ -149,6 +149,24 @@ typedef struct {
     guint tos;
 } NetplanIPRule;
 
+struct netplan_vxlan {
+        guint vni;
+        guint ageing;
+        guint limit;
+        guint tos;
+        guint flow_label;
+        guint source_port_min;
+        guint source_port_max;
+        gboolean mac_learning;
+        gboolean arp_proxy;
+        gboolean short_circuit;
+        gboolean independent;
+        NetplanFlags notifications;
+        NetplanFlags checksums;
+        NetplanFlags extensions;
+        NetplanTristate do_not_fragment;
+};
+
 struct netplan_state {
     /* Since both netdefs and netdefs_ordered store pointers to the same elements,
      * we consider that only netdefs_ordered is owner of this data. One should not
@@ -191,6 +209,7 @@ struct netplan_parser {
         NetplanAddressOptions* addr_options;
         NetplanIPRoute* route;
         NetplanIPRule* ip_rule;
+        NetplanVxlan* vxlan;
         const char *filepath;
 
         /* Plain old data representing the backend for which we are
@@ -239,6 +258,9 @@ reset_ip_rule(NetplanIPRule* ip_rule);
 
 void
 reset_ovs_settings(NetplanOVSSettings *settings);
+
+void
+reset_vxlan(NetplanVxlan* vxlan);
 
 void
 access_point_clear(NetplanWifiAccessPoint** ap, NetplanBackend backend);

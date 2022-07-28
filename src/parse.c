@@ -45,6 +45,7 @@
 #define ovs_settings_offset(field) GUINT_TO_POINTER(offsetof(NetplanOVSSettings, field))
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
 #define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(NetplanWireguardPeer, field))
+#define vxlan_offset(field) GUINT_TO_POINTER(offsetof(NetplanVxlan, field))
 
 /* convenience macro to avoid strdup'ing a string into a field if it's already set. */
 #define set_str_if_null(dst, src) { if (dst) {\
@@ -1526,8 +1527,9 @@ handle_optional_addresses(NetplanParser* npp, yaml_node_t* node, const void* _, 
 
 /* TODO: unify optional_addresses/wowlan_types, using flags */
 static gboolean
-handle_netdef_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_vxlan_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
+    g_assert(npp->current.vxlan);
     assert_type(npp, node, YAML_SEQUENCE_NODE);
     yaml_node_t* key_node = node-1; // The YAML key of given sequence `node`
 
@@ -1536,18 +1538,18 @@ handle_netdef_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GEr
     guint flags_size = 0;
     NetplanFlags* out_ptr = NULL;
     switch (offset) {
-        case offsetof(NetplanNetDefinition, vxlan.notifications):
-            out_ptr = &npp->current.netdef->vxlan.notifications;
+        case offsetof(NetplanVxlan, notifications):
+            out_ptr = &npp->current.vxlan->notifications;
             flags = netplan_vxlan_notification_to_str;
             flags_size = sizeof(netplan_vxlan_notification_to_str);
             break;
-        case offsetof(NetplanNetDefinition, vxlan.checksums):
-            out_ptr = &npp->current.netdef->vxlan.checksums;
+        case offsetof(NetplanVxlan, checksums):
+            out_ptr = &npp->current.vxlan->checksums;
             flags = netplan_vxlan_checksum_to_str;
             flags_size = sizeof(netplan_vxlan_checksum_to_str);
             break;
-        case offsetof(NetplanNetDefinition, vxlan.extensions):
-            out_ptr = &npp->current.netdef->vxlan.extensions;
+        case offsetof(NetplanVxlan, extensions):
+            out_ptr = &npp->current.vxlan->extensions;
             flags = netplan_vxlan_extension_to_str;
             flags_size = sizeof(netplan_vxlan_extension_to_str);
             break;
@@ -1578,6 +1580,27 @@ handle_netdef_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GEr
         }
     }
     return TRUE;
+}
+
+static gboolean
+handle_vxlan_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(npp->current.vxlan);
+    return handle_generic_guint(npp, node, npp->current.vxlan, data, error);
+}
+
+static gboolean
+handle_vxlan_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(npp->current.vxlan);
+    return handle_generic_bool(npp, node, npp->current.vxlan, data, error);
+}
+
+static gboolean
+handle_vxlan_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    g_assert(npp->current.vxlan);
+    return handle_generic_tristate(npp, node, npp->current.vxlan, data, error);
 }
 
 static int
@@ -2109,6 +2132,33 @@ handle_vrf_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, G
 }
 
 static gboolean
+handle_vxlan_source_port(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
+{
+    assert_type(npp, node, YAML_SEQUENCE_NODE);
+    if (node->data.sequence.items.top - node->data.sequence.items.start != 2)
+        return yaml_error(npp, node, error, "%s: Expected exactly two values for port-range",
+                          npp->current.netdef->id);
+
+    yaml_node_t* itm1 = yaml_document_get_node(&npp->doc, *node->data.sequence.items.start);
+    yaml_node_t* itm2 = yaml_document_get_node(&npp->doc, *node->data.sequence.items.start+1);
+
+    if (!handle_generic_guint(npp, itm1, npp->current.vxlan, vxlan_offset(source_port_min), error))
+        return FALSE;
+    if (!handle_generic_guint(npp, itm2, npp->current.vxlan, vxlan_offset(source_port_max), error))
+        return FALSE;
+
+    guint tmp = 0;
+    if (npp->current.netdef->vxlan->source_port_min > npp->current.netdef->vxlan->source_port_max) {
+        tmp = npp->current.netdef->vxlan->source_port_min;
+        npp->current.netdef->vxlan->source_port_min = npp->current.netdef->vxlan->source_port_max;
+        npp->current.netdef->vxlan->source_port_max = tmp;
+        g_warning("%s: swapped invalid port-range order [MIN, MAX]", npp->current.netdef->id);
+    }
+
+    return TRUE;
+}
+
+static gboolean
 handle_bonding(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* _, GError** error)
 {
     return process_mapping(npp, node, key_prefix, bond_params_handlers, NULL, error);
@@ -2564,7 +2614,8 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"optional-addresses", YAML_SEQUENCE_NODE, {.generic=handle_optional_addresses}}, \
     {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}}, \
     {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}}, \
-    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}}
+    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}}, \
+    {"neigh-suppress", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(bridge_neigh_suppress)}
 
 #define COMMON_BACKEND_HANDLERS \
     {"networkmanager", YAML_MAPPING_NODE, {.map={.handlers=nm_backend_settings_handlers}}}, \
@@ -2676,6 +2727,23 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"mark", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(tunnel.fwmark)},
     {"port", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(tunnel.port)},
     {"peers", YAML_SEQUENCE_NODE, {.generic=handle_wireguard_peers}},
+
+    /* vxlan */
+    {"link", YAML_SCALAR_NODE, {.generic=handle_netdef_id_ref}, netdef_offset(link)},
+    {"ageing", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(ageing)},
+    {"aging", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(ageing)},
+    {"id", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(vni)},
+    {"limit", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(limit)},
+    {"type-of-service", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(tos)},
+    {"flow-label", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(flow_label)},
+    {"do-not-fragment", YAML_SCALAR_NODE, {.generic=handle_vxlan_tristate}, vxlan_offset(do_not_fragment)},
+    {"short-circuit", YAML_SCALAR_NODE, {.generic=handle_vxlan_bool}, vxlan_offset(short_circuit)},
+    {"arp-proxy", YAML_SCALAR_NODE, {.generic=handle_vxlan_bool}, vxlan_offset(arp_proxy)},
+    {"mac-learning", YAML_SCALAR_NODE, {.generic=handle_vxlan_bool}, vxlan_offset(mac_learning)},
+    {"notifications", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(notifications)},
+    {"checksums", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(checksums)},
+    {"extensions", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(extensions)},
+    {"port-range", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_source_port}},
     {NULL}
 };
 
@@ -2867,8 +2935,29 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
                 break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
+
+        /* Preprocessing */
+        /* Any tunnel netdef needs to carry the 'vxlan' struct, as it might
+         * potentially be a VXLAN tunnel. */
+        if (npp->current.netdef->type == NETPLAN_DEF_TYPE_TUNNEL) {
+            NetplanVxlan* vxlan = g_new0(NetplanVxlan, 1);
+            reset_vxlan(vxlan);
+            npp->current.vxlan = vxlan;
+            npp->current.netdef->vxlan = vxlan;
+        }
+
         if (!process_mapping(npp, value, full_key, handlers, NULL, error))
             return FALSE;
+
+        /* Postprocessing */
+        /* Implicit VXLAN settings, which can be deduced from parsed data. */
+        if (npp->current.netdef->type == NETPLAN_DEF_TYPE_TUNNEL &&
+            npp->current.netdef->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
+            if (npp->current.netdef->link)
+                npp->current.netdef->link->has_vxlans = TRUE;
+            else
+                npp->current.netdef->vxlan->independent = TRUE;
+        }
 
         /* validate definition-level conditions */
         if (!validate_netdef_grammar(npp, npp->current.netdef, value, error))
@@ -3166,6 +3255,7 @@ netplan_parser_reset(NetplanParser* npp)
     /* These pointers are non-owning, it's not our place to free their resources*/
     npp->current.netdef = NULL;
     npp->current.auth = NULL;
+    npp->current.vxlan = NULL;
 
     access_point_clear(&npp->current.access_point, npp->current.backend);
     wireguard_peer_clear(&npp->current.wireguard_peer);

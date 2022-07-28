@@ -187,6 +187,16 @@ reset_private_netdef_data(struct private_netdef_data* data) {
     data->dirty_fields = NULL;
 }
 
+void
+reset_vxlan(NetplanVxlan* vxlan)
+{
+    if (!vxlan)
+        return;
+    memset(vxlan, 0, sizeof(NetplanVxlan));
+    vxlan->flow_label = G_MAXUINT;
+    vxlan->do_not_fragment = NETPLAN_TRISTATE_UNSET;
+}
+
 /* Free a heap-allocated NetplanWifiAccessPoint object.
  * Signature made to match the g_hash_table_foreach function.
  * @key: ignored
@@ -298,6 +308,11 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->bond_params.primary_slave);
     memset(&netdef->bond_params, 0, sizeof(netdef->bond_params));
 
+    netdef->link = NULL;
+    netdef->has_vxlans = FALSE;
+    reset_vxlan(netdef->vxlan);
+    FREE_AND_NULLIFY(netdef->vxlan);
+
     FREE_AND_NULLIFY(netdef->modem_params.apn);
     FREE_AND_NULLIFY(netdef->modem_params.device_id);
     FREE_AND_NULLIFY(netdef->modem_params.network_id);
@@ -309,6 +324,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->modem_params.username);
     memset(&netdef->modem_params, 0, sizeof(netdef->modem_params));
 
+    netdef->bridge_neigh_suppress = NETPLAN_TRISTATE_UNSET;
     FREE_AND_NULLIFY(netdef->bridge_params.ageing_time);
     FREE_AND_NULLIFY(netdef->bridge_params.forward_delay);
     FREE_AND_NULLIFY(netdef->bridge_params.hello_time);

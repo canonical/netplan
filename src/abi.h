@@ -91,6 +91,7 @@ typedef enum {
     NETPLAN_TUNNEL_MODE_IPIP6       = 7,
     NETPLAN_TUNNEL_MODE_IP6GRE      = 8,
     NETPLAN_TUNNEL_MODE_VTI6        = 9,
+    NETPLAN_TUNNEL_MODE_VXLAN       = 10,
 
     /* systemd-only, apparently? */
     NETPLAN_TUNNEL_MODE_GRETAP      = 101,
@@ -179,6 +180,8 @@ typedef enum
     NETPLAN_TRISTATE_FALSE,      /*  0 */
     NETPLAN_TRISTATE_TRUE,       /*  1 */
 } NetplanTristate;
+
+typedef struct netplan_vxlan NetplanVxlan;
 
 /* Keep 'struct netplan_net_definition' in a separate header file, to allow for
  * abidiff to consider it "public API" (although it isn't) and notify us about
@@ -369,4 +372,13 @@ struct netplan_net_definition {
     /* netplan-feature: vrf */
     NetplanNetDefinition* vrf_link;
     guint vrf_table;
+
+    /* TODO: `link` can also be used for vrf/vlan/sriov/... in the future */
+    NetplanNetDefinition* link;
+    NetplanTristate bridge_neigh_suppress;
+
+    /* vxlan */
+    /* netplan-feature: vxlan */
+    gboolean has_vxlans;
+    NetplanVxlan* vxlan;
 };
