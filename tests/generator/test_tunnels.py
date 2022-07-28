@@ -1,8 +1,11 @@
 #
 # Tests for tunnel devices config generated via netplan
 #
-# Copyright (C) 2018 Canonical, Ltd.
+# Copyright (C) 2018-2022 Canonical, Ltd.
+# Copyright (C) 2022 Datto, Inc.
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel.lapierre@canonical.com>
+# Author: Anthony Timmins <atimmins@datto.com>
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase, ND_WITHIPGW, ND_EMPTY, NM_WG, ND_WG
+import os
+import re
+
+from .base import TestBase, ND_WITHIPGW, ND_EMPTY, NM_WG, ND_WG, ND_VXLAN
 
 
 def prepare_config_for_mode(renderer, mode, key=None, ttl=None):
@@ -328,6 +334,76 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: 'to' is required to define the allowed IPs.", out)
 
+    def test_vxlan_port_range_fail(self):
+        out = self.generate('''network:
+  tunnels:
+    vx0:
+      mode: vxlan
+      port-range: [1,2,3]''', expect_fail=True)
+        self.assertIn("Expected exactly two values for port-range", out)
+
+    def test_vxlan_port_min_wrong_type(self):
+        out = self.generate('''network:
+  tunnels:
+    vx0:
+      mode: vxlan
+      port-range: [a,10]''', expect_fail=True)
+        self.assertIn("invalid unsigned int value 'a'", out)
+
+    def test_vxlan_port_max_wrong_type(self):
+        out = self.generate('''network:
+  tunnels:
+    vx0:
+      mode: vxlan
+      port-range: [10,b]''', expect_fail=True)
+        self.assertIn("invalid unsigned int value 'b'", out)
+
+    def test_vxlan_flags_fail(self):
+        out = self.generate('''network:
+  tunnels:
+    vx0:
+      mode: vxlan
+      notifications: [INVALID]''', expect_fail=True)
+        self.assertIn("invalid value for notifications: 'INVALID'", out)
+
+    def test_vxlan_missing_vni(self):
+        out = self.generate('''network:
+  version: 2
+  tunnels:
+    vxlan1005:
+      mode: vxlan''', expect_fail=True)
+        self.assertIn('missing \'id\' property (VXLAN VNI)', out)
+
+    def test_vxlan_oob_vni(self):
+        out = self.generate('''network:
+  version: 2
+  tunnels:
+    vxlan1005:
+      mode: vxlan
+      id: 17000000''', expect_fail=True)
+        self.assertIn('VXLAN \'id\' (VNI) must be in range [1..16777215]', out)
+
+    def test_vxlan_oob_flow_label(self):
+        out = self.generate('''network:
+  version: 2
+  tunnels:
+    vxlan1005:
+      mode: vxlan
+      id: 1005
+      flow-label: 1111111''', expect_fail=True)
+        self.assertIn('VXLAN \'flow-label\' must be in range [0..1048575]', out)
+
+    def test_vxlan_local_remote_ip_family_mismatch(self):
+        out = self.generate('''network:
+  version: 2
+  tunnels:
+    vxlan1005:
+      mode: vxlan
+      id: 1005
+      local: 10.10.10.1
+      remote: fe80::3''', expect_fail=True)
+        self.assertIn('\'local\' and \'remote\' must be of same IP family type', out)
+
 
 class _CommonTests():
 
@@ -507,6 +583,124 @@ Endpoint=[2001:fe:ad:de:ad:be:ef:11]:5'''),
 persistent-keepalive=23
 endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
+
+    def test_vxlan(self):
+        out = self.generate('''network:
+  renderer: %(r)s
+  version: 2
+  tunnels:
+    vxlan1005:
+      link: br0
+      mode: vxlan
+      local: 10.10.10.1
+      remote: 224.0.0.5
+      id: 1005
+      port: 4789
+      ageing: 42
+      mac-learning: true
+      limit: 37
+      arp-proxy: true
+      short-circuit: true
+      type-of-service: 292
+      ttl: 128
+      flow-label: 0
+      do-not-fragment: true
+      notifications: [l2-miss, l3-miss]
+      checksums: [udp, zero-udp6-tx, zero-udp6-rx, remote-tx, remote-rx]
+      extensions: [group-policy, generic-protocol]
+      port-range: [42, 442]
+      neigh-suppress: false
+  bridges:
+    br0:
+      interfaces: [vxlan1005]''' % {'r': self.backend})
+
+        if self.backend == 'networkd':
+            self.assert_networkd({'vxlan1005.netdev': ND_VXLAN % ('vxlan1005', 1005) +
+                                  '''Group=224.0.0.5
+Local=10.10.10.1
+TOS=292
+TTL=128
+MacLearning=true
+FDBAgeingSec=42
+MaximumFDBEntries=37
+ReduceARPProxy=true
+L2MissNotification=true
+L3MissNotification=true
+RouteShortCircuit=true
+UDPChecksum=true
+UDP6ZeroChecksumTx=true
+UDP6ZeroChecksumRx=true
+RemoteChecksumTx=true
+RemoteChecksumRx=true
+GroupPolicyExtension=true
+GenericProtocolExtension=true
+DestinationPort=4789
+PortRange=42-442
+FlowLabel=0
+IPDoNotFragment=true\n''',
+                                  'vxlan1005.network': '''[Match]
+Name=vxlan1005
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+Bridge=br0
+
+[Bridge]
+NeighborSuppression=false\n''',
+                                  'br0.network': '''[Match]
+Name=br0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+VXLAN=vxlan1005\n''',
+                                  'br0.netdev': '''[NetDev]
+Name=br0
+Kind=bridge\n'''})
+        elif self.backend == 'NetworkManager':
+            self.assertIn('checksums/extensions/flow-lable/do-not-fragment are '
+                          'not supported by NetworkManager', out)
+            self.assert_nm({'vxlan1005': '''[connection]
+id=netplan-vxlan1005
+type=vxlan
+interface-name=vxlan1005
+slave-type=bridge
+master=br0
+
+[vxlan]
+ageing=42
+destination-port=4789
+id=1005
+learning=true
+limit=37
+local=10.10.10.1
+remote=224.0.0.5
+proxy=true
+l2-miss=true
+l3-miss=true
+source-port-min=42
+source-port-max=442
+tos=292
+ttl=128
+rsc=true
+parent=br0
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=ignore\n''',
+                            'br0': '''[connection]
+id=netplan-br0
+type=bridge
+interface-name=br0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore\n'''})
 
 
 # Execute the _CommonParserErrors only for one backend, to spare some test cycles
@@ -868,6 +1062,34 @@ Gateway=20.20.20.21
 ConfigureWithoutCarrier=yes
 '''})
 
+    def test_vxlan_port_range_swap(self):
+        out = self.generate('''network:
+  version: 2
+  tunnels:
+    vx0:
+      mode: vxlan
+      id: 1005
+      remote: 10.0.0.5
+      port-range: [100, 10]''')
+        self.assertIn("swapped invalid port-range order [MIN, MAX]", out)
+
+        self.assert_networkd({'vx0.netdev': ND_VXLAN % ('vx0', 1005) +
+                              'Remote=10.0.0.5\nPortRange=10-100\nIndependent=true\n',
+                              'vx0.network': ND_EMPTY % ('vx0', 'ipv6')})
+
+    def test_vxlan_ip6_multicast(self):
+        self.generate('''network:
+  version: 2
+  tunnels:
+    vx0:
+      mode: vxlan
+      id: 1005
+      remote: "ff42::dead:beef"''')
+
+        self.assert_networkd({'vx0.netdev': ND_VXLAN % ('vx0', 1005) +
+                              'Group=ff42::dead:beef\nIndependent=true\n',
+                              'vx0.network': ND_EMPTY % ('vx0', 'ipv6')})
+
 
 class TestNetworkManager(TestBase, _CommonTests):
     backend = 'NetworkManager'
@@ -1190,6 +1412,56 @@ gateway=20.20.20.21
 [ipv6]
 method=ignore
 '''})
+
+    def test_vxlan_uuid(self):
+        self.generate('''network:
+  renderer: NetworkManager
+  tunnels:
+    vx0:
+      mode: vxlan
+      id: 42
+      link: id0
+  ethernets:
+    id0:
+      match: {name: 'someIface'}''')
+
+        self.assert_networkd({})
+
+        # get assigned UUID  from id0 connection
+        with open(os.path.join(self.workdir.name, 'run/NetworkManager/system-connections/netplan-id0.nmconnection')) as f:
+            m = re.search('uuid=([0-9a-fA-F-]{36})\n', f.read())
+            self.assertTrue(m)
+            uuid = m.group(1)
+            self.assertNotEquals(uuid, "00000000-0000-0000-0000-000000000000")
+
+        self.assert_nm({'vx0': '''[connection]
+id=netplan-vx0
+type=vxlan
+interface-name=vx0
+
+[vxlan]
+id=42
+parent=%s
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=ignore\n''' % uuid,
+                       'id0': '''[connection]
+id=netplan-id0
+type=ethernet
+uuid=%s
+interface-name=someIface
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore\n''' % uuid})
 
 
 class TestConfigErrors(TestBase):
