@@ -89,6 +89,14 @@ gchar *tmp = NULL;
     } \
 }\
 
+#define YAML_BOOL_TRISTATE(_def, event_ptr, emitter_ptr, key, value) {\
+    if (value == NETPLAN_TRISTATE_TRUE) { \
+        YAML_NONNULL_STRING_PLAIN(event_ptr, emitter_ptr, key, "true"); \
+    } else if (value == NETPLAN_TRISTATE_FALSE) { \
+        YAML_NONNULL_STRING_PLAIN(event_ptr, emitter_ptr, key, "false"); \
+    } \
+}
+
 #define DIRTY_COMPLEX(_def, _data) complex_object_is_dirty(_def, (char*)(&_data), sizeof(_data))
 
 static gboolean
