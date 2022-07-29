@@ -87,6 +87,7 @@ netplan_type_to_table_name(const NetplanDefType type)
     switch (type) {
         case NETPLAN_DEF_TYPE_BRIDGE:
             return "Bridge";
+        case NETPLAN_DEF_TYPE_TUNNEL:
         case NETPLAN_DEF_TYPE_BOND:
         case NETPLAN_DEF_TYPE_PORT:
             return "Port";
@@ -355,7 +356,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 value = def->ovs_settings.fail_mode? def->ovs_settings.fail_mode : "standalone";
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-fail-mode %s %s", def->id, value);
                 write_ovs_tag_setting(def->id, type, "global", "set-fail-mode", value, cmds);
-                /* Enable/disable mcast-snooping */ 
+                /* Enable/disable mcast-snooping */
                 value = def->ovs_settings.mcast_snooping? "true" : "false";
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Bridge %s mcast_snooping_enable=%s", def->id, value);
                 write_ovs_tag_setting(def->id, type, "mcast_snooping_enable", NULL, value, cmds);
@@ -406,6 +407,34 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 write_ovs_tag_netplan(def->id, type, cmds);
                 break;
 
+            case NETPLAN_DEF_TYPE_TUNNEL:
+                /* Only support gretap and ip6gretap tunnel modes for the time being */
+                if (def->tunnel.mode != NETPLAN_TUNNEL_MODE_GRETAP && def->tunnel.mode != NETPLAN_TUNNEL_MODE_IP6GRETAP) {
+                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: This tunnel type is not supported with the OpenVSwitch backend\n", def->id);
+                    return FALSE;
+                }
+                dependency = def->bridge;
+                /* gretap/ip6gretap tunnels are layer 2 over GRE tunnels which is what OVS just calls "gre". Map gre/ip6gretap to OVS's gre.
+                 * The only parameter absolutely required for a OVS grep/ip6grep tunnel is the remote_ip, handle the others only if specified. */
+                append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-port %s %s -- set interface %s type=%s options:remote_ip=%s",
+                    def->bridge, def->id, def->id, def->tunnel.mode == NETPLAN_TUNNEL_MODE_GRETAP ? "gre" : "ip6gre", def->tunnel.remote_ip)
+
+                /* local_ip, out_key, and in_key are all optional */
+                if (def->tunnel.local_ip) {
+                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set interface %s options:local_ip=%s",
+                        def->id, def->tunnel.local_ip)
+                }
+                if (def->tunnel.output_key) {
+                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set interface %s options:out_key=%s",
+                        def->id, def->tunnel.output_key)
+                }
+                if (def->tunnel.input_key) {
+                    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set interface %s options:in_key=%s",
+                        def->id, def->tunnel.input_key)
+                }
+
+                write_ovs_tag_netplan(def->id, type, cmds);
+                break;
             default:
                 g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
                 return FALSE;
