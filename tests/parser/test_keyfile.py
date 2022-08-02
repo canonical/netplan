@@ -285,6 +285,7 @@ address1=1:2:3::9/128
 gateway=6:6::6
 route1=dead:beef::1/128,2001:1234::2
 route1_options=unknown=invalid,
+route2=4:5:6:7:8:9:0:1/63,,5
 
 [proxy]
 '''.format(UUID))
@@ -326,6 +327,9 @@ route1_options=unknown=invalid,
         via: "4.4.4.4"
       - to: "dead:beef::1/128"
         via: "2001:1234::2"
+      - scope: "link"
+        metric: 5
+        to: "4:5:6:7:8:9:0:1/63"
       wakeonlan: true
       networkmanager:
         uuid: "{}"

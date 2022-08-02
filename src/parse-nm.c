@@ -229,7 +229,8 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
             route->to = g_strdup(split[0]); //no need to free, will stay in netdef
         /* Append gateway/via IP */
         if (split[0] && split[1] &&
-            g_strcmp0(split[1], get_unspecified_address(route->family)) != 0) {
+            g_strcmp0(split[1], get_unspecified_address(route->family)) != 0 &&
+            g_strcmp0(split[1], "") != 0) {
             route->scope = g_strdup("global");
             route->via = g_strdup(split[1]); //no need to free, will stay in netdef
         } else {
