@@ -305,10 +305,6 @@ route2=4:5:6:7:8:9:0:1/63,,5
         - 9.8.7.6
         - 5.4.3.2
         - dead:beef::2
-        search:
-        - foo.local
-        - bar.remote
-        - bar.local
       gateway4: 6.6.6.6
       gateway6: 6:6::6
       ipv6-address-generation: "stable-privacy"
@@ -1096,8 +1092,6 @@ route3=4:5:6:7:8:9:0:1/63,::,5
 route4=5:6:7:8:9:0:1:2/62
 
 [proxy]
-
-
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
@@ -1117,8 +1111,6 @@ route4=5:6:7:8:9:0:1:2/62
         - 4.2.2.2
         - 1::cafe
         - 2::cafe
-        search:
-        - wallaceandgromit.com
       ipv6-address-generation: "stable-privacy"
       mtu: 900
       routes:
@@ -1295,4 +1287,67 @@ method=auto
       networkmanager:
         uuid: "{}"
         name: "test2"
+'''.format(UUID, UUID)})
+
+    def test_keyfile_dns_search_ip4_ip6_conflict(self):
+        self.generate_from_keyfile('''[connection]
+id=Work Wired
+type=ethernet
+uuid={}
+autoconnect=false
+timestamp=305419896
+
+[ethernet]
+wake-on-lan=1
+mac-address=99:88:77:66:55:44
+mtu=900
+
+[ipv4]
+method=manual
+address1=192.168.0.5/24,192.168.0.1
+address2=1.2.3.4/8
+dns=4.2.2.1;4.2.2.2;
+
+[ipv6]
+method=manual
+address1=abcd::beef/64
+address2=dcba::beef/56
+addr-gen-mode=1
+dns=1::cafe;2::cafe;
+dns-search=wallaceandgromit.com;
+
+[proxy]\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        macaddress: "99:88:77:66:55:44"
+      addresses:
+      - "192.168.0.5/24"
+      - "1.2.3.4/8"
+      - "abcd::beef/64"
+      - "dcba::beef/56"
+      nameservers:
+        addresses:
+        - 4.2.2.1
+        - 4.2.2.2
+        - 1::cafe
+        - 2::cafe
+      mtu: 900
+      wakeonlan: true
+      networkmanager:
+        uuid: "{}"
+        name: "Work Wired"
+        passthrough:
+          connection.autoconnect: "false"
+          connection.timestamp: "305419896"
+          ethernet.wake-on-lan: "1"
+          ipv4.method: "manual"
+          ipv4.address1: "192.168.0.5/24,192.168.0.1"
+          ipv6.addr-gen-mode: "1"
+          ipv6.dns-search: "wallaceandgromit.com;"
+          ipv6.ip6-privacy: "-1"
+          proxy._: ""
 '''.format(UUID, UUID)})
