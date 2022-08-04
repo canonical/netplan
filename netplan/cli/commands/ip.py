@@ -94,14 +94,14 @@ class NetplanIpLeases(utils.NetplanCommand):
                 # FIXME: handle older versions of NM where 'nmcli dev show' doesn't exist
                 try:
                     nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
-                                                     env={'LC_ALL': 'C'},
+                                                     env=dict(os.environ, LC_ALL='C'),
                                                      stdout=subprocess.PIPE)
                     for line in nmcli_dev_out.stdout:
                         line = line.decode('utf-8')
                         if 'GENERAL.CONNECTION' in line:
                             conn_id = line.split(':')[1].rstrip().strip()
                             nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id],
-                                                             env={'LC_ALL': 'C'},
+                                                             env=dict(os.environ, LC_ALL='C'),
                                                              stdout=subprocess.PIPE)
                             for line in nmcli_con_out.stdout:
                                 line = line.decode('utf-8')
