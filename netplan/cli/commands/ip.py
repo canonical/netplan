@@ -90,21 +90,19 @@ class NetplanIpLeases(utils.NetplanCommand):
                     logging.debug('Cannot read file %s: %s', ifindex_f, str(e))
                     raise
 
-            def lease_method_nm_connection():  # pragma: nocover (covered in autopkgtest)
+            def lease_method_nm_connection():
                 # FIXME: handle older versions of NM where 'nmcli dev show' doesn't exist
                 try:
-                    nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
-                                                     env=dict(os.environ, LC_ALL='C'),
-                                                     stdout=subprocess.PIPE)
-                    for line in nmcli_dev_out.stdout:
-                        line = line.decode('utf-8')
+                    nmcli_dev_out = subprocess.check_output(['nmcli', 'dev', 'show', self.interface],
+                                                            env=dict(LC_ALL='C', PATH=os.environ.get('PATH', os.defpath)),
+                                                            universal_newlines=True)
+                    for line in nmcli_dev_out.splitlines():
                         if 'GENERAL.CONNECTION' in line:
                             conn_id = line.split(':')[1].rstrip().strip()
-                            nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id],
-                                                             env=dict(os.environ, LC_ALL='C'),
-                                                             stdout=subprocess.PIPE)
-                            for line in nmcli_con_out.stdout:
-                                line = line.decode('utf-8')
+                            nmcli_con_out = subprocess.check_output(['nmcli', 'con', 'show', 'id', conn_id],
+                                                                    env=dict(LC_ALL='C', PATH=os.environ.get('PATH', os.defpath)),
+                                                                    universal_newlines=True)
+                            for line in nmcli_con_out.splitlines():
                                 if 'connection.uuid' in line:
                                     return line.split(':')[1].rstrip().strip()
                 except Exception as e:

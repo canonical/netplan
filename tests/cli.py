@@ -706,6 +706,31 @@ class TestIp(unittest.TestCase):
                                       env=mock_env)
         self.assertIn('FAKE DHCLIENT_NM LEASE', out.decode('utf-8'))
 
+    def test_ip_leases_nm_fail(self):
+        os.environ.setdefault('NETPLAN_GENERATE_PATH',
+                              os.path.join(rootdir, 'generate'))
+        mock = MockCmd('nmcli')
+        mock.set_output(nmcli_mock_output)
+        mock.set_returncode(10)
+        new_path = os.pathsep.join([os.path.dirname(mock.path),
+                                    os.environ.get('PATH', os.defpath)])
+        mock_env = dict(os.environ, PATH=new_path)
+
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets: {lo: {dhcp4: yes}}
+''')
+        # the nmcli Mock's return value is 10, indicating an error
+        with self.assertRaises(Exception):
+            subprocess.check_output(exe_cli +
+                                    ['ip', 'leases',
+                                     '--root-dir', self.workdir.name, 'lo'],
+                                    env=mock_env)
+
     def test_ip_leases_no_networkd_lease(self):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
@@ -732,11 +757,15 @@ class TestIp(unittest.TestCase):
 
     def test_ip_leases_no_nm_lease(self):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
+        mock = MockCmd('nmcli')
+        mock.set_output('\n')
+        new_path = os.pathsep.join([os.path.dirname(mock.path),
+                                    os.environ.get('PATH', os.defpath)])
+        mock_env = dict(os.environ, PATH=new_path)
+
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
-            # match against loopback so as to successfully get a predictable
-            # ifindex
             f.write('''network:
   version: 2
   renderer: NetworkManager
@@ -746,10 +775,11 @@ class TestIp(unittest.TestCase):
         name: lo
       dhcp4: yes
 ''')
+        # we didn't create a (mock) lease file, therefore expect stderr output
         p = subprocess.Popen(exe_cli +
                              ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             env=mock_env)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
         self.assertIn(b'No lease found', err)
