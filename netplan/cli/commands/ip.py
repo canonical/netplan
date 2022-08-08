@@ -31,7 +31,7 @@ lease_path = {
         'method': 'ifindex',
     },
     'NetworkManager': {
-        'pattern': 'var/lib/NetworkManager/dhclient-{lease_id}-{interface}.lease',
+        'pattern': 'var/lib/NetworkManager/internal-{lease_id}-{interface}.lease',
         'method': 'nm_connection',
     },
 }
@@ -90,21 +90,19 @@ class NetplanIpLeases(utils.NetplanCommand):
                     logging.debug('Cannot read file %s: %s', ifindex_f, str(e))
                     raise
 
-            def lease_method_nm_connection():  # pragma: nocover (covered in autopkgtest)
+            def lease_method_nm_connection():
                 # FIXME: handle older versions of NM where 'nmcli dev show' doesn't exist
                 try:
-                    nmcli_dev_out = subprocess.Popen(['nmcli', 'dev', 'show', self.interface],
-                                                     env={'LC_ALL': 'C'},
-                                                     stdout=subprocess.PIPE)
-                    for line in nmcli_dev_out.stdout:
-                        line = line.decode('utf-8')
+                    nmcli_dev_out = subprocess.check_output(['nmcli', 'dev', 'show', self.interface],
+                                                            env=dict(LC_ALL='C', PATH=os.environ.get('PATH', os.defpath)),
+                                                            universal_newlines=True)
+                    for line in nmcli_dev_out.splitlines():
                         if 'GENERAL.CONNECTION' in line:
                             conn_id = line.split(':')[1].rstrip().strip()
-                            nmcli_con_out = subprocess.Popen(['nmcli', 'con', 'show', 'id', conn_id],
-                                                             env={'LC_ALL': 'C'},
-                                                             stdout=subprocess.PIPE)
-                            for line in nmcli_con_out.stdout:
-                                line = line.decode('utf-8')
+                            nmcli_con_out = subprocess.check_output(['nmcli', 'con', 'show', 'id', conn_id],
+                                                                    env=dict(LC_ALL='C', PATH=os.environ.get('PATH', os.defpath)),
+                                                                    universal_newlines=True)
+                            for line in nmcli_con_out.splitlines():
                                 if 'connection.uuid' in line:
                                     return line.split(':')[1].rstrip().strip()
                 except Exception as e:
@@ -122,10 +120,15 @@ class NetplanIpLeases(utils.NetplanCommand):
                 # we'll rely on open() throwing an error.
                 # This might happen if networkd doesn't use DHCP for the interface,
                 # for instance.
-                with open(os.path.join('/',
-                                       os.path.abspath(self.root_dir) if self.root_dir else "",
-                                       lease_pattern.format(interface=self.interface,
-                                                            lease_id=lease_id))) as f:
+                path = os.path.join('/',
+                                    os.path.abspath(self.root_dir) if self.root_dir else "",
+                                    lease_pattern.format(interface=self.interface,
+                                                         lease_id=lease_id))
+                # Fallback to 'dhclient' if no lease of NetworkManager's
+                # internal DHCP client is found
+                if not os.path.isfile(path):
+                    path = path.replace('NetworkManager/internal-', 'NetworkManager/dhclient-')
+                with open(path) as f:
                     for line in f.readlines():
                         print(line.rstrip())
             except Exception as e:

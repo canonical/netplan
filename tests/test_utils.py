@@ -71,11 +71,11 @@ printf '\\0' >> %(log)s
 
     def set_output(self, output):
         with open(self.path, "a") as fp:
-            fp.write("cat << EOF\n%s\nEOF" % output)
+            fp.write("\ncat << EOF\n%s\nEOF" % output)
 
     def touch(self, stamp_path):
         with open(self.path, "a") as fp:
-            fp.write("touch %s\n" % stamp_path)
+            fp.write("\ntouch %s\n" % stamp_path)
 
     def set_timeout(self, timeout_dsec=10):
         with open(self.path, "a") as fp:
@@ -95,7 +95,7 @@ fi
 
     def set_returncode(self, returncode):
         with open(self.path, "a") as fp:
-            fp.write("exit %d" % returncode)
+            fp.write("\nexit %d" % returncode)
 
 
 def call_cli(args):
