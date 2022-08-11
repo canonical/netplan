@@ -103,7 +103,7 @@ netplan_infiniband_mode_to_str[NETPLAN_IB_MODE_MAX_] = {
 
 #define NAME_FUNCTION(_radical, _type) const char *netplan_ ## _radical ## _name( _type val) \
 { \
-    return (val < sizeof( netplan_ ## _radical ## _to_str )) ?  netplan_ ## _radical ## _to_str [val] : NULL; \
+    return (val < sizeof(netplan_ ## _radical ## _to_str) / sizeof(char *)) ?  netplan_ ## _radical ## _to_str [val] : NULL; \
 }
 
 /* @num_flags needs to account for the 0x0 value (index 0), which doesn't
