@@ -497,16 +497,16 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
         g_key_file_set_uint64(kf, "vxlan", "ttl", def->tunnel_ttl);
     if (def->vxlan->short_circuit)
         g_key_file_set_boolean(kf, "vxlan", "rsc", def->vxlan->short_circuit);
-    if (def->link) {
-        if (def->link->has_match) {
+    if (def->vxlan->link) {
+        if (def->vxlan->link->has_match) {
             /* we need to refer to the parent's UUID as we don't have an
              * interface name with match: */
-            maybe_generate_uuid(def->link);
-            uuid_unparse(def->link->uuid, uuidstr);
+            maybe_generate_uuid(def->vxlan->link);
+            uuid_unparse(def->vxlan->link->uuid, uuidstr);
             g_key_file_set_string(kf, "vxlan", "parent", uuidstr);
         } else {
             /* if we have an interface name, use that as parent */
-            g_key_file_set_string(kf, "vxlan", "parent", def->link->id);
+            g_key_file_set_string(kf, "vxlan", "parent", def->vxlan->link->id);
         }
     }
 

@@ -207,8 +207,8 @@ write_vxlan(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL && def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
         g_assert(def->vxlan);
         YAML_UINT_0(def, event, emitter, "id", def->vxlan->vni);
-        if (def->link)
-            YAML_STRING(def, event, emitter, "link", def->link->id);
+        if (def->vxlan->link)
+            YAML_STRING(def, event, emitter, "link", def->vxlan->link->id);
         if (def->vxlan->source_port_min && def->vxlan->source_port_max) {
             YAML_SCALAR_PLAIN(event, emitter, "port-range");
             YAML_SEQUENCE_OPEN(event, emitter);

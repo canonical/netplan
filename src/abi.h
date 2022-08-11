@@ -373,8 +373,6 @@ struct netplan_net_definition {
     NetplanNetDefinition* vrf_link;
     guint vrf_table;
 
-    /* TODO: `link` can also be used for vrf/vlan/sriov/... in the future */
-    NetplanNetDefinition* link;
     NetplanTristate bridge_neigh_suppress;
 
     /* vxlan */

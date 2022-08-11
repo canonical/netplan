@@ -193,6 +193,7 @@ reset_vxlan(NetplanVxlan* vxlan)
     if (!vxlan)
         return;
     memset(vxlan, 0, sizeof(NetplanVxlan));
+    vxlan->link = NULL;
     vxlan->flow_label = G_MAXUINT;
     vxlan->do_not_fragment = NETPLAN_TRISTATE_UNSET;
 }
@@ -308,7 +309,6 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->bond_params.primary_slave);
     memset(&netdef->bond_params, 0, sizeof(netdef->bond_params));
 
-    netdef->link = NULL;
     netdef->has_vxlans = FALSE;
     reset_vxlan(netdef->vxlan);
     FREE_AND_NULLIFY(netdef->vxlan);

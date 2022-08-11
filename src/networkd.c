@@ -480,7 +480,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
         g_string_append_printf(params, "\nFlowLabel=%d", def->vxlan->flow_label);
     if (def->vxlan->do_not_fragment != NETPLAN_TRISTATE_UNSET)
         g_string_append_printf(params, "\nIPDoNotFragment=%s", def->vxlan->do_not_fragment ? "true" : "false");
-    if (!def->link)
+    if (!def->vxlan->link)
         g_string_append(params, "\nIndependent=true");
 
     if (params->len)
@@ -953,7 +953,8 @@ netplan_netdef_write_network_file(
         const NetplanNetDefinition* nd;
         for (; l != NULL; l = l->next) {
             nd = l->data;
-            if (nd->link == def && nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
+            if (nd->vxlan && nd->vxlan->link == def &&
+                nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
                 nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
                 g_string_append_printf(network, "VXLAN=%s\n", nd->id);
         }
