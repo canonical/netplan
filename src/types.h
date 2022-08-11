@@ -150,6 +150,7 @@ typedef struct {
 } NetplanIPRule;
 
 struct netplan_vxlan {
+        NetplanNetDefinition* link;
         guint vni;
         guint ageing;
         guint limit;

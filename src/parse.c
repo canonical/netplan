@@ -609,6 +609,29 @@ handle_netdef_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, GE
     return TRUE;
 }
 
+/**
+ * Handler for setting a npp->current.netdef ID/iface name field referring to an
+ * existing ID from a scalar node.
+ * @data: offset into NetplanVxlan where the NetplanNetDefinition* field to
+ *        write is located
+ */
+static gboolean
+handle_vxlan_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    guint offset = GPOINTER_TO_UINT(data);
+    NetplanNetDefinition* ref = NULL;
+    NetplanNetDefinition** dest = (void*) npp->current.vxlan + offset;
+
+    ref = g_hash_table_lookup(npp->parsed_defs, scalar(node));
+    if (!ref)
+        add_missing_node(npp, node);
+    else
+        *dest = ref;
+    mark_data_as_dirty(npp, dest);
+    return TRUE;
+}
+
+
 
 /**
  * Generic handler for setting a npp->current.netdef MAC address field from a scalar node
@@ -2729,7 +2752,7 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"peers", YAML_SEQUENCE_NODE, {.generic=handle_wireguard_peers}},
 
     /* vxlan */
-    {"link", YAML_SCALAR_NODE, {.generic=handle_netdef_id_ref}, netdef_offset(link)},
+    {"link", YAML_SCALAR_NODE, {.generic=handle_vxlan_id_ref}, vxlan_offset(link)},
     {"ageing", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(ageing)},
     {"aging", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(ageing)},
     {"id", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(vni)},
@@ -2953,8 +2976,8 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         /* Implicit VXLAN settings, which can be deduced from parsed data. */
         if (npp->current.netdef->type == NETPLAN_DEF_TYPE_TUNNEL &&
             npp->current.netdef->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
-            if (npp->current.netdef->link)
-                npp->current.netdef->link->has_vxlans = TRUE;
+            if (npp->current.netdef->vxlan->link)
+                npp->current.netdef->vxlan->link->has_vxlans = TRUE;
             else
                 npp->current.netdef->vxlan->independent = TRUE;
         }
