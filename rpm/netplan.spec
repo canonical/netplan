@@ -21,7 +21,7 @@
 %endif
 
 Name:           netplan
-Version:        0.104
+Version:        0.105
 Release:        0%{?dist}
 Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
@@ -241,6 +241,9 @@ make check
 
 
 %changelog
+* Thu Aug 18 2022 Lukas Märdian <slyon@ubuntu.com> - 0.105-0
+- Update to 0.105
+
 * Sun Feb 20 2022 Neal Gompa <ngompa13@gmail.com> - 0.104-0
 - Update to 0.104
 - Resync with Fedora spec
