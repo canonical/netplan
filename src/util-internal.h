@@ -100,3 +100,22 @@ complex_object_is_dirty(const NetplanNetDefinition* def, const void* obj, size_t
 
 gboolean
 is_multicast_address(const char*);
+
+/* Available since Glib 2.64 */
+#ifndef g_clear_list
+#define  g_clear_list(list_ptr, destroy)       \
+  G_STMT_START {                               \
+    GList *_list;                              \
+                                               \
+    _list = *(list_ptr);                       \
+    if (_list)                                 \
+      {                                        \
+        *list_ptr = NULL;                      \
+                                               \
+        if ((destroy) != NULL)                 \
+          g_list_free_full (_list, (destroy)); \
+        else                                   \
+          g_list_free (_list);                 \
+      }                                        \
+  } G_STMT_END
+#endif
