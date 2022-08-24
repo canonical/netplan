@@ -45,21 +45,21 @@ class TestTerminal(unittest.TestCase):
         self.terminal.enable_nonblocking_io()
         flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
         self.assertTrue(flags & os.O_NONBLOCK)
-        self.assertNotEquals(flags, orig_flags)
+        self.assertNotEqual(flags, orig_flags)
         self.terminal.disable_nonblocking_io()
         flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
         self.assertFalse(flags & os.O_NONBLOCK)
-        self.assertEquals(flags, orig_flags)
+        self.assertEqual(flags, orig_flags)
 
     def test_save(self):
         self.terminal.enable_nonblocking_io()
         flags = self.terminal.orig_flags
         self.terminal.save()
         self.terminal.disable_nonblocking_io()
-        self.assertNotEquals(flags, self.terminal.orig_flags)
+        self.assertNotEqual(flags, self.terminal.orig_flags)
         self.terminal.reset()
         flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
-        self.assertEquals(flags, self.terminal.orig_flags)
+        self.assertEqual(flags, self.terminal.orig_flags)
         self.terminal.disable_nonblocking_io()
         self.terminal.save()
 
@@ -69,10 +69,10 @@ class TestTerminal(unittest.TestCase):
         self.terminal.save(orig_settings)
         self.terminal.disable_nonblocking_io()
         flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
-        self.assertNotEquals(flags, orig_settings.get('flags'))
+        self.assertNotEqual(flags, orig_settings.get('flags'))
         self.terminal.reset(orig_settings)
         flags = fcntl.fcntl(self.terminal.fd, fcntl.F_GETFL)
-        self.assertEquals(flags, orig_settings.get('flags'))
+        self.assertEqual(flags, orig_settings.get('flags'))
         self.terminal.disable_nonblocking_io()
 
     def test_reset(self):
