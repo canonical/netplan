@@ -48,7 +48,7 @@ PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/g
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell command -v pyflakes-3 || command -v pyflakes3 || echo true)
 PYCODESTYLE3 ?= $(shell command -v pycodestyle-3 || command -v pycodestyle || command -v pep8 || echo true)
-NOSETESTS3 ?= $(shell command -v nosetests-3 || command -v nosetests3 || echo true)
+PYTEST3 ?= $(shell command -v pytest-3 || command -v pytest3 || echo true)
 
 default: netplan/_features.py generate netplan-dbus dbus/io.netplan.Netplan.service doc/netplan.html doc/netplan.5 doc/netplan-generate.8 doc/netplan-apply.8 doc/netplan-try.8 doc/netplan-dbus.8 doc/netplan-get.8 doc/netplan-set.8
 
@@ -87,7 +87,7 @@ clean:
 
 check: default linting
 	PYTHONPATH=. LD_LIBRARY_PATH=. tests/cli.py
-	PYTHONPATH=. LD_LIBRARY_PATH=. $(NOSETESTS3) -v --with-coverage
+	PYTHONPATH=. LD_LIBRARY_PATH=. $(PYTEST3) -s --cov= --cov-append
 	tests/validate_docs.sh
 
 linting:

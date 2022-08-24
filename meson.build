@@ -23,7 +23,7 @@ bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', def
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu
 pyflakes = find_program('pyflakes-3', 'pyflakes3', required: false)
 pycodestyle = find_program('pycodestyle-3', 'pycodestyle', 'pep8', required: false)
-nose = find_program('nosetests-3', 'nosetests3')
+pytest = find_program('pytest-3', 'pytest3')  # also requires the pytest-cov plugin
 pandoc = find_program('pandoc', required: false)
 find = find_program('find')
 
@@ -78,8 +78,8 @@ test('legacy-tests',
      env: test_env)
 #TODO: split out dbus tests into own test() instance, to run in parallel
 test('unit-tests',
-     nose,
-     args: ['-v', '--with-coverage', meson.current_source_dir()],
+     pytest,
+     args: ['-s', '--cov=', '--cov-append', meson.current_source_dir()],
      timeout: 600,
      env: test_env)
 
