@@ -32,11 +32,6 @@ add_project_arguments(
     '-D_XOPEN_SOURCE=700',
     language: 'c')
 
-message('Generating the _features.[py|h] code')
-#XXX: this is ugly as it produces artifacts in the source directory
-run_command('features_h_generator.sh', check: true)
-run_command('features_py_generator.sh', check: true)
-
 inc = include_directories('include')
 subdir('include')
 subdir('src')
