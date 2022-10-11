@@ -282,7 +282,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
       > Path to a file containing the CA certificate to be used.
 
     - **certificate** (scalar)
- 
+
       > Path to a file containing the server certificate.
 
     - **private-key** (scalar)
@@ -1046,7 +1046,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
   - **hidden** (bool) – since **0.100**
 
-    > Set to `true` to change the SSID scan technique for connecting to 
+    > Set to `true` to change the SSID scan technique for connecting to
     > hidden WiFi networks. Note this may have slower performance compared
     > to `false` (the default) when connecting to publicly broadcast
     > SSIDs.
