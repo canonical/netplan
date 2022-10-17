@@ -40,3 +40,14 @@ maxdepth: 2
 ---
 cli
 ```
+
+## Netplan D-Bus
+Netplan provides a daemon that can be run to provide the `io.netplan.Netplan`
+D-Bus API, to control certain aspects of a system's Netplan configuration
+programmatically. See also: [DBus config API](/dbus-config).
+```{toctree}
+---
+maxdepth: 1
+---
+Netplan D-Bus <netplan-dbus>
+```
