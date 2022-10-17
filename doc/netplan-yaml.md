@@ -1466,7 +1466,7 @@ VXLAN specific keys:
 
 - **ageing**, **aging** (scalar) – since **0.105**
 
-  > The lifetime of Forwarding Database entry learnt by the kernel, in
+  > The lifetime of Forwarding Database entry learned by the kernel, in
   > seconds.
 
 - **limit** (scalar) – since **0.105**

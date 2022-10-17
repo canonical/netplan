@@ -6,6 +6,7 @@ backends
 blackhole
 bootup
 cancelled
+checksums
 checksumming
 config
 ConnectX
@@ -26,6 +27,7 @@ ip
 ipip
 iptables
 ipv
+IoT
 IPv
 keyfile
 libnetplan
@@ -33,13 +35,16 @@ libvirt
 libvirtd
 loopback
 lxd
+Libera
 MaaS
+manpages
 Mellanox
 miimon
 multicast
 nameservers
 nat
 natively
+netlink
 netplan
 networkd
 NetworkManager
@@ -65,7 +70,9 @@ unencrypted
 unicast
 veth
 vlan
+vrf
 vsctl
+vxlan
 vSwitch
 Wi
 wifi
