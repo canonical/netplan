@@ -30,10 +30,10 @@ Netplan backend).
 API specification <https://discourse.ubuntu.com/t/29106>
 ```
 
-## Command line interface
-Netplan's manpages describe the usage of the different CLI tools available.
-Those are also installed on a system running Netplan and can be accessed, using
-the `man` utility.
+## Netplan CLI
+Netplan's manpages describe the usage of the different command line interface
+tools available. Those are also installed on a system running Netplan and can be
+accessed, using the `man` utility.
 ```{toctree}
 ---
 maxdepth: 2
