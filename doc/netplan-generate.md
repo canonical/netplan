@@ -5,17 +5,17 @@ author:
 - Daniel Axtens (<daniel.axtens@canonical.com>)
 ...
 
-# NAME
+## NAME
 
 netplan-generate - generate backend configuration from netplan YAML files
 
-# SYNOPSIS
+## SYNOPSIS
 
   **netplan** [--debug] **generate** -h | --help
 
   **netplan** [--debug] **generate** [--root-dir _ROOT_DIR_] [--mapping _MAPPING_]
 
-# DESCRIPTION
+## DESCRIPTION
 
 netplan generate converts netplan YAML into configuration files
 understood by the backends (**systemd-networkd**(8) or
@@ -32,7 +32,7 @@ it attempt to start/apply the newly created service units.
 
 For details of the configuration file format, see **netplan**(5).
 
-# OPTIONS
+## OPTIONS
 
   -h, --help
 :    Print basic help.
@@ -49,7 +49,7 @@ For details of the configuration file format, see **netplan**(5).
     and print some internal information about the device specified in
     _MAPPING_.
 
-# HANDLING MULTIPLE FILES
+## HANDLING MULTIPLE FILES
 
 There are 3 locations that netplan generate considers:
 
@@ -82,7 +82,7 @@ apply:
  * If the values are mappings, netplan will examine the elements
    of the mappings in turn using these rules.
 
-# SEE ALSO
+## SEE ALSO
 
   **netplan**(5), **netplan-apply**(8), **netplan-try**(8),
   **systemd-networkd**(8), **NetworkManager**(8)

@@ -5,15 +5,15 @@ author:
 - Lukas Märdian (<lukas.maerdian@canonical.com>)
 ...
 
-# NAME
+## NAME
 
 netplan-dbus - daemon to access netplan's functionality via a DBus API
 
-# SYNOPSIS
+## SYNOPSIS
 
   **netplan-dbus**
 
-# DESCRIPTION
+## DESCRIPTION
 
 **netplan-dbus** is a DBus daemon, providing ``io.netplan.Netplan`` on the system bus. The ``/io/netplan/Netplan`` object provides an ``io.netplan.Netplan`` interface, offering the following methods:
 
@@ -44,7 +44,7 @@ For information about the Apply()/Try()/Get()/Set() functionality, see
 **netplan-apply**(8)/**netplan-try**(8)/**netplan-get**(8)/**netplan-set**(8)
 accordingly. For details of the configuration file format, see **netplan**(5).
 
-# SEE ALSO
+## SEE ALSO
 
   **netplan**(5), **netplan-apply**(8), **netplan-try**(8), **netplan-get**(8),
   **netplan-set**(8)

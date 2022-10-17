@@ -5,17 +5,17 @@ author:
 - Daniel Axtens (<daniel.axtens@canonical.com>)
 ...
 
-# NAME
+## NAME
 
 netplan-apply - apply configuration from netplan YAML files to a running system
 
-# SYNOPSIS
+## SYNOPSIS
 
   **netplan** [--debug] **apply** -h | --help
 
   **netplan** [--debug] **apply**
 
-# DESCRIPTION
+## DESCRIPTION
 
 **netplan apply** applies the current netplan configuration to a running system.
 
@@ -37,7 +37,7 @@ For information about the generation step, see
 **netplan-generate**(8). For details of the configuration file format,
 see **netplan**(5).
 
-# OPTIONS
+## OPTIONS
 
   -h, --help
 :    Print basic help.
@@ -45,7 +45,7 @@ see **netplan**(5).
   --debug
 :    Print debugging output during the process.
 
-# KNOWN ISSUES
+## KNOWN ISSUES
 
 **netplan apply** will not remove virtual devices such as bridges and bonds
 that have been created, even if they are no longer described in the netplan
@@ -60,7 +60,7 @@ before modifying the configuration and passing this state to netplan (e.g.
 then running **netplan apply --state /tmp/netplan_state_backup**)
 
 
-# SEE ALSO
+## SEE ALSO
 
   **netplan**(5), **netplan-generate**(8), **netplan-try**(8), **udev**(7),
   **systemd-networkd.service**(8), **NetworkManager**(8)

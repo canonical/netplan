@@ -5,17 +5,17 @@ author:
 - Lukas Märdian (lukas.maerdian@canonical.com)
 ...
 
-# NAME
+## NAME
 
 netplan-get - read merged netplan YAML configuration
 
-# SYNOPSIS
+## SYNOPSIS
 
   **netplan** [--debug] **get** -h | --help
 
   **netplan** [--debug] **get** [--root-dir=ROOT_DIR] [key]
 
-# DESCRIPTION
+## DESCRIPTION
 
 **netplan get [key]** reads all YAML files from ``/{etc,lib,run}/netplan/*.yaml`` and returns a merged view of the current configuration
 
@@ -23,7 +23,7 @@ You can specify ``all`` as a key (the default) to get the full YAML tree or extr
 
 For details of the configuration file format, see **netplan**(5).
 
-# OPTIONS
+## OPTIONS
 
   -h, --help
 :    Print basic help.
@@ -34,6 +34,6 @@ For details of the configuration file format, see **netplan**(5).
   --root-dir
 :    Read YAML files from this root instead of /
 
-# SEE ALSO
+## SEE ALSO
 
   **netplan**(5), **netplan-set**(8), **netplan-dbus**(8)

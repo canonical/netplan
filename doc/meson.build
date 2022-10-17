@@ -17,7 +17,7 @@ if pandoc.found()
         custom_target(
             input: markdown,
             output: manpage,
-            command: [pandoc, '-s', '-o', '@OUTPUT@', '--from=markdown-smart', '@INPUT@'],
+            command: [pandoc, '-s', '-o', '@OUTPUT@', '--shift-heading-level-by=-1', '--from=markdown-smart', '@INPUT@'],
             install: true,
             install_dir: join_paths(get_option('mandir'), 'man8'))
     endforeach

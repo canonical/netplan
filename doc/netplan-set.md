@@ -5,17 +5,17 @@ author:
 - Lukas Märdian (lukas.maerdian@canonical.com)
 ...
 
-# NAME
+## NAME
 
 netplan-set - write netplan YAML configuration snippets to file
 
-# SYNOPSIS
+## SYNOPSIS
 
   **netplan** [--debug] **set** -h | --help
 
   **netplan** [--debug] **set** [--root-dir=ROOT_DIR] [--origin-hint=ORIGIN_HINT] [key=value]
 
-# DESCRIPTION
+## DESCRIPTION
 
 **netplan set [key=value]** writes a given key/value pair or YAML subtree into a YAML file in ``/etc/netplan/`` and validates its format.
 
@@ -23,7 +23,7 @@ You can specify a single value as: ``"[network.]ethernets.eth0.dhcp4=[1.2.3.4/24
 
 For details of the configuration file format, see **netplan**(5).
 
-# OPTIONS
+## OPTIONS
 
   -h, --help
 :    Print basic help.
@@ -37,6 +37,6 @@ For details of the configuration file format, see **netplan**(5).
   --origin-hint
 :    Specify a name for the config file, e.g.: ``70-netplan-set`` => ``/etc/netplan/70-netplan-set.yaml``
 
-# SEE ALSO
+## SEE ALSO
 
   **netplan**(5), **netplan-get**(8), **netplan-dbus**(8)

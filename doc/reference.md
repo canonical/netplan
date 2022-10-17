@@ -1,5 +1,6 @@
 # Reference
 
+## YAML configuration
 Netplan's configuration files use the
 [YAML](<http://yaml.org/spec/1.1/current.html>) format. All
 `/{lib,etc,run}/netplan/*.yaml` are considered.
@@ -25,5 +26,17 @@ that can be used from different binaries (like Netplan’s `generate`,
 Python bindings or external applications like the NetworkManager, using the
 Netplan backend).
 
-* [API reference](https://discourse.ubuntu.com/t/29106)
-  – C API and Python bindings for libnetplan
+```{toctree}
+API specification <https://discourse.ubuntu.com/t/29106>
+```
+
+## Command line interface
+Netplan's manpages describe the usage of the different CLI tools available.
+Those are also installed on a system running Netplan and can be accessed, using
+the `man` utility.
+```{toctree}
+---
+maxdepth: 2
+---
+cli
+```

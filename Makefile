@@ -156,6 +156,6 @@ doc/netplan.5: doc/manpage-header.md doc/structure-id.md doc/netplan-yaml.md doc
 	pandoc -s -o $@ --from=markdown-smart $^
 
 %.8: %.md
-	pandoc -s -o $@ --from=markdown-smart $^
+	pandoc -s -o $@ --shift-heading-level-by=-1 --from=markdown-smart $^
 
 .PHONY: clean
