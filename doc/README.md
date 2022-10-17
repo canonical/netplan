@@ -11,7 +11,7 @@ reference
 explanation
 ```
 
-**Netplan**, is a network configuration abstraction renderer.
+**Netplan** is a network configuration abstraction renderer.
 
 It is a **utility for network configuration** on a Linux system. You create a
 description of the required interfaces and define what each should do.

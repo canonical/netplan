@@ -1,4 +1,8 @@
-# How to use DBus config API
+# Use D-Bus config API
+
+See also:
+* [Netplan D-Bus reference](/netplan-dbus)
+* [busctl reference](https://www.freedesktop.org/software/systemd/man/busctl.html)
 
 Copy the current state from `/{etc,run,lib}/netplan/*.yaml` by creating a new config object
 ```
