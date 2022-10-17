@@ -1,9 +1,18 @@
 # Explanation
 
+## General structure & IDs
+```{toctree}
+structure-id
+```
+
 ## Design
-* [Netplan Design](https://netplan.io/design)
-  – Network configuration abstraction via systemd-generator
+Network configuration abstraction via systemd-generator
+```{toctree}
+Netplan Design <https://netplan.io/design>
+```
 
 ## FAQs
-* [Netplan FAQs](https://netplan.io/faq)
-  – Find answers to common questions
+Find answers to common questions
+```{toctree}
+Netplan FAQs <https://netplan.io/faq>
+```

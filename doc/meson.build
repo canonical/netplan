@@ -1,6 +1,6 @@
 if pandoc.found()
     custom_target(
-        input: ['manpage-header.md', 'netplan-yaml.md', 'manpage-footer.md'],
+        input: ['manpage-header.md', 'structure-id.md', 'netplan-yaml.md', 'manpage-footer.md'],
         output: 'netplan.5',
         command: [pandoc, '-s', '-o', '@OUTPUT@', '--from=markdown-smart', '@INPUT@'],
         install: true,
