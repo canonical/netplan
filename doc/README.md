@@ -36,6 +36,9 @@ Netplan is a member of the Ubuntu family. It’s an open source project that
 warmly welcomes community contributions, suggestions, fixes and constructive
 feedback.
 
+* **[Read our code of conduct](https://ubuntu.com/community/code-of-conduct)**:
+As a community we adhere to the Ubuntu code of conduct.
+
 * **[Get support](https://askubuntu.com/questions/tagged/netplan)**:
 Ask Ubuntu is a question and answer site for Ubuntu users and developers.
 
