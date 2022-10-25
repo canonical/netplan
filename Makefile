@@ -59,7 +59,7 @@ DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
 INCLUDEDIR ?= $(PREFIX)/include
 
-PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/netplan_dbus/*.py)
+PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/cli/*.py) $(wildcard tests/netplan_dbus/*.py) $(wildcard tests/integration/*.py) $(wildcard tests/parser/*.py)
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell command -v pyflakes-3 || command -v pyflakes3 || echo true)
@@ -109,7 +109,7 @@ clean:
 	rm -f $(TESTS)
 
 check: default linting $(TESTS)
-	PYTHONPATH=. LD_LIBRARY_PATH=. tests/cli.py
+	PYTHONPATH=. LD_LIBRARY_PATH=. tests/cli_legacy.py
 	PYTHONPATH=. LD_LIBRARY_PATH=. $(PYCOVERAGE) run -a -m pytest -s -v --cov-append
 	tests/validate_docs.sh
 
