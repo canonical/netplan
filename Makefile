@@ -59,7 +59,7 @@ DOCDIR ?= $(DATADIR)/doc
 MANDIR ?= $(DATADIR)/man
 INCLUDEDIR ?= $(PREFIX)/include
 
-PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/dbus/*.py)
+PYCODE = netplan/ $(wildcard src/*.py) $(wildcard tests/*.py) $(wildcard tests/generator/*.py) $(wildcard tests/netplan_dbus/*.py)
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || null
 PYFLAKES3 ?= $(shell command -v pyflakes-3 || command -v pyflakes3 || echo true)
