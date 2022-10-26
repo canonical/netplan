@@ -27,9 +27,20 @@ import sys
 import yaml
 import netplan.cli.utils as utils
 
+from rich.console import Console
+from rich.highlighter import RegexHighlighter
+from rich.theme import Theme
 from typing import Union, Dict, List, Type
 
 JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
+
+
+class NetplanHighlighter(RegexHighlighter):
+    base_style = 'netplan.'
+    highlights = [
+        r'(^|[\s\/])(?P<int>\d+)([\s:]?\s|$)',
+        r'(?P<str>(\"|\').+(\"|\'))',
+        ]
 
 
 class Interface():
@@ -413,6 +424,170 @@ class NetplanStatus(utils.NetplanCommand):
             logging.debug('Cannot query resolved DNS data: {}'.format(str(e)))
         return (addresses, search)
 
+    def pretty_print(self, data: JSON, total: int, _console_width=None) -> None:
+        # TODO: Use a proper (subiquity?) color palette
+        theme = Theme({
+            'netplan.int': 'bold cyan',
+            'netplan.str': 'yellow',
+            'muted': 'grey62',
+            'online': 'green bold',
+            'offline': 'red bold',
+            'unknown': 'yellow bold',
+            'highlight': 'bold'
+            })
+        console = Console(highlighter=NetplanHighlighter(), theme=theme, width=_console_width)
+        pprint = console.print
+
+        pad = '18'
+        global_state = data.get('netplan-global-state', {})
+        interfaces = [(key, data[key]) for key in data if key != 'netplan-global-state']
+
+        # Global state
+        pprint(('{title:>'+pad+'} {value}').format(
+            title='Online state:',
+            value='[online]online[/online]' if global_state.get('online', False) else '[offline]offline[/offline]',
+            ))
+        ns = global_state.get('nameservers', {})
+        dns_addr = ns.get('addresses', [])
+        dns_mode = ns.get('mode')
+        dns_search = ns.get('search', [])
+        if len(dns_addr) > 0:
+            for i, val in enumerate(dns_addr):
+                pprint(('{title:>'+pad+'} {value}[muted]{mode}[/muted]').format(
+                    title='DNS Addresses:' if i == 0 else '',
+                    value=val,
+                    mode=' ({})'.format(dns_mode) if dns_mode else '',
+                    ))
+        if len(dns_search) > 0:
+            for i, val in enumerate(dns_search):
+                pprint(('{title:>'+pad+'} {value}').format(
+                    title='DNS Search:' if i == 0 else '',
+                    value=val,
+                    ))
+        pprint()
+
+        # Per interface
+        for (ifname, data) in interfaces:
+            state = data.get('operstate', 'UNKNOWN') + '/' + data.get('adminstate', 'UNKNOWN')
+            scolor = 'unknown'
+            if state == 'UP/UP':
+                state = 'UP'
+                scolor = 'online'
+            elif state == 'DOWN/DOWN':
+                state = 'DOWN'
+                scolor = 'offline'
+            full_type = data.get('type', 'other')
+            ssid = data.get('ssid')
+            tunnel_mode = data.get('tunnel_mode')
+            if full_type == 'wifi' and ssid:
+                full_type += ('/"' + ssid + '"')
+            elif full_type == 'tunnel' and tunnel_mode:
+                full_type += ('/' + tunnel_mode)
+            pprint('[{col}]●[/{col}] {idx:>2}: {name} {type} [{col}]{state}[/{col}] ({backend}{netdef})'.format(
+                col=scolor,
+                idx=data.get('index', '?'),
+                name=ifname,
+                type=full_type,
+                state=state,
+                backend=data.get('backend', 'unmanaged'),
+                netdef=': [highlight]{}[/highlight]'.format(data.get('id')) if data.get('id') else ''
+                ))
+
+            if data.get('macaddress'):
+                pprint(('{title:>'+pad+'} {mac}[muted]{vendor}[/muted]').format(
+                    title='MAC Address:',
+                    mac=data.get('macaddress', ''),
+                    vendor=' ({})'.format(data.get('vendor', '')) if data.get('vendor') else '',
+                    ))
+
+            lst = data.get('addresses', [])
+            if len(lst) > 0:
+                for i, obj in enumerate(lst):
+                    ip, extra = list(obj.items())[0]  # get first (any only) address
+                    flags = []
+                    if extra.get('flags'):  # flags
+                        flags = extra.get('flags', [])
+                    highlight_start = ''
+                    highlight_end = ''
+                    if len(flags) == 0 or 'dhcp' in flags:
+                        highlight_start = '[highlight]'
+                        highlight_end = '[/highlight]'
+                    pprint(('{title:>'+pad+'} {start}{ip}/{prefix}{end}[muted]{extra}[/muted]').format(
+                        title='Addresses:' if i == 0 else '',
+                        ip=ip,
+                        prefix=extra.get('prefix', ''),
+                        extra=' ('+', '.join(flags)+')' if len(flags) > 0 else '',
+                        start=highlight_start,
+                        end=highlight_end,
+                        ))
+
+            lst = data.get('dns_addresses', [])
+            if len(lst) > 0:
+                for i, val in enumerate(lst):
+                    pprint(('{title:>'+pad+'} {value}').format(
+                        title='DNS Addresses:' if i == 0 else '',
+                        value=val,
+                        ))
+
+            lst = data.get('dns_search', [])
+            if len(lst) > 0:
+                for i, val in enumerate(lst):
+                    pprint(('{title:>'+pad+'} {value}').format(
+                        title='DNS Search:' if i == 0 else '',
+                        value=val,
+                        ))
+
+            lst = data.get('routes', [])
+            if len(lst) > 0:
+                for i, obj in enumerate(lst):
+                    default_start = ''
+                    default_end = ''
+                    if obj['to'] == 'default':
+                        default_start = '[highlight]'
+                        default_end = '[/highlight]'
+                    via = ''
+                    if 'via' in obj:
+                        via = ' via ' + obj['via']
+                    src = ''
+                    if 'from' in obj:
+                        src = ' from ' + obj['from']
+                    metric = ''
+                    if 'metric' in obj:
+                        metric = ' metric ' + str(obj['metric'])
+
+                    extra = []
+                    if 'protocol' in obj and obj['protocol'] != 'kernel':
+                        proto = obj['protocol']
+                        extra.append(proto)
+                    if 'scope' in obj and obj['scope'] != 'global':
+                        scope = obj['scope']
+                        extra.append(scope)
+                    if 'type' in obj and obj['type'] != 'unicast':
+                        type = obj['type']
+                        extra.append(type)
+
+                    pprint(('{title:>'+pad+'} {start}{to}{via}{src}{metric}{end}[muted]{extra}[/muted]').format(
+                        title='Routes:' if i == 0 else '',
+                        to=obj['to'],
+                        via=via,
+                        src=src,
+                        metric=metric,
+                        extra=' ('+', '.join(extra)+')' if len(extra) > 0 else '',
+                        start=default_start,
+                        end=default_end))
+
+            val = data.get('activation_mode')
+            if val:
+                pprint(('{title:>'+pad+'} {value}').format(
+                    title='Activation Mode:',
+                    value=val,
+                    ))
+            pprint()
+
+        hidden = total - len(interfaces)
+        if (hidden > 0):
+            pprint('{} inactive interfaces hidden. Use "--all" to show all.'.format(hidden))
+
     def command(self):
         # required data: iproute2 and sd-networkd can be expected to exist,
         # due to hard package dependencies
@@ -428,6 +603,7 @@ class NetplanStatus(utils.NetplanCommand):
         dns_addresses, dns_search = self.query_resolved()
 
         interfaces = [Interface(itf, networkd, nmcli, (dns_addresses, dns_search), (route4, route6)) for itf in iproute2]
+        total = len(interfaces)
         # show only active interfaces by default
         filtered = [itf for itf in interfaces if itf.operstate != 'DOWN']
         # down interfaces do not contribute anything to the online state
@@ -461,4 +637,4 @@ class NetplanStatus(utils.NetplanCommand):
         elif output_format == 'yaml':  # stuctural YAML output
             print(yaml.dump(data, default_flow_style=False))
         else:  # pretty print, human readable output
-            pass  # TODO
+            self.pretty_print(data, total)
