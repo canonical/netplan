@@ -19,6 +19,7 @@
 
 import dbus
 import ipaddress
+import json
 import logging
 import socket
 import subprocess
@@ -281,12 +282,54 @@ class NetplanStatus(utils.NetplanCommand):
         self.all = False
 
     def run(self):
-        self.parser.add_argument('-a', '--all', action='store_true', help='Show all interface data (incl. inactive)')
-        self.parser.add_argument('-f', '--format', default='json', help='Output in machine readable JSON/YAML format')
+        self.parser.add_argument('ifname', nargs='?', type=str, default=None,
+                                 help='Show only this interface')
+        self.parser.add_argument('-a', '--all', action='store_true',
+                                 help='Show all interface data (incl. inactive)')
+        self.parser.add_argument('-f', '--format', default='tabular',
+                                 help='Output in machine readable `json` or `yaml` format')
 
         self.func = self.command
         self.parse_args()
         self.run_command()
+
+    def resolvconf_json(self) -> dict:
+        res = {
+            'addresses': [],
+            'search': [],
+            'mode': None,
+            }
+        try:
+            with open('/etc/resolv.conf') as f:
+                # check first line for systemd-resolved stub or compat modes
+                firstline = f.readline()
+                if '# This is /run/systemd/resolve/stub-resolv.conf' in firstline:
+                    res['mode'] = 'stub'
+                elif '# This is /run/systemd/resolve/resolv.conf' in firstline:
+                    res['mode'] = 'compat'
+                for line in [firstline] + f.readlines():
+                    if line.startswith('nameserver'):
+                        res['addresses'] += line.split()[1:]  # append
+                    if line.startswith('search'):
+                        res['search'] = line.split()[1:]  # override
+        except Exception as e:
+            logging.warning('Cannot parse /etc/resolv.conf: {}'.format(str(e)))
+        return res
+
+    def query_online_state(self, interfaces: list) -> bool:
+        # TODO: fully implement network-online.target specification (FO020):
+        # https://discourse.ubuntu.com/t/spec-definition-of-an-online-system/27838
+        for itf in interfaces:
+            if itf.up and itf.addresses and itf.routes and itf.dns_addresses:
+                non_local_ips = []
+                for addr in itf.addresses:
+                    ip, extra = list(addr.items())[0]
+                    if 'flags' not in extra or 'link' not in extra['flags']:
+                        non_local_ips.append(ip)
+                default_routes = [x for x in itf.routes if x.get('to', None) == 'default']
+                if len(non_local_ips) > 0 and len(default_routes) > 0 and len(itf.dns_addresses) > 0:
+                    return True
+        return False
 
     def process_generic(self, cmd_output: str) -> JSON:
         return yaml.safe_load(cmd_output)
@@ -387,10 +430,35 @@ class NetplanStatus(utils.NetplanCommand):
         interfaces = [Interface(itf, networkd, nmcli, (dns_addresses, dns_search), (route4, route6)) for itf in iproute2]
         # show only active interfaces by default
         filtered = [itf for itf in interfaces if itf.operstate != 'DOWN']
+        # down interfaces do not contribute anything to the online state
+        online_state = self.query_online_state(filtered)
+        # show only a single interface, if requested
+        # XXX: bash completion (for interfaces names)
+        if self.ifname:
+            filtered = [next((itf for itf in interfaces if itf.name == self.ifname), None)]
+        filtered = [elem for elem in filtered if elem is not None]
+        if self.ifname and filtered == []:
+            logging.error('Could not find interface {}'.format(self.ifname))
+            sys.exit(1)
 
+        # Global state
+        data = {
+            'netplan-global-state': {
+                'online': online_state,
+                'nameservers': self.resolvconf_json()
+            }
+        }
         # Per interface
         itf_iter = interfaces if self.all else filtered
         for itf in itf_iter:
-            idx = itf.idx
-            dev = itf.name
-            print('● {idx}: {name}'.format(idx=idx, name=dev))
+            ifname, obj = itf.json()
+            data[ifname] = obj
+
+        # Output data in requested format
+        output_format = self.format.lower()
+        if output_format == 'json':  # structural JSON output
+            print(json.dumps(data, indent=None))
+        elif output_format == 'yaml':  # stuctural YAML output
+            print(yaml.dump(data, default_flow_style=False))
+        else:  # pretty print, human readable output
+            pass  # TODO
