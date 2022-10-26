@@ -60,6 +60,12 @@ class NetplanApply(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
+    @staticmethod
+    def get_alt_names(iface):
+        ret = subprocess.run(['ip', 'link', 'show', iface], capture_output=True)
+        data = ret.stdout.decode('utf-8').split()
+        return [data[i + 1] for i, x in enumerate(data) if x == "altname"]
+
     def command_apply(self, run_generate=True, sync=False, exit_on_error=True, state_dir=None):  # pragma: nocover
         config_manager = ConfigManager()
         if state_dir:
@@ -237,6 +243,9 @@ class NetplanApply(utils.NetplanCommand):
                 if iface in devices and new_name in devices_after_udev:
                     logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
                     continue  # re-name already happened via 'udevadm test'
+                if new_name in self.get_alt_names(iface):
+                    logging.debug('Interface name {} already present as altname on {}.'.format(new_name, iface))
+                    continue  # name already present in interface
                 # bring down the interface, using its current (matched) interface name
                 subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
                                       stdout=subprocess.DEVNULL,
