@@ -17,12 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import copy
 import subprocess
 import unittest
 import yaml
 
-from unittest.mock import patch, call
+from unittest.mock import patch, call, mock_open
 from netplan.cli.commands.status import NetplanStatus, Interface
+from tests.test_utils import call_cli
 
 
 IPROUTE2 = '[{"ifindex":1,"ifname":"lo","flags":["LOOPBACK","UP","LOWER_UP"],"mtu":65536,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"loopback","address":"00:00:00:00:00:00","broadcast":"00:00:00:00:00:00","promiscuity":0,"min_mtu":0,"max_mtu":0,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"addr_info":[{"family":"inet","local":"127.0.0.1","prefixlen":8,"scope":"host","label":"lo","valid_life_time":4294967295,"preferred_life_time":4294967295},{"family":"inet6","local":"::1","prefixlen":128,"scope":"host","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":2,"ifname":"enp0s31f6","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"fq_codel","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"54:e1:ad:5f:24:b4","broadcast":"ff:ff:ff:ff:ff:ff","promiscuity":0,"min_mtu":68,"max_mtu":9000,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"parentbus":"pci","parentdev":"0000:00:1f.6","addr_info":[{"family":"inet","local":"192.168.178.62","prefixlen":24,"metric":100,"broadcast":"192.168.178.255","scope":"global","dynamic":true,"label":"enp0s31f6","valid_life_time":850698,"preferred_life_time":850698},{"family":"inet6","local":"2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4","prefixlen":64,"scope":"global","dynamic":true,"mngtmpaddr":true,"noprefixroute":true,"valid_life_time":6821,"preferred_life_time":3221},{"family":"inet6","local":"fe80::56e1:adff:fe5f:24b4","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":5,"ifname":"wlan0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"1c:4d:70:e4:e4:0e","broadcast":"ff:ff:ff:ff:ff:ff","promiscuity":0,"min_mtu":256,"max_mtu":2304,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"parentbus":"pci","parentdev":"0000:04:00.0","addr_info":[{"family":"inet","local":"192.168.178.142","prefixlen":24,"broadcast":"192.168.178.255","scope":"global","dynamic":true,"noprefixroute":true,"label":"wlan0","valid_life_time":850700,"preferred_life_time":850700},{"family":"inet6","local":"2001:9e8:a19f:1c00:7011:2d1:951:ad03","prefixlen":64,"scope":"global","temporary":true,"dynamic":true,"valid_life_time":6822,"preferred_life_time":3222},{"family":"inet6","local":"2001:9e8:a19f:1c00:f24f:f724:5dd1:d0ad","prefixlen":64,"scope":"global","dynamic":true,"mngtmpaddr":true,"noprefixroute":true,"valid_life_time":6822,"preferred_life_time":3222},{"family":"inet6","local":"fe80::fec1:6ced:5268:b46c","prefixlen":64,"scope":"link","noprefixroute":true,"valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":41,"ifname":"wg0","flags":["POINTOPOINT","NOARP","UP","LOWER_UP"],"mtu":1420,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"none","promiscuity":0,"min_mtu":0,"max_mtu":2147483552,"linkinfo":{"info_kind":"wireguard"},"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"addr_info":[{"family":"inet","local":"10.10.0.2","prefixlen":24,"scope":"global","label":"wg0","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":46,"ifname":"wwan0","flags":["BROADCAST","MULTICAST","NOARP"],"mtu":1500,"qdisc":"noop","operstate":"DOWN","group":"default","txqlen":1000,"link_type":"ether","address":"a2:23:44:c4:4e:f8","broadcast":"ff:ff:ff:ff:ff:ff","promiscuity":0,"min_mtu":0,"max_mtu":2048,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"parentbus":"usb","parentdev":"1-6:1.12","addr_info":[]},{"ifindex":48,"link":null,"ifname":"tun0","flags":["POINTOPOINT","NOARP","UP","LOWER_UP"],"mtu":1480,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"sit","address":"1.1.1.1","link_pointtopoint":true,"broadcast":"2.2.2.2","promiscuity":0,"min_mtu":1280,"max_mtu":65555,"linkinfo":{"info_kind":"sit","info_data":{"proto":"ip6ip","remote":"2.2.2.2","local":"1.1.1.1","ttl":0,"pmtudisc":true,"prefix":"2002::","prefixlen":16}},"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"addr_info":[{"family":"inet6","local":"2001:dead:beef::2","prefixlen":64,"scope":"global","valid_life_time":4294967295,"preferred_life_time":4294967295}]}]'  # nopep8
@@ -58,6 +60,13 @@ class TestStatus(unittest.TestCase):
 
     def setUp(self):
         self.maxDiff = None
+
+    def _call(self, args):
+        args.insert(0, 'status')
+        return call_cli(args)
+
+    def _get_itf(self, ifname):
+        return next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifname'] == ifname), None)
 
     @patch('subprocess.check_output')
     def test_query_iproute2(self, mock):
@@ -174,6 +183,143 @@ class TestStatus(unittest.TestCase):
             self.assertIsNone(addresses)
             self.assertIsNone(search)
             self.assertIn('DEBUG:root:Cannot query resolved DNS data:', cm.output[0])
+
+    def test_query_resolvconf(self):
+        status = NetplanStatus()
+        with patch('builtins.open', mock_open(read_data='''\
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+options edns0 trust-ad
+search   some.domain
+search search.domain  another.one
+''')):
+            res = status.resolvconf_json()
+            print(res)
+            self.assertListEqual(res.get('addresses'), ['1.1.1.1', '8.8.8.8'])
+            self.assertListEqual(res.get('search'), ['search.domain', 'another.one'])
+            self.assertEqual(res.get('mode'), None)
+
+    def test_query_resolvconf_stub(self):
+        status = NetplanStatus()
+        with patch('builtins.open', mock_open(read_data='\
+# This is /run/systemd/resolve/stub-resolv.conf managed by man:systemd-resolved(8).')):
+            res = status.resolvconf_json()
+            self.assertEqual(res.get('mode'), 'stub')
+
+    def test_query_resolvconf_compat(self):
+        status = NetplanStatus()
+        with patch('builtins.open', mock_open(read_data='\
+# This is /run/systemd/resolve/resolv.conf managed by man:systemd-resolved(8).')):
+            res = status.resolvconf_json()
+            self.assertEqual(res.get('mode'), 'compat')
+
+    def test_query_resolvconf_fail(self):
+        status = NetplanStatus()
+        with self.assertLogs() as cm:
+            with patch('builtins.open', mock_open(read_data='')) as mock_file:
+                mock_file.side_effect = Exception(1, '', 'ERR')
+                status.resolvconf_json()
+                self.assertIn('WARNING:root:Cannot parse /etc/resolv.conf:', cm.output[0])
+
+    def test_query_online_state_online(self):
+        status = NetplanStatus()
+        dev = copy.deepcopy(FAKE_DEV)
+        dev['addr_info'] = [{
+            'local': '192.168.0.100',
+            'prefixlen': 24,
+        }]
+        dev['flags'].append('UP')
+        dev['operstate'] = 'UP'
+        routes = [{
+            'dst': 'default',
+            'gateway': '192.168.0.1',
+            'dev': dev['ifname'],
+        }]
+        dns = [(FAKE_DEV['ifindex'], 2, DNS_IP4)]
+        res = status.query_online_state([Interface(dev, [], [], (dns, None), (routes, None))])
+        self.assertTrue(res)
+
+    def test_query_online_state_offline(self):
+        status = NetplanStatus()
+        res = status.query_online_state([Interface(FAKE_DEV, [])])
+        self.assertFalse(res)
+
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    def test_fail_cli(self, networkd_mock, iproute2_mock):
+        iproute2_mock.return_value = [FAKE_DEV]
+        networkd_mock.return_value = []
+        with self.assertRaises(SystemExit):
+            self._call([])
+
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_nm')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_routes')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_resolved')
+    @patch('netplan.cli.commands.status.NetplanStatus.resolvconf_json')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_online_state')
+    def test_fail_cli_ifname(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock):
+        status = NetplanStatus()
+        iproute2_mock.return_value = [FAKE_DEV, self._get_itf('wlan0')]
+        networkd_mock.return_value = status.process_networkd(NETWORKD)
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        with self.assertRaises(SystemExit):
+            self._call(['notaninteface0'])
+
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_nm')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_routes')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_resolved')
+    @patch('netplan.cli.commands.status.NetplanStatus.resolvconf_json')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_online_state')
+    def test_call_cli_json(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock):
+        status = NetplanStatus()
+        iproute2_mock.return_value = [FAKE_DEV]
+        networkd_mock.return_value = status.process_networkd(NETWORKD)
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        out = self._call(['-a', '--format=json'])
+        self.assertEqual(out, '''{\
+"netplan-global-state": {"online": false, "nameservers": {"addresses": [], "search": [], "mode": null}}, \
+"fakedev0": {"index": 42, "adminstate": "DOWN", "operstate": "DOWN"}}\n''')
+
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_nm')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_routes')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_resolved')
+    @patch('netplan.cli.commands.status.NetplanStatus.resolvconf_json')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_online_state')
+    def test_call_cli_yaml(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock):
+        status = NetplanStatus()
+        iproute2_mock.return_value = [FAKE_DEV]
+        networkd_mock.return_value = status.process_networkd(NETWORKD)
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        out = self._call(['-a', '--format=yaml'])
+        self.assertEqual(out.strip(), '''\
+fakedev0:
+  adminstate: DOWN
+  index: 42
+  operstate: DOWN
+netplan-global-state:
+  nameservers:
+    addresses: []
+    mode: null
+    search: []
+  online: false'''.strip())
 
 
 class TestInterface(unittest.TestCase):
