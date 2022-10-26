@@ -18,10 +18,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import copy
+import io
 import subprocess
 import unittest
 import yaml
 
+from contextlib import redirect_stdout
 from unittest.mock import patch, call, mock_open
 from netplan.cli.commands.status import NetplanStatus, Interface
 from tests.test_utils import call_cli
@@ -244,6 +246,120 @@ search search.domain  another.one
         res = status.query_online_state([Interface(FAKE_DEV, [])])
         self.assertFalse(res)
 
+    @patch('netplan.cli.commands.status.Interface.query_nm_ssid')
+    @patch('netplan.cli.commands.status.Interface.query_networkctl')
+    def test_pretty_print(self, networkctl_mock, nm_ssid_mock):
+        SSID = 'MYCON'
+        nm_ssid_mock.return_value = SSID
+        # networkctl mock output reduced to relevant lines
+        networkctl_mock.return_value = \
+            '''Activation Policy: manual
+            WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
+
+        status = NetplanStatus()
+        nd = status.process_networkd(NETWORKD)
+        nm = status.process_nm(NMCLI)
+        dns = (DNS_ADDRESSES, DNS_SEARCH)
+        routes = (status.process_generic(ROUTE4), status.process_generic(ROUTE6))
+        fakeroute = {'type': 'local', 'dst': '10.0.0.0/16', 'gateway': '10.0.0.1', 'dev': FAKE_DEV['ifname']}
+
+        interfaces = [
+            Interface(self._get_itf('enp0s31f6'), nd, nm, dns, routes),
+            Interface(self._get_itf('wlan0'), nd, nm, dns, routes),
+            Interface(self._get_itf('wg0'), nd, nm, dns, routes),
+            Interface(self._get_itf('tun0'), nd, nm, dns, routes),
+            Interface(FAKE_DEV, [], [], (None, None), ([fakeroute], None)),
+            ]
+        data = {'netplan-global-state': {
+            'online': True,
+            'nameservers': {
+                'addresses': ['127.0.0.53'],
+                'search': ['search.domain'],
+                'mode': 'stub',
+            }}}
+        for itf in interfaces:
+            ifname, obj = itf.json()
+            data[ifname] = obj
+        f = io.StringIO()
+        with redirect_stdout(f):
+            status.pretty_print(data, len(interfaces)+1, _console_width=130)
+            out = f.getvalue()
+            self.assertEqual(out, '''\
+     Online state: online
+    DNS Addresses: 127.0.0.53 (stub)
+       DNS Search: search.domain
+
+●  2: enp0s31f6 ethernet UP (networkd: enp0s31f6)
+      MAC Address: 54:e1:ad:5f:24:b4 (Intel Corporation)
+        Addresses: 192.168.178.62/24 (dhcp)
+                   2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4/64
+                   fe80::56e1:adff:fe5f:24b4/64 (link)
+    DNS Addresses: 192.168.178.1
+                   fd00::cece:1eff:fe3d:c737
+       DNS Search: search.domain
+           Routes: default via 192.168.178.1 from 192.168.178.62 metric 100 (dhcp)
+                   192.168.178.0/24 from 192.168.178.62 metric 100 (link)
+                   192.168.178.1 from 192.168.178.62 metric 100 (dhcp, link)
+                   2001:9e8:a19f:1c00::/64 metric 100 (ra)
+                   2001:9e8:a19f:1c00::/56 via fe80::cece:1eff:fe3d:c737 metric 100 (ra)
+                   fe80::/64 metric 256
+                   default via fe80::cece:1eff:fe3d:c737 metric 100 (ra)
+  Activation Mode: manual
+
+●  5: wlan0 wifi/"MYCON" UP (NetworkManager: NM-b6b7a21d-186e-45e1-b3a6-636da1735563)
+      MAC Address: 1c:4d:70:e4:e4:0e (Intel Corporation)
+        Addresses: 192.168.178.142/24
+                   2001:9e8:a19f:1c00:7011:2d1:951:ad03/64
+                   2001:9e8:a19f:1c00:f24f:f724:5dd1:d0ad/64
+                   fe80::fec1:6ced:5268:b46c/64 (link)
+    DNS Addresses: 192.168.178.1
+                   fd00::cece:1eff:fe3d:c737
+       DNS Search: search.domain
+           Routes: default via 192.168.178.1 metric 600 (dhcp)
+                   192.168.178.0/24 from 192.168.178.142 metric 600 (link)
+                   2001:9e8:a19f:1c00::/64 metric 600 (ra)
+                   2001:9e8:a19f:1c00::/56 via fe80::cece:1eff:fe3d:c737 metric 600 (ra)
+                   fe80::/64 metric 1024
+                   default via fe80::cece:1eff:fe3d:c737 metric 20600 (ra)
+
+● 41: wg0 tunnel/wireguard UNKNOWN/UP (networkd: wg0)
+        Addresses: 10.10.0.2/24
+           Routes: 10.10.0.0/24 from 10.10.0.2 (link)
+  Activation Mode: manual
+
+● 48: tun0 tunnel/sit UNKNOWN/UP (networkd: tun0)
+        Addresses: 2001:dead:beef::2/64
+           Routes: 2001:dead:beef::/64 metric 256
+  Activation Mode: manual
+
+● 42: fakedev0 other DOWN (unmanaged)
+           Routes: 10.0.0.0/16 via 10.0.0.1 (local)
+
+1 inactive interfaces hidden. Use "--all" to show all.
+''')
+
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_nm')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_routes')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_resolved')
+    @patch('netplan.cli.commands.status.NetplanStatus.resolvconf_json')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_online_state')
+    def test_call_cli(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock):
+        status = NetplanStatus()
+        iproute2_mock.return_value = [FAKE_DEV]
+        networkd_mock.return_value = status.process_networkd(NETWORKD)
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        out = self._call(['-a'])
+        self.assertEqual(out.strip(), '''\
+Online state: offline
+
+● 42: fakedev0 other DOWN (unmanaged)''')
+
     @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
     @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
     def test_fail_cli(self, networkd_mock, iproute2_mock):
@@ -251,6 +367,30 @@ search search.domain  another.one
         networkd_mock.return_value = []
         with self.assertRaises(SystemExit):
             self._call([])
+
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_nm')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_routes')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_resolved')
+    @patch('netplan.cli.commands.status.NetplanStatus.resolvconf_json')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_online_state')
+    def test_call_cli_ifname(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock):
+        status = NetplanStatus()
+        iproute2_mock.return_value = [FAKE_DEV, self._get_itf('wlan0')]
+        networkd_mock.return_value = status.process_networkd(NETWORKD)
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        out = self._call([FAKE_DEV['ifname']])
+        self.assertEqual(out.strip(), '''\
+Online state: offline
+
+● 42: fakedev0 other DOWN (unmanaged)
+
+1 inactive interfaces hidden. Use "--all" to show all.''')
 
     @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
     @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
