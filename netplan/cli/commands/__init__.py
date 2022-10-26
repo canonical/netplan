@@ -24,6 +24,7 @@ from netplan.cli.commands.info import NetplanInfo
 from netplan.cli.commands.set import NetplanSet
 from netplan.cli.commands.get import NetplanGet
 from netplan.cli.commands.sriov_rebind import NetplanSriovRebind
+from netplan.cli.commands.status import NetplanStatus
 
 __all__ = [
     'NetplanApply',
@@ -34,5 +35,6 @@ __all__ = [
     'NetplanInfo',
     'NetplanSet',
     'NetplanGet',
-    'NetplanSriovRebind'
+    'NetplanSriovRebind',
+    'NetplanStatus',
 ]
