@@ -19,9 +19,10 @@
 
 import subprocess
 import unittest
+import yaml
 
 from unittest.mock import patch, call
-from netplan.cli.commands.status import NetplanStatus
+from netplan.cli.commands.status import NetplanStatus, Interface
 
 
 IPROUTE2 = '[{"ifindex":1,"ifname":"lo","flags":["LOOPBACK","UP","LOWER_UP"],"mtu":65536,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"loopback","address":"00:00:00:00:00:00","broadcast":"00:00:00:00:00:00","promiscuity":0,"min_mtu":0,"max_mtu":0,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"addr_info":[{"family":"inet","local":"127.0.0.1","prefixlen":8,"scope":"host","label":"lo","valid_life_time":4294967295,"preferred_life_time":4294967295},{"family":"inet6","local":"::1","prefixlen":128,"scope":"host","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":2,"ifname":"enp0s31f6","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"fq_codel","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"54:e1:ad:5f:24:b4","broadcast":"ff:ff:ff:ff:ff:ff","promiscuity":0,"min_mtu":68,"max_mtu":9000,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"parentbus":"pci","parentdev":"0000:00:1f.6","addr_info":[{"family":"inet","local":"192.168.178.62","prefixlen":24,"metric":100,"broadcast":"192.168.178.255","scope":"global","dynamic":true,"label":"enp0s31f6","valid_life_time":850698,"preferred_life_time":850698},{"family":"inet6","local":"2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4","prefixlen":64,"scope":"global","dynamic":true,"mngtmpaddr":true,"noprefixroute":true,"valid_life_time":6821,"preferred_life_time":3221},{"family":"inet6","local":"fe80::56e1:adff:fe5f:24b4","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":5,"ifname":"wlan0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"1c:4d:70:e4:e4:0e","broadcast":"ff:ff:ff:ff:ff:ff","promiscuity":0,"min_mtu":256,"max_mtu":2304,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"parentbus":"pci","parentdev":"0000:04:00.0","addr_info":[{"family":"inet","local":"192.168.178.142","prefixlen":24,"broadcast":"192.168.178.255","scope":"global","dynamic":true,"noprefixroute":true,"label":"wlan0","valid_life_time":850700,"preferred_life_time":850700},{"family":"inet6","local":"2001:9e8:a19f:1c00:7011:2d1:951:ad03","prefixlen":64,"scope":"global","temporary":true,"dynamic":true,"valid_life_time":6822,"preferred_life_time":3222},{"family":"inet6","local":"2001:9e8:a19f:1c00:f24f:f724:5dd1:d0ad","prefixlen":64,"scope":"global","dynamic":true,"mngtmpaddr":true,"noprefixroute":true,"valid_life_time":6822,"preferred_life_time":3222},{"family":"inet6","local":"fe80::fec1:6ced:5268:b46c","prefixlen":64,"scope":"link","noprefixroute":true,"valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":41,"ifname":"wg0","flags":["POINTOPOINT","NOARP","UP","LOWER_UP"],"mtu":1420,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"none","promiscuity":0,"min_mtu":0,"max_mtu":2147483552,"linkinfo":{"info_kind":"wireguard"},"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"addr_info":[{"family":"inet","local":"10.10.0.2","prefixlen":24,"scope":"global","label":"wg0","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":46,"ifname":"wwan0","flags":["BROADCAST","MULTICAST","NOARP"],"mtu":1500,"qdisc":"noop","operstate":"DOWN","group":"default","txqlen":1000,"link_type":"ether","address":"a2:23:44:c4:4e:f8","broadcast":"ff:ff:ff:ff:ff:ff","promiscuity":0,"min_mtu":0,"max_mtu":2048,"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"parentbus":"usb","parentdev":"1-6:1.12","addr_info":[]},{"ifindex":48,"link":null,"ifname":"tun0","flags":["POINTOPOINT","NOARP","UP","LOWER_UP"],"mtu":1480,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"sit","address":"1.1.1.1","link_pointtopoint":true,"broadcast":"2.2.2.2","promiscuity":0,"min_mtu":1280,"max_mtu":65555,"linkinfo":{"info_kind":"sit","info_data":{"proto":"ip6ip","remote":"2.2.2.2","local":"1.1.1.1","ttl":0,"pmtudisc":true,"prefix":"2002::","prefixlen":16}},"num_tx_queues":1,"num_rx_queues":1,"gso_max_size":65536,"gso_max_segs":65535,"addr_info":[{"family":"inet6","local":"2001:dead:beef::2","prefixlen":64,"scope":"global","valid_life_time":4294967295,"preferred_life_time":4294967295}]}]'  # nopep8
@@ -33,6 +34,7 @@ DNS_IP4 = bytearray([192, 168, 178, 1])
 DNS_IP6 = bytearray([0xfd, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xce, 0xce, 0x1e, 0xff, 0xfe, 0x3d, 0xc7, 0x37])
 DNS_ADDRESSES = [(5, 2, DNS_IP4), (5, 10, DNS_IP6), (2, 2, DNS_IP4), (2, 10, DNS_IP6)]  # (IFidx, IPfamily, IPbytes)
 DNS_SEARCH = [(5, 'search.domain', False), (2, 'search.domain', False)]
+FAKE_DEV = {'ifindex': 42, 'ifname': 'fakedev0', 'flags': [], 'operstate': 'DOWN'}
 
 
 class resolve1_ipc_mock():
@@ -172,3 +174,141 @@ class TestStatus(unittest.TestCase):
             self.assertIsNone(addresses)
             self.assertIsNone(search)
             self.assertIn('DEBUG:root:Cannot query resolved DNS data:', cm.output[0])
+
+
+class TestInterface(unittest.TestCase):
+    '''Test netplan status' Interface class'''
+
+    @patch('subprocess.check_output')
+    def test_query_nm_ssid(self, mock):
+        mock.return_value = ' MYSSID '  # added some whitespace to strip()
+        con = 'SOME_CONNECTION_ID'
+        itf = Interface(FAKE_DEV, [])
+        res = itf.query_nm_ssid(con)
+        mock.assert_called_with(['nmcli', '--get-values', '802-11-wireless.ssid',
+                                 'con', 'show', 'id', con],
+                                universal_newlines=True)
+        self.assertEqual(res, 'MYSSID')
+
+    @patch('subprocess.check_output')
+    def test_query_nm_ssid_fail(self, mock):
+        mock.side_effect = subprocess.CalledProcessError(1, '', 'ERR')
+        con = 'SOME_CONNECTION_ID'
+        itf = Interface(FAKE_DEV, [])
+        with self.assertLogs() as cm:
+            res = itf.query_nm_ssid(con)
+            mock.assert_called_with(['nmcli', '--get-values', '802-11-wireless.ssid',
+                                     'con', 'show', 'id', con],
+                                    universal_newlines=True)
+            self.assertIsNone(res)
+            self.assertIn('WARNING:root:Cannot query NetworkManager SSID for {}:'.format(con), cm.output[0])
+
+    @patch('subprocess.check_output')
+    def test_query_networkctl(self, mock):
+        mock.return_value = 'DOES NOT MATTER'
+        dev = 'fakedev0'
+        itf = Interface(FAKE_DEV, [])
+        res = itf.query_networkctl(dev)
+        mock.assert_called_with(['networkctl', 'status', dev], universal_newlines=True)
+        self.assertEqual(res, mock.return_value)
+
+    @patch('subprocess.check_output')
+    def test_query_networkctl_fail(self, mock):
+        mock.side_effect = subprocess.CalledProcessError(1, '', 'ERR')
+        dev = 'fakedev0'
+        itf = Interface(FAKE_DEV, [])
+        with self.assertLogs() as cm:
+            res = itf.query_networkctl(dev)
+            mock.assert_called_with(['networkctl', 'status', dev], universal_newlines=True)
+            self.assertIsNone(res)
+            self.assertIn('WARNING:root:Cannot query networkctl for {}:'.format(dev), cm.output[0])
+
+    @patch('netplan.cli.commands.status.Interface.query_nm_ssid')
+    @patch('netplan.cli.commands.status.Interface.query_networkctl')
+    def test_json_nm_wlan0(self, networkctl_mock, nm_ssid_mock):
+        SSID = 'MYCON'
+        nm_ssid_mock.return_value = SSID
+        # networkctl mock output reduced to relevant lines
+        networkctl_mock.return_value = \
+            'WiFi access point: {} (b4:fb:e4:75:c6:21)'.format(SSID)
+
+        status = NetplanStatus()
+        data = next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifindex'] == 5), {})
+        nd = status.process_networkd(NETWORKD)
+        nm = status.process_nm(NMCLI)
+        dns = (DNS_ADDRESSES, DNS_SEARCH)
+        routes = (status.process_generic(ROUTE4), status.process_generic(ROUTE6))
+
+        itf = Interface(data, nd, nm, dns, routes)
+        self.assertTrue(itf.up)
+        self.assertFalse(itf.down)
+        ifname, json = itf.json()
+        self.assertEqual(ifname, 'wlan0')
+        self.assertEqual(json.get('index'), 5)
+        self.assertEqual(json.get('macaddress'), '1c:4d:70:e4:e4:0e')
+        self.assertEqual(json.get('type'), 'wifi')
+        self.assertEqual(json.get('ssid'), 'MYCON')
+        self.assertEqual(json.get('backend'), 'NetworkManager')
+        self.assertEqual(json.get('id'), 'NM-b6b7a21d-186e-45e1-b3a6-636da1735563')
+        self.assertEqual(json.get('vendor'), 'Intel Corporation')
+        self.assertEqual(json.get('adminstate'), 'UP')
+        self.assertEqual(json.get('operstate'), 'UP')
+        self.assertEqual(len(json.get('addresses')), 4)
+        self.assertEqual(len(json.get('dns_addresses')), 2)
+        self.assertEqual(len(json.get('dns_search')), 1)
+        self.assertEqual(len(json.get('routes')), 6)
+
+    @patch('netplan.cli.commands.status.Interface.query_networkctl')
+    def test_json_nd_enp0s31f6(self, networkctl_mock):
+        # networkctl mock output reduced to relevant lines
+        networkctl_mock.return_value = 'Activation Policy: manual'
+
+        status = NetplanStatus()
+        data = next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifindex'] == 2), {})
+        nd = status.process_networkd(NETWORKD)
+        nm = status.process_nm(NMCLI)
+        dns = (DNS_ADDRESSES, DNS_SEARCH)
+        routes = (status.process_generic(ROUTE4), status.process_generic(ROUTE6))
+
+        itf = Interface(data, nd, nm, dns, routes)
+        self.assertTrue(itf.up)
+        self.assertFalse(itf.down)
+        ifname, json = itf.json()
+        self.assertEqual(ifname, 'enp0s31f6')
+        self.assertEqual(json.get('index'), 2)
+        self.assertEqual(json.get('macaddress'), '54:e1:ad:5f:24:b4')
+        self.assertEqual(json.get('type'), 'ethernet')
+        self.assertEqual(json.get('backend'), 'networkd')
+        self.assertEqual(json.get('id'), 'enp0s31f6')
+        self.assertEqual(json.get('vendor'), 'Intel Corporation')
+        self.assertEqual(json.get('adminstate'), 'UP')
+        self.assertEqual(json.get('operstate'), 'UP')
+        self.assertEqual(json.get('activation_mode'), 'manual')
+        self.assertEqual(len(json.get('addresses')), 3)
+        _, meta = list(json.get('addresses')[0].items())[0]  # get first (any only) address
+        self.assertIn('dhcp', meta.get('flags'))
+        self.assertEqual(len(json.get('dns_addresses')), 2)
+        self.assertEqual(len(json.get('dns_search')), 1)
+        self.assertEqual(len(json.get('routes')), 7)
+
+    def test_json_nd_tunnel(self):
+        status = NetplanStatus()
+        data = next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifindex'] == 41), {})
+        nd = status.process_networkd(NETWORKD)
+
+        itf = Interface(data, nd, [], (None, None), (None, None))
+        ifname, json = itf.json()
+        self.assertEqual(ifname, 'wg0')
+        self.assertEqual(json.get('index'), 41)
+        self.assertEqual(json.get('type'), 'tunnel')
+        self.assertEqual(json.get('backend'), 'networkd')
+        self.assertEqual(json.get('tunnel_mode'), 'wireguard')
+
+    def test_json_no_type_id_backend(self):
+        itf = Interface(FAKE_DEV, [], [], (None, None), (None, None))
+        ifname, json = itf.json()
+        self.assertEqual(ifname, 'fakedev0')
+        self.assertEqual(json.get('index'), 42)
+        self.assertNotIn('type', json)
+        self.assertNotIn('id', json)
+        self.assertNotIn('backend', json)
