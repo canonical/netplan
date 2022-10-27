@@ -55,6 +55,18 @@ class TestCLI(unittest.TestCase):
         res = NetplanApply.is_composite_member([{'renderer': 'networkd', 'br0': {'interfaces': ['eth0']}}], 'eth0')
         self.assertTrue(res)
 
+    @patch('subprocess.run')
+    def test_get_alt_names(self, mock):
+        stdout_mock = mock.Mock()
+        stdout_mock.stdout = b"""3: ens4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 8958 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether xx:xx:xx:xx:xx:xx brd ff:ff:ff:ff:ff:ff
+    altname enp0s4
+    altname enp0s41"""
+        mock.return_value = stdout_mock
+        res = NetplanApply.get_alt_names('ens4')
+        mock.assert_called_with(['ip', 'link', 'show', 'ens4'], capture_output=True)
+        self.assertEquals(res, ['enp0s4', 'enp0s41'])
+
     @patch('subprocess.check_call')
     def test_clear_virtual_links(self, mock):
         # simulate as if 'tun3' would have already been delete another way,

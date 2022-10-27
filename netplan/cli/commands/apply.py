@@ -243,7 +243,7 @@ class NetplanApply(utils.NetplanCommand):
                 if iface in devices and new_name in devices_after_udev:
                     logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
                     continue  # re-name already happened via 'udevadm test'
-                if new_name in self.get_alt_names(iface):
+                if new_name in NetplanApply.get_alt_names(iface):
                     logging.debug('Interface name {} already present as altname on {}.'.format(new_name, iface))
                     continue  # name already present in interface
                 # bring down the interface, using its current (matched) interface name
