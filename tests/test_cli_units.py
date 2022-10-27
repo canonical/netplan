@@ -72,6 +72,7 @@ class TestCLI(unittest.TestCase):
         res = NetplanApply.get_alt_names('ens4')
         mock.assert_called_with(['ip', '-j', 'link', 'show', 'ens4'], capture_output=True)
         self.assertEquals(res, [])
+
     @patch('subprocess.check_call')
     def test_clear_virtual_links(self, mock):
         # simulate as if 'tun3' would have already been delete another way,
