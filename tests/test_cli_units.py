@@ -58,16 +58,20 @@ class TestCLI(unittest.TestCase):
     @patch('subprocess.run')
     def test_get_alt_names(self, mock):
         stdout_mock = mock.Mock()
-        stdout_mock.stdout = "3: ens4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 8958 qdisc fq_codel state "\
-            "UP mode DEFAULT group default qlen 1000\n"\
-            "    link/ether xx:xx:xx:xx:xx:xx brd ff:ff:ff:ff:ff:ff\n"\
-            "    altname enp0s4\n"\
-            "    altname enp0s41".encode('utf-8')
+        stdout_mock.stdout = '[{"ifindex":3,"ifname":"ens4","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],'\
+                             '"mtu":8958,"qdisc":"fq_codel","operstate":"UP","linkmode":"DEFAULT","group":"default",'\
+                             '"txqlen":1000,"link_type":"ether","address":"xx:xx:xx:xx:xx:xx",'\
+                             '"broadcast":"ff:ff:ff:ff:ff:ff","altnames":["enp0s4","enp0s41"]}]'.encode('utf-8')
         mock.return_value = stdout_mock
         res = NetplanApply.get_alt_names('ens4')
-        mock.assert_called_with(['ip', 'link', 'show', 'ens4'], capture_output=True)
+        mock.assert_called_with(['ip', '-j', 'link', 'show', 'ens4'], capture_output=True)
         self.assertEquals(res, ['enp0s4', 'enp0s41'])
 
+        mock.reset_mock()
+        stdout_mock.stdout = ''.encode('utf-8')
+        res = NetplanApply.get_alt_names('ens4')
+        mock.assert_called_with(['ip', '-j', 'link', 'show', 'ens4'], capture_output=True)
+        self.assertEquals(res, [])
     @patch('subprocess.check_call')
     def test_clear_virtual_links(self, mock):
         # simulate as if 'tun3' would have already been delete another way,

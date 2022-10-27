@@ -27,6 +27,7 @@ import subprocess
 import shutil
 import netifaces
 import time
+import yaml
 
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
@@ -62,9 +63,11 @@ class NetplanApply(utils.NetplanCommand):
 
     @staticmethod
     def get_alt_names(iface):
-        ret = subprocess.run(['ip', 'link', 'show', iface], capture_output=True)
-        data = ret.stdout.decode('utf-8').split()
-        return [data[i + 1] for i, x in enumerate(data) if x == "altname"]
+        ret = subprocess.run(['ip', '-j', 'link', 'show', iface], capture_output=True)
+        data = yaml.safe_load(ret.stdout.decode('utf-8'))
+        if data and len(data) == 1:
+            return data[0].get('altnames', [])
+        return []
 
     def command_apply(self, run_generate=True, sync=False, exit_on_error=True, state_dir=None):  # pragma: nocover
         config_manager = ConfigManager()
