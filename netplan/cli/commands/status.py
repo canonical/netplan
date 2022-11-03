@@ -260,7 +260,8 @@ class Interface():
     @property
     def ssid(self) -> str:
         if self.type == 'wifi':
-            # XXX: this data is missing from networkctl's JSON output
+            # XXX: available from networkctl's JSON output as of v250:
+            #      https://github.com/systemd/systemd/commit/da7c995
             for line in self._networkctl.splitlines():
                 line = line.strip()
                 key = 'WiFi access point: '
@@ -272,7 +273,8 @@ class Interface():
     @property
     def activation_mode(self) -> str:
         if self.backend == 'networkd':
-            # XXX: this data is missing from networkctl's JSON output
+            # XXX: available from networkctl's JSON output as of v250:
+            #      https://github.com/systemd/systemd/commit/3b60ede
             for line in self._networkctl.splitlines():
                 line = line.strip()
                 key = 'Activation Policy: '
