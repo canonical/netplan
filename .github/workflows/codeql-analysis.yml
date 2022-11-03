@@ -23,7 +23,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
@@ -52,6 +52,7 @@ jobs:
       run: |
         sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
         sudo apt update
+        sudo apt install meson
         sudo apt build-dep netplan.io
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
