@@ -384,7 +384,7 @@ method_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
-method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error, bool full)
 {
     NetplanData *d = userdata;
     g_autoptr(GError) err = NULL;
@@ -398,8 +398,13 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     char *origin_hint = NULL;
     guint cur_arg = 0;
 
-    if (sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
+    if (full && sd_bus_message_read(m, "ss", &config_delta, &origin_hint) < 0)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta or origin_hint"); // LCOV_EXCL_LINE
+    else if (!full) {
+        if (sd_bus_message_read(m, "s", &config_delta) < 0)
+            return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED, "cannot extract config_delta"); // LCOV_EXCL_LINE
+        origin_hint = "";
+    }
 
     if (!!strcmp(origin_hint, "")) {
         origin = g_strdup_printf("--origin-hint=%s", origin_hint);
@@ -593,7 +598,7 @@ method_config_get(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
-method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error, bool full)
 {
     NetplanData *d = userdata;
     /* trim 27 chars (i.e. "/io/netplan/Netplan/config/") from path to get the config ID */
@@ -602,13 +607,25 @@ method_config_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (cd->invalidated)
         return sd_bus_error_setf(ret_error, SD_BUS_ERROR_FAILED,
                                  "This config was invalidated by another config object\n");
-    int r = method_set(m, d, ret_error);
+    int r = method_set(m, d, ret_error, full);
     /* Invalidate all other current config objects */
     g_hash_table_foreach(d->config_data, invalidate_other_config, (void*)d->config_id);
     d->config_dirty = g_strdup(d->config_id);
     /* Reset config_id for next method call */
     d->config_id = NULL;
     return r;
+}
+
+static int
+method_config_set_simple(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    return method_config_set(m, userdata, ret_error, false);
+}
+
+static int
+method_config_set_full(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    return method_config_set(m, userdata, ret_error, true);
 }
 
 static int
@@ -690,7 +707,8 @@ static const sd_bus_vtable config_vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Apply", "", "b", method_config_apply, 0),
     SD_BUS_METHOD("Get", "", "s", method_config_get, 0),
-    SD_BUS_METHOD("Set", "ss", "b", method_config_set, 0),
+    SD_BUS_METHOD("Set", "s", "b", method_config_set_simple, 0),
+    SD_BUS_METHOD("Set", "ss", "b", method_config_set_full, 0),
     SD_BUS_METHOD("Try", "u", "b", method_config_try, 0),
     SD_BUS_METHOD("Cancel", "", "b", method_config_cancel, 0),
     SD_BUS_VTABLE_END
