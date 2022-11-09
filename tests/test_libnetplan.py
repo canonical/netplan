@@ -364,6 +364,25 @@ class TestNetDefinition(TestBase):
         netdef = state['eth0']
         self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef.filepath)
 
+    def test_filepath_for_ovs_ports(self):
+        state = state_from_yaml(self.confdir, '''network:
+  version: 2
+  renderer: networkd
+  bridges:
+    br0:
+      interfaces:
+        - patch0-2
+    br1:
+      interfaces:
+        - patch2-0
+  openvswitch:
+    ports:
+      - [patch0-2, patch2-0]''', filename="a.yaml")
+        netdef_port1 = state["patch2-0"]
+        netdef_port2 = state["patch0-2"]
+        self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef_port1.filepath)
+        self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef_port2.filepath)
+
     def test_set_name(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:
