@@ -34,6 +34,7 @@
 #include "nm.h"
 #include "openvswitch.h"
 #include "sriov.h"
+#include "netplan.h"
 
 static gchar* rootdir;
 static gchar** files;
@@ -338,7 +339,7 @@ int main(int argc, char** argv)
 cleanup:
     g_option_context_free(opt_context);
     if (error)
-        g_error_free(error);
+        netplan_error_free(&error);
     if (npp)
         netplan_parser_clear(&npp);
     if (np_state)

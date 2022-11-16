@@ -30,6 +30,7 @@ find = find_program('find')
 
 add_project_arguments(
     '-DSBINDIR="' + join_paths(get_option('prefix'), get_option('sbindir')) + '"',
+    '-DFIXTURESDIR="' + meson.global_source_root() + '/src/tests/fixtures"',
     '-D_XOPEN_SOURCE=700',
     language: 'c')
 

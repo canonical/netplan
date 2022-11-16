@@ -432,6 +432,69 @@ class TestNetDefinition(TestBase):
         self.assertTrue(state['br0'].is_trivial_compound_itf)
         self.assertFalse(state['br1'].is_trivial_compound_itf)
 
+    def test_interface_has_pointer_to_bridge(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  bridges:
+    br0:
+      dhcp4: false
+      interfaces:
+        - eth0
+      ''')
+
+        self.assertEqual(state['eth0'].bridge_link.id, "br0")
+
+    def test_interface_pointer_to_bridge_is_none(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      ''')
+
+        self.assertIsNone(state['eth0'].bridge_link)
+
+    def test_interface_has_pointer_to_bond(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  bonds:
+    bond0:
+      dhcp4: false
+      interfaces:
+        - eth0
+      ''')
+
+        self.assertEqual(state['eth0'].bond_link.id, "bond0")
+
+    def test_interface_pointer_to_bond_is_none(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      ''')
+
+        self.assertIsNone(state['eth0'].bond_link)
+
+    def test_interface_has_pointer_to_peer(self):
+        state = state_from_yaml(self.confdir, '''network:
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  bonds:
+    bond0:
+      interfaces:
+        - patch1-0
+  bridges:
+    ovs0:
+      interfaces: [patch0-1, bond0]
+      ''')
+
+        self.assertEqual(state['patch0-1'].peer_link.id, "patch1-0")
+        self.assertEqual(state['patch1-0'].peer_link.id, "patch0-1")
+
 
 class TestFreeFunctions(TestBase):
     def test_create_yaml_patch_bad_syntax(self):

@@ -1,0 +1,11 @@
+network:
+  version: 2
+  openvswitch:
+    ports:
+      - [patch0-1, patch1-0]
+  bonds:
+    bond0:
+      interfaces: [patch1-0]
+  bridges:
+    ovs0:
+      interfaces: [patch0-1, bond0]

@@ -21,7 +21,7 @@ Netplan's [documentation objectives](https://docs.google.com/document/d/1n47hwLm
 
 Steps to build netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
 
-* meson setup build --prefix=/usr [-Db_coverage=true]
+* meson setup build --prefix=/usr [-Db_coverage=true] [-Dunit_testing=true]
 * meson compile -C build
 * meson test -C build --verbose [TEST_NAME]
 * meson install -C build --destdir ../tmproot

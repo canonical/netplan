@@ -278,11 +278,20 @@ class NetDefinition:
         lib._netplan_netdef_get_critical.argtypes = [_NetplanNetDefinitionP]
         lib._netplan_netdef_get_critical.restype = c_int
 
-        lib._netplan_netdef_get_sriov_link.argtypes = [_NetplanNetDefinitionP]
-        lib._netplan_netdef_get_sriov_link.restype = _NetplanNetDefinitionP
+        lib.netplan_netdef_get_sriov_link.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_sriov_link.restype = _NetplanNetDefinitionP
 
-        lib._netplan_netdef_get_vlan_link.argtypes = [_NetplanNetDefinitionP]
-        lib._netplan_netdef_get_vlan_link.restype = _NetplanNetDefinitionP
+        lib.netplan_netdef_get_vlan_link.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_vlan_link.restype = _NetplanNetDefinitionP
+
+        lib.netplan_netdef_get_bridge_link.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_bridge_link.restype = _NetplanNetDefinitionP
+
+        lib.netplan_netdef_get_bond_link.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_bond_link.restype = _NetplanNetDefinitionP
+
+        lib.netplan_netdef_get_peer_link.argtypes = [_NetplanNetDefinitionP]
+        lib.netplan_netdef_get_peer_link.restype = _NetplanNetDefinitionP
 
         lib._netplan_netdef_get_vlan_id.argtypes = [_NetplanNetDefinitionP]
         lib._netplan_netdef_get_vlan_id.restype = c_uint
@@ -333,17 +342,38 @@ class NetDefinition:
 
     @property
     def sriov_link(self):
-        link_ptr = lib._netplan_netdef_get_sriov_link(self._ptr)
+        link_ptr = lib.netplan_netdef_get_sriov_link(self._ptr)
         if link_ptr:
             return NetDefinition(self._parent, link_ptr)
         return None
 
     @property
     def vlan_link(self):
-        link_ptr = lib._netplan_netdef_get_vlan_link(self._ptr)
+        link_ptr = lib.netplan_netdef_get_vlan_link(self._ptr)
         if link_ptr:
             return NetDefinition(self._parent, link_ptr)
         return None
+
+    @property
+    def bridge_link(self):
+        link_ptr = lib.netplan_netdef_get_bridge_link(self._ptr)
+        if link_ptr:
+            return NetDefinition(self._parent, link_ptr)
+        return None
+
+    @property
+    def bond_link(self):
+        link_ptr = lib.netplan_netdef_get_bond_link(self._ptr)
+        if link_ptr:
+            return NetDefinition(self._parent, link_ptr)
+        return None
+
+    @property
+    def peer_link(self):
+        link_ptr = lib.netplan_netdef_get_peer_link(self._ptr)
+        if link_ptr:
+            return NetDefinition(self._parent, link_ptr)
+        return None  # pragma: nocover (ovs ports are always defined in pairs)
 
     @property
     def vlan_id(self):

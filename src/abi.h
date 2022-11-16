@@ -327,7 +327,7 @@ struct netplan_net_definition {
 
     /* these properties are only valid for SR-IOV NICs */
     /* netplan-feature: sriov */
-    struct netplan_net_definition* sriov_link;
+    NetplanNetDefinition* sriov_link;
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
 
@@ -379,4 +379,8 @@ struct netplan_net_definition {
     /* netplan-feature: vxlan */
     gboolean has_vxlans;
     NetplanVxlan* vxlan;
+
+    NetplanNetDefinition* bridge_link;
+    NetplanNetDefinition* bond_link;
+    NetplanNetDefinition* peer_link;
 };
