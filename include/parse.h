@@ -69,6 +69,42 @@ netplan_parser_load_yaml_from_fd(NetplanParser* npp, int input_fd, GError** erro
 NETPLAN_PUBLIC gboolean
 netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, GError** error);
 
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
+
+NETPLAN_PUBLIC NetplanBackend
+netplan_netdef_get_backend(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC NetplanDefType
+netplan_netdef_get_type(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_netdef_get_bond_link(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_netdef_get_peer_link(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buf, size_t out_size);
+
+NETPLAN_PUBLIC gboolean
+netplan_netdef_has_match(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC void
+netplan_error_free(GError** error);
+
 /********** Old API below this ***********/
 
 NETPLAN_PUBLIC gboolean

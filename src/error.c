@@ -173,3 +173,8 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
     return FALSE;
 }
 
+NETPLAN_PUBLIC void
+netplan_error_free(GError** error) {
+    g_clear_error(error);
+    *error = NULL;
+}

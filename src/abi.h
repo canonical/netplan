@@ -226,10 +226,13 @@ struct netplan_net_definition {
 
     /* master ID for slave devices */
     char* bridge;
+    NetplanNetDefinition* bridge_link;
     char* bond;
+    NetplanNetDefinition* bond_link;
 
     /* peer ID for OVS patch ports */
     char* peer;
+    NetplanNetDefinition* peer_link;
 
     /* vlan */
     guint vlan_id;
@@ -327,7 +330,7 @@ struct netplan_net_definition {
 
     /* these properties are only valid for SR-IOV NICs */
     /* netplan-feature: sriov */
-    struct netplan_net_definition* sriov_link;
+    NetplanNetDefinition* sriov_link;
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
 

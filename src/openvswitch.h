@@ -28,10 +28,4 @@ netplan_netdef_write_ovs(
         GError** error);
 
 NETPLAN_INTERNAL gboolean
-netplan_state_finish_ovs_write(
-        const NetplanState* np_state,
-        const char* rootdir,
-        GError** error);
-
-NETPLAN_INTERNAL gboolean
 netplan_ovs_cleanup(const char* rootdir);

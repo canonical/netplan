@@ -44,3 +44,6 @@ install_symlink(
     pointing_to: join_paths('..', '..') + join_paths(get_option('prefix'), libexec_netplan, 'generate'),
     install_dir: join_paths('/', 'lib', 'netplan'))
 
+if get_option('unit_testing')
+  subdir('tests')
+endif
