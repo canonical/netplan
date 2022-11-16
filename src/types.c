@@ -566,6 +566,12 @@ netplan_netdef_has_match(const NetplanNetDefinition* netdef)
     return netdef->has_match;
 }
 
+__attribute((alias("netplan_netdef_get_sriov_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
+
+__attribute((alias("netplan_netdef_get_vlan_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef) {
     return netdef->sriov_vlan_filter;
