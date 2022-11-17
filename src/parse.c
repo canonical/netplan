@@ -3240,7 +3240,6 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
     /* We need to reset those fields manually as we transfered ownership of the underlying
        data to out. If we don't do this, netplan_clear_parser will deallocate data
        that we don't own anymore. */
-    npp->parsed_defs = NULL;
     npp->ordered = NULL;
     memset(&npp->global_ovs_settings, 0, sizeof(NetplanOVSSettings));
 
