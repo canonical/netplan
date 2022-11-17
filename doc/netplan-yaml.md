@@ -929,7 +929,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
   - **password** (scalar)
 
-    > Enable WPA2 authentication and set the passphrase for it. If neither
+    > Enable WPA/WPA2 authentication and set the passphrase for it. If neither
     > this nor an `auth` block are given, the network is assumed to be
     > open. The setting
     > ```yaml
