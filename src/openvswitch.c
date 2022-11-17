@@ -319,7 +319,7 @@ cleanup:
 gboolean
 netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinition* def, const char* rootdir, gboolean* has_been_written, GError** error)
 {
-    GString* cmds = g_string_new(NULL);
+    g_autoptr(GString) cmds = g_string_new(NULL);
     gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
@@ -371,7 +371,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 /* Set controller target addresses */
                 if (def->ovs_settings.controller.addresses && def->ovs_settings.controller.addresses->len > 0) {
                     if (!write_ovs_bridge_controller_targets(settings, &(def->ovs_settings.controller), def->id, cmds, error))
-                            return FALSE;
+                        return FALSE;
 
                     /* Set controller connection mode, only applicable if at least one controller target address was set */
                     if (def->ovs_settings.controller.connection_mode) {
@@ -449,7 +449,6 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
     gboolean ret = TRUE;
     if (cmds->len > 0)
         ret = write_ovs_systemd_unit(def->id, cmds, rootdir, netplan_type_is_physical(def->type), FALSE, dependency, error);
-    g_string_free(cmds, TRUE);
     SET_OPT_OUT_PTR(has_been_written, TRUE);
     return ret;
 }
