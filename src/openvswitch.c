@@ -337,15 +337,19 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
         switch (def->type) {
             case NETPLAN_DEF_TYPE_BOND:
                 dependency = write_ovs_bond_interfaces(np_state, def, cmds, error);
-                if (!dependency)
+                if (!dependency) {
+                    g_string_free(cmds, TRUE);
                     return FALSE;
+                }
                 write_ovs_tag_netplan(def->id, type, cmds);
                 /* Set LACP mode, default to "off" */
                 value = def->ovs_settings.lacp? def->ovs_settings.lacp : "off";
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s lacp=%s", def->id, value);
                 write_ovs_tag_setting(def->id, type, "lacp", NULL, value, cmds);
-                if (def->bond_params.mode && !write_ovs_bond_mode(def, cmds, error))
+                if (def->bond_params.mode && !write_ovs_bond_mode(def, cmds, error)) {
+                    g_string_free(cmds, TRUE);
                     return FALSE;
+                }
                 break;
 
             case NETPLAN_DEF_TYPE_BRIDGE:
@@ -370,8 +374,10 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                     write_ovs_protocols(settings, def->id, cmds);
                 /* Set controller target addresses */
                 if (def->ovs_settings.controller.addresses && def->ovs_settings.controller.addresses->len > 0) {
-                    if (!write_ovs_bridge_controller_targets(settings, &(def->ovs_settings.controller), def->id, cmds, error))
-                            return FALSE;
+                    if (!write_ovs_bridge_controller_targets(settings, &(def->ovs_settings.controller), def->id, cmds, error)) {
+                        g_string_free(cmds, TRUE);
+                        return FALSE;
+                    }
 
                     /* Set controller connection mode, only applicable if at least one controller target address was set */
                     if (def->ovs_settings.controller.connection_mode) {
@@ -387,6 +393,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 dependency = def->bridge?: def->bond;
                 if (!dependency) {
                     g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
+                    g_string_free(cmds, TRUE);
                     return FALSE;
                 }
                 /* There is no OVS Port which we could tag netplan=true if this
@@ -408,13 +415,16 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
 
             default:
                 g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
+                g_string_free(cmds, TRUE);
                 return FALSE;
         }
 
         /* Try writing out a base config */
         base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
-        if (!netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
+        if (!netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error)) {
+            g_string_free(cmds, TRUE);
             return FALSE;
+        }
     } else {
         /* Other interfaces must be part of an OVS bridge or bond to carry additional data */
         if (   (def->ovs_settings.external_ids && g_hash_table_size(def->ovs_settings.external_ids) > 0)
@@ -422,11 +432,13 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
             dependency = def->bridge?: def->bond;
             if (!dependency) {
                 g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config\n", def->id);
+                g_string_free(cmds, TRUE);
                 return FALSE;
             }
         } else {
             g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
             SET_OPT_OUT_PTR(has_been_written, FALSE);
+            g_string_free(cmds, TRUE);
             return TRUE;
         }
     }
