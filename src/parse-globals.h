@@ -18,7 +18,7 @@
 #pragma once
 
 #include <glib.h>
-#include "types.h"
+#include "types-internal.h"
 
 /* Written/updated by parse_yaml(): char* id →  net_definition.
  *

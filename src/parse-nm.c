@@ -23,7 +23,7 @@
 #include "parse-nm.h"
 #include "parse.h"
 #include "util.h"
-#include "types.h"
+#include "types-internal.h"
 #include "util-internal.h"
 #include "validation.h"
 

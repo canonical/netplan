@@ -20,7 +20,7 @@
 #define __USE_MISC
 #include <glob.h>
 #include <glib.h>
-#include "types.h"
+#include "types-internal.h"
 
 #include <glib.h>
 #include "netplan.h"

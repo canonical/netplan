@@ -18,7 +18,7 @@
 #pragma once
 
 #include "netplan.h"
-#include "types.h"
+#include "types-internal.h"
 
 NETPLAN_INTERNAL const char*
 netplan_backend_name(NetplanBackend val);

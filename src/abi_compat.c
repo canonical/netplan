@@ -22,7 +22,7 @@
  */
 
 #include "netplan.h"
-#include "types.h"
+#include "types-internal.h"
 #include "util-internal.h"
 #include "parse-nm.h"
 #include "parse-globals.h"

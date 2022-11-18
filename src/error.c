@@ -18,11 +18,13 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#include <stdint.h>
 
 #include <yaml.h>
 
 #include "parse.h"
-#include "types.h"
+#include "types-internal.h"
+#include "util-internal.h"
 
 /****************************************************
  * Loading and error handling
@@ -177,4 +179,15 @@ NETPLAN_PUBLIC void
 netplan_error_free(GError** error) {
     g_clear_error(error);
     *error = NULL;
+}
+
+NETPLAN_PUBLIC ssize_t
+netplan_error_message(GError* error, char* buf, size_t buf_size) {
+    return netplan_copy_string(error->message, buf, buf_size);
+}
+
+NETPLAN_PUBLIC uint64_t
+netplan_error_code(GError* error) {
+    uint64_t error_code = (uint64_t)error->domain << 32 | (uint64_t)error->code;
+    return error_code;
 }

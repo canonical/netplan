@@ -21,7 +21,7 @@
  */
 
 #include <glib.h>
-#include "types.h"
+#include "types-internal.h"
 #include "util-internal.h"
 
 #define FREE_AND_NULLIFY(ptr) { g_free(ptr); ptr = NULL; }

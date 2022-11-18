@@ -18,7 +18,8 @@
 #pragma once
 
 #include <glib.h>
-#include "netplan.h"
+#include <stdint.h>
+#include "types.h"
 
 NETPLAN_PUBLIC gboolean
 netplan_delete_connection(const char* id, const char* rootdir);
@@ -31,3 +32,12 @@ netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
 
 NETPLAN_PUBLIC gchar*
 netplan_get_filename_by_id(const char* netdef_id, const char* rootdir);
+
+NETPLAN_PUBLIC void
+netplan_error_free(NetplanError** error);
+
+NETPLAN_PUBLIC ssize_t
+netplan_error_message(NetplanError* error, char* buf, size_t buf_size);
+
+NETPLAN_PUBLIC uint64_t
+netplan_error_code(NetplanError* error);

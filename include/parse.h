@@ -16,33 +16,8 @@
  */
 
 #pragma once
-#include "netplan.h"
 #include <glib.h>
-
-/****************************************************
- * Parsed definitions
- ****************************************************/
-
-typedef enum {
-    NETPLAN_DEF_TYPE_NONE,
-    /* physical devices */
-    NETPLAN_DEF_TYPE_ETHERNET,
-    NETPLAN_DEF_TYPE_WIFI,
-    NETPLAN_DEF_TYPE_MODEM,
-    /* virtual devices */
-    NETPLAN_DEF_TYPE_VIRTUAL,
-    NETPLAN_DEF_TYPE_BRIDGE = NETPLAN_DEF_TYPE_VIRTUAL,
-    NETPLAN_DEF_TYPE_BOND,
-    NETPLAN_DEF_TYPE_VLAN,
-    NETPLAN_DEF_TYPE_TUNNEL,
-    NETPLAN_DEF_TYPE_PORT,
-    NETPLAN_DEF_TYPE_VRF,
-    /* Type fallback/passthrough */
-    NETPLAN_DEF_TYPE_NM,
-    NETPLAN_DEF_TYPE_MAX_
-} NetplanDefType;
-
-typedef struct netplan_parser NetplanParser;
+#include "types.h"
 
 /****************************************************
  * Functions
@@ -58,60 +33,24 @@ NETPLAN_PUBLIC void
 netplan_parser_clear(NetplanParser **npp);
 
 NETPLAN_PUBLIC gboolean
-netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error);
+netplan_parser_load_yaml(NetplanParser* npp, const char* filename, NetplanError** error);
 
 NETPLAN_PUBLIC gboolean
-netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, GError** error);
+netplan_parser_load_yaml_from_fd(NetplanParser* npp, int input_fd, NetplanError** error);
 
 NETPLAN_PUBLIC gboolean
-netplan_parser_load_yaml_from_fd(NetplanParser* npp, int input_fd, GError** error);
+netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, NetplanError** error);
 
 NETPLAN_PUBLIC gboolean
-netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, GError** error);
-
-NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
-
-NETPLAN_PUBLIC NetplanBackend
-netplan_netdef_get_backend(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC NetplanDefType
-netplan_netdef_get_type(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
-
-NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_bond_link(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_peer_link(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buf, size_t out_size);
-
-NETPLAN_PUBLIC gboolean
-netplan_netdef_has_match(const NetplanNetDefinition* netdef);
-
-NETPLAN_PUBLIC void
-netplan_error_free(GError** error);
+netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, NetplanError** error);
 
 /********** Old API below this ***********/
 
 NETPLAN_PUBLIC gboolean
-netplan_parse_yaml(const char* filename, GError** error);
+netplan_parse_yaml(const char* filename, NetplanError** error);
 
 NETPLAN_PUBLIC GHashTable*
-netplan_finish_parse(GError** error);
+netplan_finish_parse(NetplanError** error);
 
 NETPLAN_PUBLIC guint
 netplan_clear_netdefs();
