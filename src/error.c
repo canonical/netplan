@@ -59,6 +59,7 @@ get_syntax_error_context(const NetplanParser* npp, const int line_num, const int
         line = g_data_input_stream_read_line(stream, &len, NULL, error);
     }
     g_string_append_printf(message, "%s\n", line);
+    g_free(line);
 
     write_error_marker(message, column);
 
@@ -170,6 +171,7 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
     }
     g_free(s);
     va_end(argp);
+    g_free(error_context);
     return FALSE;
 }
 
