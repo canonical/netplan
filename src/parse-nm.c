@@ -704,6 +704,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         ap->ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
         if (!ap->ssid) {
             g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
+            g_free(ap);
             return FALSE;
         } else
             _kf_clear_key(kf, "wifi", "ssid");

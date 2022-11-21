@@ -50,8 +50,10 @@ free_hashtable_with_destructor(GHashTable** hash, void (destructor)(void *)) {
         GHashTableIter iter;
         gpointer key, value;
         g_hash_table_iter_init(&iter, *hash);
-        while (g_hash_table_iter_next(&iter, &key, &value))
+        while (g_hash_table_iter_next(&iter, &key, &value)) {
+            destructor(key);
             destructor(value);
+        }
         g_hash_table_destroy(*hash);
         *hash = NULL;
     }
@@ -346,6 +348,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->sriov_link = NULL;
     netdef->sriov_vlan_filter = FALSE;
     netdef->sriov_explicit_vf_count = G_MAXUINT; /* 0 is a valid number of VFs */
+    FREE_AND_NULLIFY(netdef->embedded_switch_mode);
 
     reset_ovs_settings(&netdef->ovs_settings);
     reset_backend_settings(&netdef->backend_settings, backend);

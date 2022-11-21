@@ -606,8 +606,11 @@ netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GErr
     config_keys = g_list_sort(g_hash_table_get_keys(configs), (GCompareFunc) strcmp);
 
     for (GList* i = config_keys; i != NULL; i = i->next)
-        if (!netplan_parser_load_yaml(npp, g_hash_table_lookup(configs, i->data), error))
+        if (!netplan_parser_load_yaml(npp, g_hash_table_lookup(configs, i->data), error)) {
+            globfree(&gl);
             return FALSE;
+        }
+    globfree(&gl);
     return TRUE;
 }
 
