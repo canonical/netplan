@@ -2936,8 +2936,11 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         } else {
             npp->current.netdef = netplan_netdef_new(npp, scalar(key), GPOINTER_TO_UINT(data), npp->current.backend);
         }
-        if (npp->current.filepath)
+        if (npp->current.filepath) {
+            if (npp->current.netdef->filepath)
+                g_free(npp->current.netdef->filepath);
             npp->current.netdef->filepath = g_strdup(npp->current.filepath);
+        }
 
         // XXX: breaks multi-pass parsing.
         //if (!g_hash_table_add(ids_in_file, npp->current.netdef->id))
@@ -2967,6 +2970,8 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             NetplanVxlan* vxlan = g_new0(NetplanVxlan, 1);
             reset_vxlan(vxlan);
             npp->current.vxlan = vxlan;
+            if (npp->current.netdef->vxlan)
+                g_free(npp->current.netdef->vxlan);
             npp->current.netdef->vxlan = vxlan;
         }
 
