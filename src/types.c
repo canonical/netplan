@@ -592,6 +592,12 @@ _netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
 }
 
 NETPLAN_INTERNAL gboolean
+_netplan_netdef_get_optional(const NetplanNetDefinition* netdef)
+{
+    return netdef->optional;
+}
+
+NETPLAN_INTERNAL gboolean
 _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);

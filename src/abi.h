@@ -226,13 +226,10 @@ struct netplan_net_definition {
 
     /* master ID for slave devices */
     char* bridge;
-    NetplanNetDefinition* bridge_link;
     char* bond;
-    NetplanNetDefinition* bond_link;
 
     /* peer ID for OVS patch ports */
     char* peer;
-    NetplanNetDefinition* peer_link;
 
     /* vlan */
     guint vlan_id;
@@ -382,4 +379,8 @@ struct netplan_net_definition {
     /* netplan-feature: vxlan */
     gboolean has_vxlans;
     NetplanVxlan* vxlan;
+
+    NetplanNetDefinition* bridge_link;
+    NetplanNetDefinition* bond_link;
+    NetplanNetDefinition* peer_link;
 };
