@@ -1351,3 +1351,45 @@ dns-search=wallaceandgromit.com;
           ipv6.ip6-privacy: "-1"
           proxy._: ""
 '''.format(UUID, UUID)})
+
+    def test_keyfile_nm_140_default_ethernet_group(self):
+        self.generate_from_keyfile('''[connection]
+id=Test Write Bridge Main
+uuid={}
+type=bridge
+interface-name=br0
+
+[ethernet]
+
+[bridge]
+
+[ipv4]
+address1=1.2.3.4/24,1.1.1.1
+method=manual
+
+[ipv6]
+addr-gen-mode=default
+method=auto
+
+[proxy]\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  bridges:
+    NM-{}:
+      renderer: NetworkManager
+      addresses:
+      - "1.2.3.4/24"
+      dhcp6: true
+      networkmanager:
+        uuid: "{}"
+        name: "Test Write Bridge Main"
+        passthrough:
+          connection.interface-name: "br0"
+          ethernet._: ""
+          bridge._: ""
+          ipv4.address1: "1.2.3.4/24,1.1.1.1"
+          ipv4.method: "manual"
+          ipv6.addr-gen-mode: "default"
+          ipv6.ip6-privacy: "-1"
+          proxy._: ""
+'''.format(UUID, UUID)})
