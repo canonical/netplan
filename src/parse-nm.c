@@ -614,7 +614,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     if (g_key_file_has_group(kf, "ethernet")) {
         /* wake-on-lan, do not clear passthrough as we do not fully support this setting */
         if (!g_key_file_has_key(kf, "ethernet", "wake-on-lan", NULL)) {
-            nd->wake_on_lan = TRUE; //NM's default is "1"
+            /* apply the default only to actual ethernet devices */
+            if (nd_type == NETPLAN_DEF_TYPE_ETHERNET)
+                nd->wake_on_lan = TRUE; //NM's default is "1"
         } else {
             guint value = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL);
             //XXX: fix delta between options in NM (0x1, 0x2, 0x4, ...) and netplan (bool)
