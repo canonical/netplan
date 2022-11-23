@@ -97,6 +97,31 @@ class TestSet(unittest.TestCase):
         with open(p, 'r') as f:
             self.assertIs(True, yaml.safe_load(f)['network']['ethernets']['eth0']['dhcp4'])
 
+    def test_set_origin_hint_override(self):
+        defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-snapd-defaults.yaml')
+        with open(defaults, 'w') as f:
+            f.write('''network:
+  bridges: {br54: {dhcp4: true}}
+  ethernets: {eth0: {dhcp4: true}}''')
+        self._set(['bridges.br54.dhcp4=false', '--origin-hint=90-snapd-config'])
+        self._set(['bridges.br54.interfaces=[eth0]', '--origin-hint=90-snapd-config'])
+        p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
+        self.assertTrue(os.path.isfile(p))
+        with open(p, 'r') as f:
+            self.assertIs(False, yaml.safe_load(f)['network']['bridges']['br54']['dhcp4'])
+
+    def test_set_origin_hint_extend(self):
+        p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
+        with open(p, 'w') as f:
+            f.write('''network: {bridges: {br54: {dhcp4: true}}}''')
+        self._set(['bridges.br54.dhcp4=false', '--origin-hint=90-snapd-config'])
+        self._set(['bridges.br55.dhcp4=true', '--origin-hint=90-snapd-config'])
+        self.assertTrue(os.path.isfile(p))
+        with open(p, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertIs(False, yml['network']['bridges']['br54']['dhcp4'])
+            self.assertIs(True, yml['network']['bridges']['br55']['dhcp4'])
+
     def test_set_empty_origin_hint(self):
         with self.assertRaises(Exception) as context:
             self._set(['ethernets.eth0.dhcp4=true', '--origin-hint='])
