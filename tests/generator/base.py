@@ -323,6 +323,7 @@ class TestBase(unittest.TestCase):
         if yaml is not None:
             with open(conf, 'w') as f:
                 f.write(yaml)
+            os.chmod(conf, mode=0o600)
             yaml_input.append(conf)
         if confs:
             for f, contents in confs.items():

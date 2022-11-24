@@ -74,7 +74,7 @@ class TestConfigArgs(TestBase):
   ethernets:
     eth0:
       dhcp4: true''', expect_fail=True, extra_args=['/non/existing/config'])
-        self.assertEqual(err, 'Cannot open /non/existing/config: No such file or directory\n')
+        self.assertEqual(err, 'Cannot stat /non/existing/config: No such file or directory\n')
         self.assertEqual(os.listdir(self.workdir.name), ['etc'])
 
     def test_help(self):

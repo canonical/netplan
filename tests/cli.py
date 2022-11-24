@@ -88,12 +88,16 @@ class TestGenerate(unittest.TestCase):
     def test_with_empty_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        open(os.path.join(c, 'a.yaml'), 'w').close()
-        with open(os.path.join(c, 'b.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        path_b = os.path.join(c, 'b.yaml')
+        open(path_a, 'w').close()
+        with open(path_b, 'w') as f:
             f.write('''network:
   version: 2
   ethernets:
     enlol: {dhcp4: yes}''')
+        os.chmod(path_a, mode=0o600)
+        os.chmod(path_b, mode=0o600)
         out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name], stderr=subprocess.STDOUT)
         self.assertEqual(out, b'')
         self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
