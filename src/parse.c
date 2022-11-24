@@ -25,6 +25,7 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 
+#include <sys/stat.h>
 #include <yaml.h>
 
 #include "parse.h"
@@ -117,10 +118,10 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
     gboolean ret = TRUE;
 
     fyaml = g_fopen(yaml, "r");
-    if (!fyaml) {
+    if (!fyaml) { // LCOV_EXCL_START
         g_set_error(error, G_FILE_ERROR, errno, "Cannot open %s: %s", yaml, g_strerror(errno));
         return FALSE;
-    }
+    } // LCOV_EXCL_STOP
 
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_file(&parser, fyaml);
@@ -3150,6 +3151,18 @@ gboolean
 netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error)
 {
     yaml_document_t *doc = &npp->doc;
+    /* Log a warning if a file can be read or written by a non-owner.
+     * It could contain sensitive information (e.g. WiFi passwords), so should
+     * stay secret. */
+    mode_t mask = S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    struct stat info;
+    if (stat(filename, &info) < 0) {
+        g_set_error(error, G_FILE_ERROR, errno, "Cannot stat %s: %s",
+                    filename, strerror(errno));
+        return FALSE;
+    } else if (info.st_mode & mask)
+        g_warning("Permissions for %s are too open. Netplan configuration "
+                  "should NOT be accessible by others.", filename);
 
     if (!load_yaml(filename, doc, error))
         return FALSE;
