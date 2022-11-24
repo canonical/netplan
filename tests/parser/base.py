@@ -124,7 +124,11 @@ class TestKeyfileBase(unittest.TestCase):
 
     def assert_netplan(self, file_contents_map):
         for uuid in file_contents_map.keys():
-            self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))))
+            path = os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid))
+            self.assertTrue(os.path.isfile(path))
+            st = os.stat(path)
+            permission = oct(st.st_mode & 0o777)
+            self.assertEqual(permission, '0o600')
             with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(uuid)), 'r') as f:
                 self.assertEqual(f.read(), file_contents_map[uuid])
 

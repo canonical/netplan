@@ -936,6 +936,7 @@ netplan_netdef_write_yaml(
 {
     g_autofree gchar *filename = NULL;
     g_autofree gchar *path = NULL;
+    mode_t orig_umask;
 
     /* NetworkManager produces one file per connection profile
     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
@@ -950,7 +951,9 @@ netplan_netdef_write_yaml(
     yaml_event_t event_data;
     yaml_emitter_t* emitter = &emitter_data;
     yaml_event_t* event = &event_data;
+    orig_umask = umask(077); // owner (root) read-only
     FILE *output = fopen(path, "wb");
+    umask(orig_umask);
 
     YAML_OUT_START(event, emitter, output);
     /* build the netplan boilerplate YAML structure */
@@ -1115,7 +1118,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     }
 
     tmp_path = g_strdup_printf("%s.XXXXXX", path);
-    out_fd = mkstemp(tmp_path);
+    out_fd = mkstemp(tmp_path); // permissions 0600 by default
     if (out_fd < 0) {
         g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
         return FALSE;
@@ -1196,7 +1199,7 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
     while (g_hash_table_iter_next (&hash_iter, &key, &value)) {
         const char *filename = key;
         GList* netdefs = value;
-        out_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+        out_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         if (out_fd < 0)
             goto file_error;
         if (!netplan_netdef_list_write_yaml(np_state, netdefs, out_fd, error))
