@@ -129,7 +129,7 @@ write_netplan_conf_full(const char* file_hint, const char* rootdir)
         !netplan_state_get_netdefs_size(&global_state))
         return;
     path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
-    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     netplan_state_dump_yaml(&global_state, fd, NULL);
     close(fd);
 }
