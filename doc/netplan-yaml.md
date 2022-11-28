@@ -605,7 +605,7 @@ family and routing table. A typical example would look like the following:
 eth0:
   [...]
   routes:
-    - to: default # could be 0/0 or 0.0.0.0/0 optionally
+    - to: default # could be 0.0.0.0/0 optionally
       via: 10.0.0.1
       metric: 100
       on-link: true
