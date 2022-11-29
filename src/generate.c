@@ -250,16 +250,20 @@ int main(int argc, char** argv)
     np_state = netplan_state_new();
     CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error));
 
+    if (mapping_iface) {
+        if (np_state->netdefs)
+            error_code = find_interface(mapping_iface, np_state->netdefs);
+        else
+            error_code = 1;
+
+        goto cleanup;
+    }
+
     /* Clean up generated config from previous runs */
     netplan_networkd_cleanup(rootdir);
     netplan_nm_cleanup(rootdir);
     netplan_ovs_cleanup(rootdir);
     netplan_sriov_cleanup(rootdir);
-
-    if (mapping_iface && np_state->netdefs) {
-        error_code = find_interface(mapping_iface, np_state->netdefs);
-        goto cleanup;
-    }
 
     /* Generate backend specific configuration files from merged data. */
     CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error)); // OVS cleanup unit is always written

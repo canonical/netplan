@@ -146,6 +146,7 @@ class NetplanIpLeases(utils.NetplanCommand):
         try:
             out = subprocess.check_output(argv, universal_newlines=True)
         except CalledProcessError:  # pragma: nocover (better be covered in autopkgtest)
+            print("No lease found for interface '%s' (not managed by Netplan)" % self.interface, file=sys.stderr)
             sys.exit(1)
         mapping = {}
         mapping_s = out.split(',')

@@ -789,5 +789,24 @@ class TestIp(unittest.TestCase):
         self.assertIn(b'No lease found', err)
         self.assertNotEqual(p.returncode, 0)
 
+    def test_ip_leases_no_netdefs(self):
+        os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
+
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+''')
+        # we didn't create a (mock) lease file, therefore expect stderr output
+        p = subprocess.Popen(exe_cli +
+                             ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        self.assertEqual(out, b'')
+        self.assertIn(b"No lease found for interface 'enlol' (not managed by Netplan)", err)
+        self.assertNotEqual(p.returncode, 0)
+
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
