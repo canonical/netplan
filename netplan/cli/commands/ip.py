@@ -147,6 +147,9 @@ class NetplanIpLeases(utils.NetplanCommand):
             out = subprocess.check_output(argv, universal_newlines=True)
         except CalledProcessError:  # pragma: nocover (better be covered in autopkgtest)
             sys.exit(1)
+        if not out:
+            print("Interface '%s' is not managed by Netplan" % self.interface, file=sys.stderr)
+            sys.exit(1)
         mapping = {}
         mapping_s = out.split(',')
         for keyvalue in mapping_s:

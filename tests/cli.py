@@ -785,5 +785,27 @@ class TestIp(unittest.TestCase):
         self.assertIn(b'No lease found', err)
         self.assertNotEqual(p.returncode, 0)
 
+    def test_ip_leases_generate_mapping_is_empty(self):
+        mock_generate = MockCmd('generate')
+        # When the interface in not defined in any netplan yaml file
+        # the command 'generate --mapping <interface>' will return nothing
+        mock_generate.set_output('')
+        os.environ.setdefault('NETPLAN_GENERATE_PATH', mock_generate.path)
+
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+''')
+        p = subprocess.Popen(exe_cli +
+                             ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        self.assertEqual(out, b'')
+        self.assertIn(b"Interface 'enlol' is not managed by Netplan", err)
+        self.assertNotEqual(p.returncode, 0)
+
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
