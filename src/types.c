@@ -513,31 +513,42 @@ netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size
 }
 
 NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef) {
+netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef)
+{
     g_assert(netdef);
     return netdef->vlan_link;
 }
 
+__attribute((alias("netplan_netdef_get_vlan_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
+
 NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef) {
+netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef)
+{
     g_assert(netdef);
     return netdef->sriov_link;
 }
 
+__attribute((alias("netplan_netdef_get_sriov_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
+
 NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef) {
+netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef)
+{
     g_assert(netdef);
     return netdef->bridge_link;
 }
 
 NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_bond_link(const NetplanNetDefinition* netdef) {
+netplan_netdef_get_bond_link(const NetplanNetDefinition* netdef)
+{
     g_assert(netdef);
     return netdef->bond_link;
 }
 
 NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_netdef_get_peer_link(const NetplanNetDefinition* netdef) {
+netplan_netdef_get_peer_link(const NetplanNetDefinition* netdef)
+{
     g_assert(netdef);
     return netdef->peer_link;
 }
@@ -566,35 +577,35 @@ netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* ne
 NETPLAN_PUBLIC gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef)
 {
+    g_assert(netdef);
     return netdef->has_match;
 }
 
-__attribute((alias("netplan_netdef_get_sriov_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
-_netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
-
-__attribute((alias("netplan_netdef_get_vlan_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
-_netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
-
 NETPLAN_INTERNAL gboolean
-_netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef) {
+_netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
     return netdef->sriov_vlan_filter;
 }
 
 NETPLAN_INTERNAL guint
 _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef)
 {
+    g_assert(netdef);
     return netdef->vlan_id;
 }
 
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
 {
+    g_assert(netdef);
     return netdef->critical;
 }
 
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_optional(const NetplanNetDefinition* netdef)
 {
+    g_assert(netdef);
     return netdef->optional;
 }
 
