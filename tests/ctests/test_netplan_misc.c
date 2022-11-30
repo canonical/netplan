@@ -9,12 +9,12 @@
 #include "../../include/parse.h"
 
 #undef __USE_MISC
-#include "../error.c"
-#include "../names.c"
-#include "../validation.c"
-#include "../types.c"
-#include "../util.c"
-#include "../parse.c"
+#include "error.c"
+#include "names.c"
+#include "validation.c"
+#include "types.c"
+#include "util.c"
+#include "parse.c"
 
 void
 test_netplan_get_optional(void** state) {

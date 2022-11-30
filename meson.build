@@ -30,11 +30,11 @@ find = find_program('find')
 
 add_project_arguments(
     '-DSBINDIR="' + join_paths(get_option('prefix'), get_option('sbindir')) + '"',
-    '-DFIXTURESDIR="' + meson.global_source_root() + '/src/tests/fixtures"',
+    '-DFIXTURESDIR="' + meson.project_source_root() + '/tests/ctests/fixtures"',
     '-D_XOPEN_SOURCE=700',
     language: 'c')
 
-inc = include_directories('include')
+inc = include_directories('include', 'src')
 subdir('include')
 subdir('src')
 subdir('dbus')
@@ -65,6 +65,11 @@ test_env = [
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
     'COVERAGE_PROCESS_START=' + join_paths(meson.current_source_dir(), '.coveragerc'),
 ]
+
+if get_option('unit_testing')
+  subdir('tests/ctests')
+endif
+
 #FIXME: exclude doc/env/
 test('linting',
      pyflakes,
