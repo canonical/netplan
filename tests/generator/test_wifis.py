@@ -74,7 +74,7 @@ class TestNetworkd(TestBase):
             freqs = freqs[1].split('\n')[0]
             self.assertEqual(len(freqs.split(' ')), len(freqs_5GHz))
             for freq in freqs_5GHz:
-                self.assertRegexpMatches(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
+                self.assertRegex(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
 
             network = 'ssid="{}"\n  freq_list='.format('band-no-channel')
             freqs_24GHz = [2412, 2417, 2422, 2427, 2432, 2442, 2447, 2437, 2452, 2457, 2462, 2467, 2472, 2484]
@@ -82,7 +82,7 @@ class TestNetworkd(TestBase):
             freqs = freqs[1].split('\n')[0]
             self.assertEqual(len(freqs.split(' ')), len(freqs_24GHz))
             for freq in freqs_24GHz:
-                self.assertRegexpMatches(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
+                self.assertRegex(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
 
             self.assertIn('''
 network={

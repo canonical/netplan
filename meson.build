@@ -23,7 +23,8 @@ bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', def
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu
 pyflakes = find_program('pyflakes-3', 'pyflakes3', required: false)
 pycodestyle = find_program('pycodestyle-3', 'pycodestyle', 'pep8', required: false)
-nose = find_program('nosetests-3', 'nosetests3')
+pytest = find_program('pytest-3', 'pytest3')  # also requires the pytest-cov plugin
+pycoverage = find_program('python3-coverage')
 pandoc = find_program('pandoc', required: false)
 find = find_program('find')
 
@@ -61,6 +62,7 @@ test_env = [
     'LD_LIBRARY_PATH=' + join_paths(meson.current_build_dir(), 'src'),
     'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
+    'COVERAGE_PROCESS_START=' + join_paths(meson.current_source_dir(), '.coveragerc'),
 ]
 #FIXME: exclude doc/env/
 test('linting',
@@ -78,8 +80,8 @@ test('legacy-tests',
      env: test_env)
 #TODO: split out dbus tests into own test() instance, to run in parallel
 test('unit-tests',
-     nose,
-     args: ['-v', '--with-coverage', meson.current_source_dir()],
+     pycoverage,
+     args: ['run', '-a', '-m', 'pytest', '-s', '-v', '--cov-append', meson.current_source_dir()],
      timeout: 600,
      env: test_env)
 
@@ -94,7 +96,6 @@ if get_option('b_coverage')
     gcovr = find_program('gcovr')
     ninja = find_program('ninja')
     grep  = find_program('grep')
-    pycoverage = find_program('python3-coverage')
     test('coverage-c-output',
          find_program('ninja'),
          args: ['-C', meson.current_build_dir(), 'coverage'],
@@ -103,6 +104,11 @@ if get_option('b_coverage')
     test('coverage-c',
          grep,
          args: ['^TOTAL.*100%$', join_paths(meson.current_build_dir(), 'meson-logs', 'coverage.txt')],
+         priority: -99, # run last
+         is_parallel: false)
+    test('coverage-py-combine',
+         pycoverage,
+         args: ['combine', '-a', meson.current_build_dir()],
          priority: -99, # run last
          is_parallel: false)
     test('coverage-py-output',
