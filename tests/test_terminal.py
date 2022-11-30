@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import fcntl
+import sys
 import os
 import termios
 import unittest
@@ -24,10 +25,11 @@ import unittest
 import netplan.terminal
 
 
+@unittest.skipUnless(sys.__stdin__.isatty(), "not supported when run from a script")
 class TestTerminal(unittest.TestCase):
 
     def setUp(self):
-        self.terminal = netplan.terminal.Terminal(0)
+        self.terminal = netplan.terminal.Terminal(sys.stdin.fileno())
 
     def test_echo(self):
         self.terminal.disable_echo()
