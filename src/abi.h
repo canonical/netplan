@@ -225,11 +225,11 @@ struct netplan_net_definition {
     } linklocal;
 
     /* master ID for slave devices */
-    char* bridge;
-    char* bond;
+    char* bridge; // deprecated, use bridge_link instead
+    char* bond;   // deprecated, use bond_link instead
 
     /* peer ID for OVS patch ports */
-    char* peer;
+    char* peer;   // deprecated, use peer_link instead
 
     /* vlan */
     guint vlan_id;
