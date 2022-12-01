@@ -1,0 +1,13 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eno1:
+      embedded-switch-mode: "switchdev"
+      virtual-function-count: 2
+    enp1s16f1:
+      link: eno1
+    vf1:
+      match:
+        name: enp1s16f[2-3]
+      link: eno1

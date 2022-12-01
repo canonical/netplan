@@ -16,28 +16,12 @@
 #include "util.c"
 #include "parse.c"
 
+#include "test_utils.h"
+
 void
 test_netplan_get_optional(void** state) {
 
-    const char* filename = FIXTURESDIR "/optional.yaml";
-    GError *error = NULL;
-    NetplanParser *npp = netplan_parser_new();
-
-    gboolean res = netplan_parser_load_yaml(npp, filename, &error);
-    if (error) {
-        netplan_error_free(error);
-        error = NULL;
-    }
-
-    assert_true(res);
-
-    NetplanState *np_state = netplan_state_new();
-    res = netplan_state_import_parser_results(np_state, npp, &error);
-    if (error) {
-        netplan_error_free(error);
-        error = NULL;
-    }
-    assert_true(res);
+    NetplanState* np_state = load_fixture_to_netplan_state("optional.yaml");
 
     NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eth0");
     gboolean optional = _netplan_netdef_get_optional(interface);
@@ -45,7 +29,6 @@ test_netplan_get_optional(void** state) {
     assert_true(optional);
 
     netplan_state_clear(&np_state);
-    netplan_parser_clear(&npp);
 }
 
 int setup(void** state) {
