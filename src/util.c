@@ -749,7 +749,7 @@ netplan_copy_string(const char* input, char* out_buffer, size_t out_size)
     return end - out_buffer + 1;
 }
 
-NETPLAN_INTERNAL gboolean
+gboolean
 netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name)
 {
     if (!netdef->has_match)

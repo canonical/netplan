@@ -124,6 +124,8 @@ netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer
 NETPLAN_PUBLIC gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef);
 
+NETPLAN_PUBLIC gboolean
+netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name);
 
 /********** Old API below this ***********/
 
