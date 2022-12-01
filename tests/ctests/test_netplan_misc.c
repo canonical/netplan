@@ -39,7 +39,7 @@ test_netplan_get_optional(void** state) {
     }
     assert_true(res);
 
-    NetplanNetDefinition* interface = g_hash_table_lookup(np_state->netdefs, "eth0");
+    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eth0");
     gboolean optional = _netplan_netdef_get_optional(interface);
 
     assert_true(optional);

@@ -61,7 +61,7 @@ test_netplan_parser_interface_has_bridge_netdef(void** state) {
     }
     assert_true(res);
 
-    NetplanNetDefinition* interface = g_hash_table_lookup(np_state->netdefs, "enp3s0");
+    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "enp3s0");
 
     NetplanNetDefinition* bridge = netplan_netdef_get_bridge_link(interface);
 
@@ -98,7 +98,7 @@ test_netplan_parser_interface_has_bond_netdef(void** state) {
     }
     assert_true(res);
 
-    NetplanNetDefinition* interface = g_hash_table_lookup(np_state->netdefs, "eth0");
+    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eth0");
 
     NetplanNetDefinition* bond = netplan_netdef_get_bond_link(interface);
 
@@ -134,7 +134,7 @@ test_netplan_parser_interface_has_peer_netdef(void** state) {
     }
     assert_true(res);
 
-    NetplanNetDefinition* patch0 = g_hash_table_lookup(np_state->netdefs, "patch0-1");
+    NetplanNetDefinition* patch0 = netplan_state_get_netdef(np_state, "patch0-1");
 
     NetplanNetDefinition* patch1 = netplan_netdef_get_peer_link(patch0);
     patch0 = netplan_netdef_get_peer_link(patch1);
