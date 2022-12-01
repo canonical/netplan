@@ -506,10 +506,10 @@ netplan_netdef_get_type(const NetplanNetDefinition* netdef)
 }
 
 NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
+netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size)
 {
     g_assert(netdef);
-    return netplan_copy_string(netdef->id, out_buffer, out_buf_size);
+    return netplan_copy_string(netdef->id, out_buffer, out_buffer_size);
 }
 
 NETPLAN_PUBLIC NetplanNetDefinition*

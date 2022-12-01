@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
- * Author: Martin Pitt <martin.pitt@ubuntu.com>
+ * Copyright (C) 2022 Canonical, Ltd.
+ * Author: Danilo Egea Gondolfo <danilo.egea.gondolfo@canonical.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

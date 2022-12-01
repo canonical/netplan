@@ -49,6 +49,12 @@ netplan_state_finish_ovs_write(
         const char* rootdir,
         NetplanError** error);
 
+NETPLAN_PUBLIC gboolean
+netplan_state_finish_sriov_write(
+        const NetplanState* np_state,
+        const char* rootdir,
+        NetplanError** error);
+
 /* Write the selected yaml file. All definitions that originate from this file,
  * as well as those without any given origin, are written to it.
  */
@@ -56,12 +62,6 @@ NETPLAN_PUBLIC gboolean
 netplan_state_write_yaml_file(
         const NetplanState* np_state,
         const char* filename,
-        const char* rootdir,
-        NetplanError** error);
-
-NETPLAN_PUBLIC gboolean
-netplan_state_finish_sriov_write(
-        const NetplanState* np_state,
         const char* rootdir,
         NetplanError** error);
 
@@ -101,7 +101,7 @@ NETPLAN_PUBLIC NetplanDefType
 netplan_netdef_get_type(const NetplanNetDefinition* netdef);
 
 NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
+netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
 
 NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef);
@@ -119,7 +119,7 @@ NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
 
 NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buf, size_t out_size);
+netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
 
 NETPLAN_PUBLIC gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef);
