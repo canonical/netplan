@@ -2844,7 +2844,6 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         if (component1->peer && g_strcmp0(component1->peer, scalar(peer)))
             return yaml_error(npp, port, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component1->id, component1->peer);
-        component1->peer = g_strdup(scalar(peer));
 
         /* Create port 2 (peer) netdef */
         component2 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(peer)) : NULL;
@@ -2857,8 +2856,9 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         if (component2->peer && g_strcmp0(component2->peer, scalar(port)))
             return yaml_error(npp, peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component2->id, component2->peer);
-        component2->peer = g_strdup(scalar(port));
 
+        component1->peer = g_strdup(scalar(peer));
+        component2->peer = g_strdup(scalar(port));
         component1->peer_link = component2;
         component2->peer_link = component1;
     }
