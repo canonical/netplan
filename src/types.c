@@ -506,10 +506,10 @@ netplan_netdef_get_type(const NetplanNetDefinition* netdef)
 }
 
 ssize_t
-netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size)
+netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
     g_assert(netdef);
-    return netplan_copy_string(netdef->id, out_buffer, out_buffer_size);
+    return netplan_copy_string(netdef->id, out_buffer, out_buf_size);
 }
 
 NetplanNetDefinition*
@@ -567,12 +567,30 @@ netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef)
     return netdef->embedded_switch_mode;
 }
 
+NETPLAN_INTERNAL ssize_t
+_netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
+{
+    g_assert(netdef);
+    return netplan_copy_string(netdef->embedded_switch_mode, out_buffer, out_buf_size);
+}
+
 NETPLAN_INTERNAL gboolean
 netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->sriov_delay_virtual_functions_rebind;
 }
+
+__attribute((alias("netplan_netdef_get_delay_virtual_functions_rebind"))) NETPLAN_INTERNAL gboolean
+_netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL guint
+_netplan_netdef_get_vf_count(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->sriov_explicit_vf_count;
+}
+
 
 gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef)

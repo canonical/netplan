@@ -785,9 +785,9 @@ netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* n
 }
 
 ssize_t
-netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size)
+netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
-    return netplan_copy_string(netdef->set_name, out_buffer, out_buffer_size);
+    return netplan_copy_string(netdef->set_name, out_buffer, out_buf_size);
 }
 
 gboolean
