@@ -47,10 +47,10 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
 /********** Old API below this ***********/
 
 NETPLAN_PUBLIC gboolean
-netplan_parse_yaml(const char* filename, NetplanError** error);
+netplan_parse_yaml(const char* filename, GError** error);
 
 NETPLAN_PUBLIC GHashTable*
-netplan_finish_parse(NetplanError** error);
+netplan_finish_parse(GError** error);
 
 NETPLAN_PUBLIC guint
 netplan_clear_netdefs();

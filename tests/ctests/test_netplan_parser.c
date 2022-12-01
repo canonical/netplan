@@ -31,7 +31,10 @@ void test_netplan_parser_load_yaml(void** state) {
 
     assert_true(res);
 
-    netplan_error_free(&error);
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
     netplan_parser_clear(&npp);
 }
 
@@ -43,13 +46,19 @@ test_netplan_parser_interface_has_bridge_netdef(void** state) {
     NetplanParser *npp = netplan_parser_new();
 
     gboolean res = netplan_parser_load_yaml(npp, filename, &error);
-    netplan_error_free(&error);
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
 
     assert_true(res);
 
     NetplanState *np_state = netplan_state_new();
     res = netplan_state_import_parser_results(np_state, npp, &error);
-    netplan_error_free(&error);
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
     assert_true(res);
 
     NetplanNetDefinition* interface = g_hash_table_lookup(np_state->netdefs, "enp3s0");
@@ -74,13 +83,19 @@ test_netplan_parser_interface_has_bond_netdef(void** state) {
     NetplanParser *npp = netplan_parser_new();
 
     gboolean res = netplan_parser_load_yaml(npp, filename, &error);
-    netplan_error_free(&error);
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
 
     assert_true(res);
 
     NetplanState *np_state = netplan_state_new();
     res = netplan_state_import_parser_results(np_state, npp, &error);
-    netplan_error_free(&error);
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
     assert_true(res);
 
     NetplanNetDefinition* interface = g_hash_table_lookup(np_state->netdefs, "eth0");
@@ -105,13 +120,18 @@ test_netplan_parser_interface_has_peer_netdef(void** state) {
     NetplanParser *npp = netplan_parser_new();
 
     gboolean res = netplan_parser_load_yaml(npp, filename, &error);
-    netplan_error_free(&error);
-
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
     assert_true(res);
 
     NetplanState *np_state = netplan_state_new();
     res = netplan_state_import_parser_results(np_state, npp, &error);
-    netplan_error_free(&error);
+    if (error) {
+        netplan_error_free(error);
+        error = NULL;
+    }
     assert_true(res);
 
     NetplanNetDefinition* patch0 = g_hash_table_lookup(np_state->netdefs, "patch0-1");

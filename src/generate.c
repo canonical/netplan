@@ -339,7 +339,7 @@ int main(int argc, char** argv)
 cleanup:
     g_option_context_free(opt_context);
     if (error)
-        netplan_error_free(&error);
+        netplan_error_free(error);
     if (npp)
         netplan_parser_clear(&npp);
     if (np_state)

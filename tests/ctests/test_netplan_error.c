@@ -22,7 +22,7 @@ void test_netplan_error_message(void** state) {
     GError *gerror = g_error_new(1, 2, "%s: error message", message);
     netplan_error_message(gerror, error_message, 100);
     assert_string_equal(error_message, "it failed: error message");
-    netplan_error_free(&gerror);
+    netplan_error_free(gerror);
 }
 
 void test_netplan_error_code(void** state) {
@@ -33,7 +33,7 @@ void test_netplan_error_code(void** state) {
 
     assert_int_equal(domain, 1234);
     assert_int_equal(error, 5678);
-    netplan_error_free(&gerror);
+    netplan_error_free(gerror);
 }
 
 int setup(void** state) {

@@ -178,18 +178,19 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
 }
 
 NETPLAN_PUBLIC void
-netplan_error_free(GError** error) {
-    g_clear_error(error);
-    *error = NULL;
+netplan_error_free(NetplanError* error)
+{
+    g_error_free(error);
 }
 
 NETPLAN_PUBLIC ssize_t
-netplan_error_message(GError* error, char* buf, size_t buf_size) {
+netplan_error_message(NetplanError* error, char* buf, size_t buf_size)
+{
     return netplan_copy_string(error->message, buf, buf_size);
 }
 
 NETPLAN_PUBLIC uint64_t
-netplan_error_code(GError* error) {
+netplan_error_code(NetplanError* error) {
     uint64_t error_code = (uint64_t)error->domain << 32 | (uint64_t)error->code;
     return error_code;
 }
