@@ -484,35 +484,35 @@ netplan_state_get_netdef(const NetplanState* np_state, const char* id)
     return g_hash_table_lookup(np_state->netdefs, id);
 }
 
-NETPLAN_PUBLIC ssize_t
+ssize_t
 netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
     g_assert(netdef);
     return netplan_copy_string(netdef->filepath, out_buffer, out_buf_size);
 }
 
-NETPLAN_PUBLIC NetplanBackend
+NetplanBackend
 netplan_netdef_get_backend(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->backend;
 }
 
-NETPLAN_PUBLIC NetplanDefType
+NetplanDefType
 netplan_netdef_get_type(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->type;
 }
 
-NETPLAN_PUBLIC ssize_t
+ssize_t
 netplan_netdef_get_id(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size)
 {
     g_assert(netdef);
     return netplan_copy_string(netdef->id, out_buffer, out_buffer_size);
 }
 
-NETPLAN_PUBLIC NetplanNetDefinition*
+NetplanNetDefinition*
 netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
@@ -522,7 +522,7 @@ netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef)
 __attribute((alias("netplan_netdef_get_vlan_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
 _netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
 
-NETPLAN_PUBLIC NetplanNetDefinition*
+NetplanNetDefinition*
 netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
@@ -532,21 +532,21 @@ netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef)
 __attribute((alias("netplan_netdef_get_sriov_link"))) NETPLAN_INTERNAL NetplanNetDefinition*
 _netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
 
-NETPLAN_PUBLIC NetplanNetDefinition*
+NetplanNetDefinition*
 netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->bridge_link;
 }
 
-NETPLAN_PUBLIC NetplanNetDefinition*
+NetplanNetDefinition*
 netplan_netdef_get_bond_link(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->bond_link;
 }
 
-NETPLAN_PUBLIC NetplanNetDefinition*
+NetplanNetDefinition*
 netplan_netdef_get_peer_link(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
@@ -574,14 +574,14 @@ netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* ne
     return netdef->sriov_delay_virtual_functions_rebind;
 }
 
-NETPLAN_PUBLIC gboolean
+gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->has_match;
 }
 
-NETPLAN_INTERNAL gboolean
+gboolean
 _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
@@ -595,14 +595,14 @@ _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef)
     return netdef->vlan_id;
 }
 
-NETPLAN_INTERNAL gboolean
+gboolean
 _netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->critical;
 }
 
-NETPLAN_INTERNAL gboolean
+gboolean
 _netplan_netdef_get_optional(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);

@@ -1250,7 +1250,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
  * @has_been_written: TRUE if @def applies to networkd, FALSE otherwise.
  * Returns: FALSE on error.
  */
-NETPLAN_INTERNAL gboolean
+gboolean
 netplan_netdef_write_networkd(
         const NetplanState* np_state,
         const NetplanNetDefinition* def,

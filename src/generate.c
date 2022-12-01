@@ -200,7 +200,7 @@ exit_find:
 
 int main(int argc, char** argv)
 {
-    GError* error = NULL;
+    NetplanError* error = NULL;
     GOptionContext* opt_context;
     /* are we being called as systemd generator? */
     gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
