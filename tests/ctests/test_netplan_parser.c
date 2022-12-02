@@ -108,7 +108,7 @@ test_netplan_parser_sriov_embedded_switch(void** state)
 
     NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eno1");
 
-    _netplan_netdef_get_embedded_switch_mode(interface, embedded_switch, sizeof(embedded_switch));
+    _netplan_netdef_get_embedded_switch_mode(interface, embedded_switch, sizeof(embedded_switch) - 1);
 
     assert_string_equal(embedded_switch, "switchdev");
 

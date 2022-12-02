@@ -22,7 +22,7 @@ test_netplan_error_message(void** state)
     const gchar* message = "it failed";
     char error_message[100] = {0};
     GError *gerror = g_error_new(1, 2, "%s: error message", message);
-    netplan_error_message(gerror, error_message, 100);
+    netplan_error_message(gerror, error_message, sizeof(error_message) - 1);
     assert_string_equal(error_message, "it failed: error message");
     netplan_error_free(gerror);
 }
