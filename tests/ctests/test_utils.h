@@ -7,7 +7,8 @@
 #include "parse.h"
 
 NetplanState *
-load_fixture_to_netplan_state(const char* filename) {
+load_fixture_to_netplan_state(const char* filename)
+{
 
     GError *error = NULL;
 

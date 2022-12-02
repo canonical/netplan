@@ -18,13 +18,17 @@
 
 #include "test_utils.h"
 
-void test_netplan_parser_new_parser(void** state) {
+void
+test_netplan_parser_new_parser(void** state)
+{
     NetplanParser* npp = netplan_parser_new();
     assert_non_null(npp);
     netplan_parser_clear(&npp);
 }
 
-void test_netplan_parser_load_yaml(void** state) {
+void
+test_netplan_parser_load_yaml(void** state)
+{
     const char* filename = FIXTURESDIR "/ovs.yaml";
     GError *error = NULL;
     NetplanParser* npp = netplan_parser_new();
@@ -37,7 +41,8 @@ void test_netplan_parser_load_yaml(void** state) {
 }
 
 void
-test_netplan_parser_interface_has_bridge_netdef(void** state) {
+test_netplan_parser_interface_has_bridge_netdef(void** state)
+{
 
     NetplanState *np_state = load_fixture_to_netplan_state("bridge.yaml");
 
@@ -55,7 +60,8 @@ test_netplan_parser_interface_has_bridge_netdef(void** state) {
 }
 
 void
-test_netplan_parser_interface_has_bond_netdef(void** state) {
+test_netplan_parser_interface_has_bond_netdef(void** state)
+{
 
     NetplanState* np_state = load_fixture_to_netplan_state("bond.yaml");
 
@@ -73,7 +79,8 @@ test_netplan_parser_interface_has_bond_netdef(void** state) {
 }
 
 void
-test_netplan_parser_interface_has_peer_netdef(void** state) {
+test_netplan_parser_interface_has_peer_netdef(void** state)
+{
 
     NetplanState* np_state = load_fixture_to_netplan_state("ovs.yaml");
 
@@ -92,7 +99,8 @@ test_netplan_parser_interface_has_peer_netdef(void** state) {
 }
 
 void
-test_netplan_parser_sriov_embedded_switch(void** state) {
+test_netplan_parser_sriov_embedded_switch(void** state)
+{
 
     char embedded_switch[16];
 
@@ -108,7 +116,8 @@ test_netplan_parser_sriov_embedded_switch(void** state) {
 }
 
 void
-test_netplan_parser_sriov_vf_count(void** state) {
+test_netplan_parser_sriov_vf_count(void** state)
+{
 
     NetplanState* np_state = load_fixture_to_netplan_state("sriov.yaml");
 
@@ -122,15 +131,21 @@ test_netplan_parser_sriov_vf_count(void** state) {
 
 }
 
-int setup(void** state) {
+int
+setup(void** state)
+{
     return 0;
 }
 
-int tear_down(void** state) {
+int
+tear_down(void** state)
+{
     return 0;
 }
 
-int main() {
+int
+main()
+{
 
        const struct CMUnitTest tests[] = {
            cmocka_unit_test(test_netplan_parser_new_parser),

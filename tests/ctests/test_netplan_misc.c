@@ -20,7 +20,8 @@
 #include "test_utils.h"
 
 void
-test_netplan_get_optional(void** state) {
+test_netplan_get_optional(void** state)
+{
 
     NetplanState* np_state = load_fixture_to_netplan_state("optional.yaml");
 
@@ -33,7 +34,8 @@ test_netplan_get_optional(void** state) {
 }
 
 void
-test_netplan_get_id_from_nm_filepath_no_ssid(void **state) {
+test_netplan_get_id_from_nm_filepath_no_ssid(void **state)
+{
 
     const char* filename = "/some/rootdir/run/NetworkManager/system-connections/netplan-some-id.nmconnection";
     char id[16];
@@ -45,7 +47,8 @@ test_netplan_get_id_from_nm_filepath_no_ssid(void **state) {
 }
 
 void
-test_netplan_get_id_from_nm_filepath_with_ssid(void **state) {
+test_netplan_get_id_from_nm_filepath_with_ssid(void **state)
+{
 
     const char* filename = "/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
     char id[16];
@@ -57,7 +60,8 @@ test_netplan_get_id_from_nm_filepath_with_ssid(void **state) {
 }
 
 void
-test_netplan_get_id_from_nm_filepath_buffer_is_too_small(void **state) {
+test_netplan_get_id_from_nm_filepath_buffer_is_too_small(void **state)
+{
 
     const char* filename = "/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
     char id[7];
@@ -68,7 +72,8 @@ test_netplan_get_id_from_nm_filepath_buffer_is_too_small(void **state) {
 }
 
 void
-test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size(void **state) {
+test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size(void **state)
+{
 
     const char* filename = "/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
     char id[8];
@@ -80,7 +85,8 @@ test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size(void **state) {
 }
 
 void
-test_netplan_get_id_from_nm_filepath_filename_is_malformed(void **state) {
+test_netplan_get_id_from_nm_filepath_filename_is_malformed(void **state)
+{
 
     const char* filename = "INVALID/netplan-some-id.nmconnection";
     char id[8];
@@ -90,15 +96,21 @@ test_netplan_get_id_from_nm_filepath_filename_is_malformed(void **state) {
     assert_int_equal(bytes_copied, 0);
 }
 
-int setup(void** state) {
+int
+setup(void** state)
+{
     return 0;
 }
 
-int tear_down(void** state) {
+int
+tear_down(void** state)
+{
     return 0;
 }
 
-int main() {
+int
+main()
+{
 
        const struct CMUnitTest tests[] = {
            cmocka_unit_test(test_netplan_get_optional),

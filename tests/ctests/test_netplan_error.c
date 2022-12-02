@@ -16,7 +16,9 @@
 #include "util.c"
 #include "parse.c"
 
-void test_netplan_error_message(void** state) {
+void
+test_netplan_error_message(void** state)
+{
     const gchar* message = "it failed";
     char error_message[100] = {0};
     GError *gerror = g_error_new(1, 2, "%s: error message", message);
@@ -25,7 +27,9 @@ void test_netplan_error_message(void** state) {
     netplan_error_free(gerror);
 }
 
-void test_netplan_error_code(void** state) {
+void
+test_netplan_error_code(void** state)
+{
     GError *gerror = g_error_new(1234, 5678, "%s: error message", "it failed");
     uint64_t error_code = netplan_error_code(gerror);
     GQuark domain = error_code >> 32;
@@ -36,15 +40,21 @@ void test_netplan_error_code(void** state) {
     netplan_error_free(gerror);
 }
 
-int setup(void** state) {
+int
+setup(void** state)
+{
     return 0;
 }
 
-int tear_down(void** state) {
+int
+tear_down(void** state)
+{
     return 0;
 }
 
-int main() {
+int
+main()
+{
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_netplan_error_message),
