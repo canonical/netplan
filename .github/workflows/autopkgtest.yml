@@ -48,4 +48,4 @@ jobs:
           dch -v $(git describe --tags) "Autopkgtest CI testing (Jammy)"
       - name: Run autopkgtest (incl. build)
         run: |
-          sudo autopkgtest . --setup-commands='apt -y install python3-pytest python3-pytest-cov' -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/jammy/amd64
+          sudo autopkgtest . --setup-commands='apt -y install python3-pytest python3-pytest-cov libcmocka-dev' -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/jammy/amd64
