@@ -33,6 +33,9 @@ netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
 NETPLAN_PUBLIC ssize_t
 netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* out_buffer, size_t out_buf_size);
 
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const char* ssid, char* out_buffer, size_t out_buf_size);
+
 NETPLAN_PUBLIC void
 netplan_error_free(NetplanError* error);
 
