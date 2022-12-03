@@ -26,4 +26,4 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, NetplanErr
 /********** Old API below this ***********/
 
 NETPLAN_PUBLIC gboolean
-netplan_parse_keyfile(const char* filename, NetplanError** error);
+netplan_parse_keyfile(const char* filename, GError** error);
