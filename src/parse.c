@@ -2839,6 +2839,12 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
             component1 = netplan_netdef_new(npp, scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(npp->missing_id, scalar(port)))
                 npp->missing_ids_found++;
+        }
+
+        if (npp->current.filepath) {
+            if (component->filepath)
+                g_free(component->filepath);
+
             component->filepath = g_strdup(npp->current.filepath);
         }
 
@@ -2852,6 +2858,12 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
             component2 = netplan_netdef_new(npp, scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(npp->missing_id, scalar(peer)))
                 npp->missing_ids_found++;
+        }
+
+        if (npp->current.filepath) {
+            if (component->filepath)
+                g_free(component->filepath);
+
             component->filepath = g_strdup(npp->current.filepath);
         }
 
