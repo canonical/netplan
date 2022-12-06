@@ -3,6 +3,7 @@ tests = {
   'test_netplan_state': false,
   'test_netplan_error': false,
   'test_netplan_misc': false,
+  'test_netplan_deprecated': false,
 }
 
 cmocka = dependency('cmocka', required: true)

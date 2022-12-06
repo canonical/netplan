@@ -10,12 +10,10 @@ NetplanState *
 load_fixture_to_netplan_state(const char* filename)
 {
 
-    GError *error = NULL;
+    g_autoptr(GError) error = NULL;
+    g_autofree char* filepath = NULL;
 
-    int path_size = strlen(FIXTURESDIR) + strlen(filename) + 2;
-    char* filepath = calloc(path_size, 1);
-
-    snprintf(filepath, path_size, "%s/%s", FIXTURESDIR, filename);
+    filepath = g_build_path(G_DIR_SEPARATOR_S, FIXTURESDIR, filename, NULL);
 
     NetplanParser *npp = netplan_parser_new();
     netplan_parser_load_yaml(npp, filepath, &error);
@@ -24,7 +22,6 @@ load_fixture_to_netplan_state(const char* filename)
     netplan_state_import_parser_results(np_state, npp, &error);
 
     netplan_parser_clear(&npp);
-    free(filepath);
 
     return np_state;
 }

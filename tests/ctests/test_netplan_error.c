@@ -33,7 +33,7 @@ test_netplan_error_code(void** state)
     GError *gerror = g_error_new(1234, 5678, "%s: error message", "it failed");
     uint64_t error_code = netplan_error_code(gerror);
     GQuark domain = error_code >> 32;
-    gint error = error_code & ~0;
+    gint error = (gint) error_code;
 
     assert_int_equal(domain, 1234);
     assert_int_equal(error, 5678);
