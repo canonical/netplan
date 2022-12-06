@@ -33,7 +33,7 @@ add_project_arguments(
     '-D_XOPEN_SOURCE=700',
     language: 'c')
 
-inc = include_directories('include', 'src')
+inc = include_directories('include')
 subdir('include')
 subdir('src')
 subdir('dbus')
