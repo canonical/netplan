@@ -229,4 +229,14 @@ netplan_netdef_get_filename(const NetplanNetDefinition* netdef)
     g_assert(netdef);
     return netdef->filepath;
 }
+
+/*
+ * Deprecated, use _netplan_netdef_get_embedded_switch_mode instead
+ */
+NETPLAN_DEPRECATED NETPLAN_INTERNAL const char*
+netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->embedded_switch_mode;
+}
 // LCOV_EXCL_STOP
