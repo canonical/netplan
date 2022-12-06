@@ -5,8 +5,8 @@
 
 #include <cmocka.h>
 
-#include "../../include/netplan.h"
-#include "../../include/parse.h"
+#include "netplan.h"
+#include "parse.h"
 #include "types-internal.h"
 #include "types.h"
 
