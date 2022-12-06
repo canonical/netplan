@@ -560,14 +560,14 @@ netplan_state_has_nondefault_globals(const NetplanState* np_state)
                 || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL);
 }
 
-NETPLAN_INTERNAL ssize_t
+ssize_t
 _netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {
     g_assert(netdef);
     return netplan_copy_string(netdef->embedded_switch_mode, out_buffer, out_buf_size);
 }
 
-NETPLAN_INTERNAL gboolean
+gboolean
 _netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
@@ -577,13 +577,12 @@ _netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef)
 __attribute((alias("_netplan_netdef_get_delay_vf_rebind"))) NETPLAN_INTERNAL gboolean
 netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
 
-NETPLAN_INTERNAL guint
+guint
 _netplan_netdef_get_vf_count(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->sriov_explicit_vf_count;
 }
-
 
 gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef)
@@ -599,7 +598,7 @@ _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef)
     return netdef->sriov_vlan_filter;
 }
 
-NETPLAN_INTERNAL guint
+guint
 _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
@@ -620,7 +619,7 @@ _netplan_netdef_get_optional(const NetplanNetDefinition* netdef)
     return netdef->optional;
 }
 
-NETPLAN_INTERNAL gboolean
+gboolean
 _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
