@@ -595,7 +595,6 @@ ssize_t
 netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const char* ssid, char* out_buffer, size_t out_buf_size)
 {
     g_autofree gchar* conf_path = NULL;
-    size_t conf_path_size = 0;
 
     if (netdef->backend == NETPLAN_BACKEND_NM) {
         if (ssid) {
@@ -609,14 +608,8 @@ netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const cha
         conf_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", netdef->id, ".network", NULL);
     }
 
-    if (conf_path) {
-        conf_path_size = strlen(conf_path);
-
-        if (out_buf_size < conf_path_size + 1)
-            return NETPLAN_BUFFER_TOO_SMALL;
-
+    if (conf_path)
         return netplan_copy_string(conf_path, out_buffer, out_buf_size);
-    }
 
     return 0;
 }
