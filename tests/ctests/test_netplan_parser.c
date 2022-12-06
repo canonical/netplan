@@ -115,22 +115,6 @@ test_netplan_parser_sriov_embedded_switch(void** state)
     netplan_state_clear(&np_state);
 }
 
-void
-test_netplan_parser_sriov_vf_count(void** state)
-{
-
-    NetplanState* np_state = load_fixture_to_netplan_state("sriov.yaml");
-
-    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eno1");
-
-    guint count = _netplan_netdef_get_vf_count(interface);
-
-    assert_int_equal(count, 2);
-
-    netplan_state_clear(&np_state);
-
-}
-
 int
 setup(void** state)
 {
@@ -154,7 +138,6 @@ main()
            cmocka_unit_test(test_netplan_parser_interface_has_bond_netdef),
            cmocka_unit_test(test_netplan_parser_interface_has_peer_netdef),
            cmocka_unit_test(test_netplan_parser_sriov_embedded_switch),
-           cmocka_unit_test(test_netplan_parser_sriov_vf_count),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);

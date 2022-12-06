@@ -577,13 +577,6 @@ _netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef)
 __attribute((alias("_netplan_netdef_get_delay_vf_rebind"))) NETPLAN_INTERNAL gboolean
 netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
 
-guint
-_netplan_netdef_get_vf_count(const NetplanNetDefinition* netdef)
-{
-    g_assert(netdef);
-    return netdef->sriov_explicit_vf_count;
-}
-
 gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef)
 {

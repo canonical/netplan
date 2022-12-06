@@ -120,9 +120,6 @@ NETPLAN_INTERNAL gboolean
 netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL guint
-_netplan_netdef_get_vf_count(const NetplanNetDefinition* netdef);
-
-NETPLAN_INTERNAL guint
 _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL gboolean
