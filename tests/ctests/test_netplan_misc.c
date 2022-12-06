@@ -17,6 +17,17 @@
 #include "types.c"
 #include "util.c"
 #include "parse.c"
+#include "netplan.c"
+
+// LCOV_EXCL_START
+gboolean
+netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, NetplanError** error)
+{
+    return 1; //
+}
+// LCOV_EXCL_STOP
+
+#include "abi_compat.c"
 
 #include "test_utils.h"
 
