@@ -568,14 +568,14 @@ _netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, cha
 }
 
 NETPLAN_INTERNAL gboolean
-netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef)
+_netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->sriov_delay_virtual_functions_rebind;
 }
 
-__attribute((alias("netplan_netdef_get_delay_virtual_functions_rebind"))) NETPLAN_INTERNAL gboolean
-_netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef);
+__attribute((alias("_netplan_netdef_get_delay_vf_rebind"))) NETPLAN_INTERNAL gboolean
+netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL guint
 _netplan_netdef_get_vf_count(const NetplanNetDefinition* netdef)
