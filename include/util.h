@@ -27,9 +27,6 @@ netplan_delete_connection(const char* id, const char* rootdir);
 NETPLAN_PUBLIC gboolean
 netplan_generate(const char* rootdir);
 
-NETPLAN_PUBLIC gchar*
-netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
-
 NETPLAN_PUBLIC ssize_t
 netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* out_buffer, size_t out_buf_size);
 
@@ -49,3 +46,6 @@ netplan_error_code(NetplanError* error);
 
 NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
 netplan_get_filename_by_id(const char* netdef_id, const char* rootdir);
+
+NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
+netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
