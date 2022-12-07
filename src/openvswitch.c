@@ -412,6 +412,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
         }
 
         /* Try writing out a base config */
+        /* TODO: make use of netplan_netdef_get_output_filename() */
         base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
         if (!netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
             return FALSE;

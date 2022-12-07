@@ -1258,6 +1258,7 @@ netplan_netdef_write_networkd(
         gboolean* has_been_written,
         GError** error)
 {
+    /* TODO: make use of netplan_netdef_get_output_filename() */
     g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
