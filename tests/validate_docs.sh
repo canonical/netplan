@@ -3,7 +3,7 @@
 #     {"driver", YAML_SCALAR_NODE,...,
 # extract the thing in quotes.
 
-# sanity check: make sure none have disappeared, as might happen from a reformat.
+# coherence check: make sure none have disappeared, as might happen from a reformat.
 count=$(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/parse.c | sort | wc -l)
 # 144 is based on 0.99+da6f776 definitions, and should be updated periodically.
 if [ $count -lt 202 ]; then

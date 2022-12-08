@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Blackbox tests of NetworkManager keyfile parser. These are run during
+# Functional tests of NetworkManager keyfile parser. These are run during
 # "make check" and don't touch the system configuration at all.
 #
 # Copyright (C) 2021 Canonical, Ltd.
@@ -388,7 +388,7 @@ route2=4:5:6:7:8:9:0:1/63,,5
         self._template_keyfile_type('nm-devices', 'wireguard', False)
 
     def test_keyfile_type_other(self):
-        self._template_keyfile_type('nm-devices', 'dummy', False)
+        self._template_keyfile_type('nm-devices', 'faketype', False)
 
     def test_keyfile_type_wifi(self):
         self.generate_from_keyfile('''[connection]

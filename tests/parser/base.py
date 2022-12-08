@@ -1,5 +1,5 @@
 #
-# Blackbox tests of netplan's keyfile parser that verify that the generated
+# Functional tests of netplan's keyfile parser that verify that the generated
 # YAML files look as expected. These are run during "make check" and
 # don't touch the system configuration at all.
 #

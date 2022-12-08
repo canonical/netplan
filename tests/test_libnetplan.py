@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Blackbox tests of certain libnetplan functions. These are run during
+# Functional tests of certain libnetplan functions. These are run during
 # "make check" and don't touch the system configuration at all.
 #
 # Copyright (C) 2020-2021 Canonical, Ltd.

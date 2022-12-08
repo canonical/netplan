@@ -78,7 +78,7 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
     @classmethod
     def tearDownClass(klass):
         try:
-            os.remove('/run/NetworkManager/conf.d/test-blacklist.conf')
+            os.remove('/run/NetworkManager/conf.d/test-blocklist.conf')
         except FileNotFoundError:
             pass
 
@@ -443,7 +443,7 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         klass.dev_w_client = devs[1]
 
         # don't let NM trample over our fake AP
-        with open('/run/NetworkManager/conf.d/test-blacklist.conf', 'w') as f:
+        with open('/run/NetworkManager/conf.d/test-blocklist.conf', 'w') as f:
             f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=nptestsrv,%s\n' % klass.dev_w_ap)
 
     @classmethod

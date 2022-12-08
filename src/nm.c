@@ -546,7 +546,7 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
     has_key = g_key_file_has_key(kf, group, k, NULL);
     old_key = g_key_file_get_string(kf, group, k, NULL);
     g_key_file_set_string(kf, group, k, val);
-    /* delete the dummy key, if this was just an empty group */
+    /* delete the placeholder key, if this was just an empty group */
     if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
         g_key_file_remove_key(kf, group, k, NULL);
     /* handle differing defaults:

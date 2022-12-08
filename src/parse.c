@@ -147,7 +147,7 @@ assert_type_fn(const NetplanParser* npp, yaml_node_t* node, yaml_node_type_t exp
 
     switch (expected_type) {
         case YAML_VARIABLE_NODE:
-            /* Special case, defer sanity checking to the next handlers */
+            /* Special case, defer coherence checking to the next handlers */
             return TRUE;
             break;
         case YAML_SCALAR_NODE:

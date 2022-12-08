@@ -73,7 +73,7 @@ class TestSRIOV(unittest.TestCase):
         self.configmanager = ConfigManager(prefix=self.workdir.name, extra_files={})
 
     def _prepare_sysfs_dir_structure(self, pf=('enp2', '0000:00:1f.0'),
-                                     vfs=[('enp2s16f1', '0000:00:1f.6')], pf_driver='dummy_driver'):
+                                     vfs=[('enp2s16f1', '0000:00:1f.6')], pf_driver='fake_driver'):
         """
         Setup sysfs mock for reading certain SR-IOV related files and symlinks
 
@@ -861,7 +861,7 @@ class TestParser(TestBase):
       embedded-switch-mode: switchdev
       delay-virtual-functions-rebind: true
     enblue:
-      match: {driver: dummy_driver}
+      match: {driver: fake_driver}
       set-name: enblue
       embedded-switch-mode: legacy
       delay-virtual-functions-rebind: true

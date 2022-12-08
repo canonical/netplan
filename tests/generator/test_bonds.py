@@ -304,7 +304,7 @@ UseMTU=true
   ethernets:
     eno1: {}
     enp65s0: {}
-    dummy2: {}
+    faketh2: {}
   bonds:
     bond0:
       interfaces: [eno1, enp65s0]
@@ -317,7 +317,7 @@ UseMTU=true
       link: vbr
   bridges:
     vbr:
-      interfaces: [dummy2]''', expect_fail=False)
+      interfaces: [faketh2]''', expect_fail=False)
 
         self.assert_networkd({'eno1.network': '[Match]\nName=eno1\n\n[Network]\nLinkLocalAddressing=no\nBond=bond0\n',
                               'enp65s0.network': '''[Match]
@@ -328,9 +328,9 @@ LinkLocalAddressing=no
 Bond=bond0
 PrimarySlave=true
 ''',
-                              'dummy2.network': '[Match]\nName=dummy2\n\n[Network]\nLinkLocalAddressing=no\nBridge=vbr\n',
+                              'faketh2.network': '[Match]\nName=faketh2\n\n[Network]\nLinkLocalAddressing=no\nBridge=vbr\n',
                               'bond0.network': '[Match]\nName=bond0\n\n'
-                                                '[Network]\nLinkLocalAddressing=ipv6\nConfigureWithoutCarrier=yes\n',
+                                               '[Network]\nLinkLocalAddressing=ipv6\nConfigureWithoutCarrier=yes\n',
                               'bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n\n[Bond]\nMode=balance-tlb\n',
                               'vbr-v10.network': '[Match]\nName=vbr-v10\n\n'
                                                  '[Network]\nLinkLocalAddressing=ipv6\nConfigureWithoutCarrier=yes\n',
