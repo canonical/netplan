@@ -2790,7 +2790,15 @@ handle_network_version(NetplanParser* npp, yaml_node_t* node, const void* _, GEr
 static gboolean
 handle_network_renderer(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return parse_renderer(npp, node, &npp->global_backend, error);
+    gboolean res = parse_renderer(npp, node, &npp->global_backend, error);
+    if (!npp->global_renderer)
+        npp->global_renderer = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    char* key = npp->current.filepath ? g_strdup(npp->current.filepath) : g_strdup("");
+    /* Track the global renderer value of the current file.
+     * If current.filepath is empty, this YAML is parsed from an unnamed YAML
+     * patch (e.g. via 'netplan set <SOME_PATCH>'). */
+    g_hash_table_insert(npp->global_renderer, key, GINT_TO_POINTER(npp->global_backend));
+    return res;
 }
 
 static gboolean
@@ -3281,6 +3289,12 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
         g_hash_table_foreach_steal(npp->sources, insert_kv_into_hash, np_state->sources);
     }
 
+    if (npp->global_renderer) {
+        if (!np_state->global_renderer)
+            np_state->global_renderer = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        g_hash_table_foreach_steal(npp->global_renderer, insert_kv_into_hash, np_state->global_renderer);
+    }
+
     /* We need to reset those fields manually as we transfered ownership of the underlying
        data to out. If we don't do this, netplan_clear_parser will deallocate data
        that we don't own anymore. */
@@ -3359,6 +3373,11 @@ netplan_parser_reset(NetplanParser* npp)
         g_hash_table_destroy(npp->sources);
         npp->sources = NULL;
     }
+
+    if (npp->global_renderer) {
+        g_hash_table_destroy(npp->global_renderer);
+        npp->global_renderer = NULL;
+    }
 }
 
 void
@@ -3382,6 +3401,10 @@ is_netdef_id_or_global_value(const char* full_key)
     gchar** split = g_strsplit(key, "\t", 0);
     if (split[0] && g_strcmp0(split[0], "network") == 0) {
         if (split[1]) {
+            if (g_strcmp0(split[1], "renderer") == 0) {
+                ret = TRUE; // a valid global keyword
+                goto cleanup;
+            }
             /* check if is valid network type */
             for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
                 const char* def_type_name = netplan_def_type_name(i);
@@ -3396,6 +3419,7 @@ is_netdef_id_or_global_value(const char* full_key)
             }
         }
     }
+cleanup:
     g_strfreev(split);
     return ret;
 }

@@ -435,6 +435,11 @@ netplan_state_reset(NetplanState* np_state)
         g_hash_table_destroy(np_state->sources);
         np_state->sources = NULL;
     }
+
+    if (np_state->global_renderer) {
+        g_hash_table_destroy(np_state->global_renderer);
+        np_state->global_renderer = NULL;
+    }
 }
 
 NetplanBackend
