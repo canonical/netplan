@@ -1,0 +1,36 @@
+rules:
+  - name: slave
+    terms:
+      - slave
+    alternatives:
+      - follower
+      - replica
+      - standby
+    options:
+      # trigger findings when they are surrounded by ASCII word boundaries
+      word_boundary: true
+
+  # Including some terms from https://inclusivenaming.org/ that are not in the default ruleset
+  - name: abort
+    terms:
+      - abort
+    alternatives:
+      - force quit
+      - halt
+      - close
+
+  - name: cripple
+    terms:
+      - cripple
+    alternatives:
+      - degraded
+      - restrict
+
+  - name: segregate
+    terms:
+      - segregate
+      - segregation
+    alternatives:
+      - segment/segmentation
+      - separate/separation
+
