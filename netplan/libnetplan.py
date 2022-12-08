@@ -69,7 +69,7 @@ def _string_realloc_call_no_error(function):
             return None  # pragma: nocover as it's hard to trigger for now
         else:
             return buffer.value.decode('utf-8')
-    raise LibNetplanException('Aborting due to string buffer size > 1M')  # pragma: nocover
+    raise LibNetplanException('Halting due to string buffer size > 1M')  # pragma: nocover
 
 
 def _checked_lib_call(fn, *args):
