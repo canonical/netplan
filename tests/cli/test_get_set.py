@@ -118,12 +118,18 @@ class TestSet(unittest.TestCase):
         defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-snapd-defaults.yaml')
         with open(defaults, 'w') as f:
             f.write('''network:
-  renderer: NetworkManager
+  renderer: networkd
   bridges: {br54: {dhcp4: true, dhcp6: true}}
   ethernets: {eth0: {dhcp4: true}}''')
+        self._set(['network.version=2', '--origin-hint=90-snapd-config'])
+        self._set(['renderer=NetworkManager', '--origin-hint=90-snapd-config'])
         self._set(['bridges.br55.dhcp4=false', '--origin-hint=90-snapd-config'])
         self._set(['bridges.br54.dhcp4=false', '--origin-hint=90-snapd-config'])
         self._set(['bridges.br54.interfaces=[eth0]', '--origin-hint=90-snapd-config'])
+        self.assertTrue(os.path.isfile(defaults))
+        with open(defaults, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual("networkd", yml['network']['renderer'])
         p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
         self.assertTrue(os.path.isfile(p))
         with open(p, 'r') as f:
@@ -132,6 +138,26 @@ class TestSet(unittest.TestCase):
             self.assertNotIn('dhcp6', yml['network']['bridges']['br54'])
             self.assertEqual(['eth0'], yml['network']['bridges']['br54']['interfaces'])
             self.assertIs(False, yml['network']['bridges']['br55']['dhcp4'])
+            self.assertIs(2, yml['network']['version'])
+            self.assertEqual("NetworkManager", yml['network']['renderer'])
+
+    def test_set_origin_hint_override_no_leak_renderer(self):
+        defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-snapd-defaults.yaml')
+        with open(defaults, 'w') as f:
+            f.write('''network:
+  renderer: networkd
+  bridges: {br54: {dhcp4: true}}''')
+        self._set(['bridges.br54.dhcp4=false', '--origin-hint=90-snapd-config'])
+        self.assertTrue(os.path.isfile(defaults))
+        with open(defaults, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual("networkd", yml['network']['renderer'])
+        p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
+        self.assertTrue(os.path.isfile(p))
+        with open(p, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertIs(False, yml['network']['bridges']['br54']['dhcp4'])
+            self.assertNotIn('renderer', yml['network'])
 
     def test_set_origin_hint_override_invalid_netdef_setting(self):
         defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-snapd-defaults.yaml')
@@ -168,6 +194,7 @@ class TestSet(unittest.TestCase):
             yml = yaml.safe_load(f)
             self.assertIs(False, yml['network']['bridges']['br54']['dhcp4'])
             self.assertIs(True, yml['network']['bridges']['br55']['dhcp4'])
+            self.assertNotIn('renderer', yml['network'])
 
     def test_set_empty_origin_hint(self):
         with self.assertRaises(Exception) as context:
@@ -274,16 +301,18 @@ class TestSet(unittest.TestCase):
                     yaml.safe_load(f)['network']['ethernets']['ens3']['dhcp4'])
 
     def test_set_overwrite(self):
-        with open(self.path, 'w') as f:
+        p = os.path.join(self.workdir.name, 'etc', 'netplan', 'test.yaml')
+        with open(p, 'w') as f:
             f.write('''network:
+  renderer: networkd
   ethernets:
     ens3: {dhcp4: "no"}''')
         self._set(['ethernets.ens3.dhcp4=true'])
-        self.assertTrue(os.path.isfile(self.path))
-        with open(self.path, 'r') as f:
-            self.assertIs(
-                    True,
-                    yaml.safe_load(f)['network']['ethernets']['ens3']['dhcp4'])
+        self.assertTrue(os.path.isfile(p))
+        with open(p, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertIs(True, yml['network']['ethernets']['ens3']['dhcp4'])
+            self.assertEqual('networkd', yml['network']['renderer'])
 
     def test_set_delete(self):
         with open(self.path, 'w') as f:

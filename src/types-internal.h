@@ -182,6 +182,7 @@ struct netplan_state {
     /* Hashset of the source files used to create this state. Owns its data (glib-allocated
      * char*) and is initialized with g_hash_table_new_full to avoid leaks. */
     GHashTable* sources;
+    GHashTable* global_renderer;
 };
 
 struct netplan_parser {
@@ -241,6 +242,7 @@ struct netplan_parser {
     /* Which fields have been nullified by a subsequent patch? */
     GHashTable* null_fields;
     GHashTable* null_overrides;
+    GHashTable* global_renderer;
 };
 
 struct netplan_state_iterator {
