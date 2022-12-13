@@ -45,6 +45,15 @@ netplan_error_message(NetplanError* error, char* buf, size_t buf_size);
 NETPLAN_PUBLIC uint64_t
 netplan_error_code(NetplanError* error);
 
+NETPLAN_PUBLIC void
+netplan_state_iterator_init(const NetplanState* np_state, NetplanStateIterator* iter);
+
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_state_iterator_next(NetplanStateIterator* iter);
+
+NETPLAN_PUBLIC gboolean
+netplan_state_iterator_has_next(const NetplanStateIterator* iter);
+
 /********** Old API below this ***********/
 
 NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*

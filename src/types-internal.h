@@ -242,6 +242,10 @@ struct netplan_parser {
     GHashTable* null_fields;
 };
 
+struct netplan_state_iterator {
+    GList* next;
+};
+
 #define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
 #define NETPLAN_CONGESTION_WINDOW_UNSPEC 0
 #define NETPLAN_MTU_UNSPEC 0

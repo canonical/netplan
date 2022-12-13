@@ -68,3 +68,5 @@ typedef enum {
 } NetplanBackend;
 
 typedef GError NetplanError;
+
+typedef struct netplan_state_iterator NetplanStateIterator;

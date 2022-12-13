@@ -836,3 +836,31 @@ is_multicast_address(const char* address)
 
     return FALSE;
 }
+
+void
+netplan_state_iterator_init(const NetplanState* np_state, NetplanStateIterator* iter)
+{
+    g_assert(iter);
+    iter->next = np_state->netdefs_ordered;
+}
+
+NetplanNetDefinition*
+netplan_state_iterator_next(NetplanStateIterator* iter)
+{
+    NetplanNetDefinition* netdef = NULL;
+
+    if (iter && iter->next) {
+        netdef = iter->next->data;
+        iter->next = iter->next->next;
+    }
+
+    return netdef;
+}
+
+gboolean
+netplan_state_iterator_has_next(const NetplanStateIterator* iter)
+{
+    if (!iter)
+        return FALSE;
+    return iter->next != NULL;
+}
