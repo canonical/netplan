@@ -1,15 +1,4 @@
 rules:
-  - name: slave
-    terms:
-      - slave
-    alternatives:
-      - follower
-      - replica
-      - standby
-    options:
-      # trigger findings when they are surrounded by ASCII word boundaries
-      word_boundary: true
-
   # Including some terms from https://inclusivenaming.org/ that are not in the default ruleset
   - name: abort
     terms:
@@ -34,3 +23,160 @@ rules:
       - segment/segmentation
       - separate/separation
 
+  # From https://github.com/canonical/Inclusive-naming
+  # Overtly racist terms
+  - name: whitelist
+    terms:
+      - whitelist
+      - white-list
+      - whitelisted
+      - white-listed
+      - whitelisting
+      - white-listing
+    alternatives:
+      - allowlist
+    severity: warning
+
+  - name: blacklist
+    terms:
+      - blacklist
+      - black-list
+      - blacklisted
+      - black-listed
+      - blacklisting
+      - black-listing
+    alternatives:
+      - denylist
+      - blocklist
+    severity: warning
+
+  - name: blackhat
+    terms:
+      - blackhat
+      - black hat
+    alternatives:
+      - malicious actor
+      - attacker
+    severity: warning
+
+  - name: illegal characters
+    terms:
+      - illegal characters
+    alternatives:
+      - invalid characters
+      - unsupported characters
+    severity: warning
+
+  - name: master
+    terms:
+      - master
+    alternatives:
+      - primary
+      - main
+    severity: warning
+    options:
+      word_boundary: true
+
+  - name: slave
+    terms:
+      - slave
+    alternatives:
+      - secondary
+      - replica
+    severity: warning
+    options:
+      word_boundary: true
+
+  - name: whitehat
+    terms:
+      - whitehat
+      - white hat
+    alternatives:
+      - researcher
+      - security specialist
+    severity: warning
+  # Overtly Sexist/Transphobic/Homophobic/Default Male Gendered Terms/Pejorative about Gender Identity/Discriminative
+  - name: chairman
+    terms:
+      - chairman
+      - foreman
+    alternatives:
+      - chair
+      - foreperson
+    severity: warning
+
+  - name: dummy
+    terms:
+      - dummy
+    alternatives:
+      - placeholder
+      - sample
+    severity: warning
+
+  - name: grandfathered
+    terms:
+      - grandfathered
+    alternatives:
+      - legacied
+    severity: warning
+
+  - name: guys
+    terms:
+      - guys
+    alternatives:
+      - people
+      - folks
+    severity: warning
+
+  - name: hang
+    terms:
+      - hang
+    alternatives:
+      - stop responding
+      - stall
+    severity: warning
+    options:
+      word_boundary: true
+
+  - name: man hours
+    terms:
+      - man hours
+    alternatives:
+      - staff hours
+      - hours of effort
+    severity: warning
+
+  - name: man in the middle
+    terms:
+      - man in the middle
+      - man-in-the-middle
+    alternatives:
+      - machine-in-the-middle
+      - person-in-the-middle
+    severity: warning
+
+  - name: manned
+    terms:
+      - manned
+    alternatives:
+      - staffed
+      - monitored
+    severity: warning
+
+  - name: middleman
+    terms:
+      - middleman
+    alternatives:
+      - middleperson
+      - intermediary
+    severity: warning
+
+  - name: sanity check
+    terms:
+      - sanity
+    alternatives:
+      - confidence check
+      - coherence check
+    severity: warning
+  # Ignore rules
+  - name: he

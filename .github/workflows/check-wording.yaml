@@ -16,5 +16,4 @@ jobs:
       - name: Run Woke action
         uses: get-woke/woke-action@v0
         with:
-          # Let's not fail by default while we work to fix our existing code base
-          fail-on-error: false
+          fail-on-error: true
