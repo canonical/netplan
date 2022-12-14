@@ -1144,7 +1144,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > `bandwidth`, and `count`. This option is only used in 802.3ad
     > mode.
 
-  - **all-slaves-active** (bool)
+  - **all-members-active**, **all-slaves-active** (bool)
 
     > If the bond should drop duplicate frames received on inactive ports,
     > set this option to `false`. If they should be delivered, set this
@@ -1214,7 +1214,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > For historical reasons, the misspelling `gratuitious-arp` is also
     > accepted and has the same function.
 
-  - **packets-per-slave** (scalar)
+  - **packets-per-member**, **packets-per-slave** (scalar)
 
     > In `balance-rr` mode, specifies the number of packets to transmit
     > on a port before switching to the next. When this value is set to

@@ -948,9 +948,9 @@ method=ignore
         learn-packet-interval: "10"
         arp-interval: "10"
         min-links: 10
-        all-slaves-active: true
+        all-members-active: true
         gratuitous-arp: 10
-        packets-per-slave: 10
+        packets-per-member: 10
         resend-igmp: 10
         arp-ip-targets:
         - 10.10.10.10

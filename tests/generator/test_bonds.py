@@ -145,6 +145,79 @@ UseMTU=true
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
+    def test_bond_with_parameters_all_members_active(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+    switchports:
+      match:
+        driver: yayroute
+  bonds:
+    bn0:
+      parameters:
+        mode: 802.3ad
+        lacp-rate: 10
+        mii-monitor-interval: 10
+        min-links: 10
+        up-delay: 20
+        down-delay: 30
+        all-members-active: true
+        transmit-hash-policy: none
+        ad-select: none
+        arp-interval: 15
+        arp-validate: all
+        arp-all-targets: all
+        fail-over-mac-policy: none
+        gratuitious-arp: 10
+        packets-per-member: 10
+        primary-reselect-policy: none
+        resend-igmp: 10
+        learn-packet-interval: 10
+        arp-ip-targets:
+          - 10.10.10.10
+          - 20.20.20.20
+      interfaces: [eno1, switchports]
+      dhcp4: true''')
+
+        self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
+                                            '[Bond]\n'
+                                            'Mode=802.3ad\n'
+                                            'LACPTransmitRate=10\n'
+                                            'MIIMonitorSec=10ms\n'
+                                            'MinLinks=10\n'
+                                            'TransmitHashPolicy=none\n'
+                                            'AdSelect=none\n'
+                                            'AllSlavesActive=1\n'
+                                            'ARPIntervalSec=15ms\n'
+                                            'ARPIPTargets=10.10.10.10 20.20.20.20\n'
+                                            'ARPValidate=all\n'
+                                            'ARPAllTargets=all\n'
+                                            'UpDelaySec=20ms\n'
+                                            'DownDelaySec=30ms\n'
+                                            'FailOverMACPolicy=none\n'
+                                            'GratuitousARP=10\n'
+                                            'PacketsPerSlave=10\n'
+                                            'PrimaryReselectPolicy=none\n'
+                                            'ResendIGMP=10\n'
+                                            'LearnPacketIntervalSec=10\n',
+                              'bn0.network': '''[Match]
+Name=bn0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+''',
+                              'eno1.network': '[Match]\nName=eno1\n\n'
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n',
+                              'switchports.network': '[Match]\nDriver=yayroute\n\n'
+                                                     '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
+
     def test_bond_with_parameters(self):
         self.generate('''network:
   version: 2
@@ -178,7 +251,9 @@ UseMTU=true
           - 10.10.10.10
           - 20.20.20.20
       interfaces: [eno1, switchports]
-      dhcp4: true''')
+      dhcp4: true''', skip_generated_yaml_validation=True)
+        # Skipping the yaml validation above because the emitter will use
+        # all-members_active and packets-per-member by default.
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
@@ -521,6 +596,110 @@ method=ignore
         self.assert_networkd({})
         self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
 
+    def test_bond_with_params_all_members_active(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport:
+      match:
+        name: enp2s1
+  bonds:
+    bn0:
+      interfaces: [eno1, switchport]
+      parameters:
+        mode: 802.3ad
+        lacp-rate: 10
+        mii-monitor-interval: 10
+        min-links: 10
+        up-delay: 10
+        down-delay: 10
+        all-members-active: true
+        transmit-hash-policy: none
+        ad-select: none
+        arp-interval: 10
+        arp-validate: all
+        arp-all-targets: all
+        arp-ip-targets:
+          - 10.10.10.10
+          - 20.20.20.20
+        fail-over-mac-policy: none
+        gratuitious-arp: 10
+        packets-per-member: 10
+        primary-reselect-policy: none
+        resend-igmp: 10
+        learn-packet-interval: 10
+      dhcp4: true''')
+
+        self.assert_nm({'eno1': '''[connection]
+id=netplan-eno1
+type=ethernet
+interface-name=eno1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'switchport': '''[connection]
+id=netplan-switchport
+type=ethernet
+interface-name=enp2s1
+slave-type=bond
+master=bn0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+                        'bn0': '''[connection]
+id=netplan-bn0
+type=bond
+interface-name=bn0
+
+[bond]
+mode=802.3ad
+lacp_rate=10
+miimon=10
+min_links=10
+xmit_hash_policy=none
+ad_select=none
+all_slaves_active=1
+arp_interval=10
+arp_ip_target=10.10.10.10,20.20.20.20
+arp_validate=all
+arp_all_targets=all
+updelay=10
+downdelay=10
+fail_over_mac=none
+num_grat_arp=10
+num_unsol_na=10
+packets_per_slave=10
+primary_reselect=none
+resend_igmp=10
+lp_interval=10
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+        self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
+
     def test_bond_with_params(self):
         self.generate('''network:
   version: 2
@@ -555,7 +734,9 @@ method=ignore
         primary-reselect-policy: none
         resend-igmp: 10
         learn-packet-interval: 10
-      dhcp4: true''')
+      dhcp4: true''', skip_generated_yaml_validation=True)
+        # Skipping the yaml validation above because the emitter will use
+        # all-members_active and packets-per-member by default.
 
         self.assert_nm({'eno1': '''[connection]
 id=netplan-eno1

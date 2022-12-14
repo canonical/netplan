@@ -182,9 +182,9 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
         YAML_STRING(def, event, emitter, "arp-interval", def->bond_params.arp_interval);
         YAML_STRING(def, event, emitter, "primary", def->bond_params.primary_slave);
         YAML_UINT_0(def, event, emitter, "min-links", def->bond_params.min_links);
-        YAML_BOOL_TRUE(def, event, emitter, "all-slaves-active", def->bond_params.all_slaves_active);
+        YAML_BOOL_TRUE(def, event, emitter, "all-members-active", def->bond_params.all_members_active);
         YAML_UINT_0(def, event, emitter, "gratuitous-arp", def->bond_params.gratuitous_arp);
-        YAML_UINT_0(def, event, emitter, "packets-per-slave", def->bond_params.packets_per_slave);
+        YAML_UINT_0(def, event, emitter, "packets-per-member", def->bond_params.packets_per_member);
         YAML_UINT_0(def, event, emitter, "resend-igmp", def->bond_params.resend_igmp);
         if (def->bond_params.arp_ip_targets || DIRTY(def, def->bond_params.arp_ip_targets)) {
             GArray* arr = def->bond_params.arp_ip_targets;
