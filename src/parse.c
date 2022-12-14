@@ -2086,11 +2086,11 @@ handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* dat
     if (!component) {
         add_missing_node(npp, node);
     } else {
-        /* If this is not the primary pass, the primary slave might already be equally set. */
+        /* If this is not the primary pass, the primary member might already be equally set. */
         if (!g_strcmp0(npp->current.netdef->bond_params.primary_slave, scalar(node))) {
             return TRUE;
         } else if (npp->current.netdef->bond_params.primary_slave)
-            return yaml_error(npp, node, error, "%s: bond already has a primary slave: %s",
+            return yaml_error(npp, node, error, "%s: bond already has a primary member: %s",
                               npp->current.netdef->id, npp->current.netdef->bond_params.primary_slave);
 
         ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));

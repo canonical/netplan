@@ -49,7 +49,7 @@ class _CommonTests():
         with open('/sys/class/net/mybond/bonding/slaves') as f:
             self.assertEqual(f.read().strip(), self.dev_e_client)
 
-    def test_bond_primary_slave(self):
+    def test_bond_primary_member(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
@@ -76,7 +76,7 @@ class _CommonTests():
         with open('/sys/class/net/mybond/bonding/primary') as f:
             self.assertEqual(f.read().strip(), '%(ec)s' % {'ec': self.dev_e_client})
 
-    def test_bond_all_slaves_active(self):
+    def test_bond_all_members_active(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:

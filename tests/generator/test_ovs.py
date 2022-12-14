@@ -216,7 +216,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/if
       interfaces: [eth1, eth2]
       openvswitch: {}
 ''', expect_fail=True)
-        self.assertIn("Bond bond0 needs to be a slave of an OpenVSwitch bridge", err)
+        self.assertIn("Bond bond0 needs to be a member of an OpenVSwitch bridge", err)
 
     def test_bond_not_enough_interfaces(self):
         err = self.generate('''network:
@@ -233,7 +233,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/if
       interfaces: [bond0]
       openvswitch: {}
 ''', expect_fail=True)
-        self.assertIn("Bond bond0 needs to have at least 2 slave interfaces", err)
+        self.assertIn("Bond bond0 needs to have at least 2 member interfaces", err)
 
     def test_bond_lacp(self):
         self.generate('''network:

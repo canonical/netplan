@@ -261,7 +261,7 @@ UseMTU=true
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
-    def test_bond_primary_slave(self):
+    def test_bond_primary_member(self):
         self.generate('''network:
   version: 2
   ethernets:
@@ -297,7 +297,7 @@ UseMTU=true
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
-    def test_bond_primary_slave_duplicate(self):
+    def test_bond_primary_member_duplicate(self):
         self.generate('''network:
   version: 2
   renderer: networkd
@@ -625,7 +625,7 @@ method=ignore
         self.assert_networkd({})
         self.assert_nm_udev(NM_MANAGED % 'eno1' + NM_MANAGED % 'enp2s1' + NM_MANAGED % 'bn0')
 
-    def test_bond_primary_slave(self):
+    def test_bond_primary_member(self):
         self.generate('''network:
   version: 2
   renderer: NetworkManager
@@ -727,7 +727,7 @@ class TestConfigErrors(TestBase):
           - 2001:dead:beef::1
       dhcp4: true''', expect_fail=True)
 
-    def test_bond_invalid_primary_slave(self):
+    def test_bond_invalid_primary_member(self):
         self.generate('''network:
   version: 2
   ethernets:
@@ -741,7 +741,7 @@ class TestConfigErrors(TestBase):
         primary: wigglewiggle
       dhcp4: true''', expect_fail=True)
 
-    def test_bond_duplicate_primary_slave(self):
+    def test_bond_duplicate_primary_member(self):
         self.generate('''network:
   version: 2
   ethernets:
