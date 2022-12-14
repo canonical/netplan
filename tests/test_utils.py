@@ -248,7 +248,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_systemctl.path) + os.pathsep + path_env
         utils.systemctl('start', ['service1', 'service2'])
-        self.assertEquals(self.mock_systemctl.calls(), [['systemctl', 'start', '--no-block', 'service1', 'service2']])
+        self.assertEqual(self.mock_systemctl.calls(), [['systemctl', 'start', '--no-block', 'service1', 'service2']])
 
     def test_networkd_interfaces(self):
         self.mock_networkctl = MockCmd('networkctl')
@@ -260,7 +260,7 @@ class TestUtils(unittest.TestCase):
   3 wlan0           wlan     routable   configuring
 174 wwan0           wwan     off        linger''')
         res = utils.networkd_interfaces()
-        self.assertEquals(self.mock_networkctl.calls(), [['networkctl', '--no-pager', '--no-legend']])
+        self.assertEqual(self.mock_networkctl.calls(), [['networkctl', '--no-pager', '--no-legend']])
         self.assertIn('2', res)
         self.assertIn('3', res)
 
@@ -269,7 +269,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
         utils.networkctl_reload()
-        self.assertEquals(self.mock_networkctl.calls(), [
+        self.assertEqual(self.mock_networkctl.calls(), [
             ['networkctl', 'reload']
         ])
 
@@ -278,7 +278,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
         utils.networkctl_reconfigure(['3', '5'])
-        self.assertEquals(self.mock_networkctl.calls(), [
+        self.assertEqual(self.mock_networkctl.calls(), [
             ['networkctl', 'reconfigure', '3', '5']
         ])
 
@@ -287,7 +287,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         self.assertTrue(utils.is_nm_snap_enabled())
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['systemctl', '--quiet', 'is-enabled', 'snap.network-manager.networkmanager.service']
         ])
 
@@ -297,7 +297,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         self.assertFalse(utils.is_nm_snap_enabled())
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['systemctl', '--quiet', 'is-enabled', 'snap.network-manager.networkmanager.service']
         ])
 
@@ -306,7 +306,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         utils.systemctl_network_manager('start')
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['systemctl', '--quiet', 'is-enabled', 'snap.network-manager.networkmanager.service'],
             ['systemctl', 'start', '--no-block', 'snap.network-manager.networkmanager.service']
         ])
@@ -316,7 +316,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         self.assertTrue(utils.systemctl_is_active('some.service'))
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['systemctl', '--quiet', 'is-active', 'some.service']
         ])
 
@@ -326,7 +326,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         self.assertFalse(utils.systemctl_is_active('some.service'))
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['systemctl', '--quiet', 'is-active', 'some.service']
         ])
 
@@ -335,7 +335,7 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         utils.systemctl_daemon_reload()
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['systemctl', 'daemon-reload']
         ])
 
@@ -344,6 +344,6 @@ class TestUtils(unittest.TestCase):
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         utils.ip_addr_flush('eth42')
-        self.assertEquals(self.mock_cmd.calls(), [
+        self.assertEqual(self.mock_cmd.calls(), [
             ['ip', 'addr', 'flush', 'eth42']
         ])

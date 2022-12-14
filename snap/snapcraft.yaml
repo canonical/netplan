@@ -30,7 +30,8 @@ parts:
       - python3-coverage
       - python3-yaml
       - python3-netifaces
-      - python3-nose
+      - python3-pytest
+      - python3-pytest-cov
       - pyflakes3
       - pep8
       - systemd

@@ -28,7 +28,7 @@ jobs:
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          sudo apt install python3-coverage curl meson gcovr expect
+          sudo apt install python3-coverage python3-pytest python3-pytest-cov curl meson gcovr expect
           sudo apt build-dep netplan.io
 
       # Runs the unit tests with coverage

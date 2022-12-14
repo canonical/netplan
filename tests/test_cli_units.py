@@ -82,14 +82,14 @@ class TestCLI(unittest.TestCase):
                                                ['br0', 'vlan2'],
                                                devices=['br0', 'vlan2', 'eth0'])
         mock.assert_not_called()
-        self.assertEquals(res, [])
+        self.assertEqual(res, [])
 
     @patch('subprocess.check_call')
     def test_clear_virtual_links_no_devices(self, mock):
         with self.assertLogs('', level='INFO') as ctx:
             res = NetplanApply.clear_virtual_links(['br0', 'br1'],
                                                    ['br0'])
-            self.assertEquals(res, [])
+            self.assertEqual(res, [])
             self.assertEqual(ctx.output, ['WARNING:root:Cannot clear virtual links: no network interfaces provided.'])
         mock.assert_not_called()
 

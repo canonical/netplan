@@ -120,7 +120,7 @@ class TestNetplanDBus(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
             ["netplan", "apply"],
         ])
 
@@ -135,7 +135,7 @@ class TestNetplanDBus(unittest.TestCase):
         p.wait(10)
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
-        self.assertEquals(self.mock_busctl_cmd.calls(), [
+        self.assertEqual(self.mock_busctl_cmd.calls(), [
             ["busctl", "call", "--quiet", "--system",
              "io.netplan.Netplan",  # the service
              "/io/netplan/Netplan",  # the object
@@ -181,7 +181,7 @@ class TestNetplanDBus(unittest.TestCase):
         p.wait(10)
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
-        self.assertEquals(self.mock_busctl_cmd.calls(), [
+        self.assertEqual(self.mock_busctl_cmd.calls(), [
             ["busctl", "call", "--quiet", "--system",
              "io.netplan.Netplan",  # the service
              "/io/netplan/Netplan",  # the object
@@ -217,7 +217,7 @@ class TestNetplanDBus(unittest.TestCase):
     def test_netplan_dbus_noroot(self):
         # Process should fail instantly, if not: kill it after 5 sec
         r = subprocess.run(NETPLAN_DBUS_CMD, timeout=5, capture_output=True)
-        self.assertEquals(r.returncode, 1)
+        self.assertEqual(r.returncode, 1)
         self.assertIn(b'Failed to acquire service name', r.stderr)
 
     def test_netplan_dbus_happy(self):
@@ -231,7 +231,7 @@ class TestNetplanDBus(unittest.TestCase):
         output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
         self.assertEqual(output.decode("utf-8"), "b true\n")
         # one call to netplan apply in total
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
                 ["netplan", "apply"],
         ])
 
@@ -239,7 +239,7 @@ class TestNetplanDBus(unittest.TestCase):
         output = subprocess.check_output(BUSCTL_NETPLAN_APPLY)
         self.assertEqual(output.decode("utf-8"), "b true\n")
         # and another call to netplan apply
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
                 ["netplan", "apply"],
                 ["netplan", "apply"],
         ])
@@ -255,7 +255,7 @@ class TestNetplanDBus(unittest.TestCase):
         output = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(output.decode("utf-8"), "b true\n")
         # one call to netplan apply in total
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
                 ["netplan", "generate"],
         ])
 
@@ -297,7 +297,7 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
         self.assertIn(r's ""', out)  # No output as 'netplan get' is actually mocked
-        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+        self.assertEqual(self.mock_netplan_cmd.calls(), [[
             "netplan", "get", "all", "--root-dir={}".format(tmpdir)
         ]])
 
@@ -332,7 +332,7 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
-        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+        self.assertEqual(self.mock_netplan_cmd.calls(), [[
             "netplan", "set", "ethernets.eth42.dhcp6=true",
             "--root-dir={}".format(tmpdir)
         ]])
@@ -353,7 +353,7 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
         self.assertIn(r's "network:\n  eth42:\n    dhcp6: true\n"', out)
-        self.assertEquals(self.mock_netplan_cmd.calls(), [[
+        self.assertEqual(self.mock_netplan_cmd.calls(), [[
             "netplan", "get", "all", "--root-dir={}".format(tmpdir)
         ]])
 
@@ -405,8 +405,8 @@ class TestNetplanDBus(unittest.TestCase):
         ]
         out = subprocess.check_output(BUSCTL_NETPLAN_CMD)
         self.assertEqual(b'b true\n', out)
-        self.assertEquals(self.mock_netplan_cmd.calls(),
-                          [["netplan", "apply", "--state=%s/run/netplan/config-BACKUP" % self.tmp]])
+        self.assertEqual(self.mock_netplan_cmd.calls(),
+                         [["netplan", "apply", "--state=%s/run/netplan/config-BACKUP" % self.tmp]])
         time.sleep(1)  # Give some time for 'Apply' to clean up
         self.assertFalse(os.path.isdir(tmpdir))
 
@@ -491,8 +491,8 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
         # Verify 'netplan try' has been called
-        self.assertEquals(self.mock_netplan_cmd.calls(),
-                          [["netplan", "try", "--timeout=3", "--state=%s/run/netplan/config-BACKUP" % self.tmp]])
+        self.assertEqual(self.mock_netplan_cmd.calls(),
+                         [["netplan", "try", "--timeout=3", "--state=%s/run/netplan/config-BACKUP" % self.tmp]])
 
     def test_netplan_dbus_config_try_cb(self):
         self.mock_netplan_cmd.touch(self._netplan_try_stamp)
@@ -533,8 +533,8 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertIn('Unknown object \'/io/netplan/Netplan/config/{}\''.format(cid), err)
 
         # Verify 'netplan try' has been called
-        self.assertEquals(self.mock_netplan_cmd.calls(),
-                          [["netplan", "try", "--timeout=1", "--state=%s/run/netplan/config-BACKUP" % self.tmp]])
+        self.assertEqual(self.mock_netplan_cmd.calls(),
+                         [["netplan", "try", "--timeout=1", "--state=%s/run/netplan/config-BACKUP" % self.tmp]])
 
     def test_netplan_dbus_config_try_apply(self):
         self.mock_netplan_cmd.touch(self._netplan_try_stamp)
@@ -668,7 +668,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(b'b true\n', out)
 
         # Verify that Set()/Apply() was only called by one config object
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
             ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
              "--root-dir={}/run/netplan/config-{}".format(self.tmp, cid)],
             ["netplan", "set", "ethernets.eth0.dhcp4=yes", "--origin-hint=70-snapd",
@@ -738,7 +738,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(b'b true\n', out)
 
         # Verify the call stack
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
             ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
              "--root-dir={}/run/netplan/config-{}".format(self.tmp, cid)],
             ["netplan", "set", "ethernets.eth0.dhcp4=false", "--origin-hint=70-snapd",
@@ -788,7 +788,7 @@ class TestNetplanDBus(unittest.TestCase):
         self.assertEqual(b'b true\n', out)
 
         # Verify the call stack
-        self.assertEquals(self.mock_netplan_cmd.calls(), [
+        self.assertEqual(self.mock_netplan_cmd.calls(), [
             ["netplan", "set", "ethernets.eth0.dhcp4=true", "--origin-hint=70-snapd",
              "--root-dir={}/run/netplan/config-{}".format(self.tmp, cid)],
             ["netplan", "try", "--timeout=1", "--state=%s/run/netplan/config-BACKUP" % self.tmp],
