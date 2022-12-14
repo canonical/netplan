@@ -74,8 +74,6 @@ rules:
       - primary
       - main
     severity: warning
-    options:
-      word_boundary: true
 
   - name: slave
     terms:
@@ -84,8 +82,6 @@ rules:
       - secondary
       - replica
     severity: warning
-    options:
-      word_boundary: true
 
   - name: whitehat
     terms:
