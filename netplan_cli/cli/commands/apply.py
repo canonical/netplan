@@ -119,14 +119,8 @@ class NetplanApply(utils.NetplanCommand):
         nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
         old_files_nm = bool(old_nm_glob)
 
-        generator_call = []
-        generate_out = None
-        if 'NETPLAN_PROFILE' in os.environ:
-            generator_call.extend(['valgrind', '--leak-check=full'])
-            generate_out = subprocess.STDOUT
-
-        generator_call.append(utils.get_generator_path())
-        if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
+        generator_call = ['/usr/sbin/netplan', 'generate']
+        if run_generate and subprocess.call(generator_call) != 0:
             if exit_on_error:
                 sys.exit(os.EX_CONFIG)
             else:

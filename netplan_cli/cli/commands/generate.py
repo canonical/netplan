@@ -75,14 +75,20 @@ class NetplanGenerate(utils.NetplanCommand):
             else:
                 return
 
-        argv = [utils.get_generator_path()]
+        argv = []
+        generate_out = None
+        if 'NETPLAN_PROFILE' in os.environ:
+            argv.extend(['valgrind', '--leak-check=full'])
+            generate_out = subprocess.STDOUT
+
+        argv.append(utils.get_generator_path())
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
         if self.mapping:
             argv += ['--mapping', self.mapping]
         logging.debug('command generate: running %s', argv)
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
-        res = subprocess.call(argv)
+        res = subprocess.call(argv, stderr=generate_out)
 
         if res != 0:
             logging.warning("netplan generator failed to run: error %s", res)
