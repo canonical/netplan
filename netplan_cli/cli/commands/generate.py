@@ -77,7 +77,7 @@ class NetplanGenerate(utils.NetplanCommand):
 
         argv = []
         generate_out = None
-        if 'NETPLAN_PROFILE' in os.environ:
+        if 'NETPLAN_PROFILE' in os.environ:  # pragma: nocover (only used for profiling)
             argv.extend(['valgrind', '--leak-check=full'])
             generate_out = subprocess.STDOUT
 
