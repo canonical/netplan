@@ -972,7 +972,7 @@ netplan_netdef_write_network_file(
         }
     }
     
-    /* }  /* for (combined_dhcp_section) { */
+    /* } * for (combined_dhcp_section) */
 
     /* IP-over-InfiniBand, IPoIB */
     if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
