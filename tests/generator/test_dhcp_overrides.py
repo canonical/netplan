@@ -21,6 +21,23 @@ from .base import (TestBase, ND_DHCP4, ND_DHCP4_NOMTU, ND_DHCP6,
 
 
 class TestNetworkd(TestBase):
+    # simple test for a specific class of bugs
+    # FIXME: adapt all tests in assert_dhcp_overrides_bool() for the override=false case after updating dhcp6-override generation
+    def assert_dhcp6_overrides_bool_false(self, override_name, networkd_name):
+        # dhcp6 no
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp6: yes
+      dhcp6-overrides:
+        %s: no
+''' % override_name)
+        # must not get silently ignored since true is the default
+        kiss = self.get_network_config_for_link('engreen')
+        # fuzzy
+        self.assertIn('\n%s=false\n' % networkd_name, kiss)
+        self.assertIn('\n[DHCPv6]\n', kiss)
 
     # Common tests for dhcp override booleans
     def assert_dhcp_overrides_bool(self, override_name, networkd_name):
@@ -354,6 +371,8 @@ UseMTU=true
 
     def test_dhcp_overrides_use_hostname(self):
         self.assert_dhcp_overrides_bool('use-hostname', 'UseHostname')
+        # example, other overrides are affected as well
+        self.assert_dhcp6_overrides_bool_false('use-hostname', 'UseHostname')
 
     def test_dhcp_overrides_hostname(self):
         self.assert_dhcp_overrides_string('hostname', 'Hostname')
