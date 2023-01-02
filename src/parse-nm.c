@@ -23,7 +23,7 @@
 #include "parse-nm.h"
 #include "parse.h"
 #include "util.h"
-#include "types.h"
+#include "types-internal.h"
 #include "util-internal.h"
 #include "validation.h"
 
@@ -446,6 +446,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     g_autofree gchar* wifi_mode = NULL;
     g_autofree gchar* ssid = NULL;
     g_autofree gchar* netdef_id = NULL;
+    ssize_t netdef_id_size = 0;
     gchar *tmp_str = NULL;
     NetplanNetDefinition* nd = NULL;
     NetplanWifiAccessPoint* ap = NULL;
@@ -460,7 +461,8 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     if (!ssid)
         ssid = g_key_file_get_string(kf, "802-11-wireless", "ssid", NULL);
 
-    netdef_id = netplan_get_id_from_nm_filename(filename, ssid);
+    netdef_id = g_malloc0(strlen(filename));
+    netdef_id_size = netplan_get_id_from_nm_filepath(filename, ssid, netdef_id, strlen(filename));
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
     if (!uuid) {
         g_warning("netplan: Keyfile: cannot find connection.uuid");
@@ -477,7 +479,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     tmp_str = g_key_file_get_string(kf, "connection", "interface-name", NULL);
     /* Use previously existing netdef IDs, if available, to override connections
      * Else: generate a "NM-<UUID>" ID */
-    if (netdef_id) {
+    if (netdef_id_size > 0) {
         nd_id = g_strdup(netdef_id);
         if (g_strcmp0(netdef_id, tmp_str) == 0)
             _kf_clear_key(kf, "connection", "interface-name");

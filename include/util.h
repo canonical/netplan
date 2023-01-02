@@ -18,7 +18,8 @@
 #pragma once
 
 #include <glib.h>
-#include "netplan.h"
+#include <stdint.h>
+#include "types.h"
 
 NETPLAN_PUBLIC gboolean
 netplan_delete_connection(const char* id, const char* rootdir);
@@ -26,8 +27,28 @@ netplan_delete_connection(const char* id, const char* rootdir);
 NETPLAN_PUBLIC gboolean
 netplan_generate(const char* rootdir);
 
-NETPLAN_PUBLIC gchar*
-netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
+NETPLAN_PUBLIC ssize_t
+netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* out_buffer, size_t out_buf_size);
 
-NETPLAN_PUBLIC gchar*
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const char* ssid, char* out_buffer, size_t out_buf_size);
+
+NETPLAN_PUBLIC void
+netplan_error_free(NetplanError* error);
+
+NETPLAN_PUBLIC ssize_t
+netplan_error_message(NetplanError* error, char* buf, size_t buf_size);
+
+/* u64 return value contains both GLib domain and error code. The two values are
+ * concatenated, so that the relevant data can easily be masked:
+ * (u32)domain | (u32)code */
+NETPLAN_PUBLIC uint64_t
+netplan_error_code(NetplanError* error);
+
+/********** Old API below this ***********/
+
+NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
 netplan_get_filename_by_id(const char* netdef_id, const char* rootdir);
+
+NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
+netplan_get_id_from_nm_filename(const char* filename, const char* ssid);

@@ -64,6 +64,11 @@ test_env = [
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
     'COVERAGE_PROCESS_START=' + join_paths(meson.current_source_dir(), '.coveragerc'),
 ]
+
+if get_option('unit_testing')
+  subdir('tests/ctests')
+endif
+
 #FIXME: exclude doc/env/
 test('linting',
      pyflakes,

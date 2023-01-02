@@ -18,11 +18,14 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#include <stdint.h>
 
 #include <yaml.h>
 
+#include "util.h"
 #include "parse.h"
-#include "types.h"
+#include "types-internal.h"
+#include "util-internal.h"
 
 /****************************************************
  * Loading and error handling
@@ -175,3 +178,20 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
     return FALSE;
 }
 
+void
+netplan_error_free(NetplanError* error)
+{
+    g_error_free(error);
+}
+
+ssize_t
+netplan_error_message(NetplanError* error, char* buf, size_t buf_size)
+{
+    return netplan_copy_string(error->message, buf, buf_size);
+}
+
+uint64_t
+netplan_error_code(NetplanError* error) {
+    uint64_t error_code = (uint64_t)error->domain << 32 | (uint64_t)error->code;
+    return error_code;
+}

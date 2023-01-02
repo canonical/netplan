@@ -225,11 +225,11 @@ struct netplan_net_definition {
     } linklocal;
 
     /* master ID for slave devices */
-    char* bridge;
-    char* bond;
+    char* bridge; // deprecated, use bridge_link instead
+    char* bond;   // deprecated, use bond_link instead
 
     /* peer ID for OVS patch ports */
-    char* peer;
+    char* peer;   // deprecated, use peer_link instead
 
     /* vlan */
     guint vlan_id;
@@ -327,7 +327,7 @@ struct netplan_net_definition {
 
     /* these properties are only valid for SR-IOV NICs */
     /* netplan-feature: sriov */
-    struct netplan_net_definition* sriov_link;
+    NetplanNetDefinition* sriov_link;
     gboolean sriov_vlan_filter;
     guint sriov_explicit_vf_count;
 
@@ -379,4 +379,8 @@ struct netplan_net_definition {
     /* netplan-feature: vxlan */
     gboolean has_vxlans;
     NetplanVxlan* vxlan;
+
+    NetplanNetDefinition* bridge_link;
+    NetplanNetDefinition* bond_link;
+    NetplanNetDefinition* peer_link;
 };

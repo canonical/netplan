@@ -11,6 +11,15 @@ BUILDFLAGS = \
 	-Werror \
 	$(NULL)
 
+TESTFLAGS =	\
+	-g \
+	-O0 \
+	-DFIXTURESDIR=\"$(shell pwd)/tests/ctests/fixtures\" \
+	-Isrc \
+	--coverage \
+	-lcmocka \
+	$(NULL)
+
 SRCS = \
 	src/abi_compat.c \
 	src/error.c \
@@ -25,6 +34,13 @@ SRCS = \
 	src/types.c \
 	src/util.c \
 	src/validation.c \
+	$(NULL)
+
+TESTS = \
+	tests/ctests/test_netplan_error \
+	tests/ctests/test_netplan_misc \
+	tests/ctests/test_netplan_parser \
+	tests/ctests/test_netplan_state \
 	$(NULL)
 
 SYSTEMD_GENERATOR_DIR=$(shell pkg-config --variable=systemdsystemgeneratordir systemd)
@@ -77,16 +93,22 @@ netplan/_features.py: src/[^_]*.[hc]
 	awk 'match ($$0, /netplan-feature:.*/ ) { $$0=substr($$0, RSTART, RLENGTH); print "    \""$$2"\"," }' $^ >> $@
 	echo "]" >> $@
 
+$(TESTS): %: %.c
+	$(CC) $(BUILDFLAGS) $(CFLAGS) -o $@ $< `pkg-config --cflags --libs glib-2.0 gio-2.0 yaml-0.1 uuid` $(TESTFLAGS)
+	./$@
+
 clean:
 	rm -f netplan/_features.py src/_features.h src/_features.h.gch
 	rm -f generate doc/*.html doc/*.[1-9]
 	rm -f *.o *.so*
 	rm -f netplan-dbus dbus/*.service
 	rm -f *.gcda *.gcno generate.info
+	rm -f tests/ctests/*.gcda tests/ctests/*.gcno
 	rm -rf test-coverage .coverage coverage.xml
 	find . | grep -E "(__pycache__|\.pyc)" | xargs rm -rf
+	rm -f $(TESTS)
 
-check: default linting
+check: default linting $(TESTS)
 	PYTHONPATH=. LD_LIBRARY_PATH=. tests/cli.py
 	PYTHONPATH=. LD_LIBRARY_PATH=. $(PYCOVERAGE) run -a -m pytest -s -v --cov-append
 	tests/validate_docs.sh

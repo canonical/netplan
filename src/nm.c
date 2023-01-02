@@ -883,6 +883,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
 
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
+        /* TODO: make use of netplan_netdef_get_output_filename() */
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, "-", escaped_ssid, ".nmconnection", NULL);
 
         g_key_file_set_string(kf, "wifi", "ssid", ap->ssid);
@@ -917,6 +918,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_datalist_foreach((GData**)&ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
         }
     } else {
+        /* TODO: make use of netplan_netdef_get_output_filename() */
         conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", def->id, ".nmconnection", NULL);
         if (def->has_auth) {
             write_dot1x_auth_parameters(&def->auth, kf);

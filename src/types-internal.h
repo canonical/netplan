@@ -280,3 +280,6 @@ route_clear(NetplanIPRoute** route);
 
 gboolean
 netplan_state_has_nondefault_globals(const NetplanState* np_state);
+
+void
+clear_netdef_from_list(void* def);

@@ -35,7 +35,7 @@ jobs:
       # TODO: move to meson build (on Jammy), once available
       - name: Run build
         run: |
-          meson setup _build --prefix=/usr
+          meson setup _build -Dunit_testing=false --prefix=/usr
           meson compile -C _build
 
       # Abigail ABI checker

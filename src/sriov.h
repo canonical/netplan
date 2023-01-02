@@ -19,10 +19,4 @@
 #include "netplan.h"
 
 NETPLAN_INTERNAL gboolean
-netplan_state_finish_sriov_write(
-        const NetplanState* np_state,
-        const char* rootdir,
-        GError** error);
-
-NETPLAN_INTERNAL gboolean
 netplan_sriov_cleanup(const char* rootdir);

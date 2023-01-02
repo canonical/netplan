@@ -1367,6 +1367,7 @@ handle_bridge_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data
                 return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bond %s",
                                   npp->current.netdef->id, scalar(entry), component->bond);
             set_str_if_null(component->bridge, npp->current.netdef->id);
+            component->bridge_link = npp->current.netdef;
             if (component->backend == NETPLAN_BACKEND_OVS) {
                 g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
                 npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
@@ -1431,6 +1432,7 @@ handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, 
                 return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bond %s",
                                   npp->current.netdef->id, scalar(entry), component->bond);
             component->bond = g_strdup(npp->current.netdef->id);
+            component->bond_link = npp->current.netdef;
             if (component->backend == NETPLAN_BACKEND_OVS) {
                 g_debug("%s: Bond contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
                 npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
@@ -2813,7 +2815,8 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
     yaml_node_t* peer = NULL;
     yaml_node_t* pair = NULL;
     yaml_node_item_t *item = NULL;
-    NetplanNetDefinition *component = NULL;
+    NetplanNetDefinition *component1 = NULL;
+    NetplanNetDefinition *component2 = NULL;
 
     for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
         pair = yaml_document_get_node(&npp->doc, *iter);
@@ -2831,31 +2834,33 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         assert_type(npp, peer, YAML_SCALAR_NODE);
 
         /* Create port 1 netdef */
-        component = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(port)) : NULL;
-        if (!component) {
-            component = netplan_netdef_new(npp, scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+        component1 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(port)) : NULL;
+        if (!component1) {
+            component1 = netplan_netdef_new(npp, scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(npp->missing_id, scalar(port)))
                 npp->missing_ids_found++;
         }
 
-        if (component->peer && g_strcmp0(component->peer, scalar(peer)))
+        if (component1->peer && g_strcmp0(component1->peer, scalar(peer)))
             return yaml_error(npp, port, error, "openvswitch port '%s' is already assigned to peer '%s'",
-                              component->id, component->peer);
-        component->peer = g_strdup(scalar(peer));
+                              component1->id, component1->peer);
 
         /* Create port 2 (peer) netdef */
-        component = NULL;
-        component = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(peer)) : NULL;
-        if (!component) {
-            component = netplan_netdef_new(npp, scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+        component2 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(peer)) : NULL;
+        if (!component2) {
+            component2 = netplan_netdef_new(npp, scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(npp->missing_id, scalar(peer)))
                 npp->missing_ids_found++;
         }
 
-        if (component->peer && g_strcmp0(component->peer, scalar(port)))
+        if (component2->peer && g_strcmp0(component2->peer, scalar(port)))
             return yaml_error(npp, peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
-                              component->id, component->peer);
-        component->peer = g_strdup(scalar(port));
+                              component2->id, component2->peer);
+
+        component1->peer = g_strdup(scalar(peer));
+        component2->peer = g_strdup(scalar(port));
+        component1->peer_link = component2;
+        component2->peer_link = component1;
     }
     return TRUE;
 }
@@ -3258,13 +3263,6 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
 
     netplan_parser_reset(npp);
     return TRUE;
-}
-
-static void
-clear_netdef_from_list(void *def)
-{
-    reset_netdef((NetplanNetDefinition *)def, NETPLAN_DEF_TYPE_NONE, NETPLAN_BACKEND_NONE);
-    g_free(def);
 }
 
 NetplanParser*

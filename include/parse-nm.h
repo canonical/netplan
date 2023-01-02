@@ -16,14 +16,12 @@
  */
 
 #pragma once
-
-#include "parse.h"
-#include <glib.h>
+#include "types.h"
 
 #define NETPLAN_NM_EMPTY_GROUP "_"
 
 NETPLAN_PUBLIC gboolean
-netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** error);
+netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, NetplanError** error);
 
 /********** Old API below this ***********/
 

@@ -28,10 +28,4 @@ netplan_netdef_write_nm(
         GError** error);
 
 NETPLAN_INTERNAL gboolean
-netplan_state_finish_nm_write(
-        const NetplanState* np_state,
-        const char* rootdir,
-        GError** error);
-
-NETPLAN_INTERNAL gboolean
 netplan_nm_cleanup(const char* rootdir);

@@ -24,7 +24,7 @@
 
 #include "netplan.h"
 #include "parse.h"
-#include "types.h"
+#include "types-internal.h"
 #include "yaml-helpers.h"
 #include "util-internal.h"
 #include "names.h"

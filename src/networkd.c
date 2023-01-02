@@ -1250,7 +1250,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
  * @has_been_written: TRUE if @def applies to networkd, FALSE otherwise.
  * Returns: FALSE on error.
  */
-NETPLAN_INTERNAL gboolean
+gboolean
 netplan_netdef_write_networkd(
         const NetplanState* np_state,
         const NetplanNetDefinition* def,
@@ -1258,6 +1258,7 @@ netplan_netdef_write_networkd(
         gboolean* has_been_written,
         GError** error)
 {
+    /* TODO: make use of netplan_netdef_get_output_filename() */
     g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
