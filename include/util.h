@@ -39,6 +39,9 @@ netplan_error_free(NetplanError* error);
 NETPLAN_PUBLIC ssize_t
 netplan_error_message(NetplanError* error, char* buf, size_t buf_size);
 
+/* u64 return value contains both GLib domain and error code. The two values are
+ * concatenated, so that the relevant data can easily be masked:
+ * (u32)domain | (u32)code */
 NETPLAN_PUBLIC uint64_t
 netplan_error_code(NetplanError* error);
 
