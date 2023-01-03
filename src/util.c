@@ -40,6 +40,7 @@ wifi_frequency_24;
 NETPLAN_ABI GHashTable*
 wifi_frequency_5;
 
+typedef struct netplan_state_iterator RealStateIter;
 /**
  * Create the parent directories of given file path. Exit program on failure.
  */
@@ -841,17 +842,19 @@ void
 netplan_state_iterator_init(const NetplanState* np_state, NetplanStateIterator* iter)
 {
     g_assert(iter);
-    iter->next = np_state->netdefs_ordered;
+    RealStateIter* _iter = (RealStateIter*) iter;
+    _iter->next = g_list_first(np_state->netdefs_ordered);
 }
 
 NetplanNetDefinition*
 netplan_state_iterator_next(NetplanStateIterator* iter)
 {
     NetplanNetDefinition* netdef = NULL;
+    RealStateIter* _iter = (RealStateIter*) iter;
 
-    if (iter && iter->next) {
-        netdef = iter->next->data;
-        iter->next = iter->next->next;
+    if (_iter && _iter->next) {
+        netdef = _iter->next->data;
+        _iter->next = g_list_next(_iter->next);
     }
 
     return netdef;
@@ -860,7 +863,9 @@ netplan_state_iterator_next(NetplanStateIterator* iter)
 gboolean
 netplan_state_iterator_has_next(const NetplanStateIterator* iter)
 {
-    if (!iter)
+    RealStateIter* _iter = (RealStateIter*) iter;
+
+    if (!_iter)
         return FALSE;
-    return iter->next != NULL;
+    return _iter->next != NULL;
 }

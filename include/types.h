@@ -69,4 +69,8 @@ typedef enum {
 
 typedef GError NetplanError;
 
-typedef struct netplan_state_iterator NetplanStateIterator;
+typedef struct _NetplanStateIterator NetplanStateIterator;
+
+struct _NetplanStateIterator {
+    void* placeholder;
+};
