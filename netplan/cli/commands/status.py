@@ -68,7 +68,7 @@ class Interface():
 
         # Filter resolved's DNS data
         self.dns_addresses: list = None
-        if resolved_data[0] and len(resolved_data[0]) > 0:
+        if resolved_data[0]:
             self.dns_addresses = []
             for itr in resolved_data[0]:
                 if int(itr[0]) == int(self.idx):
@@ -76,7 +76,7 @@ class Interface():
                     dns = itr[2]
                     self.dns_addresses.append(socket.inet_ntop(ipfamily, b''.join([v.to_bytes(1, 'big') for v in dns])))
         self.dns_search: list = None
-        if resolved_data[1] and len(resolved_data[1]) > 0:
+        if resolved_data[1]:
             self.dns_search = []
             for v in resolved_data[1]:
                 if int(v[0]) == int(self.idx):
@@ -85,11 +85,11 @@ class Interface():
         # Filter route data
         _routes: list = []
         self.routes: list = None
-        if route_data[0] and len(route_data[0]) > 0:
+        if route_data[0]:
             _routes += route_data[0]
-        if route_data[1] and len(route_data[1]) > 0:
+        if route_data[1]:
             _routes += route_data[1]
-        if len(_routes) > 0:
+        if _routes:
             self.routes = []
             for obj in _routes:
                 if obj.get('dev') == self.name:
@@ -115,10 +115,10 @@ class Interface():
                     self.routes.append(elem)
 
         self.addresses: list = None
-        if 'addr_info' in ip and len(ip['addr_info']) > 0:
+        if 'addr_info' in ip and ip['addr_info']:
             self.addresses = []
             for addr in ip['addr_info']:
-                flags = []
+                flags: list = []
                 if ipaddress.ip_address(addr['local']).is_link_local:
                     flags.append('link')
                 if self.routes:
@@ -130,7 +130,7 @@ class Interface():
                                 break
                 ip_addr = addr['local'].lower()
                 elem = {ip_addr: {'prefix': addr['prefixlen']}}
-                if len(flags) > 0:
+                if flags:
                     elem[ip_addr]['flags'] = flags
                 self.addresses.append(elem)
 
@@ -348,7 +348,7 @@ class NetplanStatus(utils.NetplanCommand):
                     if 'flags' not in extra or 'link' not in extra['flags']:
                         non_local_ips.append(ip)
                 default_routes = [x for x in itf.routes if x.get('to', None) == 'default']
-                if len(non_local_ips) > 0 and len(default_routes) > 0 and len(itf.dns_addresses) > 0:
+                if non_local_ips and default_routes and itf.dns_addresses:
                     return True
         return False
 
@@ -458,17 +458,17 @@ class NetplanStatus(utils.NetplanCommand):
             value='[online]online[/online]' if global_state.get('online', False) else '[offline]offline[/offline]',
             ))
         ns = global_state.get('nameservers', {})
-        dns_addr = ns.get('addresses', [])
-        dns_mode = ns.get('mode')
-        dns_search = ns.get('search', [])
-        if len(dns_addr) > 0:
+        dns_addr: list = ns.get('addresses', [])
+        dns_mode: str = ns.get('mode')
+        dns_search: list = ns.get('search', [])
+        if dns_addr:
             for i, val in enumerate(dns_addr):
                 pprint(('{title:>'+pad+'} {value}[muted]{mode}[/muted]').format(
                     title='DNS Addresses:' if i == 0 else '',
                     value=val,
                     mode=' ({})'.format(dns_mode) if dns_mode else '',
                     ))
-        if len(dns_search) > 0:
+        if dns_search:
             for i, val in enumerate(dns_search):
                 pprint(('{title:>'+pad+'} {value}').format(
                     title='DNS Search:' if i == 0 else '',
@@ -510,8 +510,8 @@ class NetplanStatus(utils.NetplanCommand):
                     vendor=' ({})'.format(data.get('vendor', '')) if data.get('vendor') else '',
                     ))
 
-            lst = data.get('addresses', [])
-            if len(lst) > 0:
+            lst: list = data.get('addresses', [])
+            if lst:
                 for i, obj in enumerate(lst):
                     ip, extra = list(obj.items())[0]  # get first (any only) address
                     flags = []
@@ -519,20 +519,20 @@ class NetplanStatus(utils.NetplanCommand):
                         flags = extra.get('flags', [])
                     highlight_start = ''
                     highlight_end = ''
-                    if len(flags) == 0 or 'dhcp' in flags:
+                    if not flags or 'dhcp' in flags:
                         highlight_start = '[highlight]'
                         highlight_end = '[/highlight]'
                     pprint(('{title:>'+pad+'} {start}{ip}/{prefix}{end}[muted]{extra}[/muted]').format(
                         title='Addresses:' if i == 0 else '',
                         ip=ip,
                         prefix=extra.get('prefix', ''),
-                        extra=' ('+', '.join(flags)+')' if len(flags) > 0 else '',
+                        extra=' ('+', '.join(flags)+')' if flags else '',
                         start=highlight_start,
                         end=highlight_end,
                         ))
 
             lst = data.get('dns_addresses', [])
-            if len(lst) > 0:
+            if lst:
                 for i, val in enumerate(lst):
                     pprint(('{title:>'+pad+'} {value}').format(
                         title='DNS Addresses:' if i == 0 else '',
@@ -540,7 +540,7 @@ class NetplanStatus(utils.NetplanCommand):
                         ))
 
             lst = data.get('dns_search', [])
-            if len(lst) > 0:
+            if lst:
                 for i, val in enumerate(lst):
                     pprint(('{title:>'+pad+'} {value}').format(
                         title='DNS Search:' if i == 0 else '',
@@ -548,7 +548,7 @@ class NetplanStatus(utils.NetplanCommand):
                         ))
 
             lst = data.get('routes', [])
-            if len(lst) > 0:
+            if lst:
                 for i, obj in enumerate(lst):
                     default_start = ''
                     default_end = ''
@@ -582,7 +582,7 @@ class NetplanStatus(utils.NetplanCommand):
                         via=via,
                         src=src,
                         metric=metric,
-                        extra=' ('+', '.join(extra)+')' if len(extra) > 0 else '',
+                        extra=' ('+', '.join(extra)+')' if extra else '',
                         start=default_start,
                         end=default_end))
 
