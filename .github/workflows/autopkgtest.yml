@@ -43,10 +43,9 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          # temporary until 'ethtool' is a proper test dependency
-          sed -i 's/wpasupplicant,/wpasupplicant, ethtool,/g' debian/tests/control
           dch -v $(git describe --tags) "Autopkgtest CI testing (Jammy)"
       - name: Run autopkgtest (incl. build)
         run: |
-          # using --setup-commands temporarily to install cmocka until it becomes a proper build dependency
-          sudo autopkgtest . --setup-commands='apt -y install python3-pytest python3-pytest-cov libcmocka-dev' -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/jammy/amd64
+          # using --setup-commands temporarily to install:
+          # cmocka/pytest/rich/ethtool until they become proper test-deps
+          sudo autopkgtest . --setup-commands='apt -y install ethtool python3-rich python3-pytest python3-pytest-cov libcmocka-dev' -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/jammy/amd64
