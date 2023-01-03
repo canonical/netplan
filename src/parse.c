@@ -2841,6 +2841,13 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
                 npp->missing_ids_found++;
         }
 
+        if (npp->current.filepath) {
+            if (component1->filepath)
+                g_free(component1->filepath);
+
+            component1->filepath = g_strdup(npp->current.filepath);
+        }
+
         if (component1->peer && g_strcmp0(component1->peer, scalar(peer)))
             return yaml_error(npp, port, error, "openvswitch port '%s' is already assigned to peer '%s'",
                               component1->id, component1->peer);
@@ -2851,6 +2858,13 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
             component2 = netplan_netdef_new(npp, scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
             if (g_hash_table_remove(npp->missing_id, scalar(peer)))
                 npp->missing_ids_found++;
+        }
+
+        if (npp->current.filepath) {
+            if (component2->filepath)
+                g_free(component2->filepath);
+
+            component2->filepath = g_strdup(npp->current.filepath);
         }
 
         if (component2->peer && g_strcmp0(component2->peer, scalar(port)))
