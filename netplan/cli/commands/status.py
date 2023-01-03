@@ -45,15 +45,22 @@ class NetplanHighlighter(RegexHighlighter):
 
 
 class Interface():
+    def __extract_mac(self, ip: JSON) -> str:
+        '''
+        Extract the MAC address if it's set inside the JSON data and seems to
+        have the correct format. Return 'None' otherwise.
+        '''
+        if 'address' in ip and len(ip['address']) == 17:  # 6 byte MAC (+5 colons)
+            return ip['address'].lower()
+        return None
+
     def __init__(self, ip: JSON, nd_data: JSON = [], nm_data: JSON = [],
                  resolved_data: tuple = (None, None), route_data: tuple = (None, None)):
         self.idx: int = ip['ifindex']
         self.name: str = ip['ifname']
         self.adminstate: str = 'UP' if 'UP' in ip['flags'] else 'DOWN'
         self.operstate: str = ip['operstate'].upper()
-        self.macaddress: str = None
-        if 'address' in ip and len(ip['address']) == 17:  # 6 byte MAC
-            self.macaddress = ip['address'].lower()
+        self.macaddress: str = self.__extract_mac(ip)
 
         # Filter networkd/NetworkManager data
         self.nd: JSON = next((x for x in nd_data if x['Index'] == self.idx), None)
