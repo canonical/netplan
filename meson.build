@@ -114,13 +114,13 @@ if get_option('b_coverage')
     test('coverage-py-combine',
          pycoverage,
          args: ['combine', '-a', meson.current_build_dir()],
-         priority: -99, # run last
+         priority: -90, # run before 'coverage-py-output'
          is_parallel: false)
     test('coverage-py-output',
          pycoverage,
          args: ['html', '-d', join_paths(meson.current_build_dir(),
                 'meson-logs', 'coveragereport-py'), '--omit=/usr*'],
-         priority: -99, # run last
+         priority: -95, # run before 'coverage-py'
          is_parallel: false)
     test('coverage-py',
          pycoverage,
