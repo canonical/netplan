@@ -55,6 +55,24 @@ class TestCLI(unittest.TestCase):
         res = NetplanApply.is_composite_member([{'renderer': 'networkd', 'br0': {'interfaces': ['eth0']}}], 'eth0')
         self.assertTrue(res)
 
+    @patch('subprocess.run')
+    def test_get_alt_names(self, mock):
+        stdout_mock = mock.Mock()
+        stdout_mock.stdout = '[{"ifindex":3,"ifname":"ens4","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],'\
+                             '"mtu":8958,"qdisc":"fq_codel","operstate":"UP","linkmode":"DEFAULT","group":"default",'\
+                             '"txqlen":1000,"link_type":"ether","address":"xx:xx:xx:xx:xx:xx",'\
+                             '"broadcast":"ff:ff:ff:ff:ff:ff","altnames":["enp0s4","enp0s41"]}]'.encode('utf-8')
+        mock.return_value = stdout_mock
+        res = NetplanApply.get_alt_names('ens4')
+        mock.assert_called_with(['ip', '-j', 'link', 'show', 'ens4'], capture_output=True)
+        self.assertEquals(res, ['enp0s4', 'enp0s41'])
+
+        mock.reset_mock()
+        stdout_mock.stdout = ''.encode('utf-8')
+        res = NetplanApply.get_alt_names('ens4')
+        mock.assert_called_with(['ip', '-j', 'link', 'show', 'ens4'], capture_output=True)
+        self.assertEquals(res, [])
+
     @patch('subprocess.check_call')
     def test_clear_virtual_links(self, mock):
         # simulate as if 'tun3' would have already been delete another way,
