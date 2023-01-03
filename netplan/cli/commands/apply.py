@@ -336,7 +336,7 @@ class NetplanApply(utils.NetplanCommand):
                 cmd = ['ip', 'link', 'delete', 'dev', link]
                 subprocess.check_call(cmd)
             except subprocess.CalledProcessError:
-                logging.warn('Could not delete interface {}'.format(link))
+                logging.warning('Could not delete interface {}'.format(link))
 
         return dropped_interfaces
 
