@@ -17,20 +17,21 @@
 
 '''netplan status command line'''
 
-import dbus
 import ipaddress
 import json
 import logging
 import socket
 import subprocess
 import sys
-import yaml
-import netplan.cli.utils as utils
+from typing import Union, Dict, List, Type
 
+import dbus
+import yaml
 from rich.console import Console
 from rich.highlighter import RegexHighlighter
 from rich.theme import Theme
-from typing import Union, Dict, List, Type
+
+import netplan.cli.utils as utils
 
 JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
 
