@@ -2842,10 +2842,10 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         }
 
         if (npp->current.filepath) {
-            if (component->filepath)
-                g_free(component->filepath);
+            if (component1->filepath)
+                g_free(component1->filepath);
 
-            component->filepath = g_strdup(npp->current.filepath);
+            component1->filepath = g_strdup(npp->current.filepath);
         }
 
         if (component1->peer && g_strcmp0(component1->peer, scalar(peer)))
@@ -2861,10 +2861,10 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         }
 
         if (npp->current.filepath) {
-            if (component->filepath)
-                g_free(component->filepath);
+            if (component2->filepath)
+                g_free(component2->filepath);
 
-            component->filepath = g_strdup(npp->current.filepath);
+            component2->filepath = g_strdup(npp->current.filepath);
         }
 
         if (component2->peer && g_strcmp0(component2->peer, scalar(port)))
