@@ -63,6 +63,7 @@ class Interface():
         self.macaddress: str = self.__extract_mac(ip)
 
         # Filter networkd/NetworkManager data
+        nm_data = nm_data or []  # avoid 'None' value on systems without NM
         self.nd: JSON = next((x for x in nd_data if x['Index'] == self.idx), None)
         self.nm: JSON = next((x for x in nm_data if x['device'] == self.name), None)
 
@@ -356,11 +357,11 @@ class NetplanStatus(utils.NetplanCommand):
         return yaml.safe_load(cmd_output)
 
     def query_iproute2(self) -> JSON:
-        data = None
+        data: JSON = None
         try:
             output: str = subprocess.check_output(['ip', '-d', '-j', 'addr'],
                                                   universal_newlines=True)
-            data: JSON = self.process_generic(output)
+            data = self.process_generic(output)
         except Exception as e:
             logging.critical('Cannot query iproute2 interface data: {}'.format(str(e)))
         return data
@@ -369,11 +370,11 @@ class NetplanStatus(utils.NetplanCommand):
         return yaml.safe_load(cmd_output)['Interfaces']
 
     def query_networkd(self) -> JSON:
-        data = None
+        data: JSON = None
         try:
             output: str = subprocess.check_output(['networkctl', '--json=short'],
                                                   universal_newlines=True)
-            data: JSON = self.process_networkd(output)
+            data = self.process_networkd(output)
         except Exception as e:
             logging.critical('Cannot query networkd interface data: {}'.format(str(e)))
         return data
@@ -395,13 +396,13 @@ class NetplanStatus(utils.NetplanCommand):
         return data
 
     def query_nm(self) -> JSON:
-        data = None
+        data: JSON = None
         try:
             output: str = subprocess.check_output(['nmcli', '-t', '-f',
                                                    'DEVICE,NAME,UUID,FILENAME,TYPE,AUTOCONNECT',
                                                    'con', 'show'],
                                                   universal_newlines=True)
-            data: JSON = self.process_nm(output)
+            data = self.process_nm(output)
         except Exception as e:
             logging.debug('Cannot query NetworkManager interface data: {}'.format(str(e)))
         return data

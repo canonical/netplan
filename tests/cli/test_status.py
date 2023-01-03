@@ -268,7 +268,7 @@ search search.domain  another.one
             Interface(self._get_itf('wlan0'), nd, nm, dns, routes),
             Interface(self._get_itf('wg0'), nd, nm, dns, routes),
             Interface(self._get_itf('tun0'), nd, nm, dns, routes),
-            Interface(FAKE_DEV, [], [], (None, None), ([fakeroute], None)),
+            Interface(FAKE_DEV, [], None, (None, None), ([fakeroute], None)),
             ]
         data = {'netplan-global-state': {
             'online': True,
