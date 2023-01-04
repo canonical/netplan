@@ -600,6 +600,11 @@ class NetplanStatus(utils.NetplanCommand):
             pprint('{} inactive interfaces hidden. Use "--all" to show all.'.format(hidden))
 
     def command(self):
+        # Make sure sd-networkd is running, as we need the data it provides.
+        if not utils.systemctl_is_active('systemd-networkd.service'):
+            logging.debug('systemd-networkd.service is not active. Starting...')
+            utils.systemctl('start', ['systemd-networkd.service'], True)
+
         # required data: iproute2 and sd-networkd can be expected to exist,
         # due to hard package dependencies
         iproute2 = self.query_iproute2()

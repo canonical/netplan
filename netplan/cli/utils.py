@@ -85,7 +85,7 @@ def systemctl_network_manager(action, sync=False):
     return systemctl(action, [NM_SERVICE_NAME], sync)  # pragma: nocover (covered in autopkgtest)
 
 
-def systemctl(action, services, sync=False):
+def systemctl(action: str, services: list, sync: bool = False):
     if len(services) >= 1:
         command = ['systemctl', action]
 

@@ -461,6 +461,34 @@ netplan-global-state:
     search: []
   online: false'''.strip())
 
+    @patch('netplan.cli.commands.status.NetplanStatus.query_iproute2')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_networkd')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_nm')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_routes')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_resolved')
+    @patch('netplan.cli.commands.status.NetplanStatus.resolvconf_json')
+    @patch('netplan.cli.commands.status.NetplanStatus.query_online_state')
+    @patch('netplan.cli.utils.systemctl_is_active')
+    @patch('netplan.cli.utils.systemctl')
+    def test_call_cli_no_networkd(self, systemctl_mock, is_active_mock,
+                                  online_mock, resolvconf_mock, rd_mock,
+                                  routes_mock, nm_mock, networkd_mock,
+                                  iproute2_mock):
+        status = NetplanStatus()
+        iproute2_mock.return_value = [FAKE_DEV]
+        networkd_mock.return_value = status.process_networkd(NETWORKD)
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        is_active_mock.return_value = False
+        with self.assertLogs(level='DEBUG') as cm:
+            self._call([])
+            self.assertIn('DEBUG:root:systemd-networkd.service is not active. Starting...',
+                          cm.output[0])
+        systemctl_mock.assert_called_once_with('start', ['systemd-networkd.service'], True)
+
 
 class TestInterface(unittest.TestCase):
     '''Test netplan status' Interface class'''
