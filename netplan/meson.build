@@ -38,6 +38,7 @@ commands_sources = files(
     'cli/commands/migrate.py',
     'cli/commands/set.py',
     'cli/commands/sriov_rebind.py',
+    'cli/commands/status.py',
     'cli/commands/try_command.py')
 
 install_data(netplan_sources, install_dir: netplan_module)
