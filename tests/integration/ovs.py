@@ -456,6 +456,24 @@ class _CommonTests():
         self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
         self.assertNotEqual(p.returncode, 0)
 
+    # Netplan shouldn't crash if openvswitch is installed but not running: LP#1995598
+    def test_ovsdb_server_is_not_running(self):
+        self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovsdb-server'])
+        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovs-vswitchd'])
+        subprocess.check_call(['systemctl', 'stop', 'ovsdb-server'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    version: 2
+    bridges:
+      br0:
+        dhcp4: false''')
+        p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, universal_newlines=True)
+        (out, err) = p.communicate()
+        self.assertIn('Cannot call openvswitch: ovsdb-server is not running.', err)
+        self.assertEqual(p.returncode, 0)
+
     def test_settings_tag_cleanup(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ovs-vsctl', '-t', '5', '--if-exists', 'del-br', 'ovs0'])
