@@ -51,5 +51,8 @@ html_theme = 'furo'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# The logo
+html_logo = 'netplan.svg'
+
 # -- Options for MyST --------------------------------------------------------
 myst_title_to_header = True

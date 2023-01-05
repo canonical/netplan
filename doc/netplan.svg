@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg id="svg2" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" height="96" width="96" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 96.000001 96.000002" xmlns:dc="http://purl.org/dc/elements/1.1/">
+ <defs id="defs8">
+  <linearGradient id="linearGradient872" y2="49" spreadMethod="reflect" gradientUnits="userSpaceOnUse" x2="80" y1="49" x1="48">
+   <stop id="stop3213" stop-color="#28666d" offset="0"/>
+   <stop id="stop3215" stop-color="#28666d" stop-opacity="0" offset="1"/>
+  </linearGradient>
+  <filter id="filter874" style="color-interpolation-filters:sRGB" height="1.12" width="1.12" y="-.06" x="-.06">
+   <feGaussianBlur id="feGaussianBlur876" stdDeviation="1.6"/>
+  </filter>
+ </defs>
+ <metadata id="metadata4">
+  <rdf:RDF>
+   <cc:Work rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title/>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <g id="layer1">
+  <circle id="path3221" style="color:#000000" stroke-opacity=".25098" cx="48" cy="48" r="48" stroke-width="2" fill="#48929b"/>
+  <circle id="circle864" style="color:#000000" stroke-opacity=".25098" cx="48" filter="url(#filter874)" cy="49" r="32" stroke-width="2" fill="url(#linearGradient872)"/>
+  <circle id="circle851" style="color:#000000" stroke-width="2" stroke-opacity=".25098" cy="48" cx="48" r="32" fill="#b6d3d7"/>
+  <path id="rect3204" opacity=".1" style="color:#000000" d="m48 0v96a48 48 0 0 0 48 -48 48 48 0 0 0 -48 -48z" stroke-width="4" fill="#fff"/>
+  <path id="circle853" style="color:#000000" d="m48 16a24 32 0 0 0 -24 32 24 32 0 0 0 24 32v-64z" stroke-opacity=".25098" stroke-width="2" fill="#d1e4e6"/>
+  <path id="path858" opacity=".5" style="color:#000000" d="m48 16a24 32 0 0 1 24 32 24 32 0 0 1 -24 32z" stroke-opacity=".25098" stroke-width="2" fill="#fff"/>
+  <path id="path860" opacity=".5" style="color:#000000" d="m48 16a16 32 0 0 0 -16 32 16 32 0 0 0 16 32z" stroke-opacity=".25098" stroke-width="2" fill="#fff"/>
+  <path id="path862" style="color:#000000" d="m48 16a16 32 0 0 1 16 32 16 32 0 0 1 -16 32z" stroke-opacity=".25098" stroke-width="2" fill="#fff"/>
+ </g>
+ <g id="layer2" stroke-linejoin="round" stroke-dashoffset="20.964" stroke-width="8" display="none">
+  <rect id="rect1153" style="color:#000000;paint-order:markers stroke fill" height="16" width="16" y="0" x="112" fill="#fff"/>
+  <rect id="rect1155" style="color:#000000;paint-order:markers stroke fill" height="16" width="16" y="16" x="112" fill="#fff"/>
+  <rect id="rect844" opacity=".25" style="color:#000000;paint-order:markers stroke fill" height="16" width="16" y="0" x="112" fill="#48929b"/>
+  <rect id="rect846" opacity=".4" style="color:#000000;paint-order:markers stroke fill" height="16" width="16" y="16" x="112" fill="#48929b"/>
+  <rect id="rect848" style="color:#000000;paint-order:markers stroke fill" height="16" width="16" y="32" x="112" fill="#28666d"/>
+ </g>
+</svg>
