@@ -354,7 +354,7 @@ class NetplanStatus(utils.NetplanCommand):
         return False
 
     def process_generic(self, cmd_output: str) -> JSON:
-        return yaml.safe_load(cmd_output)
+        return json.loads(cmd_output)
 
     def query_iproute2(self) -> JSON:
         data: JSON = None
@@ -367,7 +367,7 @@ class NetplanStatus(utils.NetplanCommand):
         return data
 
     def process_networkd(self, cmd_output) -> JSON:
-        return yaml.safe_load(cmd_output)['Interfaces']
+        return json.loads(cmd_output)['Interfaces']
 
     def query_networkd(self) -> JSON:
         data: JSON = None
