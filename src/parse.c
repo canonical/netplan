@@ -3103,6 +3103,10 @@ process_document(NetplanParser* npp, GError** error)
             break;
     } while (still_missing > 0 || npp->missing_ids_found > 0);
 
+    /* If an error already occurred we should return and not assume it's a missing interface*/
+    if (error && *error)
+        return ret;
+
     if (g_hash_table_size(npp->missing_id) > 0) {
         GHashTableIter iter;
         gpointer key, value;
