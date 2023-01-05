@@ -489,6 +489,16 @@ netplan-global-state:
                           cm.output[0])
         systemctl_mock.assert_called_once_with('start', ['systemd-networkd.service'], True)
 
+    @patch('netplan.cli.utils.systemctl_is_active')
+    @patch('netplan.cli.utils.systemctl_is_masked')
+    def test_call_cli_networkd_masked(self, is_masked_mock, is_active_mock):
+        is_active_mock.return_value = False
+        is_masked_mock.return_value = True
+        with self.assertLogs() as cm, self.assertRaises(SystemExit) as e:
+            self._call([])
+        self.assertEqual(1, e.exception.code)
+        self.assertIn('systemd-networkd.service is masked', cm.output[0])
+
 
 class TestInterface(unittest.TestCase):
     '''Test netplan status' Interface class'''

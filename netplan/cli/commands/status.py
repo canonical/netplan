@@ -603,6 +603,11 @@ class NetplanStatus(utils.NetplanCommand):
     def command(self):
         # Make sure sd-networkd is running, as we need the data it provides.
         if not utils.systemctl_is_active('systemd-networkd.service'):
+            if utils.systemctl_is_masked('systemd-networkd.service'):
+                logging.error('\'netplan status\' depends on networkd, '
+                              'but systemd-networkd.service is masked. '
+                              'Please start it.')
+                sys.exit(1)
             logging.debug('systemd-networkd.service is not active. Starting...')
             utils.systemctl('start', ['systemd-networkd.service'], True)
 
