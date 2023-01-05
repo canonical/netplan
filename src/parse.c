@@ -1993,6 +1993,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
 
 err:
     if (npp->current.route) {
+        g_free(npp->current.route->type);
         g_free(npp->current.route);
         npp->current.route = NULL;
     }
