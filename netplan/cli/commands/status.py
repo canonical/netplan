@@ -45,21 +45,21 @@ class NetplanHighlighter(RegexHighlighter):
 
 
 class Interface():
-    def __extract_mac(self, ip: JSON) -> str:
+    def __extract_mac(self, ip: dict) -> str:
         '''
         Extract the MAC address if it's set inside the JSON data and seems to
         have the correct format. Return 'None' otherwise.
         '''
-        if 'address' in ip and len(ip['address']) == 17:  # 6 byte MAC (+5 colons)
-            return ip['address'].lower()
+        if len(address := ip.get('address', '')) == 17:  # 6 byte MAC (+5 colons)
+            return address.lower()
         return None
 
-    def __init__(self, ip: JSON, nd_data: JSON = [], nm_data: JSON = [],
+    def __init__(self, ip: dict, nd_data: JSON = [], nm_data: JSON = [],
                  resolved_data: tuple = (None, None), route_data: tuple = (None, None)):
-        self.idx: int = ip['ifindex']
-        self.name: str = ip['ifname']
-        self.adminstate: str = 'UP' if 'UP' in ip['flags'] else 'DOWN'
-        self.operstate: str = ip['operstate'].upper()
+        self.idx: int = ip.get('ifindex', -1)
+        self.name: str = ip.get('ifname', 'unknown')
+        self.adminstate: str = 'UP' if 'UP' in ip.get('flags', []) else 'DOWN'
+        self.operstate: str = ip.get('operstate', 'unknown').upper()
         self.macaddress: str = self.__extract_mac(ip)
 
         # Filter networkd/NetworkManager data
@@ -116,9 +116,9 @@ class Interface():
                     self.routes.append(elem)
 
         self.addresses: list = None
-        if 'addr_info' in ip and ip['addr_info']:
+        if addr_info := ip.get('addr_info'):
             self.addresses = []
-            for addr in ip['addr_info']:
+            for addr in addr_info:
                 flags: list = []
                 if ipaddress.ip_address(addr['local']).is_link_local:
                     flags.append('link')
@@ -136,8 +136,8 @@ class Interface():
                 self.addresses.append(elem)
 
         self.iproute_type: str = None
-        if 'linkinfo' in ip and 'info_kind' in ip['linkinfo']:
-            self.iproute_type = ip['linkinfo']['info_kind'].strip()
+        if info_kind := ip.get('linkinfo', {}).get('info_kind'):
+            self.iproute_type = info_kind.strip()
 
         # workaround: query some data which is not available via networkctl's JSON output
         self._networkctl: str = self.query_networkctl(self.name) or ''
