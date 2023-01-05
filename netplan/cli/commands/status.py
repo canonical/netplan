@@ -446,7 +446,8 @@ class NetplanStatus(utils.NetplanCommand):
             'unknown': 'yellow bold',
             'highlight': 'bold'
             })
-        console = Console(highlighter=NetplanHighlighter(), theme=theme, width=_console_width)
+        console = Console(highlighter=NetplanHighlighter(), theme=theme,
+                          width=_console_width, emoji=False)
         pprint = console.print
 
         pad = '18'
