@@ -123,6 +123,16 @@ def systemctl_is_active(unit_pattern):
     return False
 
 
+def systemctl_is_masked(unit_pattern):
+    '''Return True if output is "masked" or "masked-runtime"'''
+    res = subprocess.run(['systemctl', 'is-enabled', unit_pattern],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         universal_newlines=True)
+    if res.returncode > 0 and 'masked' in res.stdout:
+        return True
+    return False
+
+
 def systemctl_daemon_reload():
     '''Reload systemd unit files from disk and re-calculate its dependencies'''
     subprocess.check_call(['systemctl', 'daemon-reload'])
