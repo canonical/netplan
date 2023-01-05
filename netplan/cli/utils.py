@@ -85,7 +85,7 @@ def systemctl_network_manager(action, sync=False):
     return systemctl(action, [NM_SERVICE_NAME], sync)  # pragma: nocover (covered in autopkgtest)
 
 
-def systemctl(action, services, sync=False):
+def systemctl(action: str, services: list, sync: bool = False):
     if len(services) >= 1:
         command = ['systemctl', action]
 
@@ -119,6 +119,16 @@ def networkctl_reconfigure(interfaces):
 def systemctl_is_active(unit_pattern):
     '''Return True if at least one matching unit is running'''
     if subprocess.call(['systemctl', '--quiet', 'is-active', unit_pattern]) == 0:
+        return True
+    return False
+
+
+def systemctl_is_masked(unit_pattern):
+    '''Return True if output is "masked" or "masked-runtime"'''
+    res = subprocess.run(['systemctl', 'is-enabled', unit_pattern],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         universal_newlines=True)
+    if res.returncode > 0 and 'masked' in res.stdout:
         return True
     return False
 

@@ -80,7 +80,7 @@ test('documentation',
      find_program('tests/validate_docs.sh'),
      workdir: meson.current_source_dir())
 test('legacy-tests',
-     find_program('tests/cli.py'),
+     find_program('tests/cli_legacy.py'),
      timeout: 120,
      env: test_env)
 #TODO: split out dbus tests into own test() instance, to run in parallel
