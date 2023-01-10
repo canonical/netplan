@@ -436,12 +436,18 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
         g_string_append_printf(params, "\nTOS=%d", def->vxlan->tos);
     if (def->tunnel_ttl)
         g_string_append_printf(params, "\nTTL=%d", def->tunnel_ttl);
-    if (def->vxlan->mac_learning)
-        g_string_append_printf(params, "\nMacLearning=%s", def->vxlan->mac_learning ? "true" : "false");
+
+    /* XXX: Convert this option to Tristate.
+     * The vxlan learning feature is enabled by default when an interface is created.
+     * Ideally, it should be a Tristate so we wouldn't emit the config unless explicitly set.
+     */
+    g_string_append_printf(params, "\nMacLearning=%s", def->vxlan->mac_learning ? "true" : "false");
+
     if (def->vxlan->ageing)
         g_string_append_printf(params, "\nFDBAgeingSec=%d", def->vxlan->ageing);
     if (def->vxlan->limit)
         g_string_append_printf(params, "\nMaximumFDBEntries=%d", def->vxlan->limit);
+    /* XXX: Convert to Tristate */
     if (def->vxlan->arp_proxy)
         g_string_append_printf(params, "\nReduceARPProxy=%s", def->vxlan->arp_proxy ? "true" : "false");
     if (def->vxlan->notifications) {
@@ -450,6 +456,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
         if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L3_MISS)
             g_string_append(params, "\nL3MissNotification=true");
     }
+    /* XXX: Convert to Tristate */
     if (def->vxlan->short_circuit)
         g_string_append_printf(params, "\nRouteShortCircuit=%s", def->vxlan->short_circuit ? "true" : "false");
     if (def->vxlan->checksums) {
