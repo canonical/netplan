@@ -287,6 +287,3 @@ netplan_state_has_nondefault_globals(const NetplanState* np_state);
 
 void
 clear_netdef_from_list(void* def);
-
-void
-free_route(void* ptr);

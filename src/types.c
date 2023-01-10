@@ -69,7 +69,7 @@ free_address_options(void* ptr)
     g_free(opts);
 }
 
-void
+static void
 free_route(void* ptr)
 {
     NetplanIPRoute* route = ptr;
