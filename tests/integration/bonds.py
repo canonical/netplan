@@ -44,9 +44,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
 
     def test_bond_primary_member(self):
@@ -66,10 +66,10 @@ class _CommonTests():
         primary: %(ec)s
       addresses: [ '10.10.10.1/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybond'])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
-        self.assert_iface_up(self.dev_e2_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up(self.dev_e2_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 10.10.10.1/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             result = f.read().strip()
             self.assertIn(self.dev_e_client, result)
             self.assertIn(self.dev_e2_client, result)
@@ -89,14 +89,14 @@ class _CommonTests():
     mybond:
       interfaces: [ethbn]
       parameters:
-        all-slaves-active: true
+        all-slaves-active: true  # wokeignore:rule=slave
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
-        with open('/sys/class/net/mybond/bonding/all_slaves_active') as f:
+        with open('/sys/class/net/mybond/bonding/all_slaves_active') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), '1')
 
     def test_bond_mode_8023ad(self):
@@ -115,9 +115,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
             self.assertEqual(f.read().strip(), '802.3ad 4')
@@ -139,9 +139,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/ad_select') as f:
             self.assertEqual(f.read().strip(), 'bandwidth 1')
@@ -163,9 +163,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/lacp_rate') as f:
             self.assertEqual(f.read().strip(), 'fast 1')
@@ -187,9 +187,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
             self.assertEqual(f.read().strip(), 'active-backup 1')
@@ -212,9 +212,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
             self.assertEqual(f.read().strip(), 'balance-xor 2')
@@ -235,9 +235,9 @@ class _CommonTests():
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
             self.assertEqual(f.read().strip(), 'balance-rr 0')
@@ -255,17 +255,17 @@ class _CommonTests():
     mybond:
       parameters:
         mode: balance-rr
-        packets-per-slave: 15
+        packets-per-slave: 15  # wokeignore:rule=slave
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
             self.assertEqual(f.read().strip(), 'balance-rr 0')
-        with open('/sys/class/net/mybond/bonding/packets_per_slave') as f:
+        with open('/sys/class/net/mybond/bonding/packets_per_slave') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), '15')
 
     def test_bond_resend_igmp(self):
@@ -289,10 +289,10 @@ class _CommonTests():
         resend-igmp: 100
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybond'])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
-        self.assert_iface_up(self.dev_e2_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up(self.dev_e2_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.9.9/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             result = f.read().strip()
             self.assertIn(self.dev_e_client, result)
             self.assertIn(self.dev_e2_client, result)
@@ -322,7 +322,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       dhcp4: yes''' % {'r': self.backend,
                        'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24', '00:01:02:03:04:05'])
 
     def test_bond_down_delay(self):
@@ -343,9 +343,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         down-delay: 10s
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/downdelay') as f:
             self.assertEqual(f.read().strip(), '10000')
@@ -368,9 +368,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         up-delay: 10000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/updelay') as f:
             self.assertEqual(f.read().strip(), '10000')
@@ -393,9 +393,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-interval: 50s
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_interval') as f:
             self.assertEqual(f.read().strip(), '50000')
@@ -418,9 +418,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-ip-targets: [ 192.168.5.1 ]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
             self.assertEqual(f.read().strip(), '192.168.5.1')
@@ -443,9 +443,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-ip-targets: [ 192.168.5.1, 192.168.5.34 ]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
             result = f.read().strip()
@@ -472,9 +472,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_all_targets') as f:
             self.assertEqual(f.read().strip(), 'all 1')
@@ -498,9 +498,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_validate') as f:
             self.assertEqual(f.read().strip(), 'all 3')
@@ -533,9 +533,9 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         down-delay: 10000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/downdelay') as f:
             self.assertEqual(f.read().strip(), '10000')
@@ -558,9 +558,9 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         up-delay: 10000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/updelay') as f:
             self.assertEqual(f.read().strip(), '10000')
@@ -583,9 +583,9 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         arp-interval: 50000
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_interval') as f:
             self.assertEqual(f.read().strip(), '50000')
@@ -608,9 +608,9 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         arp-ip-targets: [ 192.168.5.1 ]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_ip_target') as f:
             self.assertEqual(f.read().strip(), '192.168.5.1')
@@ -635,9 +635,9 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
         arp-validate: all
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/arp_all_targets') as f:
             self.assertEqual(f.read().strip(), 'all 1')
@@ -660,9 +660,9 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
-        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertEqual(f.read().strip(), self.dev_e_client)
         with open('/sys/class/net/mybond/bonding/mode') as f:
             self.assertEqual(f.read().strip(), 'balance-tlb 5')

@@ -190,7 +190,7 @@ class _CommonTests():
         self.assertIn(b'    Bridge br-data', out)
         self.assert_iface('br-%s' % self.dev_e_client, ['mtu 9000'])
         self.assert_iface('br-data', ['inet 192.168.20.1/16'])
-        self.assert_iface(self.dev_e_client, ['mtu 9000', 'master ovs-system'])
+        self.assert_iface(self.dev_e_client, ['mtu 9000', 'master ovs-system'])  # wokeignore:rule=master
         self.assertIn(b'100', subprocess.check_output(['ovs-vsctl', '-t', '5', 'br-to-vlan',
                       'br-%s.100' % self.dev_e_client]))
         self.assertIn(b'br-%b' % self.dev_e_client.encode(), subprocess.check_output(
@@ -323,8 +323,8 @@ class _CommonTests():
         self.assertIn(b'---- mybond ----', out)
         self.assertIn(b'bond_mode: balance-slb', out)
         self.assertIn(b'lacp_status: off', out)
-        self.assertRegex(out, br'(slave|member) %b: enabled' % self.dev_e_client.encode())
-        self.assertRegex(out, br'(slave|member) %b: enabled' % self.dev_e2_client.encode())
+        self.assertRegex(out, br'(slave|member) %b: enabled' % self.dev_e_client.encode())  # wokeignore:rule=slave
+        self.assertRegex(out, br'(slave|member) %b: enabled' % self.dev_e2_client.encode())  # wokeignore:rule=slave
         self.assert_iface('ovsbr', ['inet 192.170.1.1/24'])
 
     def test_bridge_patch_ports(self):
@@ -387,9 +387,9 @@ class _CommonTests():
         self.assertIn('''        Port ovs-br
             Interface ovs-br
                 type: internal''', out)
-        self.assert_iface('non-ovs-bond', ['master ovs-system'])
-        self.assert_iface(self.dev_e_client, ['master non-ovs-bond'])
-        self.assert_iface(self.dev_e2_client, ['master non-ovs-bond'])
+        self.assert_iface('non-ovs-bond', ['master ovs-system'])  # wokeignore:rule=master
+        self.assert_iface(self.dev_e_client, ['master non-ovs-bond'])  # wokeignore:rule=master
+        self.assert_iface(self.dev_e2_client, ['master non-ovs-bond'])  # wokeignore:rule=master
 
     def test_vlan_maas(self):
         self.setup_eth(None, False)

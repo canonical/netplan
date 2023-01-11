@@ -57,10 +57,10 @@ class _CommonTests():
       match: {name: %(e2c)s}
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'br0', 'bond0'])
-        self.assert_iface_up(self.dev_e2_client, ['master bond0'], ['inet '])
-        self.assert_iface_up('bond0', ['master br0'])
+        self.assert_iface_up(self.dev_e2_client, ['master bond0'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up('bond0', ['master br0'])  # wokeignore:rule=master
         self.assert_iface('br0', ['inet 192.168.0.2/24'])
-        with open('/sys/class/net/bond0/bonding/slaves') as f:
+        with open('/sys/class/net/bond0/bonding/slaves') as f:  # wokeignore:rule=slave
             result = f.read().strip()
             self.assertIn(self.dev_e2_client, result)
 
@@ -106,9 +106,9 @@ class _CommonTests():
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'br0', 'br1', 'bond0', 'vlan1', 'vlan2'])
         self.assert_iface_up('vlan1', ['vlan1@br0'])
-        self.assert_iface_up('vlan2', ['vlan2@' + self.dev_e_client, 'master br0'])
-        self.assert_iface_up(self.dev_e2_client, ['master br1'], ['inet '])
-        self.assert_iface_up('bond0', ['master br0'])
+        self.assert_iface_up('vlan2', ['vlan2@' + self.dev_e_client, 'master br0'])  # wokeignore:rule=master
+        self.assert_iface_up(self.dev_e2_client, ['master br1'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up('bond0', ['master br0'])  # wokeignore:rule=master
 
     # https://bugs.launchpad.net/netplan/+bug/1943120
     def test_remove_virtual_interfaces(self):

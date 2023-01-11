@@ -122,7 +122,7 @@ managed=1\n\n''')
       networkmanager:
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
-          connection.type: dummy''')
+          connection.type: dummy''')  # wokeignore:rule=dummy
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f

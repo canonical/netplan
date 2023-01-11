@@ -235,7 +235,7 @@ UseMTU=true
         min-links: 10
         up-delay: 20
         down-delay: 30
-        all-slaves-active: true
+        all-slaves-active: true  # wokeignore:rule=slave
         transmit-hash-policy: none
         ad-select: none
         arp-interval: 15
@@ -243,7 +243,7 @@ UseMTU=true
         arp-all-targets: all
         fail-over-mac-policy: none
         gratuitious-arp: 10
-        packets-per-slave: 10
+        packets-per-slave: 10  # wokeignore:rule=slave
         primary-reselect-policy: none
         resend-igmp: 10
         learn-packet-interval: 10
