@@ -43,6 +43,22 @@ test_netplan_parser_load_yaml(void** state)
 }
 
 void
+test_netplan_parser_load_nullable_overrides(void** state)
+{
+    const char* filename = FIXTURESDIR "/optional.yaml";
+    FILE* f = fopen(filename, "r");
+    GError *error = NULL;
+    NetplanParser* npp = netplan_parser_new();
+    assert_null(npp->null_overrides);
+    gboolean res = netplan_parser_load_nullable_overrides(npp, fileno(f), "hint.yaml", &error);
+    assert_true(res);
+    assert_non_null(npp->null_overrides);
+    assert_string_equal(g_hash_table_lookup(npp->null_overrides, "\tnetwork\trenderer"), "hint.yaml");
+    assert_string_equal(g_hash_table_lookup(npp->null_overrides, "\tnetwork\tethernets\teth0"), "hint.yaml");
+    netplan_parser_clear(&npp);
+}
+
+void
 test_netplan_parser_interface_has_bridge_netdef(void** state)
 {
 
@@ -200,6 +216,7 @@ main()
        const struct CMUnitTest tests[] = {
            cmocka_unit_test(test_netplan_parser_new_parser),
            cmocka_unit_test(test_netplan_parser_load_yaml),
+           cmocka_unit_test(test_netplan_parser_load_nullable_overrides),
            cmocka_unit_test(test_netplan_parser_interface_has_bridge_netdef),
            cmocka_unit_test(test_netplan_parser_interface_has_bond_netdef),
            cmocka_unit_test(test_netplan_parser_interface_has_peer_netdef),

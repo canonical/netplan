@@ -44,6 +44,15 @@ netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, NetplanErr
 NETPLAN_PUBLIC gboolean
 netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, NetplanError** error);
 
+/* Load the overrides, i.e. all global values (like "renderer") or Netdef-IDs
+ * that are part of the given YAML patch (<input_fd>), and are supposed to be
+ * overridden inside the yaml hierarchy by the resulting origin_hint file.
+ * They are supposed to be parsed from the origin-hint file given in
+ * <constraint> only. */
+NETPLAN_PUBLIC gboolean
+netplan_parser_load_nullable_overrides(
+    NetplanParser* npp, int input_fd, const char* constraint, GError** error);
+
 /********** Old API below this ***********/
 
 NETPLAN_PUBLIC gboolean

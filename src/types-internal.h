@@ -240,6 +240,7 @@ struct netplan_parser {
 
     /* Which fields have been nullified by a subsequent patch? */
     GHashTable* null_fields;
+    GHashTable* null_overrides;
 };
 
 struct netplan_state_iterator {
