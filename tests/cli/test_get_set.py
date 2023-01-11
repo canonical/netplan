@@ -25,6 +25,7 @@ import glob
 
 import yaml
 
+from netplan.libnetplan import LibNetplanException
 from tests.test_utils import call_cli
 
 
@@ -97,18 +98,64 @@ class TestSet(unittest.TestCase):
         with open(p, 'r') as f:
             self.assertIs(True, yaml.safe_load(f)['network']['ethernets']['eth0']['dhcp4'])
 
+    def test_set_origin_hint_update(self):
+        hint = os.path.join(self.workdir.name, 'etc', 'netplan', 'hint.yaml')
+        with open(hint, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: networkd
+  ethernets: {eth0: {dhcp6: true}}''')
+        self._set(['ethernets.eth0={dhcp4: true, dhcp6: NULL}', '--origin-hint=hint'])
+        self.assertTrue(os.path.isfile(hint))
+        with open(hint, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual(2, yml['network']['version'])
+            self.assertEqual('networkd', yml['network']['renderer'])
+            self.assertTrue(yml['network']['ethernets']['eth0']['dhcp4'])
+            self.assertNotIn('dhcp6', yml['network']['ethernets']['eth0'])
+
     def test_set_origin_hint_override(self):
         defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-snapd-defaults.yaml')
         with open(defaults, 'w') as f:
             f.write('''network:
-  bridges: {br54: {dhcp4: true}}
+  renderer: NetworkManager
+  bridges: {br54: {dhcp4: true, dhcp6: true}}
   ethernets: {eth0: {dhcp4: true}}''')
+        self._set(['bridges.br55.dhcp4=false', '--origin-hint=90-snapd-config'])
         self._set(['bridges.br54.dhcp4=false', '--origin-hint=90-snapd-config'])
         self._set(['bridges.br54.interfaces=[eth0]', '--origin-hint=90-snapd-config'])
         p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
         self.assertTrue(os.path.isfile(p))
         with open(p, 'r') as f:
-            self.assertIs(False, yaml.safe_load(f)['network']['bridges']['br54']['dhcp4'])
+            yml = yaml.safe_load(f)
+            self.assertIs(False, yml['network']['bridges']['br54']['dhcp4'])
+            self.assertNotIn('dhcp6', yml['network']['bridges']['br54'])
+            self.assertEqual(['eth0'], yml['network']['bridges']['br54']['interfaces'])
+            self.assertIs(False, yml['network']['bridges']['br55']['dhcp4'])
+
+    def test_set_origin_hint_override_invalid_netdef_setting(self):
+        defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-snapd-defaults.yaml')
+        with open(defaults, 'w') as f:
+            f.write('''network:
+  vrfs:
+    vrf0:
+      table: 1005
+      routes:
+      - to: default
+        via: 10.10.10.4
+        table: 1005
+''')
+        with self.assertRaises(LibNetplanException) as e:
+            self._set(['vrfs.vrf0.table=1004', '--origin-hint=90-snapd-config'])
+        self.assertIn('vrf0: VRF routes table mismatch (1004 != 1005)', str(e.exception))
+        # hint/output file should not exist
+        p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
+        self.assertFalse(os.path.isfile(p))
+        # original (defaults) file should stay untouched
+        self.assertTrue(os.path.isfile(defaults))
+        with open(defaults, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual(1005, yml['network']['vrfs']['vrf0']['table'])
 
     def test_set_origin_hint_extend(self):
         p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
