@@ -1,3 +1,5 @@
+ignore_files:
+  - abi-compat/*.xml
 rules:
   # Including some terms from https://inclusivenaming.org/ that are not in the default ruleset
   - name: abort
