@@ -310,7 +310,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->bond_params.fail_over_mac_policy);
     FREE_AND_NULLIFY(netdef->bond_params.primary_reselect_policy);
     FREE_AND_NULLIFY(netdef->bond_params.learn_interval);
-    FREE_AND_NULLIFY(netdef->bond_params.primary_slave);
+    FREE_AND_NULLIFY(netdef->bond_params.primary_member);
     memset(&netdef->bond_params, 0, sizeof(netdef->bond_params));
 
     netdef->has_vxlans = FALSE;

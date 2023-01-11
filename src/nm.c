@@ -266,8 +266,8 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
         g_key_file_set_string(kf, "bond", "xmit_hash_policy", def->bond_params.transmit_hash_policy);
     if (def->bond_params.selection_logic)
         g_key_file_set_string(kf, "bond", "ad_select", def->bond_params.selection_logic);
-    if (def->bond_params.all_slaves_active)
-        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_slaves_active);
+    if (def->bond_params.all_members_active)
+        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_members_active);
     if (def->bond_params.arp_interval)
         g_key_file_set_string(kf, "bond", "arp_interval", def->bond_params.arp_interval);
     if (def->bond_params.arp_ip_targets) {
@@ -296,16 +296,16 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
          * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
         g_key_file_set_integer(kf, "bond", "num_unsol_na", def->bond_params.gratuitous_arp);
     }
-    if (def->bond_params.packets_per_slave)
-        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_slave);
+    if (def->bond_params.packets_per_member)
+        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_member);
     if (def->bond_params.primary_reselect_policy)
         g_key_file_set_string(kf, "bond", "primary_reselect", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
         g_key_file_set_integer(kf, "bond", "resend_igmp", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
         g_key_file_set_string(kf, "bond", "lp_interval", def->bond_params.learn_interval);
-    if (def->bond_params.primary_slave)
-        g_key_file_set_string(kf, "bond", "primary", def->bond_params.primary_slave);
+    if (def->bond_params.primary_member)
+        g_key_file_set_string(kf, "bond", "primary", def->bond_params.primary_member);
 }
 
 static void

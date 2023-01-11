@@ -2077,7 +2077,7 @@ handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, const void* _, GErr
 }
 
 static gboolean
-handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanNetDefinition *component;
     char** ref_ptr;
@@ -2087,19 +2087,19 @@ handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* dat
         add_missing_node(npp, node);
     } else {
         /* If this is not the primary pass, the primary member might already be equally set. */
-        if (!g_strcmp0(npp->current.netdef->bond_params.primary_slave, scalar(node))) {
+        if (!g_strcmp0(npp->current.netdef->bond_params.primary_member, scalar(node))) {
             return TRUE;
-        } else if (npp->current.netdef->bond_params.primary_slave)
+        } else if (npp->current.netdef->bond_params.primary_member)
             return yaml_error(npp, node, error, "%s: bond already has a primary member: %s",
-                              npp->current.netdef->id, npp->current.netdef->bond_params.primary_slave);
+                              npp->current.netdef->id, npp->current.netdef->bond_params.primary_member);
 
         ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
         *ref_ptr = g_strdup(scalar(node));
-        npp->current.netdef->bond_params.primary_slave = g_strdup(scalar(node));
+        npp->current.netdef->bond_params.primary_member = g_strdup(scalar(node));
         mark_data_as_dirty(npp, ref_ptr);
     }
 
-    mark_data_as_dirty(npp, &npp->current.netdef->bond_params.primary_slave);
+    mark_data_as_dirty(npp, &npp->current.netdef->bond_params.primary_member);
     return TRUE;
 }
 
@@ -2110,7 +2110,7 @@ static const mapping_entry_handler bond_params_handlers[] = {
     {"min-links", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.min_links)},
     {"transmit-hash-policy", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.transmit_hash_policy)},
     {"ad-select", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.selection_logic)},
-    {"all-slaves-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_slaves_active)},
+    {"all-slaves-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_members_active)},
     {"all-members-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_members_active)},
     {"arp-interval", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.arp_interval)},
     /* TODO: arp_ip_targets */
@@ -2124,12 +2124,12 @@ static const mapping_entry_handler bond_params_handlers[] = {
     /* Handle the old misspelling */
     {"gratuitious-arp", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.gratuitous_arp)},
     /* TODO: unsolicited_na */
-    {"packets-per-slave", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.packets_per_slave)},
+    {"packets-per-slave", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.packets_per_member)},
     {"packets-per-member", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.packets_per_member)},
     {"primary-reselect-policy", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.primary_reselect_policy)},
     {"resend-igmp", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.resend_igmp)},
     {"learn-packet-interval", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.learn_interval)},
-    {"primary", YAML_SCALAR_NODE, {.generic=handle_bond_primary_slave}, netdef_offset(bond_params.primary_slave)},
+    {"primary", YAML_SCALAR_NODE, {.generic=handle_bond_primary_member}, netdef_offset(bond_params.primary_member)},
     {NULL}
 };
 

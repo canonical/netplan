@@ -268,8 +268,7 @@ struct netplan_net_definition {
         guint min_links;
         char* transmit_hash_policy;
         char* selection_logic;
-        gboolean all_slaves_active;
-#define all_members_active all_slaves_active
+        gboolean all_members_active;
         char* arp_interval;
         GArray* arp_ip_targets;
         char* arp_validate;
@@ -279,12 +278,11 @@ struct netplan_net_definition {
         char* fail_over_mac_policy;
         guint gratuitous_arp;
         /* TODO: unsolicited_na */
-        guint packets_per_slave;
-#define packets_per_member packets_per_slave
+        guint packets_per_member;
         char* primary_reselect_policy;
         guint resend_igmp;
         char* learn_interval;
-        char* primary_slave;
+        char* primary_member;
     } bond_params;
 
     /* netplan-feature: modems */
