@@ -362,7 +362,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
     if (def->bond_params.selection_logic)
         g_string_append_printf(params, "\nAdSelect=%s", def->bond_params.selection_logic);
     if (def->bond_params.all_members_active)
-        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_members_active);
+        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_members_active); /* wokeignore:rule=slave */ 
     if (def->bond_params.arp_interval) {
         g_string_append(params, "\nARPIntervalSec=");
         if (interval_has_suffix(def->bond_params.arp_interval))
@@ -402,7 +402,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
         g_string_append_printf(params, "\nGratuitousARP=%d", def->bond_params.gratuitous_arp);
     /* TODO: add unsolicited_na, not documented as supported by NM. */
     if (def->bond_params.packets_per_member)
-        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_member);
+        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_member); /* wokeignore:rule=slave */ 
     if (def->bond_params.primary_reselect_policy)
         g_string_append_printf(params, "\nPrimaryReselectPolicy=%s", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
@@ -854,7 +854,7 @@ netplan_netdef_write_network_file(
         g_string_append_printf(network, "Bond=%s\n", def->bond);
 
         if (def->bond_params.primary_member)
-            g_string_append_printf(network, "PrimarySlave=true\n");
+            g_string_append_printf(network, "PrimarySlave=true\n"); /* wokeignore:rule=slave */
     }
 
     if (def->has_vlans && def->backend != NETPLAN_BACKEND_OVS) {

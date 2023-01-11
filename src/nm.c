@@ -267,7 +267,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
     if (def->bond_params.selection_logic)
         g_key_file_set_string(kf, "bond", "ad_select", def->bond_params.selection_logic);
     if (def->bond_params.all_members_active)
-        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_members_active);
+        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_members_active); /* wokeignore:rule=slave */
     if (def->bond_params.arp_interval)
         g_key_file_set_string(kf, "bond", "arp_interval", def->bond_params.arp_interval);
     if (def->bond_params.arp_ip_targets) {
@@ -297,7 +297,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
         g_key_file_set_integer(kf, "bond", "num_unsol_na", def->bond_params.gratuitous_arp);
     }
     if (def->bond_params.packets_per_member)
-        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_member);
+        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_member); /* wokeignore:rule=slave */
     if (def->bond_params.primary_reselect_policy)
         g_key_file_set_string(kf, "bond", "primary_reselect", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
@@ -702,8 +702,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_string(kf, modem_type, "sim-operator-id", def->modem_params.sim_operator_id);
     }
     if (def->bridge) {
-        g_key_file_set_string(kf, "connection", "slave-type", "bridge");
-        g_key_file_set_string(kf, "connection", "master", def->bridge);
+        g_key_file_set_string(kf, "connection", "slave-type", "bridge"); /* wokeignore:rule=slave */
+        g_key_file_set_string(kf, "connection", "master", def->bridge); /* wokeignore:rule=master */
 
         if (def->bridge_params.path_cost)
             g_key_file_set_uint64(kf, "bridge-port", "path-cost", def->bridge_params.path_cost);
@@ -711,13 +711,13 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "bridge-port", "priority", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_key_file_set_string(kf, "connection", "slave-type", "bond");
-        g_key_file_set_string(kf, "connection", "master", def->bond);
+        g_key_file_set_string(kf, "connection", "slave-type", "bond"); /* wokeignore:rule=slave */
+        g_key_file_set_string(kf, "connection", "master", def->bond); /* wokeignore:rule=master */
     }
 
     if (def->vrf_link) {
-        g_key_file_set_string(kf, "connection", "slave-type", "vrf");
-        g_key_file_set_string(kf, "connection", "master", def->vrf_link->id);
+        g_key_file_set_string(kf, "connection", "slave-type", "vrf"); /* wokeignore:rule=slave */
+        g_key_file_set_string(kf, "connection", "master", def->vrf_link->id); /* wokeignore:rule=master */
     }
 
     if (def->ipv6_mtubytes) {
