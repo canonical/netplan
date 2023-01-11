@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2020 Canonical, Ltd.
-# Author: Lukas Märdian <lukas.maerdian@canonical.com>
+# Copyright (C) 2020-2023 Canonical, Ltd.
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,15 +71,59 @@ class NetplanSet(NetplanCommand):
         with tempfile.TemporaryFile() as tmp:
             libnetplan.create_yaml_patch(yaml_path, value, tmp)
             tmp.flush()
+
+            # Load fields that are about to be deleted (e.g. some.setting=NULL)
+            # Ignore those fields when parsing subsequent YAML files
             tmp.seek(0, io.SEEK_SET)
             parser.load_nullable_fields(tmp)
+
+            # Parse the full, existing YAML config hierarchy
             parser.load_yaml_hierarchy(self.root_dir)
+
+            # Load YAML patch, containing our update (new or deleted settings)
             tmp.seek(0, io.SEEK_SET)
             parser.load_yaml(tmp)
 
-        state = libnetplan.State()
-        state.import_parser_results(parser)
-        if self.origin_hint:
-            state.write_yaml_file(filename, self.root_dir)
-        else:
-            state.update_yaml_hierarchy(FALLBACK_FILENAME, self.root_dir)
+            # Validate the final parser state
+            state = libnetplan.State()
+            state.import_parser_results(parser)
+
+            if filename:  # only act on the output file (a.k.a. "origin-hint")
+                parser_output_file = libnetplan.Parser()
+
+                # Load fields that are about to be deleted ("some.setting=NULL")
+                # Ignore those fields when parsing subsequent YAML files
+                tmp.seek(0, io.SEEK_SET)
+                parser_output_file.load_nullable_fields(tmp)
+
+                # Load globals/netdefs that are to be ignored from the existing
+                # YAML hierarchy, as our patch is supposed to override settings
+                # in those netdefs via the output file.
+                # Those netdefs and globals must end up in the output file
+                # (a.k.a. "origin-hint", <filename>), have they been defined in
+                # pre-existing YAML files or not.
+                tmp.seek(0, io.SEEK_SET)
+                parser_output_file.load_nullable_overrides(tmp, constraint=filename)
+
+                # Parse the full YAML hierarchy and new patch, ignoring any
+                # nullable overrides (netdefs/globals) from pre-existing files
+                # and ignoring any nullable fields (settings to be deleted).
+                # This way we can avoid updates to certain netdefs/globals to be
+                # redirected into existing YAML files (defining those same
+                # stanzas) or ignored, but have them written out to the single
+                # output file.
+                # XXX: The origin file of each individual YAML setting/stanza
+                #      should be tracked individually, to avoid this
+                #      double-parsing workaround (LP: #2003727)
+                parser_output_file.load_yaml_hierarchy(self.root_dir)
+                tmp.seek(0, io.SEEK_SET)
+                parser_output_file.load_yaml(tmp)
+
+                # Import the partial parser state, ignoring duplicated netdefs
+                # from pre-existing YAML files, so we can force write the patch
+                # contents to the output file or update this file if exists.
+                state_output_file = libnetplan.State()
+                state_output_file.import_parser_results(parser_output_file)
+                state_output_file.write_yaml_file(filename, self.root_dir)
+            else:
+                state.update_yaml_hierarchy(FALLBACK_FILENAME, self.root_dir)
