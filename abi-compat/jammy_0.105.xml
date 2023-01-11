@@ -1893,22 +1893,22 @@
     <typedef-decl name='GHashTableIter' type-id='type-id-245' filepath='/usr/include/glib-2.0/glib/ghash.h' line='43' column='1' id='type-id-14'/>
     <class-decl name='_GHashTableIter' size-in-bits='320' is-struct='yes' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='45' column='1' id='type-id-245'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='placeholder1' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='48' column='1'/>
+        <var-decl name='dummy1' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='48' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='placeholder2' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='49' column='1'/>
+        <var-decl name='dummy2' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='49' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='128'>
-        <var-decl name='placeholder3' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='50' column='1'/>
+        <var-decl name='dummy3' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='50' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='192'>
-        <var-decl name='placeholder4' type-id='type-id-16' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='51' column='1'/>
+        <var-decl name='dummy4' type-id='type-id-16' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='51' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='224'>
-        <var-decl name='placeholder5' type-id='type-id-40' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='52' column='1'/>
+        <var-decl name='dummy5' type-id='type-id-40' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='52' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='256'>
-        <var-decl name='placeholder6' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='53' column='1'/>
+        <var-decl name='dummy6' type-id='type-id-120' visibility='default' filepath='/usr/include/glib-2.0/glib/ghash.h' line='53' column='1'/>
       </data-member>
     </class-decl>
     <typedef-decl name='GCompareFunc' type-id='type-id-246' filepath='/usr/include/glib-2.0/glib/gtypes.h' line='106' column='1' id='type-id-247'/>
