@@ -1144,12 +1144,12 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > `bandwidth`, and `count`. This option is only used in 802.3ad
     > mode.
 
-  - **all-members-active**, **all-slaves-active** (bool)
+  - **all-members-active** (bool)
 
     > If the bond should drop duplicate frames received on inactive ports,
     > set this option to `false`. If they should be delivered, set this
     > option to `true`. The default value is false, and is the desirable
-    > behavior in most situations.
+    > behavior in most situations. Alias: **all-slaves-active**
 
   - **arp-interval** (scalar)
 
@@ -1214,13 +1214,13 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > For historical reasons, the misspelling `gratuitious-arp` is also
     > accepted and has the same function.
 
-  - **packets-per-member**, **packets-per-slave** (scalar)
+  - **packets-per-member** (scalar)
 
     > In `balance-rr` mode, specifies the number of packets to transmit
     > on a port before switching to the next. When this value is set to
     > `0`, ports are chosen at random. Allowable values are between
     > `0` and `65535`. The default value is `1`. This setting is
-    > only used in `balance-rr` mode.
+    > only used in `balance-rr` mode. Alias: **packets-per-slave**
 
   - **primary-reselect-policy** (scalar)
 

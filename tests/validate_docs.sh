@@ -22,7 +22,7 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     fi
 
     # 2. "[blah, ]**blah**[, **blah2**]: (scalar|bool|...)
-    if egrep "\*\*$term\*\*.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/netplan-yaml.md > /dev/null; then
+    if egrep "Alias: \*\*$term\*\*|\*\*$term\*\*.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/netplan-yaml.md > /dev/null; then
         continue
     fi
 
