@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
+ * Copyright (C) 2016-2023 Canonical, Ltd.
  * Author: Martin Pitt <martin.pitt@ubuntu.com>
- *         Lukas Märdian <lukas.maerdian@canonical.com>
+ * Author: Lukas Märdian <slyon@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2924,10 +2924,20 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
 
         value = yaml_document_get_node(&npp->doc, entry->value);
 
-        if (key_prefix && npp->null_fields) {
+        if (key_prefix && (npp->null_fields || npp->null_overrides)) {
             full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
-            if (g_hash_table_contains(npp->null_fields, full_key) || node_is_nulled_out(&npp->doc, value, full_key, npp->null_fields))
+            /* Ignore NULL fields (about to be deleted) */
+            if (npp->null_fields && (g_hash_table_contains(npp->null_fields, full_key) || node_is_nulled_out(&npp->doc, value, full_key, npp->null_fields)))
                 continue;
+            /* Ignore this netdef if it is supposed to be part of the resulting
+             * origin-hint file, but we're not currently processing said filepath. */
+            if (npp->null_overrides) {
+                const gchar* origin_hint = g_hash_table_lookup(npp->null_overrides, full_key);
+                g_autofree gchar* basename = npp->current.filepath ?
+                    g_path_get_basename(npp->current.filepath) : NULL;
+                if (origin_hint && basename && g_strcmp0(origin_hint, basename) != 0)
+                    continue;
+            }
         }
 
         /* special-case "renderer:" key to set the per-type backend */
@@ -3339,6 +3349,11 @@ netplan_parser_reset(NetplanParser* npp)
         npp->null_fields = NULL;
     }
 
+    if (npp->null_overrides) {
+        g_hash_table_destroy(npp->null_overrides);
+        npp->null_overrides = NULL;
+    }
+
     if (npp->sources) {
         /* Properly configured at creation not to leak */
         g_hash_table_destroy(npp->sources);
@@ -3355,14 +3370,44 @@ netplan_parser_clear(NetplanParser** npp_p)
     g_free(npp);
 }
 
+/* Check if this is a Netdef-ID or global keyword which can be nullified.
+ * Overrides (depending on YAML hierarchy) can only happen on global values
+ * (like "renderer") or on the individual netdef level.
+ * @return the Netdef-ID/keyword or NULL */
+static gboolean
+is_netdef_id_or_global_value(const char* full_key)
+{
+    g_autofree gchar* key = g_strstrip(g_strdup(full_key)); // strip leading '\t'
+    gboolean ret = FALSE;
+    gchar** split = g_strsplit(key, "\t", 0);
+    if (split[0] && g_strcmp0(split[0], "network") == 0) {
+        if (split[1]) {
+            /* check if is valid network type */
+            for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+                const char* def_type_name = netplan_def_type_name(i);
+                if (def_type_name && g_strcmp0(split[1], def_type_name) == 0) {
+                    /* return keyword if split[2] is a Netdef-ID
+                     * e.g. "network.ethernets.eth0" */
+                    if (split[2] && !split[3]) {
+                        ret = TRUE; // a valid Netdef-ID
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    g_strfreev(split);
+    return ret;
+}
+
 static void
-extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fields, char* key_prefix)
+extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fields, char* key_prefix, const char* origin_hint)
 {
     yaml_node_pair_t* entry;
     switch (node->type) {
         // LCOV_EXCL_START
         case YAML_NO_NODE:
-            g_hash_table_add(null_fields, key_prefix);
+            g_hash_table_insert(null_fields, key_prefix, NULL);
             key_prefix = NULL;
             break;
         // LCOV_EXCL_STOP
@@ -3370,7 +3415,7 @@ extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fi
             if (       g_ascii_strcasecmp("null", scalar(node)) == 0
                     || g_strcmp0((char*)node->tag, YAML_NULL_TAG) == 0
                     || g_strcmp0(scalar(node), "~") == 0) {
-                g_hash_table_add(null_fields, key_prefix);
+                g_hash_table_insert(null_fields, key_prefix, NULL);
                 key_prefix = NULL;
             }
             break;
@@ -3384,7 +3429,16 @@ extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fi
                 key = yaml_document_get_node(doc, entry->key);
                 value = yaml_document_get_node(doc, entry->value);
                 full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
-                extract_null_fields(doc, value, null_fields, full_key);
+                /* If an origin_hint is given, nullify the overrides, like
+                 * Netdef-IDs or global values (e.g. "renderer") and track the
+                 * origin_hint filename as hashmap value. To ignore such netdefs
+                 * or globals during the YAML parsing stage should they be
+                 * defined somewhere else outside the origin-hint file. */
+                if (origin_hint && is_netdef_id_or_global_value(full_key)) {
+                    g_hash_table_insert(null_fields, g_strdup(full_key), g_strdup(origin_hint));
+                    g_debug("ignoring previous definition of: %s (except in %s)", full_key, origin_hint);
+                }
+                extract_null_fields(doc, value, null_fields, full_key, origin_hint);
             }
             break;
         // LCOV_EXCL_START
@@ -3407,8 +3461,38 @@ netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, GError** e
         return TRUE; // LCOV_EXCL_LINE
 
     if (!npp->null_fields)
-        npp->null_fields = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        npp->null_fields = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
-    extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_fields, g_strdup(""));
+    extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_fields, g_strdup(""), NULL);
+    return TRUE;
+}
+
+gboolean
+netplan_parser_load_nullable_overrides(
+    NetplanParser* npp, int input_fd, const char* constraint, GError** error)
+{
+    yaml_document_t doc;
+    if (!load_yaml_from_fd(input_fd, &doc, error))
+        return FALSE; // LCOV_EXCL_LINE
+
+    /* empty file? */
+    if (yaml_document_get_root_node(&doc) == NULL)
+        return TRUE; // LCOV_EXCL_LINE
+
+    if (!npp->null_overrides)
+        npp->null_overrides = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+    /* Track the given origin_hint filename, as a constraint, for any netdef or
+     * global value of the given <input_fd> (i.e. YAML patch), so that those can
+     * be ignored later (inside YAML the parsing stage), shouldn't they
+     * originate from the origin-hint file, but from some other YAML file inside
+     * the hierarchy.
+     *
+     * Examples for "origin_hint:hint.yaml" being tracked in npp->null_overrides:
+     * yaml patch: "network.ethernets.eth0.dhcp4=false"
+     * => network.ethernets.eth0: hint.yaml
+     * yaml patch: "network.renderer=NetworkManager"
+     * => network.renderer: hint.yaml */
+    extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_overrides, g_strdup(""), constraint);
     return TRUE;
 }
