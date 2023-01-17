@@ -38,6 +38,7 @@ OVS_CLEANUP_SERVICE = 'netplan-ovs-cleanup.service'
 
 IF_NAMESIZE = 16
 
+
 class NetplanApply(utils.NetplanCommand):
 
     def __init__(self):

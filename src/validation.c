@@ -403,7 +403,8 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
     if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.nm.passthrough || !g_datalist_get_data(&nd->backend_settings.nm.passthrough, "connection.type")))
         return yaml_error(npp, node, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
 
-    validate_interface_name_length(npp->current.netdef);
+    if (npp->current.netdef)
+        validate_interface_name_length(npp->current.netdef);
 
     valid = TRUE;
 
