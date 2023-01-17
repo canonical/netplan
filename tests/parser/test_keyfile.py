@@ -1371,11 +1371,11 @@ method=manual
 addr-gen-mode=default
 method=auto
 
-[proxy]\n'''.format(UUID))
+[proxy]\n'''.format(UUID), netdef_id='br0')
         self.assert_netplan({UUID: '''network:
   version: 2
   bridges:
-    NM-{}:
+    br0:
       renderer: NetworkManager
       addresses:
       - "1.2.3.4/24"
@@ -1384,7 +1384,6 @@ method=auto
         uuid: "{}"
         name: "Test Write Bridge Main"
         passthrough:
-          connection.interface-name: "br0"
           ethernet._: ""
           bridge._: ""
           ipv4.address1: "1.2.3.4/24,1.1.1.1"
@@ -1392,4 +1391,4 @@ method=auto
           ipv6.addr-gen-mode: "default"
           ipv6.ip6-privacy: "-1"
           proxy._: ""
-'''.format(UUID, UUID)})
+'''.format(UUID)})
