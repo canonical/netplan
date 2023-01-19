@@ -34,7 +34,7 @@ NETPLAN_PUBLIC ssize_t
 netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const char* ssid, char* out_buffer, size_t out_buf_size);
 
 NETPLAN_PUBLIC void
-netplan_error_free(NetplanError* error);
+netplan_error_clear(NetplanError** error);
 
 NETPLAN_PUBLIC ssize_t
 netplan_error_message(NetplanError* error, char* buf, size_t buf_size);
