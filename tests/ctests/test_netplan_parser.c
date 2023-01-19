@@ -147,7 +147,7 @@ test_netplan_parser_process_document_proper_error(void** state)
 
     /* In this instance the interface IS defined and the actual problem is the malformed IP address */
     gboolean found = strstr(error->message, "invalid IP family '-1'") != NULL;
-    netplan_error_free(error);
+    netplan_error_clear(&error);
     assert_true(found);
 }
 
@@ -177,7 +177,7 @@ test_netplan_parser_process_document_missing_interface_error(void** state)
     netplan_parser_clear(&npp);
 
     gboolean found = strstr(error->message, "br0: interface 'ens3' is not defined") != NULL;
-    netplan_error_free(error);
+    netplan_error_clear(&error);
     assert_true(found);
 }
 
