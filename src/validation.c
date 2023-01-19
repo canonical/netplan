@@ -19,6 +19,7 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <regex.h>
 
 #include <yaml.h>
@@ -149,6 +150,32 @@ validate_ovs_target(gboolean host_first, gchar* s) {
             return TRUE;
     }
     return FALSE;
+}
+
+static gboolean
+validate_interface_name_length(const NetplanNetDefinition* netdef)
+{
+    gboolean validation = TRUE;
+    char* iface = NULL;
+
+    if (netdef->type >= NETPLAN_DEF_TYPE_VIRTUAL && netdef->type < NETPLAN_DEF_TYPE_NM) {
+        if (strnlen(netdef->id, IF_NAMESIZE) == IF_NAMESIZE) {
+            iface = netdef->id;
+            validation = FALSE;
+        }
+    } else if (netdef->set_name) {
+        if (strnlen(netdef->set_name, IF_NAMESIZE) == IF_NAMESIZE) {
+            iface = netdef->set_name;
+            validation = FALSE;
+        }
+    }
+
+    /* TODO: make this a hard failure in the future, but keep it as a warning
+     *       for now, to not break netplan generate at boot. */
+    if (iface)
+        g_warning("Interface name '%s' is too long. It will be ignored by the backend.", iface);
+
+    return validation;
 }
 
 /************************************************
@@ -377,6 +404,9 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
 
     if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.nm.passthrough || !g_datalist_get_data(&nd->backend_settings.nm.passthrough, "connection.type")))
         return yaml_error(npp, node, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
+
+    if (npp->current.netdef)
+        validate_interface_name_length(npp->current.netdef);
 
     valid = TRUE;
 
