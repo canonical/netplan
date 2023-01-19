@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -657,8 +658,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         /* else matches on something other than the name, do not restrict interface-name */
     } else {
         /* virtual (created) devices set a name */
-        if (strlen(def->id) > 15)
-            g_debug("interface-name longer than 15 characters is not supported");
+        if (strnlen(def->id, IF_NAMESIZE) == IF_NAMESIZE)
+            g_debug("interface-name %s is too long. Ignoring.", def->id);
         else
             g_key_file_set_string(kf, "connection", "interface-name", def->id);
 
