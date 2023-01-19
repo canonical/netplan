@@ -170,6 +170,8 @@ validate_interface_name_length(const NetplanNetDefinition* netdef)
         }
     }
 
+    /* TODO: make this a hard failure in the future, but keep it as a warning
+     *       for now, to not break netplan generate at boot. */
     if (iface)
         g_warning("Interface name '%s' is too long. It will be ignored by the backend.", iface);
 
