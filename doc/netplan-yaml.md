@@ -667,7 +667,7 @@ eth1:
   - **scope** (scalar)
 
     > The route scope, how wide-ranging it is to the network. Possible
-    > values are "global", "link", or "host".
+    > values are "global", "link", or "host". Applies to IPv4 only.
 
   - **table** (scalar)
 
