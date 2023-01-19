@@ -459,9 +459,9 @@ class _CommonTests():
     # Netplan shouldn't crash if openvswitch is installed but not running: LP#1995598
     def test_ovsdb_server_is_not_running(self):
         self.setup_eth(None, False)
-        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovsdb-server'])
-        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovs-vswitchd'])
-        subprocess.check_call(['systemctl', 'stop', 'ovsdb-server'])
+        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovsdb-server.service'])
+        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovs-vswitchd.service'])
+        subprocess.check_call(['systemctl', 'stop', 'ovsdb-server.service'])
         with open(self.config, 'w') as f:
             f.write('''network:
     version: 2
@@ -470,7 +470,7 @@ class _CommonTests():
         dhcp4: false''')
         p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, universal_newlines=True)
-        (out, err) = p.communicate()
+        (_, err) = p.communicate()
         self.assertIn('Cannot call openvswitch: ovsdb-server is not running.', err)
         self.assertEqual(p.returncode, 0)
 

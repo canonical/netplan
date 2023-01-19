@@ -23,7 +23,7 @@ import re
 from netplan.cli.utils import systemctl_is_active
 
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
-OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server'
+OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server.service'
 # Defaults for non-optional settings, as defined here:
 # http://www.openvswitch.org/ovs-vswitchd.conf.db.5.pdf
 DEFAULTS = {
