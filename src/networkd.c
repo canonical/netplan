@@ -872,6 +872,20 @@ netplan_netdef_write_network_file(
     if (def->vrf_link)
         g_string_append_printf(network, "VRF=%s\n", def->vrf_link->id);
 
+    /* VXLAN options */
+    if (def->has_vxlans) {
+        /* iterate over all netdefs to find VXLANs attached to us */
+        GList *l = np_state->netdefs_ordered;
+        const NetplanNetDefinition* nd;
+        for (; l != NULL; l = l->next) {
+            nd = l->data;
+            if (nd->vxlan && nd->vxlan->link == def &&
+                nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
+                nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
+                g_string_append_printf(network, "VXLAN=%s\n", nd->id);
+        }
+    }
+
     if (def->routes != NULL) {
         for (unsigned i = 0; i < def->routes->len; ++i) {
             NetplanIPRoute* cur_route = g_array_index (def->routes, NetplanIPRoute*, i);
@@ -944,20 +958,6 @@ netplan_netdef_write_network_file(
     /* IP-over-InfiniBand, IPoIB */
     if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
         g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
-    }
-
-    /* VXLAN options */
-    if (def->has_vxlans) {
-        /* iterate over all netdefs to find VXLANs attached to us */
-        GList *l = np_state->netdefs_ordered;
-        const NetplanNetDefinition* nd;
-        for (; l != NULL; l = l->next) {
-            nd = l->data;
-            if (nd->vxlan && nd->vxlan->link == def &&
-                nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
-                nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
-                g_string_append_printf(network, "VXLAN=%s\n", nd->id);
-        }
     }
 
     if (network->len > 0 || link->len > 0) {

@@ -1684,3 +1684,34 @@ class TestConfigErrors(TestBase):
 '''
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: 'output-key' is not required for this tunnel type", out)
+
+    def test_vxlan_eth_with_route(self):
+        """[networkd] Validate that VXLAN= is in the right section (LP#2000713)"""
+        config = '''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      routes:
+        - to: 10.20.30.40/32
+          via: 10.20.30.1
+  tunnels:
+    vxlan1:
+      mode: vxlan
+      id: 1
+      link: eth0
+'''
+        self.generate(config)
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+VXLAN=vxlan1
+
+[Route]
+Destination=10.20.30.40/32
+Gateway=10.20.30.1
+''',
+                              'vxlan1.netdev': (ND_VXLAN % ('vxlan1', 1)).strip(),
+                              'vxlan1.network': ND_EMPTY % ('vxlan1', 'ipv6')})
