@@ -1,0 +1,11 @@
+network:
+  bridges:
+    br0:
+      interfaces:
+        - ens3
+      routes:
+        - to: 0/0
+          via: 100.64.0.1
+  ethernets:
+    ens3: {}
+  version: 2

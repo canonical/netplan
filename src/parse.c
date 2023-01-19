@@ -3100,6 +3100,10 @@ process_document(NetplanParser* npp, GError** error)
             break;
     } while (still_missing > 0 || npp->missing_ids_found > 0);
 
+    /* If an error already occurred we should return and not assume it's a missing interface*/
+    if (error && *error)
+        goto cleanup;
+
     if (g_hash_table_size(npp->missing_id) > 0) {
         GHashTableIter iter;
         gpointer key, value;
@@ -3113,11 +3117,12 @@ process_document(NetplanParser* npp, GError** error)
         g_hash_table_iter_next (&iter, &key, &value);
         missing = (NetplanMissingNode*) value;
 
-        return yaml_error(npp, missing->node, error, "%s: interface '%s' is not defined",
-                          missing->netdef_id,
-                          key);
+        ret = yaml_error(npp, missing->node, error, "%s: interface '%s' is not defined",
+                         missing->netdef_id, key);
+        goto cleanup;
     }
 
+cleanup:
     g_hash_table_destroy(npp->missing_id);
     npp->missing_id = NULL;
     return ret;
