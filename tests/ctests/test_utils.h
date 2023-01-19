@@ -48,7 +48,7 @@ load_string_to_netplan_state(const char* yaml)
     process_document(npp, error);
 
     if (error && *error) {
-        netplan_error_free(*error);
+        netplan_error_clear(error);
     } else {
         np_state = netplan_state_new();
         netplan_state_import_parser_results(np_state, npp, error);
