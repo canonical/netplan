@@ -1713,16 +1713,5 @@ VXLAN=vxlan1
 Destination=10.20.30.40/32
 Gateway=10.20.30.1
 ''',
-                              'vxlan1.netdev': '''[NetDev]
-Name=vxlan1
-Kind=vxlan
-
-[VXLAN]
-VNI=1''',
-                              'vxlan1.network': '''[Match]
-Name=vxlan1
-
-[Network]
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-'''})
+                              'vxlan1.netdev': (ND_VXLAN % ('vxlan1', 1)).strip(),
+                              'vxlan1.network': ND_EMPTY % ('vxlan1', 'ipv6')})
