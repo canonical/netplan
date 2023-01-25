@@ -23,6 +23,8 @@ It is useful for **administrators of a Linux system** who want to use a common
 network configuration, controlling different backends like NetworkManager or
 systemd-networkd.
 
+## In this documentation
+
 |  |  |
 |---|---|
 | **[Tutorials](/tutorials)** | **[How-to guides](/howto)** |
