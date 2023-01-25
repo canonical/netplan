@@ -25,12 +25,38 @@ systemd-networkd.
 
 ## In this documentation
 
-|  |  |
-|---|---|
-| **[Tutorials](/tutorials)** | **[How-to guides](/howto)** |
-| **Get started** - hands-on introduction to Netplan for new users | **Step-by-step guides** covering key operations and common tasks |
-| **[Explanation](/explanation)** | **[Reference](/reference)** |
-| **Discussion and clarification** of key topics | **Technical information** - specifications, APIs, architecture |
+::::{grid} 1 1 2 2
+
+:::{grid-item-card} **[Tutorials](/tutorials)**
+:link: /tutorials
+:link-type: doc
+
+**Get started** - hands-on introduction to Netplan for new users
+:::
+:::{grid-item-card} **[How-to guides](/howto)**
+:link: /howto
+:link-type: doc
+
+**Step-by-step guides** covering key operations and common tasks
+:::
+::::
+
+::::{grid} 1 1 2 2
+:reverse:
+
+:::{grid-item-card} **[Reference](/reference)**
+:link: /reference
+:link-type: doc
+
+**Technical information** - specifications, APIs, architecture
+:::
+:::{grid-item-card} **[Explanation](/explanation)**
+:link: /explanation
+:link-type: doc
+
+**Discussion and clarification** of key topics
+:::
+::::
 
 ## Project and community
 
