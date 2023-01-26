@@ -1149,7 +1149,9 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > If the bond should drop duplicate frames received on inactive ports,
     > set this option to `false`. If they should be delivered, set this
     > option to `true`. The default value is false, and is the desirable
-    > behavior in most situations. Alias: **all-slaves-active**  <!--- wokeignore:rule=slave -->
+    > behavior in most situations.
+
+    Alias: **all-slaves-active**  <!--- wokeignore:rule=slave -->
 
   - **arp-interval** (scalar)
 
@@ -1220,7 +1222,9 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > on a port before switching to the next. When this value is set to
     > `0`, ports are chosen at random. Allowable values are between
     > `0` and `65535`. The default value is `1`. This setting is
-    > only used in `balance-rr` mode. Alias: **packets-per-slave** <!--- wokeignore:rule=slave -->
+    > only used in `balance-rr` mode.
+
+    Alias: **packets-per-slave** <!--- wokeignore:rule=slave -->
 
   - **primary-reselect-policy** (scalar)
 
