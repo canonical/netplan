@@ -197,7 +197,7 @@ UseMTU=true
                                                      '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
     @unittest.skipIf("CODECOV_TOKEN" in os.environ, "Skip on codecov.io: GLib changed hashtable sorting")
-    def test_eth_bridge_nm_blocklist(self):  # pragma: nocover
+    def test_eth_bridge_nm_denylist(self):  # pragma: nocover
         self.generate('''network:
   renderer: networkd
   ethernets:

@@ -78,7 +78,7 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
     @classmethod
     def tearDownClass(klass):
         try:
-            os.remove('/run/NetworkManager/conf.d/test-blocklist.conf')
+            os.remove('/run/NetworkManager/conf.d/test-denylist.conf')
         except FileNotFoundError:
             pass
 
