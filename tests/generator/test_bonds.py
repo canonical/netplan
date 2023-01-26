@@ -253,7 +253,7 @@ UseMTU=true
       interfaces: [eno1, switchports]
       dhcp4: true''', skip_generated_yaml_validation=True)
         # Skipping the yaml validation above because the emitter will use
-        # all-members_active and packets-per-member by default.
+        # all-members-active and packets-per-member by default.
 
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
@@ -736,7 +736,7 @@ method=ignore
         learn-packet-interval: 10
       dhcp4: true''', skip_generated_yaml_validation=True)
         # Skipping the yaml validation above because the emitter will use
-        # all-members_active and packets-per-member by default.
+        # all-members-active and packets-per-member by default.
 
         self.assert_nm({'eno1': '''[connection]
 id=netplan-eno1

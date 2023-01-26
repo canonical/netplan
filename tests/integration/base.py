@@ -443,7 +443,7 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         klass.dev_w_client = devs[1]
 
         # don't let NM trample over our fake AP
-        with open('/run/NetworkManager/conf.d/test-blocklist.conf', 'w') as f:
+        with open('/run/NetworkManager/conf.d/test-denylist.conf', 'w') as f:
             f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=nptestsrv,%s\n' % klass.dev_w_ap)
 
     @classmethod
