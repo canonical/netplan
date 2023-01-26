@@ -658,7 +658,7 @@
         <var-decl name='selection_logic' type-id='type-id-41' visibility='default' filepath='../src/abi.h' line='270' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='all_members_active' type-id='type-id-40' visibility='default' filepath='../src/abi.h' line='271' column='1'/>
+        <var-decl name='all_slaves_active' type-id='type-id-40' visibility='default' filepath='../src/abi.h' line='271' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='448'>
         <var-decl name='arp_interval' type-id='type-id-41' visibility='default' filepath='../src/abi.h' line='272' column='1'/>
@@ -685,7 +685,7 @@
         <var-decl name='gratuitous_arp' type-id='type-id-42' visibility='default' filepath='../src/abi.h' line='279' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='928'>
-        <var-decl name='packets_per_member' type-id='type-id-42' visibility='default' filepath='../src/abi.h' line='281' column='1'/>
+        <var-decl name='packets_per_slave' type-id='type-id-42' visibility='default' filepath='../src/abi.h' line='281' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='960'>
         <var-decl name='primary_reselect_policy' type-id='type-id-41' visibility='default' filepath='../src/abi.h' line='282' column='1'/>
@@ -697,7 +697,7 @@
         <var-decl name='learn_interval' type-id='type-id-41' visibility='default' filepath='../src/abi.h' line='284' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='1152'>
-        <var-decl name='primary_member' type-id='type-id-41' visibility='default' filepath='../src/abi.h' line='285' column='1'/>
+        <var-decl name='primary_slave' type-id='type-id-41' visibility='default' filepath='../src/abi.h' line='285' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='__anonymous_struct__3' size-in-bits='640' is-struct='yes' is-anonymous='yes' visibility='default' filepath='../src/abi.h' line='289' column='1' id='type-id-78'>
