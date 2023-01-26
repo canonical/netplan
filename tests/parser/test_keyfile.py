@@ -718,7 +718,7 @@ ip6-privacy=0
 [wifi]
 ssid=my-hotspot
 mode=ap
-mac-address-blacklist=
+mac-address-blacklist= # wokeignore:rule=blacklist
 
 [wifi-security]
 group=ccmp;
@@ -750,7 +750,7 @@ psk=test1234
               ipv4.dns-search: ""
               ipv6.addr-gen-mode: "1"
               ipv6.dns-search: ""
-              wifi.mac-address-blacklist: ""
+              wifi.mac-address-blacklist: "" # wokeignore:rule=blacklist
               wifi-security.group: "ccmp;"
               wifi-security.pairwise: "ccmp;"
               wifi-security.proto: "rsn;"
@@ -906,7 +906,7 @@ miimon=10
 min_links=10
 xmit_hash_policy=none
 ad_select=none
-all_slaves_active=1
+all_slaves_active=1 # wokeignore:rule=slave
 arp_interval=10
 arp_ip_target=10.10.10.10,20.20.20.20
 arp_validate=all
@@ -916,7 +916,7 @@ downdelay=10
 fail_over_mac=none
 num_grat_arp=10
 num_unsol_na=10
-packets_per_slave=10
+packets_per_slave=10 # wokeignore:rule=slave
 primary_reselect=none
 resend_igmp=10
 lp_interval=10
@@ -1063,7 +1063,7 @@ timestamp=305419896
 
 [ethernet]
 mac-address=99:88:77:66:55:44
-mac-address-blacklist=
+mac-address-blacklist= # wokeignore:rule=blacklist
 mtu=900
 
 [ipv4]
@@ -1146,7 +1146,7 @@ route4=5:6:7:8:9:0:1:2/62
           connection.autoconnect: "false"
           connection.permissions: ""
           connection.timestamp: "305419896"
-          ethernet.mac-address-blacklist: ""
+          ethernet.mac-address-blacklist: "" # wokeignore:rule=blacklist
           ipv4.address1: "192.168.0.5/24,192.168.0.1"
           ipv4.dns-search: ""
           ipv4.method: "manual"

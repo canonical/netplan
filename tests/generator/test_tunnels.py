@@ -464,8 +464,8 @@ Endpoint=1.2.3.4:5'''),
 id=netplan-wg0
 type=wireguard
 interface-name=wg0
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [wireguard]
 private-key=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
@@ -665,8 +665,8 @@ Kind=bridge\n'''})
 id=netplan-vxlan1005
 type=vxlan
 interface-name=vxlan1005
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [vxlan]
 ageing=42

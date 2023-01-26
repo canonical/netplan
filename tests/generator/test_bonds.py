@@ -188,7 +188,7 @@ UseMTU=true
                                             'MinLinks=10\n'
                                             'TransmitHashPolicy=none\n'
                                             'AdSelect=none\n'
-                                            'AllSlavesActive=1\n'
+                                            'AllSlavesActive=1\n'  # wokeignore:rule=slave
                                             'ARPIntervalSec=15ms\n'
                                             'ARPIPTargets=10.10.10.10 20.20.20.20\n'
                                             'ARPValidate=all\n'
@@ -197,7 +197,7 @@ UseMTU=true
                                             'DownDelaySec=30ms\n'
                                             'FailOverMACPolicy=none\n'
                                             'GratuitousARP=10\n'
-                                            'PacketsPerSlave=10\n'
+                                            'PacketsPerSlave=10\n'  # wokeignore:rule=slave
                                             'PrimaryReselectPolicy=none\n'
                                             'ResendIGMP=10\n'
                                             'LearnPacketIntervalSec=10\n',
@@ -263,7 +263,7 @@ UseMTU=true
                                             'MinLinks=10\n'
                                             'TransmitHashPolicy=none\n'
                                             'AdSelect=none\n'
-                                            'AllSlavesActive=1\n'
+                                            'AllSlavesActive=1\n'  # wokeignore:rule=slave
                                             'ARPIntervalSec=15ms\n'
                                             'ARPIPTargets=10.10.10.10 20.20.20.20\n'
                                             'ARPValidate=all\n'
@@ -272,7 +272,7 @@ UseMTU=true
                                             'DownDelaySec=30ms\n'
                                             'FailOverMACPolicy=none\n'
                                             'GratuitousARP=10\n'
-                                            'PacketsPerSlave=10\n'
+                                            'PacketsPerSlave=10\n'  # wokeignore:rule=slave
                                             'PrimaryReselectPolicy=none\n'
                                             'ResendIGMP=10\n'
                                             'LearnPacketIntervalSec=10\n',
@@ -368,7 +368,8 @@ RouteMetric=100
 UseMTU=true
 ''',
                               'eno1.network': '[Match]\nName=eno1\n\n'
-                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\nPrimarySlave=true\n',
+                                              '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'
+                                              'PrimarySlave=true\n',  # wokeignore:rule=slave
                               'switchports.network': '[Match]\nDriver=yayroute\n\n'
                                                      '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'})
 
@@ -401,7 +402,7 @@ Name=enp65s0
 [Network]
 LinkLocalAddressing=no
 Bond=bond0
-PrimarySlave=true
+PrimarySlave=true # wokeignore:rule=slave
 ''',
                               'faketh2.network': '[Match]\nName=faketh2\n\n[Network]\nLinkLocalAddressing=no\nBridge=vbr\n',
                               'bond0.network': '[Match]\nName=bond0\n\n'
@@ -493,8 +494,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -509,8 +510,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -554,8 +555,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -570,8 +571,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -636,8 +637,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -652,8 +653,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -676,7 +677,7 @@ miimon=10
 min_links=10
 xmit_hash_policy=none
 ad_select=none
-all_slaves_active=1
+all_slaves_active=1 # wokeignore:rule=slave
 arp_interval=10
 arp_ip_target=10.10.10.10,20.20.20.20
 arp_validate=all
@@ -686,7 +687,7 @@ downdelay=10
 fail_over_mac=none
 num_grat_arp=10
 num_unsol_na=10
-packets_per_slave=10
+packets_per_slave=10 # wokeignore:rule=slave
 primary_reselect=none
 resend_igmp=10
 lp_interval=10
@@ -719,7 +720,7 @@ method=ignore
         min-links: 10
         up-delay: 10
         down-delay: 10
-        all-slaves-active: true
+        all-slaves-active: true # wokeignore:rule=slave
         transmit-hash-policy: none
         ad-select: none
         arp-interval: 10
@@ -730,7 +731,7 @@ method=ignore
           - 20.20.20.20
         fail-over-mac-policy: none
         gratuitious-arp: 10
-        packets-per-slave: 10
+        packets-per-slave: 10 # wokeignore:rule=slave
         primary-reselect-policy: none
         resend-igmp: 10
         learn-packet-interval: 10
@@ -742,8 +743,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -758,8 +759,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -782,7 +783,7 @@ miimon=10
 min_links=10
 xmit_hash_policy=none
 ad_select=none
-all_slaves_active=1
+all_slaves_active=1 # wokeignore:rule=slave
 arp_interval=10
 arp_ip_target=10.10.10.10,20.20.20.20
 arp_validate=all
@@ -792,7 +793,7 @@ downdelay=10
 fail_over_mac=none
 num_grat_arp=10
 num_unsol_na=10
-packets_per_slave=10
+packets_per_slave=10 # wokeignore:rule=slave
 primary_reselect=none
 resend_igmp=10
 lp_interval=10
@@ -827,8 +828,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -843,8 +844,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bond
-master=bn0
+slave-type=bond # wokeignore:rule=slave
+master=bn0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0

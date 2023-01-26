@@ -1,12 +1,5 @@
 ignore_files:
   - abi-compat/*.xml
-  - tests/generator/test_vrfs.py
-  - tests/generator/test_passthrough.py
-  - tests/parser/test_keyfile.py
-  - tests/generator/test_bridges.py
-  - tests/generator/test_bonds.py
-  - tests/generator/test_tunnels.py
-  - tests/generator/test_common.py
 rules:
   # Including some terms from https://inclusivenaming.org/ that are not in the default ruleset
   - name: abort

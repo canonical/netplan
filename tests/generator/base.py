@@ -31,6 +31,7 @@ import ctypes
 import ctypes.util
 import yaml
 import difflib
+import re
 
 exe_generate = os.environ.get('NETPLAN_GENERATE_PATH',
                               os.path.join(os.path.dirname(os.path.dirname(
@@ -100,6 +101,8 @@ NM_MANAGED_MAC = 'SUBSYSTEM=="net", ACTION=="add|change|move", ATTR{address}=="%
 NM_UNMANAGED_MAC = 'SUBSYSTEM=="net", ACTION=="add|change|move", ATTR{address}=="%s", ENV{NM_UNMANAGED}="1"\n'
 NM_MANAGED_DRIVER = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_DRIVER}=="%s", ENV{NM_UNMANAGED}="0"\n'
 NM_UNMANAGED_DRIVER = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_DRIVER}=="%s", ENV{NM_UNMANAGED}="1"\n'
+
+WOKE_REPLACE_REGEX = ' +# wokeignore:rule=[a-z]+'
 
 
 class NetplanV2Normalizer():
@@ -369,6 +372,7 @@ class TestBase(unittest.TestCase):
         self.assertEqual(set(os.listdir(networkd_dir)),
                          {'10-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
+            contents = re.sub(WOKE_REPLACE_REGEX, '', contents)
             with open(os.path.join(networkd_dir, '10-netplan-' + fname)) as f:
                 self.assertEqual(f.read(), contents)
 
@@ -411,6 +415,7 @@ class TestBase(unittest.TestCase):
         # check config
         conf_path = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d', 'netplan.conf')
         if conf:
+            conf = re.sub(WOKE_REPLACE_REGEX, '', conf)
             with open(conf_path) as f:
                 self.assertEqual(f.read(), conf)
         else:
@@ -424,6 +429,7 @@ class TestBase(unittest.TestCase):
             self.assertEqual(set(os.listdir(con_dir)),
                              set(['netplan-' + n.split('.nmconnection')[0] + '.nmconnection' for n in connections_map]))
             for fname, contents in connections_map.items():
+                contents = re.sub(WOKE_REPLACE_REGEX, '', contents)
                 extension = ''
                 if '.nmconnection' not in fname:
                     extension = '.nmconnection'

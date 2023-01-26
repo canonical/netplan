@@ -409,8 +409,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -425,8 +425,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -469,8 +469,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -485,8 +485,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -540,8 +540,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [bridge-port]
 path-cost=70
@@ -560,8 +560,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
