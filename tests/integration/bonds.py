@@ -89,7 +89,7 @@ class _CommonTests():
     mybond:
       interfaces: [ethbn]
       parameters:
-        all-slaves-active: true  # wokeignore:rule=slave
+        all-members-active: true
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
         self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
@@ -255,7 +255,7 @@ class _CommonTests():
     mybond:
       parameters:
         mode: balance-rr
-        packets-per-slave: 15  # wokeignore:rule=slave
+        packets-per-member: 15
       interfaces: [ethbn]
       dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
