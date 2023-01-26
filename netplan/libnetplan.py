@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 import tempfile
 import logging
 import ctypes
@@ -26,6 +27,21 @@ from typing import List, Union, IO
 
 class LibNetplanException(Exception):
     pass
+
+
+SCHEMA_ERROR_MESSAGE_REGEX = (
+    r'(?P<file_path>.*):(?P<error_line>\d+):(?<error_col>\d+): (?P<message>.*)'
+)
+
+class LibNetplanSchemaValidationException(LibNetplanException):
+
+    def __init__(self, message):
+        schema_error = re.match(SCHEMA_ERROR_MSG_REGEX, message).groupdict()
+        schema_error.groupdict()
+        self.file_path = schema_error["file_path"]
+        self.error_line = schema_error["error_line"]
+        self.error_col = schema_error["error_col"]
+        super().__init__(schema_error["message"])
 
 
 class _GError(ctypes.Structure):
@@ -72,11 +88,22 @@ def _string_realloc_call_no_error(function):
     raise LibNetplanException('Aborting due to string buffer size > 1M')  # pragma: nocover
 
 
+# Specialized exceptions based on err.contents.code or err.contents.message
+GERROR_MESSAGE_FORMAT_EXCEPTION_MAP = {
+    r'.*:\d+:\d+: Error in network definition':
+        LibNetplanSchemaValidationException
+}
+
 def _checked_lib_call(fn, *args):
     err = ctypes.POINTER(_GError)()
     ret = bool(fn(*args, ctypes.byref(err)))
     if not ret:
-        raise LibNetplanException(err.contents.message.decode('utf-8'))
+        exception_cls = LibNetplanException
+        for error_format, error_type in GERROR_MESSAGE_FORMAT_EXCEPTION_MAP:
+            if re.match(error_format, err.contents.message.decode('utf-8')):
+                exception_cls = error_type
+        # Specialize error type if possible
+        raise exception_cls(err.contents.message.decode('utf-8'))
 
 
 class Parser:
