@@ -74,13 +74,13 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'mybond'])
         self.assert_iface_up(self.dev_e_client,
-                             ['master mybond', '00:0a:f7:72:a7:28'],
+                             ['master mybond', '00:0a:f7:72:a7:28'],  # wokeignore:rule=master
                              ['inet '])
         self.assert_iface_up(self.dev_e2_client,
-                             ['master mybond', '00:0a:f7:72:a7:28'],
+                             ['master mybond', '00:0a:f7:72:a7:28'],  # wokeignore:rule=master
                              ['inet '])
         self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
-        with open('/sys/class/net/mybond/bonding/slaves') as f:
+        with open('/sys/class/net/mybond/bonding/slaves') as f:  # wokeignore:rule=slave
             self.assertIn(self.dev_e_client, f.read().strip())
 
     def test_try_accept_lp1949095(self):

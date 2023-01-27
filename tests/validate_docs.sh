@@ -3,7 +3,7 @@
 #     {"driver", YAML_SCALAR_NODE,...,
 # extract the thing in quotes.
 
-# sanity check: make sure none have disappeared, as might happen from a reformat.
+# coherence check: make sure none have disappeared, as might happen from a reformat.
 count=$(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/parse.c | sort | wc -l)
 # 144 is based on 0.99+da6f776 definitions, and should be updated periodically.
 if [ $count -lt 202 ]; then
@@ -22,7 +22,7 @@ for term in $(sed -n 's/[ ]\+{"\([a-z0-9-]\+\)", YAML_[A-Z]\+_NODE.*/\1/p' src/p
     fi
 
     # 2. "[blah, ]**blah**[, **blah2**]: (scalar|bool|...)
-    if egrep "\*\*$term\*\*.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/netplan-yaml.md > /dev/null; then
+    if egrep "Alias: \*\*$term\*\*|\*\*$term\*\*.*\((scalar|bool|mapping|sequence of scalars|sequence of mappings|sequence of sequence of scalars)" doc/netplan-yaml.md > /dev/null; then
         continue
     fi
 

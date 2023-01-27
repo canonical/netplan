@@ -197,7 +197,7 @@ UseMTU=true
                                                      '[Network]\nLinkLocalAddressing=no\nBridge=br0\n'})
 
     @unittest.skipIf("CODECOV_TOKEN" in os.environ, "Skip on codecov.io: GLib changed hashtable sorting")
-    def test_eth_bridge_nm_blacklist(self):  # pragma: nocover
+    def test_eth_bridge_nm_denylist(self):  # pragma: nocover
         self.generate('''network:
   renderer: networkd
   ethernets:
@@ -409,8 +409,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -425,8 +425,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -469,8 +469,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -485,8 +485,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0
@@ -540,8 +540,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [bridge-port]
 path-cost=70
@@ -560,8 +560,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=enp2s1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0

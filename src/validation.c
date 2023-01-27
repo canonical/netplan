@@ -32,7 +32,7 @@
 #include "util-internal.h"
 #include "validation.h"
 
-/* Check sanity for address types */
+/* Check coherence for address types */
 
 gboolean
 is_ip4_address(const char* address)
@@ -80,7 +80,7 @@ is_wireguard_key(const char* key)
     return FALSE;
 }
 
-/* Check sanity of OpenVSwitch controller targets */
+/* Check coherence of OpenVSwitch controller targets */
 gboolean
 validate_ovs_target(gboolean host_first, gchar* s) {
     static guint dport = 6653; // the default port
@@ -418,7 +418,7 @@ gboolean
 validate_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error)
 {
     gboolean valid = FALSE;
-    /* Set a dummy, NULL yaml_node_t for error reporting */
+    /* Set a placeholder, NULL yaml_node_t for error reporting */
     yaml_node_t* node = NULL;
 
     g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
@@ -444,7 +444,7 @@ validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError*
     NetplanNetDefinition* def;
     GHashTableIter iter;
     gboolean valid = FALSE;
-    /* Set a dummy, NULL yaml_node_t for error reporting */
+    /* Set a placeholder, NULL yaml_node_t for error reporting */
     yaml_node_t* node = NULL;
 
     g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);

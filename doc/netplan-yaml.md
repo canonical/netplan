@@ -1133,7 +1133,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
   - **transmit-hash-policy** (scalar)
 
-    > Specifies the transmit hash policy for the selection of slaves. This
+    > Specifies the transmit hash policy for the selection of ports. This
     > is only useful in balance-xor, 802.3ad and balance-tlb modes.
     > Possible values are `layer2`, `layer3+4`, `layer2+3`,
     > `encap2+3`, and `encap3+4`.
@@ -1144,12 +1144,14 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > `bandwidth`, and `count`. This option is only used in 802.3ad
     > mode.
 
-  - **all-slaves-active** (bool)
+  - **all-members-active** (bool)
 
     > If the bond should drop duplicate frames received on inactive ports,
     > set this option to `false`. If they should be delivered, set this
     > option to `true`. The default value is false, and is the desirable
     > behavior in most situations.
+
+    Alias: **all-slaves-active**  <!--- wokeignore:rule=slave -->
 
   - **arp-interval** (scalar)
 
@@ -1162,7 +1164,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
   - **arp-ip-targets** (sequence of scalars)
 
     > IPs of other hosts on the link which should be sent ARP requests in
-    > order to validate that a slave is up. This option is only used when
+    > order to validate that a port is up. This option is only used when
     > `arp-interval` is set to a value other than `0`. At least one IP
     > address must be given for ARP link monitoring to function. Only IPv4
     > addresses are supported. You can specify up to 16 IP addresses. The
@@ -1177,7 +1179,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
   - **arp-all-targets** (scalar)
 
     > Specify whether to use any ARP IP target being up as sufficient for
-    > a slave to be considered up; or if all the targets must be up. This
+    > a port to be considered up; or if all the targets must be up. This
     > is only used for `active-backup` mode when `arp-validate` is
     > enabled. Possible values are `any` and `all`.
 
@@ -1199,14 +1201,14 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
   - **fail-over-mac-policy** (scalar)
 
-    > Set whether to set all slaves to the same MAC address when adding
+    > Set whether to set all ports to the same MAC address when adding
     > them to the bond, or how else the system should handle MAC addresses.
     > The possible values are `none`, `active`, and `follow`.
 
   - **gratuitous-arp** (scalar)
 
     > Specify how many ARP packets to send after failover. Once a link is
-    > up on a new slave, a notification is sent and possibly repeated if
+    > up on a new port, a notification is sent and possibly repeated if
     > this value is set to a number greater than `1`. The default value
     > is `1` and valid values are between `1` and `255`. This only
     > affects `active-backup` mode.
@@ -1214,26 +1216,28 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
     > For historical reasons, the misspelling `gratuitious-arp` is also
     > accepted and has the same function.
 
-  - **packets-per-slave** (scalar)
+  - **packets-per-member** (scalar)
 
     > In `balance-rr` mode, specifies the number of packets to transmit
-    > on a slave before switching to the next. When this value is set to
-    > `0`, slaves are chosen at random. Allowable values are between
+    > on a port before switching to the next. When this value is set to
+    > `0`, ports are chosen at random. Allowable values are between
     > `0` and `65535`. The default value is `1`. This setting is
     > only used in `balance-rr` mode.
 
+    Alias: **packets-per-slave** <!--- wokeignore:rule=slave -->
+
   - **primary-reselect-policy** (scalar)
 
-    > Set the reselection policy for the primary slave. On failure of the
-    > active slave, the system will use this policy to decide how the new
-    > active slave will be chosen and how recovery will be handled. The
+    > Set the reselection policy for the primary port. On failure of the
+    > active port, the system will use this policy to decide how the new
+    > active port will be chosen and how recovery will be handled. The
     > possible values are `always`, `better`, and `failure`.
 
   - **resend-igmp** (scalar)
 
     > In modes `balance-rr`, `active-backup`, `balance-tlb` and
     > `balance-alb`, a failover can switch IGMP traffic from one
-    > slave to another.
+    > port to another.
     >
     > This parameter specifies how many IGMP membership reports
     > are issued on a failover event. Values range from 0 to 255. 0
@@ -1244,7 +1248,7 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
   - **learn-packet-interval** (scalar)
 
     > Specify the interval between sending learning packets to
-    > each slave.  The value range is between `1` and `0x7fffffff`.
+    > each port.  The value range is between `1` and `0x7fffffff`.
     > The default value is `1`. This option only affects `balance-tlb`
     > and `balance-alb` modes. Using the networkd renderer, this field
     > maps to the LearnPacketIntervalSec= property. If no time suffix is
@@ -1252,8 +1256,8 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
   - **primary** (scalar)
 
-    > Specify a device to be used as a primary slave, or preferred device
-    > to use as a slave for the bond (i.e. the preferred device to send
+    > Specify a device to be used as a primary port, or preferred device
+    > to use as a port for the bond (i.e. the preferred device to send
     > data through), whenever it is available. This only affects
     > `active-backup`, `balance-alb`, and `balance-tlb` modes.
 

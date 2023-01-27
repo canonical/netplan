@@ -267,8 +267,8 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
         g_key_file_set_string(kf, "bond", "xmit_hash_policy", def->bond_params.transmit_hash_policy);
     if (def->bond_params.selection_logic)
         g_key_file_set_string(kf, "bond", "ad_select", def->bond_params.selection_logic);
-    if (def->bond_params.all_slaves_active)
-        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_slaves_active);
+    if (def->bond_params.all_members_active)
+        g_key_file_set_integer(kf, "bond", "all_slaves_active", def->bond_params.all_members_active); /* wokeignore:rule=slave */
     if (def->bond_params.arp_interval)
         g_key_file_set_string(kf, "bond", "arp_interval", def->bond_params.arp_interval);
     if (def->bond_params.arp_ip_targets) {
@@ -297,16 +297,16 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
          * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
         g_key_file_set_integer(kf, "bond", "num_unsol_na", def->bond_params.gratuitous_arp);
     }
-    if (def->bond_params.packets_per_slave)
-        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_slave);
+    if (def->bond_params.packets_per_member)
+        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_member); /* wokeignore:rule=slave */
     if (def->bond_params.primary_reselect_policy)
         g_key_file_set_string(kf, "bond", "primary_reselect", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
         g_key_file_set_integer(kf, "bond", "resend_igmp", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
         g_key_file_set_string(kf, "bond", "lp_interval", def->bond_params.learn_interval);
-    if (def->bond_params.primary_slave)
-        g_key_file_set_string(kf, "bond", "primary", def->bond_params.primary_slave);
+    if (def->bond_params.primary_member)
+        g_key_file_set_string(kf, "bond", "primary", def->bond_params.primary_member);
 }
 
 static void
@@ -547,7 +547,7 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
     has_key = g_key_file_has_key(kf, group, k, NULL);
     old_key = g_key_file_get_string(kf, group, k, NULL);
     g_key_file_set_string(kf, group, k, val);
-    /* delete the dummy key, if this was just an empty group */
+    /* delete the placeholder key, if this was just an empty group */
     if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
         g_key_file_remove_key(kf, group, k, NULL);
     /* handle differing defaults:
@@ -703,8 +703,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_string(kf, modem_type, "sim-operator-id", def->modem_params.sim_operator_id);
     }
     if (def->bridge) {
-        g_key_file_set_string(kf, "connection", "slave-type", "bridge");
-        g_key_file_set_string(kf, "connection", "master", def->bridge);
+        g_key_file_set_string(kf, "connection", "slave-type", "bridge"); /* wokeignore:rule=slave */
+        g_key_file_set_string(kf, "connection", "master", def->bridge); /* wokeignore:rule=master */
 
         if (def->bridge_params.path_cost)
             g_key_file_set_uint64(kf, "bridge-port", "path-cost", def->bridge_params.path_cost);
@@ -712,13 +712,13 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "bridge-port", "priority", def->bridge_params.port_priority);
     }
     if (def->bond) {
-        g_key_file_set_string(kf, "connection", "slave-type", "bond");
-        g_key_file_set_string(kf, "connection", "master", def->bond);
+        g_key_file_set_string(kf, "connection", "slave-type", "bond"); /* wokeignore:rule=slave */
+        g_key_file_set_string(kf, "connection", "master", def->bond); /* wokeignore:rule=master */
     }
 
     if (def->vrf_link) {
-        g_key_file_set_string(kf, "connection", "slave-type", "vrf");
-        g_key_file_set_string(kf, "connection", "master", def->vrf_link->id);
+        g_key_file_set_string(kf, "connection", "slave-type", "vrf"); /* wokeignore:rule=slave */
+        g_key_file_set_string(kf, "connection", "master", def->vrf_link->id); /* wokeignore:rule=master */
     }
 
     if (def->ipv6_mtubytes) {

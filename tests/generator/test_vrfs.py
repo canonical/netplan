@@ -43,8 +43,8 @@ class NetworkManager(TestBase):
 id=netplan-eth0
 type=ethernet
 interface-name=eth0
-slave-type=vrf
-master=vrf1005
+slave-type=vrf # wokeignore:rule=slave
+master=vrf1005 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0

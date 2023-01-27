@@ -152,7 +152,7 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
 
     def test_wifi_ap_open(self):
         # we use dev_w_client and dev_w_ap in switched roles here, to keep the
-        # existing device blacklisting in NM; i. e. dev_w_client is the
+        # existing device denylisting in NM; i. e. dev_w_client is the
         # NM-managed AP, and dev_w_ap the manually managed client
         with open(self.config, 'w') as f:
             f.write('''network:

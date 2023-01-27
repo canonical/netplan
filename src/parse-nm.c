@@ -690,16 +690,16 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     handle_generic_str(kf, "bond", "fail_over_mac", &nd->bond_params.fail_over_mac_policy);
     handle_generic_str(kf, "bond", "primary_reselect", &nd->bond_params.primary_reselect_policy);
     handle_generic_str(kf, "bond", "lp_interval", &nd->bond_params.learn_interval);
-    handle_generic_str(kf, "bond", "primary", &nd->bond_params.primary_slave);
+    handle_generic_str(kf, "bond", "primary", &nd->bond_params.primary_member);
     handle_generic_uint(kf, "bond", "min_links", &nd->bond_params.min_links, 0);
     handle_generic_uint(kf, "bond", "resend_igmp", &nd->bond_params.resend_igmp, 0);
-    handle_generic_uint(kf, "bond", "packets_per_slave", &nd->bond_params.packets_per_slave, 0);
+    handle_generic_uint(kf, "bond", "packets_per_slave", &nd->bond_params.packets_per_member, 0); /* wokeignore:rule=slave */
     handle_generic_uint(kf, "bond", "num_grat_arp", &nd->bond_params.gratuitous_arp, 0);
     /* num_unsol_na might overwrite num_grat_arp, but we're fine if they are equal:
      * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
     if (g_key_file_get_uint64(kf, "bond", "num_unsol_na", NULL) == nd->bond_params.gratuitous_arp)
         _kf_clear_key(kf, "bond", "num_unsol_na");
-    handle_generic_bool(kf, "bond", "all_slaves_active", &nd->bond_params.all_slaves_active);
+    handle_generic_bool(kf, "bond", "all_slaves_active", &nd->bond_params.all_members_active); /* wokeignore:rule=slave */
     parse_bond_arp_ip_targets(kf, &nd->bond_params.arp_ip_targets);
 
     /* Special handling for WiFi "access-points:" mapping */

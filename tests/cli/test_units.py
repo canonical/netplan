@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Blackbox tests of netplan CLI. These are run during "make check" and don't
+# Functional tests of netplan CLI. These are run during "make check" and don't
 # touch the system configuration at all.
 #
 # Copyright (C) 2021 Canonical, Ltd.
