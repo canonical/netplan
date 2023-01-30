@@ -3490,6 +3490,7 @@ netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, GError** e
         npp->null_fields = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
     extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_fields, g_strdup(""), NULL);
+    yaml_document_delete(&doc);
     return TRUE;
 }
 
@@ -3520,5 +3521,6 @@ netplan_parser_load_nullable_overrides(
      * yaml patch: "network.renderer=NetworkManager"
      * => network.renderer: hint.yaml */
     extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_overrides, g_strdup(""), constraint);
+    yaml_document_delete(&doc);
     return TRUE;
 }
