@@ -43,11 +43,47 @@ test_netplan_parser_load_yaml(void** state)
 }
 
 void
+test_netplan_parser_load_yaml_from_fd(void** state)
+{
+    const char* filename = FIXTURESDIR "/ovs.yaml";
+    FILE* f = fopen(filename, "r");
+    GError *error = NULL;
+
+    NetplanParser* npp = netplan_parser_new();
+    gboolean res = netplan_parser_load_yaml_from_fd(npp, fileno(f), &error);
+    assert_true(res);
+
+    netplan_parser_clear(&npp);
+    netplan_error_clear(&error);
+    fclose(f);
+}
+
+void
+test_netplan_parser_load_nullable_fields(void** state)
+{
+    const char* filename = FIXTURESDIR "/nullable.yaml";
+    FILE* f = fopen(filename, "r");
+    GError *error = NULL;
+
+    NetplanParser* npp = netplan_parser_new();
+    assert_null(npp->null_fields);
+    gboolean res = netplan_parser_load_nullable_fields(npp, fileno(f), &error);
+    assert_true(res);
+    assert_non_null(npp->null_fields);
+    assert_true(g_hash_table_contains(npp->null_fields, "\tnetwork\tethernets\teth0\tdhcp4"));
+
+    netplan_parser_clear(&npp);
+    netplan_error_clear(&error);
+    fclose(f);
+}
+
+void
 test_netplan_parser_load_nullable_overrides(void** state)
 {
     const char* filename = FIXTURESDIR "/optional.yaml";
     FILE* f = fopen(filename, "r");
     GError *error = NULL;
+
     NetplanParser* npp = netplan_parser_new();
     assert_null(npp->null_overrides);
     gboolean res = netplan_parser_load_nullable_overrides(npp, fileno(f), "hint.yaml", &error);
@@ -55,7 +91,10 @@ test_netplan_parser_load_nullable_overrides(void** state)
     assert_non_null(npp->null_overrides);
     assert_string_equal(g_hash_table_lookup(npp->null_overrides, "\tnetwork\trenderer"), "hint.yaml");
     assert_string_equal(g_hash_table_lookup(npp->null_overrides, "\tnetwork\tethernets\teth0"), "hint.yaml");
+
     netplan_parser_clear(&npp);
+    netplan_error_clear(&error);
+    fclose(f);
 }
 
 void
@@ -216,6 +255,8 @@ main()
        const struct CMUnitTest tests[] = {
            cmocka_unit_test(test_netplan_parser_new_parser),
            cmocka_unit_test(test_netplan_parser_load_yaml),
+           cmocka_unit_test(test_netplan_parser_load_yaml_from_fd),
+           cmocka_unit_test(test_netplan_parser_load_nullable_fields),
            cmocka_unit_test(test_netplan_parser_load_nullable_overrides),
            cmocka_unit_test(test_netplan_parser_interface_has_bridge_netdef),
            cmocka_unit_test(test_netplan_parser_interface_has_bond_netdef),
