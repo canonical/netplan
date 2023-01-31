@@ -15,6 +15,7 @@ network:
       routes: 
         - to: default
           via: 10.10.10.21
+          metric: 100
     wg1: #client
       mode: wireguard
       addresses: [20.20.20.10/24]
@@ -29,3 +30,4 @@ network:
       routes: 
         - to: default
           via: 20.20.20.11
+          metric: 200
