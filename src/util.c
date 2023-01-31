@@ -871,3 +871,33 @@ netplan_state_iterator_has_next(const NetplanStateIterator* iter)
         return FALSE;
     return _iter->next != NULL;
 }
+
+/*
+ * Returns true if a route already exists in the netdef routes list.
+ *
+ * We consider a route a duplicate if it is in the same table, has the same metric,
+ * src, to and via values.
+ *
+ * XXX: in the future we could add a route "key" to a hash set so this verification could
+ * be done faster.
+ */
+gboolean
+is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route)
+{
+
+    const GArray* routes = netdef->routes;
+
+    for (int i = 0; i < routes->len; i++) {
+        const NetplanIPRoute* entry = g_array_index(routes, NetplanIPRoute*, i);
+        if (
+                entry->table == route->table &&
+                entry->metric == route->metric &&
+                g_strcmp0(entry->from, route->from) == 0 &&
+                g_strcmp0(entry->to, route->to) == 0 &&
+                g_strcmp0(entry->via, route->via) == 0
+           )
+            return TRUE;
+    }
+
+    return FALSE;
+}

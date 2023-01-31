@@ -124,3 +124,6 @@ _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL gboolean
+is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route);
