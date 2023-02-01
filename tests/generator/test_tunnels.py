@@ -1684,3 +1684,169 @@ class TestConfigErrors(TestBase):
 '''
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: 'output-key' is not required for this tunnel type", out)
+
+    def test_vxlan_maclearning_arpproxy_shortcircuit_true_networkd(self):
+        self.generate('''network:
+  renderer: networkd
+  version: 2
+  ethernets:
+    eth0: {}
+  tunnels:
+    vxlan1005:
+      link: eth0
+      mode: vxlan
+      id: 1005
+      mac-learning: true
+      arp-proxy: true
+      short-circuit: true''')
+
+        self.assert_networkd({'vxlan1005.netdev': '''[NetDev]
+Name=vxlan1005
+Kind=vxlan
+
+[VXLAN]
+VNI=1005
+MacLearning=true
+ReduceARPProxy=true
+RouteShortCircuit=true\n''',
+                             'vxlan1005.network': '''[Match]
+Name=vxlan1005
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes\n''',
+                              'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+VXLAN=vxlan1005\n'''})
+
+    def test_vxlan_maclearning_arpproxy_shortcircuit_false_networkd(self):
+        self.generate('''network:
+  renderer: networkd
+  version: 2
+  ethernets:
+    eth0: {}
+  tunnels:
+    vxlan1005:
+      link: eth0
+      mode: vxlan
+      id: 1005
+      mac-learning: false
+      arp-proxy: false
+      short-circuit: false''')
+
+        self.assert_networkd({'vxlan1005.netdev': '''[NetDev]
+Name=vxlan1005
+Kind=vxlan
+
+[VXLAN]
+VNI=1005
+MacLearning=false
+ReduceARPProxy=false
+RouteShortCircuit=false\n''',
+                             'vxlan1005.network': '''[Match]
+Name=vxlan1005
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes\n''',
+                              'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+VXLAN=vxlan1005\n'''})
+
+    def test_vxlan_maclearning_arpproxy_shortcircuit_true_network_manager(self):
+        self.generate('''network:
+  renderer: NetworkManager
+  version: 2
+  ethernets:
+    eth0: {}
+  tunnels:
+    vxlan1005:
+      link: eth0
+      mode: vxlan
+      id: 1005
+      mac-learning: true
+      arp-proxy: true
+      short-circuit: true''')
+
+        self.assert_nm({'vxlan1005': '''[connection]
+id=netplan-vxlan1005
+type=vxlan
+interface-name=vxlan1005
+
+[vxlan]
+id=1005
+learning=true
+proxy=true
+rsc=true
+parent=eth0
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=ignore\n''',
+                        'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore\n'''})
+
+    def test_vxlan_maclearning_arpproxy_shortcircuit_false_network_manager(self):
+        self.generate('''network:
+  renderer: NetworkManager
+  version: 2
+  ethernets:
+    eth0: {}
+  tunnels:
+    vxlan1005:
+      link: eth0
+      mode: vxlan
+      id: 1005
+      mac-learning: false
+      arp-proxy: false
+      short-circuit: false''')
+
+        self.assert_nm({'vxlan1005': '''[connection]
+id=netplan-vxlan1005
+type=vxlan
+interface-name=vxlan1005
+
+[vxlan]
+id=1005
+learning=false
+proxy=false
+rsc=false
+parent=eth0
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=ignore\n''',
+                        'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore\n'''})

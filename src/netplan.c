@@ -224,9 +224,9 @@ write_vxlan(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
         YAML_UINT_0(def, event, emitter, "limit", def->vxlan->limit);
         YAML_UINT_0(def, event, emitter, "type-of-service", def->vxlan->tos);
         YAML_UINT_0(def, event, emitter, "ageing", def->vxlan->ageing);
-        YAML_BOOL_TRUE(def, event, emitter, "mac-learning", def->vxlan->mac_learning);
-        YAML_BOOL_TRUE(def, event, emitter, "arp-proxy", def->vxlan->arp_proxy);
-        YAML_BOOL_TRUE(def, event, emitter, "short-circuit", def->vxlan->short_circuit);
+        YAML_BOOL_TRISTATE(def, event, emitter, "mac-learning", def->vxlan->mac_learning);
+        YAML_BOOL_TRISTATE(def, event, emitter, "arp-proxy", def->vxlan->arp_proxy);
+        YAML_BOOL_TRISTATE(def, event, emitter, "short-circuit", def->vxlan->short_circuit);
         YAML_BOOL_TRISTATE(def, event, emitter, "do-not-fragment", def->vxlan->do_not_fragment);
         if (def->vxlan->notifications) {
             YAML_SCALAR_PLAIN(event, emitter, "notifications");
