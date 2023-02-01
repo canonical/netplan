@@ -104,6 +104,7 @@ if get_option('b_coverage')
     test('coverage-c-output',
          find_program('ninja'),
          args: ['-C', meson.current_build_dir(), 'coverage'],
+         timeout: 60,
          priority: -90, # run before 'coverage-c'
          is_parallel: false)
     test('coverage-c',
