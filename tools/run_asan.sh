@@ -19,8 +19,8 @@ export LD_LIBRARY_PATH="${BUILDDIR}/src"
 
 for yaml in examples/*.yaml
 do
-    chmod 600 ${yaml}
     cp ${yaml} ${BUILDDIR}/fakeroot/etc/netplan/
+    chmod 600 ${BUILDDIR}/fakeroot/etc/netplan/${yaml##*/}
     ./${BUILDDIR}/src/generate --root-dir ${BUILDDIR}/fakeroot
     rm ${BUILDDIR}/fakeroot/etc/netplan/${yaml##*/}
 done
