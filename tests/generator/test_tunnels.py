@@ -1069,13 +1069,12 @@ ConfigureWithoutCarrier=yes
     vx0:
       mode: vxlan
       id: 1005
-      mac-learning: true
       remote: 10.0.0.5
       port-range: [100, 10]''')
         self.assertIn("swapped invalid port-range order [MIN, MAX]", out)
 
         self.assert_networkd({'vx0.netdev': ND_VXLAN % ('vx0', 1005) +
-                              'Remote=10.0.0.5\nMacLearning=true\nPortRange=10-100\nIndependent=true\n',
+                              'Remote=10.0.0.5\nPortRange=10-100\nIndependent=true\n',
                               'vx0.network': ND_EMPTY % ('vx0', 'ipv6')})
 
     def test_vxlan_ip6_multicast(self):
@@ -1085,11 +1084,10 @@ ConfigureWithoutCarrier=yes
     vx0:
       mode: vxlan
       id: 1005
-      mac-learning: true
       remote: "ff42::dead:beef"''')
 
         self.assert_networkd({'vx0.netdev': ND_VXLAN % ('vx0', 1005) +
-                              'Group=ff42::dead:beef\nMacLearning=true\nIndependent=true\n',
+                              'Group=ff42::dead:beef\nIndependent=true\n',
                               'vx0.network': ND_EMPTY % ('vx0', 'ipv6')})
 
 
@@ -1422,7 +1420,6 @@ method=ignore
     vx0:
       mode: vxlan
       id: 42
-      mac-learning: true
       link: id0
   ethernets:
     id0:
@@ -1444,7 +1441,6 @@ interface-name=vx0
 
 [vxlan]
 id=42
-learning=true
 parent=%s
 
 [ipv4]
