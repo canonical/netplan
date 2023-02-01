@@ -21,6 +21,7 @@
 #include <fnmatch.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -39,6 +40,8 @@ wifi_frequency_24;
 
 NETPLAN_ABI GHashTable*
 wifi_frequency_5;
+
+const gchar* FALLBACK_FILENAME = "70-netplan-set.yaml";
 
 typedef struct netplan_state_iterator RealStateIter;
 /**
@@ -487,55 +490,93 @@ systemd_escape(char* string)
 gboolean
 netplan_delete_connection(const char* id, const char* rootdir)
 {
-    g_autofree gchar* del = NULL;
+    g_autofree gchar* yaml_path = NULL;
     g_autoptr(GError) error = NULL;
     NetplanNetDefinition* nd = NULL;
     gboolean ret = TRUE;
+    int patch_fd = -1;
 
-    NetplanState* np_state = netplan_state_new();
-    NetplanParser* npp = netplan_parser_new();
+    NetplanParser* input_parser = netplan_parser_new();
+    NetplanState* input_state = netplan_state_new();
+    NetplanParser* output_parser = NULL;
+    NetplanState* output_state = NULL;
 
     /* parse all YAML files */
-    if (   !netplan_parser_load_yaml_hierarchy(npp, rootdir, &error)
-        || !netplan_state_import_parser_results(np_state, npp, &error)) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "%s\n", error->message);
+    if (   !netplan_parser_load_yaml_hierarchy(input_parser, rootdir, &error)
+        || !netplan_state_import_parser_results(input_state, input_parser, &error)) {
+        g_fprintf(stderr, "netplan_delete_connection: Cannot parse input: %s\n", error->message);
         ret = FALSE;
         goto cleanup;
-        // LCOV_EXCL_STOP
     }
 
-    if (!np_state->netdefs) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "netplan_delete_connection: %s\n", error->message);
-        ret = FALSE;
-        goto cleanup;
-        // LCOV_EXCL_STOP
-    }
-
-    /* find filename for specified netdef ID */
-    nd = g_hash_table_lookup(np_state->netdefs, id);
+    /* find specified netdef in input state */
+    nd = netplan_state_get_netdef(input_state, id);
     if (!nd) {
-        g_warning("netplan_delete_connection: Cannot delete %s, does not exist.", id);
+        g_fprintf(stderr, "netplan_delete_connection: Cannot delete %s, does not exist.\n", id);
         ret = FALSE;
         goto cleanup;
     }
 
-    del = g_strdup_printf("network.%s.%s=NULL", netplan_def_type_name(nd->type), id);
+    /* Build up a tab-separated YAML path for this Netdef (e.g. network.ethernets.eth0=...) */
+    yaml_path = g_strdup_printf("network\t%s\t%s", netplan_def_type_name(nd->type), id);
 
-    /* TODO: refactor logic to actually be inside the library instead of spawning another process */
-    const gchar *argv[] = { SBINDIR "/" "netplan", "set", del, NULL, NULL, NULL };
-    if (rootdir) {
-        argv[3] = "--root-dir";
-        argv[4] = rootdir;
+    /* create a temporary file in memory, to hold our YAML patch */
+    patch_fd = memfd_create("patch.yaml", 0);
+    if (patch_fd < 0) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "netplan_delete_connection: Cannot create memfd: %m\n");
+        ret = FALSE;
+        goto cleanup;
+        // LCOV_EXCL_STOP
     }
-    if (getenv("TEST_NETPLAN_CMD") != 0)
-       argv[0] = getenv("TEST_NETPLAN_CMD");
-    ret = g_spawn_sync(NULL, (gchar**)argv, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+    if (!netplan_util_create_yaml_patch(yaml_path, "NULL", patch_fd, &error)) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "netplan_delete_connection: Cannot create YAML patch: %s\n", error->message);
+        ret = FALSE;
+        goto cleanup;
+        // LCOV_EXCL_STOP
+    }
+
+    /* Create a new parser & state to hold our output YAML, ignoring the to be
+     * deleted Netdef from the patch */
+    output_parser = netplan_parser_new();
+    output_state = netplan_state_new();
+
+    lseek(patch_fd, 0, SEEK_SET);
+    if (   !netplan_parser_load_nullable_fields(output_parser, patch_fd, &error)
+        || !netplan_parser_load_yaml_hierarchy(output_parser, rootdir, &error)) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "netplan_delete_connection: Cannot load output state: %s\n", error->message);
+        ret = FALSE;
+        goto cleanup;
+        // LCOV_EXCL_STOP
+    }
+
+    lseek(patch_fd, 0, SEEK_SET);
+    if (!netplan_parser_load_yaml_from_fd(output_parser, patch_fd, &error)) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "netplan_delete_connection: Cannot parse YAML patch: %s\n", error->message);
+        ret = FALSE;
+        goto cleanup;
+        // LCOV_EXCL_STOP
+    }
+
+    /* We're only deleting some data, so FALLBACK_FILENAME should never be created */
+    if (   !netplan_state_import_parser_results(output_state, output_parser, &error)
+        || !netplan_state_update_yaml_hierarchy(output_state, FALLBACK_FILENAME, rootdir, &error)) {
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "netplan_delete_connection: Cannot write output state: %s\n", error->message);
+        ret = FALSE;
+        goto cleanup;
+        // LCOV_EXCL_STOP
+    }
 
 cleanup:
-    if (npp) netplan_parser_clear(&npp);
-    if (np_state) netplan_state_clear(&np_state);
+    if (input_parser) netplan_parser_clear(&input_parser);
+    if (input_state) netplan_state_clear(&input_state);
+    if (output_parser) netplan_parser_clear(&output_parser);
+    if (output_state) netplan_state_clear(&output_state);
+    if (patch_fd >= 0) close(patch_fd);
     return ret;
 }
 
