@@ -10,6 +10,7 @@
 
 #include "error.c"
 #include "names.c"
+#include "netplan.c"
 #include "validation.c"
 #include "types.c"
 #include "util.c"
