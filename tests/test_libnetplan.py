@@ -28,6 +28,7 @@ from parser.base import capture_stderr
 from tests.test_utils import MockCmd
 
 from utils import state_from_yaml
+from netplan.cli.commands.set import FALLBACK_FILENAME
 
 import netplan.libnetplan as libnetplan
 
@@ -100,6 +101,7 @@ class TestRawLibnetplan(TestBase):
         # Parse all YAML and delete 'some-netplan-id' connection file
         self.assertTrue(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
         self.assertFalse(os.path.isfile(orig))
+        self.assertFalse(os.path.isfile(os.path.join(self.confdir, FALLBACK_FILENAME)))
 
     def test_delete_connection_id_not_found(self):
         orig = os.path.join(self.confdir, 'some-filename.yaml')
@@ -131,6 +133,16 @@ class TestRawLibnetplan(TestBase):
         # Verify the file still exists and still contains the other connection
         with open(orig, 'r') as f:
             self.assertEqual(f.read(), 'network:\n  version: 2\n  ethernets:\n    other-id:\n      dhcp6: true\n')
+
+    def test_delete_connection_invalid(self):
+        orig = os.path.join(self.confdir, 'some-filename.yaml')
+        with open(orig, 'w') as f:
+            f.write('INVALID')
+        self.assertTrue(os.path.isfile(orig))
+        with capture_stderr() as outf:
+            self.assertFalse(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
+            with open(outf.name, 'r') as f:
+                self.assertIn('Cannot parse input', f.read())
 
     def test_write_netplan_conf(self):
         netdef_id = 'some-netplan-id'
