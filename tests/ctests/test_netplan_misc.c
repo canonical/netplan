@@ -110,7 +110,7 @@ test_netplan_netdef_get_output_filename_nm_with_ssid(void** state)
     netdef.id = "enlol3s0";
     const char* ssid = "home-network";
 
-    size_t ret = netplan_netdef_get_output_filename(&netdef, ssid, out_buffer, sizeof(out_buffer) - 1);
+    ssize_t ret = netplan_netdef_get_output_filename(&netdef, ssid, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, expected_size);
     assert_string_equal(out_buffer, expected);
@@ -127,7 +127,7 @@ test_netplan_netdef_get_output_filename_nm_without_ssid(void** state)
     netdef.backend = NETPLAN_BACKEND_NM;
     netdef.id = "enlol3s0";
 
-    size_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
+    ssize_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, expected_size);
     assert_string_equal(out_buffer, expected);
@@ -144,7 +144,7 @@ test_netplan_netdef_get_output_filename_networkd(void** state)
     netdef.backend = NETPLAN_BACKEND_NETWORKD;
     netdef.id = "enlol3s0";
 
-    size_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
+    ssize_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, expected_size);
     assert_string_equal(out_buffer, expected);
@@ -159,7 +159,7 @@ test_netplan_netdef_get_output_filename_buffer_is_too_small(void** state)
     netdef.backend = NETPLAN_BACKEND_NETWORKD;
     netdef.id = "enlol3s0";
 
-    size_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
+    ssize_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, NETPLAN_BUFFER_TOO_SMALL);
 }
@@ -173,7 +173,7 @@ test_netplan_netdef_get_output_filename_invalid_backend(void** state)
     netdef.backend = NETPLAN_BACKEND_NONE;
     netdef.id = "enlol3s0";
 
-    size_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
+    ssize_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, 0);
 }

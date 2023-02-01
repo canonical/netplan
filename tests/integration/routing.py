@@ -304,8 +304,8 @@ class _CommonTests():
       - from: 10.10.10.42
 ''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client])
-        self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22', 'master vrf0'])
-        self.assert_iface_up('vrf0', ['MASTER'])
+        self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22', 'master vrf0'])  # wokeignore:rule=master
+        self.assert_iface_up('vrf0', ['MASTER'])  # wokeignore:rule=master
         # verify routes didn't leak into the main routing table
         out = subprocess.check_output(['ip', 'route', 'show'], universal_newlines=True)
         self.assertNotIn('10.10.0.0/16', out)

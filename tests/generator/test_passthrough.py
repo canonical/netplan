@@ -122,14 +122,14 @@ managed=1\n\n''')
       networkmanager:
         passthrough:
           connection.uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
-          connection.type: dummy''')
+          connection.type: dummy''')  # wokeignore:rule=dummy
 
         self.assert_nm({'NM-87749f1d-334f-40b2-98d4-55db58965f5f': '''[connection]
 id=netplan-NM-87749f1d-334f-40b2-98d4-55db58965f5f
 #Netplan: passthrough setting
 uuid=87749f1d-334f-40b2-98d4-55db58965f5f
 #Netplan: passthrough setting
-type=dummy
+type=dummy # wokeignore:rule=dummy
 
 [ipv4]
 method=link-local
@@ -137,7 +137,7 @@ method=link-local
 [ipv6]
 method=ignore
 '''}, '''[device-netplan.nm-devices.NM-87749f1d-334f-40b2-98d4-55db58965f5f]
-match-device=type:dummy
+match-device=type:dummy # wokeignore:rule=dummy
 managed=1\n\n''')
 
     def test_passthrough_dotted_group(self):

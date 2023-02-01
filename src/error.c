@@ -179,9 +179,9 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
 }
 
 void
-netplan_error_free(NetplanError* error)
+netplan_error_clear(NetplanError** error)
 {
-    g_error_free(error);
+    g_clear_error(error);
 }
 
 ssize_t

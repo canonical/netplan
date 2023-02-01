@@ -69,7 +69,7 @@ def _string_realloc_call_no_error(function):
             return None  # pragma: nocover as it's hard to trigger for now
         else:
             return buffer.value.decode('utf-8')
-    raise LibNetplanException('Aborting due to string buffer size > 1M')  # pragma: nocover
+    raise LibNetplanException('Halting due to string buffer size > 1M')  # pragma: nocover
 
 
 def _checked_lib_call(fn, *args):
@@ -99,6 +99,10 @@ class Parser:
         lib.netplan_parser_load_nullable_fields.argtypes = [_NetplanParserP, c_int, _GErrorPP]
         lib.netplan_parser_load_nullable_fields.restype = c_int
 
+        lib.netplan_parser_load_nullable_overrides.argtypes =\
+            [_NetplanParserP, c_int, c_char_p, _GErrorPP]
+        lib.netplan_parser_load_nullable_overrides.restype = c_int
+
         cls._abi_loaded = True
 
     def __init__(self):
@@ -119,6 +123,10 @@ class Parser:
 
     def load_nullable_fields(self, input_file: IO):
         _checked_lib_call(lib.netplan_parser_load_nullable_fields, self._ptr, input_file.fileno())
+
+    def load_nullable_overrides(self, input_file: IO, constraint: str):
+        _checked_lib_call(lib.netplan_parser_load_nullable_overrides,
+                          self._ptr, input_file.fileno(), constraint.encode('utf-8'))
 
 
 class State:

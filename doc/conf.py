@@ -2,7 +2,7 @@
 #
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+# https://www.sphinx-doc.org/en/master/usage/configuration.html  wokeignore:rule=master
 
 # -- Path setup --------------------------------------------------------------
 
@@ -28,6 +28,7 @@ author = 'Netplan team'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx_design', 'myst_parser']
+myst_enable_extensions = ["colon_fence"]
 smartquotes_action = 'qe'
 
 # Add any paths that contain templates here, relative to this directory.

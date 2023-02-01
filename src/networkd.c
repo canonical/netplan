@@ -361,8 +361,8 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
         g_string_append_printf(params, "\nTransmitHashPolicy=%s", def->bond_params.transmit_hash_policy);
     if (def->bond_params.selection_logic)
         g_string_append_printf(params, "\nAdSelect=%s", def->bond_params.selection_logic);
-    if (def->bond_params.all_slaves_active)
-        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_slaves_active);
+    if (def->bond_params.all_members_active)
+        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_members_active); /* wokeignore:rule=slave */ 
     if (def->bond_params.arp_interval) {
         g_string_append(params, "\nARPIntervalSec=");
         if (interval_has_suffix(def->bond_params.arp_interval))
@@ -401,8 +401,8 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
     if (def->bond_params.gratuitous_arp)
         g_string_append_printf(params, "\nGratuitousARP=%d", def->bond_params.gratuitous_arp);
     /* TODO: add unsolicited_na, not documented as supported by NM. */
-    if (def->bond_params.packets_per_slave)
-        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_slave);
+    if (def->bond_params.packets_per_member)
+        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_member); /* wokeignore:rule=slave */ 
     if (def->bond_params.primary_reselect_policy)
         g_string_append_printf(params, "\nPrimaryReselectPolicy=%s", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
@@ -853,8 +853,8 @@ netplan_netdef_write_network_file(
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
 
-        if (def->bond_params.primary_slave)
-            g_string_append_printf(network, "PrimarySlave=true\n");
+        if (def->bond_params.primary_member)
+            g_string_append_printf(network, "PrimarySlave=true\n"); /* wokeignore:rule=slave */
     }
 
     if (def->has_vlans && def->backend != NETPLAN_BACKEND_OVS) {
@@ -871,6 +871,20 @@ netplan_netdef_write_network_file(
     /* VRF linkage */
     if (def->vrf_link)
         g_string_append_printf(network, "VRF=%s\n", def->vrf_link->id);
+
+    /* VXLAN options */
+    if (def->has_vxlans) {
+        /* iterate over all netdefs to find VXLANs attached to us */
+        GList *l = np_state->netdefs_ordered;
+        const NetplanNetDefinition* nd;
+        for (; l != NULL; l = l->next) {
+            nd = l->data;
+            if (nd->vxlan && nd->vxlan->link == def &&
+                nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
+                nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
+                g_string_append_printf(network, "VXLAN=%s\n", nd->id);
+        }
+    }
 
     if (def->routes != NULL) {
         for (unsigned i = 0; i < def->routes->len; ++i) {
@@ -944,20 +958,6 @@ netplan_netdef_write_network_file(
     /* IP-over-InfiniBand, IPoIB */
     if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
         g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
-    }
-
-    /* VXLAN options */
-    if (def->has_vxlans) {
-        /* iterate over all netdefs to find VXLANs attached to us */
-        GList *l = np_state->netdefs_ordered;
-        const NetplanNetDefinition* nd;
-        for (; l != NULL; l = l->next) {
-            nd = l->data;
-            if (nd->vxlan && nd->vxlan->link == def &&
-                nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
-                nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN)
-                g_string_append_printf(network, "VXLAN=%s\n", nd->id);
-        }
     }
 
     if (network->len > 0 || link->len > 0) {

@@ -113,7 +113,9 @@ unlink_glob(const char* rootdir, const char* _glob)
 int find_yaml_glob(const char* rootdir, glob_t* out_glob)
 {
     int rc;
-    g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, "{lib,etc,run}/netplan/*.yaml", NULL);
+    g_autofree char* rglob = g_build_path(G_DIR_SEPARATOR_S,
+                                          rootdir ?: G_DIR_SEPARATOR_S,
+                                          "{lib,etc,run}/netplan/*.yaml", NULL);
     rc = glob(rglob, GLOB_BRACE, NULL, out_glob);
     if (rc != 0 && rc != GLOB_NOMATCH) {
         // LCOV_EXCL_START

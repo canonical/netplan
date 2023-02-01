@@ -2,8 +2,10 @@
 
 ## YAML configuration
 Netplan's configuration files use the
-[YAML](<http://yaml.org/spec/1.1/current.html>) format. All
-`/{lib,etc,run}/netplan/*.yaml` are considered.
+[YAML (v1.1)](<http://yaml.org/spec/1.1/current.html>) format. All files in
+`/{lib,etc,run}/netplan/*.yaml` are considered and are supposed to use
+restrictive file permissions (`600` / `rw-------`), i.e. owner (root) read-write
+only.
 
 The top-level node in a netplan configuration file is a ``network:`` mapping
 that contains ``version: 2`` (the YAML currently being used by curtin, MaaS,

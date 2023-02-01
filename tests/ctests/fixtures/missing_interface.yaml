@@ -1,0 +1,9 @@
+network:
+  bridges:
+    br0:
+      interfaces:
+        - ens3
+      routes:
+        - to: default
+          via: 100.64.0.1
+  version: 2

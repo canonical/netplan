@@ -31,10 +31,12 @@ import time
 import netplan.cli.utils as utils
 from netplan.configmanager import ConfigManager, ConfigurationError
 from netplan.cli.sriov import apply_sriov_config
-from netplan.cli.ovs import apply_ovs_cleanup
+from netplan.cli.ovs import OvsDbServerNotRunning, apply_ovs_cleanup
 
 
 OVS_CLEANUP_SERVICE = 'netplan-ovs-cleanup.service'
+
+IF_NAMESIZE = 16
 
 
 class NetplanApply(utils.NetplanCommand):
@@ -234,6 +236,9 @@ class NetplanApply(utils.NetplanCommand):
             # rename non-critical network interfaces
             new_name = settings.get('name')
             if new_name:
+                if len(new_name) >= IF_NAMESIZE:
+                    logging.warning('Interface name {} is too long. {} will not be renamed'.format(new_name, iface))
+                    continue
                 if iface in devices and new_name in devices_after_udev:
                     logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
                     continue  # re-name already happened via 'udevadm test'
@@ -401,3 +406,5 @@ class NetplanApply(utils.NetplanCommand):
             logging.error(str(e))
             if exit_on_error:
                 sys.exit(1)
+        except OvsDbServerNotRunning as e:
+            logging.warning('Cannot call openvswitch: {}.'.format(e))

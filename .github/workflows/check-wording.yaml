@@ -1,0 +1,20 @@
+name: Check for non-inclusive language
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Woke action
+        uses: get-woke/woke-action@v0
+        with:
+          fail-on-error: true
+          woke-args: -o text

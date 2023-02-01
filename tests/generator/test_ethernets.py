@@ -139,7 +139,7 @@ Name=lom1
 LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('ixgbe', 'lom1'))})
-        # NM cannot match by driver, so blacklisting needs to happen via udev
+        # NM cannot match by driver, so denylisting needs to happen via udev
         self.assert_nm(None)
         self.assert_nm_udev(NM_UNMANAGED % 'lom1' + NM_UNMANAGED_DRIVER % 'ixgbe')
 

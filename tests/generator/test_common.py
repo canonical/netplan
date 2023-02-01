@@ -878,8 +878,8 @@ method=ignore
 id=netplan-eth1
 type=ethernet
 interface-name=eth1
-slave-type=bond
-master=bond0
+slave-type=bond # wokeignore:rule=slave
+master=bond0 # wokeignore:rule=master
 
 [ethernet]
 wake-on-lan=0

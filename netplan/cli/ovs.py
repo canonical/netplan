@@ -20,7 +20,10 @@ import os
 import subprocess
 import re
 
+from netplan.cli.utils import systemctl_is_active
+
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
+OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server.service'
 # Defaults for non-optional settings, as defined here:
 # http://www.openvswitch.org/ovs-vswitchd.conf.db.5.pdf
 DEFAULTS = {
@@ -34,6 +37,10 @@ GLOBALS = {
     'set-fail-mode': ('del-fail-mode', 'get-fail-mode'),
     'set-controller': ('del-controller', 'get-controller'),
 }
+
+
+class OvsDbServerNotRunning(Exception):
+    pass
 
 
 def _del_col(type, iface, column, value):
@@ -118,6 +125,9 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     Also filter for individual settings tagged netplan/<column>[/<key]=value
     in external-ids and clear them if they have been set by netplan.
     """
+    if not systemctl_is_active(OPENVSWITCH_OVSDB_SERVER_UNIT):
+        raise OvsDbServerNotRunning('{} is not running'.format(OPENVSWITCH_OVSDB_SERVER_UNIT))
+
     config_manager.parse()
     ovs_ifaces = set()
     for i in config_manager.all_defs.keys():

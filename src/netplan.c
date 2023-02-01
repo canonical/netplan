@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Canonical, Ltd.
+ * Copyright (C) 2021-2023 Canonical, Ltd.
  * Author: Lukas Märdian <slyon@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -158,11 +158,11 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
         || def->bond_params.primary_reselect_policy
         || def->bond_params.learn_interval
         || def->bond_params.arp_interval
-        || def->bond_params.primary_slave
+        || def->bond_params.primary_member
         || def->bond_params.min_links
-        || def->bond_params.all_slaves_active
+        || def->bond_params.all_members_active
         || def->bond_params.gratuitous_arp
-        || def->bond_params.packets_per_slave
+        || def->bond_params.packets_per_member
         || def->bond_params.resend_igmp
         || def->bond_params.arp_ip_targets) {
         YAML_SCALAR_PLAIN(event, emitter, "parameters");
@@ -180,11 +180,11 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
         YAML_STRING(def, event, emitter, "primary-reselect-policy", def->bond_params.primary_reselect_policy);
         YAML_STRING(def, event, emitter, "learn-packet-interval", def->bond_params.learn_interval);
         YAML_STRING(def, event, emitter, "arp-interval", def->bond_params.arp_interval);
-        YAML_STRING(def, event, emitter, "primary", def->bond_params.primary_slave);
+        YAML_STRING(def, event, emitter, "primary", def->bond_params.primary_member);
         YAML_UINT_0(def, event, emitter, "min-links", def->bond_params.min_links);
-        YAML_BOOL_TRUE(def, event, emitter, "all-slaves-active", def->bond_params.all_slaves_active);
+        YAML_BOOL_TRUE(def, event, emitter, "all-members-active", def->bond_params.all_members_active);
         YAML_UINT_0(def, event, emitter, "gratuitous-arp", def->bond_params.gratuitous_arp);
-        YAML_UINT_0(def, event, emitter, "packets-per-slave", def->bond_params.packets_per_slave);
+        YAML_UINT_0(def, event, emitter, "packets-per-member", def->bond_params.packets_per_member);
         YAML_UINT_0(def, event, emitter, "resend-igmp", def->bond_params.resend_igmp);
         if (def->bond_params.arp_ip_targets || DIRTY(def, def->bond_params.arp_ip_targets)) {
             GArray* arr = def->bond_params.arp_ip_targets;
@@ -994,7 +994,7 @@ contains_netdef_type(gconstpointer value, gconstpointer user_data)
 }
 
 static gboolean
-netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int out_fd, GError** error)
+netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int out_fd, const char* out_fname, gboolean is_fallback, GError** error)
 {
     GHashTable *ovs_ports = NULL;
 
@@ -1018,11 +1018,27 @@ netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int
     /* We support version 2 only, currently */
     YAML_NONNULL_STRING_PLAIN(event, emitter, "version", "2");
 
-    if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM) {
-        YAML_NONNULL_STRING_PLAIN(event, emitter, "renderer", "NetworkManager");
-    } else if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NETWORKD) {
-        YAML_NONNULL_STRING_PLAIN(event, emitter, "renderer", "networkd");
+    /* fallback to default global handling, if renderer was not set for this file */
+    NetplanBackend renderer = netplan_state_get_backend(np_state);
+    /* Try to find a file specific (global) renderer.
+     * If this is the fallback file (70-netplan-set.yaml or <origin-hint>.yaml),
+     * a renderer parsed from a YAML patch takes precedence. */
+    if (out_fname && np_state->global_renderer) {
+        gpointer value;
+        renderer = GPOINTER_TO_INT(g_hash_table_lookup(np_state->global_renderer, out_fname));
+        /* A renderer parsed from an (anonymous) YAML patch takes precendence
+         * (e.g. "netplan set ..."). Such data does not have any filename
+         * associated to it in the global_renderer map (i.e. empty string). */
+        if (is_fallback && g_hash_table_lookup_extended(np_state->global_renderer, "", NULL, &value))
+            renderer = GPOINTER_TO_INT(value);
     }
+    if (renderer == NETPLAN_BACKEND_NM || renderer == NETPLAN_BACKEND_NETWORKD)
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "renderer", netplan_backend_name(renderer));
+
+    /* Do not write any netdefs, if we're just setting/updating some globals,
+     * e.g.: netplan set "network.renderer=NetworkManager" */
+    if (!netdefs)
+        goto skip_netdefs;
 
     /* Go through the netdefs type-by-type */
     for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
@@ -1056,6 +1072,7 @@ netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int
         }
     }
 
+skip_netdefs:
     write_openvswitch(event, emitter, &np_state->ovs_settings, NETPLAN_BACKEND_NONE, ovs_ports);
 
     /* Close remaining mappings */
@@ -1085,7 +1102,7 @@ file_error:
  * relevant.
  *
  * @np_state: the state for which to generate the config
- * @filename: Relevant file basename
+ * @filename: Relevant file basename (e.g. origin-hint.yaml)
  * @rootdir: If not %NULL, generate configuration in this root directory
  *           (useful for testing).
  */
@@ -1109,7 +1126,8 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     }
 
     /* Remove any existing file if there is no data to write */
-    if (to_write == NULL) {
+    gboolean write_globals = !!np_state->global_renderer;
+    if (to_write == NULL && !write_globals) {
         if (unlink(path) && errno != ENOENT) {
             g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
             return FALSE;
@@ -1124,7 +1142,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
         return FALSE;
     }
 
-    gboolean ret = netplan_netdef_list_write_yaml(np_state, to_write, out_fd, error);
+    gboolean ret = netplan_netdef_list_write_yaml(np_state, to_write, out_fd, path, TRUE, error);
     g_list_free(to_write);
     close(out_fd);
     if (ret) {
@@ -1149,7 +1167,7 @@ netplan_state_dump_yaml(const NetplanState* np_state, int out_fd, GError** error
     if (!np_state->netdefs_ordered && !netplan_state_has_nondefault_globals(np_state))
         return TRUE;
 
-    return netplan_netdef_list_write_yaml(np_state, np_state->netdefs_ordered, out_fd, error);
+    return netplan_netdef_list_write_yaml(np_state, np_state->netdefs_ordered, out_fd, NULL, TRUE, error);
 }
 
 /**
@@ -1198,11 +1216,12 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
     g_hash_table_iter_init(&hash_iter, perfile_netdefs);
     while (g_hash_table_iter_next (&hash_iter, &key, &value)) {
         const char *filename = key;
+        gboolean is_fallback = (g_strcmp0(filename, default_path) == 0);
         GList* netdefs = value;
         out_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0600);
         if (out_fd < 0)
             goto file_error;
-        if (!netplan_netdef_list_write_yaml(np_state, netdefs, out_fd, error))
+        if (!netplan_netdef_list_write_yaml(np_state, netdefs, out_fd, filename, is_fallback, error))
             goto cleanup; // LCOV_EXCL_LINE
         close(out_fd);
     }

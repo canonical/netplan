@@ -171,7 +171,7 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
     GString* patch_ports = g_string_new("");
 
     if (!def->bridge) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to be a slave of an OpenVSwitch bridge\n", def->id);
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to be a member of an OpenVSwitch bridge\n", def->id);
         return NULL;
     }
 
@@ -189,7 +189,7 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
         }
     }
     if (i < 2) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to have at least 2 slave interfaces\n", def->id);
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to have at least 2 member interfaces\n", def->id);
         return NULL;
     }
 

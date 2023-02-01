@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
+ * Copyright (C) 2016-2023 Canonical, Ltd.
  * Author: Martin Pitt <martin.pitt@ubuntu.com>
- *         Lukas Märdian <lukas.maerdian@canonical.com>
+ * Author: Lukas Märdian <slyon@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,7 +147,7 @@ assert_type_fn(const NetplanParser* npp, yaml_node_t* node, yaml_node_type_t exp
 
     switch (expected_type) {
         case YAML_VARIABLE_NODE:
-            /* Special case, defer sanity checking to the next handlers */
+            /* Special case, defer coherence checking to the next handlers */
             return TRUE;
             break;
         case YAML_SCALAR_NODE:
@@ -1994,10 +1994,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
     return TRUE;
 
 err:
-    if (npp->current.route) {
-        g_free(npp->current.route);
-        npp->current.route = NULL;
-    }
+    route_clear(&npp->current.route);
     return FALSE;
 }
 
@@ -2082,7 +2079,7 @@ handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, const void* _, GErr
 }
 
 static gboolean
-handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanNetDefinition *component;
     char** ref_ptr;
@@ -2091,20 +2088,20 @@ handle_bond_primary_slave(NetplanParser* npp, yaml_node_t* node, const void* dat
     if (!component) {
         add_missing_node(npp, node);
     } else {
-        /* If this is not the primary pass, the primary slave might already be equally set. */
-        if (!g_strcmp0(npp->current.netdef->bond_params.primary_slave, scalar(node))) {
+        /* If this is not the primary pass, the primary member might already be equally set. */
+        if (!g_strcmp0(npp->current.netdef->bond_params.primary_member, scalar(node))) {
             return TRUE;
-        } else if (npp->current.netdef->bond_params.primary_slave)
-            return yaml_error(npp, node, error, "%s: bond already has a primary slave: %s",
-                              npp->current.netdef->id, npp->current.netdef->bond_params.primary_slave);
+        } else if (npp->current.netdef->bond_params.primary_member)
+            return yaml_error(npp, node, error, "%s: bond already has a primary member: %s",
+                              npp->current.netdef->id, npp->current.netdef->bond_params.primary_member);
 
         ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
         *ref_ptr = g_strdup(scalar(node));
-        npp->current.netdef->bond_params.primary_slave = g_strdup(scalar(node));
+        npp->current.netdef->bond_params.primary_member = g_strdup(scalar(node));
         mark_data_as_dirty(npp, ref_ptr);
     }
 
-    mark_data_as_dirty(npp, &npp->current.netdef->bond_params.primary_slave);
+    mark_data_as_dirty(npp, &npp->current.netdef->bond_params.primary_member);
     return TRUE;
 }
 
@@ -2115,7 +2112,8 @@ static const mapping_entry_handler bond_params_handlers[] = {
     {"min-links", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.min_links)},
     {"transmit-hash-policy", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.transmit_hash_policy)},
     {"ad-select", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.selection_logic)},
-    {"all-slaves-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_slaves_active)},
+    {"all-slaves-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_members_active)}, /* wokeignore:rule=slave */
+    {"all-members-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_members_active)},
     {"arp-interval", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.arp_interval)},
     /* TODO: arp_ip_targets */
     {"arp-ip-targets", YAML_SEQUENCE_NODE, {.generic=handle_arp_ip_targets}},
@@ -2128,11 +2126,12 @@ static const mapping_entry_handler bond_params_handlers[] = {
     /* Handle the old misspelling */
     {"gratuitious-arp", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.gratuitous_arp)},
     /* TODO: unsolicited_na */
-    {"packets-per-slave", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.packets_per_slave)},
+    {"packets-per-slave", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.packets_per_member)}, /* wokeignore:rule=slave */
+    {"packets-per-member", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.packets_per_member)},
     {"primary-reselect-policy", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.primary_reselect_policy)},
     {"resend-igmp", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.resend_igmp)},
     {"learn-packet-interval", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.learn_interval)},
-    {"primary", YAML_SCALAR_NODE, {.generic=handle_bond_primary_slave}, netdef_offset(bond_params.primary_slave)},
+    {"primary", YAML_SCALAR_NODE, {.generic=handle_bond_primary_member}, netdef_offset(bond_params.primary_member)},
     {NULL}
 };
 
@@ -2795,7 +2794,15 @@ handle_network_version(NetplanParser* npp, yaml_node_t* node, const void* _, GEr
 static gboolean
 handle_network_renderer(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
-    return parse_renderer(npp, node, &npp->global_backend, error);
+    gboolean res = parse_renderer(npp, node, &npp->global_backend, error);
+    if (!npp->global_renderer)
+        npp->global_renderer = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    char* key = npp->current.filepath ? g_strdup(npp->current.filepath) : g_strdup("");
+    /* Track the global renderer value of the current file.
+     * If current.filepath is empty, this YAML is parsed from an unnamed YAML
+     * patch (e.g. via 'netplan set <SOME_PATCH>'). */
+    g_hash_table_insert(npp->global_renderer, key, GINT_TO_POINTER(npp->global_backend));
+    return res;
 }
 
 static gboolean
@@ -2929,10 +2936,20 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
 
         value = yaml_document_get_node(&npp->doc, entry->value);
 
-        if (key_prefix && npp->null_fields) {
+        if (key_prefix && (npp->null_fields || npp->null_overrides)) {
             full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
-            if (g_hash_table_contains(npp->null_fields, full_key) || node_is_nulled_out(&npp->doc, value, full_key, npp->null_fields))
+            /* Ignore NULL fields (about to be deleted) */
+            if (npp->null_fields && (g_hash_table_contains(npp->null_fields, full_key) || node_is_nulled_out(&npp->doc, value, full_key, npp->null_fields)))
                 continue;
+            /* Ignore this netdef if it is supposed to be part of the resulting
+             * origin-hint file, but we're not currently processing said filepath. */
+            if (npp->null_overrides) {
+                const gchar* origin_hint = g_hash_table_lookup(npp->null_overrides, full_key);
+                g_autofree gchar* basename = npp->current.filepath ?
+                    g_path_get_basename(npp->current.filepath) : NULL;
+                if (origin_hint && basename && g_strcmp0(origin_hint, basename) != 0)
+                    continue;
+            }
         }
 
         /* special-case "renderer:" key to set the per-type backend */
@@ -3105,6 +3122,10 @@ process_document(NetplanParser* npp, GError** error)
             break;
     } while (still_missing > 0 || npp->missing_ids_found > 0);
 
+    /* If an error already occurred we should return and not assume it's a missing interface*/
+    if (error && *error)
+        goto cleanup;
+
     if (g_hash_table_size(npp->missing_id) > 0) {
         GHashTableIter iter;
         gpointer key, value;
@@ -3118,11 +3139,12 @@ process_document(NetplanParser* npp, GError** error)
         g_hash_table_iter_next (&iter, &key, &value);
         missing = (NetplanMissingNode*) value;
 
-        return yaml_error(npp, missing->node, error, "%s: interface '%s' is not defined",
-                          missing->netdef_id,
-                          key);
+        ret = yaml_error(npp, missing->node, error, "%s: interface '%s' is not defined",
+                         missing->netdef_id, key);
+        goto cleanup;
     }
 
+cleanup:
     g_hash_table_destroy(npp->missing_id);
     npp->missing_id = NULL;
     return ret;
@@ -3271,6 +3293,12 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
         g_hash_table_foreach_steal(npp->sources, insert_kv_into_hash, np_state->sources);
     }
 
+    if (npp->global_renderer) {
+        if (!np_state->global_renderer)
+            np_state->global_renderer = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        g_hash_table_foreach_steal(npp->global_renderer, insert_kv_into_hash, np_state->global_renderer);
+    }
+
     /* We need to reset those fields manually as we transfered ownership of the underlying
        data to out. If we don't do this, netplan_clear_parser will deallocate data
        that we don't own anymore. */
@@ -3339,10 +3367,20 @@ netplan_parser_reset(NetplanParser* npp)
         npp->null_fields = NULL;
     }
 
+    if (npp->null_overrides) {
+        g_hash_table_destroy(npp->null_overrides);
+        npp->null_overrides = NULL;
+    }
+
     if (npp->sources) {
         /* Properly configured at creation not to leak */
         g_hash_table_destroy(npp->sources);
         npp->sources = NULL;
+    }
+
+    if (npp->global_renderer) {
+        g_hash_table_destroy(npp->global_renderer);
+        npp->global_renderer = NULL;
     }
 }
 
@@ -3355,14 +3393,49 @@ netplan_parser_clear(NetplanParser** npp_p)
     g_free(npp);
 }
 
+/* Check if this is a Netdef-ID or global keyword which can be nullified.
+ * Overrides (depending on YAML hierarchy) can only happen on global values
+ * (like "renderer") or on the individual netdef level.
+ * @return the Netdef-ID/keyword or NULL */
+static gboolean
+is_netdef_id_or_global_value(const char* full_key)
+{
+    g_autofree gchar* key = g_strstrip(g_strdup(full_key)); // strip leading '\t'
+    gboolean ret = FALSE;
+    gchar** split = g_strsplit(key, "\t", 0);
+    if (split[0] && g_strcmp0(split[0], "network") == 0) {
+        if (split[1]) {
+            if (g_strcmp0(split[1], "renderer") == 0) {
+                ret = TRUE; // a valid global keyword
+                goto cleanup;
+            }
+            /* check if is valid network type */
+            for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+                const char* def_type_name = netplan_def_type_name(i);
+                if (def_type_name && g_strcmp0(split[1], def_type_name) == 0) {
+                    /* return keyword if split[2] is a Netdef-ID
+                     * e.g. "network.ethernets.eth0" */
+                    if (split[2] && !split[3]) {
+                        ret = TRUE; // a valid Netdef-ID
+                        break;
+                    }
+                }
+            }
+        }
+    }
+cleanup:
+    g_strfreev(split);
+    return ret;
+}
+
 static void
-extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fields, char* key_prefix)
+extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fields, char* key_prefix, const char* origin_hint)
 {
     yaml_node_pair_t* entry;
     switch (node->type) {
         // LCOV_EXCL_START
         case YAML_NO_NODE:
-            g_hash_table_add(null_fields, key_prefix);
+            g_hash_table_insert(null_fields, key_prefix, NULL);
             key_prefix = NULL;
             break;
         // LCOV_EXCL_STOP
@@ -3370,7 +3443,7 @@ extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fi
             if (       g_ascii_strcasecmp("null", scalar(node)) == 0
                     || g_strcmp0((char*)node->tag, YAML_NULL_TAG) == 0
                     || g_strcmp0(scalar(node), "~") == 0) {
-                g_hash_table_add(null_fields, key_prefix);
+                g_hash_table_insert(null_fields, key_prefix, NULL);
                 key_prefix = NULL;
             }
             break;
@@ -3384,7 +3457,16 @@ extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fi
                 key = yaml_document_get_node(doc, entry->key);
                 value = yaml_document_get_node(doc, entry->value);
                 full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
-                extract_null_fields(doc, value, null_fields, full_key);
+                /* If an origin_hint is given, nullify the overrides, like
+                 * Netdef-IDs or global values (e.g. "renderer") and track the
+                 * origin_hint filename as hashmap value. To ignore such netdefs
+                 * or globals during the YAML parsing stage should they be
+                 * defined somewhere else outside the origin-hint file. */
+                if (origin_hint && is_netdef_id_or_global_value(full_key)) {
+                    g_hash_table_insert(null_fields, g_strdup(full_key), g_strdup(origin_hint));
+                    g_debug("ignoring previous definition of: %s (except in %s)", full_key, origin_hint);
+                }
+                extract_null_fields(doc, value, null_fields, full_key, origin_hint);
             }
             break;
         // LCOV_EXCL_START
@@ -3407,8 +3489,40 @@ netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, GError** e
         return TRUE; // LCOV_EXCL_LINE
 
     if (!npp->null_fields)
-        npp->null_fields = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+        npp->null_fields = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
-    extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_fields, g_strdup(""));
+    extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_fields, g_strdup(""), NULL);
+    yaml_document_delete(&doc);
+    return TRUE;
+}
+
+gboolean
+netplan_parser_load_nullable_overrides(
+    NetplanParser* npp, int input_fd, const char* constraint, GError** error)
+{
+    yaml_document_t doc;
+    if (!load_yaml_from_fd(input_fd, &doc, error))
+        return FALSE; // LCOV_EXCL_LINE
+
+    /* empty file? */
+    if (yaml_document_get_root_node(&doc) == NULL)
+        return TRUE; // LCOV_EXCL_LINE
+
+    if (!npp->null_overrides)
+        npp->null_overrides = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+    /* Track the given origin_hint filename, as a constraint, for any netdef or
+     * global value of the given <input_fd> (i.e. YAML patch), so that those can
+     * be ignored later (inside YAML the parsing stage), shouldn't they
+     * originate from the origin-hint file, but from some other YAML file inside
+     * the hierarchy.
+     *
+     * Examples for "origin_hint:hint.yaml" being tracked in npp->null_overrides:
+     * yaml patch: "network.ethernets.eth0.dhcp4=false"
+     * => network.ethernets.eth0: hint.yaml
+     * yaml patch: "network.renderer=NetworkManager"
+     * => network.renderer: hint.yaml */
+    extract_null_fields(&doc, yaml_document_get_root_node(&doc), npp->null_overrides, g_strdup(""), constraint);
+    yaml_document_delete(&doc);
     return TRUE;
 }
