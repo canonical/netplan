@@ -1615,15 +1615,6 @@ handle_vxlan_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
     return handle_generic_guint(npp, node, npp->current.vxlan, data, error);
 }
 
-// LCOV_EXCL_START
-static gboolean __attribute__ ((unused))
-handle_vxlan_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
-{
-    g_assert(npp->current.vxlan);
-    return handle_generic_bool(npp, node, npp->current.vxlan, data, error);
-}
-// LCOV_EXCL_STOP
-
 static gboolean
 handle_vxlan_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
