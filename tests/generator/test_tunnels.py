@@ -707,7 +707,8 @@ method=ignore\n'''})
   renderer: %(r)s
   version: 2
   ethernets:
-    eth0: {}
+    eth0:
+      ignore-carrier: true
   tunnels:
     vxlan1005:
       link: eth0
@@ -718,27 +719,13 @@ method=ignore\n'''})
       short-circuit: true''' % {'r': self.backend})
 
         if self.backend == 'networkd':
-            self.assert_networkd({'vxlan1005.netdev': '''[NetDev]
-Name=vxlan1005
-Kind=vxlan
-
-[VXLAN]
-VNI=1005
-MacLearning=true
+            self.assert_networkd({'vxlan1005.netdev': ND_VXLAN % ('vxlan1005', 1005) +
+                                  '''MacLearning=true
 ReduceARPProxy=true
 RouteShortCircuit=true\n''',
-                                 'vxlan1005.network': '''[Match]
-Name=vxlan1005
-
-[Network]
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes\n''',
-                                  'eth0.network': '''[Match]
-Name=eth0
-
-[Network]
-LinkLocalAddressing=ipv6
-VXLAN=vxlan1005\n'''})
+                                 'vxlan1005.network': ND_EMPTY % ('vxlan1005', 'ipv6'),
+                                  'eth0.network': ND_EMPTY % ('eth0', 'ipv6') +
+                                  '''VXLAN=vxlan1005\n'''})
 
         elif self.backend == 'NetworkManager':
             self.assert_nm({'vxlan1005': '''[connection]
@@ -777,7 +764,8 @@ method=ignore\n'''})
   renderer: %(r)s
   version: 2
   ethernets:
-    eth0: {}
+    eth0:
+      ignore-carrier: true
   tunnels:
     vxlan1005:
       link: eth0
@@ -788,27 +776,13 @@ method=ignore\n'''})
       short-circuit: false''' % {'r': self.backend})
 
         if self.backend == 'networkd':
-            self.assert_networkd({'vxlan1005.netdev': '''[NetDev]
-Name=vxlan1005
-Kind=vxlan
-
-[VXLAN]
-VNI=1005
-MacLearning=false
+            self.assert_networkd({'vxlan1005.netdev': ND_VXLAN % ('vxlan1005', 1005) +
+                                  '''MacLearning=false
 ReduceARPProxy=false
 RouteShortCircuit=false\n''',
-                                  'vxlan1005.network': '''[Match]
-Name=vxlan1005
-
-[Network]
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes\n''',
-                                  'eth0.network': '''[Match]
-Name=eth0
-
-[Network]
-LinkLocalAddressing=ipv6
-VXLAN=vxlan1005\n'''})
+                                 'vxlan1005.network': ND_EMPTY % ('vxlan1005', 'ipv6'),
+                                  'eth0.network': ND_EMPTY % ('eth0', 'ipv6') +
+                                  '''VXLAN=vxlan1005\n'''})
 
         elif self.backend == 'NetworkManager':
             self.assert_nm({'vxlan1005': '''[connection]
