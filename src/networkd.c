@@ -89,10 +89,7 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
          * only the real phy interface and to continue to match it even after
          * its MAC address has been changed.
          */
-        if (def->bond || def->bridge || def->has_vlans)
-            g_string_append_printf(s, "PermanentMACAddress=%s\n", def->match.mac);
-        else
-            g_string_append_printf(s, "MACAddress=%s\n", def->match.mac);
+        g_string_append_printf(s, "PermanentMACAddress=%s\n", def->match.mac);
     }
     /* name matching is special: if the .link renames the interface, the
      * .network has to use the renamed one, otherwise the original one */

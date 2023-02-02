@@ -152,9 +152,9 @@ LinkLocalAddressing=ipv6
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+        self.assert_networkd({'def1.link': '[Match]\nPermanentMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
                               'def1.network': '''[Match]
-MACAddress=11:22:33:44:55:66
+PermanentMACAddress=11:22:33:44:55:66
 Name=lom1
 
 [Network]
@@ -176,7 +176,7 @@ LinkLocalAddressing=ipv6
       infiniband-mode: connected''')
 
         self.assert_networkd({'ib0.network': '''[Match]
-MACAddress=11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
+PermanentMACAddress=11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
 
 [Network]
 DHCP=ipv4
@@ -313,7 +313,7 @@ managed=0\n\n''')
         macaddress: 00:11:22:33:44:55
       dhcp4: on''')
         self.assert_networkd({'def1.network': '''[Match]
-MACAddress=00:11:22:33:44:55
+PermanentMACAddress=00:11:22:33:44:55
 Name=en1s*
 
 [Network]
@@ -580,7 +580,8 @@ method=ignore
         macaddress: 11:22:33:44:55:66
       set-name: lom1''')
 
-        self.assert_networkd({'def1.link': '[Match]\nMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'})
+        self.assert_networkd({'def1.link': '''[Match]
+PermanentMACAddress=11:22:33:44:55:66\n\n[Link]\nName=lom1\nWakeOnLan=off\n'''})
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
         self.assert_nm({'def1': '''[connection]
 id=netplan-def1
