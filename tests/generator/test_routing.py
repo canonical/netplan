@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase
+from .base import TestBase, ND_VLAN, ND_DHCP4, ND_EMPTY
 
 
 class TestNetworkd(TestBase):
@@ -1462,32 +1462,9 @@ route-metric=5050
           via: 10.0.0.200
           table: 1002'''})
 
-        self.assert_networkd({'eth0.network': '''[Match]
-Name=eth0
-
-[Network]
-DHCP=ipv4
-LinkLocalAddressing=ipv6
-VLAN=vlan100
-
-[DHCP]
-RouteMetric=100
-UseMTU=true
-''',
-                              'vlan100.netdev': '''[NetDev]
-Name=vlan100
-Kind=vlan
-
-[VLAN]
-Id=100
-''',
-                              'vlan100.network': '''[Match]
-Name=vlan100
-
-[Network]
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-
+        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCP]', 'VLAN=vlan100\n\n[DHCP]'),
+                              'vlan100.netdev': ND_VLAN % ('vlan100', 100),
+                              'vlan100.network': ND_EMPTY % ('vlan100', 'ipv6') + '''
 [Route]
 Destination=0.0.0.0/0
 Gateway=10.0.0.100
@@ -1545,32 +1522,9 @@ Table=1002
           via: 10.0.0.100
           table: 1001'''})
 
-        self.assert_networkd({'eth0.network': '''[Match]
-Name=eth0
-
-[Network]
-DHCP=ipv4
-LinkLocalAddressing=ipv6
-VLAN=vlan100
-
-[DHCP]
-RouteMetric=100
-UseMTU=true
-''',
-                              'vlan100.netdev': '''[NetDev]
-Name=vlan100
-Kind=vlan
-
-[VLAN]
-Id=100
-''',
-                              'vlan100.network': '''[Match]
-Name=vlan100
-
-[Network]
-LinkLocalAddressing=ipv6
-ConfigureWithoutCarrier=yes
-
+        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCP]', 'VLAN=vlan100\n\n[DHCP]'),
+                              'vlan100.netdev': ND_VLAN % ('vlan100', 100),
+                              'vlan100.network': ND_EMPTY % ('vlan100', 'ipv6') + '''
 [Route]
 Destination=0.0.0.0/0
 Gateway=10.0.0.100

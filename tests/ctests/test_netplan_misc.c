@@ -199,7 +199,11 @@ test_util_is_route_present(void** state)
         "          via: 10.0.0.200\n"
         "          table: 1001\n"
         "        - to: 192.168.0.0/24\n"
-        "          via: 10.20.30.40\n";
+        "          via: 10.20.30.40\n"
+        "        - to: 192.168.0.0/24\n"
+        "          scope: link\n"
+        "        - to: default\n"
+        "          via: abcd::1\n";
 
     NetplanState* np_state = load_string_to_netplan_state(yaml);
     NetplanStateIterator iter;
@@ -209,6 +213,7 @@ test_util_is_route_present(void** state)
     netdef = netplan_state_iterator_next(&iter);
 
     NetplanIPRoute* route = g_new0(NetplanIPRoute, 1);
+    route->family = AF_INET;
     route->metric = NETPLAN_METRIC_UNSPEC;
     route->table = 1001;
     route->to = "0.0.0.0/0";
@@ -245,9 +250,40 @@ test_util_is_route_present(void** state)
 
     assert_false(is_route_present(netdef, route));
 
+    route->table = 1001;
+    route->to = "default";
+    route->via = "10.0.0.200";
+    route->from = NULL;
+
+    assert_true(is_route_present(netdef, route));
+
+    route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+    route->family = AF_INET6;
+    route->to = "::/0";
+    route->via = "abcd::1";
+    route->from = NULL;
+
+    assert_true(is_route_present(netdef, route));
+
+    route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+    route->family = AF_INET;
+    route->to = "192.168.0.0/24";
+    route->via = NULL;
+    route->from = NULL;
+    route->scope = "link";
+
+    assert_true(is_route_present(netdef, route));
+
     g_free(route);
     netplan_state_clear(&np_state);
+}
 
+void
+test_normalize_ip_address(void** state)
+{
+    assert_string_equal(normalize_ip_address("default", AF_INET), "0.0.0.0/0");
+    assert_string_equal(normalize_ip_address("default", AF_INET6), "::/0");
+    assert_string_equal(normalize_ip_address("0.0.0.0/0", AF_INET), "0.0.0.0/0");
 }
 
 int
@@ -279,6 +315,7 @@ main()
            cmocka_unit_test(test_netplan_netdef_get_output_filename_buffer_is_too_small),
            cmocka_unit_test(test_netplan_netdef_get_output_filename_invalid_backend),
            cmocka_unit_test(test_util_is_route_present),
+           cmocka_unit_test(test_normalize_ip_address),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
