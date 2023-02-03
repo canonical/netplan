@@ -1978,7 +1978,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
         }
 
         if (is_route_present(npp->current.netdef, route)) {
-            g_debug("%s: route (to: %s, via: %s, table: %d, metric: %d) have already been added",
+            g_debug("%s: route (to: %s, via: %s, table: %d, metric: %d) has already been added",
                     npp->current.netdef->id,
                     route->to,
                     route->via,
