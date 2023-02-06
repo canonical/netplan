@@ -4,7 +4,7 @@ BUILDFLAGS = \
 	-g \
 	-fPIC \
 	-std=c99 \
-	-D_XOPEN_SOURCE=700 \
+	-D_GNU_SOURCE \
 	-DSBINDIR=\"$(SBINDIR)\" \
 	-I${CURDIR}/include \
 	-Wall \

@@ -17,7 +17,6 @@
 
 #pragma once
 
-#define __USE_MISC
 #include <glob.h>
 #include <glib.h>
 #include "types-internal.h"

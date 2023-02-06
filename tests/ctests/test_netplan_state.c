@@ -8,7 +8,6 @@
 #include "netplan.h"
 #include "parse.h"
 
-#undef __USE_MISC
 #include "error.c"
 #include "names.c"
 #include "validation.c"

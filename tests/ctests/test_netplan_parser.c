@@ -10,7 +10,6 @@
 #include "parse.h"
 #include "util.h"
 
-#undef __USE_MISC
 #include "error.c"
 #include "names.c"
 #include "validation.c"
