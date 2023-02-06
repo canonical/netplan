@@ -472,7 +472,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
         g_key_file_set_uint64(kf, "vxlan", "destination-port", def->tunnel.port);
     if (def->vxlan->vni)
         g_key_file_set_uint64(kf, "vxlan", "id", def->vxlan->vni);
-    if (def->vxlan->mac_learning)
+    if (def->vxlan->mac_learning != NETPLAN_TRISTATE_UNSET)
         g_key_file_set_boolean(kf, "vxlan", "learning", def->vxlan->mac_learning);
     if (def->vxlan->limit)
         g_key_file_set_uint64(kf, "vxlan", "limit", def->vxlan->limit);
@@ -480,7 +480,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
         g_key_file_set_string(kf, "vxlan", "local", def->tunnel.local_ip);
     if (def->tunnel.remote_ip)
         g_key_file_set_string(kf, "vxlan", "remote", def->tunnel.remote_ip);
-    if (def->vxlan->arp_proxy)
+    if (def->vxlan->arp_proxy != NETPLAN_TRISTATE_UNSET)
         g_key_file_set_boolean(kf, "vxlan", "proxy", def->vxlan->arp_proxy);
     if (def->vxlan->notifications) {
         if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L2_MISS)
@@ -496,7 +496,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
         g_key_file_set_uint64(kf, "vxlan", "tos", def->vxlan->tos);
     if (def->tunnel_ttl)
         g_key_file_set_uint64(kf, "vxlan", "ttl", def->tunnel_ttl);
-    if (def->vxlan->short_circuit)
+    if (def->vxlan->short_circuit != NETPLAN_TRISTATE_UNSET)
         g_key_file_set_boolean(kf, "vxlan", "rsc", def->vxlan->short_circuit);
     if (def->vxlan->link) {
         if (def->vxlan->link->has_match) {

@@ -198,6 +198,9 @@ reset_vxlan(NetplanVxlan* vxlan)
     vxlan->link = NULL;
     vxlan->flow_label = G_MAXUINT;
     vxlan->do_not_fragment = NETPLAN_TRISTATE_UNSET;
+    vxlan->mac_learning = NETPLAN_TRISTATE_UNSET;
+    vxlan->arp_proxy = NETPLAN_TRISTATE_UNSET;
+    vxlan->short_circuit = NETPLAN_TRISTATE_UNSET;
 }
 
 /* Free a heap-allocated NetplanWifiAccessPoint object.

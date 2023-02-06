@@ -1616,13 +1616,6 @@ handle_vxlan_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
 }
 
 static gboolean
-handle_vxlan_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
-{
-    g_assert(npp->current.vxlan);
-    return handle_generic_bool(npp, node, npp->current.vxlan, data, error);
-}
-
-static gboolean
 handle_vxlan_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.vxlan);
@@ -2763,9 +2756,9 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"type-of-service", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(tos)},
     {"flow-label", YAML_SCALAR_NODE, {.generic=handle_vxlan_guint}, vxlan_offset(flow_label)},
     {"do-not-fragment", YAML_SCALAR_NODE, {.generic=handle_vxlan_tristate}, vxlan_offset(do_not_fragment)},
-    {"short-circuit", YAML_SCALAR_NODE, {.generic=handle_vxlan_bool}, vxlan_offset(short_circuit)},
-    {"arp-proxy", YAML_SCALAR_NODE, {.generic=handle_vxlan_bool}, vxlan_offset(arp_proxy)},
-    {"mac-learning", YAML_SCALAR_NODE, {.generic=handle_vxlan_bool}, vxlan_offset(mac_learning)},
+    {"short-circuit", YAML_SCALAR_NODE, {.generic=handle_vxlan_tristate}, vxlan_offset(short_circuit)},
+    {"arp-proxy", YAML_SCALAR_NODE, {.generic=handle_vxlan_tristate}, vxlan_offset(arp_proxy)},
+    {"mac-learning", YAML_SCALAR_NODE, {.generic=handle_vxlan_tristate}, vxlan_offset(mac_learning)},
     {"notifications", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(notifications)},
     {"checksums", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(checksums)},
     {"extensions", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(extensions)},

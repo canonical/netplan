@@ -158,9 +158,9 @@ struct netplan_vxlan {
         guint flow_label;
         guint source_port_min;
         guint source_port_max;
-        gboolean mac_learning;
-        gboolean arp_proxy;
-        gboolean short_circuit;
+        NetplanTristate mac_learning;
+        NetplanTristate arp_proxy;
+        NetplanTristate short_circuit;
         gboolean independent;
         NetplanFlags notifications;
         NetplanFlags checksums;

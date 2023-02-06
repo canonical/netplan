@@ -436,13 +436,13 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
         g_string_append_printf(params, "\nTOS=%d", def->vxlan->tos);
     if (def->tunnel_ttl)
         g_string_append_printf(params, "\nTTL=%d", def->tunnel_ttl);
-    if (def->vxlan->mac_learning)
+    if (def->vxlan->mac_learning != NETPLAN_TRISTATE_UNSET)
         g_string_append_printf(params, "\nMacLearning=%s", def->vxlan->mac_learning ? "true" : "false");
     if (def->vxlan->ageing)
         g_string_append_printf(params, "\nFDBAgeingSec=%d", def->vxlan->ageing);
     if (def->vxlan->limit)
         g_string_append_printf(params, "\nMaximumFDBEntries=%d", def->vxlan->limit);
-    if (def->vxlan->arp_proxy)
+    if (def->vxlan->arp_proxy != NETPLAN_TRISTATE_UNSET)
         g_string_append_printf(params, "\nReduceARPProxy=%s", def->vxlan->arp_proxy ? "true" : "false");
     if (def->vxlan->notifications) {
         if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L2_MISS)
@@ -450,7 +450,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
         if (def->vxlan->notifications & NETPLAN_VXLAN_NOTIFICATION_L3_MISS)
             g_string_append(params, "\nL3MissNotification=true");
     }
-    if (def->vxlan->short_circuit)
+    if (def->vxlan->short_circuit != NETPLAN_TRISTATE_UNSET)
         g_string_append_printf(params, "\nRouteShortCircuit=%s", def->vxlan->short_circuit ? "true" : "false");
     if (def->vxlan->checksums) {
         if (def->vxlan->checksums & NETPLAN_VXLAN_CHECKSUM_UDP)

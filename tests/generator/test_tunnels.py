@@ -702,6 +702,120 @@ method=link-local
 [ipv6]
 method=ignore\n'''})
 
+    def test_vxlan_maclearning_arpproxy_shortcircuit_true(self):
+        self.generate('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    eth0:
+      ignore-carrier: true
+  tunnels:
+    vxlan1005:
+      link: eth0
+      mode: vxlan
+      id: 1005
+      mac-learning: true
+      arp-proxy: true
+      short-circuit: true''' % {'r': self.backend})
+
+        if self.backend == 'networkd':
+            self.assert_networkd({'vxlan1005.netdev': ND_VXLAN % ('vxlan1005', 1005) +
+                                  '''MacLearning=true
+ReduceARPProxy=true
+RouteShortCircuit=true\n''',
+                                 'vxlan1005.network': ND_EMPTY % ('vxlan1005', 'ipv6'),
+                                  'eth0.network': ND_EMPTY % ('eth0', 'ipv6') +
+                                  '''VXLAN=vxlan1005\n'''})
+
+        elif self.backend == 'NetworkManager':
+            self.assert_nm({'vxlan1005': '''[connection]
+id=netplan-vxlan1005
+type=vxlan
+interface-name=vxlan1005
+
+[vxlan]
+id=1005
+learning=true
+proxy=true
+rsc=true
+parent=eth0
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=ignore\n''',
+                            'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore\n'''})
+
+    def test_vxlan_maclearning_arpproxy_shortcircuit_false(self):
+        self.generate('''network:
+  renderer: %(r)s
+  version: 2
+  ethernets:
+    eth0:
+      ignore-carrier: true
+  tunnels:
+    vxlan1005:
+      link: eth0
+      mode: vxlan
+      id: 1005
+      mac-learning: false
+      arp-proxy: false
+      short-circuit: false''' % {'r': self.backend})
+
+        if self.backend == 'networkd':
+            self.assert_networkd({'vxlan1005.netdev': ND_VXLAN % ('vxlan1005', 1005) +
+                                  '''MacLearning=false
+ReduceARPProxy=false
+RouteShortCircuit=false\n''',
+                                 'vxlan1005.network': ND_EMPTY % ('vxlan1005', 'ipv6'),
+                                  'eth0.network': ND_EMPTY % ('eth0', 'ipv6') +
+                                  '''VXLAN=vxlan1005\n'''})
+
+        elif self.backend == 'NetworkManager':
+            self.assert_nm({'vxlan1005': '''[connection]
+id=netplan-vxlan1005
+type=vxlan
+interface-name=vxlan1005
+
+[vxlan]
+id=1005
+learning=false
+proxy=false
+rsc=false
+parent=eth0
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=ignore\n''',
+                            'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore\n'''})
+
 
 # Execute the _CommonParserErrors only for one backend, to spare some test cycles
 class TestNetworkd(TestBase, _CommonTests, _CommonParserErrors):
