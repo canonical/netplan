@@ -82,8 +82,15 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
         g_strfreev(split);
     } else if (def->match.driver)
         g_string_append_printf(s, "Driver=%s\n", def->match.driver);
-    if (def->match.mac)
-        g_string_append_printf(s, "MACAddress=%s\n", def->match.mac);
+    if (def->match.mac) {
+        /* LP: #1804861 and LP: #1888726:
+         * Using bond, bridge, and VLAN devices results in sharing MAC
+         * addresses across interfaces.  Match by PermanentMACAddress to match
+         * only the real phy interface and to continue to match it even after
+         * its MAC address has been changed.
+         */
+        g_string_append_printf(s, "PermanentMACAddress=%s\n", def->match.mac);
+    }
     /* name matching is special: if the .link renames the interface, the
      * .network has to use the renamed one, otherwise the original one */
     if (!match_rename && def->match.original_name)
@@ -95,23 +102,6 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
             g_string_append_printf(s, "Name=%s\n", def->set_name);
         else if (def->match.original_name)
             g_string_append_printf(s, "Name=%s\n", def->match.original_name);
-    }
-
-    /* Workaround for bugs LP: #1804861 and LP: #1888726: something outputs
-     * netplan config that includes using the MAC of the first phy member of a
-     * bond as default value for the MAC of the bond device itself. This is
-     * evil, it's an optional field and networkd knows what to do if the MAC
-     * isn't specified; but work around this by adding an arbitrary additional
-     * match condition on Path= for the phys. This way, hopefully setting a MTU
-     * on the phy does not bleed over to bond/bridge and any further virtual
-     * devices (VLANs?) on top of it.
-     * Make sure to add the extra match only if we're matching by MAC
-     * already and dealing with a bond, bridge or vlan.
-     */
-    if (def->bond || def->bridge || def->has_vlans) {
-        /* update if we support new device types */
-        if (def->match.mac)
-            g_string_append(s, "Type=!vlan bond bridge\n");
     }
 }
 

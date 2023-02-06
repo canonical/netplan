@@ -232,6 +232,7 @@ class _CommonTests():
       set-name: iface2
       addresses: [10.10.10.22/24]
 ''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c_mac': self.dev_e2_client_mac})
+        self.match_veth_by_non_permanent_mac_quirk('idy', self.dev_e2_client_mac)
         self.generate_and_settle(['iface1', 'iface2'])
         self.assert_iface_up('iface1', ['inet 10.10.10.11'])
         self.assert_iface_up('iface2', ['inet 10.10.10.22'])

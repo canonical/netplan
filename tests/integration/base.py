@@ -4,7 +4,7 @@
 # Wifi (mac80211-hwsim). These need to be run in a VM and do change the system
 # configuration.
 #
-# Copyright (C) 2018-2021 Canonical, Ltd.
+# Copyright (C) 2018-2023 Canonical, Ltd.
 # Author: Martin Pitt <martin.pitt@ubuntu.com>
 # Author: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
 # Author: Lukas Märdian <slyon@ubuntu.com>
@@ -289,6 +289,22 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
         out = self.assert_iface(iface, expected_ip_a, unexpected_ip_a)
         if 'bond' not in iface:
             self.assertIn('state UP', out)
+
+    def match_veth_by_non_permanent_mac_quirk(self, netdef_id, mac_match):
+        '''
+        We cannot match using PermanentMACAddress= on veth type devices. Still,
+        we need this capability during testing. So we're applying this quirk to
+        install some override config snippet.
+        https://github.com/canonical/netplan/pull/278
+        '''
+        network_dir = '10-netplan-' + netdef_id + '.network.d'
+        link_dir = '10-netplan-' + netdef_id + '.link.d'
+        for dir in [network_dir, link_dir]:
+            path = os.path.join('/run/systemd/network', dir)
+            os.makedirs(path, exist_ok=False)  # cleanup is done in tearDown()
+            with open(os.path.join(path, 'override.conf'), 'w') as f:
+                # clear the PermanentMACAddress= setting and use MACAddress= instead
+                f.write('[Match]\nPermanentMACAddress=\nMACAddress={}'.format(mac_match))
 
     def generate_and_settle(self, wait_interfaces=None, state_dir=None):
         '''Generate config, launch and settle NM and networkd'''

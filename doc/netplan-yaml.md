@@ -23,8 +23,9 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
   - **macaddress** (scalar)
 
-    > Device's 6-byte MAC address in the form "XX:XX:XX:XX:XX:XX" or 20 bytes
-    > for InfiniBand devices (IPoIB). Globs are not allowed.
+    > Device's 6-byte permanent MAC address in the form "XX:XX:XX:XX:XX:XX" or
+    > 20 bytes for InfiniBand devices (IPoIB). Globs are not allowed.
+    > This doesn't match virtual MAC addresses for veth, bridge, bond, vlan, ...
 
   - **driver** (scalar or sequence of scalars) – sequence since **0.104**
 

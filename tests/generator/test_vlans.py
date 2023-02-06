@@ -112,9 +112,8 @@ VLAN=engreen
     vlan20: {id: 20, link: lan}''')
 
         self.assert_networkd({'lan.network': '''[Match]
-MACAddress=11:22:33:44:55:66
+PermanentMACAddress=11:22:33:44:55:66
 Name=lan
-Type=!vlan bond bridge
 
 [Link]
 MTUBytes=9000
@@ -124,8 +123,7 @@ LinkLocalAddressing=ipv6
 VLAN=vlan20
 ''',
                               'lan.link': '''[Match]
-MACAddress=11:22:33:44:55:66
-Type=!vlan bond bridge
+PermanentMACAddress=11:22:33:44:55:66
 
 [Link]
 Name=lan
