@@ -30,7 +30,7 @@ find = find_program('find')
 
 add_project_arguments(
     '-DSBINDIR="' + join_paths(get_option('prefix'), get_option('sbindir')) + '"',
-    '-D_XOPEN_SOURCE=700',
+    '-D_GNU_SOURCE',
     language: 'c')
 
 inc = include_directories('include')

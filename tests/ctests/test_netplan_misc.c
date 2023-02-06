@@ -10,7 +10,6 @@
 #include "types-internal.h"
 #include "types.h"
 
-#undef __USE_MISC
 #include "error.c"
 #include "names.c"
 #include "validation.c"
