@@ -1920,14 +1920,6 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
     if (!npp->current.netdef->routes)
         npp->current.netdef->routes = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
 
-    /* Avoid adding the same routes in a 2nd parsing pass by comparing
-     * the array size to the YAML sequence size. Skip if they are equal. */
-    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
-    if (npp->current.netdef->routes->len == item_count) {
-        g_debug("%s: all routes have already been added", npp->current.netdef->id);
-        return TRUE;
-    }
-
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         NetplanIPRoute* route;
@@ -1976,6 +1968,18 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
         } else if (g_ascii_strcasecmp(route->type, "unicast") != 0 && !route->to) {
             yaml_error(npp, node, error, "non-unicast routes must specify a 'to' IP");
             goto err;
+        }
+
+        if (is_route_present(npp->current.netdef, route)) {
+            g_debug("%s: route (to: %s, via: %s, table: %d, metric: %d) has already been added",
+                    npp->current.netdef->id,
+                    route->to,
+                    route->via,
+                    route->table,
+                    route->metric);
+            route_clear(&npp->current.route);
+            npp->current.route = NULL;
+            continue;
         }
 
         g_array_append_val(npp->current.netdef->routes, route);

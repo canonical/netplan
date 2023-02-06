@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase
+from .base import TestBase, ND_VLAN, ND_DHCP4, ND_EMPTY
 
 
 class TestNetworkd(TestBase):
@@ -1423,4 +1423,118 @@ method=auto
 method=auto
 ip6-privacy=0
 route-metric=5050
+'''})
+
+    def test_add_routes_to_different_tables_from_multiple_files(self):
+        """Test case for bug LP#2003061"""
+
+        self.generate('''network:
+  version: 2''',
+                      confs={'01-netcfg': '''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+  vlans:
+    vlan100:
+      id: 100
+      link: eth0''',
+                             '10-table1': '''network:
+  version: 2
+  vlans:
+    vlan100:
+      routing-policy:
+        - from: 10.0.0.1
+          table: 1001
+      routes:
+        - to: 0.0.0.0/0
+          via: 10.0.0.100
+          table: 1001''',
+                             '10-table2': '''network:
+  version: 2
+  vlans:
+    vlan100:
+      routing-policy:
+        - from: 10.0.0.2
+          table: 1002
+      routes:
+        - to: 0.0.0.0/0
+          via: 10.0.0.200
+          table: 1002'''})
+
+        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCP]', 'VLAN=vlan100\n\n[DHCP]'),
+                              'vlan100.netdev': ND_VLAN % ('vlan100', 100),
+                              'vlan100.network': ND_EMPTY % ('vlan100', 'ipv6') + '''
+[Route]
+Destination=0.0.0.0/0
+Gateway=10.0.0.100
+Table=1001
+
+[Route]
+Destination=0.0.0.0/0
+Gateway=10.0.0.200
+Table=1002
+
+[RoutingPolicyRule]
+From=10.0.0.1
+Table=1001
+
+[RoutingPolicyRule]
+From=10.0.0.2
+Table=1002
+'''})
+
+    def test_add_duplicate_routes_from_multiple_files(self):
+        """ Duplicate route should produce a single entry in the
+        backend configuration"""
+
+        self.generate('''network:
+  version: 2''',
+                      confs={'01-netcfg': '''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+  vlans:
+    vlan100:
+      id: 100
+      link: eth0''',
+                             '10-table1': '''network:
+  version: 2
+  vlans:
+    vlan100:
+      routing-policy:
+        - from: 10.0.0.1
+          table: 1001
+      routes:
+        - to: 0.0.0.0/0
+          via: 10.0.0.100
+          table: 1001''',
+                             '10-table2': '''network:
+  version: 2
+  vlans:
+    vlan100:
+      routing-policy:
+        - from: 10.0.0.2
+          table: 1002
+      routes:
+        - to: 0.0.0.0/0
+          via: 10.0.0.100
+          table: 1001'''})
+
+        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCP]', 'VLAN=vlan100\n\n[DHCP]'),
+                              'vlan100.netdev': ND_VLAN % ('vlan100', 100),
+                              'vlan100.network': ND_EMPTY % ('vlan100', 'ipv6') + '''
+[Route]
+Destination=0.0.0.0/0
+Gateway=10.0.0.100
+Table=1001
+
+[RoutingPolicyRule]
+From=10.0.0.1
+Table=1001
+
+[RoutingPolicyRule]
+From=10.0.0.2
+Table=1002
 '''})
