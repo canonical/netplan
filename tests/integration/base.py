@@ -67,20 +67,19 @@ class IntegrationTestsBase(unittest.TestCase):
         with open('/etc/systemd/network/20-wired.network', 'w') as f:
             f.write('[Match]\nName=eth0 en*\n\n[Network]\nDHCP=yes\nKeepConfiguration=yes')
 
-        # ensure NM doesn't interfere with our test backend (fake eth endpoints & mgmt network)
+        # force-reset NM's unmanaged-devices list (using "=" instead of "+=")
+        # from /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf,
+        # to stop it from trampling over our test & mgmt interfaces.
+        # https://pad.lv/1615044
         os.makedirs('/etc/NetworkManager/conf.d', exist_ok=True)
-        with open('/etc/NetworkManager/conf.d/99-test-ignore.conf', 'w') as f:
-            f.write('''[keyfile]
-unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,interface-name:veth43''')
+        with open('/etc/NetworkManager/conf.d/90-test-ignore.conf', 'w') as f:
+            f.write('[keyfile]\nunmanaged-devices=interface-name:en*,eth0,nptestsrv')
         subprocess.check_call(['netplan', 'apply'])
         subprocess.call(['/lib/systemd/systemd-networkd-wait-online', '--quiet', '--timeout=30'])
 
     @classmethod
     def tearDownClass(klass):
-        try:
-            os.remove('/run/NetworkManager/conf.d/test-denylist.conf')
-        except FileNotFoundError:
-            pass
+        pass
 
     def tearDown(self):
         subprocess.call(['systemctl', 'stop', 'NetworkManager', 'systemd-networkd', 'netplan-wpa-*',
@@ -141,11 +140,9 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
                                       universal_newlines=True)
         klass.dev_e2_client_mac = out.split()[2]
 
-        os.makedirs('/run/NetworkManager/conf.d', exist_ok=True)
-
-        # work around https://launchpad.net/bugs/1615044
-        with open('/run/NetworkManager/conf.d/11-globally-managed-devices.conf', 'w') as f:
-            f.write('[keyfile]\nunmanaged-devices=')
+        # don't let NM trample over our test routers
+        with open('/etc/NetworkManager/conf.d/99-test-denylist.conf', 'w') as f:
+            f.write('[keyfile]\nunmanaged-devices+=%s,%s\n' % (klass.dev_e_ap, klass.dev_e2_ap))
 
     @classmethod
     def shutdown_devices(klass):
@@ -160,6 +157,9 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
 
         subprocess.call(['ip', 'link', 'del', 'dev', 'mybr'],
                         stderr=subprocess.PIPE)
+        subprocess.call(['ip', 'link', 'del', 'dev', 'nptestsrv'],
+                        stderr=subprocess.PIPE)
+        os.remove('/etc/NetworkManager/conf.d/99-test-denylist.conf')
 
     def setUp(self):
         '''Create test devices and workdir'''
@@ -324,6 +324,12 @@ unmanaged-devices+=interface-name:eth0,interface-name:en*,interface-name:veth42,
         # start NM so that we can verify that it does not manage anything
         subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
 
+        # Debugging output
+        # out = subprocess.check_output(['NetworkManager', '--print-config'], universal_newlines=True)
+        # print(out, flush=True)
+        # out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
+        # print(out, flush=True)
+
         # Wait for interfaces to be ready:
         ifaces = wait_interfaces if wait_interfaces is not None else [self.dev_e_client, self.dev_e2_client]
         for iface_state in ifaces:
@@ -459,8 +465,8 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         klass.dev_w_client = devs[1]
 
         # don't let NM trample over our fake AP
-        with open('/run/NetworkManager/conf.d/test-denylist.conf', 'w') as f:
-            f.write('[main]\nplugins=keyfile\n[keyfile]\nunmanaged-devices+=nptestsrv,%s\n' % klass.dev_w_ap)
+        with open('/etc/NetworkManager/conf.d/99-test-denylist-wifi.conf', 'w') as f:
+            f.write('[keyfile]\nunmanaged-devices+=%s\n' % klass.dev_w_ap)
 
     @classmethod
     def shutdown_devices(klass):
@@ -469,6 +475,7 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         klass.dev_w_ap = None
         klass.dev_w_client = None
         subprocess.check_call(['rmmod', 'mac80211_hwsim'])
+        os.remove('/etc/NetworkManager/conf.d/99-test-denylist-wifi.conf')
 
     def start_hostapd(self, conf):
         hostapd_conf = os.path.join(self.workdir, 'hostapd.conf')
