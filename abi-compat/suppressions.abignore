@@ -7,3 +7,8 @@
 [suppress_variable]
   name = global_state
   type_name = NetplanState
+
+# TODO: drop after 0.106
+[suppress_function]
+  name = find_yaml_glob
+  parameter = '1 glob_t*
