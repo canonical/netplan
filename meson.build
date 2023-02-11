@@ -24,7 +24,7 @@ bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', def
 pyflakes = find_program('pyflakes-3', 'pyflakes3', required: false)
 pycodestyle = find_program('pycodestyle-3', 'pycodestyle', 'pep8', required: false)
 pytest = find_program('pytest-3', 'pytest3')  # also requires the pytest-cov plugin
-pycoverage = find_program('python3-coverage')
+pycoverage = find_program('coverage-3', 'python3-coverage')
 pandoc = find_program('pandoc', required: false)
 find = find_program('find')
 
