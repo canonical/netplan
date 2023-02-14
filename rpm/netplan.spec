@@ -1,17 +1,11 @@
-# Ensure hardened build on EL7
-%global _hardened_build 1
-
 # Ubuntu calls their own software netplan.io in the archive due to name conflicts
 %global ubuntu_name netplan.io
-
-# If the definition isn't available for python3_pkgversion, define it
-%{?!python3_pkgversion:%global python3_pkgversion 3}
 
 # If this isn't defined, define it
 %{?!_systemdgeneratordir:%global _systemdgeneratordir /usr/lib/systemd/system-generators}
 
-# Force auto-byte-compilation to Python 3
-%global __python %{__python3}
+# Netplan library soversion major
+%global libsomajor 0.0
 
 # networkd is not available everywhere
 %if 0%{?rhel}
@@ -21,16 +15,16 @@
 %endif
 
 Name:           netplan
-Version:        0.105
+Version:        0.106
 Release:        0%{?dist}
 Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
-License:        GPLv3
+License:        GPL-3.0-only
 URL:            http://netplan.io/
 Source0:        https://github.com/canonical/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  gcc
-BuildRequires:  make
+BuildRequires:  meson >= 0.61
 BuildRequires:  pkgconfig(bash-completion)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
@@ -38,23 +32,29 @@ BuildRequires:  pkgconfig(libsystemd)
 BuildRequires:  pkgconfig(systemd)
 BuildRequires:  pkgconfig(yaml-0.1)
 BuildRequires:  pkgconfig(uuid)
-BuildRequires:  python%{python3_pkgversion}-devel
+BuildRequires:  python3-devel
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  %{_bindir}/pandoc
+BuildRequires:  %{_bindir}/find
 # For tests
 BuildRequires:  %{_sbindir}/ip
-BuildRequires:  python%{python3_pkgversion}-coverage
-BuildRequires:  python%{python3_pkgversion}-netifaces
-BuildRequires:  python%{python3_pkgversion}-nose
-BuildRequires:  python%{python3_pkgversion}-pycodestyle
-BuildRequires:  python%{python3_pkgversion}-pyflakes
-BuildRequires:  python%{python3_pkgversion}-PyYAML
+BuildRequires:  pkgconfig(cmocka)
+BuildRequires:  python3dist(coverage)
+BuildRequires:  python3dist(netifaces)
+BuildRequires:  python3dist(pycodestyle)
+BuildRequires:  python3dist(pyflakes)
+BuildRequires:  python3dist(pytest)
+BuildRequires:  python3dist(pyyaml)
+BuildRequires:  python3dist(rich)
 
-# /usr/sbin/netplan is a Python 3 script that requires netifaces and PyYAML
-Requires:       python%{python3_pkgversion}-netifaces
-Requires:       python%{python3_pkgversion}-PyYAML
+# /usr/sbin/netplan is a Python 3 script that requires Python modules
+Requires:       python3dist(netifaces)
+Requires:       python3dist(pyyaml)
+Requires:       python3dist(rich)
 # 'ip' command is used in netplan apply subcommand
 Requires:       %{_sbindir}/ip
+# netplan ships dbus files
+Requires:       dbus-common
 
 # Netplan requires a backend for configuration
 Requires:       %{name}-default-backend
@@ -87,7 +87,8 @@ Currently supported backends are NetworkManager and systemd-networkd.
 %{_mandir}/man5/%{name}.5*
 %{_mandir}/man8/%{name}*.8*
 %dir %{_sysconfdir}/%{name}
-%{_prefix}/lib/%{name}/
+%dir %{_prefix}/lib/%{name}
+%{_libexecdir}/%{name}/
 %{_datadir}/bash-completion/completions/%{name}
 
 # ------------------------------------------------------------------------------------------------
@@ -104,14 +105,9 @@ networking daemon.
 
 This package provides Netplan's core libraries.
 
-%if 0%{?rhel} && 0%{?rhel} < 8
-%post libs -p /sbin/ldconfig
-%postun libs -p /sbin/ldconfig
-%endif
-
 %files libs
 %license COPYING
-%{_libdir}/libnetplan.so.*
+%{_libdir}/libnetplan.so.%{libsomajor}{,.*}
 
 # ------------------------------------------------------------------------------------------------
 
@@ -131,6 +127,7 @@ This package provides development headers and libraries for building application
 %files devel
 %{_includedir}/%{name}/
 %{_libdir}/libnetplan.so
+%{_libdir}/pkgconfig/%{name}.pc
 
 # ------------------------------------------------------------------------------------------------
 
@@ -143,15 +140,9 @@ Requires:       NetworkManager
 # Disable NetworkManager's autoconfiguration
 Requires:       NetworkManager-config-server
 
-%if 0%{?rhel} && 0%{?rhel} < 8
-# This is needed for Wi-Fi
-Requires:       NetworkManager-wifi
-%else
 # Generally, if linux-firmware-whence is installed, we want Wi-Fi capabilities
 Recommends:     (NetworkManager-wifi if linux-firmware-whence)
-# This is preferred for Wi-Fi
 Suggests:       NetworkManager-wifi
-%endif
 
 # One and only one default backend permitted
 Conflicts:      %{name}-default-backend
@@ -182,7 +173,6 @@ Requires:       systemd-networkd
 
 # Generally, if linux-firmware-whence is installed, we want Wi-Fi capabilities
 Recommends:     (wpa_supplicant if linux-firmware-whence)
-# This is preferred for Wi-Fi
 Suggests:       wpa_supplicant
 
 # One and only one default backend permitted
@@ -210,18 +200,25 @@ This package configures Netplan to use systemd-networkd as its backend.
 
 # Drop -Werror to avoid the following error:
 # /usr/include/glib-2.0/glib/glib-autocleanups.h:28:3: error: 'ip_str' may be used uninitialized in this function [-Werror=maybe-uninitialized]
-sed -e "s/-Werror//g" -i Makefile
+sed -e "s/werror=true/werror=false/g" -i meson.build
 
 
 %build
-%make_build CFLAGS="%{optflags}"
+%meson
+%meson_build
 
 
 %install
-%make_install ROOTPREFIX=%{_prefix} LIBDIR=%{_libdir} LIBEXECDIR=%{_libexecdir}
+%meson_install
 
-# Pre-create the config directory
+# Remove useless "compat" symlink and path
+rm -f %{buildroot}/lib/netplan/generate
+rmdir %{buildroot}/lib/netplan
+rmdir %{buildroot}/lib
+
+# Pre-create the config directories
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}
+mkdir -p %{buildroot}%{_prefix}/lib/%{name}
 
 # Generate Netplan default renderer configuration
 cat > %{buildroot}%{_prefix}/lib/%{name}/00-netplan-default-renderer-nm.yaml <<EOF
@@ -237,10 +234,15 @@ EOF
 
 
 %check
-make check
+%meson_test
 
 
 %changelog
+* Tue Feb 14 2023 Neal Gompa <ngompa13@gmail.com> - 0.106-0
+- Update to 0.106
+- Resync with Fedora spec
+- Drop EL7 and EL8 support
+
 * Thu Aug 18 2022 Lukas Märdian <slyon@ubuntu.com> - 0.105-0
 - Update to 0.105
 
