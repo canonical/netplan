@@ -2100,9 +2100,18 @@ handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* da
     return TRUE;
 }
 
+static gboolean
+handle_bond_lacp_rate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    if (!(strcmp(scalar(node), "slow") == 0 || strcmp(scalar(node), "fast") == 0))
+        return yaml_error(npp, node, error, "unknown lacp-rate value '%s' (expected 'fast' or 'slow')", scalar(node));
+
+    return handle_netdef_str(npp, node, data, error);
+}
+
 static const mapping_entry_handler bond_params_handlers[] = {
     {"mode", YAML_SCALAR_NODE, {.generic=handle_bond_mode}, netdef_offset(bond_params.mode)},
-    {"lacp-rate", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.lacp_rate)},
+    {"lacp-rate", YAML_SCALAR_NODE, {.generic=handle_bond_lacp_rate}, netdef_offset(bond_params.lacp_rate)},
     {"mii-monitor-interval", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.monitor_interval)},
     {"min-links", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bond_params.min_links)},
     {"transmit-hash-policy", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.transmit_hash_policy)},
