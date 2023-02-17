@@ -3,4 +3,5 @@
 ```{toctree}
 examples
 dbus-config
+netplan-everywhere
 ```
