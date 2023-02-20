@@ -1,12 +1,14 @@
-# Network Manager and Netplan integration (Netplan everywhere)
+# Desktop integration
 
-Network Manager is the tool used by Ubuntu Desktop systems to manage
+## NetworkManager YAML settings backend (Netplan everywhere)
+
+NetworkManager is the tool used by Ubuntu Desktop systems to manage
 network devices such as Ethernet and Wifi adapters. While it is a great
 tool for the job and users can directly use it through the command line
 and the graphical interfaces to configure their devices, Ubuntu has its
 own way of describing and storing network configuration via Netplan.
 
-On Ubuntu, Network Manager uses (or will use, depending on when you are
+On Ubuntu, NetworkManager uses (or will use, depending on when you are
 reading this) Netplan's APIs to save the configuration created by the
 user using any of its interfaces. Our goal is to have a centralized place
 to store network configuration. In the Desktop it's convenient to use
@@ -16,14 +18,14 @@ handled under the hood.
 
 For more information on Netplan, check https://netplan.io/
 
-For more information on Network Manager, check https://networkmanager.dev/
+For more information on NetworkManager, check https://networkmanager.dev/
 
 ## How it works
 
-Every time a non-temporary connection is created in Network Manager, instead
+Every time a non-temporary connection is created in NetworkManager, instead
 of persisting the original .nmconnection file, it will create a Netplan YAML
 at `/etc/netplan` called `90-NM-<connection UUID>.yaml`. After creating the
-file, Network Manager will call the Netplan generator to emit the configuration
+file, NetworkManager will call the Netplan generator to emit the configuration
 for that connection.	Connections that are temporary, like the ones created
 for virtual network interfaces when you connect to a VPN for example, are not
 persisted as Netplan files. The reason for that is that these interfaces are
@@ -66,6 +68,7 @@ $ sudo apt install network-manager
 ```
 
 ## How connections are managed from now on
+
 After installing the new NetworkManager, your existing connection profiles
 will not be imported to Netplan YAML files, only new connections and the
 existing ones you eventually modify.
