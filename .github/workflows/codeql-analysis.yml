@@ -52,7 +52,7 @@ jobs:
       run: |
         sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
         sudo apt update
-        sudo apt install meson python3-coverage python3-pytest python3-pytest-cov
+        sudo apt install meson python3-coverage python3-pytest python3-pytest-cov libcmocka-dev
         sudo apt build-dep netplan.io
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
