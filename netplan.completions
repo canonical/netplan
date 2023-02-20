@@ -1,45 +1,79 @@
-# netplan(1) completion                                       -*- shell-script -*-
+# netplan(5) completion                                       -*- shell-script -*-
 
-_compgen_help()
-{
-    local options=$1
-    shift
+_netplan_completions_filter() {
+  local words="$1"
+  local cur=${COMP_WORDS[COMP_CWORD]}
+  local result=()
 
-    compgen -W '${options} help' $@
+  if [[ "${cur:0:1}" == "-" ]]; then
+    echo "$words"
+
+  else
+    for word in $words; do
+      [[ "${word:0:1}" != "-" ]] && result+=("$word")
+    done
+
+    echo "${result[*]}"
+
+  fi
 }
 
-_netplan()
-{
-    local cur prev words cword
-    _init_completion || return
+_netplan_completions() {
+  local cur=${COMP_WORDS[COMP_CWORD]}
+  local compwords=("${COMP_WORDS[@]:1:$COMP_CWORD-1}")
+  local compline="${compwords[*]}"
 
-    case $prev in
-        netplan)
-            COMPREPLY=( $( _compgen_help 'apply generate ifupdown-migrate ip' "$cur" ) )
-            return
-            ;;
-        apply|generate)
-            return
-            ;;
-        ifupdown-migrate)
-            return
-            ;;
-        ip)
-            COMPREPLY=( $( _compgen_help 'leases' -- "$cur" ) )
-            return
-            ;;
-        leases)
-            if [ "${COMP_WORDS[COMP_CWORD-2]}" = "ip" ]; then
-                _available_interfaces -a
-            fi
-            return
-            ;;
-    esac
+  case "$compline" in
+    'ip leases'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --root-dir")" -- "$cur" )
+      ;;
 
-    if [[ $cur == -* ]]; then
-        COMPREPLY=( $( compgen -W '$( _parse_help "$1" )' -- "$cur" ) )
-    fi
+    'generate'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --root-dir --mapping")" -- "$cur" )
+      ;;
+
+    'rebind'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug")" -- "$cur" )
+      ;;
+
+    'status'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug -a --all -f --format")" -- "$cur" )
+      ;;
+
+    'apply'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --sriov-only --only-ovs-cleanup --state")" -- "$cur" )
+      ;;
+
+    'help'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help")" -- "$cur" )
+      ;;
+
+    'info'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --json --yaml")" -- "$cur" )
+      ;;
+
+    'get'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --root-dir")" -- "$cur" )
+      ;;
+
+    'set'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --origin-hint")" -- "$cur" )
+      ;;
+
+    'try'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --config-file --timeout --state")" -- "$cur" )
+      ;;
+
+    'ip'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug help leases")" -- "$cur" )
+      ;;
+
+    *)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug help apply generate get info ip set rebind status try")" -- "$cur" )
+      ;;
+
+  esac
 } &&
-complete -F _netplan netplan
+complete -F _netplan_completions netplan
 
-# ex: ts=4 sw=4 et filetype=sh
+# ex: filetype=sh
