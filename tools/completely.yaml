@@ -80,6 +80,7 @@ netplan status:
 - --all
 - -f
 - --format
+- $(ls /sys/class/net 2> /dev/null)
 
 netplan try:
 - -h

@@ -37,7 +37,7 @@ _netplan_completions() {
       ;;
 
     'status'*)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug -a --all -f --format")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug -a --all -f --format $(ls /sys/class/net 2> /dev/null)")" -- "$cur" )
       ;;
 
     'apply'*)
