@@ -1,0 +1,91 @@
+# Used to regenerate the bash auto completion script
+# with https://github.com/DannyBen/completely
+
+netplan:
+- -h
+- --help
+- --debug
+- help
+- apply
+- generate
+- get
+- info
+- ip
+- set
+- rebind
+- status
+- try
+
+netplan help:
+- -h
+- --help
+
+netplan apply:
+- -h
+- --help
+- --debug
+- --sriov-only
+- --only-ovs-cleanup
+- --state
+
+netplan generate:
+- -h
+- --help
+- --debug
+- --root-dir
+- --mapping
+
+netplan get:
+- -h
+- --help
+- --debug
+- --root-dir
+
+netplan info:
+- -h
+- --help
+- --debug
+- --json
+- --yaml
+
+netplan ip:
+- -h
+- --help
+- --debug
+- help
+- leases
+
+netplan ip leases:
+- -h
+- --help
+- --debug
+- --root-dir
+
+netplan set:
+- -h
+- --help
+- --debug
+- --origin-hint
+
+netplan rebind:
+- -h
+- --help
+- --debug
+
+netplan status:
+- -h
+- --help
+- --debug
+- -a
+- --all
+- -f
+- --format
+- $(ls /sys/class/net 2> /dev/null)
+
+netplan try:
+- -h
+- --help
+- --debug
+- --config-file
+- --timeout
+- --state
