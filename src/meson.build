@@ -36,7 +36,7 @@ executable(
     install: true)
 install_symlink(
     'netplan',
-    pointing_to: join_paths('..', '..', '..', '..') + join_paths(get_option('prefix'), libexec_netplan, 'generate'),
+    pointing_to: join_paths('..', '..', '..') + join_paths(get_option('prefix'), libexec_netplan, 'generate'),
     install_dir: systemd_generator_dir)
 # Install this symlink for legacy reasons, see netplan/cli/utils.py: get_generator_path()
 install_symlink(
