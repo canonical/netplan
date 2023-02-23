@@ -901,7 +901,7 @@ interface-name=bn0
 
 [bond]
 mode=802.3ad
-lacp_rate=10
+lacp_rate=fast
 miimon=10
 min_links=10
 xmit_hash_policy=none
@@ -938,7 +938,7 @@ method=ignore
         mii-monitor-interval: "10"
         up-delay: "10"
         down-delay: "10"
-        lacp-rate: "10"
+        lacp-rate: "fast"
         transmit-hash-policy: "none"
         ad-select: "none"
         arp-validate: "all"
