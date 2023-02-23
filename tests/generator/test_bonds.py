@@ -157,7 +157,7 @@ UseMTU=true
     bn0:
       parameters:
         mode: 802.3ad
-        lacp-rate: 10
+        lacp-rate: fast
         mii-monitor-interval: 10
         min-links: 10
         up-delay: 20
@@ -183,7 +183,7 @@ UseMTU=true
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
                                             'Mode=802.3ad\n'
-                                            'LACPTransmitRate=10\n'
+                                            'LACPTransmitRate=fast\n'
                                             'MIIMonitorSec=10ms\n'
                                             'MinLinks=10\n'
                                             'TransmitHashPolicy=none\n'
@@ -230,7 +230,7 @@ UseMTU=true
     bn0:
       parameters:
         mode: 802.3ad
-        lacp-rate: 10
+        lacp-rate: fast
         mii-monitor-interval: 10
         min-links: 10
         up-delay: 20
@@ -258,7 +258,7 @@ UseMTU=true
         self.assert_networkd({'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
                                             '[Bond]\n'
                                             'Mode=802.3ad\n'
-                                            'LACPTransmitRate=10\n'
+                                            'LACPTransmitRate=fast\n'
                                             'MIIMonitorSec=10ms\n'
                                             'MinLinks=10\n'
                                             'TransmitHashPolicy=none\n'
@@ -611,7 +611,7 @@ method=ignore
       interfaces: [eno1, switchport]
       parameters:
         mode: 802.3ad
-        lacp-rate: 10
+        lacp-rate: slow
         mii-monitor-interval: 10
         min-links: 10
         up-delay: 10
@@ -672,7 +672,7 @@ interface-name=bn0
 
 [bond]
 mode=802.3ad
-lacp_rate=10
+lacp_rate=slow
 miimon=10
 min_links=10
 xmit_hash_policy=none
@@ -715,7 +715,7 @@ method=ignore
       interfaces: [eno1, switchport]
       parameters:
         mode: 802.3ad
-        lacp-rate: 10
+        lacp-rate: slow
         mii-monitor-interval: 10
         min-links: 10
         up-delay: 10
@@ -778,7 +778,7 @@ interface-name=bn0
 
 [bond]
 mode=802.3ad
-lacp_rate=10
+lacp_rate=slow
 miimon=10
 min_links=10
 xmit_hash_policy=none
@@ -893,6 +893,21 @@ class TestConfigErrors(TestBase):
           - 2001:dead:beef::1
       dhcp4: true''', expect_fail=True)
         self.assertIn("unknown bond mode 'lacp'", err)
+
+    def test_bond_invalid_lacp_rate(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1:
+      match:
+        name: eth0
+  bonds:
+    bond0:
+      interfaces: [eno1]
+      parameters:
+        lacp-rate: abcd
+      dhcp4: true''', expect_fail=True)
+        self.assertIn("unknown lacp-rate value 'abcd'", err)
 
     def test_bond_invalid_arp_target(self):
         self.generate('''network:
