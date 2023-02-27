@@ -126,3 +126,6 @@ _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL gboolean
 is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route);
+
+NETPLAN_INTERNAL gboolean
+is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* rule);

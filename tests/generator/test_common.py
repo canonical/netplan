@@ -1517,6 +1517,46 @@ LinkLocalAddressing=no
 Bridge=br1
 '''})
 
+    def test_fwdecl_will_not_lead_to_duplicates(self):
+        '''
+        When the parser needs more than one pass we shouldn't
+        emit duplicated configuration
+        Testcase for LP: #2007682'''
+
+        self.generate('''network:
+  bonds:
+    aggi:
+      routing-policy:
+        - table: 1
+          from: 1.2.3.4
+      nameservers:
+        addresses:
+          - 1.2.3.4
+        search:
+          - example.com
+      interfaces:
+        - eth0
+  ethernets:
+    eth0:
+      ignore-carrier: true
+''')
+
+        self.assert_networkd({'aggi.netdev': '[NetDev]\nName=aggi\nKind=bond\n',
+                              'aggi.network': '''[Match]
+Name=aggi
+
+[Network]
+LinkLocalAddressing=ipv6
+DNS=1.2.3.4
+Domains=example.com
+ConfigureWithoutCarrier=yes
+
+[RoutingPolicyRule]
+From=1.2.3.4
+Table=1
+''',
+                              'eth0.network': ND_EMPTY % ('eth0', 'no') + 'Bond=aggi\n'})
+
 
 class TestMerging(TestBase):
     '''multiple *.yaml merging'''

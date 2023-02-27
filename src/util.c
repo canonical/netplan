@@ -955,3 +955,27 @@ is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route
 
     return FALSE;
 }
+/*
+ * Returns true if a policy rule already exists in the netdef rules list.
+ */
+gboolean
+is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* rule)
+{
+    const GArray* rules = netdef->ip_rules;
+
+    for (int i = 0; i < rules->len; i++) {
+        const NetplanIPRule* entry = g_array_index(rules, NetplanIPRule*, i);
+        if (
+                entry->family == rule->family &&
+                g_strcmp0(entry->from, rule->from) == 0 &&
+                g_strcmp0(entry->to, rule->to) == 0 &&
+                entry->table == rule->table &&
+                entry->priority == rule->priority &&
+                entry->fwmark == rule->fwmark &&
+                entry->tos == rule->tos
+           )
+            return TRUE;
+    }
+
+    return FALSE;
+}

@@ -2027,6 +2027,18 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, const void* _, GError** e
 
         if (!npp->current.netdef->ip_rules)
             npp->current.netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
+
+        if (is_route_rule_present(npp->current.netdef, ip_rule)) {
+            g_debug("%s: rule (from: %s, to: %s, table: %d) has already been added",
+                    npp->current.netdef->id,
+                    ip_rule->from,
+                    ip_rule->to,
+                    ip_rule->table);
+            ip_rule_clear(&ip_rule);
+            npp->current.ip_rule = NULL;
+            continue;
+        }
+
         g_array_append_val(npp->current.netdef->ip_rules, ip_rule);
     }
     mark_data_as_dirty(npp, &npp->current.netdef->ip_rules);
