@@ -129,3 +129,6 @@ is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route
 
 NETPLAN_INTERNAL gboolean
 is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* rule);
+
+NETPLAN_INTERNAL gboolean
+is_string_in_array(GArray* array, const char* value);

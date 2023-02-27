@@ -1443,17 +1443,22 @@ handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, 
     return TRUE;
 }
 
-
 static gboolean
 handle_nameservers_search(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         assert_type(npp, entry, YAML_SCALAR_NODE);
+
         if (!npp->current.netdef->search_domains)
             npp->current.netdef->search_domains = g_array_new(FALSE, FALSE, sizeof(char*));
-        char* s = g_strdup(scalar(entry));
-        g_array_append_val(npp->current.netdef->search_domains, s);
+
+        if (!is_string_in_array(npp->current.netdef->search_domains, scalar(entry))) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(npp->current.netdef->search_domains, s);
+        } else {
+            g_debug("%s: Search domain '%s' has already been added", npp->current.netdef->id, scalar(entry));
+        }
     }
     mark_data_as_dirty(npp, &npp->current.netdef->search_domains);
     return TRUE;
@@ -1463,28 +1468,27 @@ static gboolean
 handle_nameservers_addresses(NetplanParser* npp, yaml_node_t* node, const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        GArray **nameservers = NULL;
         yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         assert_type(npp, entry, YAML_SCALAR_NODE);
 
-        /* is it an IPv4 address? */
-        if (is_ip4_address(scalar(entry))) {
-            if (!npp->current.netdef->ip4_nameservers)
-                npp->current.netdef->ip4_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(npp->current.netdef->ip4_nameservers, s);
-            continue;
-        }
+        /* is it an IPv4 or IPv6 address? */
+        if (is_ip4_address(scalar(entry)))
+            nameservers = &npp->current.netdef->ip4_nameservers;
+        else if (is_ip6_address(scalar(entry)))
+            nameservers = &npp->current.netdef->ip6_nameservers;
+        else
+            return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
 
-        /* is it an IPv6 address? */
-        if (is_ip6_address(scalar(entry))) {
-            if (!npp->current.netdef->ip6_nameservers)
-                npp->current.netdef->ip6_nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
-            char* s = g_strdup(scalar(entry));
-            g_array_append_val(npp->current.netdef->ip6_nameservers, s);
-            continue;
-        }
+        if (!(*nameservers))
+           *nameservers = g_array_new(FALSE, FALSE, sizeof(char*));
 
-        return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(entry));
+        if (!is_string_in_array(*nameservers, scalar(entry))) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(*nameservers, s);
+        } else {
+            g_debug("%s: Nameserver '%s' has already been added", npp->current.netdef->id, scalar(entry));
+        }
     }
 
     mark_data_as_dirty(npp, &npp->current.netdef->ip4_nameservers);

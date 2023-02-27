@@ -979,3 +979,15 @@ is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* r
 
     return FALSE;
 }
+
+gboolean
+is_string_in_array(GArray* array, const char* value)
+{
+    for (unsigned i = 0; i < array->len; ++i) {
+        char* item = g_array_index(array, char*, i);
+        if (!g_strcmp0(value, item)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
