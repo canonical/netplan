@@ -36,8 +36,7 @@ config_errors = (ConfigurationError, LibNetplanException, RuntimeError)
 
 
 def get_generator_path():
-    # FIXME: meson build uses proper libexecdir (+symlink)
-    return os.environ.get('NETPLAN_GENERATE_PATH', '/lib/netplan/generate')
+    return os.environ.get('NETPLAN_GENERATE_PATH', '/usr/libexec/netplan/generate')
 
 
 def is_nm_snap_enabled():
