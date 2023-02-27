@@ -15,6 +15,8 @@ yaml = dependency('yaml-0.1')
 uuid = dependency('uuid')
 libsystemd = dependency('libsystemd')
 
+meson_make_symlink = meson.current_source_dir() + '/tools/meson-make-symlink.sh'
+
 systemd = dependency('systemd')
 completions = dependency('bash-completion')
 systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')

@@ -34,10 +34,9 @@ executable(
     dependencies: [glib, gio, yaml, uuid],
     install_dir: libexec_netplan,
     install: true)
-install_symlink(
-    'netplan',
-    pointing_to: join_paths('..', '..', '..') + join_paths(get_option('prefix'), libexec_netplan, 'generate'),
-    install_dir: systemd_generator_dir)
+meson.add_install_script(meson_make_symlink,
+    join_paths(get_option('prefix'), libexec_netplan, 'generate'),
+    join_paths(systemd_generator_dir, 'netplan'))
 # Install this symlink for legacy reasons, see netplan/cli/utils.py: get_generator_path()
 install_symlink(
     'generate',
