@@ -141,7 +141,7 @@ _copy_yaml_state(char *src_root, char *dst_root, sd_bus_error *ret_error)
     gchar *dest_path = NULL;
     size_t len = strlen(src_root);
     for (size_t i = 0; i < gl.gl_pathc; ++i) {
-        dest_path = g_strjoin(NULL, dst_root, (gl.gl_pathv[i])+len, NULL);
+        dest_path = g_build_path(G_DIR_SEPARATOR_S, dst_root, (gl.gl_pathv[i])+len, NULL);
         source = g_file_new_for_path(gl.gl_pathv[i]);
         dest = g_file_new_for_path(dest_path);
         g_file_copy(source, dest, G_FILE_COPY_OVERWRITE
