@@ -94,7 +94,7 @@ def _del_global(type, iface, key, value):
         if all(item in out for item in value.split(',')):
             subprocess.check_call(args_del)
     else:
-        raise Exception('Reset command unkown for:', key)
+        raise Exception('Reset command unknown for:', key)
 
 
 def clear_setting(type, iface, setting, value):
