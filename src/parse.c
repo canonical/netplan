@@ -2482,8 +2482,12 @@ handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
 
         if (!*protocols)
             *protocols = g_array_new(FALSE, FALSE, sizeof(char*));
-        char* s = g_strdup(scalar(entry));
-        g_array_append_val(*protocols, s);
+
+        /* Do not insert the same address twice in the list */
+        if (!is_string_in_array(*protocols, scalar(entry))) {
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(*protocols, s);
+        }
     }
 
     return TRUE;
@@ -2536,6 +2540,12 @@ handle_ovs_bridge_controller_addresses(NetplanParser* npp, yaml_node_t* node, co
 
         if (!npp->current.netdef->ovs_settings.controller.addresses)
             npp->current.netdef->ovs_settings.controller.addresses = g_array_new(FALSE, FALSE, sizeof(char*));
+
+        /* Do not insert the same address twice in the list */
+        if (is_string_in_array(npp->current.netdef->ovs_settings.controller.addresses, scalar(entry))) {
+            g_strfreev(vec);
+            continue;
+        }
 
         /* Format: [p]unix:file */
         if (is_unix && vec[1] != NULL && vec[2] == NULL) {
