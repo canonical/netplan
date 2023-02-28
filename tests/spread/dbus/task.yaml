@@ -1,0 +1,31 @@
+summary: Check that the dbus integration works
+
+debug: |
+  netplan get
+
+execute: |
+  # see the basics work
+  netplan get bridges.br54.dhcp4 | MATCH true
+  # TODO: actually use busctl
+  obj_path=$(dbus-send --system --print-reply --type=method_call \
+     --dest=io.netplan.Netplan /io/netplan/Netplan \
+     io.netplan.Netplan.Config|tail -1 | sed 's/.*"\(.*\)".*/\1/' )
+  dbus-send --print-reply  --system --type=method_call \
+     --dest=io.netplan.Netplan "$obj_path" \
+     io.netplan.Netplan.Config.Get | MATCH "version: 2"
+  # and updating via dbus netplan works
+  dbus-send --print-reply  --system --type=method_call \
+      --dest=io.netplan.Netplan "$obj_path"   \
+      io.netplan.Netplan.Config.Set \
+      string:bridges.br54.dhcp4=false string:90-test
+  # not applied yet
+  test ! -e /etc/netplan/90-test.yaml
+  netplan get bridges.br54.dhcp4 | MATCH true
+  # apply
+  dbus-send --print-reply  --system --type=method_call \
+      --dest=io.netplan.Netplan "$obj_path"   \
+      io.netplan.Netplan.Config.Apply
+  # and now it's active
+  test -e /etc/netplan/90-test.yaml
+  netplan get bridges.br54.dhcp4 | MATCH false
+

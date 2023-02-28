@@ -1,0 +1,47 @@
+summary: Check that the snapd/netplan integration works
+
+prepare: |
+    # put snapd in debug mode for good logs
+    mkdir -p /etc/systemd/system/snapd.service.d
+    cat <<EOF > /etc/systemd/system/snapd.service.d/local.conf
+    [Service]
+    Environment=SNAPD_DEBUG=1
+    EOF
+    systemctl daemon-reload
+    # install snapd if needed (should be installed on most lxd images)
+    if ! dpkg -l snapd >/dev/null; then
+        apt install -y snapd
+        echo "apt autoremove -y snapd" >> defered.cleanup
+    fi
+    # fake running on core (netplan only enabled on ubuntu core)
+    # FIXME: find a more offical way, this if fugly
+    cp /etc/os-release /etc/os-release.save
+    sed -i s/ID=ubuntu/ID=ubuntu-core/ /etc/os-release
+    M=/var/lib/snapd/assertions/asserts-v0/model/16/generic/generic-classic/active
+    cp "$M" model.save
+    sed -i 's/classic: true/architecture: amd64\ngadget: pc\nkernel: pc-kernel/g' "$M"
+    # restart snapd
+    systemctl restart snapd
+
+restore: |
+    mv /etc/os-release.save /etc/os-release
+    mv model.save /var/lib/snapd/assertions/asserts-v0/model/16/generic/generic-classic/active
+    sudo systemctl restart snapd
+    if [ -e defered.cleanup ]; then
+        sh -ex defered.cleanup
+    fi
+    rm -f model.*
+
+debug: |
+    journalctl -u snapd
+    snap get system -d
+    snap version
+
+execute: |
+  # see the basics work
+  netplan get bridges.br54.dhcp4 | MATCH true
+  snap get system system.network.netplan.network.bridges.br54.dhcp4 | MATCH true
+  # and updating netplan works
+  snap set system system.network.netplan.network.bridges.br54.dhcp4=false
+  netplan get bridges.br54.dhcp4 | MATCH false
+  snap get system system.network.netplan.network.bridges.br54.dhcp4 | MATCH false

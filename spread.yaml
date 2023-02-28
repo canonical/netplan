@@ -1,0 +1,46 @@
+project: netplan
+
+backends:
+  lxd:
+    systems: [ubuntu-22.04]
+  qemu:
+    systems:
+      - ubuntu-22.04-64:
+          username: ubuntu
+          password: ubuntu
+
+suites:
+  tests/spread/:
+    summary: integration tests
+
+path: /home/tests
+
+prepare: |
+  # FIXME: remove after legacy symlink in 107 gets dropped (see meson.build)
+  # This is needed as the git netplan puts a symlink to /lib/netplan/generate
+  # but the package has the real generate there
+  rm -f /lib/netplan/generate
+  # FIXME: having the debian packging available would allow "apt
+  # build-dep -y ./" would make this easier :)
+  apt update -qq
+  apt install -y build-essential meson pkg-config libyaml-dev \
+    libglib2.0-dev uuid-dev python3 libsystemd-dev pandoc python3-pytest \
+    python3-coverage libcmocka-dev python3-rich
+  # install, a bit ugly but this is a container (did I mention the packaging?)
+  meson setup build --prefix=/usr
+  meson compile -C build
+  # FIXME: enable, this crashes right now with:
+  #        https://paste.ubuntu.com/p/qRnJvjyddN/
+  #meson test -C build --verbose
+  meson install -C build --destdir=/
+  # set some defaults for the tests
+  cat > /etc/netplan/0-snapd-defaults.yaml <<'EOF'
+  network:
+    version: 2
+    bridges:
+      br54:
+        dhcp4: true
+  EOF
+  chmod 0600 /etc/netplan/0-snapd-defaults.yaml
+  echo "Precondition check, the basics work"
+  netplan get bridges.br54.dhcp4 | MATCH true
