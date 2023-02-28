@@ -278,6 +278,69 @@ test_util_is_route_present(void** state)
 }
 
 void
+test_util_is_route_rule_present(void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth0:\n"
+        "      routing-policy:\n"
+        "        - from: 10.0.0.1\n"
+        "          table: 1001\n"
+        "        - from: 10.0.0.2\n"
+        "          table: 1002\n";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+    netplan_state_iterator_init(np_state, &iter);
+
+    netdef = netplan_state_iterator_next(&iter);
+
+    NetplanIPRule* rule = g_new0(NetplanIPRule, 1);
+    reset_ip_rule(rule);
+    rule->family = AF_INET;
+    rule->table = 1001;
+    rule->from = "10.0.0.1";
+
+    assert_true(is_route_rule_present(netdef, rule));
+
+    rule->table = 1003;
+    rule->from = "10.0.0.1";
+
+    assert_false(is_route_rule_present(netdef, rule));
+
+    g_free(rule);
+    netplan_state_clear(&np_state);
+}
+
+void
+test_util_is_string_in_array(void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth0:\n"
+        "      nameservers:\n"
+        "        addresses: [8.8.8.8, 8.8.4.4]\n";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+    netplan_state_iterator_init(np_state, &iter);
+
+    netdef = netplan_state_iterator_next(&iter);
+
+    assert_true(is_string_in_array(netdef->ip4_nameservers, "8.8.8.8"));
+    assert_false(is_string_in_array(netdef->ip4_nameservers, "somethingelse"));
+
+    netplan_state_clear(&np_state);
+}
+
+
+void
 test_normalize_ip_address(void** state)
 {
     assert_string_equal(normalize_ip_address("default", AF_INET), "0.0.0.0/0");
@@ -314,6 +377,8 @@ main()
            cmocka_unit_test(test_netplan_netdef_get_output_filename_buffer_is_too_small),
            cmocka_unit_test(test_netplan_netdef_get_output_filename_invalid_backend),
            cmocka_unit_test(test_util_is_route_present),
+           cmocka_unit_test(test_util_is_route_rule_present),
+           cmocka_unit_test(test_util_is_string_in_array),
            cmocka_unit_test(test_normalize_ip_address),
        };
 
