@@ -1058,3 +1058,39 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
 ''', expect_fail=True)
         self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assertIn('br0: ipv6-address-generation mode is not supported by networkd', err)
+
+    def test_ovs_duplicates_when_parser_needs_second_pass(self):
+        ''' Test case for LP: #2007682
+            The generator shouldn't generate duplicates when the parser
+            needs a second pass.
+        '''
+        self.generate('''network:
+    version: 2
+    bridges:
+      br123:
+        openvswitch:
+          protocols:
+            - OpenFlow10
+            - OpenFlow11
+            - OpenFlow12
+          controller:
+            addresses:
+              - tcp:127.0.0.1:6653
+        interfaces:
+          - nic1
+    ethernets:
+      nic1: {}
+''')
+        self.assert_ovs({'br123.service': OVS_VIRTUAL % {'iface': 'br123', 'extra': '''
+[Service]
+Type=oneshot
+TimeoutStartSec=10s
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br123
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br123 nic1
+''' + OVS_BR_DEFAULT % {'iface': 'br123'} + ('\
+ExecStart=/usr/bin/ovs-vsctl set Bridge br123 protocols=OpenFlow10,OpenFlow11,OpenFlow12\n\
+ExecStart=/usr/bin/ovs-vsctl set Bridge br123 external-ids:netplan/protocols=OpenFlow10,OpenFlow11,OpenFlow12\n\
+ExecStart=/usr/bin/ovs-vsctl set-controller br123 tcp:127.0.0.1:6653\n\
+ExecStart=/usr/bin/ovs-vsctl set Bridge br123 external-ids:netplan/global/set-controller=tcp:127.0.0.1:6653\n\
+')},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
