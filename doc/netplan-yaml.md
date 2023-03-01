@@ -161,7 +161,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
     > Valid for bridge interfaces or the network section. List of protocols to
     > be used when negotiating a connection with the controller. Accepts
     > `OpenFlow10`, `OpenFlow11`, `OpenFlow12`, `OpenFlow13`, `OpenFlow14`,
-    > `OpenFlow15` and `OpenFlow16`.
+    > and `OpenFlow15`.
 
   - **rstp** (bool) – since **0.100**
 
