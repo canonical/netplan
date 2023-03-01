@@ -21,6 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import os
 import sys
 import signal
@@ -143,6 +144,59 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                  "skipping as NetworkManager backend tests are disabled")
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
+
+
+class TestDbus(IntegrationTestsBase):
+    # This test can be dropped when tests/integration/dbus.py is
+    # integrated as an autopkgtest in the Debian package
+    def test_dbus_config_get_lp1997467(self):
+
+        NETPLAN_YAML = '''network:
+  version: 2
+  ethernets:
+    %(nic)s:
+      dhcp4: true
+'''
+        BUSCTL_CONFIG = [
+                'busctl', '-j', 'call', '--system',
+                'io.netplan.Netplan', '/io/netplan/Netplan',
+                'io.netplan.Netplan', 'Config']
+
+        BUSCTL_CONFIG_GET = [
+                'busctl', '-j', 'call', '--system',
+                'io.netplan.Netplan', 'PLACEHOLDER',
+                'io.netplan.Netplan.Config', 'Get']
+
+        # Terminates netplan-dbus if it is running already
+        cmd = ['ps', '-C', 'netplan-dbus', '-o', 'pid=']
+        out = subprocess.run(cmd, capture_output=True, universal_newlines=True)
+        if out.returncode == 0:
+            pid = out.stdout.strip()
+            os.kill(int(pid), signal.SIGTERM)
+
+        with open(self.config, 'w') as f:
+            f.write(NETPLAN_YAML % {'nic': self.dev_e_client})
+
+        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, universal_newlines=True)
+        self.assertEqual(out.returncode, 0, msg=f"Busctl Config() failed with error: {out.stderr}")
+
+        out_dict = json.loads(out.stdout)
+        config_path = out_dict.get('data')[0]
+        self.assertNotEqual(config_path, "", msg="Got an empty response from DBUS")
+
+        # The path has the following format: /io/netplan/Netplan/config/WM6X01
+        BUSCTL_CONFIG_GET[5] = config_path
+
+        # Retrieving the config
+        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, universal_newlines=True)
+        self.assertEqual(out.returncode, 0, msg=f"Busctl Get() failed with error: {out.stderr}")
+
+        out_dict = json.loads(out.stdout)
+        netplan_data = out_dict.get('data')[0]
+
+        self.assertNotEqual(netplan_data, "", msg="Got an empty response from DBUS")
+        self.assertEqual(netplan_data, NETPLAN_YAML % {'nic': self.dev_e_client},
+                         msg="The original YAML is different from the one returned by DBUS")
 
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
