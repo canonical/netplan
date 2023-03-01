@@ -2446,8 +2446,9 @@ handle_ovs_bridge_fail_mode(NetplanParser* npp, yaml_node_t* node, const void* d
 static gboolean
 handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
+    const char* deprecated[] = { "OpenFlow16" };
     const char* supported[] = {
-        "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", "OpenFlow16", NULL
+        "OpenFlow10", "OpenFlow11", "OpenFlow12", "OpenFlow13", "OpenFlow14", "OpenFlow15", NULL
     };
     unsigned i = 0;
     guint offset = GPOINTER_TO_UINT(data);
@@ -2456,6 +2457,11 @@ handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
     for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
         yaml_node_t *entry = yaml_document_get_node(&npp->doc, *iter);
         assert_type(npp, entry, YAML_SCALAR_NODE);
+
+        if (!g_strcmp0(scalar(entry), deprecated[0])) {
+            g_warning("openvswitch: Ignoring deprecated protocol: %s", scalar(entry));
+            continue;
+        }
 
         for (i = 0; supported[i] != NULL; ++i)
             if (!g_strcmp0(scalar(entry), supported[i]))

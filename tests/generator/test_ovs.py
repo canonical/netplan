@@ -122,13 +122,14 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/other-confi
         self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0'})
 
     def test_global_set_protocols(self):
-        self.generate('''network:
+        out = self.generate('''network:
   version: 2
   openvswitch:
-    protocols: [OpenFlow10, OpenFlow11, OpenFlow12]
+    protocols: [OpenFlow10, OpenFlow11, OpenFlow12, OpenFlow16]
   bridges:
     ovs0:
-      openvswitch: {}''')
+      openvswitch: {}''', skip_generated_yaml_validation=True)  # OpenFlow16 won't be re-generated
+        self.assertIn('openvswitch: Ignoring deprecated protocol: OpenFlow16', out)
         self.assert_ovs({'ovs0.service': OVS_VIRTUAL % {'iface': 'ovs0', 'extra': '''
 [Service]
 Type=oneshot
