@@ -223,8 +223,8 @@ _backup_global_state(sd_bus_error *ret_error)
     }
 
     /* Copy main *.yaml files from /{etc,run,lib}/netplan/ to GLOBAL backup dir */
-    _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
-    return 0;
+    r = _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
+    return r;
 }
 
 /**
@@ -444,7 +444,8 @@ netplan_try_cancelled_cb(sd_event_source *es, const siginfo_t *si, void* userdat
         unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Restore GLOBAL backup config state to main rootdir */
         state_dir = g_strdup_printf("%s/run/netplan/config-%s", NETPLAN_ROOT, NETPLAN_GLOBAL_CONFIG);
-        _copy_yaml_state(state_dir, NETPLAN_ROOT, NULL);
+        r = _copy_yaml_state(state_dir, NETPLAN_ROOT, NULL);
+        if (r < 0) return r;
 
         /* Un-invalidate all other current config objects */
         if (!g_strcmp0(d->handler_id, d->config_dirty))
@@ -564,7 +565,8 @@ method_config_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Copy current config state to GLOBAL */
         state_dir = g_strdup_printf("%s/run/netplan/config-%s", NETPLAN_ROOT, d->config_id);
-        _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
+        r = _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
+        if (r < 0) return r;
         d->handler_id = g_strdup(d->config_id);
     }
 
@@ -639,7 +641,8 @@ method_config_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 
     /* Copy current config *.yaml state to main rootdir (i.e. /etc/netplan/) */
     state_dir = g_strdup_printf("%s/run/netplan/config-%s", NETPLAN_ROOT, d->config_id);
-    _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
+    r = _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
+    if (r < 0) return r;
 
     /* Exec try */
     r = method_try(m, userdata, ret_error);
@@ -670,7 +673,8 @@ method_config_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         unlink_glob(NETPLAN_ROOT, "/{etc,run,lib}/netplan/*.yaml");
         /* Restore GLOBAL backup config state to main rootdir */
         state_dir = g_strdup_printf("%s/run/netplan/config-%s", NETPLAN_ROOT, NETPLAN_GLOBAL_CONFIG);
-        _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
+        r = _copy_yaml_state(state_dir, NETPLAN_ROOT, ret_error);
+        if (r < 0) return r;
 
         /* Clear GLOBAL backup and config state */
         _clear_tmp_state(NETPLAN_GLOBAL_CONFIG, d);
@@ -754,7 +758,8 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     }
 
     /* Copy all *.yaml files from /{etc,run,lib}/netplan/ to temp dir */
-    _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
+    r = _copy_yaml_state(NETPLAN_ROOT, path, ret_error);
+    if (r < 0) return r;
 
     return sd_bus_reply_method_return(m, "o", obj_path);
 }
