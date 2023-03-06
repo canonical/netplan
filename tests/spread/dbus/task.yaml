@@ -13,7 +13,8 @@ execute: |
   dbus-send --print-reply  --system --type=method_call \
      --dest=io.netplan.Netplan "$obj_path" \
      io.netplan.Netplan.Config.Get | MATCH "version: 2"
-  # and updating via dbus netplan works
+  # and updating via dbus netplan works (use 90-test origin hint for
+  # easier test cleanup)
   dbus-send --print-reply  --system --type=method_call \
       --dest=io.netplan.Netplan "$obj_path"   \
       io.netplan.Netplan.Config.Set \
