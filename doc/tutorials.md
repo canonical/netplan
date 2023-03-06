@@ -1,5 +1,10 @@
 # Tutorials
 
+```{toctree}
+netplan-tutorial
+```
+
+# External resources
 Here you can find some external blog posts, describing the usage of Netplan on different systems.
 
 ## Ubuntu 22.04 LTS
