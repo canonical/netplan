@@ -33,7 +33,7 @@ prepare: |
   #        https://paste.ubuntu.com/p/qRnJvjyddN/
   #meson test -C build --verbose
   meson install -C build --destdir=/
-  # set some defaults for the tests
+  # set some defaults
   cat > /etc/netplan/0-snapd-defaults.yaml <<'EOF'
   network:
     version: 2
@@ -44,3 +44,10 @@ prepare: |
   chmod 0600 /etc/netplan/0-snapd-defaults.yaml
   echo "Precondition check, the basics work"
   netplan get bridges.br54.dhcp4 | MATCH true
+  # keep original config around
+  tar cvf "$SPREAD_PATH"/etc-netplan.tar.gz /etc/netplan/
+
+restore-each: |
+  # restore original netplan dir
+  rm -rf /etc/netplan/*
+  (cd / && tar xvf "$SPREAD_PATH"/etc-netplan.tar.gz)
