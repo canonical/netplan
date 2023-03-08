@@ -1,8 +1,4 @@
 
-# Getting started with Netplan
-
-In this tutorial we'll drive you through a number of practical exercises to get you started with Netplan. By the end of the tutorial you will be familiarized with some of the Netplan commands and configuration.
-
 ## Pre-requisites
 
 In order to do the exercises yourself you will need a virtual machine, preferably running Ubuntu. In this tutorial, we will use LXD to create virtual networks and launch virtual machines. Feel free to use a cloud instance or a different hypervisor. As long as you can achieve the same results, you should be fine. If you're going to use your own desktop/laptop system, some of the exercises might interrupt your network connectivity.

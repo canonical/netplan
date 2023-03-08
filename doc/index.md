@@ -5,7 +5,7 @@
 maxdepth: 2
 hidden: true
 ---
-netplan-tutorial
+tutorial
 howto
 reference
 explanation

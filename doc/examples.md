@@ -1,4 +1,4 @@
-# How-tos
+## Introduction
 
 Below is a collection of howtos for common scenarios.
 If you see a scenario missing or have one to contribute, please file a bug
