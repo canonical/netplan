@@ -2,7 +2,7 @@
 title: "YAML configuration"
 ---
 
-## General configuration structure
+## Top-level configuration structure
 
 The general structure of a Netplan YAML file is shown below.
 
@@ -22,26 +22,47 @@ network:
 ```
 
 - **version** (number)
-  > Defines what version of the configuration format is used. The only value supported is `2`. Defaults to `2` is not defined.
+
+  > Defines what version of the configuration format is used. The only value supported is `2`. Defaults to `2` if not defined.
+
 - **renderer** (scalar)
+
   > Defines what network configuration tool will be used to set up your configuration. Valid values are `networkd` and `NetworkManager`. Defaults to `networkd` if not defined.
+
 - **bonds** (mapping)
+
   > Creates and configures link aggregation (bonding) devices.
+
 - **bridges** (mapping)
+
   > Creates and configures bridge devices.
+
 - **ethernets** (mapping)
+
   > Configures physical Ethernet interfaces.
+
 - **modems** (mapping)
+
   > Configures modems
+
 - **nm-devices** (mapping)
+
   > `nm-devices` are used in situations where Netplan doesn't support the connection type. The raw configuration expected by NetworkManager can be defined and will be passed as is (passthrough) to the `.nmconnection` file. Users will not normally use this type of device.
+
 - **tunnels** (mapping)
+
   > Creates and configures different types of virtual tunnels.
+
 - **vlans** (mapping)
+
   > Creates and configures VLANs.
+
 - **vrfs** (mapping)
+
   > Configures Virtual Functions for SR-IOV devices.
+
 - **wifis** (mapping)
+
   > Configures physical Wifi interfaces as client, adhoc or access point.
 
 All the properties for all the device types will be described in the next sections.
