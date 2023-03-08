@@ -1,4 +1,4 @@
-## Introduction
+# Introduction
 
 Below is a collection of howtos for common scenarios.
 If you see a scenario missing or have one to contribute, please file a bug
@@ -15,7 +15,7 @@ For each of the example below, use the `renderer` that applies to your scenario.
 Also, see [/examples](https://github.com/canonical/netplan/tree/main/examples)
 on GitHub.
 
-## How to enable DHCP on an interface
+# How to enable DHCP on an interface
 
 To let the interface named `enp3s0` get an address via DHCP, create a YAML file with the following:
 
@@ -28,7 +28,7 @@ network:
       dhcp4: true
 ```
 
-## How to configure a static IP address on an interface
+# How to configure a static IP address on an interface
 
 To set a static IP address, use the `addresses` keyword, which takes a list of (IPv4 or IPv6) addresses along with the subnet prefix length (e.g. /24).
 
@@ -42,7 +42,7 @@ network:
         - 10.10.10.2/24
 ```
 
-## How to configure DNS servers and search domains
+# How to configure DNS servers and search domains
 
 The lists of search domains and DNS server IPs can be defined as below:
 
@@ -62,7 +62,7 @@ network:
           - 8.8.8.8
 ```
 
-## How to connect multiple interfaces with DHCP
+# How to connect multiple interfaces with DHCP
 
 DHCP can be used with multiple interfaces. The metrics for the routes acquired from DHCP can be changed with the use of DHCP overrides.
 
@@ -82,7 +82,7 @@ network:
         route-metric: 200
 ```
 
-## How to connect to an open wireless network
+# How to connect to an open wireless network
 
 For open wireless networks, Netplan only requires that the access point is defined. In this example, `opennetwork` is the network SSID:
 
@@ -96,7 +96,7 @@ network:
       dhcp4: yes
 ```
 
-## How to configure your computer to connect to your home wifi network
+# How to configure your computer to connect to your home wifi network
 
 If all you need is to connect to your local domestic wifi network, use the configuration below:
 
@@ -112,7 +112,7 @@ network:
           password: "**********"
 ```
 
-## How to connect to a WPA Personal wireless network without DHCP
+# How to connect to a WPA Personal wireless network without DHCP
 
 For private wireless networks, the access point name and password must be specified:
 
@@ -135,7 +135,7 @@ network:
           via: 192.168.0.1
 ```
 
-## How to connect to WPA Enterprise wireless networks with EAP+TTLS
+# How to connect to WPA Enterprise wireless networks with EAP+TTLS
 
 ```yaml
 network:
@@ -153,7 +153,7 @@ network:
       dhcp4: yes
 ```
 
-## How to connect to WPA Enterprise wireless networks with EAP+TLS
+# How to connect to WPA Enterprise wireless networks with EAP+TLS
 
 ```yaml
 network:
@@ -176,7 +176,7 @@ network:
 
 Many different modes of encryption are supported. See the [Netplan reference](/reference) page.
 
-## How to use multiple addresses on a single interface
+# How to use multiple addresses on a single interface
 
 The `addresses` keyword can take a list of addresses to assign to an interface. You can also defined a `label` for each address:
 
@@ -194,7 +194,7 @@ network:
             label: "enp3s0:some-label"
 ```
 
-## How to use multiple addresses with multiple gateways
+# How to use multiple addresses with multiple gateways
 
 Similar to the example above, interfaces with multiple addresses can be configured with multiple gateways.
 
@@ -220,7 +220,7 @@ We configure individual routes to default (or 0.0.0.0/0) using the address of th
 
 DHCP can be used to receive one of the IP addresses for the interface. In this case, the default route for that address will be automatically configured with a `metric` value of 100.
 
-## How to use Network Manager as a renderer
+# How to use Network Manager as a renderer
 
 Netplan supports both networkd and Network Manager as backends.    You can specify which network backend should be used to configure particular devices by using the `renderer` key. You can also delegate all configuration of the network to Network Manager itself by specifying only the `renderer` key:
 
@@ -230,7 +230,7 @@ network:
   renderer: NetworkManager
 ```
 
-## How to configure interface bonding
+# How to configure interface bonding
 
 Bonding is configured by declaring a bond interface with a list of physical interfaces and a bonding mode:
 
@@ -249,7 +249,7 @@ network:
         primary: enp3s0
 ```
 
-## How to configure multiple bonds
+# How to configure multiple bonds
 
 Below is an example of a system acting as a router with various bonded interfaces and different types. Note the 'optional: true' key declarations that allow booting to occur without waiting for those interfaces to activate fully.
 
@@ -302,7 +302,7 @@ network:
         mii-monitor-interval: 1
 ```
 
-## How to configure network bridges
+# How to configure network bridges
 
 Use the following configuration to create a simple bridge consisting of a single device that uses DHCP:
 
@@ -320,7 +320,7 @@ network:
         - enp3s0
 ```
 
-## How to create a bridge with a VLAN for libvirtd
+# How to create a bridge with a VLAN for libvirtd
 To get libvirtd to use a specific bridge with a tagged vlan, while continuing to provide an untagged interface as well would involve:
 
 ```yaml
@@ -351,7 +351,7 @@ Then libvirtd would be configured to use this bridge by adding the following con
 </network>
 ```
 
-## How to create VLANs
+# How to create VLANs
 
 To configure multiple VLANs with renamed interfaces:
 
@@ -385,7 +385,7 @@ network:
         search: [ domain1.example.com, domain2.example.com ]
 ```
 
-## How to use a directly connected gateway
+# How to use a directly connected gateway
 
 This allows setting up a default route, or any route, using the "on-link" keyword where the gateway is an IP address that is directly connected to the network even if the address does not match the subnet configured on the interface.
 
@@ -417,7 +417,7 @@ network:
                on-link: true
 ```
 
-## How to configure source routing
+# How to configure source routing
 
 In the example below, ens3 is on the 192.168.3.0/24 network and ens5 is on the 192.168.5.0/24 network. This enables clients on either network to connect to the other and allow the response to come from the correct interface.
 
@@ -454,7 +454,7 @@ network:
           table: 102
 ```
 
-## How to configure a loopback interface
+# How to configure a loopback interface
 
 Networkd does not allow creating new loopback devices, but a user can add new addresses to the standard loopback interface, lo, in order to have it considered a valid address on the machine as well as for custom routing:
 
@@ -467,7 +467,7 @@ network:
       addresses: [ "127.0.0.1/8", "::1/128", "7.7.7.7/32" ]
 ```
 
-## How to integrate with Windows DHCP Server
+# How to integrate with Windows DHCP Server
 
 For networks where DHCP is provided by a Windows Server using the dhcp-identifier keyword allows for interoperability:
 
@@ -480,7 +480,7 @@ network:
       dhcp-identifier: mac
 ```
 
-## How to connect to an IPv6 over IPv4 tunnel
+# How to connect to an IPv6 over IPv4 tunnel
 
 Here, 1.1.1.1 is the client's own IP address; 2.2.2.2 is the remote server's IPv4 address, "2001:dead:beef::2/64" is the client's IPv6 address as defined by the tunnel, and "2001:dead:beef::1" is the remote server's IPv6 address.
 
@@ -509,7 +509,7 @@ network:
           via: "2001:dead:beef::1"
 ```
 
-## How to configure SR-IOV Virtual Functions
+# How to configure SR-IOV Virtual Functions
 
 For SR-IOV network cards, it is possible to dynamically allocate Virtual Function interfaces for every configured Physical Function. In netplan, a VF is defined by having a link: property pointing to the parent PF.
 
@@ -529,7 +529,7 @@ network:
       addresses : [ "10.15.99.25/24" ]
 ```
 
-## How to connect two systems with a Wireguard VPN
+# How to connect two systems with a Wireguard VPN
 
 Generate the private and public keys in the first peer:
 
@@ -596,7 +596,7 @@ In the YAML file above, `key` is the second peer's `private key` and
 `public` is the first peer's `public key`. `endpoint` is the `first peer's` IP address.
 
 
-## How to connect your home computer to a cloud instance with a Wireguard VPN
+# How to connect your home computer to a cloud instance with a Wireguard VPN
 
 Follow the same steps from the previous howto to generate the necessary keys.
 
