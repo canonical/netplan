@@ -58,10 +58,10 @@ lxc start netplan-lab0
 Access your new VM using `lxc exec`:
 
 ```
-lxc exec netplan-lab0 bash
+lxc shell netplan-lab0
 ```
 
-You can also use `lxc shell netplan-lab0` or `lxc console netplan-lab0` if the command about doesn't work for you.
+You can also use `lxc exec netplan-lab0 bash` or `lxc console netplan-lab0` if the command above doesn't work for you.
 
 You should now have a root shell inside your VM:
 
@@ -83,9 +83,9 @@ You should see an output similar to the below:
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
 2: enp5s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:27:45:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:13:ae:10 brd ff:ff:ff:ff:ff:ff
 3: enp6s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
 ```
 
 In this case, `enp5s0` is the primary interface connected to the default LXD network and `enp6s0` is the second interface you added connected to your custom network.
@@ -175,22 +175,22 @@ You should see an output similar to the one below:
            Routes: ::1 metric 256
 
 ●  2: enp5s0 ethernet UP (networkd: enp5s0)
-      MAC Address: 00:16:3e:43:fc:e8 (Red Hat, Inc.)
-        Addresses: 10.86.126.21/24 (dhcp)
-                   fd42:bc43:e20e:8cf7:216:3eff:fe43:fce8/64
-                   fe80::216:3eff:fe43:fce8/64 (link)
+      MAC Address: 00:16:3e:13:ae:10 (Red Hat, Inc.)
+        Addresses: 10.86.126.221/24 (dhcp)
+                   fd42:bc43:e20e:8cf7:216:3eff:fe13:ae10/64
+                   fe80::216:3eff:fe13:ae10/64 (link)
     DNS Addresses: 10.86.126.1
                    fe80::216:3eff:feab:beb9
        DNS Search: lxd
-           Routes: default via 10.86.126.1 from 10.86.126.21 metric 100 (dhcp)
-                   10.86.126.0/24 from 10.86.126.21 metric 100 (link)
-                   10.86.126.1 from 10.86.126.21 metric 100 (dhcp, link)
+           Routes: default via 10.86.126.1 from 10.86.126.221 metric 100 (dhcp)
+                   10.86.126.0/24 from 10.86.126.221 metric 100 (link)
+                   10.86.126.1 from 10.86.126.221 metric 100 (dhcp, link)
                    fd42:bc43:e20e:8cf7::/64 metric 100 (ra)
                    fe80::/64 metric 256
                    default via fe80::216:3eff:feab:beb9 metric 100 (ra)
 
 ●  3: enp6s0 ethernet DOWN (unmanaged)
-      MAC Address: 00:16:3e:4b:56:5c (Red Hat, Inc.)
+      MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
 ```
 
 # Checking the file where your configuration is stored
@@ -302,7 +302,7 @@ You should see an output similar to the one below:
 
 ```
 3: enp6s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
 ```
 
 As you can see, this interface has no IP address and its state is DOWN.
@@ -325,12 +325,12 @@ You should see an output similar to this:
 
 ```
 3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
-    inet 10.61.153.47/24 metric 100 brd 10.61.153.255 scope global dynamic enp6s0
-       valid_lft 3583sec preferred_lft 3583sec
-    inet6 fd42:28d1:1d7a:8e19:216:3eff:fe7b:689d/64 scope global dynamic mngtmpaddr noprefixroute
-       valid_lft 3591sec preferred_lft 3591sec
-    inet6 fe80::216:3eff:fe7b:689d/64 scope link
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
+    inet 10.33.59.157/24 metric 100 brd 10.33.59.255 scope global dynamic enp6s0
+       valid_lft 3589sec preferred_lft 3589sec
+    inet6 fd42:ee65:61d0:abcb:216:3eff:fe0c:978a/64 scope global dynamic mngtmpaddr noprefixroute
+       valid_lft 3599sec preferred_lft 3599sec
+    inet6 fe80::216:3eff:fe0c:978a/64 scope link
        valid_lft forever preferred_lft forever
 ```
 
@@ -348,17 +348,17 @@ You should see an output similar to this:
        DNS Search: lxd
 
 ●  3: enp6s0 ethernet UP (networkd: enp6s0)
-      MAC Address: 00:16:3e:4b:56:5c (Red Hat, Inc.)
-        Addresses: 10.139.171.164/24 (dhcp)
-                   fd42:d6c:8133:975f:216:3eff:fe4b:565c/64
-                   fe80::216:3eff:fe4b:565c/64 (link)
-    DNS Addresses: 10.139.171.1
-                   fe80::216:3eff:fea1:7967
+      MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
+        Addresses: 10.33.59.157/24 (dhcp)
+                   fd42:ee65:61d0:abcb:216:3eff:fe0c:978a/64
+                   fe80::216:3eff:fe0c:978a/64 (link)
+    DNS Addresses: 10.33.59.1
+                   fe80::216:3eff:fea1:585b
        DNS Search: lxd
-           Routes: default via 10.139.171.1 from 10.139.171.164 metric 100 (dhcp)
-                   10.139.171.0/24 from 10.139.171.164 metric 100 (link)
-                   10.139.171.1 from 10.139.171.164 metric 100 (dhcp, link)
-                   fd42:d6c:8133:975f::/64 metric 100 (ra)
+           Routes: default via 10.33.59.1 from 10.33.59.157 metric 100 (dhcp)
+                   10.33.59.0/24 from 10.33.59.157 metric 100 (link)
+                   10.33.59.1 from 10.33.59.157 metric 100 (dhcp, link)
+                   fd42:ee65:61d0:abcb::/64 metric 100 (ra)
                    fe80::/64 metric 256
 
 2 inactive interfaces hidden. Use "--all" to show all.
@@ -433,14 +433,14 @@ You should see an output similar to this:
 
 ```
 3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
-    inet 10.61.153.47/24 metric 100 brd 10.61.153.255 scope global dynamic enp6s0
-       valid_lft 3281sec preferred_lft 3281sec
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
+    inet 10.33.59.157/24 metric 100 brd 10.33.59.255 scope global dynamic enp6s0
+       valid_lft 3585sec preferred_lft 3585sec
 ```
 
 And as you can see, now it only has an IPv4 address.
 
-In this exercise you explored the `netplan set`, `netplan get` and `netplan apply` commands. You also used some of the ethernet configuration options to get a network interface up and running with DHCP.
+In this exercise you explored the `netplan set`, `netplan get`, `netplan apply` and `netplan status` commands. You also used some of the ethernet configuration options to get a network interface up and running with DHCP.
 
 # Using static IP addresses
 
@@ -455,6 +455,8 @@ network:
     enp6s0:
       dhcp4: false
       dhcp6: false
+      accept-ra: false
+      link-local: []
       addresses:
         - 172.16.0.1/24
       routes:
@@ -479,7 +481,7 @@ netplan get
 You should see an output similar to this:
 
 ```yaml
-network:
+nnetwork:
   version: 2
   ethernets:
     enp5s0:
@@ -495,9 +497,11 @@ network:
         - netplanlab.local
       dhcp4: false
       dhcp6: false
+      accept-ra: false
       routes:
       - to: "default"
         via: "172.16.0.254"
+      link-local: []
 ```
 
 You will notice that it might be a little different than what you have defined in the YAML file. Some things might be in a different order for example.
@@ -519,7 +523,7 @@ ip address show dev enp6s0
 You should see something similar to this:
 ```
 3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
     inet 172.16.0.1/24 brd 172.16.0.255 scope global enp6s0
        valid_lft forever preferred_lft forever
 ```
@@ -548,23 +552,17 @@ You should see something similar to this:
 ```
      Online state: online
     DNS Addresses: 127.0.0.53 (stub)
-       DNS Search: lxd
-                   netplanlab.local
+       DNS Search: netplanlab.local
+                   lxd
 
 ●  3: enp6s0 ethernet UP (networkd: enp6s0)
-      MAC Address: 00:16:3e:4b:56:5c (Red Hat, Inc.)
+      MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
         Addresses: 172.16.0.1/24
-                   fd42:d6c:8133:975f:216:3eff:fe4b:565c/64
-                   fe80::216:3eff:fe4b:565c/64 (link)
     DNS Addresses: 172.16.0.254
                    172.16.0.253
-                   fe80::216:3eff:fea1:7967
        DNS Search: netplanlab.local
            Routes: default via 172.16.0.254 (static)
                    172.16.0.0/24 from 172.16.0.1 (link)
-                   fd42:d6c:8133:975f::/64 metric 1024 (ra)
-                   fe80::/64 metric 256
-                   default via fe80::216:3eff:fea1:7967 metric 1024 (ra)
 
 2 inactive interfaces hidden. Use "--all" to show all.
 ```
@@ -586,7 +584,7 @@ ip link show enp6s0
 In the output, the MAC address is the number in front of the `link/ether` property.
 ```
 3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
 ```
 
 Use your favorite text editor to open the file `/etc/netplan/second-interface.yaml` and make the following changes:
@@ -597,10 +595,12 @@ network:
   ethernets:
     netplan-isp-interface:
       match:
-        macaddress: 00:16:3e:7b:68:9d
+        macaddress: 00:16:3e:0c:97:8a
       set-name: netplan-isp
       dhcp4: false
       dhcp6: false
+      accept-ra: false
+      link-local: []
       addresses:
         - 172.16.0.1/24
       routes:
@@ -620,7 +620,7 @@ These are the important changes in this exercise:
   ethernets:
     netplan-isp-interface:
       match:
-        macaddress: 00:16:3e:7b:68:9d
+        macaddress: 00:16:3e:0c:97:8a
       set-name: netplan-isp
 ```
 
@@ -644,7 +644,90 @@ As you can see, your interface is now called `netplan-isp`.
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
 2: enp5s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:27:45:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:13:ae:10 brd ff:ff:ff:ff:ff:ff
 3: netplan-isp: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:7b:68:9d brd ff:ff:ff:ff:ff:ff
+    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
+```
+
+# Creating a link aggregation
+
+Let's suppose now that you need to configure your system to connect to your
+ISP links via a link aggregation. On Linux you can do that with a `bond`
+virtual interface.
+
+On Netplan, an interface of type `bond` can be created inside a `bonds` mapping.
+
+Now that the traffic will flow through the link aggregation, you will move
+all the addressing configuration to the bond itself.
+
+You can define a list of interfaces that will be attached to the bond. In our
+simple scenario, we have a single one.
+
+Use your favorite text editor to open the file `/etc/netplan/second-interface.yaml` and make the following changes:
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    netplan-isp-interface:
+      dhcp4: false
+      dhcp6: false
+      match:
+        macaddress: 00:16:3e:0c:97:8a
+      set-name: netplan-isp
+  bonds:
+    isp-bond0:
+      interfaces:
+        - netplan-isp-interface
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      link-local: []
+      addresses:
+        - 172.16.0.1/24
+      routes:
+        - to: default
+          via: 172.16.0.254
+      nameservers:
+        search:
+          - netplanlab.local
+        addresses:
+          - 172.16.0.254
+          - 172.16.0.253
+```
+
+Note that you can reference the interface used in the bond by the name you
+defined for it in the `ethernets` section.
+
+Now use `netplan apply` to apply your changes
+
+```
+netplan apply
+```
+
+Now your system has a new interface called `isp-bond0`. Use the command 
+`ip address show isp-bond0` or `netplan status` to check its state:
+
+```
+netplan status isp-bond0
+```
+
+You should see an output similar to the one below:
+
+```
+     Online state: online
+    DNS Addresses: 127.0.0.53 (stub)
+       DNS Search: lxd
+                   netplanlab.local
+
+●  4: isp-bond0 bond UP (networkd: isp-bond0)
+      MAC Address: b2:6b:19:b1:9a:86
+        Addresses: 172.16.0.1/24
+    DNS Addresses: 172.16.0.254
+                   172.16.0.253
+       DNS Search: netplanlab.local
+           Routes: default via 172.16.0.254 (static)
+                   172.16.0.0/24 from 172.16.0.1 (link)
+
+3 inactive interfaces hidden. Use "--all" to show all.
 ```
