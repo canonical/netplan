@@ -14,11 +14,11 @@ network:
   bridges: MAPPING
   ethernets: MAPPING
   modems: MAPPING
-  nm-devices: MAPPING
   tunnels: MAPPING
   vlans: MAPPING
   vrfs: MAPPING
   wifis: MAPPING
+  nm-devices: MAPPING
 ```
 
 - **version** (number)
@@ -45,10 +45,6 @@ network:
 
   > Configures modems
 
-- **nm-devices** (mapping)
-
-  > `nm-devices` are used in situations where Netplan doesn't support the connection type. The raw configuration expected by NetworkManager can be defined and will be passed as is (passthrough) to the `.nmconnection` file. Users will not normally use this type of device.
-
 - **tunnels** (mapping)
 
   > Creates and configures different types of virtual tunnels.
@@ -64,6 +60,10 @@ network:
 - **wifis** (mapping)
 
   > Configures physical Wifi interfaces as client, adhoc or access point.
+
+- **nm-devices** (mapping)
+
+  > `nm-devices` are used in situations where Netplan doesn't support the connection type. The raw configuration expected by NetworkManager can be defined and will be passed as is (passthrough) to the `.nmconnection` file. Users will not normally use this type of device.
 
 All the properties for all the device types will be described in the next sections.
 

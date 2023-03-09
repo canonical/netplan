@@ -529,7 +529,7 @@ network:
       addresses : [ "10.15.99.25/24" ]
 ```
 
-# How to connect two systems with a Wireguard VPN
+# How to connect two systems with a WireGuard VPN
 
 Generate the private and public keys in the first peer:
 
@@ -596,7 +596,7 @@ In the YAML file above, `key` is the second peer's `private key` and
 `public` is the first peer's `public key`. `endpoint` is the `first peer's` IP address.
 
 
-# How to connect your home computer to a cloud instance with a Wireguard VPN
+# How to connect your home computer to a cloud instance with a WireGuard VPN
 
 Follow the same steps from the previous howto to generate the necessary keys.
 

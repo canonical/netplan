@@ -481,7 +481,7 @@ netplan get
 You should see an output similar to this:
 
 ```yaml
-nnetwork:
+network:
   version: 2
   ethernets:
     enp5s0:
@@ -705,7 +705,7 @@ Now use `netplan apply` to apply your changes
 netplan apply
 ```
 
-Now your system has a new interface called `isp-bond0`. Use the command 
+Now your system has a new interface called `isp-bond0`. Use the command
 `ip address show isp-bond0` or `netplan status` to check its state:
 
 ```
