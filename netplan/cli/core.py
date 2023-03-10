@@ -20,7 +20,9 @@
 
 import logging
 import os
+import sys
 
+from netplan.cli.commands.validate import ValidationException
 import netplan.cli.utils as utils
 
 
@@ -47,4 +49,10 @@ class Netplan(utils.NetplanCommand):
         else:
             logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-        self.run_command()
+        try:
+            self.run_command()
+        except ValidationException as e:
+            logging.warning(f'Validation failed: {e}')
+            sys.exit(1)
+        except Exception as e:
+            logging.warning(f'Command failed: {e}')
