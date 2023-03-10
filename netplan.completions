@@ -32,6 +32,10 @@ _netplan_completions() {
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --root-dir --mapping")" -- "$cur" )
       ;;
 
+    'validate'*)
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug --root-dir")" -- "$cur" )
+      ;;
+
     'rebind'*)
       while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug")" -- "$cur" )
       ;;
@@ -69,7 +73,7 @@ _netplan_completions() {
       ;;
 
     *)
-      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug help apply generate get info ip set rebind status try")" -- "$cur" )
+      while read -r; do COMPREPLY+=( "$REPLY" ); done < <( compgen -W "$(_netplan_completions_filter "-h --help --debug help apply generate get info ip set rebind status try validate")" -- "$cur" )
       ;;
 
   esac
