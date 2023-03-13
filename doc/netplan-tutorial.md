@@ -6,16 +6,25 @@ If you already have a setup where you can do the exercises you can just skip thi
 
 ## Setting up the environment
 
-You can follow the steps below to install and create a basic LXD configuration you can use to launch virtual machines. For more information about LXD, please visit [linuxcontainers.org](https://linuxcontainers.org/lxd/introduction/).
+You can follow the steps below to install and create a basic LXD configuration you can use to launch virtual machines.
 
-If you don't have LXD installed in your system, follow the steps below to install it:
+For more information about LXD, please visit [linuxcontainers.org](https://linuxcontainers.org/lxd/introduction/).
+
+First, install LXD: [LXD | How to install LXD](https://linuxcontainers.org/lxd/docs/latest/installing/)
+
+On Ubuntu, you can install it using `snap`:
 
 ```
 $ snap install lxd
+```
+
+Now, initialize your LXD configuration:
+
+```
 $ lxd init --minimal
 ```
 
-For some of the exercises you will need a second network interface in your virtual machine. Run the command below to create a new network in LXD:
+Run the command below to create a new network in LXD. For some of the exercises you will need a second network interface in your virtual machine.
 
 ```
 lxc network create netplanbr0 --type=bridge
@@ -27,7 +36,7 @@ You should see the output below:
 Network netplanbr0 created
 ```
 
-After executing the commands above you will have a usable LXD installation with a working network bridge.
+At this point you should have a usable LXD installation with a working network bridge.
 
 Now create a virtual machine called `netplan-lab0`:
 
@@ -35,7 +44,7 @@ Now create a virtual machine called `netplan-lab0`:
 lxc init --vm ubuntu:22.04 netplan-lab0
 ```
 
-You should see the out below:
+You should see the output below:
 
 ```
 Creating netplan-lab0
@@ -43,11 +52,13 @@ Creating netplan-lab0
 
 The new VM will have one network interface attached to the default LXD bridge.
 
-Now attach a second network interface to the VM and associate it to the LXD network you created earlier:
+Now attach the network you created just now, `netplanbr0`, to your VM, `netplan-lab0`, as interface `eth1`:
 
 ```
 lxc network attach netplanbr0 netplan-lab0 eth1
 ```
+
+>  See more: [LXD | Attach a network to an instance](https://linuxcontainers.org/lxd/docs/latest/howto/network_create/#attach-a-network-to-an-instance)
 
 And start your new VM:
 
@@ -55,21 +66,19 @@ And start your new VM:
 lxc start netplan-lab0
 ```
 
-Access your new VM using `lxc exec`:
+Access your new VM using `lxc shell`:
 
 ```
 lxc shell netplan-lab0
 ```
 
-You can also use `lxc exec netplan-lab0 bash` or `lxc console netplan-lab0` if the command above doesn't work for you.
+>  **If this doesn't work for you**: Try instead `lxc exec netplan-lab0 bash` or `lxc console netplan-lab0`.
 
 You should now have a root shell inside your VM:
 
 ```
 root@netplan-lab0:~#
 ```
-
-If you see the command prompt above, congratulations, you got into your LXD virtual machine!
 
 Run the command `ip link` to show your network interfaces:
 
@@ -101,7 +110,7 @@ Start by typing the command `netplan` in your shell:
 netplan
 ```
 
-You will see the output below
+You should see the output below
 
 ```
 You need to specify a command
