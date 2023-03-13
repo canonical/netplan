@@ -42,9 +42,11 @@ class TestValidate(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.workdir.name)
 
-    def _validate(self):
+    def _validate(self, debug=False):
         args = ['validate', '--root-dir', self.workdir.name]
-        call_cli(args)
+        if debug:
+            args.append('--debug')
+        return call_cli(args)
 
     def test_validate_raises_no_exceptions(self):
         with open(self.path, 'w') as f:
@@ -88,3 +90,73 @@ class TestValidate(unittest.TestCase):
             self.assertIn('invalid boolean value', args[0])
 
             sys.argv = old_argv
+
+    def test_validate_debug_single_file(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0:
+                  dhcp4: false''')
+
+        output = self._validate(debug=True)
+        self.assertIn('70-netplan-set.yaml', output)
+
+    def test_validate_debug_with_shadow(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0:
+                  dhcp4: false''')
+
+        path = os.path.join(self.workdir.name, 'run', 'netplan', self.file)
+        os.makedirs(os.path.join(self.workdir.name, 'run', 'netplan'))
+
+        with open(path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0:
+                  dhcp4: false''')
+
+        output = self._validate(debug=True)
+
+        lines = output.split('\n')
+        highest_priority_file = lines[1]
+        self.assertIn('run/netplan/70-netplan-set.yaml', highest_priority_file)
+
+        self.assertIn('The following files were shadowed', output)
+
+    def test_validate_debug_order(self):
+        os.makedirs(os.path.join(self.workdir.name, 'run', 'netplan'))
+        os.makedirs(os.path.join(self.workdir.name, 'lib', 'netplan'))
+
+        path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
+        with open(self.path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0: {}''')
+
+        path = os.path.join(self.workdir.name, 'run', 'netplan', '90-config.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0: {}''')
+
+        path = os.path.join(self.workdir.name, 'lib', 'netplan', '99-zzz.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0: {}''')
+
+        path = os.path.join(self.workdir.name, 'run', 'netplan', '00-aaa.yaml')
+        with open(path, 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0: {}''')
+
+        output = self._validate(debug=True)
+        lines = output.split('\n')
+
+        self.assertIn('run/netplan/00-aaa.yaml', lines[1])
+        self.assertIn('etc/netplan/70-netplan-set.yaml', lines[2])
+        self.assertIn('run/netplan/90-config.yaml', lines[3])
+        self.assertIn('lib/netplan/99-zzz.yaml', lines[4])

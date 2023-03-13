@@ -15,6 +15,9 @@
 
 '''netplan validate command line'''
 
+import glob
+import os
+
 from netplan.cli.utils import NetplanCommand
 import netplan.libnetplan as libnetplan
 
@@ -40,6 +43,44 @@ class NetplanValidate(NetplanCommand):
         self.run_command()
 
     def command_validate(self):
+
+        if self.debug:
+            # Replicates the behavior of src/util.c:netplan_parser_load_yaml_hierarchy()
+
+            lib_glob = 'lib/netplan/*.yaml'
+            etc_glob = 'etc/netplan/*.yaml'
+            run_glob = 'run/netplan/*.yaml'
+
+            lib_files = glob.glob(lib_glob, root_dir=self.root_dir)
+            etc_files = glob.glob(etc_glob, root_dir=self.root_dir)
+            run_files = glob.glob(run_glob, root_dir=self.root_dir)
+
+            # Order of priority: lib -> etc -> run
+            files = lib_files + etc_files + run_files
+            files_dict = {}
+            shadows = []
+
+            # Shadowing files with the same name and lower priority
+            for file in files:
+                basename = os.path.basename(file)
+                filepath = os.path.join(self.root_dir, file)
+
+                if key := files_dict.get(basename):
+                    shadows.append((key, filepath))
+
+                files_dict[basename] = filepath
+
+            files = sorted(files_dict.keys())
+            if files:
+                print('Order in which your files are parsed:')
+                for file in files:
+                    print(files_dict.get(file))
+
+            if shadows:
+                print('\nThe following files were shadowed:')
+                for shadow in shadows:
+                    print(f'{shadow[0]} shadowed by {shadow[1]}')
+
         try:
             # Parse the full, existing YAML config hierarchy
             parser = libnetplan.Parser()
