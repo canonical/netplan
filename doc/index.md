@@ -5,7 +5,7 @@
 maxdepth: 2
 hidden: true
 ---
-tutorials
+tutorial
 howto
 reference
 explanation
@@ -27,14 +27,14 @@ systemd-networkd.
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} **[Tutorials](/tutorials)**
-:link: /tutorials
+:::{grid-item-card} **[Tutorial](/netplan-tutorial)**
+:link: /netplan-tutorial
 :link-type: doc
 
 **Get started** - hands-on introduction to Netplan for new users
 :::
-:::{grid-item-card} **[How-to guides](/howto)**
-:link: /howto
+:::{grid-item-card} **[How-to guides](/examples)**
+:link: /examples
 :link-type: doc
 
 **Step-by-step guides** covering key operations and common tasks
