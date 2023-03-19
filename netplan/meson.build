@@ -39,7 +39,9 @@ commands_sources = files(
     'cli/commands/set.py',
     'cli/commands/sriov_rebind.py',
     'cli/commands/status.py',
-    'cli/commands/try_command.py')
+    'cli/commands/try_command.py',
+    'cli/commands/validate.py',
+    )
 
 install_data(netplan_sources, install_dir: netplan_module)
 install_data(cli_sources, install_dir: join_paths(netplan_module, 'cli'))

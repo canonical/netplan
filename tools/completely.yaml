@@ -15,6 +15,7 @@ netplan:
 - rebind
 - status
 - try
+- validate
 
 netplan help:
 - -h
@@ -89,3 +90,9 @@ netplan try:
 - --config-file
 - --timeout
 - --state
+
+netplan validate:
+- -h
+- --help
+- --debug
+- --root-dir

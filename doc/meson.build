@@ -11,7 +11,7 @@ if pandoc.found()
         command: [pandoc, '-s', '--metadata', 'title="Netplan reference"', '--toc', '-o', '@OUTPUT@', '@INPUT@'],
         install: true,
         install_dir: join_paths(get_option('datadir'), 'doc', 'netplan'))
-    foreach doc : ['netplan-apply', 'netplan-dbus', 'netplan-generate', 'netplan-get', 'netplan-set', 'netplan-try']
+    foreach doc : ['netplan-apply', 'netplan-dbus', 'netplan-generate', 'netplan-get', 'netplan-set', 'netplan-try', 'netplan-validate']
         markdown = files(doc + '.md')
         manpage = doc + '.8'
         custom_target(
