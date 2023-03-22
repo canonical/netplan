@@ -293,14 +293,21 @@ class NetplanApply(utils.NetplanCommand):
             subprocess.check_call(['rm', '-rf', '/run/NetworkManager/devices'])
             utils.systemctl_network_manager('start', sync=sync)
             if sync:
-                # wait up to 2 sec for 'STATE=connected (site/local-only)' or
-                # 'STATE=connected' to appear in 'nmcli general' STATE
-                env = dict(os.environ, LC_ALL='C')
+                # 'nmcli' could be /usr/bin/nmcli or
+                # /snap/bin/nmcli -> /snap/bin/network-manager.nmcli
                 cmd = ['nmcli', 'general', 'status']
-                for _ in range(20):
-                    if b'\nconnected' in subprocess.check_output(cmd, env=env):
+                # wait a bit for 'connected (site/local-only)' or
+                # 'connected' to appear in 'nmcli general' STATE
+                for _ in range(10):
+                    out = subprocess.run(cmd, capture_output=True, universal_newlines=True)
+                    # Handle nmcli's "not running" return code (8) gracefully,
+                    # giving some more time for NetworkManager startup
+                    if out.returncode == 8:
+                        time.sleep(1)
+                        continue
+                    if '\nconnected' in str(out.stdout):
                         break
-                    time.sleep(0.1)
+                    time.sleep(0.5)
 
     @staticmethod
     def is_composite_member(composites, phy):
