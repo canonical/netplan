@@ -18,7 +18,8 @@ clean:
 	rm -f netplan-dbus dbus/*.service
 	rm -f *.gcda *.gcno generate.info
 	rm -f tests/ctests/*.gcda tests/ctests/*.gcno
-	rm -rf test-coverage .coverage coverage.xml
+	rm -rf test-coverage .coverage
+	rm -f .coverage.* coverage.xml
 	find . | grep -E "(__pycache__|\.pyc)" | xargs rm -rf
 	rm -rf build
 	rm -rf _build
