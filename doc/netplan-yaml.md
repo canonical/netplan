@@ -895,7 +895,11 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
 
 **Purpose**: Use the `ethernets` key to configure Ethernet interfaces.
 
-**Structure**: The key consists of a mapping of interface names. Each `ethernet` has a number of configuration options. You don't need to define each interface by their names inside the `ethernets` mapping. You can use any name that describes the interface and match the actual network card using the `match` key. The general configuration structure for ethernets is shown below.
+**Structure**: The key consists of a mapping of Ethernet interface IDs. Each
+`ethernet` has a number of configuration options. You don't need to define each
+interface by their name inside the `ethernets` mapping. You can use any ID that
+describes the interface and match the actual network card using the `match` key.
+The general configuration structure for Ethernets is shown below.
 
 
 ```yaml
@@ -989,9 +993,13 @@ some additional properties that can be used for SR-IOV devices.
 
 **Status**: Optional.
 
-**Purpose**: Use the `modems` key to configure Modems. GSM/CDMA modem configuration is only supported for the `NetworkManager` backend. `systemd-networkd` does not support modems.
+**Purpose**: Use the `modems` key to configure Modem interfaces. GSM/CDMA modem
+configuration is only supported for the `NetworkManager` backend.
+`systemd-networkd` does not support modems.
 
-**Structure**: The key consists of a mapping of modem names. Each `modem` has a number of configuration options. The general configuration structure for modems is shown below.
+**Structure**: The key consists of a mapping of Modem IDs. Each `modem` has a
+number of configuration options. The general configuration structure for Modems
+is shown below.
 
 ```yaml
 network:
@@ -1069,10 +1077,17 @@ network:
 
 ## Properties for device type `wifis:`
 
-The general YAML structure for Wifi devices is shown below.
+**Status**: Optional.
+
+**Purpose**: Use the `wifis` key to configure WiFi access points.
+
+**Structure**: The key consists of a mapping of WiFi IDs. Each `wifi` has a
+number of configuration options. The general configuration structure for WiFis
+is shown below.
 
 ```yaml
 network:
+  version: 2
   wifis:
     wlp0s1:
       access-points:
@@ -1161,7 +1176,11 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
 **Purpose**: Use the `bridges` key to create Bridge interfaces.
 
-**Structure**: The key consists of a mapping of interface names. Each `bridge` has an optional list of interfaces that will be bridged together. The interfaces listed in the `interfaces` key (`enp5s0` and `enp5s1` below) must also be defined in your Netplan configuration. The general configuration structure for bridges is shown below.
+**Structure**: The key consists of a mapping of Bridge interface names. Each
+`bridge` has an optional list of interfaces that will be bridged together. The
+interfaces listed in the `interfaces` key (`enp5s0` and `enp5s1` below) must
+also be defined in your Netplan configuration. The general configuration
+structure for Bridges is shown below.
 
 ```yaml
 network:
@@ -1268,7 +1287,11 @@ The specific settings for bridges are defined below.
 
 **Purpose**: Use the `bonds` key to create Bond (Link Aggregation) interfaces.
 
-**Structure**: The key consists of a mapping of interface names. Each `bond` has an optional list of interfaces that will be part of the aggregation. The interfaces listed in the `interfaces` key must also be defined in your Netplan configuration. The general configuration structure for bonds is shown below.
+**Structure**: The key consists of a mapping of Bond interface names. Each
+`bond` has an optional list of interfaces that will be part of the aggregation.
+The interfaces listed in the `interfaces` key must also be defined in your
+Netplan configuration. The general configuration structure for Bonds is shown
+below.
 
 ```yaml
 network:
@@ -1475,9 +1498,12 @@ The specific settings for bonds are defined below.
 
 **Status**: Optional.
 
-**Purpose**: Use the `tunnels` key to create different virtual tunnel interfaces.
+**Purpose**: Use the `tunnels` key to create virtual tunnel interfaces.
 
-**Structure**: The key consists of a mapping of tunnel names. Each `tunnel` requires the identification of the tunnel mode (see the section `mode` below for the list of supported modes). The general configuration structure for bridges is shown below.
+**Structure**: The key consists of a mapping of tunnel interface names. Each
+`tunnel` requires the identification of the tunnel mode (see the section `mode`
+below for the list of supported modes). The general configuration structure for
+Tunnels is shown below.
 
 ```yaml
 network:
@@ -1766,7 +1792,10 @@ VXLAN specific keys:
 
 **Purpose**: Use the `vlans` key to create VLAN interfaces.
 
-**Structure**: The key consists of a mapping of VLAN names. The interface used in the `link` option (`enp5s0` in the example below) must also be defined in the Netplan configuration. The general configuration structure for bridges is shown below.
+**Structure**: The key consists of a mapping of VLAN interface names. The
+interface used in the `link` option (`enp5s0` in the example below) must also be
+defined in the Netplan configuration. The general configuration structure for
+Vlans is shown below.
 
 ```yaml
 network:
@@ -1809,9 +1838,13 @@ network:
 
 **Status**: Optional.
 
-**Purpose**: Use the `vrfs` key to create Virtual Routing and Forwarding (VRF) interfaces.
+**Purpose**: Use the `vrfs` key to create Virtual Routing and Forwarding (VRF)
+interfaces.
 
-**Structure**: The key consists of a mapping of VRF interface names. The interface used in the `link` option (`enp5s0` in the example below) must also be defined in the Netplan configuration. The general configuration structure for VRFs is shown below.
+**Structure**: The key consists of a mapping of VRF interface names. The
+interface used in the `link` option (`enp5s0` in the example below) must also be
+defined in the Netplan configuration. The general configuration structure for
+VRFs is shown below.
 
 ```yaml
 network:
@@ -1871,11 +1904,14 @@ network:
 
 **Status**: Optional. Its use is not recommended.
 
-**Purpose**: Use the `nm-devices` key to configure device types that are not supported by Netplan. This is Network Manager (NM) specific configuration.
+**Purpose**: Use the `nm-devices` key to configure device types that are not
+supported by Netplan. This is NetworkManager specific configuration.
 
-**Structure**: The key consists of a mapping of NM connection names. The `nm-devices` device type is for internal use only and should not be used in
+**Structure**: The key consists of a mapping of NetworkManager connections. The
+`nm-devices` device type is for internal use only and should not be used in
 normal configuration files. It enables a fallback mode for unsupported settings,
-using the `passthrough` mapping. The general configuration structure for NM connections is shown below.
+using the `passthrough` mapping. The general configuration structure for NM
+connections is shown below.
 
 ```yaml
 network:

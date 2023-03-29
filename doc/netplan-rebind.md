@@ -13,11 +13,11 @@ netplan-rebind - rebind SR-IOV virtual functions to their driver
 
   **netplan** [--debug] **rebind** -h | --help
 
-  **netplan** [--debug] **rebind** [netdevs]
+  **netplan** [--debug] **rebind** [interfaces]
 
 ## DESCRIPTION
 
-**netplan rebind [netdevs]** rebinds SR-IOV virtual functions of given physical functions to their driver.
+**netplan rebind [interfaces]** rebinds SR-IOV virtual functions of given physical functions to their driver.
 
 ## OPTIONS
 
@@ -27,7 +27,7 @@ netplan-rebind - rebind SR-IOV virtual functions to their driver
   --debug
 :   Print debugging output during the process.
 
-  netdevs
+  interfaces
 :   Space separated list of PF interface names.
 
 ## SEE ALSO

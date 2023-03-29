@@ -7,7 +7,7 @@ author:
 
 ## NAME
 
-netplan-ip - retrieve IP information from the system
+netplan-ip - retrieve IP information (like DHCP leases) from the system
 
 ## SYNOPSIS
 
@@ -17,11 +17,11 @@ netplan-ip - retrieve IP information from the system
 
 ## DESCRIPTION
 
-**netplan ip** retrieves IP information from the system.
+**netplan ip** retrieves IP information (like DHCP leases) from the system.
 
 ## DHCP COMMANDS
 
-**leases** `INTERFACE`: Displays IP leases
+**leases** `INTERFACE`: Displays DHCP IP leases
 
 Example: netplan ip leases enp5s0
 
