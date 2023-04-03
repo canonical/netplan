@@ -156,8 +156,7 @@ class Interface():
     def query_networkctl(self, ifname: str) -> str:
         output: str = None
         try:
-            output = subprocess.check_output(['networkctl', 'status', ifname],
-                                             text=True)
+            output = subprocess.check_output(['networkctl', 'status', '--', ifname], text=True)
         except Exception as e:
             logging.warning('Cannot query networkctl for {}: {}'.format(
                 ifname, str(e)))
