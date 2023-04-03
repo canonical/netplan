@@ -134,10 +134,10 @@ class IntegrationTestsBase(unittest.TestCase):
         # the correct MAC address
         time.sleep(0.1)
         out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth42'],
-                                      universal_newlines=True)
+                                      text=True)
         klass.dev_e_client_mac = out.split()[2]
         out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth43'],
-                                      universal_newlines=True)
+                                      text=True)
         klass.dev_e2_client_mac = out.split()[2]
 
         # don't let NM trample over our test routers
@@ -273,7 +273,7 @@ class IntegrationTestsBase(unittest.TestCase):
         '''Assert that client interface has been created'''
 
         out = subprocess.check_output(['ip', '-d', 'a', 'show', 'dev', iface],
-                                      universal_newlines=True)
+                                      text=True)
         if expected_ip_a:
             for r in expected_ip_a:
                 self.assertRegex(out, r, out)
@@ -315,7 +315,7 @@ class IntegrationTestsBase(unittest.TestCase):
             cmd = cmd + ['--state', state_dir]
         out = ''
         try:
-            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, universal_newlines=True)
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
         except subprocess.CalledProcessError as e:
             self.assertTrue(False, 'netplan apply failed: {}'.format(e.output))
 
@@ -325,9 +325,9 @@ class IntegrationTestsBase(unittest.TestCase):
         subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
 
         # Debugging output
-        # out = subprocess.check_output(['NetworkManager', '--print-config'], universal_newlines=True)
+        # out = subprocess.check_output(['NetworkManager', '--print-config'], text=True)
         # print(out, flush=True)
-        # out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
+        # out = subprocess.check_output(['nmcli', 'dev'], text=True)
         # print(out, flush=True)
 
         # Wait for interfaces to be ready:
@@ -381,7 +381,7 @@ class IntegrationTestsBase(unittest.TestCase):
     def wait_output(self, cmd, expected_output, timeout=10):
         for _ in range(timeout):
             try:
-                out = subprocess.check_output(cmd, universal_newlines=True)
+                out = subprocess.check_output(cmd, text=True)
             except subprocess.CalledProcessError:
                 out = ''
             if expected_output in out:
@@ -427,7 +427,7 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         try:
             subprocess.check_call(['modprobe', 'cfg80211'])
             # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
-            out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+            out = subprocess.check_output(['iw', 'reg', 'get'], text=True)
             m = re.match(r'^(?:global\n)?country (\S+):', out)
             assert m
             klass.orig_country = m.group(1)
@@ -512,6 +512,6 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         super().assert_iface_up(iface, expected_ip_a, unexpected_ip_a)
         if iface == self.dev_w_client:
             out = subprocess.check_output(['iw', 'dev', iface, 'link'],
-                                          universal_newlines=True)
+                                          text=True)
             # self.assertIn('Connected to ' + self.mac_w_ap, out)
             self.assertIn('SSID: fake net', out)

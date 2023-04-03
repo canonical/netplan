@@ -69,12 +69,12 @@ class _CommonTests():
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
         if self.backend == 'NetworkManager':
             out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
-                                          universal_newlines=True)
+                                          text=True)
             self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
             self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
         else:
             out = subprocess.check_output(['networkctl', 'status', self.dev_w_client],
-                                          universal_newlines=True)
+                                          text=True)
             self.assertRegex(out, 'DNS.*192.168.5.1')
 
     def test_wifi_ipv4_wpa2(self):
@@ -103,12 +103,12 @@ wpa_passphrase=12345678
                       subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
         if self.backend == 'NetworkManager':
             out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
-                                          universal_newlines=True)
+                                          text=True)
             self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
             self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
         else:
             out = subprocess.check_output(['networkctl', 'status', self.dev_w_client],
-                                          universal_newlines=True)
+                                          text=True)
             self.assertRegex(out, 'DNS.*192.168.5.1')
 
     def test_wifi_regdom(self):
@@ -121,7 +121,7 @@ wpa_pairwise=TKIP
 wpa_passphrase=12345678
 ''', None)
 
-        out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+        out = subprocess.check_output(['iw', 'reg', 'get'], text=True)
         self.assertNotIn('country GB', out)
         with open(self.config, 'w') as f:
             f.write('''network:
@@ -135,7 +135,7 @@ wpa_passphrase=12345678
           password: 12345678''' % {'r': self.backend, 'wc': self.dev_w_client})
         self.generate_and_settle([self.dev_w_client])
         self.assert_iface_up(self.dev_w_client, ['inet 192.168.1.42/24'])
-        out = subprocess.check_output(['iw', 'reg', 'get'], universal_newlines=True)
+        out = subprocess.check_output(['iw', 'reg', 'get'], text=True)
         self.assertIn('global\ncountry GB', out)
 
 
@@ -165,7 +165,7 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
           mode: ap''' % {'wc': self.dev_w_client})
         self.generate_and_settle([self.state(self.dev_w_client, 'inet 10.')])
         out = subprocess.check_output(['iw', 'dev', self.dev_w_client, 'info'],
-                                      universal_newlines=True)
+                                      text=True)
         self.assertIn('type AP', out)
         self.assertIn('ssid fake net', out)
 
@@ -173,10 +173,10 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
         subprocess.check_call(['ip', 'link', 'set', self.dev_w_ap, 'up'])
         subprocess.check_call(['iw', 'dev', self.dev_w_ap, 'connect', 'fake net'])
         out = subprocess.check_output(['dhclient', '-1', '-v', self.dev_w_ap],
-                                      stderr=subprocess.STDOUT, universal_newlines=True)
+                                      stderr=subprocess.STDOUT, text=True)
         self.assertIn('DHCPACK', out)
         out = subprocess.check_output(['iw', 'dev', self.dev_w_ap, 'info'],
-                                      universal_newlines=True)
+                                      text=True)
         self.assertIn('type managed', out)
         self.assertIn('ssid fake net', out)
         self.assert_iface_up(self.dev_w_ap, ['inet 10.'])

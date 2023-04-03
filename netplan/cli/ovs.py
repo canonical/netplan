@@ -88,7 +88,7 @@ def _del_global(type, iface, key, value):
         # * get-controller: netplan/global/set-controller=tcp:127.0.0.1:1337,unix:/some/socket
         # tcp:127.0.0.1:1337
         # unix:/some/socket
-        out = subprocess.check_output(args_get, universal_newlines=True)
+        out = subprocess.check_output(args_get, text=True)
         # Clean it only if the exact same value(s) were set by netplan.
         # Don't touch it if other values were set by another integration.
         if all(item in out for item in value.split(',')):
@@ -142,7 +142,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
         for t in (('Port', 'del-port'), ('Bridge', 'del-br'), ('Interface', 'del-br')):
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
                                            '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t[0]],
-                                          universal_newlines=True)
+                                          text=True)
             for line in out.splitlines():
                 if 'netplan=true' in line:
                     iface = line.split(',')[0]
@@ -163,7 +163,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
                 cols = '_uuid,external-ids'  # handle _uuid as if it would be the iface 'name'
             out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=%s' % cols,
                                            '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t],
-                                          universal_newlines=True)
+                                          text=True)
             for line in out.splitlines():
                 if 'netplan/' in line:
                     iface = '.'

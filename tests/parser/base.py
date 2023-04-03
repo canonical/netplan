@@ -173,7 +173,7 @@ class TestKeyfileBase(unittest.TestCase):
     def assert_nm_regenerate(self, file_contents_map):
         argv = [exe_generate, '--root-dir', self.workdir.name]
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, universal_newlines=True)
+                             stderr=subprocess.PIPE, text=True)
         returncode = p.wait(5)
         (out, err) = p.communicate()
         self.assertEqual(returncode, 0, err)

@@ -75,7 +75,7 @@ class TestStatus(unittest.TestCase):
         mock.return_value = IPROUTE2
         status = NetplanStatus()
         res = status.query_iproute2()
-        mock.assert_called_with(['ip', '-d', '-j', 'addr'], universal_newlines=True)
+        mock.assert_called_with(['ip', '-d', '-j', 'addr'], text=True)
         self.assertEqual(len(res), 6)
         self.assertListEqual([itf.get('ifname') for itf in res],
                              ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0'])
@@ -86,7 +86,7 @@ class TestStatus(unittest.TestCase):
         status = NetplanStatus()
         with self.assertLogs() as cm:
             res = status.query_iproute2()
-            mock.assert_called_with(['ip', '-d', '-j', 'addr'], universal_newlines=True)
+            mock.assert_called_with(['ip', '-d', '-j', 'addr'], text=True)
             self.assertIsNone(res)
             self.assertIn('CRITICAL:root:Cannot query iproute2 interface data:', cm.output[0])
 
@@ -95,7 +95,7 @@ class TestStatus(unittest.TestCase):
         mock.return_value = NETWORKD
         status = NetplanStatus()
         res = status.query_networkd()
-        mock.assert_called_with(['networkctl', '--json=short'], universal_newlines=True)
+        mock.assert_called_with(['networkctl', '--json=short'], text=True)
         self.assertEqual(len(res), 6)
         self.assertListEqual([itf.get('Name') for itf in res],
                              ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0'])
@@ -106,7 +106,7 @@ class TestStatus(unittest.TestCase):
         status = NetplanStatus()
         with self.assertLogs() as cm:
             res = status.query_networkd()
-            mock.assert_called_with(['networkctl', '--json=short'], universal_newlines=True)
+            mock.assert_called_with(['networkctl', '--json=short'], text=True)
             self.assertIsNone(res)
             self.assertIn('CRITICAL:root:Cannot query networkd interface data:', cm.output[0])
 
@@ -117,7 +117,7 @@ class TestStatus(unittest.TestCase):
         res = status.query_nm()
         mock.assert_called_with(['nmcli', '-t', '-f',
                                  'DEVICE,NAME,UUID,FILENAME,TYPE,AUTOCONNECT',
-                                 'con', 'show'], universal_newlines=True)
+                                 'con', 'show'], text=True)
         self.assertEqual(len(res), 1)
         self.assertListEqual([itf.get('device') for itf in res], ['wlan0'])
 
@@ -129,7 +129,7 @@ class TestStatus(unittest.TestCase):
             res = status.query_nm()
             mock.assert_called_with(['nmcli', '-t', '-f',
                                      'DEVICE,NAME,UUID,FILENAME,TYPE,AUTOCONNECT',
-                                     'con', 'show'], universal_newlines=True)
+                                     'con', 'show'], text=True)
             self.assertIsNone(res)
             self.assertIn('DEBUG:root:Cannot query NetworkManager interface data:', cm.output[0])
 
@@ -139,8 +139,8 @@ class TestStatus(unittest.TestCase):
         status = NetplanStatus()
         res4, res6 = status.query_routes()
         mock.assert_has_calls([
-            call(['ip', '-d', '-j', 'route'], universal_newlines=True),
-            call(['ip', '-d', '-j', '-6', 'route'], universal_newlines=True),
+            call(['ip', '-d', '-j', 'route'], text=True),
+            call(['ip', '-d', '-j', '-6', 'route'], text=True),
             ])
         self.assertEqual(len(res4), 6)
         self.assertListEqual([route.get('dev') for route in res4],
@@ -156,7 +156,7 @@ class TestStatus(unittest.TestCase):
         status = NetplanStatus()
         with self.assertLogs(level='DEBUG') as cm:
             res4, res6 = status.query_routes()
-            mock.assert_called_with(['ip', '-d', '-j', 'route'], universal_newlines=True)
+            mock.assert_called_with(['ip', '-d', '-j', 'route'], text=True)
             self.assertIsNone(res4)
             self.assertIsNone(res6)
             self.assertIn('DEBUG:root:Cannot query iproute2 route data:', cm.output[0])
@@ -528,7 +528,7 @@ class TestInterface(unittest.TestCase):
         res = itf.query_nm_ssid(con)
         mock.assert_called_with(['nmcli', '--get-values', '802-11-wireless.ssid',
                                  'con', 'show', 'id', con],
-                                universal_newlines=True)
+                                text=True)
         self.assertEqual(res, 'MYSSID')
 
     @patch('subprocess.check_output')
@@ -540,7 +540,7 @@ class TestInterface(unittest.TestCase):
             res = itf.query_nm_ssid(con)
             mock.assert_called_with(['nmcli', '--get-values', '802-11-wireless.ssid',
                                      'con', 'show', 'id', con],
-                                    universal_newlines=True)
+                                    text=True)
             self.assertIsNone(res)
             self.assertIn('WARNING:root:Cannot query NetworkManager SSID for {}:'.format(con), cm.output[0])
 
@@ -550,7 +550,7 @@ class TestInterface(unittest.TestCase):
         dev = 'fakedev0'
         itf = Interface(FAKE_DEV, [])
         res = itf.query_networkctl(dev)
-        mock.assert_called_with(['networkctl', 'status', dev], universal_newlines=True)
+        mock.assert_called_with(['networkctl', 'status', dev], text=True)
         self.assertEqual(res, mock.return_value)
 
     @patch('subprocess.check_output')
@@ -560,7 +560,7 @@ class TestInterface(unittest.TestCase):
         itf = Interface(FAKE_DEV, [])
         with self.assertLogs() as cm:
             res = itf.query_networkctl(dev)
-            mock.assert_called_with(['networkctl', 'status', dev], universal_newlines=True)
+            mock.assert_called_with(['networkctl', 'status', dev], text=True)
             self.assertIsNone(res)
             self.assertIn('WARNING:root:Cannot query networkctl for {}:'.format(dev), cm.output[0])
 

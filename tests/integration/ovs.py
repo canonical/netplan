@@ -380,7 +380,7 @@ class _CommonTests():
             openvswitch: {}''' % {'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
         self.generate_and_settle([self.dev_e_client, self.dev_e2_client, 'ovs-br', 'non-ovs-bond'])
         # Basic verification that the interfaces/ports are set up in OVS
-        out = subprocess.check_output(['ovs-vsctl', '-t', '5', 'show'], universal_newlines=True)
+        out = subprocess.check_output(['ovs-vsctl', '-t', '5', 'show'], text=True)
         self.assertIn('    Bridge ovs-br', out)
         self.assertIn('''        Port non-ovs-bond
             Interface non-ovs-bond''', out)
@@ -426,7 +426,7 @@ class _CommonTests():
             mtu: 1500''' % {'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client, 'ovs0', 'eth42.21'])
         # Basic verification that the interfaces/ports are set up in OVS
-        out = subprocess.check_output(['ovs-vsctl', '-t', '5', 'show'], universal_newlines=True)
+        out = subprocess.check_output(['ovs-vsctl', '-t', '5', 'show'], text=True)
         self.assertIn('    Bridge ovs0', out)
         self.assertIn('''        Port %(ec)s.21
             Interface %(ec)s.21''' % {'ec': self.dev_e_client}, out)
@@ -451,7 +451,7 @@ class _CommonTests():
     ethernets:
       %(ec)s: {}''' % {'ec': self.dev_e_client})
         p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, universal_newlines=True)
+                             stderr=subprocess.PIPE, text=True)
         (out, err) = p.communicate()
         self.assertIn('ovs0: The \'ovs-vsctl\' tool is required to setup OpenVSwitch interfaces.', err)
         self.assertNotEqual(p.returncode, 0)
@@ -469,7 +469,7 @@ class _CommonTests():
       br0:
         dhcp4: false''')
         p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, universal_newlines=True)
+                             stderr=subprocess.PIPE, text=True)
         (_, err) = p.communicate()
         self.assertIn('Cannot call openvswitch: ovsdb-server.service is not running.', err)
         self.assertEqual(p.returncode, 0)
@@ -607,9 +607,9 @@ class _CommonTests():
     @unittest.skip("For debugging only")
     def test_zzz_ovs_debugging(self):  # Runs as the last test, to collect all logs
         """Display OVS logs of the previous tests"""
-        out = subprocess.check_output(['cat', '/var/log/openvswitch/ovs-vswitchd.log'], universal_newlines=True)
+        out = subprocess.check_output(['cat', '/var/log/openvswitch/ovs-vswitchd.log'], text=True)
         print(out)
-        out = subprocess.check_output(['ovsdb-tool', 'show-log'], universal_newlines=True)
+        out = subprocess.check_output(['ovsdb-tool', 'show-log'], text=True)
         print(out)
 
 

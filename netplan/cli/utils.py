@@ -52,7 +52,7 @@ def nmcli(args):  # pragma: nocover (covered in autopkgtest)
 def nmcli_out(args: list) -> str:  # pragma: nocover (covered in autopkgtest)
     # 'nmcli' could be /usr/bin/nmcli or /snap/bin/nmcli -> /snap/bin/network-manager.nmcli
     # PATH is defined in cli/core.py
-    return subprocess.check_output(['nmcli'] + args, universal_newlines=True)
+    return subprocess.check_output(['nmcli'] + args, text=True)
 
 
 def nm_running():  # pragma: nocover (covered in autopkgtest)
@@ -101,7 +101,7 @@ def systemctl(action: str, services: list, sync: bool = False):
 
 def networkd_interfaces():
     interfaces = set()
-    out = subprocess.check_output(['networkctl', '--no-pager', '--no-legend'], universal_newlines=True)
+    out = subprocess.check_output(['networkctl', '--no-pager', '--no-legend'], text=True)
     for line in out.splitlines():
         s = line.strip().split(' ')
         if s[0].isnumeric() and s[-1] not in ['unmanaged', 'linger']:
@@ -129,7 +129,7 @@ def systemctl_is_masked(unit_pattern):
     '''Return True if output is "masked" or "masked-runtime"'''
     res = subprocess.run(['systemctl', 'is-enabled', unit_pattern],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         universal_newlines=True)
+                         text=True)
     if res.returncode > 0 and 'masked' in res.stdout:
         return True
     return False

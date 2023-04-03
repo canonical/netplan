@@ -42,7 +42,7 @@ Certificate: /another/cert.pem
 CA Certificate: /some/ca-cert.pem
 Bootstrap: false'''
         ovs.clear_setting('Open_vSwitch', '.', 'netplan/global/set-ssl', '/private/key.pem,/another/cert.pem,/some/ca-cert.pem')
-        mock_out.assert_called_once_with([OVS, 'get-ssl'], universal_newlines=True)
+        mock_out.assert_called_once_with([OVS, 'get-ssl'], text=True)
         mock.assert_has_calls([
             call([OVS, 'del-ssl']),
             call([OVS, 'remove', 'Open_vSwitch', '.', 'external-ids', 'netplan/global/set-ssl'])
@@ -57,7 +57,7 @@ Certificate: /another/cert.pem
 CA Certificate: /some/ca-cert.pem
 Bootstrap: false'''
         ovs.clear_setting('Open_vSwitch', '.', 'netplan/global/set-ssl', '/some/key.pem,/other/cert.pem,/some/cert.pem')
-        mock_out.assert_called_once_with([OVS, 'get-ssl'], universal_newlines=True)
+        mock_out.assert_called_once_with([OVS, 'get-ssl'], text=True)
         mock.assert_has_calls([
             call([OVS, 'remove', 'Open_vSwitch', '.', 'external-ids', 'netplan/global/set-ssl'])
         ])
@@ -71,7 +71,7 @@ Bootstrap: false'''
     def test_clear_global(self, mock, mock_out):
         mock_out.return_value = 'tcp:127.0.0.1:1337\nunix:/some/socket'
         ovs.clear_setting('Bridge', 'ovs0', 'netplan/global/set-controller', 'tcp:127.0.0.1:1337,unix:/some/socket')
-        mock_out.assert_called_once_with([OVS, 'get-controller', 'ovs0'], universal_newlines=True)
+        mock_out.assert_called_once_with([OVS, 'get-controller', 'ovs0'], text=True)
         mock.assert_has_calls([
             call([OVS, 'del-controller', 'ovs0']),
             call([OVS, 'remove', 'Bridge', 'ovs0', 'external-ids', 'netplan/global/set-controller'])
@@ -82,7 +82,7 @@ Bootstrap: false'''
     def test_no_clear_global_different(self, mock, mock_out):
         mock_out.return_value = 'unix:/var/run/openvswitch/ovs0.mgmt'
         ovs.clear_setting('Bridge', 'ovs0', 'netplan/global/set-controller', 'tcp:127.0.0.1:1337,unix:/some/socket')
-        mock_out.assert_called_once_with([OVS, 'get-controller', 'ovs0'], universal_newlines=True)
+        mock_out.assert_called_once_with([OVS, 'get-controller', 'ovs0'], text=True)
         mock.assert_has_calls([
             call([OVS, 'remove', 'Bridge', 'ovs0', 'external-ids', 'netplan/global/set-controller'])
         ])

@@ -140,7 +140,7 @@ class NetplanIpLeases(utils.NetplanCommand):
         # Extract out of the generator our mapping in a dict.
         logging.debug('command ip leases: running %s', argv)
         try:
-            out = subprocess.check_output(argv, universal_newlines=True)
+            out = subprocess.check_output(argv, text=True)
         except CalledProcessError:  # pragma: nocover (better be covered in autopkgtest)
             print("No lease found for interface '%s' (not managed by Netplan)" % self.interface, file=sys.stderr)
             sys.exit(1)

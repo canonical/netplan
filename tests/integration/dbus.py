@@ -74,7 +74,7 @@ class _CommonTests():
         # be sure the process is not from a binary from an old package
         # (before the installation of the one being tested)
         cmd = ['ps', '-C', 'netplan-dbus', '-o', 'pid=']
-        out = subprocess.run(cmd, capture_output=True, universal_newlines=True)
+        out = subprocess.run(cmd, capture_output=True, text=True)
         if out.returncode == 0:
             pid = out.stdout.strip()
             os.kill(int(pid), signal.SIGTERM)
@@ -90,7 +90,7 @@ class _CommonTests():
         with open(self.config, 'w') as f:
             f.write(NETPLAN_YAML % {'nic': self.dev_e_client})
 
-        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, text=True)
 
         self.assertEqual(out.returncode, 0, msg=f"Busctl Config() failed with error: {out.stderr}")
 
@@ -102,7 +102,7 @@ class _CommonTests():
         BUSCTL_CONFIG_GET[5] = config_path
 
         # Retrieving the config
-        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Get() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)
@@ -143,7 +143,7 @@ class _CommonTests():
         with open(self.config, 'w') as f:
             f.write(NETPLAN_YAML_BEFORE % {'nic': self.dev_e_client})
 
-        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Config() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)
@@ -156,14 +156,14 @@ class _CommonTests():
         BUSCTL_CONFIG_SET[5] = config_path
 
         # Changing the configuration
-        out = subprocess.run(BUSCTL_CONFIG_SET, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG_SET, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Set() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)
         self.assertEqual(out_dict.get('data')[0], True, msg="Set command failed")
 
         # Retrieving the configuration
-        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Get() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)
@@ -186,7 +186,7 @@ class _CommonTests():
         with open(self.config, 'w') as f:
             f.write(NETPLAN_YAML)
 
-        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Config() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)
@@ -198,7 +198,7 @@ class _CommonTests():
         BUSCTL_CONFIG_APPLY[5] = config_path
 
         # Applying the configuration
-        out = subprocess.run(BUSCTL_CONFIG_APPLY, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG_APPLY, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Apply() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)

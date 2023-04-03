@@ -295,7 +295,7 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan.Config",
             "Get",
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, text=True)
         self.assertIn(r's ""', out)  # No output as 'netplan get' is actually mocked
         self.assertEqual(self.mock_netplan_cmd.calls(), [[
             "netplan", "get", "all", "--root-dir={}".format(tmpdir)
@@ -351,7 +351,7 @@ class TestNetplanDBus(unittest.TestCase):
             "io.netplan.Netplan.Config",
             "Get",
         ]
-        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, universal_newlines=True)
+        out = subprocess.check_output(BUSCTL_NETPLAN_CMD, text=True)
         self.assertIn(r's "network:\n  eth42:\n    dhcp6: true\n"', out)
         self.assertEqual(self.mock_netplan_cmd.calls(), [[
             "netplan", "get", "all", "--root-dir={}".format(tmpdir)

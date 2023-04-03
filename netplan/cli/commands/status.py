@@ -157,7 +157,7 @@ class Interface():
         output: str = None
         try:
             output = subprocess.check_output(['networkctl', 'status', ifname],
-                                             universal_newlines=True)
+                                             text=True)
         except Exception as e:
             logging.warning('Cannot query networkctl for {}: {}'.format(
                 ifname, str(e)))
@@ -358,7 +358,7 @@ class NetplanStatus(utils.NetplanCommand):
         data: JSON = None
         try:
             output: str = subprocess.check_output(['ip', '-d', '-j', 'addr'],
-                                                  universal_newlines=True)
+                                                  text=True)
             data = self.process_generic(output)
         except Exception as e:
             logging.critical('Cannot query iproute2 interface data: {}'.format(str(e)))
@@ -371,7 +371,7 @@ class NetplanStatus(utils.NetplanCommand):
         data: JSON = None
         try:
             output: str = subprocess.check_output(['networkctl', '--json=short'],
-                                                  universal_newlines=True)
+                                                  text=True)
             data = self.process_networkd(output)
         except Exception as e:
             logging.critical('Cannot query networkd interface data: {}'.format(str(e)))
@@ -409,10 +409,10 @@ class NetplanStatus(utils.NetplanCommand):
         data6 = None
         try:
             output4: str = subprocess.check_output(['ip', '-d', '-j', 'route'],
-                                                   universal_newlines=True)
+                                                   text=True)
             data4: JSON = self.process_generic(output4)
             output6: str = subprocess.check_output(['ip', '-d', '-j', '-6', 'route'],
-                                                   universal_newlines=True)
+                                                   text=True)
             data6: JSON = self.process_generic(output6)
         except Exception as e:
             logging.debug('Cannot query iproute2 route data: {}'.format(str(e)))
