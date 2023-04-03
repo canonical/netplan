@@ -29,39 +29,39 @@ network:
 
   > Defines what network configuration tool will be used to set up your configuration. Valid values are `networkd` and `NetworkManager`. Defaults to `networkd` if not defined.
 
-- **bonds** (mapping)
+- [**bonds**](#properties-for-device-type-bonds) (mapping)
 
   > Creates and configures link aggregation (bonding) devices.
 
-- **bridges** (mapping)
+- [**bridges**](#properties-for-device-type-bridges) (mapping)
 
   > Creates and configures bridge devices.
 
-- **ethernets** (mapping)
+- [**ethernets**](#properties-for-device-type-ethernets) (mapping)
 
   > Configures physical Ethernet interfaces.
 
-- **modems** (mapping)
+- [**modems**](#properties-for-device-type-modems) (mapping)
 
   > Configures modems
 
-- **tunnels** (mapping)
+- [**tunnels**](#properties-for-device-type-tunnels) (mapping)
 
   > Creates and configures different types of virtual tunnels.
 
-- **vlans** (mapping)
+- [**vlans**](#properties-for-device-type-vlans) (mapping)
 
   > Creates and configures VLANs.
 
-- **vrfs** (mapping)
+- [**vrfs**](#properties-for-device-type-vrfs) (mapping)
 
-  > Configures Virtual Functions for SR-IOV devices.
+  > Configures Virtual Routing and Forwarding (VRF) devices.
 
-- **wifis** (mapping)
+- [**wifis**](#properties-for-device-type-wifis) (mapping)
 
   > Configures physical Wifi interfaces as client, adhoc or access point.
 
-- **nm-devices** (mapping)
+- [**nm-devices**](#properties-for-device-type-nm-devices) (mapping)
 
   > `nm-devices` are used in situations where Netplan doesn't support the connection type. The raw configuration expected by NetworkManager can be defined and will be passed as is (passthrough) to the `.nmconnection` file. Users will not normally use this type of device.
 
@@ -891,7 +891,16 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
 
 ## Properties for device type `ethernets:`
 
-The general structure for Ethernet devices is shown below.
+**Status**: Optional.
+
+**Purpose**: Use the `ethernets` key to configure Ethernet interfaces.
+
+**Structure**: The key consists of a mapping of Ethernet interface IDs. Each
+`ethernet` has a number of configuration options. You don't need to define each
+interface by their name inside the `ethernets` mapping. You can use any ID that
+describes the interface and match the actual network card using the `match` key.
+The general configuration structure for Ethernets is shown below.
+
 
 ```yaml
 network:
@@ -981,8 +990,34 @@ some additional properties that can be used for SR-IOV devices.
   > **Requires feature: infiniband**
 
 ## Properties for device type `modems:`
-GSM/CDMA modem configuration is only supported for the `NetworkManager`
-backend. `systemd-networkd` does not support modems.
+
+**Status**: Optional.
+
+**Purpose**: Use the `modems` key to configure Modem interfaces. GSM/CDMA modem
+configuration is only supported for the `NetworkManager` backend.
+`systemd-networkd` does not support modems.
+
+**Structure**: The key consists of a mapping of Modem IDs. Each `modem` has a
+number of configuration options. The general configuration structure for Modems
+is shown below.
+
+```yaml
+network:
+  version: 2
+  renderer: NetworkManager
+  modems:
+    cdc-wdm1:
+      mtu: 1600
+      apn: ISP.CINGULAR
+      username: ISP@CINGULARGPRS.COM
+      password: CINGULAR1
+      number: "*99#"
+      network-id: 24005
+      device-id: da812de91eec16620b06cd0ca5cbc7ea25245222
+      pin: 2345
+      sim-id: 89148000000060671234
+      sim-operator-id: 310260
+```
 
 **Requires feature: modems**
 
@@ -1042,10 +1077,17 @@ backend. `systemd-networkd` does not support modems.
 
 ## Properties for device type `wifis:`
 
-The general YAML structure for Wifi devices is shown below.
+**Status**: Optional.
+
+**Purpose**: Use the `wifis` key to configure WiFi access points.
+
+**Structure**: The key consists of a mapping of WiFi IDs. Each `wifi` has a
+number of configuration options. The general configuration structure for WiFis
+is shown below.
 
 ```yaml
 network:
+  version: 2
   wifis:
     wlp0s1:
       access-points:
@@ -1130,12 +1172,24 @@ wpasupplicant installed if you let the `networkd` renderer handle wifi.
 
 ## Properties for device type `bridges:`
 
-The general structure for bridges is shown below.
+**Status**: Optional.
+
+**Purpose**: Use the `bridges` key to create Bridge interfaces.
+
+**Structure**: The key consists of a mapping of Bridge interface names. Each
+`bridge` has an optional list of interfaces that will be bridged together. The
+interfaces listed in the `interfaces` key (`enp5s0` and `enp5s1` below) must
+also be defined in your Netplan configuration. The general configuration
+structure for Bridges is shown below.
 
 ```yaml
 network:
   bridges:
     br0:
+      interfaces:
+        - enp5s0
+        - enp5s1
+      dhcp4: true
       ...
 ```
 
@@ -1229,12 +1283,25 @@ The specific settings for bridges are defined below.
 
 ## Properties for device type `bonds:`
 
-The general configuration structure for bonds is shown below.
+**Status**: Optional.
+
+**Purpose**: Use the `bonds` key to create Bond (Link Aggregation) interfaces.
+
+**Structure**: The key consists of a mapping of Bond interface names. Each
+`bond` has an optional list of interfaces that will be part of the aggregation.
+The interfaces listed in the `interfaces` key must also be defined in your
+Netplan configuration. The general configuration structure for Bonds is shown
+below.
 
 ```yaml
 network:
   bonds:
     bond0:
+      interfaces:
+        - enp5s0
+        - enp5s1
+        - enp5s2
+      mode: active-backup
       ...
 ```
 
@@ -1429,7 +1496,14 @@ The specific settings for bonds are defined below.
 
 ## Properties for device type `tunnels:`
 
-The general configuration structure for tunnels is shown below.
+**Status**: Optional.
+
+**Purpose**: Use the `tunnels` key to create virtual tunnel interfaces.
+
+**Structure**: The key consists of a mapping of tunnel interface names. Each
+`tunnel` requires the identification of the tunnel mode (see the section `mode`
+below for the list of supported modes). The general configuration structure for
+Tunnels is shown below.
 
 ```yaml
 network:
@@ -1714,6 +1788,26 @@ VXLAN specific keys:
 
 ## Properties for device type `vlans:`
 
+**Status**: Optional.
+
+**Purpose**: Use the `vlans` key to create VLAN interfaces.
+
+**Structure**: The key consists of a mapping of VLAN interface names. The
+interface used in the `link` option (`enp5s0` in the example below) must also be
+defined in the Netplan configuration. The general configuration structure for
+Vlans is shown below.
+
+```yaml
+network:
+  vlans:
+    vlan123:
+      id: 123
+      link: enp5s0
+      dhcp4: yes
+```
+
+The specific settings for VLANs are defined below.
+
 - **id** (scalar)
 
   > VLAN ID, a number between `0` and `4094`.
@@ -1742,14 +1836,39 @@ network:
 
 ## Properties for device type `vrfs:`
 
+**Status**: Optional.
+
+**Purpose**: Use the `vrfs` key to create Virtual Routing and Forwarding (VRF)
+interfaces.
+
+**Structure**: The key consists of a mapping of VRF interface names. The
+interface used in the `link` option (`enp5s0` in the example below) must also be
+defined in the Netplan configuration. The general configuration structure for
+VRFs is shown below.
+
+```yaml
+network:
+  renderer: networkd
+  vrfs:
+    vrf1:
+      table: 1
+      interfaces:
+        - enp5s0
+      routes:
+        - to: default
+          via: 10.10.10.4
+      routing-policy:
+        - from: 10.10.10.42
+```
+
 - **table** (scalar) – since **0.105**
 
   > The numeric routing table identifier. This setting is compulsory.
 
 - **interfaces** (sequence of scalars) – since **0.105**
 
-  > All devices matching this ID list will be added to the vrf. This may
-  > be an empty list, in which case the vrf will be brought online with
+  > All devices matching this ID list will be added to the VRF. This may
+  > be an empty list, in which case the VRF will be brought online with
   > no member interfaces.
 
 - **routes** (sequence of mappings) – since **0.105**
@@ -1783,10 +1902,37 @@ network:
 
 ## Properties for device type `nm-devices:`
 
-The `nm-devices` device type is for internal use only and should not be used in
-normal configuration files. It enables a fallback mode for unsupported settings,
-using the `passthrough` mapping.
+**Status**: Optional. Its use is not recommended.
 
+**Purpose**: Use the `nm-devices` key to configure device types that are not
+supported by Netplan. This is NetworkManager specific configuration.
+
+**Structure**: The key consists of a mapping of NetworkManager connections. The
+`nm-devices` device type is for internal use only and should not be used in
+normal configuration files. It enables a fallback mode for unsupported settings,
+using the `passthrough` mapping. The general configuration structure for NM
+connections is shown below.
+
+```yaml
+network:
+  version: 2
+  nm-devices:
+    NM-db5f0f67-1f4c-4d59-8ab8-3d278389cf87:
+      renderer: NetworkManager
+      networkmanager:
+        uuid: "db5f0f67-1f4c-4d59-8ab8-3d278389cf87"
+        name: "myvpnconnection"
+        passthrough:
+          connection.type: "vpn"
+          vpn.ca: "path to ca.crt"
+          vpn.cert: "path to client.crt"
+          vpn.cipher: "AES-256-GCM"
+          vpn.connection-type: "tls"
+          vpn.dev: "tun"
+          vpn.key: "path to client.key"
+          vpn.remote: "1.2.3.4:1194"
+          vpn.service-type: "org.freedesktop.NetworkManager.openvpn"
+```
 
 ## Backend-specific configuration parameters
 
