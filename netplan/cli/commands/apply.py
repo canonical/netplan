@@ -290,7 +290,7 @@ class NetplanApply(utils.NetplanCommand):
                 utils.ip_addr_flush(iface)
             # clear NM state, especially the [device].managed=true config, as that might have been
             # re-set via an udev rule setting "NM_UNMANAGED=1"
-            subprocess.check_call(['rm', '-rf', '/run/NetworkManager/devices'])
+            shutil.rmtree('/run/NetworkManager/devices', ignore_errors=True)
             utils.systemctl_network_manager('start', sync=sync)
             if sync:
                 # 'nmcli' could be /usr/bin/nmcli or
