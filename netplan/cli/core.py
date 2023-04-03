@@ -24,12 +24,18 @@ import os
 import netplan.cli.utils as utils
 
 
+FALLBACK_PATH = '/usr/bin:/snap/bin'
+
+
 class Netplan(utils.NetplanCommand):
 
     def __init__(self):
         super().__init__(command_id='',
                          description='Network configuration in YAML',
                          leaf=False)
+        os.environ.update({
+            'LC_ALL': 'C',
+            'PATH': os.getenv('PATH', FALLBACK_PATH)})
 
     def parse_args(self):
         import netplan.cli.commands

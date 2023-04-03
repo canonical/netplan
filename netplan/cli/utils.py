@@ -44,12 +44,15 @@ def is_nm_snap_enabled():
 
 
 def nmcli(args):  # pragma: nocover (covered in autopkgtest)
-    binary_name = 'nmcli'
+    # 'nmcli' could be /usr/bin/nmcli or /snap/bin/nmcli -> /snap/bin/network-manager.nmcli
+    # PATH is defined in cli/core.py
+    subprocess.check_call(['nmcli'] + args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    if is_nm_snap_enabled():
-        binary_name = 'network-manager.nmcli'
 
-    subprocess.check_call([binary_name] + args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+def nmcli_out(args: list) -> str:  # pragma: nocover (covered in autopkgtest)
+    # 'nmcli' could be /usr/bin/nmcli or /snap/bin/nmcli -> /snap/bin/network-manager.nmcli
+    # PATH is defined in cli/core.py
+    return subprocess.check_output(['nmcli'] + args, universal_newlines=True)
 
 
 def nm_running():  # pragma: nocover (covered in autopkgtest)
