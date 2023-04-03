@@ -145,10 +145,8 @@ class Interface():
     def query_nm_ssid(self, con_name: str) -> str:
         ssid: str = None
         try:
-            ssid = subprocess.check_output(['nmcli', '--get-values',
-                                            '802-11-wireless.ssid', 'con',
-                                            'show', 'id', con_name],
-                                           universal_newlines=True)
+            ssid = utils.nmcli_out(['--get-values', '802-11-wireless.ssid',
+                                    'con', 'show', 'id', con_name])
             return ssid.strip()
         except Exception as e:
             logging.warning('Cannot query NetworkManager SSID for {}: {}'.format(
@@ -398,10 +396,9 @@ class NetplanStatus(utils.NetplanCommand):
     def query_nm(self) -> JSON:
         data: JSON = None
         try:
-            output: str = subprocess.check_output(['nmcli', '-t', '-f',
-                                                   'DEVICE,NAME,UUID,FILENAME,TYPE,AUTOCONNECT',
-                                                   'con', 'show'],
-                                                  universal_newlines=True)
+            output: str = utils.nmcli_out(['-t', '-f',
+                                           'DEVICE,NAME,UUID,FILENAME,TYPE,AUTOCONNECT',
+                                           'con', 'show'])
             data = self.process_nm(output)
         except Exception as e:
             logging.debug('Cannot query NetworkManager interface data: {}'.format(str(e)))
