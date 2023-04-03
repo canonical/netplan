@@ -877,6 +877,12 @@ _serialize_yaml(
             YAML_SCALAR_PLAIN(event, emitter, "dhcp6")
         if (def->optional_addresses & NETPLAN_OPTIONAL_STATIC)
             YAML_SCALAR_PLAIN(event, emitter, "static")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_IPV4)
+            YAML_SCALAR_PLAIN(event, emitter, "ipv4")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_IPV6)
+            YAML_SCALAR_PLAIN(event, emitter, "ipv6")
+        if (def->optional_addresses & NETPLAN_OPTIONAL_NONE)
+            YAML_SCALAR_PLAIN(event, emitter, "none")
         YAML_SEQUENCE_CLOSE(event, emitter);
     }
 

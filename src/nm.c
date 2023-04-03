@@ -926,6 +926,15 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         }
     }
 
+    if (def->optional_addresses & NETPLAN_OPTIONAL_NONE) {
+            g_key_file_set_string(kf, "ipv4", "may-fail", "false");
+            g_key_file_set_string(kf, "ipv6", "may-fail", "false");
+    } else {
+        if (def->optional_addresses & NETPLAN_OPTIONAL_IPV4)
+            g_key_file_set_string(kf, "ipv4", "may-fail", "true");
+        if (def->optional_addresses & NETPLAN_OPTIONAL_IPV6)
+            g_key_file_set_string(kf, "ipv6", "may-fail", "true");
+    }
     /* NM connection files might contain secrets, and NM insists on tight permissions */
     full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", conf_path, NULL);
     orig_umask = umask(077);
