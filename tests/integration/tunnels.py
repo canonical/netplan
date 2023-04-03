@@ -99,11 +99,11 @@ class _CommonTests():
         self.wait_output(['wg', 'show', 'wg0'], 'latest handshake')
         self.wait_output(['wg', 'show', 'wg1'], 'latest handshake')
         # Verify server
-        out = subprocess.check_output(['wg', 'show', 'wg0', 'private-key'], universal_newlines=True)
+        out = subprocess.check_output(['wg', 'show', 'wg0', 'private-key'], text=True)
         self.assertIn("4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=", out)
-        out = subprocess.check_output(['wg', 'show', 'wg0', 'preshared-keys'], universal_newlines=True)
+        out = subprocess.check_output(['wg', 'show', 'wg0', 'preshared-keys'], text=True)
         self.assertIn("7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=", out)
-        out = subprocess.check_output(['wg', 'show', 'wg0'], universal_newlines=True)
+        out = subprocess.check_output(['wg', 'show', 'wg0'], text=True)
         self.assertIn("public key: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=", out)
         self.assertIn("listening port: 51820", out)
         self.assertIn("fwmark: 0x2a", out)
@@ -113,11 +113,11 @@ class _CommonTests():
         self.assertRegex(out, r'transfer: \d+.*B received, \d+.*B sent')
         self.assert_iface('wg0', ['inet 10.10.10.20/24'])
         # Verify client
-        out = subprocess.check_output(['wg', 'show', 'wg1', 'private-key'], universal_newlines=True)
+        out = subprocess.check_output(['wg', 'show', 'wg1', 'private-key'], text=True)
         self.assertIn("KPt9BzQjejRerEv8RMaFlpsD675gNexELOQRXt/AcH0=", out)
-        out = subprocess.check_output(['wg', 'show', 'wg1', 'preshared-keys'], universal_newlines=True)
+        out = subprocess.check_output(['wg', 'show', 'wg1', 'preshared-keys'], text=True)
         self.assertIn("7voRZ/ojfXgfPOlswo3Lpma1RJq7qijIEEUEMShQFV8=", out)
-        out = subprocess.check_output(['wg', 'show', 'wg1'], universal_newlines=True)
+        out = subprocess.check_output(['wg', 'show', 'wg1'], text=True)
         self.assertIn("public key: M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=", out)
         self.assertIn("peer: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=", out)
         self.assertIn("endpoint: 10.10.10.20:51820", out)
@@ -174,7 +174,7 @@ class _CommonTests():
 ''' % {'r': self.backend})
         self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 192.168.5.1 peer 99.99.99.99'])
-        out = subprocess.check_output(['ip', 'tunnel', 'show', 'tun0'], universal_newlines=True)
+        out = subprocess.check_output(['ip', 'tunnel', 'show', 'tun0'], text=True)
         self.assertIn("ikey 1234 okey 5678", out)
 
     def test_tunnel_gre6_with_keys(self):
@@ -192,7 +192,7 @@ class _CommonTests():
 ''' % {'r': self.backend})
         self.generate_and_settle(['tun0'])
         self.assert_iface('tun0', ['tun0@NONE', 'link.* fe80::1 brd 2001:dead:beef::2'])
-        out = subprocess.check_output(['ip', '-6', 'tunnel', 'show', 'tun0'], universal_newlines=True)
+        out = subprocess.check_output(['ip', '-6', 'tunnel', 'show', 'tun0'], text=True)
         self.assertIn("key 1234", out)
 
     def test_tunnel_vxlan(self):
@@ -287,7 +287,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       remote: 99.99.99.99
 ''' % {'r': self.backend})
         self.generate_and_settle(['tun0'])
-        out = subprocess.check_output(['ip', '-details', 'link', 'show', 'tun0'], universal_newlines=True)
+        out = subprocess.check_output(['ip', '-details', 'link', 'show', 'tun0'], text=True)
         self.assertIn("gretap remote 99.99.99.99 local 192.168.5.1", out)
         self.assertIn("ikey 1.2.3.4 okey 5.6.7.8", out)
 
@@ -305,7 +305,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       remote: 2001:dead:beef::2
 ''' % {'r': self.backend})
         self.generate_and_settle(['tun0'])
-        out = subprocess.check_output(['ip', '-details', 'link', 'show', 'tun0'], universal_newlines=True)
+        out = subprocess.check_output(['ip', '-details', 'link', 'show', 'tun0'], text=True)
         self.assertIn("gretap remote 2001:dead:beef::2 local fe80::1", out)
         self.assertIn("ikey 1.2.3.4 okey 1.2.3.4", out)
 

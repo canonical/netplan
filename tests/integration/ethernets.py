@@ -112,7 +112,7 @@ class _CommonTests():
 
         # ensure that they do not get managed by NM for foreign backends
         expected_state = (self.backend == 'NetworkManager') and 'connected' or 'unmanaged'
-        out = subprocess.check_output(['nmcli', 'dev'], universal_newlines=True)
+        out = subprocess.check_output(['nmcli', 'dev'], text=True)
         for i in [self.dev_e_client, self.dev_e2_client]:
             self.assertRegex(out, r'%s\s+(ethernet|bridge)\s+%s' % (i, expected_state))
 
@@ -125,12 +125,12 @@ class _CommonTests():
             self.assertRegex(resolv_conf, 'search.*fakesuffix')
             # not easy to peek dnsmasq's brain, so check its logging
             out = subprocess.check_output(['journalctl', '--quiet', '-tdnsmasq', '-ocat', '--since=-30s'],
-                                          universal_newlines=True)
+                                          text=True)
             self.assertIn('nameserver 172.1.2.3', out)
         elif resolved_in_use():
             sys.stdout.write('[resolved] ')
             sys.stdout.flush()
-            out = subprocess.check_output(['resolvectl', 'status'], universal_newlines=True)
+            out = subprocess.check_output(['resolvectl', 'status'], text=True)
             self.assertIn('DNS Servers: 172.1.2.3', out)
             self.assertIn('fakesuffix', out)
         else:

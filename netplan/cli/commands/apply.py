@@ -299,7 +299,7 @@ class NetplanApply(utils.NetplanCommand):
                 # wait a bit for 'connected (site/local-only)' or
                 # 'connected' to appear in 'nmcli general' STATE
                 for _ in range(10):
-                    out = subprocess.run(cmd, capture_output=True, universal_newlines=True)
+                    out = subprocess.run(cmd, capture_output=True, text=True)
                     # Handle nmcli's "not running" return code (8) gracefully,
                     # giving some more time for NetworkManager startup
                     if out.returncode == 8:

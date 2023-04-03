@@ -49,7 +49,7 @@ class _CommonTests():
         self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet6 9876:bbbb::11/70'])
         out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client],
-                                      universal_newlines=True)
+                                      text=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
         self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* onlink')
 
@@ -71,7 +71,7 @@ class _CommonTests():
         self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet 192.168.14.2'])
         out = subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client],
-                                      universal_newlines=True)
+                                      text=True)
         self.assertIn('10.10.10.0/24 via 192.168.14.20 proto static src 192.168.14.2', out)
 
     # Supposed to fail if tested against NetworkManager < 1.10
@@ -96,7 +96,7 @@ class _CommonTests():
         self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet '])
         out = subprocess.check_output(['ip', 'route', 'show', 'table', table_id, 'dev',
-                                      self.dev_e_client], universal_newlines=True)
+                                      self.dev_e_client], text=True)
         # NM routes have a (default) 'metric' in between 'proto static' and 'onlink'
         self.assertRegex(out, r'10\.0\.0\.0/8 via 11\.0\.0\.1 proto static[^\n]* onlink')
 
@@ -307,19 +307,19 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22', 'master vrf0'])  # wokeignore:rule=master
         self.assert_iface_up('vrf0', ['MASTER'])  # wokeignore:rule=master
         # verify routes didn't leak into the main routing table
-        out = subprocess.check_output(['ip', 'route', 'show'], universal_newlines=True)
+        out = subprocess.check_output(['ip', 'route', 'show'], text=True)
         self.assertNotIn('10.10.0.0/16', out)
         self.assertNotIn('11.11.11.0/24', out)
         # verify routes were added to the VRF's routing table
         out = subprocess.check_output(['ip', 'route', 'show', 'table', '1000'],
-                                      universal_newlines=True)
+                                      text=True)
         self.assertIn('10.10.0.0/16 via 10.10.10.1 dev vrf0', out)
         self.assertIn('11.11.11.0/24 via 10.10.10.2 dev {}'.format(self.dev_e_client), out)
 
         # verify routing policy was setup correctly to the VRF's table
         # 'routing-policy' is not supported on NetworkManager
         if self.backend == 'networkd':
-            out = subprocess.check_output(['ip', 'rule', 'show'], universal_newlines=True)
+            out = subprocess.check_output(['ip', 'rule', 'show'], text=True)
             self.assertIn('from 10.10.10.42 lookup 1000', out)
 
 
