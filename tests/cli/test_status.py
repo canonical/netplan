@@ -550,7 +550,7 @@ class TestInterface(unittest.TestCase):
         dev = 'fakedev0'
         itf = Interface(FAKE_DEV, [])
         res = itf.query_networkctl(dev)
-        mock.assert_called_with(['networkctl', 'status', dev], text=True)
+        mock.assert_called_with(['networkctl', 'status', '--', dev], text=True)
         self.assertEqual(res, mock.return_value)
 
     @patch('subprocess.check_output')
@@ -560,7 +560,7 @@ class TestInterface(unittest.TestCase):
         itf = Interface(FAKE_DEV, [])
         with self.assertLogs() as cm:
             res = itf.query_networkctl(dev)
-            mock.assert_called_with(['networkctl', 'status', dev], text=True)
+            mock.assert_called_with(['networkctl', 'status', '--', dev], text=True)
             self.assertIsNone(res)
             self.assertIn('WARNING:root:Cannot query networkctl for {}:'.format(dev), cm.output[0])
 
