@@ -90,7 +90,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   renderer: %(r)s
   version: 2''' % {'r': self.backend})
             os.chmod(self.config, mode=0o600)
-        p = subprocess.Popen(['netplan', 'try'], bufsize=1, universal_newlines=True,
+        p = subprocess.Popen(['netplan', 'try'], bufsize=1, text=True,
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
         p.send_signal(signal.SIGUSR1)
@@ -109,7 +109,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   renderer: %(r)s
   version: 2''' % {'r': self.backend})
             os.chmod(self.config, mode=0o600)
-        p = subprocess.Popen(['netplan', 'try'], bufsize=1, universal_newlines=True,
+        p = subprocess.Popen(['netplan', 'try'], bufsize=1, text=True,
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
         p.send_signal(signal.SIGINT)
@@ -169,7 +169,7 @@ class TestDbus(IntegrationTestsBase):
 
         # Terminates netplan-dbus if it is running already
         cmd = ['ps', '-C', 'netplan-dbus', '-o', 'pid=']
-        out = subprocess.run(cmd, capture_output=True, universal_newlines=True)
+        out = subprocess.run(cmd, capture_output=True, text=True)
         if out.returncode == 0:
             pid = out.stdout.strip()
             os.kill(int(pid), signal.SIGTERM)
@@ -177,7 +177,7 @@ class TestDbus(IntegrationTestsBase):
         with open(self.config, 'w') as f:
             f.write(NETPLAN_YAML % {'nic': self.dev_e_client})
 
-        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Config() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)
@@ -188,7 +188,7 @@ class TestDbus(IntegrationTestsBase):
         BUSCTL_CONFIG_GET[5] = config_path
 
         # Retrieving the config
-        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, universal_newlines=True)
+        out = subprocess.run(BUSCTL_CONFIG_GET, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, msg=f"Busctl Get() failed with error: {out.stderr}")
 
         out_dict = json.loads(out.stdout)

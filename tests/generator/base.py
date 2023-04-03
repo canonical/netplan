@@ -341,7 +341,7 @@ class TestBase(unittest.TestCase):
             subprocess.call(['bash', '-i'], cwd=self.workdir.name)
 
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, universal_newlines=True)
+                             stderr=subprocess.PIPE, text=True)
         (out, err) = p.communicate()
         if expect_fail:
             self.assertGreater(p.returncode, 0)
