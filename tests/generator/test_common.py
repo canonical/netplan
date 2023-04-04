@@ -58,15 +58,26 @@ UseMTU=true
 
     def test_optional_addresses(self):
         eth_name = self.eth_name()
-        self.generate(self.config_with_optional_addresses(eth_name, '["dhcp4"]'))
-        self.assertEqual(self.get_optional_addresses(eth_name), set(["dhcp4"]))
+        self.generate(self.config_with_optional_addresses(eth_name, '["ipv4"]'))
+        self.assertEqual(self.get_optional_addresses(eth_name), set())
 
     def test_optional_addresses_multiple(self):
         eth_name = self.eth_name()
-        self.generate(self.config_with_optional_addresses(eth_name, '[dhcp4, ipv4-ll, ipv6-ra, dhcp6, dhcp4, static]'))
+        self.generate(self.config_with_optional_addresses(eth_name, '["ipv4", "ipv6", "ipv4"]'))
         self.assertEqual(
             self.get_optional_addresses(eth_name),
-            set(["ipv4-ll", "ipv6-ra", "dhcp4", "dhcp6", "static"]))
+            set())
+
+    def test_optional_addresses_none(self):
+        eth_name = self.eth_name()
+        self.generate(self.config_with_optional_addresses(eth_name, '["none"]'))
+        self.assertEqual(self.get_optional_addresses(eth_name), set(["both"]))
+
+    def test_optional_addresses_deprecated_flags(self):
+        flags = '["ipv4-ll", "ipv6-ra", "dhcp4", "dhcp6", "static"]'
+        eth_name = self.eth_name()
+        self.generate(self.config_with_optional_addresses(eth_name, flags))
+        self.assertEqual(self.get_optional_addresses(eth_name), set())
 
     def test_optional_addresses_invalid(self):
         eth_name = self.eth_name()
@@ -1321,6 +1332,58 @@ dns=8.8.8.8;
 [ipv6]
 method=ignore
 '''})
+
+    def test_optional_addresses(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      optional-addresses: [ipv4, ipv6]''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+may-fail=true
+
+[ipv6]
+method=ignore
+may-fail=true
+'''})
+        self.assert_networkd({})
+
+    def test_optional_addresses_none(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      optional-addresses: [none]''')
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+may-fail=false
+
+[ipv6]
+method=ignore
+may-fail=false
+'''})
+        self.assert_networkd({})
 
 
 class TestForwardDeclaration(TestBase):
