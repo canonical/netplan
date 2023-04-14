@@ -56,7 +56,7 @@ lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
 def _string_realloc_call_no_error(function):
     size = 16
-    while size < 1073741824:  # 1MB
+    while size < 1048576:  # 1MB
         buffer = ctypes.create_string_buffer(size)
         code = function(buffer)
         if code == -2:
