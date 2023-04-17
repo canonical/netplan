@@ -200,3 +200,27 @@ class TestConfigErrors(TestBase):
       routes:
       - to: default
         via: 1.2.3.4''')
+
+        self.assert_networkd({'vrf1005.network': ND_EMPTY % ('vrf1005', 'ipv6') + '''
+[Route]
+Destination=0.0.0.0/0
+Gateway=1.2.3.4
+Table=1005
+''',
+                              'vrf1005.netdev': ND_VRF % ('vrf1005', 1005)})
+
+    def test_vrf_without_routes(self):
+        self.generate('''network:
+  version: 2
+  vrfs:
+    vrf1005:
+      table: 1005
+      routing-policy:
+      - from: 2.3.4.5''')
+
+        self.assert_networkd({'vrf1005.network': ND_EMPTY % ('vrf1005', 'ipv6') + '''
+[RoutingPolicyRule]
+From=2.3.4.5
+Table=1005
+''',
+                              'vrf1005.netdev': ND_VRF % ('vrf1005', 1005)})

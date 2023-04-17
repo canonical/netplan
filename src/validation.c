@@ -485,44 +485,46 @@ adopt_and_validate_vrf_routes(const NetplanParser *npp, GHashTable *netdefs, GEr
     while (g_hash_table_iter_next (&iter, &key, &value))
     {
         NetplanNetDefinition *nd = value;
-        if (nd->type != NETPLAN_DEF_TYPE_VRF || !nd->routes)
+        if (nd->type != NETPLAN_DEF_TYPE_VRF)
             continue;
 
         /* Routes */
-        for (size_t i = 0; i < nd->routes->len; i++) {
-            NetplanIPRoute* r = g_array_index(nd->routes, NetplanIPRoute*, i);
-            if (r->table == nd->vrf_table) {
-                g_debug("%s: Ignoring redundant routes table %d (matches VRF table)", nd->id, r->table);
-                continue;
-            } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+        if (nd->routes) {
+            for (size_t i = 0; i < nd->routes->len; i++) {
+                NetplanIPRoute* r = g_array_index(nd->routes, NetplanIPRoute*, i);
+                if (r->table == nd->vrf_table) {
+                    g_debug("%s: Ignoring redundant routes table %d (matches VRF table)", nd->id, r->table);
+                    continue;
+                } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
                             "%s: VRF routes table mismatch (%d != %d)", nd->id, nd->vrf_table, r->table);
-                return FALSE;
-            } else {
-                r->table = nd->vrf_table;
-                g_debug("%s: Adopted VRF routes table to %d", nd->id, nd->vrf_table);
+                    return FALSE;
+                } else {
+                    r->table = nd->vrf_table;
+                    g_debug("%s: Adopted VRF routes table to %d", nd->id, nd->vrf_table);
+                }
             }
         }
 
         /* IP Rules */
-        if (!nd->ip_rules)
-            continue;
-
-        for (size_t i = 0; i < nd->ip_rules->len; i++) {
-            NetplanIPRule* r = g_array_index(nd->ip_rules, NetplanIPRule*, i);
-            if (r->table == nd->vrf_table) {
-                g_debug("%s: Ignoring redundant routing-policy table %d (matches VRF table)", nd->id, r->table);
-                continue;
-            } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC && r->table != nd->vrf_table) {
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+        if (nd->ip_rules) {
+            for (size_t i = 0; i < nd->ip_rules->len; i++) {
+                NetplanIPRule* r = g_array_index(nd->ip_rules, NetplanIPRule*, i);
+                if (r->table == nd->vrf_table) {
+                    g_debug("%s: Ignoring redundant routing-policy table %d (matches VRF table)", nd->id, r->table);
+                    continue;
+                } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC && r->table != nd->vrf_table) {
+                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
                             "%s: VRF routing-policy table mismatch (%d != %d)", nd->id, nd->vrf_table, r->table);
-                return FALSE;
-            } else {
-                r->table = nd->vrf_table;
-                g_debug("%s: Adopted VRF routing-policy table to %d", nd->id, nd->vrf_table);
+                    return FALSE;
+                } else {
+                    r->table = nd->vrf_table;
+                    g_debug("%s: Adopted VRF routing-policy table to %d", nd->id, nd->vrf_table);
+                }
             }
         }
     }
+
     return TRUE;
 }
 
