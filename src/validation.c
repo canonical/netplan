@@ -503,7 +503,11 @@ adopt_and_validate_vrf_routes(const NetplanParser *npp, GHashTable *netdefs, GEr
                 g_debug("%s: Adopted VRF routes table to %d", nd->id, nd->vrf_table);
             }
         }
+
         /* IP Rules */
+        if (!nd->ip_rules)
+            continue;
+
         for (size_t i = 0; i < nd->ip_rules->len; i++) {
             NetplanIPRule* r = g_array_index(nd->ip_rules, NetplanIPRule*, i);
             if (r->table == nd->vrf_table) {
