@@ -95,7 +95,7 @@ load_yaml_from_fd(int input_fd, yaml_document_t* doc, GError** error)
 
     // LCOV_EXCL_START
 file_error:
-    g_set_error(error, G_FILE_ERROR, errno, "Error when opening FD %d: %s", input_fd, g_strerror(errno));
+    g_set_error(error, NETPLAN_FILE_ERROR, errno, "Error when opening FD %d: %m", input_fd);
     if (in_dup >= 0)
         close(in_dup);
     return FALSE;
@@ -119,7 +119,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
 
     fyaml = g_fopen(yaml, "r");
     if (!fyaml) { // LCOV_EXCL_START
-        g_set_error(error, G_FILE_ERROR, errno, "Cannot open %s: %s", yaml, g_strerror(errno));
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "Cannot open %s: %m", yaml);
         return FALSE;
     } // LCOV_EXCL_STOP
 
@@ -3298,8 +3298,7 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
     mode_t mask = S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
     struct stat info;
     if (stat(filename, &info) < 0) {
-        g_set_error(error, G_FILE_ERROR, errno, "Cannot stat %s: %s",
-                    filename, strerror(errno));
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "Cannot stat %s: %m", filename);
         return FALSE;
     } else if (info.st_mode & mask)
         g_warning("Permissions for %s are too open. Netplan configuration "

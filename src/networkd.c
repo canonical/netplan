@@ -49,7 +49,7 @@ wifi_append_freq(gpointer key, gpointer value, gpointer user_data)
 static gboolean
 append_wifi_wowlan_flags(NetplanWifiWowlanFlag flag, GString* str, GError** error) {
     if (flag & NETPLAN_WIFI_WOWLAN_TYPES[0].flag || flag >= NETPLAN_WIFI_WOWLAN_TCP) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: unsupported wowlan_triggers mask: 0x%x\n", flag);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: unsupported wowlan_triggers mask: 0x%x\n", flag);
         return FALSE;
     }
     for (unsigned i = 0; NETPLAN_WIFI_WOWLAN_TYPES[i].name != NULL; ++i) {
@@ -307,7 +307,7 @@ write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** erro
     safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
-        g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED, "failed to create enablement symlink: %m\n");
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
         return FALSE;
         // LCOV_EXCL_STOP
     }
@@ -652,39 +652,39 @@ combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* co
          * we enforce that they are the same.
          */
         if (def->dhcp4_overrides.use_dns != def->dhcp6_overrides.use_dns) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
             return FALSE;
         }
         if (g_strcmp0(def->dhcp4_overrides.use_domains, def->dhcp6_overrides.use_domains) != 0){
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "use-domains");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-domains");
             return FALSE;
         }
         if (def->dhcp4_overrides.use_ntp != def->dhcp6_overrides.use_ntp) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "use-ntp");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-ntp");
             return FALSE;
         }
         if (def->dhcp4_overrides.send_hostname != def->dhcp6_overrides.send_hostname) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "send-hostname");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "send-hostname");
             return FALSE;
         }
         if (def->dhcp4_overrides.use_hostname != def->dhcp6_overrides.use_hostname) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
             return FALSE;
         }
         if (def->dhcp4_overrides.use_mtu != def->dhcp6_overrides.use_mtu) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "use-mtu");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-mtu");
             return FALSE;
         }
         if (g_strcmp0(def->dhcp4_overrides.hostname, def->dhcp6_overrides.hostname) != 0) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "hostname");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "hostname");
             return FALSE;
         }
         if (def->dhcp4_overrides.metric != def->dhcp6_overrides.metric) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "route-metric");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "route-metric");
             return FALSE;
         }
         if (def->dhcp4_overrides.use_routes != def->dhcp6_overrides.use_routes) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, DHCP_OVERRIDES_ERROR, def->id, "use-routes");
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-routes");
             return FALSE;
         }
         /* Just use dhcp4_overrides now, since we know they are the same. */
@@ -791,7 +791,7 @@ netplan_netdef_write_network_file(
         /* EUI-64 mode is enabled by default, if no IPv6Token= is specified */
         /* TODO: Enable stable-privacy mode for networkd, once PR#16618 has been released:
          *       https://github.com/systemd/systemd/pull/16618 */
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: ipv6-address-generation mode is not supported by networkd\n", def->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: ipv6-address-generation mode is not supported by networkd\n", def->id);
         return FALSE;
     }
     if (def->accept_ra == NETPLAN_RA_MODE_ENABLED)
@@ -1072,7 +1072,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
                 /* must be a hex-digit key representation */
                 for (unsigned i = 0; i < 64; ++i)
                     if (!isxdigit(auth->password[i])) {
-                        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: PSK length of 64 is only supported for hex-digit representation\n", id);
+                        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: PSK length of 64 is only supported for hex-digit representation\n", id);
                         return FALSE;
                     }
                 /* this is required to be unquoted */
@@ -1080,7 +1080,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
             } else if (len < 8 || len > 63) {
                 /* per wpa_supplicant spec, passphrase needs to be between 8
                    and 63 characters */
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: ASCII passphrase must be between 8 and 63 characters (inclusive)\n", id);
+                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "ERROR: %s: ASCII passphrase must be between 8 and 63 characters (inclusive)\n", id);
                 return FALSE;
             } else {
                 g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
@@ -1204,7 +1204,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
                     g_string_append(s, "  mode=1\n");
                     break;
                 default:
-                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: %s: networkd does not support this wifi mode\n", def->id, ap->ssid);
+                    g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: %s: networkd does not support this wifi mode\n", def->id, ap->ssid);
                     g_string_free(s, TRUE);
                     return FALSE;
             }
@@ -1273,7 +1273,7 @@ netplan_netdef_write_networkd(
     }
 
     if (def->type == NETPLAN_DEF_TYPE_MODEM) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: networkd backend does not support GSM/CDMA modem configuration\n", def->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: networkd backend does not support GSM/CDMA modem configuration\n", def->id);
         return FALSE;
     }
 
@@ -1281,7 +1281,7 @@ netplan_netdef_write_networkd(
         g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", def->id, ".service", NULL);
         g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", def->id, ".service", NULL);
         if (def->type == NETPLAN_DEF_TYPE_WIFI && def->has_match) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
             return FALSE;
         }
 
@@ -1297,7 +1297,7 @@ netplan_netdef_write_networkd(
 
         if (symlink(slink, link) < 0 && errno != EEXIST) {
             // LCOV_EXCL_START
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "failed to create enablement symlink: %m\n");
+            g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
             return FALSE;
             // LCOV_EXCL_STOP
         }

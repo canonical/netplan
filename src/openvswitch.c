@@ -67,7 +67,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "failed to create enablement symlink: %m\n");
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
         return FALSE;
         // LCOV_EXCL_STOP
     }
@@ -171,7 +171,7 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
     GString* patch_ports = g_string_new("");
 
     if (!def->bridge) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to be a member of an OpenVSwitch bridge\n", def->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "Bond %s needs to be a member of an OpenVSwitch bridge\n", def->id);
         return NULL;
     }
 
@@ -189,7 +189,7 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
         }
     }
     if (i < 2) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Bond %s needs to have at least 2 member interfaces\n", def->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "Bond %s needs to have at least 2 member interfaces\n", def->id);
         return NULL;
     }
 
@@ -221,7 +221,7 @@ write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds, GError** err
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s bond_mode=%s", def->id, value);
         write_ovs_tag_setting(def->id, "Port", "bond_mode", NULL, value, cmds);
     } else {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: bond mode '%s' not supported by Open vSwitch\n",
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: bond mode '%s' not supported by Open vSwitch\n",
                   def->id, def->bond_params.mode);
         return FALSE;
     }
@@ -274,7 +274,7 @@ check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* needs
         /* Check if SSL is configured in settings->ssl */
         if (!settings->ssl.ca_certificate || !settings->ssl.client_certificate ||
             !settings->ssl.client_key) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: Open vSwitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "ERROR: Open vSwitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
             return FALSE;
         }
         *needs_ssl = TRUE;
@@ -386,7 +386,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 g_assert(def->peer);
                 dependency = def->bridge?: def->bond;
                 if (!dependency) {
-                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
+                    g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
                     return FALSE;
                 }
                 /* There is no OVS Port which we could tag netplan=true if this
@@ -407,7 +407,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 break;
 
             default:
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
+                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: This device type is not supported with the OpenVSwitch backend\n", def->id);
                 return FALSE;
         }
 
@@ -422,7 +422,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
             || (def->ovs_settings.other_config && g_hash_table_size(def->ovs_settings.other_config) > 0)) {
             dependency = def->bridge?: def->bond;
             if (!dependency) {
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config\n", def->id);
+                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: Interface needs to be assigned to an OVS bridge/bond to carry external-ids/other-config\n", def->id);
                 return FALSE;
             }
         } else {

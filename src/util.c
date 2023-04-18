@@ -182,7 +182,7 @@ netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payloa
     yaml_parser_set_input_string(&parser, (const unsigned char *)obj_payload, strlen(obj_payload));
     while (TRUE) {
         if (!yaml_parser_parse(&parser, &event)) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser.problem);
+            g_set_error(error, NETPLAN_FORMAT_ERROR, NETPLAN_ERROR_FORMAT_INVALID_YAML, "Error parsing YAML: %s", parser.problem);
             goto cleanup;
         }
         if (event.type == YAML_STREAM_END_EVENT || event.type == YAML_DOCUMENT_END_EVENT)
@@ -219,7 +219,7 @@ netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payloa
 
 // LCOV_EXCL_START
 err_path:
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter.problem);
+    g_set_error(error, NETPLAN_EMITTER_ERROR, NETPLAN_ERROR_YAML_EMITTER, "Error generating YAML: %s", emitter.problem);
     ret = FALSE;
 // LCOV_EXCL_STOP
 cleanup:
@@ -231,7 +231,7 @@ cleanup:
 
 // LCOV_EXCL_START
 file_error:
-    g_set_error(error, G_FILE_ERROR, errno, "Error when opening FD %d: %s", output_fd, g_strerror(errno));
+    g_set_error(error, NETPLAN_FILE_ERROR, errno, "Error when opening FD %d: %m", output_fd);
     if (out_dup >= 0)
         close(out_dup);
     return FALSE;
@@ -244,7 +244,7 @@ copy_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, GError** error
     int map_count = 0, seq_count = 0;
     do {
 		if (!yaml_parser_parse(parser, &event)) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser->problem);
+            g_set_error(error, NETPLAN_FORMAT_ERROR, NETPLAN_ERROR_FORMAT_INVALID_YAML, "Error parsing YAML: %s", parser->problem);
             return FALSE;
         }
 
@@ -266,7 +266,7 @@ copy_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, GError** error
         }
         if (emitter && !yaml_emitter_emit(emitter, &event)) {
             // LCOV_EXCL_START
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error emitting YAML: %s", emitter->problem);
+            g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_YAML, "Error emitting YAML: %s", emitter->problem);
             return FALSE;
             // LCOV_EXCL_STOP
         }
@@ -288,7 +288,7 @@ emit_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, char** yaml_pa
     if (!yaml_parser_parse(parser, &event))
         goto parser_err_path; // LCOV_EXCL_LINE
     if (event.type != YAML_MAPPING_START_EVENT) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Unexpected YAML structure found");
+        g_set_error(error, NETPLAN_FORMAT_ERROR, NETPLAN_ERROR_FORMAT_INVALID_YAML, "Unexpected YAML structure found");
         return FALSE;
     }
     while (TRUE) {
@@ -309,7 +309,7 @@ emit_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, char** yaml_pa
     return TRUE;
 
 parser_err_path:
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser->problem);
+    g_set_error(error, NETPLAN_FORMAT_ERROR, NETPLAN_ERROR_FORMAT_INVALID_YAML, "Error parsing YAML: %s", parser->problem);
     return FALSE;
 }
 
@@ -373,16 +373,16 @@ netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, 
     goto cleanup;
 
 file_error:
-        g_set_error(error, G_FILE_ERROR, errno, "%s", g_strerror(errno));
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
         ret = FALSE;
         goto cleanup;
 // LCOV_EXCL_START
 parser_err_path:
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error parsing YAML: %s", parser.problem);
+    g_set_error(error, NETPLAN_FORMAT_ERROR, NETPLAN_ERROR_FORMAT_INVALID_YAML, "Error parsing YAML: %s", parser.problem);
     ret = FALSE;
     goto cleanup;
 err_path:
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter.problem);
+    g_set_error(error, NETPLAN_EMITTER_ERROR, NETPLAN_ERROR_YAML_EMITTER, "Error generating YAML: %s", emitter.problem);
     ret = FALSE;
 // LCOV_EXCL_STOP
 cleanup:
