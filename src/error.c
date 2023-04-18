@@ -112,7 +112,7 @@ parser_error(const yaml_parser_t* parser, const char* yaml, GError** error)
     char *error_context = get_parser_error_context(parser, error);
     yaml = yaml ? yaml : "(unnamed file)";
     if ((char)*parser->buffer.pointer == '\t')
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_YAML,
                     "%s:%zu:%zu: Invalid YAML: tabs are not allowed for indent:\n%s",
                     yaml,
                     parser->problem_mark.line + 1,
@@ -120,21 +120,21 @@ parser_error(const yaml_parser_t* parser, const char* yaml, GError** error)
                     error_context);
     else if (((char)*parser->buffer.pointer == ' ' || (char)*parser->buffer.pointer == '\0')
              && !parser->token_available)
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_YAML,
                     "%s:%zu:%zu: Invalid YAML: aliases are not supported:\n%s",
                     yaml,
                     parser->problem_mark.line + 1,
                     parser->problem_mark.column + 1,
                     error_context);
     else if (parser->state == YAML_PARSE_BLOCK_MAPPING_KEY_STATE)
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_YAML,
                     "%s:%zu:%zu: Invalid YAML: inconsistent indentation:\n%s",
                     yaml,
                     parser->problem_mark.line + 1,
                     parser->problem_mark.column + 1,
                     error_context);
     else {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_YAML,
                     "%s:%zu:%zu: Invalid YAML: %s:\n%s",
                     yaml,
                     parser->problem_mark.line + 1,
@@ -161,15 +161,18 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
     g_vasprintf(&s, msg, argp);
     if (node != NULL && npp->current.filepath != NULL) {
         error_context = get_syntax_error_context(npp, node->start_mark.line, node->start_mark.column, error);
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_CONFIG,
                     "%s:%zu:%zu: Error in network definition: %s\n%s",
                     npp->current.filepath,
                     node->start_mark.line + 1,
                     node->start_mark.column + 1,
                     s,
                     error_context);
+    } else if (npp->current.filepath) {
+        g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_VALIDATION,
+                    "%s: Error in network definition: %s", npp->current.filepath, s);
     } else {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
+        g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
                     "Error in network definition: %s", s);
     }
     g_free(s);

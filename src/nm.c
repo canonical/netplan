@@ -198,7 +198,7 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family, GError**
                 destination = cur_route->to;
 
             if (cur_route->type && g_ascii_strcasecmp(cur_route->type, "unicast") != 0) {
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: NetworkManager only supports unicast routes\n", def->id);
+                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager only supports unicast routes\n", def->id);
                 return FALSE;
             }
 
@@ -336,7 +336,7 @@ write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** e
      * as well to check for more specific characteristics (if needed). */
     if (def->tunnel.private_key) {
         if (def->tunnel.private_key[0] == '/' && !is_wireguard_key(def->tunnel.private_key)) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
             return FALSE;
         } else
             g_key_file_set_string(kf, "wireguard", "private-key", def->tunnel.private_key);
@@ -364,7 +364,7 @@ write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** e
              * as well to check for more specific characteristics (if needed). */
             if (peer->preshared_key) {
                 if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key)) {
-                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
+                    g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
                     return FALSE;
                 } else {
                     g_key_file_set_value(kf, tmp_group, "preshared-key", peer->preshared_key);
@@ -634,7 +634,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         /* XXX: For now NetworkManager only supports the "manual" activation
          * mode */
         if (!!g_strcmp0(def->activation_mode, "manual")) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: NetworkManager definitions do not support activation-mode %s\n", def->id, def->activation_mode);
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager definitions do not support activation-mode %s\n", def->id, def->activation_mode);
             return FALSE;
         }
         /* "manual" */
@@ -722,7 +722,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     }
 
     if (def->ipv6_mtubytes) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: NetworkManager definitions do not support ipv6-mtu\n", def->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager definitions do not support ipv6-mtu\n", def->id);
         return FALSE;
     }
 
@@ -959,12 +959,12 @@ netplan_netdef_write_nm(
     }
 
     if (netdef->match.driver && !netdef->set_name) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: NetworkManager definitions do not support matching by driver\n", netdef->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager definitions do not support matching by driver\n", netdef->id);
         return FALSE;
     }
 
     if (netdef->address_options) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: NetworkManager does not support address options\n", netdef->id);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager does not support address options\n", netdef->id);
         return FALSE;
     }
 

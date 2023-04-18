@@ -500,7 +500,7 @@ adopt_and_validate_vrf_routes(const NetplanParser *npp, GHashTable *netdefs, GEr
                     g_debug("%s: Ignoring redundant routes table %d (matches VRF table)", nd->id, r->table);
                     continue;
                 } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
-                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+                    g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
                             "%s: VRF routes table mismatch (%d != %d)", nd->id, nd->vrf_table, r->table);
                     return FALSE;
                 } else {
@@ -518,7 +518,7 @@ adopt_and_validate_vrf_routes(const NetplanParser *npp, GHashTable *netdefs, GEr
                     g_debug("%s: Ignoring redundant routing-policy table %d (matches VRF table)", nd->id, r->table);
                     continue;
                 } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC && r->table != nd->vrf_table) {
-                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+                    g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
                             "%s: VRF routing-policy table mismatch (%d != %d)", nd->id, nd->vrf_table, r->table);
                     return FALSE;
                 } else {
@@ -557,7 +557,7 @@ defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **
     else
         snprintf(metric_name, sizeof(metric_name) - 1, "metric: %d", entry->metric);
 
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+    g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
             "Conflicting default route declarations for %s (%s, %s), first declared in %s but also in %s",
             (entry->family == AF_INET) ? "IPv4" : "IPv6",
             table_name,

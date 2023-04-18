@@ -53,7 +53,7 @@ write_sriov_rebind_systemd_unit(const GString* pfs, const char* rootdir, GError*
     safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+        g_set_error(error, NETPLAN_FILE_ERROR, errno,
                     "failed to create enablement symlink: %m\n");
         return FALSE;
         // LCOV_EXCL_STOP
@@ -138,7 +138,7 @@ _netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanN
     }
 
     if (netdef->sriov_explicit_vf_count != G_MAXUINT && count > netdef->sriov_explicit_vf_count) {
-        g_set_error(error, 0, 0, "more VFs allocated than the explicit size declared: %d > %d", count, netdef->sriov_explicit_vf_count);
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "more VFs allocated than the explicit size declared: %d > %d", count, netdef->sriov_explicit_vf_count);
         return -1;
     }
     return netdef->sriov_explicit_vf_count != G_MAXUINT ? netdef->sriov_explicit_vf_count : count;

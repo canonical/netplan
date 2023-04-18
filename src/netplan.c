@@ -978,7 +978,7 @@ netplan_netdef_write_yaml(
 
     // LCOV_EXCL_START
 err_path:
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter->problem);
+    g_set_error(error, NETPLAN_EMITTER_ERROR, NETPLAN_ERROR_YAML_EMITTER, "Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
     fclose(output);
     return FALSE;
@@ -1085,14 +1085,14 @@ skip_netdefs:
 
     // LCOV_EXCL_START
 err_path:
-    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "Error generating YAML: %s", emitter->problem);
+    g_set_error(error, NETPLAN_EMITTER_ERROR, NETPLAN_ERROR_YAML_EMITTER, "Error generating YAML: %s", emitter->problem);
     yaml_emitter_delete(emitter);
     fclose(out_stream);
     return FALSE;
     // LCOV_EXCL_STOP
 
 file_error:
-    g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+    g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
     return FALSE;
 }
 
@@ -1129,7 +1129,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     gboolean write_globals = !!np_state->global_renderer;
     if (to_write == NULL && !write_globals) {
         if (unlink(path) && errno != ENOENT) {
-            g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+            g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
             return FALSE;
         }
         return TRUE;
@@ -1138,7 +1138,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     tmp_path = g_strdup_printf("%s.XXXXXX", path);
     out_fd = mkstemp(tmp_path); // permissions 0600 by default
     if (out_fd < 0) {
-        g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
         return FALSE;
     }
 
@@ -1148,7 +1148,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     if (ret) {
         if (rename(tmp_path, path) == 0)
             return TRUE;
-        g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+        g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
     }
     /* Something went wrong, clean up the tempfile! */
     unlink(tmp_path);
@@ -1242,7 +1242,7 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
     goto cleanup;
 
 file_error:
-    g_set_error(error, G_FILE_ERROR, errno, "%s", strerror(errno));
+    g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
     ret = FALSE;
 cleanup:
     if (out_fd >= 0)
