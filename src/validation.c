@@ -351,59 +351,59 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
 
     /* set-name: requires match: */
     if (nd->set_name && !nd->has_match)
-        return yaml_error(npp, node, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
+        return yaml_error(npp, NULL, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
 
     if (nd->type == NETPLAN_DEF_TYPE_WIFI && nd->access_points == NULL)
-        return yaml_error(npp, node, error, "%s: No access points defined", nd->id);
+        return yaml_error(npp, NULL, error, "%s: No access points defined", nd->id);
 
     if (nd->type == NETPLAN_DEF_TYPE_VLAN) {
         if (!nd->vlan_link)
-            return yaml_error(npp, node, error, "%s: missing 'link' property", nd->id);
+            return yaml_error(npp, NULL, error, "%s: missing 'link' property", nd->id);
         nd->vlan_link->has_vlans = TRUE;
         if (nd->vlan_id == G_MAXUINT)
-            return yaml_error(npp, node, error, "%s: missing 'id' property", nd->id);
+            return yaml_error(npp, NULL, error, "%s: missing 'id' property", nd->id);
         if (nd->vlan_id > 4094)
-            return yaml_error(npp, node, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
+            return yaml_error(npp, NULL, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
         nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
         if (nd->vxlan->vni == 0)
-            return yaml_error(npp, node, error,
+            return yaml_error(npp, NULL, error,
                               "%s: missing 'id' property (VXLAN VNI)", nd->id);
         if (nd->vxlan->vni < 1 || nd->vxlan->vni > 16777215)
-            return yaml_error(npp, node, error, "%s: VXLAN 'id' (VNI) "
+            return yaml_error(npp, NULL, error, "%s: VXLAN 'id' (VNI) "
                               "must be in range [1..16777215]", nd->id);
         if (nd->vxlan->flow_label != G_MAXUINT && nd->vxlan->flow_label > 1048575)
-            return yaml_error(npp, node, error, "%s: VXLAN 'flow-label' "
+            return yaml_error(npp, NULL, error, "%s: VXLAN 'flow-label' "
                               "must be in range [0..1048575]", nd->id);
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_VRF) {
         if (nd->vrf_table == G_MAXUINT)
-            return yaml_error(npp, node, error, "%s: missing 'table' property", nd->id);
+            return yaml_error(npp, NULL, error, "%s: missing 'table' property", nd->id);
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
-        valid = validate_tunnel_grammar(npp, nd, node, error);
+        valid = validate_tunnel_grammar(npp, nd, NULL, error);
         if (!valid)
             goto netdef_grammar_error;
     }
 
     if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && nd->ip6_addr_gen_token)
-        return yaml_error(npp, node, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
+        return yaml_error(npp, NULL, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
 
     if (nd->backend == NETPLAN_BACKEND_OVS) {
         // LCOV_EXCL_START
         if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
             /* Tested via integration test */
-            return yaml_error(npp, node, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
+            return yaml_error(npp, NULL, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
         }
         // LCOV_EXCL_STOP
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.nm.passthrough || !g_datalist_get_data(&nd->backend_settings.nm.passthrough, "connection.type")))
-        return yaml_error(npp, node, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
+        return yaml_error(npp, NULL, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
 
     if (npp->current.netdef)
         validate_interface_name_length(npp->current.netdef);
