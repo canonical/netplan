@@ -1152,8 +1152,10 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
         if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT) {
             g_string_append(s, "wowlan_triggers=");
-            if (!append_wifi_wowlan_flags(def->wowlan, s, error))
+            if (!append_wifi_wowlan_flags(def->wowlan, s, error)) {
+                g_string_free(s, TRUE);
                 return FALSE;
+            }
         }
         /* available as of wpa_supplicant version 0.6.7 */
         if (def->regulatory_domain) {
@@ -1203,13 +1205,16 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
                     break;
                 default:
                     g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: %s: %s: networkd does not support this wifi mode\n", def->id, ap->ssid);
+                    g_string_free(s, TRUE);
                     return FALSE;
             }
 
             /* wifi auth trumps netdef auth */
             if (ap->has_auth) {
-                if (!append_wpa_auth_conf(s, &ap->auth, ap->ssid, error))
+                if (!append_wpa_auth_conf(s, &ap->auth, ap->ssid, error)) {
+                    g_string_free(s, TRUE);
                     return FALSE;
+                }
             }
             else {
                 g_string_append(s, "  key_mgmt=NONE\n");
@@ -1220,8 +1225,10 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
     else {
         /* wired 802.1x auth or similar */
         g_string_append(s, "network={\n");
-        if (!append_wpa_auth_conf(s, &def->auth, def->id, error))
+        if (!append_wpa_auth_conf(s, &def->auth, def->id, error)) {
+            g_string_free(s, TRUE);
             return FALSE;
+        }
         g_string_append(s, "}\n");
     }
 
