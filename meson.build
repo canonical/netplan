@@ -65,6 +65,7 @@ test_env = [
     'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
     'COVERAGE_PROCESS_START=' + join_paths(meson.current_source_dir(), '.coveragerc'),
+    'G_DEBUG=fatal_criticals',
 ]
 
 if get_option('unit_testing')
