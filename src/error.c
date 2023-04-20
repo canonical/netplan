@@ -159,7 +159,7 @@ yaml_error(const NetplanParser *npp, const yaml_node_t* node, GError** error, co
 
     va_start(argp, msg);
     g_vasprintf(&s, msg, argp);
-    if (node != NULL) {
+    if (node != NULL && npp->current.filepath != NULL) {
         error_context = get_syntax_error_context(npp, node->start_mark.line, node->start_mark.column, error);
         g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_PARSE,
                     "%s:%zu:%zu: Error in network definition: %s\n%s",
