@@ -667,8 +667,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             write_bridge_params(def, kf);
         if (def->type == NETPLAN_DEF_TYPE_VRF) {
             g_key_file_set_uint64(kf, "vrf", "table", def->vrf_table);
-            write_routes(def, kf, AF_INET, error);
-            write_routes(def, kf, AF_INET6, error);
+            if (!write_routes(def, kf, AF_INET, error) || !write_routes(def, kf, AF_INET6, error))
+                return FALSE;
         }
     }
     if (def->type == NETPLAN_DEF_TYPE_MODEM) {
