@@ -469,7 +469,7 @@ systemd_escape(char* string)
     gint exit_status = 0;
     gchar *escaped;
 
-    gchar *argv[] = {"bin" "/" "systemd-escape", string, NULL};
+    gchar *argv[] = {"bin" "/" "systemd-escape", "--", string, NULL};
     g_spawn_sync("/", argv, NULL, 0, NULL, NULL, &escaped, &stderrh, &exit_status, &err);
     #if GLIB_CHECK_VERSION (2, 70, 0)
     g_spawn_check_wait_status(exit_status, &err);
