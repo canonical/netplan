@@ -985,3 +985,17 @@ class TestConfigErrors(TestBase):
     engreen:
       activation-mode: invalid''', expect_fail=True)
         self.assertIn("needs to be 'manual' or 'off'", err)
+
+    def test_nm_only_supports_unicast_routes(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  vrfs:
+    vrf100:
+      table: 100
+      routes:
+        - to: 1.2.3.4/24
+          type: throw
+      routing-policy:
+        - to: 1.2.3.4/24''', expect_fail=True)
+        self.assertIn("NetworkManager only supports unicast routes", err)
