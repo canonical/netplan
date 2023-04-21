@@ -1238,11 +1238,29 @@ The specific settings for bridges are defined below.
     > priority. The bridge with the higher priority will be elected as
     > the root bridge.
 
-  - **port-priority** (scalar)
+  - **port-priority** (mapping)
 
     > Set the port priority to <priority>. The priority value is
     > a number between `0` and `63`. This metric is used in the
     > designated port and root port selection algorithms.
+
+    Example:
+
+    ```yaml
+    network:
+      ethernets:
+        eth0:
+          dhcp4: false
+        eth1:
+          dhcp4: false
+      bridges:
+        br0:
+          interfaces: [eth0, eth1]
+          parameters:
+            port-priority:
+              eth0: 10
+              eth1: 20
+    ```
 
   - **forward-delay** (scalar)
 
@@ -1268,11 +1286,29 @@ The specific settings for bridges are defined below.
     > renderer is used. If no time suffix is specified, the value will be
     > interpreted as seconds.
 
-  - **path-cost** (scalar)
+  - **path-cost** (mapping)
 
     > Set the cost of a path on the bridge. Faster interfaces should have
     > a lower cost. This allows a finer control on the network topology
     > so that the fastest paths are available whenever possible.
+
+    Example:
+
+    ```yaml
+    network:
+      ethernets:
+        eth0:
+          dhcp4: false
+        eth1:
+          dhcp4: false
+      bridges:
+        br0:
+          interfaces: [eth0, eth1]
+          parameters:
+            path-cost:
+              eth0: 100
+              eth1: 200
+    ```
 
   - **stp** (bool)
 
