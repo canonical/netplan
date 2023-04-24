@@ -1240,7 +1240,7 @@ The specific settings for bridges are defined below.
 
   - **port-priority** (mapping)
 
-    > Set the port priority to <priority>. The priority value is
+    > Set the port priority per interface. The priority value is
     > a number between `0` and `63`. This metric is used in the
     > designated port and root port selection algorithms.
 
