@@ -186,3 +186,41 @@ class TestConfigErrors(TestBase):
         from: 2.3.4.5
 ''', expect_fail=True)
         self.assertIn("vrf0: VRF routing-policy table mismatch (45 != 46)", err)
+
+    def test_vrf_without_routing_policies_lp2016427(self):
+        '''
+        Test that a VRF without policies will not crash.
+        See LP: #2016427
+        '''
+        self.generate('''network:
+  version: 2
+  vrfs:
+    vrf1005:
+      table: 1005
+      routes:
+      - to: default
+        via: 1.2.3.4''')
+
+        self.assert_networkd({'vrf1005.network': ND_EMPTY % ('vrf1005', 'ipv6') + '''
+[Route]
+Destination=0.0.0.0/0
+Gateway=1.2.3.4
+Table=1005
+''',
+                              'vrf1005.netdev': ND_VRF % ('vrf1005', 1005)})
+
+    def test_vrf_without_routes(self):
+        self.generate('''network:
+  version: 2
+  vrfs:
+    vrf1005:
+      table: 1005
+      routing-policy:
+      - from: 2.3.4.5''')
+
+        self.assert_networkd({'vrf1005.network': ND_EMPTY % ('vrf1005', 'ipv6') + '''
+[RoutingPolicyRule]
+From=2.3.4.5
+Table=1005
+''',
+                              'vrf1005.netdev': ND_VRF % ('vrf1005', 1005)})
