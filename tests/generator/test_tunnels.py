@@ -332,7 +332,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                            'keepalive': 14,
                                            'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: 'to' is required to define the allowed IPs.", out)
+        self.assertIn("Error in network definition: wg0: 'allowed-ips' is required for wireguard peers.", out)
 
     def test_vxlan_port_range_fail(self):
         out = self.generate('''network:
