@@ -218,7 +218,7 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
             if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
                 return yaml_error(npp, node, error, "%s: invalid wireguard shared key", nd->id);
             if (!peer->allowed_ips || peer->allowed_ips->len == 0)
-                return yaml_error(npp, node, error, "%s: 'to' is required to define the allowed IPs.", nd->id);
+                return yaml_error(npp, node, error, "%s: 'allowed-ips' is required for wireguard peers.", nd->id);
             if (peer->keepalive > 65535)
                 return yaml_error(npp, node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
         }
