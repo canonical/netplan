@@ -330,7 +330,6 @@ write_bridge_params(const NetplanNetDefinition* def, GKeyFile *kf)
 static gboolean
 write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** error)
 {
-    gchar* tmp_group = NULL;
     g_assert(def->tunnel.private_key);
 
     /* The key was already validated via validate_tunnel_grammar(), but we need
@@ -351,7 +350,7 @@ write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** e
     for (guint i = 0; i < def->wireguard_peers->len; i++) {
         NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
         g_assert(peer->public_key);
-        tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
+        g_autofree gchar* tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
 
         if (peer->keepalive)
             g_key_file_set_integer(kf, tmp_group, "persistent-keepalive", peer->keepalive);
@@ -377,7 +376,6 @@ write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** e
                 list[j] = g_array_index(peer->allowed_ips, char*, j);
             g_key_file_set_string_list(kf, tmp_group, "allowed-ips", list, peer->allowed_ips->len);
         }
-        g_free(tmp_group);
     }
     return TRUE;
 }
