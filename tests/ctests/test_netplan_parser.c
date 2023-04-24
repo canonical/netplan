@@ -236,6 +236,32 @@ test_netplan_parser_process_document_missing_interface_error(void** state)
     assert_true(found);
 }
 
+void
+test_nm_device_backend_is_nm_by_default(void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  nm-devices:\n"
+        "    device0:\n"
+        "      networkmanager:\n"
+        "        uuid: db5f0f67-1f4c-4d59-8ab8-3d278389cf87\n"
+        "        name: connection-123\n"
+        "        passthrough:\n"
+        "          connection.type: vpn\n";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+    netplan_state_iterator_init(np_state, &iter);
+
+    netdef = netplan_state_iterator_next(&iter);
+
+    assert_true(netdef->backend == NETPLAN_BACKEND_NM);
+
+    netplan_state_clear(&np_state);
+}
+
 int
 setup(void** state)
 {
@@ -264,6 +290,7 @@ main()
            cmocka_unit_test(test_netplan_parser_sriov_embedded_switch),
            cmocka_unit_test(test_netplan_parser_process_document_proper_error),
            cmocka_unit_test(test_netplan_parser_process_document_missing_interface_error),
+           cmocka_unit_test(test_nm_device_backend_is_nm_by_default),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
