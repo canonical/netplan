@@ -768,11 +768,37 @@ handle_netdef_map(NetplanParser* npp, yaml_node_t* node, const char* key_prefix,
     return handle_generic_map(npp, node, key_prefix, npp->current.netdef, data, error);
 }
 
+/*
+ * Check if the passthrough key format is incorrect and remove it from the list.
+ * user_data is expected to contain a pointer to the GData list.
+ */
+static void
+validate_kf_group_key(GQuark key_id, gpointer value, gpointer user_data)
+{
+    GData** list = user_data;
+    const gchar* key = g_quark_to_string(key_id);
+    gchar** group_key = g_strsplit(key, ".", -1);
+    if (g_strv_length(group_key) < 2) {
+        g_warning("NetworkManager: passthrough key '%s' format is invalid, should be 'group.key'.", key);
+        g_datalist_id_remove_data(list, key_id);
+    }
+    g_strfreev(group_key);
+}
+
 static gboolean
-handle_netdef_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
+handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.netdef);
-    return handle_generic_datalist(npp, node, key_prefix, npp->current.netdef, data, error);
+    gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.netdef, data, error);
+
+    GData** list = &npp->current.netdef->backend_settings.nm.passthrough;
+    g_datalist_foreach(list, validate_kf_group_key, list);
+
+    if (*list == NULL) {
+        g_datalist_clear(list);
+    }
+
+    return ret;
 }
 
 /****************************************************
@@ -914,7 +940,15 @@ static gboolean
 handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.access_point);
-    return handle_generic_datalist(npp, node, key_prefix, npp->current.access_point, data, error);
+    gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.access_point, data, error);
+
+    GData** list = &npp->current.access_point->backend_settings.nm.passthrough;
+    g_datalist_foreach(list, validate_kf_group_key, list);
+
+    if (*list == NULL) {
+        g_datalist_clear(list);
+    }
+    return ret;
 }
 
 static gboolean
@@ -1001,7 +1035,7 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(backend_settings.nm.stable_id)},
     {"device", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_datalist}}, netdef_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_passthrough_datalist}}, netdef_offset(backend_settings.nm.passthrough)},
     {NULL}
 };
 

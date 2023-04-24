@@ -329,3 +329,24 @@ method=auto
 [ipv6]
 method=auto
 '''})
+
+    def test_passthrough_empty_keyfile_group(self):
+        out = self.generate('''network:
+  wifis:
+    wlan0:
+      access-points:
+        "SSID":
+          networkmanager:
+            name: connection_name
+            passthrough:
+              itsmissingadot: abc
+  nm-devices:
+    device0:
+      networkmanager:
+        name: connection_name
+        passthrough:
+          connection.type: vpn
+          itsmissingadot: abc
+  renderer: NetworkManager''', skip_generated_yaml_validation=True)
+
+        self.assertIn("NetworkManager: passthrough key 'itsmissingadot' format is invalid, should be 'group.key'", out)
