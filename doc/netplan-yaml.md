@@ -1288,9 +1288,9 @@ The specific settings for bridges are defined below.
 
   - **path-cost** (mapping)
 
-    > Set the cost of a path on the bridge. Faster interfaces should have
-    > a lower cost. This allows a finer control on the network topology
-    > so that the fastest paths are available whenever possible.
+    > Set the per-interface cost of a path on the bridge. Faster interfaces
+    > should have a lower cost. This allows a finer control on the network
+    > topology so that the fastest paths are available whenever possible.
 
     Example:
 
