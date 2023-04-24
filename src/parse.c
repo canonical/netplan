@@ -527,7 +527,8 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
                 continue;
         }
 
-        g_datalist_set_data_full(list, scalar(key), g_strdup(scalar(value)), g_free);
+        g_datalist_id_set_data_full(list, g_quark_from_string(scalar(key)),
+                                    g_strdup(scalar(value)), g_free);
     }
     mark_data_as_dirty(npp, list);
 
