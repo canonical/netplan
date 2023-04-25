@@ -347,6 +347,45 @@ method=auto
         passthrough:
           connection.type: vpn
           itsmissingadot: abc
-  renderer: NetworkManager''', skip_generated_yaml_validation=True)
+  renderer: NetworkManager''', expect_fail=True, skip_generated_yaml_validation=True)
 
         self.assertIn("NetworkManager: passthrough key 'itsmissingadot' format is invalid, should be 'group.key'", out)
+
+    def test_passthrough_wifi_without_network_manager(self):
+        out = self.generate('''network:
+  wifis:
+    wlan0:
+      access-points:
+        "SSID":
+          networkmanager:
+            name: connection_name
+            passthrough:
+              new.option: abc''', expect_fail=True, skip_generated_yaml_validation=True)
+
+        self.assertIn("wlan0: networkmanager backend settings found but renderer is not NetworkManager", out)
+
+    def test_passthrough_wifi_empty_group_with_network_manager(self):
+        out = self.generate('''network:
+  wifis:
+    wlan0:
+      renderer: NetworkManager
+      access-points:
+        "SSID":
+          networkmanager:
+            name: connection_name
+            passthrough:
+              itsmissingadot: abc''', skip_generated_yaml_validation=True)
+
+        self.assertIn("NetworkManager: passthrough key 'itsmissingadot' format is invalid, should be 'group.key'", out)
+
+    def test_passthrough_empty_keyfile_group_only(self):
+        out = self.generate('''network:
+  nm-devices:
+    device0:
+      networkmanager:
+        name: connection_name
+        passthrough:
+          itsmissingadot: abc
+  renderer: NetworkManager''', expect_fail=True, skip_generated_yaml_validation=True)
+
+        self.assertIn("device0: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", out)

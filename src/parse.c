@@ -768,6 +768,13 @@ handle_netdef_map(NetplanParser* npp, yaml_node_t* node, const char* key_prefix,
     return handle_generic_map(npp, node, key_prefix, npp->current.netdef, data, error);
 }
 
+static gboolean
+handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    npp->current.netdef->has_backend_settings_nm = TRUE;
+    return handle_generic_str(npp, node, npp->current.netdef, data, error);
+}
+
 /*
  * Check if the passthrough key format is incorrect and remove it from the list.
  * user_data is expected to contain a pointer to the GData list.
@@ -797,6 +804,8 @@ handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const 
     if (*list == NULL) {
         g_datalist_clear(list);
     }
+
+    npp->current.netdef->has_backend_settings_nm = TRUE;
 
     return ret;
 }
@@ -931,8 +940,9 @@ get_default_backend_for_type(NetplanBackend global_backend, NetplanDefType type)
 }
 
 static gboolean
-handle_access_point_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_ap_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
+    npp->current.netdef->has_backend_settings_nm = TRUE;
     return handle_generic_str(npp, node, npp->current.access_point, data, error);
 }
 
@@ -948,6 +958,9 @@ handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* 
     if (*list == NULL) {
         g_datalist_clear(list);
     }
+
+    npp->current.netdef->has_backend_settings_nm = TRUE;
+
     return ret;
 }
 
@@ -1030,10 +1043,10 @@ handle_access_point_band(NetplanParser* npp, yaml_node_t* node, const void* _, G
 
 /* Keep in sync with ap_nm_backend_settings_handlers */
 static const mapping_entry_handler nm_backend_settings_handlers[] = {
-    {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(backend_settings.nm.name)},
-    {"uuid", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(backend_settings.nm.uuid)},
-    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(backend_settings.nm.stable_id)},
-    {"device", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(backend_settings.nm.device)},
+    {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.name)},
+    {"uuid", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.stable_id)},
+    {"device", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
     {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_passthrough_datalist}}, netdef_offset(backend_settings.nm.passthrough)},
     {NULL}
@@ -1041,10 +1054,10 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
 
 /* Keep in sync with nm_backend_settings_handlers */
 static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
-    {"name", YAML_SCALAR_NODE, {.generic=handle_access_point_str}, access_point_offset(backend_settings.nm.name)},
-    {"uuid", YAML_SCALAR_NODE, {.generic=handle_access_point_str}, access_point_offset(backend_settings.nm.uuid)},
-    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_access_point_str}, access_point_offset(backend_settings.nm.stable_id)},
-    {"device", YAML_SCALAR_NODE, {.generic=handle_access_point_str}, access_point_offset(backend_settings.nm.device)},
+    {"name", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.name)},
+    {"uuid", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.stable_id)},
+    {"device", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
     {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_datalist}}, access_point_offset(backend_settings.nm.passthrough)},
     {NULL}
