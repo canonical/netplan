@@ -357,6 +357,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
 
     reset_ovs_settings(&netdef->ovs_settings);
     reset_backend_settings(&netdef->backend_settings, backend);
+    netdef->has_backend_settings_nm = FALSE;
 
     FREE_AND_NULLIFY(netdef->filepath);
     netdef->tunnel_ttl = 0;
