@@ -383,4 +383,7 @@ struct netplan_net_definition {
     NetplanNetDefinition* bridge_link;
     NetplanNetDefinition* bond_link;
     NetplanNetDefinition* peer_link;
+
+    /* True if "networkmanager" settings are present */
+    gboolean has_backend_settings_nm;
 };

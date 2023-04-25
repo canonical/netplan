@@ -340,6 +340,7 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
 {
     int missing_id_count = g_hash_table_size(npp->missing_id);
     gboolean valid = FALSE;
+    NetplanBackend backend = nd->backend;
 
     g_assert(nd->type != NETPLAN_DEF_TYPE_NONE);
 
@@ -407,6 +408,13 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
 
     if (npp->current.netdef)
         validate_interface_name_length(npp->current.netdef);
+
+    if (backend == NETPLAN_BACKEND_NONE)
+        backend = npp->global_backend;
+
+    if (nd->has_backend_settings_nm && backend != NETPLAN_BACKEND_NM) {
+            return yaml_error(npp, NULL, error, "%s: networkmanager backend settings found but renderer is not NetworkManager.", nd->id);
+    }
 
     valid = TRUE;
 
