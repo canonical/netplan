@@ -159,25 +159,15 @@ reset_ip_rule(NetplanIPRule* ip_rule)
     ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 }
 
-/* Reset a backend settings object. The caller needs to specify the actual backend as it is not
- * contained within the object itself! */
+/* Reset a backend settings object. */
 static void
-reset_backend_settings(NetplanBackendSettings* settings, NetplanBackend backend)
+reset_backend_settings(NetplanBackendSettings* settings)
 {
-    switch (backend) {
-        case NETPLAN_BACKEND_NETWORKD:
-            FREE_AND_NULLIFY(settings->networkd.unit);
-            break;
-        case NETPLAN_BACKEND_NM:
-            FREE_AND_NULLIFY(settings->nm.name);
-            FREE_AND_NULLIFY(settings->nm.uuid);
-            FREE_AND_NULLIFY(settings->nm.stable_id);
-            FREE_AND_NULLIFY(settings->nm.device);
-            g_datalist_clear(&settings->nm.passthrough);
-            break;
-        default:
-            break;
-    }
+    FREE_AND_NULLIFY(settings->name);
+    FREE_AND_NULLIFY(settings->uuid);
+    FREE_AND_NULLIFY(settings->stable_id);
+    FREE_AND_NULLIFY(settings->device);
+    g_datalist_clear(&settings->passthrough);
 }
 
 static void
@@ -217,7 +207,7 @@ free_access_point(void* key, void* value, void* data)
     g_free(ap->ssid);
     g_free(ap->bssid);
     reset_auth_settings(&ap->auth);
-    reset_backend_settings(&ap->backend_settings, *((NetplanBackend *)data));
+    reset_backend_settings(&ap->backend_settings);
     g_free(ap);
 }
 
@@ -356,7 +346,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->embedded_switch_mode);
 
     reset_ovs_settings(&netdef->ovs_settings);
-    reset_backend_settings(&netdef->backend_settings, backend);
+    reset_backend_settings(&netdef->backend_settings);
     netdef->has_backend_settings_nm = FALSE;
 
     FREE_AND_NULLIFY(netdef->filepath);

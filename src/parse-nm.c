@@ -493,10 +493,10 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     nd = netplan_netdef_new(npp, nd_id, nd_type, NETPLAN_BACKEND_NM);
 
     /* Handle uuid & NM name/id */
-    nd->backend_settings.nm.uuid = g_strdup(uuid);
+    nd->backend_settings.uuid = g_strdup(uuid);
     _kf_clear_key(kf, "connection", "uuid");
-    nd->backend_settings.nm.name = g_key_file_get_string(kf, "connection", "id", NULL);
-    if (nd->backend_settings.nm.name)
+    nd->backend_settings.name = g_key_file_get_string(kf, "connection", "id", NULL);
+    if (nd->backend_settings.name)
         _kf_clear_key(kf, "connection", "id");
 
     if (nd_type == NETPLAN_DEF_TYPE_NM)
@@ -773,15 +773,15 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
 
         /* Last: handle passthrough for everything left in the keyfile
          *       Also, transfer backend_settings from netdef to AP */
-        ap->backend_settings.nm.uuid = g_strdup(nd->backend_settings.nm.uuid);
-        ap->backend_settings.nm.name = g_strdup(nd->backend_settings.nm.name);
+        ap->backend_settings.uuid = g_strdup(nd->backend_settings.uuid);
+        ap->backend_settings.name = g_strdup(nd->backend_settings.name);
         /* No need to clear nm.uuid & nm.name from def->backend_settings,
          * as we have only one AP. */
-        read_passthrough(kf, &ap->backend_settings.nm.passthrough);
+        read_passthrough(kf, &ap->backend_settings.passthrough);
     } else {
 only_passthrough:
         /* Last: handle passthrough for everything left in the keyfile */
-        read_passthrough(kf, &nd->backend_settings.nm.passthrough);
+        read_passthrough(kf, &nd->backend_settings.passthrough);
     }
 
     g_key_file_free(kf);
