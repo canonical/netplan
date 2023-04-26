@@ -147,17 +147,12 @@ typedef struct ovs_settings {
     NetplanAuthenticationSettings ssl;
 } NetplanOVSSettings;
 
-typedef union {
-    struct NetplanNMSettings {
-        char *name;
-        char *uuid;
-        char *stable_id;
-        char *device;
-        GData* passthrough; /* See g_datalist* functions */
-    } nm;
-    struct NetplanNetworkdSettings {
-        char *unit;
-    } networkd;
+typedef struct netplan_backend_settings {
+    char *name;
+    char *uuid;
+    char *stable_id;
+    char *device;
+    GData* passthrough; /* See g_datalist* functions */
 } NetplanBackendSettings;
 
 typedef enum

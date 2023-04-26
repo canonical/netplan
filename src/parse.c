@@ -798,7 +798,7 @@ handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const 
     g_assert(npp->current.netdef);
     gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.netdef, data, error);
 
-    GData** list = &npp->current.netdef->backend_settings.nm.passthrough;
+    GData** list = &npp->current.netdef->backend_settings.passthrough;
     g_datalist_foreach(list, validate_kf_group_key, list);
 
     if (*list == NULL) {
@@ -952,7 +952,7 @@ handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* 
     g_assert(npp->current.access_point);
     gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.access_point, data, error);
 
-    GData** list = &npp->current.access_point->backend_settings.nm.passthrough;
+    GData** list = &npp->current.access_point->backend_settings.passthrough;
     g_datalist_foreach(list, validate_kf_group_key, list);
 
     if (*list == NULL) {
@@ -1043,23 +1043,23 @@ handle_access_point_band(NetplanParser* npp, yaml_node_t* node, const void* _, G
 
 /* Keep in sync with ap_nm_backend_settings_handlers */
 static const mapping_entry_handler nm_backend_settings_handlers[] = {
-    {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.name)},
-    {"uuid", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.uuid)},
-    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.stable_id)},
-    {"device", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.nm.device)},
+    {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.name)},
+    {"uuid", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.stable_id)},
+    {"device", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_passthrough_datalist}}, netdef_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_passthrough_datalist}}, netdef_offset(backend_settings.passthrough)},
     {NULL}
 };
 
 /* Keep in sync with nm_backend_settings_handlers */
 static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
-    {"name", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.name)},
-    {"uuid", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.uuid)},
-    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.stable_id)},
-    {"device", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.nm.device)},
+    {"name", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.name)},
+    {"uuid", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.uuid)},
+    {"stable-id", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.stable_id)},
+    {"device", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_datalist}}, access_point_offset(backend_settings.nm.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_datalist}}, access_point_offset(backend_settings.passthrough)},
     {NULL}
 };
 

@@ -94,8 +94,8 @@ type_str(const NetplanNetDefinition* def)
             return "ip-tunnel";
         case NETPLAN_DEF_TYPE_NM:
             /* needs to be overriden by passthrough "connection.type" setting */
-            g_assert(def->backend_settings.nm.passthrough);
-            GData *passthrough = def->backend_settings.nm.passthrough;
+            g_assert(def->backend_settings.passthrough);
+            GData *passthrough = def->backend_settings.passthrough;
             return g_datalist_get_data(&passthrough, "connection.type");
         // LCOV_EXCL_START
         default:
@@ -515,7 +515,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
 
 /**
  * Special handling for passthrough mode: read key-value pairs from
- * "backend_settings.nm.passthrough" and inject them into the keyfile as-is.
+ * "backend_settings.passthrough" and inject them into the keyfile as-is.
  */
 static void
 write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
@@ -598,10 +598,10 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     }
 
     kf = g_key_file_new();
-    if (ap && ap->backend_settings.nm.name)
-        g_key_file_set_string(kf, "connection", "id", ap->backend_settings.nm.name);
-    else if (def->backend_settings.nm.name)
-        g_key_file_set_string(kf, "connection", "id", def->backend_settings.nm.name);
+    if (ap && ap->backend_settings.name)
+        g_key_file_set_string(kf, "connection", "id", ap->backend_settings.name);
+    else if (def->backend_settings.name)
+        g_key_file_set_string(kf, "connection", "id", def->backend_settings.name);
     else {
         /* Auto-generate a name for the connection profile, if not specified */
         if (ap)
@@ -615,10 +615,10 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     if (nm_type && def->type != NETPLAN_DEF_TYPE_NM)
         g_key_file_set_string(kf, "connection", "type", nm_type);
 
-    if (ap && ap->backend_settings.nm.uuid)
-        g_key_file_set_string(kf, "connection", "uuid", ap->backend_settings.nm.uuid);
-    else if (def->backend_settings.nm.uuid)
-        g_key_file_set_string(kf, "connection", "uuid", def->backend_settings.nm.uuid);
+    if (ap && ap->backend_settings.uuid)
+        g_key_file_set_string(kf, "connection", "uuid", ap->backend_settings.uuid);
+    else if (def->backend_settings.uuid)
+        g_key_file_set_string(kf, "connection", "uuid", def->backend_settings.uuid);
     /* VLAN/VXLAN devices refer to us as their parent; if our ID is not a name
      * but we have matches, parent= must be the connection UUID, so put it into
      * the connection */
@@ -873,11 +873,11 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     else
         g_key_file_set_string(kf, "ipv6", "method", "ignore");
 
-    if (def->backend_settings.nm.passthrough) {
+    if (def->backend_settings.passthrough) {
         g_debug("NetworkManager: using keyfile passthrough mode");
         /* Write all key-value pairs from the hashtable into the keyfile,
          * potentially overriding existing values, if not fully supported. */
-        g_datalist_foreach((GData**)&def->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+        g_datalist_foreach((GData**)&def->backend_settings.passthrough, write_fallback_key_value, kf);
     }
 
     if (ap) {
@@ -907,14 +907,14 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         if (ap->has_auth) {
             write_wifi_auth_parameters(&ap->auth, kf);
         }
-        if (ap->backend_settings.nm.passthrough) {
+        if (ap->backend_settings.passthrough) {
             g_debug("NetworkManager: using AP keyfile passthrough mode");
             /* Write all key-value pairs from the hashtable into the keyfile,
              * potentially overriding existing values, if not fully supported.
              * AP passthrough values have higher priority than ND passthrough,
              * because they are more specific and bound to the current SSID's
              * NM connection profile. */
-            g_datalist_foreach((GData**)&ap->backend_settings.nm.passthrough, write_fallback_key_value, kf);
+            g_datalist_foreach((GData**)&ap->backend_settings.passthrough, write_fallback_key_value, kf);
         }
     } else {
         /* TODO: make use of netplan_netdef_get_output_filename() */

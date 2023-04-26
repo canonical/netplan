@@ -346,18 +346,18 @@ err_path: return; // LCOV_EXCL_LINE
 
 static gboolean
 write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBackendSettings s) {
-    if (s.nm.uuid || s.nm.name || s.nm.passthrough) {
+    if (s.uuid || s.name || s.passthrough) {
         YAML_SCALAR_PLAIN(event, emitter, "networkmanager");
         YAML_MAPPING_OPEN(event, emitter);
-        YAML_NONNULL_STRING(event, emitter, "uuid", s.nm.uuid);
-        YAML_NONNULL_STRING(event, emitter, "name", s.nm.name);
-        if (s.nm.passthrough) {
+        YAML_NONNULL_STRING(event, emitter, "uuid", s.uuid);
+        YAML_NONNULL_STRING(event, emitter, "name", s.name);
+        if (s.passthrough) {
             YAML_SCALAR_PLAIN(event, emitter, "passthrough");
             YAML_MAPPING_OPEN(event, emitter);
             _passthrough_handler_data d;
             d.event = event;
             d.emitter = emitter;
-            g_datalist_foreach(&s.nm.passthrough, _passthrough_handler, &d);
+            g_datalist_foreach(&s.passthrough, _passthrough_handler, &d);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         YAML_MAPPING_CLOSE(event, emitter);
@@ -940,8 +940,8 @@ netplan_netdef_write_yaml(
 
     /* NetworkManager produces one file per connection profile
     * It's 90-* to be higher priority than the default 70-netplan-set.yaml */
-    if (netdef->backend_settings.nm.uuid)
-        filename = g_strconcat("90-NM-", netdef->backend_settings.nm.uuid, ".yaml", NULL);
+    if (netdef->backend_settings.uuid)
+        filename = g_strconcat("90-NM-", netdef->backend_settings.uuid, ".yaml", NULL);
     else
         filename = g_strconcat("10-netplan-", netdef->id, ".yaml", NULL);
     path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
