@@ -3070,7 +3070,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         }
 
         /* validate definition-level conditions */
-        if (!validate_netdef_grammar(npp, npp->current.netdef, value, error))
+        if (!validate_netdef_grammar(npp, npp->current.netdef, error))
             return FALSE;
 
         /* convenience shortcut: physical device without match: means match

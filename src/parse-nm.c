@@ -789,7 +789,7 @@ only_passthrough:
     /* validate definition-level conditions */
     if (!npp->missing_id)
         npp->missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
-    if (!validate_netdef_grammar(npp, nd, NULL, error))
+    if (!validate_netdef_grammar(npp, nd, error))
         return FALSE;
     return TRUE;
 }

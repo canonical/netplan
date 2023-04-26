@@ -31,7 +31,7 @@ NETPLAN_ABI gboolean
 is_wireguard_key(const char* hostname);
 
 gboolean
-validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error);
+validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error);
 
 gboolean
 validate_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error);
