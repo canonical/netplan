@@ -336,7 +336,7 @@ validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd
 }
 
 gboolean
-validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
+validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error)
 {
     int missing_id_count = g_hash_table_size(npp->missing_id);
     gboolean valid = FALSE;
