@@ -211,6 +211,30 @@ class TestParser(TestBase):
                 parser.load_yaml(f)
             self.assertIn('Invalid YAML', str(context.exception))
 
+    def test_load_keyfile(self):
+        parser = libnetplan.Parser()
+        state = libnetplan.State()
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(b'''[connection]
+id=Bridge connection 1
+type=bridge
+uuid=990548be-01ed-42d7-9f9f-cd4966b25c08
+interface-name=bridge0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+addr-gen-mode=1''')
+            f.seek(0, io.SEEK_SET)
+            parser.load_keyfile(f.name)
+            state.import_parser_results(parser)
+            output = io.StringIO()
+            state.dump_yaml(output)
+            yaml_data = yaml.safe_load(output.getvalue())
+            self.assertIsNotNone(yaml_data.get('network'))
+
 
 class TestState(TestBase):
     def test_get_netdef(self):
