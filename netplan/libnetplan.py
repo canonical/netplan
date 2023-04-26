@@ -22,6 +22,8 @@ import ctypes
 import ctypes.util
 from ctypes import c_char_p, c_void_p, c_int, c_uint, c_size_t, c_ssize_t
 from typing import List, Union, IO
+from io import StringIO
+import os
 
 
 class LibNetplanException(Exception):
@@ -195,9 +197,18 @@ class State:
         root = rootdir.encode('utf-8') if rootdir else None
         _checked_lib_call(lib.netplan_state_update_yaml_hierarchy, self._ptr, name, root)
 
-    def dump_yaml(self, output_file):
-        fd = output_file.fileno()
-        _checked_lib_call(lib.netplan_state_dump_yaml, self._ptr, fd)
+    def dump_yaml(self, output_file: IO):
+        if isinstance(output_file, StringIO):
+            fd = os.memfd_create(name='netplan_temp_file')
+            _checked_lib_call(lib.netplan_state_dump_yaml, self._ptr, fd)
+            size = os.lseek(fd, 0, os.SEEK_CUR)
+            os.lseek(fd, 0, os.SEEK_SET)
+            data = os.read(fd, size)
+            os.close(fd)
+            output_file.write(data.decode('utf-8'))
+        else:
+            fd = output_file.fileno()
+            _checked_lib_call(lib.netplan_state_dump_yaml, self._ptr, fd)
 
     def __len__(self):
         return lib.netplan_state_get_netdefs_size(self._ptr)
