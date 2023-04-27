@@ -1095,3 +1095,12 @@ ExecStart=/usr/bin/ovs-vsctl set-controller br123 tcp:127.0.0.1:6653\n\
 ExecStart=/usr/bin/ovs-vsctl set Bridge br123 external-ids:netplan/global/set-controller=tcp:127.0.0.1:6653\n\
 ')},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+
+    def test_both_ports_with_same_name(self):
+        err = self.generate('''network:
+    version: 2
+    openvswitch:
+      ports:
+        - [portname, portname]
+''', expect_fail=True)
+        self.assertIn('Open vSwitch patch ports must be of different name', err)
