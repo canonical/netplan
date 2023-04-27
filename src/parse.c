@@ -2926,6 +2926,9 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         peer = yaml_document_get_node(&npp->doc, *(item+1));
         assert_type(npp, peer, YAML_SCALAR_NODE);
 
+        if (!g_strcmp0(scalar(port), scalar(peer)))
+            return yaml_error(npp, peer, error, "Open vSwitch patch ports must be of different name");
+
         /* Create port 1 netdef */
         component1 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(port)) : NULL;
         if (!component1) {
