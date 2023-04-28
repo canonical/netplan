@@ -187,7 +187,7 @@ NETPLAN_EXCEPTIONS = defaultdict(lambda: NETPLAN_EXCEPTIONS_FALLBACK, {
         })
 
 
-class _GError(ctypes.Structure):
+class _NetplanError(ctypes.Structure):
     _fields_ = [("domain", ctypes.c_uint32), ("code", c_int), ("message", c_char_p)]
 
 
@@ -205,7 +205,7 @@ class _netplan_net_definition(ctypes.Structure):
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
-_GErrorPP = ctypes.POINTER(ctypes.POINTER(_GError))
+_NetplanErrorPP = ctypes.POINTER(ctypes.POINTER(_NetplanError))
 _NetplanParserP = ctypes.POINTER(_netplan_parser)
 _NetplanStateP = ctypes.POINTER(_netplan_state)
 _NetplanNetDefinitionP = ctypes.POINTER(_netplan_net_definition)
@@ -232,7 +232,7 @@ def _string_realloc_call_no_error(function):
 
 
 def _checked_lib_call(fn, *args):
-    err = ctypes.POINTER(_GError)()
+    err = ctypes.POINTER(_NetplanError)()
     ret = bool(fn(*args, ctypes.byref(err)))
     if not ret:
         error_domain = err.contents.domain
@@ -253,20 +253,20 @@ class Parser:
         lib.netplan_parser_new.restype = _NetplanParserP
         lib.netplan_parser_clear.argtypes = [ctypes.POINTER(_NetplanParserP)]
 
-        lib.netplan_parser_load_yaml.argtypes = [_NetplanParserP, c_char_p, _GErrorPP]
+        lib.netplan_parser_load_yaml.argtypes = [_NetplanParserP, c_char_p, _NetplanErrorPP]
         lib.netplan_parser_load_yaml.restype = c_int
 
-        lib.netplan_parser_load_yaml_from_fd.argtypes = [_NetplanParserP, c_int, _GErrorPP]
+        lib.netplan_parser_load_yaml_from_fd.argtypes = [_NetplanParserP, c_int, _NetplanErrorPP]
         lib.netplan_parser_load_yaml_from_fd.restype = c_int
 
-        lib.netplan_parser_load_nullable_fields.argtypes = [_NetplanParserP, c_int, _GErrorPP]
+        lib.netplan_parser_load_nullable_fields.argtypes = [_NetplanParserP, c_int, _NetplanErrorPP]
         lib.netplan_parser_load_nullable_fields.restype = c_int
 
         lib.netplan_parser_load_nullable_overrides.argtypes =\
-            [_NetplanParserP, c_int, c_char_p, _GErrorPP]
+            [_NetplanParserP, c_int, c_char_p, _NetplanErrorPP]
         lib.netplan_parser_load_nullable_overrides.restype = c_int
 
-        lib.netplan_parser_load_keyfile.argtypes = [_NetplanParserP, c_char_p, _GErrorPP]
+        lib.netplan_parser_load_keyfile.argtypes = [_NetplanParserP, c_char_p, _NetplanErrorPP]
         lib.netplan_parser_load_keyfile.restype = c_int
 
         cls._abi_loaded = True
@@ -309,7 +309,7 @@ class State:
         lib.netplan_state_new.restype = _NetplanStateP
         lib.netplan_state_clear.argtypes = [ctypes.POINTER(_NetplanStateP)]
 
-        lib.netplan_state_import_parser_results.argtypes = [_NetplanStateP, _NetplanParserP, _GErrorPP]
+        lib.netplan_state_import_parser_results.argtypes = [_NetplanStateP, _NetplanParserP, _NetplanErrorPP]
         lib.netplan_state_import_parser_results.restype = c_int
 
         lib.netplan_state_get_netdefs_size.argtypes = [_NetplanStateP]
@@ -318,13 +318,13 @@ class State:
         lib.netplan_state_get_netdef.argtypes = [_NetplanStateP, c_char_p]
         lib.netplan_state_get_netdef.restype = _NetplanNetDefinitionP
 
-        lib.netplan_state_write_yaml_file.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
+        lib.netplan_state_write_yaml_file.argtypes = [_NetplanStateP, c_char_p, c_char_p, _NetplanErrorPP]
         lib.netplan_state_write_yaml_file.restype = c_int
 
-        lib.netplan_state_update_yaml_hierarchy.argtypes = [_NetplanStateP, c_char_p, c_char_p, _GErrorPP]
+        lib.netplan_state_update_yaml_hierarchy.argtypes = [_NetplanStateP, c_char_p, c_char_p, _NetplanErrorPP]
         lib.netplan_state_update_yaml_hierarchy.restype = c_int
 
-        lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _GErrorPP]
+        lib.netplan_state_dump_yaml.argtypes = [_NetplanStateP, c_int, _NetplanErrorPP]
         lib.netplan_state_dump_yaml.restype = c_int
 
         lib.netplan_netdef_get_embedded_switch_mode.argtypes = [_NetplanNetDefinitionP]
@@ -494,7 +494,7 @@ class NetDefinition:
         lib.netplan_def_type_name.argtypes = [c_int]
         lib.netplan_def_type_name.restype = c_char_p
 
-        lib._netplan_state_get_vf_count_for_def.argtypes = [_NetplanStateP, _NetplanNetDefinitionP, _GErrorPP]
+        lib._netplan_state_get_vf_count_for_def.argtypes = [_NetplanStateP, _NetplanNetDefinitionP, _NetplanErrorPP]
         lib._netplan_state_get_vf_count_for_def.restype = c_int
 
         lib._netplan_netdef_is_trivial_compound_itf.argtypes = [_NetplanNetDefinitionP]
@@ -607,7 +607,7 @@ class NetDefinition:
 
     @property
     def vf_count(self):
-        err = ctypes.POINTER(_GError)()
+        err = ctypes.POINTER(_NetplanError)()
         count = lib._netplan_state_get_vf_count_for_def(self._parent._ptr, self._ptr, ctypes.byref(err))
         if count < 0:
             raise NetplanException(err.contents.message.decode('utf-8'))
@@ -668,10 +668,10 @@ class _NetdefIterator:
         return NetDefinition(self.np_state, next_value)
 
 
-lib.netplan_util_create_yaml_patch.argtypes = [c_char_p, c_char_p, c_int, _GErrorPP]
+lib.netplan_util_create_yaml_patch.argtypes = [c_char_p, c_char_p, c_int, _NetplanErrorPP]
 lib.netplan_util_create_yaml_patch.restype = c_int
 
-lib.netplan_util_dump_yaml_subtree.argtypes = [c_char_p, c_int, c_int, _GErrorPP]
+lib.netplan_util_dump_yaml_subtree.argtypes = [c_char_p, c_int, c_int, _NetplanErrorPP]
 lib.netplan_util_dump_yaml_subtree.restype = c_int
 
 
