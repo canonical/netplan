@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import ConfigParser
-from netplan.libnetplan import _GError
+from netplan.libnetplan import _NetplanError
 import os
 import re
 import sys
@@ -78,7 +78,7 @@ class TestKeyfileBase(unittest.TestCase):
 
     def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
         '''Call libnetplan with given keyfile string as configuration'''
-        err = ctypes.POINTER(_GError)()
+        err = ctypes.POINTER(_NetplanError)()
         # Autodetect default 'NM-<UUID>' netdef-id
         ssid = ''
         keyfile = re.sub(WOKE_REPLACE_REGEX, '', keyfile)
