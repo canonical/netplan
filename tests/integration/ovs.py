@@ -471,7 +471,7 @@ class _CommonTests():
         p = subprocess.Popen(['netplan', 'apply'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         (_, err) = p.communicate()
-        self.assertIn('Cannot call openvswitch: ovsdb-server.service is not running.', err)
+        self.assertIn('Cannot call Open vSwitch: ovsdb-server.service is not running.', err)
         self.assertEqual(p.returncode, 0)
 
     def test_settings_tag_cleanup(self):
