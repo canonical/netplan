@@ -414,4 +414,4 @@ class NetplanApply(utils.NetplanCommand):
             if exit_on_error:
                 sys.exit(1)
         except OvsDbServerNotRunning as e:
-            logging.warning('Cannot call openvswitch: {}.'.format(e))
+            logging.warning('Cannot call Open vSwitch: {}.'.format(e))

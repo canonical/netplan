@@ -129,7 +129,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/other-confi
   bridges:
     ovs0:
       openvswitch: {}''', skip_generated_yaml_validation=True)  # OpenFlow16 won't be re-generated
-        self.assertIn('openvswitch: Ignoring deprecated protocol: OpenFlow16', out)
+        self.assertIn('Open vSwitch: Ignoring deprecated protocol: OpenFlow16', out)
         self.assert_ovs({'ovs0.service': OVS_VIRTUAL % {'iface': 'ovs0', 'extra': '''
 [Service]
 Type=oneshot
@@ -300,7 +300,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp=active
       openvswitch:
         lacp: passive
 ''', expect_fail=True)
-        self.assertIn("Key 'lacp' is only valid for interface type 'openvswitch bond'", err)
+        self.assertIn("Key 'lacp' is only valid for interface type 'Open vSwitch bond'", err)
 
     def test_bond_mode_implicit_params(self):
         self.generate('''network:
@@ -399,7 +399,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/bond_mode=activ
       interfaces: [bond0]
       openvswitch: {}
 ''', expect_fail=True)
-        self.assertIn("bond0: bond mode 'balance-rr' not supported by openvswitch", err)
+        self.assertIn("bond0: bond mode 'balance-rr' not supported by Open vSwitch", err)
 
     def test_bridge_setup(self):
         self.generate('''network:
@@ -509,7 +509,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/rstp_enable=tru
       openvswitch:
         fail-mode: glorious
 ''', expect_fail=True)
-        self.assertIn("Key 'fail-mode' is only valid for interface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'fail-mode' is only valid for interface type 'Open vSwitch bridge'", err)
 
     def test_rstp_non_bridge(self):
         err = self.generate('''network:
@@ -519,7 +519,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/rstp_enable=tru
       openvswitch:
         rstp: true
 ''', expect_fail=True)
-        self.assertIn("Key is only valid for interface type 'openvswitch bridge'", err)
+        self.assertIn("Key is only valid for interface type 'Open vSwitch bridge'", err)
 
     def test_bridge_set_protocols(self):
         self.generate('''network:
@@ -561,7 +561,7 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/protocols=OpenF
       openvswitch:
         protocols: [OpenFlow10, OpenFlow15]
 ''', expect_fail=True)
-        self.assertIn("Key 'protocols' is only valid for interface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'protocols' is only valid for interface type 'Open vSwitch bridge'", err)
 
     def test_bridge_controller(self):
         self.generate('''network:
@@ -666,7 +666,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
         controller:
           connection-mode: in-band
 ''', expect_fail=True)
-        self.assertIn("Key 'controller.connection-mode' is only valid for interface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'controller.connection-mode' is only valid for interface type 'Open vSwitch bridge'", err)
         self.assert_ovs({})
         self.assert_networkd({})
 
@@ -679,7 +679,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
         controller:
           addresses: [unix:/some/socket]
 ''', expect_fail=True)
-        self.assertIn("Key 'controller.addresses' is only valid for interface type 'openvswitch bridge'", err)
+        self.assertIn("Key 'controller.addresses' is only valid for interface type 'Open vSwitch bridge'", err)
         self.assert_ovs({})
         self.assert_networkd({})
 
@@ -714,7 +714,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
   openvswitch:
     ssl: {}
 ''', expect_fail=True)
-        self.assertIn("ERROR: openvswitch bridge controller target 'ssl:10.10.10.1' needs SSL configuration, but global \
+        self.assertIn("ERROR: Open vSwitch bridge controller target 'ssl:10.10.10.1' needs SSL configuration, but global \
 'openvswitch.ssl' settings are not set", err)
         self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({})
@@ -737,7 +737,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
     ports:
       - [patch0-1]
 ''', expect_fail=True)
-        self.assertIn("An openvswitch peer port sequence must have exactly two entries", err)
+        self.assertIn("An Open vSwitch peer port sequence must have exactly two entries", err)
         self.assertIn("- [patch0-1]", err)
         self.assert_ovs({})
         self.assert_networkd({})
@@ -749,7 +749,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
     ports:
       - [patch0-1, "patchx", patchy]
 ''', expect_fail=True)
-        self.assertIn("An openvswitch peer port sequence must have exactly two entries", err)
+        self.assertIn("An Open vSwitch peer port sequence must have exactly two entries", err)
         self.assertIn("- [patch0-1, \"patchx\", patchy]", err)
         self.assert_ovs({})
         self.assert_networkd({})
@@ -762,7 +762,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
       - [patchx, patchy]
       - [patchx, patchz]
 ''', expect_fail=True)
-        self.assertIn("openvswitch port 'patchx' is already assigned to peer 'patchy'", err)
+        self.assertIn("Open vSwitch port 'patchx' is already assigned to peer 'patchy'", err)
         self.assert_ovs({})
         self.assert_networkd({})
 
@@ -774,7 +774,7 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
       - [patchx, patchy]
       - [patchz, patchx]
 ''', expect_fail=True)
-        self.assertIn("openvswitch port 'patchx' is already assigned to peer 'patchy'", err)
+        self.assertIn("Open vSwitch port 'patchx' is already assigned to peer 'patchy'", err)
         self.assert_ovs({})
         self.assert_networkd({})
 

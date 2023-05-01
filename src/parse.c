@@ -603,7 +603,7 @@ handle_netdef_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, GE
         *dest = ref;
 
         if (netdef->type == NETPLAN_DEF_TYPE_VLAN && ref->backend == NETPLAN_BACKEND_OVS) {
-            g_debug("%s: VLAN defined for openvswitch interface, choosing OVS backend", netdef->id);
+            g_debug("%s: VLAN defined for Open vSwitch interface, choosing OVS backend", netdef->id);
             netdef->backend = NETPLAN_BACKEND_OVS;
         }
     }
@@ -1417,7 +1417,7 @@ handle_bridge_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data
             set_str_if_null(component->bridge, npp->current.netdef->id);
             component->bridge_link = npp->current.netdef;
             if (component->backend == NETPLAN_BACKEND_OVS) {
-                g_debug("%s: Bridge contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
+                g_debug("%s: Bridge contains Open vSwitch interface, choosing OVS backend", npp->current.netdef->id);
                 npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
             }
         }
@@ -1448,7 +1448,7 @@ handle_bond_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError
     /* Implicitly set NETPLAN_BACKEND_OVS if ovs-only mode selected */
     if (!strcmp(scalar(node), "balance-tcp") ||
         !strcmp(scalar(node), "balance-slb")) {
-        g_debug("%s: mode '%s' only supported with openvswitch, choosing this backend",
+        g_debug("%s: mode '%s' only supported with Open vSwitch, choosing this backend",
                 npp->current.netdef->id, scalar(node));
         npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
     }
@@ -1482,7 +1482,7 @@ handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, 
             component->bond = g_strdup(npp->current.netdef->id);
             component->bond_link = npp->current.netdef;
             if (component->backend == NETPLAN_BACKEND_OVS) {
-                g_debug("%s: Bond contains openvswitch interface, choosing OVS backend", npp->current.netdef->id);
+                g_debug("%s: Bond contains Open vSwitch interface, choosing OVS backend", npp->current.netdef->id);
                 npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
             }
         }
@@ -2478,7 +2478,7 @@ static gboolean
 handle_ovs_bond_lacp(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BOND)
-        return yaml_error(npp, node, error, "Key 'lacp' is only valid for interface type 'openvswitch bond'");
+        return yaml_error(npp, node, error, "Key 'lacp' is only valid for interface type 'Open vSwitch bond'");
 
     if (g_strcmp0(scalar(node), "active") && g_strcmp0(scalar(node), "passive") && g_strcmp0(scalar(node), "off"))
         return yaml_error(npp, node, error, "Value of 'lacp' needs to be 'active', 'passive' or 'off");
@@ -2490,7 +2490,7 @@ static gboolean
 handle_ovs_bridge_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(npp, node, error, "Key is only valid for interface type 'openvswitch bridge'");
+        return yaml_error(npp, node, error, "Key is only valid for interface type 'Open vSwitch bridge'");
 
     return handle_netdef_bool(npp, node, data, error);
 }
@@ -2499,7 +2499,7 @@ static gboolean
 handle_ovs_bridge_fail_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(npp, node, error, "Key 'fail-mode' is only valid for interface type 'openvswitch bridge'");
+        return yaml_error(npp, node, error, "Key 'fail-mode' is only valid for interface type 'Open vSwitch bridge'");
 
     if (g_strcmp0(scalar(node), "standalone") && g_strcmp0(scalar(node), "secure"))
         return yaml_error(npp, node, error, "Value of 'fail-mode' needs to be 'standalone' or 'secure'");
@@ -2523,7 +2523,7 @@ handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
         assert_type(npp, entry, YAML_SCALAR_NODE);
 
         if (!g_strcmp0(scalar(entry), deprecated[0])) {
-            g_warning("openvswitch: Ignoring deprecated protocol: %s", scalar(entry));
+            g_warning("Open vSwitch: Ignoring deprecated protocol: %s", scalar(entry));
             continue;
         }
 
@@ -2551,7 +2551,7 @@ static gboolean
 handle_ovs_bridge_protocol(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(npp, node, error, "Key 'protocols' is only valid for interface type 'openvswitch bridge'");
+        return yaml_error(npp, node, error, "Key 'protocols' is only valid for interface type 'Open vSwitch bridge'");
 
     return handle_ovs_protocol(npp, node, npp->current.netdef, data, error);
 }
@@ -2560,7 +2560,7 @@ static gboolean
 handle_ovs_bridge_controller_connection_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(npp, node, error, "Key 'controller.connection-mode' is only valid for interface type 'openvswitch bridge'");
+        return yaml_error(npp, node, error, "Key 'controller.connection-mode' is only valid for interface type 'Open vSwitch bridge'");
 
     if (g_strcmp0(scalar(node), "in-band") && g_strcmp0(scalar(node), "out-of-band"))
         return yaml_error(npp, node, error, "Value of 'connection-mode' needs to be 'in-band' or 'out-of-band'");
@@ -2572,7 +2572,7 @@ static gboolean
 handle_ovs_bridge_controller_addresses(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
-        return yaml_error(npp, node, error, "Key 'controller.addresses' is only valid for interface type 'openvswitch bridge'");
+        return yaml_error(npp, node, error, "Key 'controller.addresses' is only valid for interface type 'Open vSwitch bridge'");
 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         gchar** vec = NULL;
@@ -2918,7 +2918,7 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         item = pair->data.sequence.items.start;
         /* A peer port definition must contain exactly 2 ports */
         if (item+2 != pair->data.sequence.items.top) {
-            return yaml_error(npp, pair, error, "An openvswitch peer port sequence must have exactly two entries");
+            return yaml_error(npp, pair, error, "An Open vSwitch peer port sequence must have exactly two entries");
         }
 
         port = yaml_document_get_node(&npp->doc, *item);
@@ -2945,7 +2945,7 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         }
 
         if (component1->peer && g_strcmp0(component1->peer, scalar(peer)))
-            return yaml_error(npp, port, error, "openvswitch port '%s' is already assigned to peer '%s'",
+            return yaml_error(npp, port, error, "Open vSwitch port '%s' is already assigned to peer '%s'",
                               component1->id, component1->peer);
 
         /* Create port 2 (peer) netdef */
@@ -2964,7 +2964,7 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         }
 
         if (component2->peer && g_strcmp0(component2->peer, scalar(port)))
-            return yaml_error(npp, peer, error, "openvswitch port '%s' is already assigned to peer '%s'",
+            return yaml_error(npp, peer, error, "Open vSwitch port '%s' is already assigned to peer '%s'",
                               component2->id, component2->peer);
 
         component1->peer = g_strdup(scalar(peer));
