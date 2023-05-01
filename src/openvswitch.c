@@ -50,7 +50,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     if (!cleanup) {
         g_string_append_printf(s, "After=netplan-ovs-cleanup.service\n");
     } else {
-        /* The netplan-ovs-cleanup unit shall not run on systems where openvswitch is not installed. */
+        /* The netplan-ovs-cleanup unit shall not run on systems where Open vSwitch is not installed. */
         g_string_append(s, "ConditionFileIsExecutable=" OPENVSWITCH_OVS_VSCTL "\n");
     }
     g_string_append(s, "Before=network.target\nWants=network.target\n");
@@ -221,7 +221,7 @@ write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds, GError** err
         append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set Port %s bond_mode=%s", def->id, value);
         write_ovs_tag_setting(def->id, "Port", "bond_mode", NULL, value, cmds);
     } else {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: bond mode '%s' not supported by openvswitch\n",
+        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: bond mode '%s' not supported by Open vSwitch\n",
                   def->id, def->bond_params.mode);
         return FALSE;
     }
@@ -274,7 +274,7 @@ check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* needs
         /* Check if SSL is configured in settings->ssl */
         if (!settings->ssl.ca_certificate || !settings->ssl.client_certificate ||
             !settings->ssl.client_key) {
-            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: openvswitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "ERROR: Open vSwitch bridge controller target '%s' needs SSL configuration, but global 'openvswitch.ssl' settings are not set\n", target);
             return FALSE;
         }
         *needs_ssl = TRUE;
@@ -426,7 +426,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
                 return FALSE;
             }
         } else {
-            g_debug("openvswitch: definition %s is not for us (backend %i)", def->id, def->backend);
+            g_debug("Open vSwitch: definition %s is not for us (backend %i)", def->id, def->backend);
             SET_OPT_OUT_PTR(has_been_written, FALSE);
             return TRUE;
         }
