@@ -5,3 +5,4 @@ sphinxcontrib-spelling
 sphinx-autobuild
 pyenchant
 myst-parser
+sphinx-copybutton
