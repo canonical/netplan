@@ -27,7 +27,7 @@ author = 'Netplan team'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx_design', 'myst_parser']
+extensions = ['sphinx_design', 'myst_parser', 'sphinx_copybutton']
 myst_enable_extensions = ["colon_fence"]
 smartquotes_action = 'qe'
 
