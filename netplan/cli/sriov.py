@@ -245,8 +245,8 @@ def get_vf_count_and_functions(interfaces, np_state,
 
         try:
             count = netdef.vf_count
-        except libnetplan.LibNetplanException as e:
-            raise ConfigurationError(*e.args)
+        except libnetplan.NetplanException as e:
+            raise ConfigurationError(str(e))
         if count == 0:
             continue
 
