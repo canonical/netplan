@@ -82,8 +82,8 @@ class ConfigManager(object):
 
             self.np_state = libnetplan.State()
             self.np_state.import_parser_results(parser)
-        except libnetplan.LibNetplanException as e:
-            raise ConfigurationError(*e.args)
+        except libnetplan.NetplanException as e:
+            raise ConfigurationError(str(e))
 
         self.np_state.dump_to_logs()
         return self.np_state

@@ -22,6 +22,7 @@ import logging
 import os
 
 import netplan.cli.utils as utils
+from netplan.libnetplan import NetplanException, NetplanValidationException, NetplanParserException
 
 
 FALLBACK_PATH = '/usr/bin:/snap/bin'
@@ -53,4 +54,12 @@ class Netplan(utils.NetplanCommand):
         else:
             logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-        self.run_command()
+        try:
+            self.run_command()
+        except NetplanParserException as e:
+            message = f'{e.filename}:{e.line}:{e.column}: {e}'
+            logging.warning(f'Command failed: {message}')
+        except NetplanValidationException as e:
+            logging.warning(f'Command failed: {e.filename}: {e}')
+        except NetplanException as e:
+            logging.warning(f'Command failed: {e}')
