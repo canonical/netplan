@@ -104,7 +104,9 @@ def call_cli(args):
     f = io.StringIO()
     try:
         with redirect_stdout(f):
-            Netplan().main()
+            netplan = Netplan()
+            netplan.parse_args()
+            netplan.run_command()
             return f.getvalue()
     finally:
         sys.argv = old_sys_argv

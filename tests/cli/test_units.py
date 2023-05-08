@@ -19,6 +19,7 @@
 
 import os
 import shutil
+import sys
 import unittest
 import subprocess
 import tempfile
@@ -26,6 +27,7 @@ import tempfile
 from unittest.mock import patch
 from netplan.cli.commands.apply import NetplanApply
 from netplan.cli.commands.try_command import NetplanTry
+from netplan.cli.core import Netplan
 
 
 class TestCLI(unittest.TestCase):
@@ -141,3 +143,78 @@ class TestCLI(unittest.TestCase):
 ''')
         cmd = NetplanTry()
         self.assertFalse(cmd.is_revertable())
+
+    def test_raises_exception_main_function(self):
+        with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0:
+                  dhcp4: nothanks''')
+
+        # The idea was to capture stderr here but for some reason
+        # my attempts to mock sys.stderr didn't work with pytest
+        # This will get the error message passed to logging.warning
+        # as a parameter
+        with patch('logging.warning') as log:
+            old_argv = sys.argv
+            args = ['get', '--root-dir', self.tmproot]
+            sys.argv = [old_argv[0]] + args
+            Netplan().main()
+            sys.argv = old_argv
+
+            args = log.call_args.args
+            self.assertIn('Error in network definition: invalid boolean value', args[0])
+
+    def test_raises_exception_main_function_permission_denied(self):
+        with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
+            f.write('''network:
+              ethernets:
+                eth0:
+                  dhcp4: nothanks''')
+
+        os.chmod(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 0)
+
+        with patch('logging.warning') as log:
+            old_argv = sys.argv
+            args = ['get', '--root-dir', self.tmproot]
+            sys.argv = [old_argv[0]] + args
+            Netplan().main()
+            sys.argv = old_argv
+
+            args = log.call_args.args
+            self.assertIn('Permission denied', args[0])
+
+    def test_get_validation_error_exception(self):
+        with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      set-name: abc''')
+
+        with patch('logging.warning') as log:
+            old_argv = sys.argv
+            args = ['get', '--root-dir', self.tmproot]
+            sys.argv = [old_argv[0]] + args
+            Netplan().main()
+            sys.argv = old_argv
+            args = log.call_args.args
+            self.assertIn('etc/netplan/test.yaml: Error in network definition', args[0])
+
+    def test_set_generic_validation_error_exception(self):
+        with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
+            f.write('''network:
+  vrfs:
+    vrf0:
+      table: 100
+      routes:
+        - table: 200
+          to: 1.2.3.4''')
+
+        with patch('logging.warning') as log:
+            old_argv = sys.argv
+            args = ['get', '--root-dir', self.tmproot]
+            sys.argv = [old_argv[0]] + args
+            Netplan().main()
+            sys.argv = old_argv
+            args = log.call_args.args
+            self.assertIn("VRF routes table mismatch", args[0])

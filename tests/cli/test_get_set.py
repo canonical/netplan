@@ -25,7 +25,7 @@ import glob
 
 import yaml
 
-from netplan.libnetplan import LibNetplanException
+from netplan.libnetplan import NetplanException
 from tests.test_utils import call_cli
 
 
@@ -171,7 +171,7 @@ class TestSet(unittest.TestCase):
         via: 10.10.10.4
         table: 1005
 ''')
-        with self.assertRaises(LibNetplanException) as e:
+        with self.assertRaises(NetplanException) as e:
             self._set(['vrfs.vrf0.table=1004', '--origin-hint=90-snapd-config'])
         self.assertIn('vrf0: VRF routes table mismatch (1004 != 1005)', str(e.exception))
         # hint/output file should not exist
@@ -268,7 +268,7 @@ class TestSet(unittest.TestCase):
       mode: sit
       local: 1.2.3.4
       remote: 5.6.7.8''')
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(NetplanException) as context:
             self._set(['tunnels.tun0.keys.input=12345'])
         self.assertIn('tun0: \'input-key\' is not required for this tunnel type', str(context.exception))
 
