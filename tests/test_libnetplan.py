@@ -207,7 +207,7 @@ class TestParser(TestBase):
         with tempfile.TemporaryFile() as f:
             f.write(b'invalid: {]')
             f.seek(0, io.SEEK_SET)
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanParserException) as context:
                 parser.load_yaml(f)
             self.assertIn('Invalid YAML', str(context.exception))
 
@@ -282,7 +282,7 @@ class TestState(TestBase):
             f.flush()
             parser.load_yaml(f.name)
 
-        with self.assertRaises(libnetplan.LibNetplanException):
+        with self.assertRaises(libnetplan.NetplanException):
             state.import_parser_results(parser)
 
     def test_dump_yaml_bad_file_perms(self):
@@ -293,7 +293,7 @@ class TestState(TestBase):
         bad_file = os.path.join(self.workdir.name, 'bad.yml')
         open(bad_file, 'a').close()
         os.chmod(bad_file, 0o444)
-        with self.assertRaises(libnetplan.LibNetplanException) as context:
+        with self.assertRaises(libnetplan.NetplanFileException) as context:
             with open(bad_file) as f:
                 state.dump_yaml(f)
         self.assertIn('Invalid argument', str(context.exception))
@@ -314,7 +314,7 @@ class TestState(TestBase):
         os.remove(target)
         os.makedirs(target)
 
-        with self.assertRaises(libnetplan.LibNetplanException):
+        with self.assertRaises(libnetplan.NetplanFileException):
             state.write_yaml_file('target.yml', self.workdir.name)
 
     def test_update_yaml_hierarchy_no_confdir(self):
@@ -323,7 +323,7 @@ class TestState(TestBase):
     eth0:
       dhcp4: false''')
         shutil.rmtree(self.confdir)
-        with self.assertRaises(libnetplan.LibNetplanException) as context:
+        with self.assertRaises(libnetplan.NetplanFileException) as context:
             state.update_yaml_hierarchy("bogus", self.workdir.name)
         self.assertIn('No such file or directory', str(context.exception))
 
@@ -332,7 +332,7 @@ class TestState(TestBase):
         os.makedirs(self.confdir)
         with tempfile.TemporaryDirectory(dir=self.confdir) as tmpdir:
             hint = os.path.basename(tmpdir)
-            with self.assertRaises(libnetplan.LibNetplanException):
+            with self.assertRaises(libnetplan.NetplanFileException):
                 state.write_yaml_file(hint, self.workdir.name)
 
     def test_write_yaml_file_file_no_confdir(self):
@@ -341,7 +341,7 @@ class TestState(TestBase):
     eth0:
       dhcp4: false''', filename='test.yml')
         shutil.rmtree(self.confdir)
-        with self.assertRaises(libnetplan.LibNetplanException) as context:
+        with self.assertRaises(libnetplan.NetplanFileException) as context:
             state.write_yaml_file('test.yml', self.workdir.name)
         self.assertIn('No such file or directory', str(context.exception))
 
@@ -599,7 +599,7 @@ class TestNetDefinition(TestBase):
 class TestFreeFunctions(TestBase):
     def test_create_yaml_patch_bad_syntax(self):
         with tempfile.TemporaryFile() as patchfile:
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanFormatException) as context:
                 libnetplan.create_yaml_patch(['network'], '{invalid_yaml]', patchfile)
             self.assertIn('Error parsing YAML', str(context.exception))
             patchfile.seek(0, io.SEEK_END)
@@ -608,7 +608,7 @@ class TestFreeFunctions(TestBase):
     def test_dump_yaml_subtree_bad_file_perms(self):
         input_file = os.path.join(self.workdir.name, 'input.yaml')
         with open(input_file, "w") as f, tempfile.TemporaryFile() as output:
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanFileException) as context:
                 libnetplan.dump_yaml_subtree('network', f, output)
         self.assertIn('Invalid argument', str(context.exception))
 
@@ -617,7 +617,7 @@ class TestFreeFunctions(TestBase):
         with open(input_file, "w+") as f, tempfile.TemporaryFile() as output:
             f.write('{garbage)')
             f.flush()
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanFormatException) as context:
                 libnetplan.dump_yaml_subtree('network', f, output)
         self.assertIn('Error parsing YAML', str(context.exception))
 
@@ -629,7 +629,7 @@ class TestFreeFunctions(TestBase):
     {garbage)''')
             f.flush()
 
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanFormatException) as context:
                 libnetplan.dump_yaml_subtree('network', f, output)
         self.assertIn('Error parsing YAML', str(context.exception))
 
@@ -639,7 +639,7 @@ class TestFreeFunctions(TestBase):
             f.write('''[]''')
             f.flush()
 
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanFormatException) as context:
                 libnetplan.dump_yaml_subtree('network', f, output)
         self.assertIn('Unexpected YAML structure found', str(context.exception))
 
@@ -651,7 +651,7 @@ class TestFreeFunctions(TestBase):
 ignored:
   - [}''')
             f.flush()
-            with self.assertRaises(libnetplan.LibNetplanException) as context:
+            with self.assertRaises(libnetplan.NetplanFormatException) as context:
                 libnetplan.dump_yaml_subtree('network', f, output)
         self.assertIn('Error parsing YAML', str(context.exception))
 
@@ -678,3 +678,37 @@ tail:
             libnetplan.dump_yaml_subtree('network\tethernets\teth0', f, output)
             output.seek(0)
             self.assertEqual(yaml.safe_load(output), None)
+
+    def test_validation_error_exception(self):
+        ''' "set-name" requires "match" so it should fail validation '''
+        parser = libnetplan.Parser()
+        with tempfile.TemporaryDirectory() as d:
+            full_dir = d + '/etc/netplan'
+            os.makedirs(full_dir)
+            with tempfile.NamedTemporaryFile(suffix='.yaml', dir=full_dir) as f:
+                f.write(b'''network:
+  ethernets:
+    eth0:
+      set-name: abc''')
+                f.flush()
+
+                with self.assertRaises(libnetplan.NetplanValidationException):
+                    parser.load_yaml_hierarchy(d)
+
+    def test_validation_exception_with_bad_error_message(self):
+        '''
+        If the exception's constructor can't parse the error message it will raise
+        a ValueError exception.
+        This situation should never happen though.
+        '''
+        with self.assertRaises(ValueError):
+            libnetplan.NetplanValidationException('not the expected file path', 0, 0)
+
+    def test_parser_exception_with_bad_error_message(self):
+        '''
+        If the exception's constructor can't parse the error message it will raise
+        a ValueError exception.
+        This situation should never happen though.
+        '''
+        with self.assertRaises(ValueError):
+            libnetplan.NetplanParserException('not the expected file path, line and column', 0, 0)
