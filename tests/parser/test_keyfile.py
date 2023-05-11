@@ -1388,3 +1388,106 @@ method=auto
           ipv6.ip6-privacy: "-1"
           proxy._: ""
 '''.format(UUID)})
+
+    def test_multiple_eap_methods(self):
+        self.generate_from_keyfile('''[connection]
+id=MyWifi
+uuid={}
+type=wifi
+interface-name=wlp2s0
+
+[wifi]
+mode=infrastructure
+ssid=MyWifi
+
+[wifi-security]
+auth-alg=open
+key-mgmt=wpa-eap
+
+[802-1x]
+ca-cert=/path/to/my/crt.crt
+eap=peap;tls
+identity=username
+password=123456
+phase2-auth=mschapv2
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlp2s0"
+      dhcp4: true
+      access-points:
+        "MyWifi":
+          auth:
+            key-management: "eap"
+            method: "peap"
+            identity: "username"
+            ca-certificate: "/path/to/my/crt.crt"
+            phase2-auth: "mschapv2"
+            password: "123456"
+          networkmanager:
+            uuid: "{}"
+            name: "MyWifi"
+            passthrough:
+              wifi-security.auth-alg: "open"
+              802-1x.eap: "peap;tls"
+      networkmanager:
+        uuid: "{}"
+        name: "MyWifi"
+'''.format(UUID, UUID, UUID)})
+
+    def test_single_eap_method(self):
+        self.generate_from_keyfile('''[connection]
+id=MyWifi
+uuid={}
+type=wifi
+interface-name=wlp2s0
+
+[wifi]
+mode=infrastructure
+ssid=MyWifi
+
+[wifi-security]
+auth-alg=open
+key-mgmt=wpa-eap
+
+[802-1x]
+ca-cert=/path/to/my/crt.crt
+eap=peap;
+identity=username
+password=123456
+phase2-auth=mschapv2
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlp2s0"
+      dhcp4: true
+      access-points:
+        "MyWifi":
+          auth:
+            key-management: "eap"
+            method: "peap"
+            identity: "username"
+            ca-certificate: "/path/to/my/crt.crt"
+            phase2-auth: "mschapv2"
+            password: "123456"
+          networkmanager:
+            uuid: "{}"
+            name: "MyWifi"
+            passthrough:
+              wifi-security.auth-alg: "open"
+      networkmanager:
+        uuid: "{}"
+        name: "MyWifi"
+'''.format(UUID, UUID, UUID)})

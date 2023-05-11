@@ -352,15 +352,29 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
     g_assert(auth);
     g_autofree gchar* method = g_key_file_get_string(kf, "802-1x", "eap", NULL);
 
-    if (method && g_strcmp0(method, "tls") == 0) {
-        auth->eap_method = NETPLAN_AUTH_EAP_TLS;
-        _kf_clear_key(kf, "802-1x", "eap");
-    } else if (method && g_strcmp0(method, "peap") == 0) {
-        auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
-        _kf_clear_key(kf, "802-1x", "eap");
-    } else if (method && g_strcmp0(method, "ttls") == 0) {
-        auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
-        _kf_clear_key(kf, "802-1x", "eap");
+    if (method && g_strcmp0(method, "") != 0) {
+        gchar** split = g_strsplit(method, ";", 2);
+        gchar* first_method = split[0];
+
+        if (g_strcmp0(first_method, "tls") == 0) {
+            auth->eap_method = NETPLAN_AUTH_EAP_TLS;
+        } else if (g_strcmp0(first_method, "peap") == 0) {
+            auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
+        } else if (g_strcmp0(first_method, "ttls") == 0) {
+            auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
+        }
+
+        /* If "method" (which is a list separated by ";") has more than one value,
+         * we keep the key so it will also be written as a passthrough key.
+         * That's required because Network Manager accepts multiple methods
+         * but Netplan accepts only one.
+         *
+         * TODO: eap_method needs to be fixed to store multiple methods.
+         */
+        if (split[1] == NULL || !g_strcmp0(split[1], ""))
+            _kf_clear_key(kf, "802-1x", "eap");
+
+        g_strfreev(split);
     }
 
     handle_generic_str(kf, "802-1x", "identity", &auth->identity);
