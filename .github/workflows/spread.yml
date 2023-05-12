@@ -10,7 +10,7 @@ jobs:
   spread:
     runs-on: ubuntu-latest
     steps:
-      - uses: canonical/setup-lxd@ea57509243d3cf39f8ab926e021bb353947b01b5
+      - uses: canonical/setup-lxd@v0.1.1
       - uses: actions/checkout@v2
       - name: Install spread
         run: |
