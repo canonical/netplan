@@ -51,10 +51,9 @@ type_from_str(const char* type_str)
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
     */
-    /* TODO: Tunnels are not yet supported by the keyfile parser
-    else if (!g_strcmp0(type_str, "ip-tunnel") || !g_strcmp0(type_str, "wireguard"))
+    /* TODO: Tunnels are partially supported by the keyfile parser */
+    else if (!g_strcmp0(type_str, "wireguard"))
         return NETPLAN_DEF_TYPE_TUNNEL;
-    */
     /* Unsupported type, needs to be specified via passthrough */
     return NETPLAN_DEF_TYPE_NM;
 }
@@ -70,6 +69,14 @@ ap_type_from_str(const char* type_str)
         return NETPLAN_WIFI_MODE_ADHOC;
     /* Unsupported mode, like "mesh" */
     return NETPLAN_WIFI_MODE_OTHER;
+}
+
+static const NetplanTunnelMode
+tunnel_mode_from_str(const char* type_str)
+{
+    if (!g_strcmp0(type_str, "wireguard"))
+        return NETPLAN_TUNNEL_MODE_WIREGUARD;
+    return NETPLAN_TUNNEL_MODE_UNKNOWN;
 }
 
 static void
@@ -447,6 +454,79 @@ read_passthrough(GKeyFile* kf, GData** list)
     }
 }
 
+/*
+ * Network Manager differentiates Wireguard (connection.type=wireguard),
+ * VXLAN (connection.type=vxlan) and all the other types of tunnels (connection.type=ip-tunnel).
+ *
+ * Each of these three classes have different requirements so we handle them separately
+ * in this function.
+ */
+static void
+parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
+{
+    /* Handle wireguard tunnel */
+    if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
+
+        /* Reading the private key */
+        nd->tunnel.private_key = g_key_file_get_string(kf, "wireguard", "private-key", NULL);
+        _kf_clear_key(kf, "wireguard", "private-key");
+
+        gchar** keyfile_groups = g_key_file_get_groups(kf, NULL);
+
+        /* Handling peers
+         * Network Manager creates a keyfile group for each Wireguard peer.
+         * The group name has the form [wireguard-peer.<peer's public key>] so,
+         * in order to read the peer's public key we need to split up the group name
+         * and read its second component.
+         * */
+        for (int i = 0; keyfile_groups[i] != NULL; i++) {
+            gchar* group = keyfile_groups[i];
+
+            if (g_str_has_prefix(group, "wireguard-peer.")) {
+                gchar** peer_split = g_strsplit(group, ".", 2);
+
+                if (!is_wireguard_key(peer_split[1])) {
+                    g_warning("Wireguard peer's name is malformed: %s", group);
+                    g_strfreev(peer_split);
+                    continue;
+                }
+
+                if (!nd->wireguard_peers)
+                    nd->wireguard_peers = g_array_new(FALSE, FALSE, sizeof(NetplanWireguardPeer*));
+
+                NetplanWireguardPeer* wireguard_peer = g_new0(NetplanWireguardPeer, 1);
+                wireguard_peer->public_key = g_strdup(peer_split[1]);
+                g_strfreev(peer_split);
+
+                /* Handle allowed-ips */
+                gchar* allowed_ips_str = g_key_file_get_string(kf, group, "allowed-ips", NULL);
+                if (allowed_ips_str) {
+                    wireguard_peer->allowed_ips = g_array_new(FALSE, FALSE, sizeof(NetplanAddressOptions*));
+                    gchar** allowed_ips_split = g_strsplit(allowed_ips_str, ";", 0);
+
+                    for (int i = 0; allowed_ips_split[i] != NULL; i++) {
+                        gchar* ip = allowed_ips_split[i];
+                        if (g_strcmp0(ip, "")) {
+                            gchar* address = g_strdup(ip);
+                            g_array_append_val(wireguard_peer->allowed_ips, address);
+                        }
+                    }
+                    g_free(allowed_ips_str);
+                    g_strfreev(allowed_ips_split);
+                    _kf_clear_key(kf, group, "allowed-ips");
+                }
+
+                /* Handle endpoint */
+                wireguard_peer->endpoint = g_key_file_get_string(kf, group, "endpoint", NULL);
+                _kf_clear_key(kf, group, "endpoint");
+
+                g_array_append_val(nd->wireguard_peers, wireguard_peer);
+            }
+        }
+        g_strfreev(keyfile_groups);
+    }
+}
+
 /**
  * Parse keyfile into a NetplanNetDefinition struct
  * @filename: full path to the NetworkManager keyfile
@@ -506,6 +586,13 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     g_free(tmp_str);
     nd = netplan_netdef_new(npp, nd_id, nd_type, NETPLAN_BACKEND_NM);
 
+    if (nd_type == NETPLAN_DEF_TYPE_TUNNEL) {
+        nd->tunnel.mode = tunnel_mode_from_str(type);
+    }
+
+    /* Handle tunnels */
+    parse_tunnels(kf, nd);
+
     /* Handle uuid & NM name/id */
     nd->backend_settings.uuid = g_strdup(uuid);
     _kf_clear_key(kf, "connection", "uuid");
@@ -530,7 +617,8 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         || nd_type == NETPLAN_DEF_TYPE_WIFI
         || nd_type == NETPLAN_DEF_TYPE_MODEM
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
-        || nd_type == NETPLAN_DEF_TYPE_BOND)
+        || nd_type == NETPLAN_DEF_TYPE_BOND
+        || nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN)
         _kf_clear_key(kf, "connection", "type");
 
     /* Handle match: Netplan usually defines a connection per interface, while
