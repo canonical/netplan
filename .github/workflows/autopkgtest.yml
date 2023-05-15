@@ -19,7 +19,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       # Setup LXD + Docker fixes
-      - uses: canonical/setup-lxd@v0.1.0
+      - uses: canonical/setup-lxd@v0.1.1
         with:
           channel: latest/stable  # switch from distro's LTS channel to latest/stable
       - run: |
