@@ -2104,7 +2104,7 @@ static gboolean
 handle_bond_lacp_rate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (!(strcmp(scalar(node), "slow") == 0 || strcmp(scalar(node), "fast") == 0))
-        return yaml_error(npp, node, error, "unknown lacp-rate value '%s' (expected 'fast' or 'slow')", scalar(node));
+        g_warning("unknown lacp-rate value '%s' (expected 'fast' or 'slow')", scalar(node));
 
     return handle_netdef_str(npp, node, data, error);
 }

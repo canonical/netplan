@@ -906,7 +906,7 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]
       parameters:
         lacp-rate: abcd
-      dhcp4: true''', expect_fail=True)
+      dhcp4: true''', expect_fail=False)
         self.assertIn("unknown lacp-rate value 'abcd'", err)
 
     def test_bond_invalid_arp_target(self):
