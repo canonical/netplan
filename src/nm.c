@@ -330,51 +330,53 @@ write_bridge_params(const NetplanNetDefinition* def, GKeyFile *kf)
 static gboolean
 write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** error)
 {
-    g_assert(def->tunnel.private_key);
-
     /* The key was already validated via validate_tunnel_grammar(), but we need
      * to differentiate between base64 key VS absolute path key-file. And a base64
      * string could (theoretically) start with '/', so we use is_wireguard_key()
      * as well to check for more specific characteristics (if needed). */
-    if (def->tunnel.private_key[0] == '/' && !is_wireguard_key(def->tunnel.private_key)) {
-        g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
-        return FALSE;
-    } else
-        g_key_file_set_string(kf, "wireguard", "private-key", def->tunnel.private_key);
+    if (def->tunnel.private_key) {
+        if (def->tunnel.private_key[0] == '/' && !is_wireguard_key(def->tunnel.private_key)) {
+            g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: private key needs to be base64 encoded when using the NM backend\n", def->id);
+            return FALSE;
+        } else
+            g_key_file_set_string(kf, "wireguard", "private-key", def->tunnel.private_key);
+    }
 
     if (def->tunnel.port)
         g_key_file_set_uint64(kf, "wireguard", "listen-port", def->tunnel.port);
     if (def->tunnel.fwmark)
         g_key_file_set_uint64(kf, "wireguard", "fwmark", def->tunnel.fwmark);
 
-    for (guint i = 0; i < def->wireguard_peers->len; i++) {
-        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
-        g_assert(peer->public_key);
-        g_autofree gchar* tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
+    if (def->wireguard_peers) {
+        for (guint i = 0; i < def->wireguard_peers->len; i++) {
+            NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
+            g_assert(peer->public_key);
+            g_autofree gchar* tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
 
-        if (peer->keepalive)
-            g_key_file_set_integer(kf, tmp_group, "persistent-keepalive", peer->keepalive);
-        if (peer->endpoint)
-            g_key_file_set_string(kf, tmp_group, "endpoint", peer->endpoint);
+            if (peer->keepalive)
+                g_key_file_set_integer(kf, tmp_group, "persistent-keepalive", peer->keepalive);
+            if (peer->endpoint)
+                g_key_file_set_string(kf, tmp_group, "endpoint", peer->endpoint);
 
-        /* The key was already validated via validate_tunnel_grammar(), but we need
-         * to differentiate between base64 key VS absolute path key-file. And a base64
-         * string could (theoretically) start with '/', so we use is_wireguard_key()
-         * as well to check for more specific characteristics (if needed). */
-        if (peer->preshared_key) {
-            if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key)) {
-                g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
-                return FALSE;
-            } else {
-                g_key_file_set_value(kf, tmp_group, "preshared-key", peer->preshared_key);
-                g_key_file_set_uint64(kf, tmp_group, "preshared-key-flags", 0);
+            /* The key was already validated via validate_tunnel_grammar(), but we need
+             * to differentiate between base64 key VS absolute path key-file. And a base64
+             * string could (theoretically) start with '/', so we use is_wireguard_key()
+             * as well to check for more specific characteristics (if needed). */
+            if (peer->preshared_key) {
+                if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key)) {
+                    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT, "%s: shared key needs to be base64 encoded when using the NM backend\n", def->id);
+                    return FALSE;
+                } else {
+                    g_key_file_set_value(kf, tmp_group, "preshared-key", peer->preshared_key);
+                    g_key_file_set_uint64(kf, tmp_group, "preshared-key-flags", 0);
+                }
             }
-        }
-        if (peer->allowed_ips && peer->allowed_ips->len > 0) {
-            const gchar* list[peer->allowed_ips->len];
-            for (guint j = 0; j < peer->allowed_ips->len; ++j)
-                list[j] = g_array_index(peer->allowed_ips, char*, j);
-            g_key_file_set_string_list(kf, tmp_group, "allowed-ips", list, peer->allowed_ips->len);
+            if (peer->allowed_ips && peer->allowed_ips->len > 0) {
+                const gchar* list[peer->allowed_ips->len];
+                for (guint j = 0; j < peer->allowed_ips->len; ++j)
+                    list[j] = g_array_index(peer->allowed_ips, char*, j);
+                g_key_file_set_string_list(kf, tmp_group, "allowed-ips", list, peer->allowed_ips->len);
+            }
         }
     }
     return TRUE;
