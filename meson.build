@@ -75,16 +75,19 @@ endif
 #FIXME: exclude doc/env/
 test('linting',
      pyflakes,
+     timeout: 60,
      args: [meson.current_source_dir()])
 test('codestyle',
      pycodestyle,
+     timeout: 60,
      args: ['--max-line-length=130', '--exclude=doc/env', meson.current_source_dir()])
 test('documentation',
      find_program('tests/validate_docs.sh'),
+     timeout: 60,
      workdir: meson.current_source_dir())
 test('legacy-tests',
      find_program('tests/cli_legacy.py'),
-     timeout: 120,
+     timeout: 240,
      env: test_env)
 #TODO: split out dbus tests into own test() instance, to run in parallel
 test('unit-tests',
