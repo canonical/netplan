@@ -7,7 +7,7 @@ name: Check for memory issues
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
   pull_request:
     branches: [ '**' ]
 

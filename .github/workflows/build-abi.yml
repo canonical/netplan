@@ -4,9 +4,9 @@ name: Build & ABI compatibility
 # events but only for the main branch
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

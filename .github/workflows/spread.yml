@@ -2,9 +2,9 @@ name: Run spread
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
 
 jobs:
   spread:
