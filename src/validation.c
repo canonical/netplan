@@ -199,28 +199,31 @@ static gboolean
 validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
-        return yaml_error(npp, node, error, "%s: missing 'mode' property for tunnel", nd->id);
+        return yaml_error(npp, node, error, "%s: missing or invalid 'mode' property for tunnel", nd->id);
 
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
         if (!nd->tunnel.private_key)
-            return yaml_error(npp, node, error, "%s: missing 'key' property (private key) for wireguard", nd->id);
-        if (nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key))
+            g_warning("%s: missing 'key' property (private key) for wireguard", nd->id);
+        if (nd->tunnel.private_key && nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key))
             return yaml_error(npp, node, error, "%s: invalid wireguard private key", nd->id);
-        if (!nd->wireguard_peers || nd->wireguard_peers->len == 0)
-            return yaml_error(npp, node, error, "%s: at least one peer is required.", nd->id);
-        for (guint i = 0; i < nd->wireguard_peers->len; i++) {
-            NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
+        if (!nd->wireguard_peers || nd->wireguard_peers->len == 0) {
+            g_warning("%s: at least one peer is required.", nd->id);
+        } else {
+            for (guint i = 0; i < nd->wireguard_peers->len; i++) {
+                NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
 
-            if (!peer->public_key)
-                return yaml_error(npp, node, error, "%s: keys.public is required.", nd->id);
-            if (!is_wireguard_key(peer->public_key))
-                return yaml_error(npp, node, error, "%s: invalid wireguard public key", nd->id);
-            if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
-                return yaml_error(npp, node, error, "%s: invalid wireguard shared key", nd->id);
-            if (!peer->allowed_ips || peer->allowed_ips->len == 0)
-                return yaml_error(npp, node, error, "%s: 'allowed-ips' is required for wireguard peers.", nd->id);
-            if (peer->keepalive > 65535)
-                return yaml_error(npp, node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
+                if (!peer->allowed_ips || peer->allowed_ips->len == 0)
+                    g_warning("%s: 'allowed-ips' is required for wireguard peers.", nd->id);
+                if (peer->keepalive > 65535)
+                    return yaml_error(npp, node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
+
+                if (!peer->public_key)
+                    return yaml_error(npp, node, error, "%s: a public key is required.", nd->id);
+                if (!is_wireguard_key(peer->public_key))
+                    return yaml_error(npp, node, error, "%s: invalid wireguard public key", nd->id);
+                if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
+                    return yaml_error(npp, node, error, "%s: invalid wireguard shared key", nd->id);
+            }
         }
         return TRUE;
     } else {
