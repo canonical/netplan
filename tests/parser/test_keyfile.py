@@ -382,10 +382,7 @@ route2=4:5:6:7:8:9:0:1/63,,5
         self._template_keyfile_type('nm-devices', 'vlan', False)
 
     def test_keyfile_type_tunnel(self):
-        self._template_keyfile_type('nm-devices', 'ip-tunnel', False)
-
-    def test_keyfile_type_wireguard(self):
-        self._template_keyfile_type('nm-devices', 'wireguard', False)
+        self._template_keyfile_type('tunnels', 'ip-tunnel', False)
 
     def test_keyfile_type_other(self):
         self._template_keyfile_type('nm-devices', 'dummy', False)  # wokeignore:rule=dummy
@@ -1180,25 +1177,25 @@ method=auto
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
-  nm-devices:
+  tunnels:
     NM-{}:
       renderer: NetworkManager
+      dhcp4: true
+      dhcp6: true
+      ipv6-address-generation: "stable-privacy"
+      mode: "gre"
+      local: "10.20.20.1"
+      remote: "10.20.20.2"
       networkmanager:
         uuid: "{}"
         name: "IP tunnel connection 1"
         passthrough:
-          connection.type: "ip-tunnel"
           connection.autoconnect: "false"
           connection.interface-name: "gre10"
           connection.permissions: ""
-          ip-tunnel.local: "10.20.20.1"
-          ip-tunnel.mode: "2"
-          ip-tunnel.remote: "10.20.20.2"
           ipv4.dns-search: ""
-          ipv4.method: "auto"
-          ipv6.addr-gen-mode: "stable-privacy"
           ipv6.dns-search: ""
-          ipv6.method: "auto"
+          ipv6.ip6-privacy: "-1"
           proxy._: ""
 '''.format(UUID, UUID)})
 
@@ -1491,3 +1488,200 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "MyWifi"
 '''.format(UUID, UUID, UUID)})
+
+    def test_simple_wireguard(self):
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
+    def test_wireguard_with_key(self):
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[wireguard]
+private-key=aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A=
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      keys:
+        private: "aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A="
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
+    def test_wireguard_with_key_and_peer(self):
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[wireguard]
+private-key=aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A=
+
+[wireguard-peer.cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI=]
+endpoint=1.2.3.4:12345
+allowed-ips=192.168.0.0/24;
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      keys:
+        private: "aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A="
+      peers:
+      - endpoint: "1.2.3.4:12345"
+        keys:
+          public: "cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI="
+        allowed-ips:
+        - "192.168.0.0/24"
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
+    def test_wireguard_with_key_and_peer_without_allowed_ips(self):
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[wireguard]
+private-key=aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A=
+
+[wireguard-peer.cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI=]
+endpoint=1.2.3.4:12345
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      keys:
+        private: "aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A="
+      peers:
+      - endpoint: "1.2.3.4:12345"
+        keys:
+          public: "cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI="
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
+    def test_vxlan_with_local_and_remote(self):
+        self.generate_from_keyfile('''[connection]
+id=vxlan10
+type=vxlan
+uuid={}
+interface-name=vxlan10
+
+[vxlan]
+id=10
+local=198.51.100.2
+remote=203.0.113.1
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "vxlan"
+      local: "198.51.100.2"
+      remote: "203.0.113.1"
+      id: 10
+      networkmanager:
+        uuid: "{}"
+        name: "vxlan10"
+        passthrough:
+          connection.interface-name: "vxlan10"
+'''.format(UUID, UUID)})
+
+    def test_simple_vxlan(self):
+        self.generate_from_keyfile('''[connection]
+id=vxlan10
+type=vxlan
+uuid={}
+interface-name=vxlan10
+
+[vxlan]
+id=10
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "vxlan"
+      id: 10
+      networkmanager:
+        uuid: "{}"
+        name: "vxlan10"
+        passthrough:
+          connection.interface-name: "vxlan10"
+'''.format(UUID, UUID)})
+
+    def test_invalid_tunnel_mode(self):
+        out = self.generate_from_keyfile('''[connection]
+id=tun0
+type=ip-tunnel
+uuid={}
+interface-name=tun0
+
+[ip-tunnel]
+mode=42
+
+[ipv4]
+method=auto\n'''.format(UUID), expect_fail=True)
+
+        self.assertIn('missing or invalid \'mode\' property for tunnel', out)
