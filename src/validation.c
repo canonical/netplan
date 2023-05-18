@@ -313,16 +313,9 @@ validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd
                 case NETPLAN_TUNNEL_MODE_GRE:
                 case NETPLAN_TUNNEL_MODE_IP6GRE:
                 case NETPLAN_TUNNEL_MODE_WIREGUARD:
-                    break;
-
                 case NETPLAN_TUNNEL_MODE_GRETAP:
                 case NETPLAN_TUNNEL_MODE_IP6GRETAP:
-                    return yaml_error(npp, node, error,
-                                      "%s: %s tunnel mode is not supported by NetworkManager",
-                                      nd->id,
-                                      g_ascii_strup(netplan_tunnel_mode_name(nd->tunnel.mode), -1));
                     break;
-
                 default:
                     if (nd->tunnel.input_key)
                         return yaml_error(npp, node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
