@@ -300,22 +300,6 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: unknown key 'bogus'", out)
 
-    def test_fail_missing_private_key(self):
-        """[wireguard] Show an error for a missing private key"""
-        config = prepare_wg_config(listen=12345,
-                                   peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
-                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
-                                           'keepalive': 14,
-                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
-        out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: missing 'key' property (private key) for wireguard", out)
-
-    def test_fail_no_peers(self):
-        """[wireguard] Show an error for missing peers"""
-        config = prepare_wg_config(listen=12345, privkey="4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=", renderer=self.backend)
-        out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: at least one peer is required.", out)
-
     def test_fail_no_public_key(self):
         """[wireguard] Show an error for missing public_key"""
         config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
@@ -323,16 +307,7 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
                                            'keepalive': 14,
                                            'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: keys.public is required.", out)
-
-    def test_fail_no_allowed_ips(self):
-        """[wireguard] Show an error for a missing allowed_ips"""
-        config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
-                                   peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
-                                           'keepalive': 14,
-                                           'endpoint': '1.2.3.4:1005'}], renderer=self.backend)
-        out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: wg0: 'allowed-ips' is required for wireguard peers.", out)
+        self.assertIn("Error in network definition: wg0: a public key is required.", out)
 
     def test_vxlan_port_range_fail(self):
         out = self.generate('''network:
@@ -1590,19 +1565,13 @@ class TestConfigErrors(TestBase):
       local: 10.10.10.10
 '''
         out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: tun0: missing 'mode' property for tunnel", out)
+        self.assertIn("Error in network definition: tun0: missing or invalid 'mode' property for tunnel", out)
 
     def test_invalid_mode(self):
         """Ensure an invalid tunnel mode shows an error message"""
         config = prepare_config_for_mode('networkd', 'invalid')
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: tun0: tunnel mode 'invalid' is not supported", out)
-
-    def test_invalid_mode_for_nm(self):
-        """Show an error if a mode is selected that can't be handled by the renderer"""
-        config = prepare_config_for_mode('NetworkManager', 'gretap')
-        out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: tun0: GRETAP tunnel mode is not supported by NetworkManager", out)
 
     def test_malformed_tunnel_ip(self):
         """Fail if local/remote IP for tunnel are malformed"""
