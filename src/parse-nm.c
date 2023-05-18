@@ -112,7 +112,7 @@ set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gcha
 }
 
 static void
-handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, gboolean* dataptr)
+keyfile_handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, gboolean* dataptr)
 {
     g_assert(dataptr);
     *dataptr = g_key_file_get_boolean(kf, group, key, NULL);
@@ -120,7 +120,7 @@ handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, gboolean
 }
 
 static void
-handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** dataptr)
+keyfile_handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** dataptr)
 {
     g_assert(dataptr);
     g_assert(!*dataptr);
@@ -130,7 +130,7 @@ handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** da
 }
 
 static void
-handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* dataptr, guint default_value)
+keyfile_handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* dataptr, guint default_value)
 {
     g_assert(dataptr);
     if (g_key_file_has_key(kf, group, key, NULL)) {
@@ -142,16 +142,16 @@ handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* d
 }
 
 static void
-handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
-    handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
-    handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
-    handle_generic_str(kf, group, "mac-address", &nd->match.mac);
+keyfile_handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
+    keyfile_handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
+    keyfile_handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    keyfile_handle_generic_str(kf, group, "mac-address", &nd->match.mac);
     if (nd->match.mac)
         nd->has_match = TRUE;
 }
 
 static void
-handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition* nd, char** dataptr) {
+keyfile_handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition* nd, char** dataptr) {
     if (g_key_file_get_uint64(kf, "bridge", key, NULL)) {
         nd->custom_bridging = TRUE;
         *dataptr = g_strdup_printf("%"G_GUINT64_FORMAT, g_key_file_get_uint64(kf, "bridge", key, NULL));
@@ -307,7 +307,7 @@ parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dat
         _kf_clear_key(kf, group, "ignore-auto-routes");
         _kf_clear_key(kf, group, "never-default");
     }
-    handle_generic_uint(kf, group, "route-metric", &(*dataptr).metric, NETPLAN_METRIC_UNSPEC);
+    keyfile_handle_generic_uint(kf, group, "route-metric", &(*dataptr).metric, NETPLAN_METRIC_UNSPEC);
 }
 
 /*
@@ -388,15 +388,15 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
         g_strfreev(split);
     }
 
-    handle_generic_str(kf, "802-1x", "identity", &auth->identity);
-    handle_generic_str(kf, "802-1x", "anonymous-identity", &auth->anonymous_identity);
+    keyfile_handle_generic_str(kf, "802-1x", "identity", &auth->identity);
+    keyfile_handle_generic_str(kf, "802-1x", "anonymous-identity", &auth->anonymous_identity);
     if (!auth->password)
-        handle_generic_str(kf, "802-1x", "password", &auth->password);
-    handle_generic_str(kf, "802-1x", "ca-cert", &auth->ca_certificate);
-    handle_generic_str(kf, "802-1x", "client-cert", &auth->client_certificate);
-    handle_generic_str(kf, "802-1x", "private-key", &auth->client_key);
-    handle_generic_str(kf, "802-1x", "private-key-password", &auth->client_key_password);
-    handle_generic_str(kf, "802-1x", "phase2-auth", &auth->phase2_auth);
+        keyfile_handle_generic_str(kf, "802-1x", "password", &auth->password);
+    keyfile_handle_generic_str(kf, "802-1x", "ca-cert", &auth->ca_certificate);
+    keyfile_handle_generic_str(kf, "802-1x", "client-cert", &auth->client_certificate);
+    keyfile_handle_generic_str(kf, "802-1x", "private-key", &auth->client_key);
+    keyfile_handle_generic_str(kf, "802-1x", "private-key-password", &auth->client_key_password);
+    keyfile_handle_generic_str(kf, "802-1x", "phase2-auth", &auth->phase2_auth);
 }
 
 static void
@@ -679,8 +679,8 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     parse_addresses(kf, "ipv6", &nd->ip6_addresses);
 
     /* Default gateways */
-    handle_generic_str(kf, "ipv4", "gateway", &nd->gateway4);
-    handle_generic_str(kf, "ipv6", "gateway", &nd->gateway6);
+    keyfile_handle_generic_str(kf, "ipv4", "gateway", &nd->gateway4);
+    keyfile_handle_generic_str(kf, "ipv6", "gateway", &nd->gateway6);
 
     /* Routes */
     parse_routes(kf, "ipv4", &nd->routes);
@@ -706,7 +706,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
     }
     g_free(tmp_str);
-    handle_generic_str(kf, "ipv6", "token", &nd->ip6_addr_gen_token);
+    keyfile_handle_generic_str(kf, "ipv6", "token", &nd->ip6_addr_gen_token);
 
     /* ip6-privacy is not fully supported, NM supports additional modes, like -1 or 1
      * handle known modes, but keep any unsupported "ip6-privacy" value in passthrough */
@@ -728,26 +728,26 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
      * combines them as "modems". We need to parse a basic set of parameters
      * to enable the generator (in nm.c) to detect GSM vs CDMA connections,
      * using its modem_is_gsm() util. */
-    handle_generic_bool(kf, "gsm", "auto-config", &nd->modem_params.auto_config);
-    handle_generic_str(kf, "gsm", "apn", &nd->modem_params.apn);
-    handle_generic_str(kf, "gsm", "device-id", &nd->modem_params.device_id);
-    handle_generic_str(kf, "gsm", "network-id", &nd->modem_params.network_id);
-    handle_generic_str(kf, "gsm", "pin", &nd->modem_params.pin);
-    handle_generic_str(kf, "gsm", "sim-id", &nd->modem_params.sim_id);
-    handle_generic_str(kf, "gsm", "sim-operator-id", &nd->modem_params.sim_operator_id);
+    keyfile_handle_generic_bool(kf, "gsm", "auto-config", &nd->modem_params.auto_config);
+    keyfile_handle_generic_str(kf, "gsm", "apn", &nd->modem_params.apn);
+    keyfile_handle_generic_str(kf, "gsm", "device-id", &nd->modem_params.device_id);
+    keyfile_handle_generic_str(kf, "gsm", "network-id", &nd->modem_params.network_id);
+    keyfile_handle_generic_str(kf, "gsm", "pin", &nd->modem_params.pin);
+    keyfile_handle_generic_str(kf, "gsm", "sim-id", &nd->modem_params.sim_id);
+    keyfile_handle_generic_str(kf, "gsm", "sim-operator-id", &nd->modem_params.sim_operator_id);
 
     /* GSM & CDMA */
-    handle_generic_uint(kf, "cdma", "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
-    handle_generic_uint(kf, "gsm", "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
-    handle_generic_str(kf, "gsm", "number", &nd->modem_params.number);
+    keyfile_handle_generic_uint(kf, "cdma", "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    keyfile_handle_generic_uint(kf, "gsm", "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
+    keyfile_handle_generic_str(kf, "gsm", "number", &nd->modem_params.number);
     if (!nd->modem_params.number)
-        handle_generic_str(kf, "cdma", "number", &nd->modem_params.number);
-    handle_generic_str(kf, "gsm", "password", &nd->modem_params.password);
+        keyfile_handle_generic_str(kf, "cdma", "number", &nd->modem_params.number);
+    keyfile_handle_generic_str(kf, "gsm", "password", &nd->modem_params.password);
     if (!nd->modem_params.password)
-        handle_generic_str(kf, "cdma", "password", &nd->modem_params.password);
-    handle_generic_str(kf, "gsm", "username", &nd->modem_params.username);
+        keyfile_handle_generic_str(kf, "cdma", "password", &nd->modem_params.password);
+    keyfile_handle_generic_str(kf, "gsm", "username", &nd->modem_params.username);
     if (!nd->modem_params.username)
-        handle_generic_str(kf, "cdma", "username", &nd->modem_params.username);
+        keyfile_handle_generic_str(kf, "cdma", "username", &nd->modem_params.username);
 
     /* Ethernets */
     if (g_key_file_has_group(kf, "ethernet")) {
@@ -764,7 +764,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
                 _kf_clear_key(kf, "ethernet", "wake-on-lan"); // value "off" is supported
         }
 
-        handle_common(kf, nd, "ethernet");
+        keyfile_handle_common(kf, nd, "ethernet");
     }
 
     /* Wifis */
@@ -776,7 +776,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             nd->wowlan = NETPLAN_WIFI_WOWLAN_DEFAULT;
         }
 
-        handle_common(kf, nd, "wifi");
+        keyfile_handle_common(kf, nd, "wifi");
     }
 
     /* Cleanup some implicit keys */
@@ -795,48 +795,48 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     g_free(tmp_str);
 
     /* Vlan: XXX: find a way to parse the "link:" (parent) connection */
-    handle_generic_uint(kf, "vlan", "id", &nd->vlan_id, G_MAXUINT);
+    keyfile_handle_generic_uint(kf, "vlan", "id", &nd->vlan_id, G_MAXUINT);
 
     /* Bridge: XXX: find a way to parse the bridge-port.priority & bridge-port.path-cost values */
-    handle_generic_uint(kf, "bridge", "priority", &nd->bridge_params.priority, 0);
+    keyfile_handle_generic_uint(kf, "bridge", "priority", &nd->bridge_params.priority, 0);
     if (nd->bridge_params.priority)
         nd->custom_bridging = TRUE;
-    handle_bridge_uint(kf, "ageing-time", nd, &nd->bridge_params.ageing_time);
-    handle_bridge_uint(kf, "hello-time", nd, &nd->bridge_params.hello_time);
-    handle_bridge_uint(kf, "forward-delay", nd, &nd->bridge_params.forward_delay);
-    handle_bridge_uint(kf, "max-age", nd, &nd->bridge_params.max_age);
+    keyfile_handle_bridge_uint(kf, "ageing-time", nd, &nd->bridge_params.ageing_time);
+    keyfile_handle_bridge_uint(kf, "hello-time", nd, &nd->bridge_params.hello_time);
+    keyfile_handle_bridge_uint(kf, "forward-delay", nd, &nd->bridge_params.forward_delay);
+    keyfile_handle_bridge_uint(kf, "max-age", nd, &nd->bridge_params.max_age);
     /* STP needs to be handled last, for its different default value in custom_bridging mode */
     if (g_key_file_has_key(kf, "bridge", "stp", NULL)) {
         nd->custom_bridging = TRUE;
-        handle_generic_bool(kf, "bridge", "stp", &nd->bridge_params.stp);
+        keyfile_handle_generic_bool(kf, "bridge", "stp", &nd->bridge_params.stp);
     } else if(nd->custom_bridging) {
         nd->bridge_params.stp = TRUE; //set default value if not specified otherwise
     }
 
     /* Bonds */
-    handle_generic_str(kf, "bond", "mode", &nd->bond_params.mode);
-    handle_generic_str(kf, "bond", "lacp_rate", &nd->bond_params.lacp_rate);
-    handle_generic_str(kf, "bond", "miimon", &nd->bond_params.monitor_interval);
-    handle_generic_str(kf, "bond", "xmit_hash_policy", &nd->bond_params.transmit_hash_policy);
-    handle_generic_str(kf, "bond", "ad_select", &nd->bond_params.selection_logic);
-    handle_generic_str(kf, "bond", "arp_interval", &nd->bond_params.arp_interval);
-    handle_generic_str(kf, "bond", "arp_validate", &nd->bond_params.arp_validate);
-    handle_generic_str(kf, "bond", "arp_all_targets", &nd->bond_params.arp_all_targets);
-    handle_generic_str(kf, "bond", "updelay", &nd->bond_params.up_delay);
-    handle_generic_str(kf, "bond", "downdelay", &nd->bond_params.down_delay);
-    handle_generic_str(kf, "bond", "fail_over_mac", &nd->bond_params.fail_over_mac_policy);
-    handle_generic_str(kf, "bond", "primary_reselect", &nd->bond_params.primary_reselect_policy);
-    handle_generic_str(kf, "bond", "lp_interval", &nd->bond_params.learn_interval);
-    handle_generic_str(kf, "bond", "primary", &nd->bond_params.primary_member);
-    handle_generic_uint(kf, "bond", "min_links", &nd->bond_params.min_links, 0);
-    handle_generic_uint(kf, "bond", "resend_igmp", &nd->bond_params.resend_igmp, 0);
-    handle_generic_uint(kf, "bond", "packets_per_slave", &nd->bond_params.packets_per_member, 0); /* wokeignore:rule=slave */
-    handle_generic_uint(kf, "bond", "num_grat_arp", &nd->bond_params.gratuitous_arp, 0);
+    keyfile_handle_generic_str(kf, "bond", "mode", &nd->bond_params.mode);
+    keyfile_handle_generic_str(kf, "bond", "lacp_rate", &nd->bond_params.lacp_rate);
+    keyfile_handle_generic_str(kf, "bond", "miimon", &nd->bond_params.monitor_interval);
+    keyfile_handle_generic_str(kf, "bond", "xmit_hash_policy", &nd->bond_params.transmit_hash_policy);
+    keyfile_handle_generic_str(kf, "bond", "ad_select", &nd->bond_params.selection_logic);
+    keyfile_handle_generic_str(kf, "bond", "arp_interval", &nd->bond_params.arp_interval);
+    keyfile_handle_generic_str(kf, "bond", "arp_validate", &nd->bond_params.arp_validate);
+    keyfile_handle_generic_str(kf, "bond", "arp_all_targets", &nd->bond_params.arp_all_targets);
+    keyfile_handle_generic_str(kf, "bond", "updelay", &nd->bond_params.up_delay);
+    keyfile_handle_generic_str(kf, "bond", "downdelay", &nd->bond_params.down_delay);
+    keyfile_handle_generic_str(kf, "bond", "fail_over_mac", &nd->bond_params.fail_over_mac_policy);
+    keyfile_handle_generic_str(kf, "bond", "primary_reselect", &nd->bond_params.primary_reselect_policy);
+    keyfile_handle_generic_str(kf, "bond", "lp_interval", &nd->bond_params.learn_interval);
+    keyfile_handle_generic_str(kf, "bond", "primary", &nd->bond_params.primary_member);
+    keyfile_handle_generic_uint(kf, "bond", "min_links", &nd->bond_params.min_links, 0);
+    keyfile_handle_generic_uint(kf, "bond", "resend_igmp", &nd->bond_params.resend_igmp, 0);
+    keyfile_handle_generic_uint(kf, "bond", "packets_per_slave", &nd->bond_params.packets_per_member, 0); /* wokeignore:rule=slave */
+    keyfile_handle_generic_uint(kf, "bond", "num_grat_arp", &nd->bond_params.gratuitous_arp, 0);
     /* num_unsol_na might overwrite num_grat_arp, but we're fine if they are equal:
      * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
     if (g_key_file_get_uint64(kf, "bond", "num_unsol_na", NULL) == nd->bond_params.gratuitous_arp)
         _kf_clear_key(kf, "bond", "num_unsol_na");
-    handle_generic_bool(kf, "bond", "all_slaves_active", &nd->bond_params.all_members_active); /* wokeignore:rule=slave */
+    keyfile_handle_generic_bool(kf, "bond", "all_slaves_active", &nd->bond_params.all_members_active); /* wokeignore:rule=slave */
     parse_bond_arp_ip_targets(kf, &nd->bond_params.arp_ip_targets);
 
     /* Special handling for WiFi "access-points:" mapping */
@@ -864,8 +864,8 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
         g_free(tmp_str);
 
-        handle_generic_bool(kf, "wifi", "hidden", &ap->hidden);
-        handle_generic_str(kf, "wifi", "bssid", &ap->bssid);
+        keyfile_handle_generic_bool(kf, "wifi", "hidden", &ap->hidden);
+        keyfile_handle_generic_str(kf, "wifi", "bssid", &ap->bssid);
 
         /* Wifi band & channel */
         tmp_str = g_key_file_get_string(kf, "wifi", "band", NULL);
@@ -877,7 +877,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             _kf_clear_key(kf, "wifi", "band");
         }
         g_free(tmp_str);
-        handle_generic_uint(kf, "wifi", "channel", &ap->channel, 0);
+        keyfile_handle_generic_uint(kf, "wifi", "channel", &ap->channel, 0);
 
         /* Wifi security */
         tmp_str = g_key_file_get_string(kf, "wifi-security", "key-mgmt", NULL);
@@ -896,7 +896,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
         g_free(tmp_str);
 
-        handle_generic_str(kf, "wifi-security", "psk", &ap->auth.password);
+        keyfile_handle_generic_str(kf, "wifi-security", "psk", &ap->auth.password);
         if (ap->auth.password)
             ap->has_auth = TRUE;
 
