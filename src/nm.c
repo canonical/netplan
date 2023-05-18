@@ -511,7 +511,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
         }
     }
 
-    if (def->vxlan->checksums || def->vxlan->extensions || def->vxlan->flow_label != G_MAXUINT || def->vxlan->do_not_fragment)
+    if (def->vxlan->checksums || def->vxlan->extensions || def->vxlan->flow_label != G_MAXUINT || def->vxlan->do_not_fragment != NETPLAN_TRISTATE_UNSET)
         g_warning("%s: checksums/extensions/flow-lable/do-not-fragment are not supported by NetworkManager\n", def->id);
 }
 

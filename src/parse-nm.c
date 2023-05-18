@@ -51,8 +51,9 @@ type_from_str(const char* type_str)
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
     */
-    /* TODO: Tunnels are partially supported by the keyfile parser */
-    else if (!g_strcmp0(type_str, "wireguard"))
+    else if (   !g_strcmp0(type_str, "wireguard")
+             || !g_strcmp0(type_str, "vxlan")
+             || !g_strcmp0(type_str, "ip-tunnel"))
         return NETPLAN_DEF_TYPE_TUNNEL;
     /* Unsupported type, needs to be specified via passthrough */
     return NETPLAN_DEF_TYPE_NM;
@@ -76,6 +77,9 @@ tunnel_mode_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "wireguard"))
         return NETPLAN_TUNNEL_MODE_WIREGUARD;
+    else if (!g_strcmp0(type_str, "vxlan"))
+        return NETPLAN_TUNNEL_MODE_VXLAN;
+
     return NETPLAN_TUNNEL_MODE_UNKNOWN;
 }
 
@@ -524,6 +528,38 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
             }
         }
         g_strfreev(keyfile_groups);
+
+    } else if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
+        /* Handle vxlan tunnel */
+
+        nd->vxlan = g_new0(NetplanVxlan, 1);
+        reset_vxlan(nd->vxlan);
+
+        /* Reading the VXLAN ID*/
+        nd->vxlan->vni = g_key_file_get_integer(kf, "vxlan", "id", NULL);
+        _kf_clear_key(kf, "vxlan", "id");
+
+        nd->tunnel.local_ip = g_key_file_get_string(kf, "vxlan", "local", NULL);
+        _kf_clear_key(kf, "vxlan", "local");
+        nd->tunnel.remote_ip = g_key_file_get_string(kf, "vxlan", "remote", NULL);
+        _kf_clear_key(kf, "vxlan", "remote");
+    } else {
+        /* Handle all the other types of tunnel */
+
+        nd->tunnel.mode = g_key_file_get_integer(kf, "ip-tunnel", "mode", NULL);
+
+        /* We don't want to automatically accept new types of tunnels introduced by Network Manager */
+        if (nd->tunnel.mode >= NETPLAN_TUNNEL_MODE_NM_MAX) {
+            nd->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
+            return;
+        }
+
+        _kf_clear_key(kf, "ip-tunnel", "mode");
+
+        nd->tunnel.local_ip = g_key_file_get_string(kf, "ip-tunnel", "local", NULL);
+        _kf_clear_key(kf, "ip-tunnel", "local");
+        nd->tunnel.remote_ip = g_key_file_get_string(kf, "ip-tunnel", "remote", NULL);
+        _kf_clear_key(kf, "ip-tunnel", "remote");
     }
 }
 
@@ -586,13 +622,6 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     g_free(tmp_str);
     nd = netplan_netdef_new(npp, nd_id, nd_type, NETPLAN_BACKEND_NM);
 
-    if (nd_type == NETPLAN_DEF_TYPE_TUNNEL) {
-        nd->tunnel.mode = tunnel_mode_from_str(type);
-    }
-
-    /* Handle tunnels */
-    parse_tunnels(kf, nd);
-
     /* Handle uuid & NM name/id */
     nd->backend_settings.uuid = g_strdup(uuid);
     _kf_clear_key(kf, "connection", "uuid");
@@ -612,13 +641,19 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     }
     g_free(tmp_str);
 
+    /* Handle tunnels */
+    if (nd_type == NETPLAN_DEF_TYPE_TUNNEL) {
+        nd->tunnel.mode = tunnel_mode_from_str(type);
+        parse_tunnels(kf, nd);
+    }
+
     /* remove supported values from passthrough, which have been handled */
     if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
         || nd_type == NETPLAN_DEF_TYPE_WIFI
         || nd_type == NETPLAN_DEF_TYPE_MODEM
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
         || nd_type == NETPLAN_DEF_TYPE_BOND
-        || nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN)
+        || (nd_type == NETPLAN_DEF_TYPE_TUNNEL && nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN))
         _kf_clear_key(kf, "connection", "type");
 
     /* Handle match: Netplan usually defines a connection per interface, while

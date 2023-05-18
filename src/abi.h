@@ -91,12 +91,13 @@ typedef enum {
     NETPLAN_TUNNEL_MODE_IPIP6       = 7,
     NETPLAN_TUNNEL_MODE_IP6GRE      = 8,
     NETPLAN_TUNNEL_MODE_VTI6        = 9,
-    NETPLAN_TUNNEL_MODE_VXLAN       = 10,
+    NETPLAN_TUNNEL_MODE_GRETAP      = 10,
+    NETPLAN_TUNNEL_MODE_IP6GRETAP   = 11,
+    /* "ip-tunnel" modes supported by Network Manager end here */
+    NETPLAN_TUNNEL_MODE_NM_MAX      = 12,
 
-    /* systemd-only, apparently? */
-    NETPLAN_TUNNEL_MODE_GRETAP      = 101,
-    NETPLAN_TUNNEL_MODE_IP6GRETAP   = 102,
-    NETPLAN_TUNNEL_MODE_WIREGUARD   = 103,
+    NETPLAN_TUNNEL_MODE_VXLAN       = 100,
+    NETPLAN_TUNNEL_MODE_WIREGUARD   = 101,
 
     NETPLAN_TUNNEL_MODE_MAX_,
 } NetplanTunnelMode;

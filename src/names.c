@@ -81,9 +81,9 @@ netplan_tunnel_mode_to_str[NETPLAN_TUNNEL_MODE_MAX_] = {
     [NETPLAN_TUNNEL_MODE_IPIP6] = "ipip6",
     [NETPLAN_TUNNEL_MODE_IP6GRE] = "ip6gre",
     [NETPLAN_TUNNEL_MODE_VTI6] = "vti6",
-    [NETPLAN_TUNNEL_MODE_VXLAN] = "vxlan",
     [NETPLAN_TUNNEL_MODE_GRETAP] = "gretap",
     [NETPLAN_TUNNEL_MODE_IP6GRETAP] = "ip6gretap",
+    [NETPLAN_TUNNEL_MODE_VXLAN] = "vxlan",
     [NETPLAN_TUNNEL_MODE_WIREGUARD] = "wireguard",
 };
 
