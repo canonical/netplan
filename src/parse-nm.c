@@ -450,7 +450,7 @@ read_passthrough(GKeyFile* kf, GData** list)
                 }
                 group_key = g_strconcat(groups[i], ".", keys[j], NULL);
                 g_datalist_set_data_full(list, group_key, value, g_free);
-                /* no need to free group_key and value: they stay in the list */
+                g_free(group_key);
             }
             g_strfreev(keys);
         }
