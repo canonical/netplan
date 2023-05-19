@@ -921,8 +921,6 @@ only_passthrough:
         read_passthrough(kf, &nd->backend_settings.passthrough);
     }
 
-    g_key_file_free(kf);
-
     /* validate definition-level conditions */
     if (!npp->missing_id)
         npp->missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
