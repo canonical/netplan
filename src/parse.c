@@ -2825,6 +2825,12 @@ static const mapping_entry_handler modem_def_handlers[] = {
     {"username", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(modem_params.username)},
 };
 
+static const mapping_entry_handler dummy_def_handlers[] = {     /* wokeignore:rule=dummy */
+    COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
+    {NULL}
+};
+
 static const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
@@ -3090,6 +3096,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
             case NETPLAN_DEF_TYPE_VRF: handlers = vrf_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
+            case NETPLAN_DEF_TYPE_DUMMY: handlers = dummy_def_handlers; break;      /* wokeignore:rule=dummy */
             case NETPLAN_DEF_TYPE_NM:
                 g_warning("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", npp->current.netdef->id);
                 handlers = ethernet_def_handlers;
@@ -3179,6 +3186,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"vrfs", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VRF)},
     {"wifis", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
     {"modems", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
+    {"dummy-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_DUMMY)},    /* wokeignore:rule=dummy */
     {"nm-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_NM)},
     {"openvswitch", YAML_MAPPING_NODE, {.map={.handlers=ovs_network_settings_handlers}}},
     {NULL}

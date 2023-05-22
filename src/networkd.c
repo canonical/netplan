@@ -520,6 +520,10 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
             g_string_append_printf(s, "Kind=vrf\n\n[VRF]\nTable=%u\n", def->vrf_table);
             break;
 
+        case NETPLAN_DEF_TYPE_DUMMY:                        /* wokeignore:rule=dummy */
+            g_string_append_printf(s, "Kind=dummy\n");      /* wokeignore:rule=dummy */
+            break;
+
         case NETPLAN_DEF_TYPE_TUNNEL:
             switch(def->tunnel.mode) {
                 case NETPLAN_TUNNEL_MODE_GRE:

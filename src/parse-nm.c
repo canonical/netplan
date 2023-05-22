@@ -47,6 +47,8 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_BRIDGE;
     else if (!g_strcmp0(type_str, "bond"))
         return NETPLAN_DEF_TYPE_BOND;
+    else if (!g_strcmp0(type_str, "dummy"))     /* wokeignore:rule=dummy */
+        return NETPLAN_DEF_TYPE_DUMMY;          /* wokeignore:rule=dummy */
     /* TODO: Vlans are not yet fully supported by the keyfile parser
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
@@ -664,6 +666,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         || nd_type == NETPLAN_DEF_TYPE_MODEM
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
         || nd_type == NETPLAN_DEF_TYPE_BOND
+        || nd_type == NETPLAN_DEF_TYPE_DUMMY       /* wokeignore:rule=dummy */
         || (nd_type == NETPLAN_DEF_TYPE_TUNNEL && nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN))
         _kf_clear_key(kf, "connection", "type");
 
