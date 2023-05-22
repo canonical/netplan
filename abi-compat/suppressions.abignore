@@ -7,3 +7,8 @@
 [suppress_variable]
   name = global_state
   type_name = NetplanState
+
+[suppress_type]
+  type_kind = typedef
+  name = NetplanDefType
+  changed_enumerators = NetplanDefType
