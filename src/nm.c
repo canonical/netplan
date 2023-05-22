@@ -86,6 +86,8 @@ type_str(const NetplanNetDefinition* def)
             return "vlan";
         case NETPLAN_DEF_TYPE_VRF:
             return "vrf";
+        case NETPLAN_DEF_TYPE_DUMMY:    /* wokeignore:rule=dummy */
+            return "dummy";             /* wokeignore:rule=dummy */
         case NETPLAN_DEF_TYPE_TUNNEL:
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
