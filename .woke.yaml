@@ -103,14 +103,6 @@ rules:
       - foreperson
     severity: warning
 
-  - name: dummy
-    terms:
-      - dummy
-    alternatives:
-      - placeholder
-      - sample
-    severity: warning
-
   - name: grandfathered
     terms:
       - grandfathered
@@ -178,3 +170,4 @@ rules:
     severity: warning
   # Ignore rules
   - name: he
+  - name: dummy
