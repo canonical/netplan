@@ -12,6 +12,7 @@ network:
   renderer: STRING
   bonds: MAPPING
   bridges: MAPPING
+  dummy-devices: MAPPING
   ethernets: MAPPING
   modems: MAPPING
   tunnels: MAPPING
@@ -36,6 +37,10 @@ network:
 - [**bridges**](#properties-for-device-type-bridges) (mapping)
 
   > Creates and configures bridge devices.
+
+- [**dummy-devices**](#properties-for-device-type-dummy-devices) (mapping)
+
+  > Creates and configures virtual devices.
 
 - [**ethernets**](#properties-for-device-type-ethernets) (mapping)
 
@@ -1315,6 +1320,31 @@ The specific settings for bridges are defined below.
     > Define whether the bridge should use Spanning Tree Protocol. The
     > default value is "true", which means that Spanning Tree should be
     > used.
+
+
+## Properties for device type `dummy-devices:`
+
+**Status**: Optional.
+
+**Purpose**: Use the `dummy-devices` key to create virtual interfaces.
+
+**Structure**: The key consists of a mapping of interface names.
+Dummy devices are virtual devices that can be used to route packets to
+without actually transmitting them.
+
+```yaml
+network:
+  dummy-devices:
+    dm0:
+      addresses:
+        - 192.168.0.123/24
+      ...
+```
+
+When applied, a virtual interface called `dm0` will be created in the system.
+
+[See this section](#properties-for-all-device-types) for the list of properties that can be
+used with this type of interface.
 
 
 ## Properties for device type `bonds:`
