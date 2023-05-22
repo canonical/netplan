@@ -340,6 +340,28 @@ route2=4:5:6:7:8:9:0:1/63,,5
           proxy._: ""
 '''.format(UUID, UUID)})
 
+    def test_keyfile_dummy(self):       # wokeignore:rule=dummy
+        self.generate_from_keyfile('''[connection]
+id=Test
+uuid={}
+type={}
+
+[ipv4]
+method=manual
+address1=192.168.123.123/24
+'''.format(UUID, 'dummy'))      # wokeignore:rule=dummy
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  dummy-devices:            # wokeignore:rule=dummy
+    NM-{}:
+      renderer: NetworkManager
+      addresses:
+      - "192.168.123.123/24"
+      networkmanager:
+        uuid: "{}"
+        name: "Test"
+'''.format(UUID, UUID)})
+
     def _template_keyfile_type(self, nd_type, nm_type, supported=True):
         self.maxDiff = None
         file = os.path.join(self.workdir.name, 'tmp/some.keyfile')
@@ -383,9 +405,6 @@ route2=4:5:6:7:8:9:0:1/63,,5
 
     def test_keyfile_type_tunnel(self):
         self._template_keyfile_type('tunnels', 'ip-tunnel', False)
-
-    def test_keyfile_type_other(self):
-        self._template_keyfile_type('nm-devices', 'dummy', False)  # wokeignore:rule=dummy
 
     def test_keyfile_type_wifi(self):
         self.generate_from_keyfile('''[connection]
