@@ -83,6 +83,7 @@ ND_WG = '[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey%s\nListen
 ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 ND_VXLAN = '[NetDev]\nName=%s\nKind=vxlan\n\n[VXLAN]\nVNI=%d\n'
 ND_VRF = '[NetDev]\nName=%s\nKind=vrf\n\n[VRF]\nTable=%d\n'
+ND_DUMMY = '[NetDev]\nName=%s\nKind=dummy\n'        # wokeignore:rule=dummy
 SD_WPA = '''[Unit]
 Description=WPA supplicant for netplan %(iface)s
 DefaultDependencies=no
