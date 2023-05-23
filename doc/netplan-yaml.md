@@ -1343,7 +1343,7 @@ network:
 
 When applied, a virtual interface called `dm0` will be created in the system.
 
-[See this section](#properties-for-all-device-types) for the list of properties that can be
+See the ["Properties for all device types"](#properties-for-all-device-types) section for the list of properties that can be
 used with this type of interface.
 
 
