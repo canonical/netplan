@@ -1564,9 +1564,8 @@ The specific settings for tunnels are defined below.
 - **mode** (scalar)
 
   > Defines the tunnel mode. Valid options are `sit`, `gre`, `ip6gre`,
-  > `ipip`, `ipip6`, `ip6ip6`, `vti`, `vti6`, `wireguard` and `vxlan`.
-  > Additionally, the `networkd` backend also supports `gretap` and
-  > `ip6gretap` modes.
+  > `ipip`, `ipip6`, `ip6ip6`, `vti`, `vti6`, `wireguard`, `vxlan`,
+  > `gretap` and `ip6gretap` modes.
   > In addition, the `NetworkManager` backend supports `isatap` tunnels.
 
 - **local** (scalar)
