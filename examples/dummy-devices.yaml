@@ -1,0 +1,11 @@
+network:
+  renderer: networkd
+  version: 2
+  dummy-devices:
+    dm0:
+      addresses:
+        - 10.1.2.3/24
+    dm1:
+      addresses:
+        - 192.168.1.2/28
+        - 2001:cafe:face:beef::dead:dead/64
