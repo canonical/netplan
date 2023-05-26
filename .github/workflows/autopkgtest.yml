@@ -42,7 +42,7 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          dch -v $(git describe --tags) "Autopkgtest CI testing (Jammy)"
+          dch -v $(git describe --long --tags $(git rev-list --tags --max-count=1)) "Autopkgtest CI testing (Jammy)"
       - name: Run autopkgtest (incl. build)
         run: |
           # using --setup-commands temporarily to install:
