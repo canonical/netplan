@@ -2969,10 +2969,14 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
             return yaml_error(npp, peer, error, "Open vSwitch port '%s' is already assigned to peer '%s'",
                               component2->id, component2->peer);
 
-        component1->peer = g_strdup(scalar(peer));
-        component2->peer = g_strdup(scalar(port));
-        component1->peer_link = component2;
-        component2->peer_link = component1;
+        if (!component1->peer) {
+            component1->peer = g_strdup(scalar(peer));
+            component1->peer_link = component2;
+        }
+        if (!component2->peer) {
+            component2->peer = g_strdup(scalar(port));
+            component2->peer_link = component1;
+        }
     }
     return TRUE;
 }
