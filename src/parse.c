@@ -1479,8 +1479,10 @@ handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, const void* data, 
             if (component->bond && g_strcmp0(component->bond, npp->current.netdef->id) != 0)
                 return yaml_error(npp, node, error, "%s: interface '%s' is already assigned to bond %s",
                                   npp->current.netdef->id, scalar(entry), component->bond);
-            component->bond = g_strdup(npp->current.netdef->id);
-            component->bond_link = npp->current.netdef;
+            if (!component->bond) {
+                component->bond = g_strdup(npp->current.netdef->id);
+                component->bond_link = npp->current.netdef;
+            }
             if (component->backend == NETPLAN_BACKEND_OVS) {
                 g_debug("%s: Bond contains Open vSwitch interface, choosing OVS backend", npp->current.netdef->id);
                 npp->current.netdef->backend = NETPLAN_BACKEND_OVS;
