@@ -411,6 +411,11 @@ class TestBase(unittest.TestCase):
                 r.add(line[len(prefix):])
         return r
 
+    def assert_wpa_supplicant(self, iface, content):
+        conf_path = os.path.join(self.workdir.name, 'run', 'netplan', "wpa-" + iface + ".conf")
+        with open(conf_path) as f:
+            self.assertEqual(f.read(), content)
+
     def assert_nm(self, connections_map=None, conf=None):
         # check config
         conf_path = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'conf.d', 'netplan.conf')
