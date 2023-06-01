@@ -1164,6 +1164,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
         NetplanWifiAccessPoint* ap;
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
+            gchar* freq_config_str = ap->mode == NETPLAN_WIFI_MODE_ADHOC ? "frequency" : "freq_list";
+
             g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
             if (ap->bssid) {
                 g_string_append_printf(s, "  bssid=%s\n", ap->bssid);
@@ -1176,8 +1178,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
                 if(!wifi_frequency_24)
                     wifi_get_freq24(1);
                 if (ap->channel) {
-                    g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq24(ap->channel));
-                } else {
+                    g_string_append_printf(s, "  %s=%d\n", freq_config_str, wifi_get_freq24(ap->channel));
+                } else if (ap->mode != NETPLAN_WIFI_MODE_ADHOC) {
                     g_string_append_printf(s, "  freq_list=");
                     g_hash_table_foreach(wifi_frequency_24, wifi_append_freq, s);
                     // overwrite last whitespace with newline
@@ -1188,8 +1190,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
                 if(!wifi_frequency_5)
                     wifi_get_freq5(7);
                 if (ap->channel) {
-                    g_string_append_printf(s, "  freq_list=%d\n", wifi_get_freq5(ap->channel));
-                } else {
+                    g_string_append_printf(s, "  %s=%d\n", freq_config_str, wifi_get_freq5(ap->channel));
+                } else if (ap->mode != NETPLAN_WIFI_MODE_ADHOC) {
                     g_string_append_printf(s, "  freq_list=");
                     g_hash_table_foreach(wifi_frequency_5, wifi_append_freq, s);
                     // overwrite last whitespace with newline
