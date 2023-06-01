@@ -604,6 +604,52 @@ ssid=homenet
 mode=adhoc
 '''})
 
+    def test_wifi_adhoc_wpa_24ghz(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          mode: adhoc
+          band: 2.4GHz
+          channel: 7
+          password: "********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  frequency=2442
+  mode=1
+  key_mgmt=WPA-PSK
+  psk="********"
+}
+""")
+
+    def test_wifi_adhoc_wpa_5ghz(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          mode: adhoc
+          band: 5GHz
+          channel: 7
+          password: "********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  frequency=5035
+  mode=1
+  key_mgmt=WPA-PSK
+  psk="********"
+}
+""")
+
     def test_wifi_wowlan(self):
         self.generate('''network:
   version: 2
