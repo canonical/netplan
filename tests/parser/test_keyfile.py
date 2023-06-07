@@ -1578,6 +1578,47 @@ method=auto\n'''.format(UUID))
           connection.interface-name: "wg0"
 '''.format(UUID, UUID)})
 
+    def test_wireguard_allowed_ips_without_prefix(self):
+        '''
+        When the IP prefix is not present we should default to /32
+        '''
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[wireguard]
+private-key=aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A=
+
+[wireguard-peer.cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI=]
+endpoint=1.2.3.4:12345
+allowed-ips=192.168.0.10
+
+[ipv4]
+method=auto\n'''.format(UUID), regenerate=False)
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      keys:
+        private: "aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A="
+      peers:
+      - endpoint: "1.2.3.4:12345"
+        keys:
+          public: "cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI="
+        allowed-ips:
+        - "192.168.0.10/32"
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
     def test_wireguard_with_key_and_peer_without_allowed_ips(self):
         self.generate_from_keyfile('''[connection]
 id=wg0
