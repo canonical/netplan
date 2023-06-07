@@ -76,7 +76,7 @@ class TestKeyfileBase(unittest.TestCase):
         shutil.rmtree(self.workdir.name)
         super().tearDown()
 
-    def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None):
+    def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None, regenerate=True):
         '''Call libnetplan with given keyfile string as configuration'''
         err = ctypes.POINTER(_NetplanError)()
         # Autodetect default 'NM-<UUID>' netdef-id
@@ -121,7 +121,8 @@ class TestKeyfileBase(unittest.TestCase):
                 lib._write_netplan_conf(netdef_id.encode(), self.workdir.name.encode())
                 lib.netplan_clear_netdefs()
                 # check re-generated keyfile
-                self.assert_nm_regenerate({generated_file: keyfile})
+                if regenerate:
+                    self.assert_nm_regenerate({generated_file: keyfile})
             with open(outf.name, 'r') as f:
                 output = f.read().strip()  # output from stderr (fd=2) on C/library level
                 return output
