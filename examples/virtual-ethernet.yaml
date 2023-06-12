@@ -1,0 +1,16 @@
+network:
+  version: 2
+  renderer: networkd
+  virtual-ethernets:
+    veth0-peer1:
+      peer: veth0-peer2
+    veth0-peer2:
+      peer: veth0-peer1
+
+  bridges:
+    br0:
+      interfaces:
+        - veth0-peer1
+    br1:
+      interfaces:
+        - veth0-peer2
