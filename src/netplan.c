@@ -791,6 +791,9 @@ _serialize_yaml(
     YAML_BOOL_TRUE(def, event, emitter, "delay-virtual-functions-rebind",
                    def->sriov_delay_virtual_functions_rebind);
 
+    if (def->type == NETPLAN_DEF_TYPE_VETH && def->veth_peer_link)
+        YAML_STRING(def, event, emitter, "peer", def->veth_peer_link->id);
+
     /* Search interfaces */
     if (def->type == NETPLAN_DEF_TYPE_BRIDGE || def->type == NETPLAN_DEF_TYPE_BOND || def->type == NETPLAN_DEF_TYPE_VRF) {
         tmp_arr = g_array_new(FALSE, FALSE, sizeof(NetplanNetDefinition*));
