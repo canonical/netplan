@@ -393,6 +393,11 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
             goto netdef_grammar_error;
     }
 
+    if (nd->type == NETPLAN_DEF_TYPE_VETH) {
+        if (!nd->veth_peer_link)
+            return yaml_error(npp, NULL, error, "%s: virtual-ethernet missing 'peer' property", nd->id);
+    }
+
     if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && nd->ip6_addr_gen_token)
         return yaml_error(npp, NULL, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
 
@@ -649,4 +654,39 @@ validate_default_route_consistency(__unused const NetplanParser* npp, GHashTable
     }
     g_slist_free_full(defroutes, g_free);
     return ret;
+}
+
+gboolean
+validate_veth_pair(__unused const NetplanState* np_state, const NetplanNetDefinition* netdef, GError** error)
+{
+
+    NetplanNetDefinition* veth_peer = netdef->veth_peer_link;
+
+    /* If the veth's peer type is the placeholder, it wasn't defined yet so it's not a non-veth device */
+    if (veth_peer && veth_peer->type != NETPLAN_DEF_TYPE_NM_PLACEHOLDER_) {
+        if (veth_peer->type != NETPLAN_DEF_TYPE_VETH) {
+            g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
+                        "%s: virtual-ethernet peer '%s' is not a virtual-ethernet interface\n", netdef->id, veth_peer->id);
+            return FALSE;
+        }
+
+        /* If the veth's peer has a peer link and its type is the placeholder, it's because it's not
+         * referring to the correct interface as its peer.
+         * Example: A.peer = B, B.peer = C and C is a placeholder.
+         */
+        if (veth_peer->veth_peer_link && veth_peer->veth_peer_link->type == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_) {
+            g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
+                        "%s: virtual-ethernet peer '%s' does not have a peer itself\n", netdef->id, veth_peer->id);
+            return FALSE;
+        }
+
+        if (veth_peer->veth_peer_link && veth_peer->veth_peer_link != netdef) {
+            g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
+                        "%s: virtual-ethernet peer '%s' is another virtual-ethernet's (%s) peer already\n",
+                        netdef->id, veth_peer->id, veth_peer->veth_peer_link->id);
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }

@@ -44,3 +44,6 @@ validate_default_route_consistency(const NetplanParser* npp, GHashTable* netdefs
 
 gboolean
 adopt_and_validate_vrf_routes(const NetplanParser* npp, GHashTable* netdefs, GError** error);
+
+gboolean
+validate_veth_pair(const NetplanState* np_state, const NetplanNetDefinition* netdef, GError** error);
