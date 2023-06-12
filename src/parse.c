@@ -810,6 +810,35 @@ handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const 
     return ret;
 }
 
+static gboolean
+handle_veth_peer(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    NetplanNetDefinition* netdef = npp->current.netdef;
+
+    if (!g_strcmp0(netdef->id, scalar(node)))
+        return yaml_error(npp, node, error, "%s: virtual-ethernet peer cannot be itself", netdef->id);
+
+    NetplanNetDefinition* link = g_hash_table_lookup(npp->parsed_defs, scalar(node));
+    if (link) {
+        if (link->type != NETPLAN_DEF_TYPE_VETH && link->type != NETPLAN_DEF_TYPE_NM_PLACEHOLDER_)
+            return yaml_error(npp, node, error, "%s: virtual-ethernet peer '%s' is not a virtual-ethernet interface", netdef->id, link->id);
+
+        if (link->veth_peer_link && link->veth_peer_link != netdef)
+            return yaml_error(npp, node, error, "%s: virtual-ethernet peer '%s' is another virtual-ethernet's (%s) peer already",
+                              netdef->id, link->id, link->veth_peer_link->id);
+
+        netdef->veth_peer_link = link;
+        link->veth_peer_link = netdef;
+
+        return TRUE;
+    }
+
+    add_missing_node(npp, node);
+
+    return TRUE;
+}
+
+
 /****************************************************
  * Grammar and handlers for network config "match" entry
  ****************************************************/
@@ -2789,6 +2818,14 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     {NULL}
 };
 
+static const mapping_entry_handler veth_def_handlers[] = {
+    COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
+    {"peer", YAML_SCALAR_NODE, {.generic=handle_veth_peer}, netdef_offset(veth_peer_link)},
+    {NULL}
+};
+
+
 static const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
@@ -3126,6 +3163,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             case NETPLAN_DEF_TYPE_VRF: handlers = vrf_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
             case NETPLAN_DEF_TYPE_DUMMY: handlers = dummy_def_handlers; break;      /* wokeignore:rule=dummy */
+            case NETPLAN_DEF_TYPE_VETH: handlers = veth_def_handlers; break;
             case NETPLAN_DEF_TYPE_NM:
                 g_debug("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", npp->current.netdef->id);
                 handlers = ethernet_def_handlers;
@@ -3216,6 +3254,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"wifis", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
     {"modems", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
     {"dummy-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_DUMMY)},    /* wokeignore:rule=dummy */
+    {"virtual-ethernets", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VETH)},
     {"nm-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_NM)},
     {"openvswitch", YAML_MAPPING_NODE, {.map={.handlers=ovs_network_settings_handlers}}, NULL},
     {NULL}
@@ -3255,6 +3294,18 @@ process_missing_ids(NetplanParser* npp, __unused GError** error)
          */
         if (netdef->type == NETPLAN_DEF_TYPE_VLAN && backend == NETPLAN_BACKEND_NM) {
             netdef->vlan_link = netplan_netdef_new(npp, scalar(missing->node), NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
+            g_hash_table_iter_remove(&iter);
+        }
+
+        /* VETH case: NetworkManager doesn't enforce the existence of the veth peer.
+         * NM will create one connection for each veth in the pair. In this case, due to our integration with
+         * NM (netplan-everywhere), we can't enforce the existence of both peers at a given moment because
+         * they might be created one after the other.
+         * When we find that the peer is missing, we create a temporary one using the placeholder type. That is necessary
+         * so we can generate the keyfile referring to the correct peer name, even though it still doesn't exist.
+         */
+        if (netdef->type == NETPLAN_DEF_TYPE_VETH && backend == NETPLAN_BACKEND_NM) {
+            netdef->veth_peer_link = netplan_netdef_new(npp, scalar(missing->node), NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
             g_hash_table_iter_remove(&iter);
         }
     }

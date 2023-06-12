@@ -368,6 +368,8 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->ib_mode = NETPLAN_IB_MODE_KERNEL;
 
     netdef->tunnel_private_key_flags = NETPLAN_KEY_FLAG_NONE;
+
+    netdef->veth_peer_link = NULL;
 }
 
 void

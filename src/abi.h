@@ -393,4 +393,8 @@ struct netplan_net_definition {
     gboolean has_backend_settings_nm;
 
     guint tunnel_private_key_flags;
+
+    /* virtual-ethernet */
+    /* netplan-feature: virtual-ethernet */
+    NetplanNetDefinition* veth_peer_link;
 };
