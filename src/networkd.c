@@ -524,6 +524,21 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
             g_string_append_printf(s, "Kind=dummy\n");      /* wokeignore:rule=dummy */
             break;
 
+        case NETPLAN_DEF_TYPE_VETH:
+            /*
+             * Only one .netdev file is required to create the veth pair.
+             * To select what netdef we are going to use, we sort both names, get the first one,
+             * and, if the selected name is the name of the netdef being written, we generate
+             * the .netdev file. Otherwise we skip the netdef.
+             */
+            gchar* first = g_strcmp0(def->id, def->veth_peer_link->id) < 0 ? def->id : def->veth_peer_link->id;
+            if (first != def->id) {
+                g_string_free(s, TRUE);
+                return;
+            }
+            g_string_append_printf(s, "Kind=veth\n\n[Peer]\nName=%s\n", def->veth_peer_link->id);
+            break;
+
         case NETPLAN_DEF_TYPE_TUNNEL:
             switch(def->tunnel.mode) {
                 case NETPLAN_TUNNEL_MODE_GRE:
