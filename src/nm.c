@@ -88,6 +88,8 @@ type_str(const NetplanNetDefinition* def)
             return "vrf";
         case NETPLAN_DEF_TYPE_DUMMY:    /* wokeignore:rule=dummy */
             return "dummy";             /* wokeignore:rule=dummy */
+        case NETPLAN_DEF_TYPE_VETH:
+            return "veth";
         case NETPLAN_DEF_TYPE_TUNNEL:
             if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD)
                 return "wireguard";
@@ -678,6 +680,10 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             if (!write_routes_nm(def, kf, AF_INET, error) || !write_routes_nm(def, kf, AF_INET6, error))
                 return FALSE;
         }
+
+        if (def->type == NETPLAN_DEF_TYPE_VETH) {
+            g_key_file_set_string(kf, "veth", "peer", def->veth_peer_link->id);
+        }
     }
     if (def->type == NETPLAN_DEF_TYPE_MODEM) {
         const char* modem_type = modem_is_gsm(def) ? "gsm" : "cdma";
@@ -978,6 +984,15 @@ netplan_netdef_write_nm(
     if (netdef->address_options) {
         g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager does not support address options\n", netdef->id);
         return FALSE;
+    }
+
+    if (netdef->type == NETPLAN_DEF_TYPE_VETH) {
+        /*
+         * Final validation of veths that can't be fully done during parsing due to the
+         * order the interfaces are parsed.
+         */
+        if (!validate_veth_pair(np_state, netdef, error))
+            return FALSE;
     }
 
     if (netdef->type == NETPLAN_DEF_TYPE_WIFI) {
