@@ -555,7 +555,7 @@ defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **
     if (entry->metric == NETPLAN_METRIC_UNSPEC)
         strncpy(metric_name, "metric: default", sizeof(metric_name) - 1);
     else
-        snprintf(metric_name, sizeof(metric_name) - 1, "metric: %d", entry->metric);
+        snprintf(metric_name, sizeof(metric_name) - 1, "metric: %u", entry->metric);
 
     g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
             "Conflicting default route declarations for %s (%s, %s), first declared in %s but also in %s",

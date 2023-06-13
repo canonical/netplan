@@ -591,7 +591,7 @@ write_route(NetplanIPRoute* r, GString* s)
     if (r->onlink)
         g_string_append_printf(s, "GatewayOnLink=true\n");
     if (r->metric != NETPLAN_METRIC_UNSPEC)
-        g_string_append_printf(s, "Metric=%d\n", r->metric);
+        g_string_append_printf(s, "Metric=%u\n", r->metric);
     if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         g_string_append_printf(s, "Table=%d\n", r->table);
     if (r->mtubytes != NETPLAN_MTU_UNSPEC)
