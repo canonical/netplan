@@ -210,7 +210,7 @@ write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family, GError**
             tmp_key = g_strdup_printf("route%d", j);
             tmp_val = g_string_new(destination);
             if (cur_route->metric != NETPLAN_METRIC_UNSPEC)
-                g_string_append_printf(tmp_val, ",%s,%d", is_global ? cur_route->via : "",
+                g_string_append_printf(tmp_val, ",%s,%u", is_global ? cur_route->via : "",
                                        cur_route->metric);
             else if (is_global) // no metric, but global gateway
                 g_string_append_printf(tmp_val, ",%s", cur_route->via);
