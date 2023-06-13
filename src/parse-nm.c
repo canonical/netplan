@@ -49,6 +49,8 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_BOND;
     else if (!g_strcmp0(type_str, "dummy"))     /* wokeignore:rule=dummy */
         return NETPLAN_DEF_TYPE_DUMMY;          /* wokeignore:rule=dummy */
+    else if (!g_strcmp0(type_str, "veth"))
+        return NETPLAN_DEF_TYPE_VETH;
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
     else if (   !g_strcmp0(type_str, "wireguard")
@@ -674,6 +676,23 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         parse_tunnels(kf, nd);
     }
 
+    /* Handle veths */
+    if (nd_type == NETPLAN_DEF_TYPE_VETH) {
+        g_autofree gchar* veth_peer = g_key_file_get_string(kf, "veth", "peer", NULL);
+        if (!veth_peer) {
+            g_warning("netplan: Keyfile: cannot find veth.peer");
+            return FALSE;
+        } else {
+            /*
+             * Generate a placeholder interface to be the VETH's peer.
+             * It's required because Network Manager allows the creation of
+             * VETHs connections with a non-existing peer.
+             */
+            nd->veth_peer_link = netplan_netdef_new(npp, veth_peer, NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
+            _kf_clear_key(kf, "veth", "peer");
+        }
+    }
+
     /* remove supported values from passthrough, which have been handled */
     if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
         || nd_type == NETPLAN_DEF_TYPE_WIFI
@@ -682,6 +701,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         || nd_type == NETPLAN_DEF_TYPE_BOND
         || nd_type == NETPLAN_DEF_TYPE_DUMMY       /* wokeignore:rule=dummy */
         || nd_type == NETPLAN_DEF_TYPE_VLAN
+        || nd_type == NETPLAN_DEF_TYPE_VETH
         || (nd_type == NETPLAN_DEF_TYPE_TUNNEL && nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN))
         _kf_clear_key(kf, "connection", "type");
 
