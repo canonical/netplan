@@ -1894,3 +1894,39 @@ dns-search='''.format(UUID))
           ethernet.cloned-mac-address: "random"
           ipv4.dns-search: ""
 '''.format(UUID, UUID)})
+
+    def test_veth_pair(self):
+        self.generate_from_keyfile('''[connection]
+id=veth-peer1
+uuid={}
+type=veth
+interface-name=veth-peer1
+
+[veth]
+peer=veth-peer2
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  virtual-ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      peer: "veth-peer2"
+      networkmanager:
+        uuid: "{}"
+        name: "veth-peer1"
+        passthrough:
+          connection.interface-name: "veth-peer1"
+'''.format(UUID, UUID)})
+
+    def test_veth_without_peer(self):
+        self.generate_from_keyfile('''[connection]
+id=veth-peer1
+uuid={}
+type=veth
+interface-name=veth-peer1
+
+[ipv4]
+method=auto\n'''.format(UUID), expect_fail=True)
