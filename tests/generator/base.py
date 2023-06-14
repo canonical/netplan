@@ -84,6 +84,7 @@ ND_VLAN = '[NetDev]\nName=%s\nKind=vlan\n\n[VLAN]\nId=%d\n'
 ND_VXLAN = '[NetDev]\nName=%s\nKind=vxlan\n\n[VXLAN]\nVNI=%d\n'
 ND_VRF = '[NetDev]\nName=%s\nKind=vrf\n\n[VRF]\nTable=%d\n'
 ND_DUMMY = '[NetDev]\nName=%s\nKind=dummy\n'        # wokeignore:rule=dummy
+ND_VETH = '[NetDev]\nName=%s\nKind=veth\n\n[Peer]\nName=%s\n'
 SD_WPA = '''[Unit]
 Description=WPA supplicant for netplan %(iface)s
 DefaultDependencies=no
