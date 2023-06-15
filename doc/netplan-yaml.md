@@ -16,6 +16,7 @@ network:
   ethernets: MAPPING
   modems: MAPPING
   tunnels: MAPPING
+  virtual-ethernets: MAPPING
   vlans: MAPPING
   vrfs: MAPPING
   wifis: MAPPING
@@ -53,6 +54,10 @@ network:
 - [**tunnels**](#properties-for-device-type-tunnels) (mapping)
 
   > Creates and configures different types of virtual tunnels.
+
+- [**virtual-ethernets**](#properties-for-device-type-virtual-ethernets) (mapping)
+
+  > Creates and configures Virtual Ethernet (veth) devices.
 
 - [**vlans**](#properties-for-device-type-vlans) (mapping)
 
@@ -1883,6 +1888,63 @@ VXLAN specific keys:
 
   > Allows setting the IPv4 Do not Fragment (DF) bit in outgoing packets.
   > Takes a boolean value. When unset, the kernel's default will be used.
+
+## Properties for device type `virtual-ethernets:`
+
+**Status**: Optional.
+
+**Purpose**: Use the `virtual-ethernets` key to create virtual Ethernet interfaces.
+
+**Structure**: The key consists of a mapping of virtual-ethernet interface names. Each
+`virtual-ethernet` requires a `peer`. In order to have a fully working `virtual-ethernet` pair,
+both devices must be defined, i.e., only setting the `peer` key with the peer
+name is not enough, the peer interface must also be defined and set the first one
+as its peer.
+The general configuration structure for Virtual Ethernets is shown below.
+
+```yaml
+network:
+  virtual-ethernets:
+    veth0:
+      peer: veth1
+    veth1:
+      peer: veth0
+```
+
+When applied, two virtual interfaces called `veth0` and `veth1` will be created in the system.
+
+Virtual Ethernets acts as tunnels forwarding traffic from one interface to the other.
+They can be used to connect two separate virtual networks such as network namespaces and
+bridges. It's not possible to move `virtual-ethernets` to different namespaces through Netplan at the
+present moment.
+
+The specific settings for virtual-ethernets are defined below.
+
+- **peer** (scalar)
+
+  > Defines the virtual-ethernet peer. The peer interface must also be a virtual-ethernet device.
+
+Below is a complete example that uses a pair of virtual Ethernet devices to create a link between two
+bridges:
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  virtual-ethernets:
+    veth0-peer1:
+      peer: veth0-peer2
+    veth0-peer2:
+      peer: veth0-peer1
+
+  bridges:
+    br0:
+      interfaces:
+        - veth0-peer1
+    br1:
+      interfaces:
+        - veth0-peer2
+```
 
 ## Properties for device type `vlans:`
 
