@@ -840,8 +840,8 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
 
     > The supported key management modes are `none` (no key management);
     > `psk` (WPA with pre-shared key, common for home wifi); `eap` (WPA
-    > with EAP, common for enterprise wifi); and `802.1x` (used primarily
-    > for wired Ethernet connections).
+    > with EAP, common for enterprise wifi); `sae` (used by WPA3); and `802.1x`
+    > (used primarily for wired Ethernet connections).
 
   - **password** (scalar)
 
