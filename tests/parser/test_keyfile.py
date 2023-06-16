@@ -1268,13 +1268,12 @@ method=auto
       access-points:
         "ubuntu-wpa2-wpa3-mixed":
           auth:
-            key-management: "none"
+            key-management: "sae"
             password: "test1234"
           networkmanager:
             uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
             name: "test2"
             passthrough:
-              wifi-security.key-mgmt: "sae"
               ipv6.ip6-privacy: "-1"
               proxy._: ""
       networkmanager:
