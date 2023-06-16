@@ -1,0 +1,10 @@
+network:
+  wifis:
+    wlp1s0:
+      dhcp4: true
+      access-points:
+        "WPA3-Network":
+          auth:
+            key-management: sae
+            password: abcdefgh
+
