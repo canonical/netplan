@@ -887,6 +887,8 @@ handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, const void* _,
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
     else if (strcmp(scalar(node), "eap") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
+    else if (strcmp(scalar(node), "sae") == 0)
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE;
     else if (strcmp(scalar(node), "802.1x") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
     else

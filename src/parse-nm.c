@@ -900,6 +900,10 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
             ap->has_auth = TRUE;
             _kf_clear_key(kf, "wifi-security", "key-mgmt");
+        } else if (tmp_str && g_strcmp0(tmp_str, "sae") == 0) {
+            ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE;
+            ap->has_auth = TRUE;
+            _kf_clear_key(kf, "wifi-security", "key-mgmt");
         } else if (tmp_str && g_strcmp0(tmp_str, "ieee8021x") == 0) {
             ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
             ap->has_auth = TRUE;

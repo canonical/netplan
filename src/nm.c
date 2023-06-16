@@ -442,6 +442,9 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-eap");
             break;
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE:
+            g_key_file_set_string(kf, "wifi-security", "key-mgmt", "sae");
+            break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "ieee8021x");
             break;

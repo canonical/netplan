@@ -1033,6 +1033,15 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
             g_string_append(s, "  key_mgmt=WPA-EAP\n");
             break;
 
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE:
+            /*
+             * SAE is used by WPA3 and Management Frame Protection
+             * (ieee80211w) is mandatory.
+             */
+            g_string_append(s, "  key_mgmt=SAE\n");
+            g_string_append(s, "  ieee80211w=2\n");
+            break;
+
         case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
             g_string_append(s, "  key_mgmt=IEEE8021X\n");
             break;
@@ -1066,7 +1075,8 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
         g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", auth->anonymous_identity);
     }
     if (auth->password) {
-        if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK) {
+        if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK ||
+            auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE) {
             size_t len = strlen(auth->password);
             if (len == 64) {
                 /* must be a hex-digit key representation */
