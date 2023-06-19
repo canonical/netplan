@@ -806,6 +806,35 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_route_metric_rendering_lp2023681(self):
+        """Validate metric rendering is unsigned
+        (can render up to 4294967294, 4294967295 is used internally to define an unset value)
+        """
+
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 4294967294
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[Route]
+Destination=10.10.10.0/24
+Gateway=192.168.14.20
+Metric=4294967294
+'''})
+
 
 class TestNetworkManager(TestBase):
 
@@ -1537,4 +1566,38 @@ Table=1001
 [RoutingPolicyRule]
 From=10.0.0.2
 Table=1002
+'''})
+
+    def test_route_metric_rendering_lp2023681(self):
+        """Validate metric rendering is unsigned
+        (can render up to 4294967294, 4294967295 is used internally to define an unset value)
+        """
+
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routes:
+        - to: 10.10.10.0/24
+          via: 192.168.14.20
+          metric: 4294967294
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.14.20,4294967294
+
+[ipv6]
+method=ignore
 '''})
