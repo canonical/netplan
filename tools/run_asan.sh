@@ -4,10 +4,14 @@ set -e
 set -x
 
 BUILDDIR="_leakcheckbuild"
+CLEANBUILDDIR="_cleanbuild"
 CC=gcc
 
 meson setup ${BUILDDIR} -Db_sanitize=address,undefined
 meson compile -C ${BUILDDIR} --verbose
+
+meson setup ${CLEANBUILDDIR}
+meson compile -C ${CLEANBUILDDIR} --verbose
 
 ${CC} tools/keyfile_to_yaml.c -o tools/keyfile_to_yaml \
     -lnetplan $(pkg-config --cflags --libs glib-2.0) \
@@ -30,17 +34,17 @@ do
     chmod 600 ${filepath}
 
     # Set the renderer and check if the new file can be parsed with the new renderer
-    # We use the system's netplan because it will not fail if there's a memory leak
-    netplan set --root-dir ${BUILDDIR}/fakeroot --origin-hint ${filename/.yaml/} network.renderer=networkd
-    if netplan generate --root-dir ${BUILDDIR}/fakeroot > /dev/null 2>&1
+    # We use the clean build because it will not fail if there's a memory leak
+    LD_LIBRARY_PATH="${CLEANBUILDDIR}/src" netplan set --root-dir ${BUILDDIR}/fakeroot --origin-hint ${filename/.yaml/} network.renderer=networkd
+    if LD_LIBRARY_PATH="${CLEANBUILDDIR}/src" netplan generate --root-dir ${BUILDDIR}/fakeroot > /dev/null 2>&1
     then
         LD_LIBRARY_PATH="${BUILDDIR}/src" ./${BUILDDIR}/src/generate --root-dir ${BUILDDIR}/fakeroot
     else
         echo "File ${filename} can't be parsed with renderer = networkd"
     fi
 
-    netplan set --root-dir ${BUILDDIR}/fakeroot --origin-hint ${filename/.yaml/} network.renderer=NetworkManager
-    if netplan generate --root-dir ${BUILDDIR}/fakeroot > /dev/null 2>&1
+    LD_LIBRARY_PATH="${CLEANBUILDDIR}/src" netplan set --root-dir ${BUILDDIR}/fakeroot --origin-hint ${filename/.yaml/} network.renderer=NetworkManager
+    if LD_LIBRARY_PATH="${CLEANBUILDDIR}/src" netplan generate --root-dir ${BUILDDIR}/fakeroot > /dev/null 2>&1
     then
         LD_LIBRARY_PATH="${BUILDDIR}/src" ./${BUILDDIR}/src/generate --root-dir ${BUILDDIR}/fakeroot
         for keyfile in $(find ${BUILDDIR}/fakeroot/run/NetworkManager/system-connections/ -type f)
