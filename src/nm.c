@@ -957,6 +957,10 @@ netplan_netdef_write_nm(
 {
     gboolean no_error = TRUE;
 
+    /* Placeholder interfaces are not supposed to be rendered */
+    if (netdef->type == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_)
+        return TRUE;
+
     SET_OPT_OUT_PTR(has_been_written, FALSE);
     if (netdef->backend != NETPLAN_BACKEND_NM) {
         g_debug("NetworkManager: definition %s is not for us (backend %i)", netdef->id, netdef->backend);

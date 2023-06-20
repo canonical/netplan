@@ -49,6 +49,12 @@ typedef enum {
     /* Type fallback/passthrough */
     NETPLAN_DEF_TYPE_NM,
     NETPLAN_DEF_TYPE_DUMMY,     /* wokeignore:rule=dummy */
+    /* Place holder type used to fill gaps when a netdef
+     * requires links to another netdef (such as vlan_link)
+     * but it's not strictly mandatory
+     * It's intended to be used only when renderer is NetworkManager
+     */
+    NETPLAN_DEF_TYPE_NM_PLACEHOLDER_,
     NETPLAN_DEF_TYPE_MAX_
 } NetplanDefType;
 
