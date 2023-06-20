@@ -1042,6 +1042,7 @@ netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int
 
     /* Go through the netdefs type-by-type */
     for (unsigned i = 0; i < NETPLAN_DEF_TYPE_MAX_; ++i) {
+        if (i == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_) continue;
         /* Per-netdef config */
         if (g_list_find_custom(netdefs, &i, contains_netdef_type)) {
             if (i == NETPLAN_DEF_TYPE_PORT) {
