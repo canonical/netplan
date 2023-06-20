@@ -49,10 +49,8 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_BOND;
     else if (!g_strcmp0(type_str, "dummy"))     /* wokeignore:rule=dummy */
         return NETPLAN_DEF_TYPE_DUMMY;          /* wokeignore:rule=dummy */
-    /* TODO: Vlans are not yet fully supported by the keyfile parser
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
-    */
     else if (   !g_strcmp0(type_str, "wireguard")
              || !g_strcmp0(type_str, "vxlan")
              || !g_strcmp0(type_str, "ip-tunnel"))
@@ -667,6 +665,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         || nd_type == NETPLAN_DEF_TYPE_BRIDGE
         || nd_type == NETPLAN_DEF_TYPE_BOND
         || nd_type == NETPLAN_DEF_TYPE_DUMMY       /* wokeignore:rule=dummy */
+        || nd_type == NETPLAN_DEF_TYPE_VLAN
         || (nd_type == NETPLAN_DEF_TYPE_TUNNEL && nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN))
         _kf_clear_key(kf, "connection", "type");
 
@@ -808,8 +807,21 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         _kf_clear_key(kf, "ipv4", "method");
     g_free(tmp_str);
 
-    /* Vlan: XXX: find a way to parse the "link:" (parent) connection */
-    keyfile_handle_generic_uint(kf, "vlan", "id", &nd->vlan_id, G_MAXUINT);
+    /* Handling VLANs */
+    if (nd_type == NETPLAN_DEF_TYPE_VLAN) {
+        keyfile_handle_generic_uint(kf, "vlan", "id", &nd->vlan_id, G_MAXUINT);
+        g_autofree gchar* parent = g_key_file_get_string(kf, "vlan", "parent", NULL);
+
+        if (parent) {
+            /*
+             * Generate a placeholder interface to be the VLAN's parent.
+             * It's required because Network Manager allows the creation of
+             * VLAN connections with non-existing parent interfaces.
+             */
+            nd->vlan_link = netplan_netdef_new(npp, parent, NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
+            _kf_clear_key(kf, "vlan", "parent");
+        }
+    }
 
     /* Bridge: XXX: find a way to parse the bridge-port.priority & bridge-port.path-cost values */
     keyfile_handle_generic_uint(kf, "bridge", "priority", &nd->bridge_params.priority, 0);
