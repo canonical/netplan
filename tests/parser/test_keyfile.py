@@ -400,9 +400,6 @@ address1=192.168.123.123/24
     def test_keyfile_type_bond(self):
         self._template_keyfile_type('bonds', 'bond')
 
-    def test_keyfile_type_vlan(self):
-        self._template_keyfile_type('nm-devices', 'vlan', False)
-
     def test_keyfile_type_tunnel(self):
         self._template_keyfile_type('tunnels', 'ip-tunnel', False)
 
@@ -824,20 +821,18 @@ method=ignore
 '''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
-  nm-devices:
+  vlans:
     NM-{}:
       renderer: NetworkManager
+      addresses:
+      - "1.2.3.4/24"
+      id: 1
+      link: "en1"
       networkmanager:
         uuid: "{}"
         name: "netplan-enblue"
         passthrough:
-          connection.type: "vlan"
           connection.interface-name: "enblue"
-          vlan.id: "1"
-          vlan.parent: "en1"
-          ipv4.method: "manual"
-          ipv4.address1: "1.2.3.4/24"
-          ipv6.method: "ignore"
 '''.format(UUID, UUID)})
 
     def test_keyfile_bridge(self):

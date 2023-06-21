@@ -136,6 +136,14 @@ MTUBytes=9000
         self.assert_nm(None)
         self.assert_nm_udev(NM_UNMANAGED % 'lan' + NM_UNMANAGED_MAC % '11:22:33:44:55:66' + NM_UNMANAGED % 'vlan20')
 
+    def test_vlan_parent_must_exist(self):
+        out = self.generate('''network:
+  version: 2
+  renderer: networkd
+  vlans:
+    vlan20: {id: 20, link: lan}''', expect_fail=True)
+        self.assertIn('vlan20: interface \'lan\' is not defined', out)
+
 
 class TestNetworkManager(TestBase):
 
@@ -300,3 +308,54 @@ method=auto
 ip6-privacy=0
 '''})
         self.assert_nm_udev(NM_MANAGED % 'en1' + NM_MANAGED % 'enblue' + NM_MANAGED % 'engreen')
+
+    def test_vlan_parent_is_allowed_to_be_missing_for_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  vlans:
+    vlan20: {id: 20, link: lan}''')
+
+        self.assert_nm({'vlan20': '''[connection]
+id=netplan-vlan20
+type=vlan
+interface-name=vlan20
+
+[vlan]
+id=20
+parent=lan
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_vlan_with_missing_netdef_found_in_the_next_file_wont_fail(self):
+        ''' If eth0 was registered as missing (and created as a placeholder netdef)
+        if shouldn't fail if it's defined in a file that was parsed *after* the file where
+        the VLAN is defined
+        '''
+        out = self.generate('''network:
+  renderer: NetworkManager
+  version: 2
+  vlans:
+    vlan100:
+      id: 100
+      link: eth0''', confs={'b': '''network:
+  renderer: NetworkManager
+  version: 2
+  ethernets: {eth0: {}}'''})
+
+        self.assertNotIn('Updated definition \'eth0\' changes device type', out)
+
+    def test_vlan_with_parent_uuid(self):
+        ''' Check the generate accepts a link pointing to the NM connection UUID '''
+        self.generate('''network:
+  renderer: NetworkManager
+  version: 2
+  vlans:
+    vlan100:
+      id: 100
+      link: 53125f52-f9a7-4d2a-a853-5f3b9e02299f''')
