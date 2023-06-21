@@ -46,7 +46,10 @@ jobs:
           dget -u "https://deb.debian.org/debian/pool/main/n/netplan.io/netplan.io_$V.dsc"
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          dch -v $(git describe --long --tags $(git rev-list --tags --max-count=1)) "Autopkgtest CI testing (Debian testing)"
+          TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
+          REV=$(git rev-parse --short HEAD)  # get current git revision
+          VER="$TAG+git~$REV"
+          dch -v "$VER" "Autopkgtest CI testing (Debian testing)"
       - name: Run autopkgtest (incl. build)
         run: |
           # using --setup-commands='apt -y install ...' temporarily to install
