@@ -42,7 +42,10 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          dch -v $(git describe --long --tags $(git rev-list --tags --max-count=1)) "Autopkgtest CI testing (Jammy)"
+          TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
+          REV=$(git rev-parse --short HEAD)  # get current git revision
+          VER="$TAG+git~$REV"
+          dch -v "$VER" "Autopkgtest CI testing (Jammy)"
       - name: Run autopkgtest (incl. build)
         run: |
           # using --setup-commands temporarily to install:
