@@ -1043,6 +1043,29 @@ handle_access_point_band(NetplanParser* npp, yaml_node_t* node, __unused const v
     return TRUE;
 }
 
+static gboolean
+handle_tunnel_key_flags(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
+{
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        gboolean found = FALSE;
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+
+        for (int i = 1; i < NETPLAN_KEY_FLAG_MAX_; i <<= 1) {
+            if (!g_ascii_strcasecmp(scalar(entry), netplan_key_flags_name(i))) {
+                npp->current.netdef->tunnel_private_key_flags |= i;
+                found = TRUE;
+            }
+        }
+
+        if (!found)
+            return yaml_error(npp, node, error,
+                              "Key flag '%s' is not supported. Valid values are \"agent-owned\", \"not-saved\" and \"not-required\"",
+                              scalar(entry));
+    }
+    return TRUE;
+}
+
 /* Keep in sync with ap_nm_backend_settings_handlers */
 static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.name)},
@@ -2328,6 +2351,7 @@ static const mapping_entry_handler tunnel_keys_handlers[] = {
     {"input", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(tunnel.input_key)},
     {"output", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(tunnel.output_key)},
     {"private", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(tunnel.private_key)},
+    {"private-key-flags", YAML_SEQUENCE_NODE, {.generic=handle_tunnel_key_flags}, NULL},
     {NULL}
 };
 

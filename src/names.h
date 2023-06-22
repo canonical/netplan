@@ -45,6 +45,9 @@ const char*
 netplan_infiniband_mode_name(NetplanInfinibandMode val);
 
 const char*
+netplan_key_flags_name(NetplanKeyFlags val);
+
+const char*
 netplan_vxlan_notification_name(int val);
 
 const char*

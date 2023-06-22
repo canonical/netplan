@@ -344,6 +344,9 @@ write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** e
             g_key_file_set_string(kf, "wireguard", "private-key", def->tunnel.private_key);
     }
 
+    if (def->tunnel_private_key_flags != NETPLAN_KEY_FLAG_NONE)
+        g_key_file_set_uint64(kf, "wireguard", "private-key-flags", def->tunnel_private_key_flags);
+
     if (def->tunnel.port)
         g_key_file_set_uint64(kf, "wireguard", "listen-port", def->tunnel.port);
     if (def->tunnel.fwmark)
