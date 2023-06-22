@@ -132,6 +132,14 @@ typedef struct authentication_settings {
     char* phase2_auth;  /* netplan-feature: auth-phase2 */
 } NetplanAuthenticationSettings;
 
+typedef enum {
+    NETPLAN_KEY_FLAG_NONE           = 0,
+    NETPLAN_KEY_FLAG_AGENT_OWNED    = 1<<0,
+    NETPLAN_KEY_FLAG_NOT_SAVED      = 1<<1,
+    NETPLAN_KEY_FLAG_NOT_REQUIRED   = 1<<2,
+    NETPLAN_KEY_FLAG_MAX_
+} NetplanKeyFlags;
+
 typedef struct ovs_controller {
     char* connection_mode;
     GArray* addresses;
@@ -383,4 +391,6 @@ struct netplan_net_definition {
 
     /* True if "networkmanager" settings are present */
     gboolean has_backend_settings_nm;
+
+    guint tunnel_private_key_flags;
 };
