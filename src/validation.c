@@ -202,7 +202,7 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
         return yaml_error(npp, node, error, "%s: missing or invalid 'mode' property for tunnel", nd->id);
 
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
-        if (!nd->tunnel.private_key)
+        if (!nd->tunnel.private_key && nd->tunnel_private_key_flags == NETPLAN_KEY_FLAG_NONE)
             g_warning("%s: missing 'key' property (private key) for wireguard", nd->id);
         if (nd->tunnel.private_key && nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key))
             return yaml_error(npp, node, error, "%s: invalid wireguard private key", nd->id);
