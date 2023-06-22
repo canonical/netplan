@@ -351,6 +351,7 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
         YAML_MAPPING_OPEN(event, emitter);
         YAML_NONNULL_STRING(event, emitter, "uuid", s.uuid);
         YAML_NONNULL_STRING(event, emitter, "name", s.name);
+
         if (s.passthrough) {
             YAML_SCALAR_PLAIN(event, emitter, "passthrough");
             YAML_MAPPING_OPEN(event, emitter);
@@ -506,9 +507,10 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
     /* VXLAN settings */
     write_vxlan(event, emitter, def);
 
-    if (def->tunnel.input_key || def->tunnel.output_key || def->tunnel.private_key) {
+    if (def->tunnel.input_key || def->tunnel.output_key || def->tunnel.private_key || def->tunnel_private_key_flags) {
         if (   g_strcmp0(def->tunnel.input_key, def->tunnel.output_key) == 0
-            && g_strcmp0(def->tunnel.input_key, def->tunnel.private_key) == 0) {
+            && g_strcmp0(def->tunnel.input_key, def->tunnel.private_key) == 0
+            && def->tunnel_private_key_flags == 0) {
             /* use short form if all keys are the same */
             YAML_STRING(def, event, emitter, "key", def->tunnel.input_key);
         } else {
@@ -517,6 +519,17 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
             YAML_STRING(def, event, emitter, "input", def->tunnel.input_key);
             YAML_STRING(def, event, emitter, "output", def->tunnel.output_key);
             YAML_STRING(def, event, emitter, "private", def->tunnel.private_key);
+            if (def->tunnel_private_key_flags > 0) {
+                YAML_SCALAR_PLAIN(event, emitter, "private-key-flags");
+                YAML_SEQUENCE_OPEN(event, emitter);
+
+                for(int i = 1; i < NETPLAN_KEY_FLAG_MAX_; i <<= 1) {
+                    if (def->tunnel_private_key_flags & i)
+                        YAML_SCALAR_PLAIN(event, emitter, netplan_key_flags_name(i));
+                }
+
+                YAML_SEQUENCE_CLOSE(event, emitter);
+            }
             YAML_MAPPING_CLOSE(event, emitter);
         }
     }

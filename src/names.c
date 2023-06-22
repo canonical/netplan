@@ -103,6 +103,14 @@ netplan_infiniband_mode_to_str[NETPLAN_IB_MODE_MAX_] = {
     [NETPLAN_IB_MODE_CONNECTED] = "connected"
 };
 
+static const char* const
+netplan_key_flags_to_str[NETPLAN_KEY_FLAG_MAX_] = {
+    [NETPLAN_KEY_FLAG_NONE] = NULL,
+    [NETPLAN_KEY_FLAG_AGENT_OWNED] = "agent-owned",
+    [NETPLAN_KEY_FLAG_NOT_SAVED] = "not-saved",
+    [NETPLAN_KEY_FLAG_NOT_REQUIRED] = "not-required",
+};
+
 #define NAME_FUNCTION(_radical, _type) const char *netplan_ ## _radical ## _name( _type val) \
 { \
     return (val < sizeof(netplan_ ## _radical ## _to_str) / sizeof(char *)) ?  netplan_ ## _radical ## _to_str [val] : NULL; \
@@ -124,6 +132,7 @@ NAME_FUNCTION(tunnel_mode, NetplanTunnelMode);
 NAME_FUNCTION(addr_gen_mode, NetplanAddrGenMode);
 NAME_FUNCTION(wifi_mode, NetplanWifiMode);
 NAME_FUNCTION(infiniband_mode, NetplanInfinibandMode);
+NAME_FUNCTION(key_flags, NetplanKeyFlags);
 NAME_FUNCTION_FLAGS(vxlan_notification);
 NAME_FUNCTION_FLAGS(vxlan_checksum);
 NAME_FUNCTION_FLAGS(vxlan_extension);
