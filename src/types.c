@@ -366,6 +366,8 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->large_receive_offload = NETPLAN_TRISTATE_UNSET;
 
     netdef->ib_mode = NETPLAN_IB_MODE_KERNEL;
+
+    netdef->tunnel_private_key_flags = NETPLAN_KEY_FLAG_NONE;
 }
 
 void
