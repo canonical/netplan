@@ -1552,6 +1552,50 @@ method=link-local
 [ipv6]
 method=ignore\n''' % uuid})
 
+    def test_wireguard_with_private_key_flags(self):
+        self.generate('''network:
+  version: 2
+  tunnels:
+    wg-tunnel:
+      renderer: NetworkManager
+      addresses:
+      - "10.20.30.1/24"
+      ipv6-address-generation: "stable-privacy"
+      mode: "wireguard"
+      peers:
+      - endpoint: "10.20.30.40:51820"
+        keys:
+          public: "M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4="
+        allowed-ips:
+        - "0.0.0.0/0"
+      keys:
+        private-key-flags:
+        - agent-owned
+        - not-saved
+        - not-required''')
+
+        self.assert_nm({'wg-tunnel': '''[connection]
+id=netplan-wg-tunnel
+type=wireguard
+interface-name=wg-tunnel
+
+[wireguard]
+private-key-flags=7
+
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+endpoint=10.20.30.40:51820
+allowed-ips=0.0.0.0/0;
+
+[ipv4]
+method=manual
+address1=10.20.30.1/24
+
+[ipv6]
+method=manual
+addr-gen-mode=1
+ip6-privacy=0
+'''})
+
 
 class TestConfigErrors(TestBase):
 
@@ -1798,3 +1842,19 @@ Gateway=10.20.30.1
 ''',
                               'vxlan1.netdev': (ND_VXLAN % ('vxlan1', 1)).strip(),
                               'vxlan1.network': ND_EMPTY % ('vxlan1', 'ipv6')})
+
+    def test_wireguard_wrong_private_key_flag(self):
+        config = '''network:
+  version: 2
+  tunnels:
+    wg-tunnel:
+      renderer: NetworkManager
+      mode: "wireguard"
+      keys:
+        private-key-flags:
+        - agent-owned
+        - not-required
+        - it-doesnt-exist
+        '''
+        out = self.generate(config, expect_fail=True)
+        self.assertIn("Error in network definition: Key flag 'it-doesnt-exist' is not supported.", out)
