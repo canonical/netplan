@@ -477,6 +477,10 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
         nd->tunnel.private_key = g_key_file_get_string(kf, "wireguard", "private-key", NULL);
         _kf_clear_key(kf, "wireguard", "private-key");
 
+        /* Reading the listen port */
+        nd->tunnel.port = g_key_file_get_uint64(kf, "wireguard", "listen-port", NULL);
+        _kf_clear_key(kf, "wireguard", "listen-port");
+
         gchar** keyfile_groups = g_key_file_get_groups(kf, NULL);
 
         /* Handling peers
