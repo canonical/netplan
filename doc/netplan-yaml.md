@@ -1642,6 +1642,39 @@ The specific settings for tunnels are defined below.
     > `systemd-networkd` backend (v242+) is used, this can also be an
     > absolute path to a file containing the private key.
 
+  - **private-key-flags** (sequence of scalars) – since **0.107**
+
+    > Private key flags used by Network Manager. Possible values are:
+    > `agent-owned`, `not-saved` and `not-required`.
+    >
+    > `agent-owned`: a user-session secret agent is responsible for
+    > providing and storing this secret.
+    >
+    > `not-saved`: this secret should not be saved but should be
+    > requested from the user each time it is required.
+    >
+    > `not-required`: this flag hints that the secret is not required
+    > and should not be requested from the user.
+
+    Example:
+
+    ```yaml
+    network:
+      renderer: NetworkManager
+      tunnels:
+        wg0:
+          mode: wireguard
+          port: 5182
+          key:
+            private-key-flags:
+              - agent-owned
+          peers:
+            - keys:
+                public: rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=
+              allowed-ips: [0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]
+              keepalive: 23
+              endpoint: 1.2.3.4:5
+      ```
 - **keys** (scalar or mapping)
 
   > Alternate name for the `key` field. See above.
