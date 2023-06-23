@@ -1632,6 +1632,90 @@ method=auto\n'''.format(UUID), regenerate=False)
           connection.interface-name: "wg0"
 '''.format(UUID, UUID)})
 
+    def test_wireguard_with_key_flags(self):
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[wireguard]
+listen-port=51820
+private-key-flags=1
+
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+endpoint=10.20.30.40:51820
+allowed-ips=0.0.0.0/0;
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      port: 51820
+      keys:
+        private-key-flags:
+        - agent-owned
+      peers:
+      - endpoint: "10.20.30.40:51820"
+        keys:
+          public: "M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4="
+        allowed-ips:
+        - "0.0.0.0/0"
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
+    def test_wireguard_with_key_all_flags_enabled(self):
+        self.generate_from_keyfile('''[connection]
+id=wg0
+type=wireguard
+uuid={}
+interface-name=wg0
+
+[wireguard]
+listen-port=51820
+private-key-flags=7
+
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+endpoint=10.20.30.40:51820
+allowed-ips=0.0.0.0/0;
+
+[ipv4]
+method=auto\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  tunnels:
+    NM-{}:
+      renderer: NetworkManager
+      dhcp4: true
+      mode: "wireguard"
+      port: 51820
+      keys:
+        private-key-flags:
+        - agent-owned
+        - not-saved
+        - not-required
+      peers:
+      - endpoint: "10.20.30.40:51820"
+        keys:
+          public: "M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4="
+        allowed-ips:
+        - "0.0.0.0/0"
+      networkmanager:
+        uuid: "{}"
+        name: "wg0"
+        passthrough:
+          connection.interface-name: "wg0"
+'''.format(UUID, UUID)})
+
     def test_wireguard_with_key_and_peer_without_allowed_ips(self):
         self.generate_from_keyfile('''[connection]
 id=wg0
