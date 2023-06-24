@@ -313,11 +313,11 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 - **dhcp4** (bool)
 
-  > Enable DHCP for IPv4. Off by default.
+  > Enable DHCP for IPv4. Off by default when using `networkd` as a `renderer`.
 
 - **dhcp6** (bool)
 
-  > Enable DHCP for IPv6. Off by default. This covers both stateless DHCP -
+  > Enable DHCP for IPv6. Off by default when using `networkd` as a `renderer`. This covers both stateless DHCP -
   > where the DHCP server supplies information like DNS nameservers but not the
   > IP address - and stateful DHCP, where the server provides both the address
   > and the other information.
