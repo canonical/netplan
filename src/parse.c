@@ -3071,8 +3071,13 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         npp->current.netdef = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(key)) : NULL;
         if (npp->current.netdef) {
             /* already exists, overriding/amending previous definition */
-            if (npp->current.netdef->type != GPOINTER_TO_UINT(data))
-                return yaml_error(npp, key, error, "Updated definition '%s' changes device type", scalar(key));
+            if (npp->current.netdef->type != GPOINTER_TO_UINT(data)) {
+                /* If the existing netdef is a place holder, we just repurpose it */
+                if (npp->current.netdef->type == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_)
+                    npp->current.netdef->type = GPOINTER_TO_UINT(data);
+                else
+                    return yaml_error(npp, key, error, "Updated definition '%s' changes device type", scalar(key));
+            }
         } else {
             npp->current.netdef = netplan_netdef_new(npp, scalar(key), GPOINTER_TO_UINT(data), npp->current.backend);
         }
