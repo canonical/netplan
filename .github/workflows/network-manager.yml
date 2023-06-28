@@ -1,0 +1,55 @@
+name: NetworkManager Autopkgtest
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch
+on:
+  push:
+    branches: [ main, 'stable/**' ]
+  pull_request:
+    branches: [ '**' ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  lxd-network-manager:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # Setup LXD + Docker fixes
+      - uses: canonical/setup-lxd@v0.1.1
+        with:
+          channel: latest/stable  # switch from distro's LTS channel to latest/stable
+      - run: |
+          git fetch --unshallow --tags
+      # Install openvswitch-switch to make the OVS integration tests work
+      # Install linux-modules-extra-azure to provide the 'vrf' kernel module,
+      # it's needed (will be auto-loaded) by routing.test_vrf_basic
+      - name: Install dependencies
+        run: |
+          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
+          sudo apt update
+          sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
+      # work around LP: #1878225 as fallback
+      - name: Preparing autopkgtest-build-lxd
+        run: |
+          sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
+          autopkgtest-build-lxd ubuntu-daily:mantic
+      - name: Prepare test
+        run: |
+          pull-lp-source netplan.io
+          cp -r netplan.io-*/debian .
+          rm -r debian/patches/  # clear any distro patches
+          TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
+          REV=$(git rev-parse --short HEAD)  # get current git revision
+          VER="$TAG+git~$REV"
+          dch -v "$VER" "Autopkgtest CI"
+          sudo apt -y build-dep ./
+          DEB_BUILD_OPTIONS=nocheck DPKG_GENSYMBOLS_CHECK_LEVEL=0 dpkg-buildpackage -b
+      - name: Run autopkgtest
+        run: |
+          # using --setup-commands temporarily to install:
+          # cmocka/pytest/rich/ethtool until they become proper test-deps
+          autopkgtest -U ../*.deb network-manager --apt-pocket=proposed=src:network-manager -- lxd autopkgtest/ubuntu/mantic/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
