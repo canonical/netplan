@@ -176,7 +176,6 @@ def get_interface_macaddress(interface):
 
 def get_interface_pciid(interface):  # pragma: nocover (covered in autopkgtest)
     devdir = os.path.join('/sys/class/net', interface)
-    pciid = None
     try:
         uevent = os.path.realpath(os.path.join(devdir, 'device', 'uevent'))
         if os.path.exists(uevent):
