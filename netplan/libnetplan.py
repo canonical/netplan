@@ -598,12 +598,13 @@ class NetDefinition:
     def delay_virtual_functions_rebind(self):
         return bool(lib.netplan_netdef_get_delay_virtual_functions_rebind(self._ptr))
 
-    def match_interface(self, itf_name=None, itf_driver=None, itf_mac=None):
+    def match_interface(self, itf_name=None, itf_driver=None, itf_mac=None, itf_pciid=None):
         return bool(lib.netplan_netdef_match_interface(
             self._ptr,
             itf_name and itf_name.encode('utf-8'),
             itf_mac and itf_mac.encode('utf-8'),
-            itf_driver and itf_driver.encode('utf-8')))
+            itf_driver and itf_driver.encode('utf-8'),
+            itf_pciid and itf_pciid.encode('utf-8')))
 
     @property
     def vf_count(self):

@@ -857,6 +857,7 @@ static const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_NO_NODE, {.variable=handle_match_driver}},
     {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_id}, netdef_offset(match.original_name)},
+    {"pciid", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(match.pciid)},
     {NULL}
 };
 

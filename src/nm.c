@@ -1018,7 +1018,7 @@ netplan_state_finish_nm_write(
         guint unmanaged = nd->backend == NETPLAN_BACKEND_NM ? 0 : 1;
 
         /* Special case: manage or ignore any device of given type on empty "match: {}" stanza */
-        if (nd->has_match && !nd->match.driver && !nd->match.mac && !nd->match.original_name) {
+        if (nd->has_match && !nd->match.driver && !nd->match.mac && !nd->match.original_name && !nd->match.pciid) {
             nm_type = type_str(nd);
             g_assert(nm_type);
             g_string_append_printf(nm_conf, "[device-netplan.%s.%s]\nmatch-device=type:%s\n"
@@ -1050,7 +1050,7 @@ netplan_state_finish_nm_write(
              * from the "match" stanza (e.g. original_name/mac/drivers)
              * This will match the "old" interface (i.e. original MAC and/or
              * interface name) if it got changed */
-            if (nd->has_match && (nd->match.original_name || nd->match.mac || nd->match.driver)) {
+            if (nd->has_match && (nd->match.original_name || nd->match.mac || nd->match.driver || nd->match.pciid)) {
                 // match on original name glob
                 // TODO: maybe support matching on multiple name globs in the future (like drivers)
                 g_string_append(udev_rules, prefix);
@@ -1077,6 +1077,11 @@ netplan_state_finish_nm_write(
                     g_string_append_printf(udev_rules, " ENV{ID_NET_DRIVER}==\"%s\",", drivers);
                     g_free(drivers);
                 }
+
+                // match pciid
+                if (nd->match.pciid)
+                    g_string_append_printf(udev_rules, " ENV{ID_PATH}==\"%s\",", nd->match.pciid);
+
                 g_string_append(udev_rules, suffix);
             }
         }

@@ -249,6 +249,7 @@ struct netplan_net_definition {
         char* driver;
         char* mac;
         char* original_name;
+        char* pciid;
     } match;
     gboolean has_match;
     gboolean wake_on_lan;
