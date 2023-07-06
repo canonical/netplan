@@ -1739,3 +1739,74 @@ mode=42
 method=auto\n'''.format(UUID), expect_fail=True)
 
         self.assertIn('missing or invalid \'mode\' property for tunnel', out)
+
+    def test_keyfile_wifi_random_cloned_mac_address(self):
+        self.generate_from_keyfile('''[connection]
+type=wifi
+uuid={}
+id=myid with spaces
+interface-name=eth0
+
+[wifi]
+ssid=SOME-SSID
+mode=infrastructure
+cloned-mac-address=random
+
+[wifi-security]
+key-mgmt=ieee8021x
+
+[ipv4]
+method=auto
+dns-search='''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "eth0"
+      dhcp4: true
+      access-points:
+        "SOME-SSID":
+          auth:
+            key-management: "802.1x"
+          networkmanager:
+            uuid: "{}"
+            name: "myid with spaces"
+            passthrough:
+              wifi.cloned-mac-address: "random"
+              ipv4.dns-search: ""
+      networkmanager:
+        uuid: "{}"
+        name: "myid with spaces"
+'''.format(UUID, UUID, UUID)})
+
+    def test_keyfile_ethernet_random_cloned_mac_address(self):
+        self.generate_from_keyfile('''[connection]
+type=ethernet
+uuid={}
+id=myid with spaces
+interface-name=eth0
+
+[ethernet]
+cloned-mac-address=random
+
+[ipv4]
+method=auto
+dns-search='''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "eth0"
+      dhcp4: true
+      wakeonlan: true
+      networkmanager:
+        uuid: "{}"
+        name: "myid with spaces"
+        passthrough:
+          ethernet.cloned-mac-address: "random"
+          ipv4.dns-search: ""
+'''.format(UUID, UUID)})
