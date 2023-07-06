@@ -143,7 +143,6 @@ keyfile_handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, 
 
 static void
 keyfile_handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
-    keyfile_handle_generic_str(kf, group, "cloned-mac-address", &nd->set_mac);
     keyfile_handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
     keyfile_handle_generic_str(kf, group, "mac-address", &nd->match.mac);
     if (nd->match.mac)
@@ -156,6 +155,26 @@ keyfile_handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition*
         nd->custom_bridging = TRUE;
         *dataptr = g_strdup_printf("%"G_GUINT64_FORMAT, g_key_file_get_uint64(kf, "bridge", key, NULL));
         _kf_clear_key(kf, "bridge", key);
+    }
+}
+
+static void
+keyfile_handle_cloned_mac_address(GKeyFile *kf, NetplanNetDefinition* nd, const gchar* group)
+{
+    g_autofree gchar* mac = g_key_file_get_string(kf, group, "cloned-mac-address", NULL);
+
+    if (!mac) return;
+
+    /* If the value of "cloned-mac-address" is one of the below we don't try to
+     * parse it and leave it in the passthrough section.
+     */
+    if (   g_strcmp0(mac, "preserve")
+        && g_strcmp0(mac, "permanent")
+        && g_strcmp0(mac, "random")
+        && g_strcmp0(mac, "stable")
+    ) {
+        nd->set_mac = g_strdup(mac);
+        _kf_clear_key(kf, group, "cloned-mac-address");
     }
 }
 
@@ -782,6 +801,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
 
         keyfile_handle_common(kf, nd, "ethernet");
+        keyfile_handle_cloned_mac_address(kf, nd, "ethernet");
     }
 
     /* Wifis */
@@ -794,6 +814,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
 
         keyfile_handle_common(kf, nd, "wifi");
+        keyfile_handle_cloned_mac_address(kf, nd, "wifi");
     }
 
     /* Cleanup some implicit keys */
