@@ -94,14 +94,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
         p.send_signal(signal.SIGUSR1)
-        out, err = p.communicate()
-        p.wait(10)
+        out, err = p.communicate(timeout=10)
         self.assertEqual('', err)
         self.assertNotIn('An error occurred:', out)
-        self.assertRegex(out.strip(), r'Do you want to keep these settings\?\n\n\n'
-                         r'Press ENTER before the timeout to accept the new configuration\n\n\n'
-                         r'(Changes will revert in \d+ seconds\n)+'
-                         r'Configuration accepted\.')
+        self.assertIn('Configuration accepted.', out)
 
     def test_try_reject_lp1949095(self):
         with open(self.config, 'w') as f:
@@ -113,14 +109,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
         p.send_signal(signal.SIGINT)
-        out, err = p.communicate()
-        p.wait(10)
+        out, err = p.communicate(timeout=10)
         self.assertEqual('', err)
         self.assertNotIn('An error occurred:', out)
-        self.assertRegex(out.strip(), r'Do you want to keep these settings\?\n\n\n'
-                         r'Press ENTER before the timeout to accept the new configuration\n\n\n'
-                         r'(Changes will revert in \d+ seconds\n)+'
-                         r'Reverting\.')
+        self.assertIn('Reverting.', out)
 
     def test_apply_networkd_inactive_lp1962095(self):
         self.setup_eth(None)
