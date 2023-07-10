@@ -31,6 +31,7 @@ import unittest
 import shutil
 import gi
 import glob
+import json
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
@@ -277,6 +278,15 @@ class IntegrationTestsBase(unittest.TestCase):
             self.poll_text(dnsmasq_log, 'IPv6 router advertisement enabled')
         else:
             self.poll_text(dnsmasq_log, 'DHCP, IP range')
+
+    def iface_json(self, iface: str) -> dict:
+        '''Return iproute2's (detailed) JSON representation'''
+        out = subprocess.check_output(['ip', '-j', '-d', 'a', 'show', 'dev', iface],
+                                      text=True)
+        json_dict = json.loads(out)
+        if json_dict:
+            return json_dict[0]
+        return {}
 
     def assert_iface(self, iface, expected_ip_a=None, unexpected_ip_a=None):
         '''Assert that client interface has been created'''
