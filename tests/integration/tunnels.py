@@ -229,9 +229,13 @@ class _CommonTests():
                                   ' l3miss ', ' ttl 64 ', ' ageing 100 '])
         if self.backend == 'networkd':
             # checksums are not supported on the NetworkManager backend
-            self.assert_iface('vx0', [' udpcsum ', ' udp6zerocsumtx ',
-                                      ' udp6zerocsumrx ', ' remcsumtx ',
-                                      ' remcsumrx '])
+            json = self.iface_json('vx0')
+            data = json.get('linkinfo', {}).get('info_data', {})
+            self.assertTrue(data.get('udp_csum'))
+            self.assertTrue(data.get('udp_zero_csum6_tx'))
+            self.assertTrue(data.get('udp_zero_csum6_rx'))
+            self.assertTrue(data.get('remcsum_tx'))
+            self.assertTrue(data.get('remcsum_rx'))
 
 
 @unittest.skipIf("networkd" not in test_backends,
