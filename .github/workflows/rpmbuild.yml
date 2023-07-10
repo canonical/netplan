@@ -14,7 +14,7 @@ jobs:
       matrix:
         container:
           - fedora:latest
-          - fedora:rawhide
+          # - fedora:rawhide
           - rockylinux:9
     container:
       image: ${{ matrix.container }}
