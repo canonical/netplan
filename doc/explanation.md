@@ -5,6 +5,11 @@
 structure-id
 ```
 
+## NetworkManager
+```{toctree}
+nm-all
+```
+
 ## Design
 Network configuration abstraction via systemd-generator
 ```{toctree}
