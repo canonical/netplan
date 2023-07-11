@@ -682,8 +682,28 @@ def create_yaml_patch(patch_object_path: List[str], patch_payload: str, patch_ou
                       patch_output.fileno())
 
 
-def dump_yaml_subtree(prefix, input_file, output_file):
-    _checked_lib_call(lib.netplan_util_dump_yaml_subtree,
-                      prefix.encode('utf-8'),
-                      input_file.fileno(),
-                      output_file.fileno())
+def dump_yaml_subtree(prefix, input_file: IO, output_file: IO):
+    if isinstance(input_file, StringIO):
+        input_fd = os.memfd_create(name='netplan_temp_input_file')
+        data = input_file.getvalue()
+        os.write(input_fd, data.encode('utf-8'))
+        os.lseek(input_fd, 0, os.SEEK_SET)
+    else:
+        input_fd = input_file.fileno()
+
+    if isinstance(output_file, StringIO):
+        output_fd = os.memfd_create(name='netplan_temp_output_file')
+    else:
+        output_fd = output_file.fileno()
+
+    _checked_lib_call(lib.netplan_util_dump_yaml_subtree, prefix.encode('utf-8'), input_fd, output_fd)
+
+    if isinstance(input_file, StringIO):
+        os.close(input_fd)
+
+    if isinstance(output_file, StringIO):
+        size = os.lseek(output_fd, 0, os.SEEK_CUR)
+        os.lseek(output_fd, 0, os.SEEK_SET)
+        data = os.read(output_fd, size)
+        output_file.write(data.decode('utf-8'))
+        os.close(output_fd)
