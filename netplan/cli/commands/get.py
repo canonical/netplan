@@ -17,13 +17,8 @@
 
 '''netplan get command line'''
 
-import sys
-import io
-import tempfile
-import re
-
+from netplan.cli.state import NetplanConfigState
 import netplan.cli.utils as utils
-import netplan.libnetplan as libnetplan
 
 
 class NetplanGet(utils.NetplanCommand):
@@ -42,37 +37,6 @@ class NetplanGet(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
-    def dump_state(self, key, np_state, output_file):
-        if key == 'all':
-            np_state.dump_yaml(output_file=output_file)
-            return
-
-        if not key.startswith('network'):
-            key = '.'.join(('network', key))
-        # Replace the '.' with '\t' but not at '\.' via negative lookbehind expression
-        key = re.sub(r'(?<!\\)\.', '\t', key).replace(r'\.', '.')
-
-        with tempfile.NamedTemporaryFile() as tmp_in:
-            np_state.dump_yaml(output_file=tmp_in)
-            libnetplan.dump_yaml_subtree(key, tmp_in, output_file=output_file)
-
     def command_get(self):
-        parser = libnetplan.Parser()
-        parser.load_yaml_hierarchy(rootdir=self.root_dir)
-
-        np_state = libnetplan.State()
-        np_state.import_parser_results(parser)
-
-        try:
-            sys.stdout.fileno()
-            output_file = sys.stdout  # pragma: nocover
-        except io.UnsupportedOperation:  # Test environment detected, using a buffer file
-            output_file = tempfile.TemporaryFile()
-
-        self.dump_state(self.key, np_state, output_file)
-
-        if output_file != sys.stdout:
-            output_file.flush()
-            output_file.seek(0)
-            sys.stdout.write(output_file.read().decode('utf-8'))
-            output_file.close()
+        state_data = NetplanConfigState(self.key, self.root_dir)
+        print(state_data, end='')
