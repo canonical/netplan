@@ -210,6 +210,7 @@ class Interface():
             'wireguard': 'tunnel',
             'wlan': 'wifi',
             'wwan': 'modem',
+            'vlan': 'vlan',
             'vrf': 'vrf',
             'vxlan': 'tunnel',
             })
