@@ -134,7 +134,7 @@ NAME_FUNCTION_FLAGS(vxlan_extension);
         if (g_strcmp0(val, netplan_ ## _radical ## _to_str[i]) == 0) \
             return i; \
     } \
-    return -1; \
+    return NETPLAN_DEF_TYPE_NONE; \
 }
 
 ENUM_FUNCTION(def_type, NetplanDefType);
