@@ -533,9 +533,9 @@ adopt_and_validate_vrf_routes(const NetplanParser *npp, GHashTable *netdefs, GEr
 }
 
 struct _defroute_entry {
-    int family;
-    int table;
-    int metric;
+    gint family;
+    guint table;
+    guint metric;
     const char *netdef_id;
 };
 
