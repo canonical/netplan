@@ -252,7 +252,7 @@ struct netplan_net_definition {
     } match;
     gboolean has_match;
     gboolean wake_on_lan;
-    NetplanWifiWowlanFlag wowlan;
+    gint wowlan;
     gboolean emit_lldp;
 
     /* these properties are only valid for NETPLAN_DEF_TYPE_WIFI */
