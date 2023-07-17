@@ -3,7 +3,7 @@ project('netplan', 'c',
         license: 'GPL3',
         default_options: [
             'c_std=c99',
-            'warning_level=1',
+            'warning_level=2',
             'werror=true',
         ],
         meson_version: '>= 0.61.0',
