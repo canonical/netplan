@@ -65,7 +65,7 @@ write_sriov_rebind_systemd_unit(const GString* pfs, const char* rootdir, GError*
  * Finalize the SR-IOV configuration (global config)
  */
 gboolean
-netplan_state_finish_sriov_write(const NetplanState* np_state, const char* rootdir, GError** error)
+netplan_state_finish_sriov_write(const NetplanState* np_state, const char* rootdir, __unused GError** error)
 {
     NetplanNetDefinition* def = NULL;
     NetplanNetDefinition* pf = NULL;

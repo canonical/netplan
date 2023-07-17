@@ -73,7 +73,7 @@ get_syntax_error_context(const NetplanParser* npp, const int line_num, const int
 }
 
 static char *
-get_parser_error_context(const yaml_parser_t *parser, GError **error)
+get_parser_error_context(const yaml_parser_t *parser, __unused GError **error)
 {
     GString *message = NULL;
     unsigned char* line = parser->buffer.pointer;

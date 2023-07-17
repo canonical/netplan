@@ -273,7 +273,7 @@ method_apply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
-method_generate(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_generate(sd_bus_message *m, __unused void *userdata, sd_bus_error *ret_error)
 {
     g_autoptr(GError) err = NULL;
     g_autofree gchar *stdout = NULL;
@@ -306,7 +306,7 @@ method_generate(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
-method_info(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+method_info(sd_bus_message *m, __unused void *userdata, __unused sd_bus_error *ret_error)
 {
     sd_bus_message *reply = NULL;
     gint exit_status = 0;
@@ -434,7 +434,7 @@ method_set(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 }
 
 static int
-netplan_try_cancelled_cb(sd_event_source *es, const siginfo_t *si, void* userdata)
+netplan_try_cancelled_cb(__unused sd_event_source *es, const siginfo_t *si, void* userdata)
 {
     NetplanData *d = userdata;
     g_autofree gchar *state_dir = NULL;
@@ -778,7 +778,7 @@ static const sd_bus_vtable netplan_vtable[] = {
  */
 
 static int
-terminate_mainloop_cb(sd_event_source *es, const struct signalfd_siginfo *si, void* userdata) {
+terminate_mainloop_cb(__unused sd_event_source *es, __unused const struct signalfd_siginfo *si, void* userdata) {
     sd_event *event = userdata;
     /* Gracefully terminate the mainloop, to write GCOV output */
     sd_event_exit(event, 0);
@@ -786,7 +786,7 @@ terminate_mainloop_cb(sd_event_source *es, const struct signalfd_siginfo *si, vo
 }
 
 int
-main(int argc, char *argv[])
+main(__unused int argc, __unused char *argv[])
 {
     sd_bus_slot *slot = NULL;
     sd_bus *bus = NULL;

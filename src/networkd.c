@@ -37,7 +37,7 @@
  * Append WiFi frequencies to wpa_supplicant's freq_list=
  */
 static void
-wifi_append_freq(gpointer key, gpointer value, gpointer user_data)
+wifi_append_freq(__unused gpointer key, gpointer value, gpointer user_data)
 {
     GString* s = user_data;
     g_string_append_printf(s, "%d ", GPOINTER_TO_INT(value));

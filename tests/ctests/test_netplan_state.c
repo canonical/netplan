@@ -19,7 +19,7 @@
 #include "test_utils.h"
 
 void
-test_netplan_state_new_state(void** state)
+test_netplan_state_new_state(__unused void** state)
 {
     NetplanState* np_state = netplan_state_new();
     assert_non_null(np_state);
@@ -27,7 +27,7 @@ test_netplan_state_new_state(void** state)
 }
 
 void
-test_netplan_state_iterator(void** state)
+test_netplan_state_iterator(__unused void** state)
 {
     NetplanState* np_state = load_fixture_to_netplan_state("bond.yaml");
     NetplanStateIterator iter;
@@ -50,7 +50,7 @@ test_netplan_state_iterator(void** state)
 }
 
 void
-test_netplan_state_iterator_empty(void** state)
+test_netplan_state_iterator_empty(__unused void** state)
 {
     NetplanStateIterator iter = { 0 };
     NetplanNetDefinition* netdef = NULL;
@@ -60,7 +60,7 @@ test_netplan_state_iterator_empty(void** state)
 }
 
 void
-test_netplan_state_iterator_null(void** state)
+test_netplan_state_iterator_null(__unused void** state)
 {
     NetplanStateIterator *iter = NULL;
     NetplanNetDefinition* netdef = NULL;
@@ -70,20 +70,20 @@ test_netplan_state_iterator_null(void** state)
 }
 
 void
-test_netplan_state_iterator_null_has_next(void** state)
+test_netplan_state_iterator_null_has_next(__unused void** state)
 {
     assert_false(netplan_state_iterator_has_next(NULL));
 }
 
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }

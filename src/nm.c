@@ -949,7 +949,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
  */
 gboolean
 netplan_netdef_write_nm(
-        const NetplanState* np_state,
+        __unused const NetplanState* np_state,
         const NetplanNetDefinition* netdef,
         const char* rootdir,
         gboolean* has_been_written,
@@ -997,7 +997,7 @@ gboolean
 netplan_state_finish_nm_write(
         const NetplanState* np_state,
         const char* rootdir,
-        GError** error)
+        __unused GError** error)
 {
     GString* udev_rules = g_string_new(NULL);
     GString *nm_conf = g_string_new(NULL);

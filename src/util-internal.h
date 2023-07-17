@@ -26,6 +26,8 @@
 
 #define SET_OPT_OUT_PTR(ptr,val) { if (ptr) *ptr = val; }
 
+#define __unused __attribute__((unused))
+
 extern GHashTable*
 wifi_frequency_24;
 
