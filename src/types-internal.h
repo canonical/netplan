@@ -114,7 +114,7 @@ typedef struct {
 } NetplanWifiAccessPoint;
 
 typedef struct {
-    guint family;
+    gint family;
     char* type;
     char* scope;
     guint table;
@@ -135,7 +135,7 @@ typedef struct {
 } NetplanIPRoute;
 
 typedef struct {
-    guint family;
+    gint family;
 
     char* from;
     char* to;

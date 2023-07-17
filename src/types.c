@@ -152,7 +152,7 @@ reset_dhcp_overrides(NetplanDHCPOverrides* overrides)
 void
 reset_ip_rule(NetplanIPRule* ip_rule)
 {
-    ip_rule->family = G_MAXUINT; /* 0 is a valid family ID */
+    ip_rule->family = -1; /* 0 is a valid family ID */
     ip_rule->priority = NETPLAN_IP_RULE_PRIO_UNSPEC;
     ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
     ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;

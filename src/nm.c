@@ -174,7 +174,7 @@ write_search_domains(const NetplanNetDefinition* def, const char* group, GKeyFil
 }
 
 static gboolean
-write_routes(const NetplanNetDefinition* def, GKeyFile *kf, int family, GError** error)
+write_routes(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GError** error)
 {
     const gchar* group = NULL;
     gchar* tmp_key = NULL;
