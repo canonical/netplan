@@ -854,7 +854,7 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
 }
 
 static const mapping_entry_handler match_handlers[] = {
-    {"driver", YAML_NO_NODE, {.variable=handle_match_driver}},
+    {"driver", YAML_NO_NODE, {.variable=handle_match_driver}, NULL},
     {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_id}, netdef_offset(match.original_name)},
     {NULL}
@@ -913,8 +913,8 @@ handle_auth_method(NetplanParser* npp, yaml_node_t* node, const void* _, GError*
 }
 
 static const mapping_entry_handler auth_handlers[] = {
-    {"key-management", YAML_SCALAR_NODE, {.generic=handle_auth_key_management}},
-    {"method", YAML_SCALAR_NODE, {.generic=handle_auth_method}},
+    {"key-management", YAML_SCALAR_NODE, {.generic=handle_auth_key_management}, NULL},
+    {"method", YAML_SCALAR_NODE, {.generic=handle_auth_method}, NULL},
     {"identity", YAML_SCALAR_NODE, {.generic=handle_auth_str}, auth_offset(identity)},
     {"anonymous-identity", YAML_SCALAR_NODE, {.generic=handle_auth_str}, auth_offset(anonymous_identity)},
     {"password", YAML_SCALAR_NODE, {.generic=handle_auth_str}, auth_offset(password)},
@@ -1067,14 +1067,14 @@ static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
 
 
 static const mapping_entry_handler wifi_access_point_handlers[] = {
-    {"band", YAML_SCALAR_NODE, {.generic=handle_access_point_band}},
+    {"band", YAML_SCALAR_NODE, {.generic=handle_access_point_band}, NULL},
     {"bssid", YAML_SCALAR_NODE, {.generic=handle_access_point_mac}, access_point_offset(bssid)},
     {"hidden", YAML_SCALAR_NODE, {.generic=handle_access_point_bool}, access_point_offset(hidden)},
     {"channel", YAML_SCALAR_NODE, {.generic=handle_access_point_guint}, access_point_offset(channel)},
-    {"mode", YAML_SCALAR_NODE, {.generic=handle_access_point_mode}},
-    {"password", YAML_SCALAR_NODE, {.generic=handle_access_point_password}},
-    {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_auth}}},
-    {"networkmanager", YAML_MAPPING_NODE, {.map={.handlers=ap_nm_backend_settings_handlers}}},
+    {"mode", YAML_SCALAR_NODE, {.generic=handle_access_point_mode}, NULL},
+    {"password", YAML_SCALAR_NODE, {.generic=handle_access_point_password}, NULL},
+    {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_auth}}, NULL},
+    {"networkmanager", YAML_MAPPING_NODE, {.map={.handlers=ap_nm_backend_settings_handlers}}, NULL},
     {NULL}
 };
 
@@ -1958,10 +1958,10 @@ handle_bridge(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, con
 static const mapping_entry_handler routes_handlers[] = {
     {"from", YAML_SCALAR_NODE, {.generic=handle_routes_ip}, route_offset(from)},
     {"on-link", YAML_SCALAR_NODE, {.generic=handle_routes_bool}, route_offset(onlink)},
-    {"scope", YAML_SCALAR_NODE, {.generic=handle_routes_scope}},
+    {"scope", YAML_SCALAR_NODE, {.generic=handle_routes_scope}, NULL},
     {"table", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(table)},
-    {"to", YAML_SCALAR_NODE, {.generic=handle_routes_destination}},
-    {"type", YAML_SCALAR_NODE, {.generic=handle_routes_type}},
+    {"to", YAML_SCALAR_NODE, {.generic=handle_routes_destination}, NULL},
+    {"type", YAML_SCALAR_NODE, {.generic=handle_routes_type}, NULL},
     {"via", YAML_SCALAR_NODE, {.generic=handle_routes_ip}, route_offset(via)},
     {"metric", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(metric)},
     {"mtu", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(mtubytes)},
@@ -2188,7 +2188,7 @@ static const mapping_entry_handler bond_params_handlers[] = {
     {"all-members-active", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bond_params.all_members_active)},
     {"arp-interval", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.arp_interval)},
     /* TODO: arp_ip_targets */
-    {"arp-ip-targets", YAML_SEQUENCE_NODE, {.generic=handle_arp_ip_targets}},
+    {"arp-ip-targets", YAML_SEQUENCE_NODE, {.generic=handle_arp_ip_targets}, NULL},
     {"arp-validate", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.arp_validate)},
     {"arp-all-targets", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.arp_all_targets)},
     {"up-delay", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bond_params.up_delay)},
@@ -2434,10 +2434,10 @@ handle_wireguard_peer_key_mapping(NetplanParser* npp, yaml_node_t* node, const c
 }
 
 const mapping_entry_handler wireguard_peer_handlers[] = {
-    {"keys", YAML_MAPPING_NODE, {.map={.custom=handle_wireguard_peer_key_mapping}}},
+    {"keys", YAML_MAPPING_NODE, {.map={.custom=handle_wireguard_peer_key_mapping}}, NULL},
     {"keepalive", YAML_SCALAR_NODE, {.generic=handle_wireguard_peer_guint}, wireguard_peer_offset(keepalive)},
-    {"endpoint", YAML_SCALAR_NODE, {.generic=handle_wireguard_endpoint}},
-    {"allowed-ips", YAML_SEQUENCE_NODE, {.generic=handle_wireguard_allowed_ips}},
+    {"endpoint", YAML_SCALAR_NODE, {.generic=handle_wireguard_endpoint}, NULL},
+    {"allowed-ips", YAML_SEQUENCE_NODE, {.generic=handle_wireguard_allowed_ips}, NULL},
     {NULL}
 };
 
@@ -2646,7 +2646,7 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {"mcast-snooping", YAML_SCALAR_NODE, {.generic=handle_ovs_bridge_bool}, netdef_offset(ovs_settings.mcast_snooping)},
     {"rstp", YAML_SCALAR_NODE, {.generic=handle_ovs_bridge_bool}, netdef_offset(ovs_settings.rstp)},
     {"protocols", YAML_SEQUENCE_NODE, {.generic=handle_ovs_bridge_protocol}, netdef_offset(ovs_settings.protocols)},
-    {"controller", YAML_MAPPING_NODE, {.map={.handlers=ovs_controller_handlers}}},
+    {"controller", YAML_MAPPING_NODE, {.map={.handlers=ovs_controller_handlers}}, NULL},
     {NULL}
 };
 
@@ -2677,8 +2677,8 @@ cleanup:
 }
 
 static const mapping_entry_handler nameservers_handlers[] = {
-    {"search", YAML_SEQUENCE_NODE, {.generic=handle_nameservers_search}},
-    {"addresses", YAML_SEQUENCE_NODE, {.generic=handle_nameservers_addresses}},
+    {"search", YAML_SEQUENCE_NODE, {.generic=handle_nameservers_search}, NULL},
+    {"addresses", YAML_SEQUENCE_NODE, {.generic=handle_nameservers_addresses}, NULL},
     {NULL}
 };
 
@@ -2708,38 +2708,38 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 #define COMMON_LINK_HANDLERS \
     {"accept-ra", YAML_SCALAR_NODE, {.generic=handle_accept_ra}, netdef_offset(accept_ra)}, \
     {"activation-mode", YAML_SCALAR_NODE, {.generic=handle_activation_mode}, netdef_offset(activation_mode)}, \
-    {"addresses", YAML_SEQUENCE_NODE, {.generic=handle_addresses}}, \
+    {"addresses", YAML_SEQUENCE_NODE, {.generic=handle_addresses}, NULL}, \
     {"critical", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(critical)}, \
     {"ignore-carrier", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ignore_carrier)}, \
     {"dhcp4", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(dhcp4)}, \
     {"dhcp6", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(dhcp6)}, \
-    {"dhcp-identifier", YAML_SCALAR_NODE, {.generic=handle_dhcp_identifier}}, \
-    {"dhcp4-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp4_overrides_handlers}}}, \
-    {"dhcp6-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp6_overrides_handlers}}}, \
-    {"gateway4", YAML_SCALAR_NODE, {.generic=handle_gateway4}}, \
-    {"gateway6", YAML_SCALAR_NODE, {.generic=handle_gateway6}}, \
-    {"ipv6-address-generation", YAML_SCALAR_NODE, {.generic=handle_netdef_addrgen}}, \
+    {"dhcp-identifier", YAML_SCALAR_NODE, {.generic=handle_dhcp_identifier}, NULL}, \
+    {"dhcp4-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp4_overrides_handlers}}, NULL}, \
+    {"dhcp6-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp6_overrides_handlers}}, NULL}, \
+    {"gateway4", YAML_SCALAR_NODE, {.generic=handle_gateway4}, NULL}, \
+    {"gateway6", YAML_SCALAR_NODE, {.generic=handle_gateway6}, NULL}, \
+    {"ipv6-address-generation", YAML_SCALAR_NODE, {.generic=handle_netdef_addrgen}, NULL}, \
     {"ipv6-address-token", YAML_SCALAR_NODE, {.generic=handle_netdef_addrtok}, netdef_offset(ip6_addr_gen_token)}, \
     {"ipv6-mtu", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_mtubytes)}, \
     {"ipv6-privacy", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ip6_privacy)}, \
-    {"link-local", YAML_SEQUENCE_NODE, {.generic=handle_link_local}}, \
+    {"link-local", YAML_SEQUENCE_NODE, {.generic=handle_link_local}, NULL}, \
     {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(set_mac)}, \
     {"mtu", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(mtubytes)}, \
-    {"nameservers", YAML_MAPPING_NODE, {.map={.handlers=nameservers_handlers}}}, \
+    {"nameservers", YAML_MAPPING_NODE, {.map={.handlers=nameservers_handlers}}, NULL}, \
     {"optional", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(optional)}, \
-    {"optional-addresses", YAML_SEQUENCE_NODE, {.generic=handle_optional_addresses}}, \
-    {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}}, \
-    {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}}, \
-    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}}, \
+    {"optional-addresses", YAML_SEQUENCE_NODE, {.generic=handle_optional_addresses}, NULL}, \
+    {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}, NULL}, \
+    {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}, NULL}, \
+    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}, NULL}, \
     {"neigh-suppress", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(bridge_neigh_suppress)}
 
 #define COMMON_BACKEND_HANDLERS \
-    {"networkmanager", YAML_MAPPING_NODE, {.map={.handlers=nm_backend_settings_handlers}}}, \
-    {"openvswitch", YAML_MAPPING_NODE, {.map={.custom=handle_ovs_backend}}}
+    {"networkmanager", YAML_MAPPING_NODE, {.map={.handlers=nm_backend_settings_handlers}}, NULL}, \
+    {"openvswitch", YAML_MAPPING_NODE, {.map={.custom=handle_ovs_backend}}, NULL}
 
 /* Handlers for physical links */
 #define PHYSICAL_LINK_HANDLERS \
-    {"match", YAML_MAPPING_NODE, {.map={.custom=handle_match}}}, \
+    {"match", YAML_MAPPING_NODE, {.map={.custom=handle_match}}, NULL}, \
     {"set-name", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(set_name)}, \
     {"wakeonlan", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(wake_on_lan)}, \
     {"wakeonwlan", YAML_SEQUENCE_NODE, {.generic=handle_wowlan}, netdef_offset(wowlan)}, \
@@ -2756,7 +2756,7 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
-    {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_auth}}},
+    {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_auth}}, NULL},
     {"link", YAML_SCALAR_NODE, {.generic=handle_netdef_id_ref}, netdef_offset(sriov_link)},
     {"virtual-function-count", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(sriov_explicit_vf_count)},
     {"embedded-switch-mode", YAML_SCALAR_NODE, {.generic=handle_embedded_switch_mode}, netdef_offset(embedded_switch_mode)},
@@ -2769,8 +2769,8 @@ static const mapping_entry_handler wifi_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     PHYSICAL_LINK_HANDLERS,
-    {"access-points", YAML_MAPPING_NODE, {.map={.custom=handle_wifi_access_points}}},
-    {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_auth}}},
+    {"access-points", YAML_MAPPING_NODE, {.map={.custom=handle_wifi_access_points}}, NULL},
+    {"auth", YAML_MAPPING_NODE, {.map={.custom=handle_auth}}, NULL},
     {"regulatory-domain", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(regulatory_domain)},
     {NULL}
 };
@@ -2779,7 +2779,7 @@ static const mapping_entry_handler bridge_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, {.generic=handle_bridge_interfaces}, NULL},
-    {"parameters", YAML_MAPPING_NODE, {.map={.custom=handle_bridge}}},
+    {"parameters", YAML_MAPPING_NODE, {.map={.custom=handle_bridge}}, NULL},
     {NULL}
 };
 
@@ -2787,7 +2787,7 @@ static const mapping_entry_handler bond_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"interfaces", YAML_SEQUENCE_NODE, {.generic=handle_bond_interfaces}, NULL},
-    {"parameters", YAML_MAPPING_NODE, {.map={.custom=handle_bonding}}},
+    {"parameters", YAML_MAPPING_NODE, {.map={.custom=handle_bonding}}, NULL},
     {NULL}
 };
 
@@ -2801,11 +2801,11 @@ static const mapping_entry_handler vlan_def_handlers[] = {
 
 static const mapping_entry_handler vrf_def_handlers[] = {
     COMMON_BACKEND_HANDLERS,
-    {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}},
+    {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}, NULL},
     {"interfaces", YAML_SEQUENCE_NODE, {.generic=handle_vrf_interfaces}, NULL},
     {"table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(vrf_table)},
-    {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}},
-    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}},
+    {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}, NULL},
+    {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}, NULL},
     {NULL}
 };
 
@@ -2834,7 +2834,7 @@ static const mapping_entry_handler dummy_def_handlers[] = {     /* wokeignore:ru
 static const mapping_entry_handler tunnel_def_handlers[] = {
     COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
-    {"mode", YAML_SCALAR_NODE, {.generic=handle_tunnel_mode}},
+    {"mode", YAML_SCALAR_NODE, {.generic=handle_tunnel_mode}, NULL},
     {"local", YAML_SCALAR_NODE, {.generic=handle_tunnel_addr}, netdef_offset(tunnel.local_ip)},
     {"remote", YAML_SCALAR_NODE, {.generic=handle_tunnel_addr}, netdef_offset(tunnel.remote_ip)},
     {"ttl", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(tunnel_ttl)},
@@ -2842,13 +2842,13 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     /* Handle key/keys for clarity in config: this can be either a scalar or
      * mapping of multiple keys (input and output)
      */
-    {"key", YAML_NO_NODE, {.variable=handle_tunnel_key_mapping}},
-    {"keys", YAML_NO_NODE, {.variable=handle_tunnel_key_mapping}},
+    {"key", YAML_NO_NODE, {.variable=handle_tunnel_key_mapping}, NULL},
+    {"keys", YAML_NO_NODE, {.variable=handle_tunnel_key_mapping}, NULL},
 
     /* wireguard */
     {"mark", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(tunnel.fwmark)},
     {"port", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(tunnel.port)},
-    {"peers", YAML_SEQUENCE_NODE, {.generic=handle_wireguard_peers}},
+    {"peers", YAML_SEQUENCE_NODE, {.generic=handle_wireguard_peers}, NULL},
 
     /* vxlan */
     {"link", YAML_SCALAR_NODE, {.generic=handle_vxlan_id_ref}, vxlan_offset(link)},
@@ -2865,7 +2865,7 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {"notifications", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(notifications)},
     {"checksums", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(checksums)},
     {"extensions", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_flags}, vxlan_offset(extensions)},
-    {"port-range", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_source_port}},
+    {"port-range", YAML_SEQUENCE_NODE, {.generic=handle_vxlan_source_port}, NULL},
     {NULL}
 };
 
@@ -3175,8 +3175,8 @@ static const mapping_entry_handler ovs_network_settings_handlers[] = {
     {"external-ids", YAML_MAPPING_NODE, {.map={.custom=handle_network_ovs_settings_global}}, ovs_settings_offset(external_ids)},
     {"other-config", YAML_MAPPING_NODE, {.map={.custom=handle_network_ovs_settings_global}}, ovs_settings_offset(other_config)},
     {"protocols", YAML_SEQUENCE_NODE, {.generic=handle_network_ovs_settings_global_protocol}, ovs_settings_offset(protocols)},
-    {"ports", YAML_SEQUENCE_NODE, {.generic=handle_network_ovs_settings_global_ports}},
-    {"ssl", YAML_MAPPING_NODE, {.map={.custom=handle_ovs_global_ssl}}},
+    {"ports", YAML_SEQUENCE_NODE, {.generic=handle_network_ovs_settings_global_ports}, NULL},
+    {"ssl", YAML_MAPPING_NODE, {.map={.custom=handle_ovs_global_ssl}}, NULL},
     {NULL}
 };
 
@@ -3184,16 +3184,16 @@ static const mapping_entry_handler network_handlers[] = {
     {"bonds", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BOND)},
     {"bridges", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_BRIDGE)},
     {"ethernets", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_ETHERNET)},
-    {"renderer", YAML_SCALAR_NODE, {.generic=handle_network_renderer}},
+    {"renderer", YAML_SCALAR_NODE, {.generic=handle_network_renderer}, NULL},
     {"tunnels", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_TUNNEL)},
-    {"version", YAML_SCALAR_NODE, {.generic=handle_network_version}},
+    {"version", YAML_SCALAR_NODE, {.generic=handle_network_version}, NULL},
     {"vlans", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
     {"vrfs", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VRF)},
     {"wifis", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
     {"modems", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
     {"dummy-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_DUMMY)},    /* wokeignore:rule=dummy */
     {"nm-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_NM)},
-    {"openvswitch", YAML_MAPPING_NODE, {.map={.handlers=ovs_network_settings_handlers}}},
+    {"openvswitch", YAML_MAPPING_NODE, {.map={.handlers=ovs_network_settings_handlers}}, NULL},
     {NULL}
 };
 
@@ -3202,7 +3202,7 @@ static const mapping_entry_handler network_handlers[] = {
  ****************************************************/
 
 static const mapping_entry_handler root_handlers[] = {
-    {"network", YAML_MAPPING_NODE, {.map={.handlers=network_handlers}}},
+    {"network", YAML_MAPPING_NODE, {.map={.handlers=network_handlers}}, NULL},
     {NULL}
 };
 
