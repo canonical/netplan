@@ -480,7 +480,7 @@ sriov_rules_error:
 }
 
 gboolean
-adopt_and_validate_vrf_routes(const NetplanParser *npp, GHashTable *netdefs, GError **error)
+adopt_and_validate_vrf_routes(__unused const NetplanParser *npp, GHashTable *netdefs, GError **error)
 {
     gpointer key, value;
     GHashTableIter iter;
@@ -594,7 +594,7 @@ check_defroute(struct _defroute_entry *candidate,
 }
 
 gboolean
-validate_default_route_consistency(const NetplanParser* npp, GHashTable *netdefs, GError ** error)
+validate_default_route_consistency(__unused const NetplanParser* npp, GHashTable *netdefs, GError ** error)
 {
     struct _defroute_entry candidate = {};
     GSList *defroutes = NULL;

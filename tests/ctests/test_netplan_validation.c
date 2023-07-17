@@ -19,7 +19,7 @@
 #include "test_utils.h"
 
 void
-test_validate_interface_name_length(void** state)
+test_validate_interface_name_length(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -41,7 +41,7 @@ test_validate_interface_name_length(void** state)
 }
 
 void
-test_validate_interface_name_length_set_name(void** state)
+test_validate_interface_name_length_set_name(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -65,7 +65,7 @@ test_validate_interface_name_length_set_name(void** state)
 }
 
 void
-test_validate_interface_name_length_too_long(void** state)
+test_validate_interface_name_length_too_long(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -87,7 +87,7 @@ test_validate_interface_name_length_too_long(void** state)
 }
 
 void
-test_validate_interface_name_length_set_name_too_long(void** state)
+test_validate_interface_name_length_set_name_too_long(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -111,13 +111,13 @@ test_validate_interface_name_length_set_name_too_long(void** state)
 }
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }

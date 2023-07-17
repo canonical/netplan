@@ -17,7 +17,7 @@
 #include "parse.c"
 
 void
-test_netplan_error_message(void** state)
+test_netplan_error_message(__unused void** state)
 {
     const gchar* message = "it failed";
     char error_message[100] = {0};
@@ -28,7 +28,7 @@ test_netplan_error_message(void** state)
 }
 
 void
-test_netplan_error_code(void** state)
+test_netplan_error_code(__unused void** state)
 {
     GError *gerror = g_error_new(1234, 5678, "%s: error message", "it failed");
     uint64_t error_code = netplan_error_code(gerror);
@@ -41,13 +41,13 @@ test_netplan_error_code(void** state)
 }
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }

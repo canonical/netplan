@@ -20,7 +20,7 @@
 
 // LCOV_EXCL_START
 gboolean
-netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, NetplanError** error)
+netplan_parser_load_keyfile(__unused NetplanParser* npp, __unused const char* filename, __unused NetplanError** error)
 {
     return 1; //
 }
@@ -31,7 +31,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, NetplanErr
 #include "test_utils.h"
 
 void
-test_netplan_get_id_from_nm_filename_no_ssid(void **state)
+test_netplan_get_id_from_nm_filename_no_ssid(__unused void **state)
 {
     const char* filename = "/some/rootdir/run/NetworkManager/system-connections/netplan-some-id.nmconnection";
     char* id = netplan_get_id_from_nm_filename(filename, NULL);
@@ -40,7 +40,7 @@ test_netplan_get_id_from_nm_filename_no_ssid(void **state)
 }
 
 void
-test_netplan_get_id_from_nm_filename_with_ssid(void **state)
+test_netplan_get_id_from_nm_filename_with_ssid(__unused void **state)
 {
     const char* filename = "/some/rootdir/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
     char* id = netplan_get_id_from_nm_filename(filename, "SOME-SSID");
@@ -49,7 +49,7 @@ test_netplan_get_id_from_nm_filename_with_ssid(void **state)
 }
 
 void
-test_netplan_get_id_from_nm_filename_filename_is_malformed(void **state)
+test_netplan_get_id_from_nm_filename_filename_is_malformed(__unused void **state)
 {
     const char* filename = "INVALID/netplan-some-id.nmconnection";
     char* id = netplan_get_id_from_nm_filename(filename, NULL);
@@ -58,13 +58,13 @@ test_netplan_get_id_from_nm_filename_filename_is_malformed(void **state)
 
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }

@@ -201,7 +201,7 @@ reset_vxlan(NetplanVxlan* vxlan)
  *        to interpret the processed object, especially regarding the backend settings
  */
 static void
-free_access_point(void* key, void* value, void* data)
+free_access_point(__unused void* key, void* value, __unused void* data)
 {
     NetplanWifiAccessPoint* ap = value;
     g_free(ap->ssid);

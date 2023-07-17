@@ -21,7 +21,7 @@
 #include "test_utils.h"
 
 void
-test_netplan_get_optional(void** state)
+test_netplan_get_optional(__unused void** state)
 {
 
     NetplanState* np_state = load_fixture_to_netplan_state("optional.yaml");
@@ -35,7 +35,7 @@ test_netplan_get_optional(void** state)
 }
 
 void
-test_netplan_get_id_from_nm_filepath_no_ssid(void **state)
+test_netplan_get_id_from_nm_filepath_no_ssid(__unused void **state)
 {
 
     const char* filename = "/some/rootdir/run/NetworkManager/system-connections/netplan-some-id.nmconnection";
@@ -48,7 +48,7 @@ test_netplan_get_id_from_nm_filepath_no_ssid(void **state)
 }
 
 void
-test_netplan_get_id_from_nm_filepath_with_ssid(void **state)
+test_netplan_get_id_from_nm_filepath_with_ssid(__unused void **state)
 {
 
     const char* filename = "/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
@@ -61,7 +61,7 @@ test_netplan_get_id_from_nm_filepath_with_ssid(void **state)
 }
 
 void
-test_netplan_get_id_from_nm_filepath_buffer_is_too_small(void **state)
+test_netplan_get_id_from_nm_filepath_buffer_is_too_small(__unused void **state)
 {
 
     const char* filename = "/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
@@ -73,7 +73,7 @@ test_netplan_get_id_from_nm_filepath_buffer_is_too_small(void **state)
 }
 
 void
-test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size(void **state)
+test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size(__unused void **state)
 {
 
     const char* filename = "/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection";
@@ -86,7 +86,7 @@ test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size(void **state)
 }
 
 void
-test_netplan_get_id_from_nm_filepath_filename_is_malformed(void **state)
+test_netplan_get_id_from_nm_filepath_filename_is_malformed(__unused void **state)
 {
 
     const char* filename = "INVALID/netplan-some-id.nmconnection";
@@ -98,7 +98,7 @@ test_netplan_get_id_from_nm_filepath_filename_is_malformed(void **state)
 }
 
 void
-test_netplan_netdef_get_output_filename_nm_with_ssid(void** state)
+test_netplan_netdef_get_output_filename_nm_with_ssid(__unused void** state)
 {
     NetplanNetDefinition netdef;
     const char* expected = "/run/NetworkManager/system-connections/netplan-enlol3s0-home-network.nmconnection";
@@ -116,7 +116,7 @@ test_netplan_netdef_get_output_filename_nm_with_ssid(void** state)
 }
 
 void
-test_netplan_netdef_get_output_filename_nm_without_ssid(void** state)
+test_netplan_netdef_get_output_filename_nm_without_ssid(__unused void** state)
 {
     NetplanNetDefinition netdef;
     const char* expected = "/run/NetworkManager/system-connections/netplan-enlol3s0.nmconnection";
@@ -133,7 +133,7 @@ test_netplan_netdef_get_output_filename_nm_without_ssid(void** state)
 }
 
 void
-test_netplan_netdef_get_output_filename_networkd(void** state)
+test_netplan_netdef_get_output_filename_networkd(__unused void** state)
 {
     NetplanNetDefinition netdef;
     const char* expected = "/run/systemd/network/10-netplan-enlol3s0.network";
@@ -150,7 +150,7 @@ test_netplan_netdef_get_output_filename_networkd(void** state)
 }
 
 void
-test_netplan_netdef_get_output_filename_buffer_is_too_small(void** state)
+test_netplan_netdef_get_output_filename_buffer_is_too_small(__unused void** state)
 {
     NetplanNetDefinition netdef;
     char out_buffer[16] = { 0 };
@@ -164,7 +164,7 @@ test_netplan_netdef_get_output_filename_buffer_is_too_small(void** state)
 }
 
 void
-test_netplan_netdef_get_output_filename_invalid_backend(void** state)
+test_netplan_netdef_get_output_filename_invalid_backend(__unused void** state)
 {
     NetplanNetDefinition netdef;
     char out_buffer[16] = { 0 };
@@ -178,7 +178,7 @@ test_netplan_netdef_get_output_filename_invalid_backend(void** state)
 }
 
 void
-test_util_is_route_present(void** state)
+test_util_is_route_present(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -278,7 +278,7 @@ test_util_is_route_present(void** state)
 }
 
 void
-test_util_is_route_rule_present(void** state)
+test_util_is_route_rule_present(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -316,7 +316,7 @@ test_util_is_route_rule_present(void** state)
 }
 
 void
-test_util_is_string_in_array(void** state)
+test_util_is_string_in_array(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -341,7 +341,7 @@ test_util_is_string_in_array(void** state)
 
 
 void
-test_normalize_ip_address(void** state)
+test_normalize_ip_address(__unused void** state)
 {
     assert_string_equal(normalize_ip_address("default", AF_INET), "0.0.0.0/0");
     assert_string_equal(normalize_ip_address("default", AF_INET6), "::/0");
@@ -349,13 +349,13 @@ test_normalize_ip_address(void** state)
 }
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }

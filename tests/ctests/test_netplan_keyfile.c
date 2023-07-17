@@ -22,7 +22,7 @@
 #include "test_utils_keyfile.h"
 
 void
-test_load_keyfile_wifi_wpa_eap(void** state)
+test_load_keyfile_wifi_wpa_eap(__unused void** state)
 {
     NetplanState *np_state = NULL;
     NetplanStateIterator iter;
@@ -66,7 +66,7 @@ test_load_keyfile_wifi_wpa_eap(void** state)
 
 
 void
-test_load_keyfile_simple_wireguard(void** state)
+test_load_keyfile_simple_wireguard(__unused void** state)
 {
     NetplanState *np_state = NULL;
     NetplanStateIterator iter;
@@ -93,7 +93,7 @@ test_load_keyfile_simple_wireguard(void** state)
 }
 
 void
-test_load_keyfile_wireguard_with_key_and_peer(void** state)
+test_load_keyfile_wireguard_with_key_and_peer(__unused void** state)
 {
     NetplanState *np_state = NULL;
     NetplanStateIterator iter;
@@ -132,7 +132,7 @@ test_load_keyfile_wireguard_with_key_and_peer(void** state)
 }
 
 void
-test_load_keyfile_wireguard_with_bad_peer_key(void** state)
+test_load_keyfile_wireguard_with_bad_peer_key(__unused void** state)
 {
     NetplanState *np_state = NULL;
     NetplanStateIterator iter;
@@ -163,7 +163,7 @@ test_load_keyfile_wireguard_with_bad_peer_key(void** state)
 }
 
 void
-test_load_keyfile_vxlan(void** state)
+test_load_keyfile_vxlan(__unused void** state)
 {
     NetplanState *np_state = NULL;
     NetplanStateIterator iter;
@@ -196,7 +196,7 @@ test_load_keyfile_vxlan(void** state)
 }
 
 void
-test_load_keyfile_multiple_addresses_and_routes(void** state)
+test_load_keyfile_multiple_addresses_and_routes(__unused void** state)
 {
     NetplanState *np_state = NULL;
     NetplanStateIterator iter;
@@ -232,13 +232,13 @@ test_load_keyfile_multiple_addresses_and_routes(void** state)
 }
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }

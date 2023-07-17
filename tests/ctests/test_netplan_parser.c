@@ -21,7 +21,7 @@
 #include "test_utils.h"
 
 void
-test_netplan_parser_new_parser(void** state)
+test_netplan_parser_new_parser(__unused void** state)
 {
     NetplanParser* npp = netplan_parser_new();
     assert_non_null(npp);
@@ -29,7 +29,7 @@ test_netplan_parser_new_parser(void** state)
 }
 
 void
-test_netplan_parser_load_yaml(void** state)
+test_netplan_parser_load_yaml(__unused void** state)
 {
     const char* filename = FIXTURESDIR "/ovs.yaml";
     GError *error = NULL;
@@ -43,7 +43,7 @@ test_netplan_parser_load_yaml(void** state)
 }
 
 void
-test_netplan_parser_load_yaml_from_fd(void** state)
+test_netplan_parser_load_yaml_from_fd(__unused void** state)
 {
     const char* filename = FIXTURESDIR "/ovs.yaml";
     FILE* f = fopen(filename, "r");
@@ -59,7 +59,7 @@ test_netplan_parser_load_yaml_from_fd(void** state)
 }
 
 void
-test_netplan_parser_load_nullable_fields(void** state)
+test_netplan_parser_load_nullable_fields(__unused void** state)
 {
     const char* filename = FIXTURESDIR "/nullable.yaml";
     FILE* f = fopen(filename, "r");
@@ -78,7 +78,7 @@ test_netplan_parser_load_nullable_fields(void** state)
 }
 
 void
-test_netplan_parser_load_nullable_overrides(void** state)
+test_netplan_parser_load_nullable_overrides(__unused void** state)
 {
     const char* filename = FIXTURESDIR "/optional.yaml";
     FILE* f = fopen(filename, "r");
@@ -98,7 +98,7 @@ test_netplan_parser_load_nullable_overrides(void** state)
 }
 
 void
-test_netplan_parser_interface_has_bridge_netdef(void** state)
+test_netplan_parser_interface_has_bridge_netdef(__unused void** state)
 {
 
     NetplanState *np_state = load_fixture_to_netplan_state("bridge.yaml");
@@ -117,7 +117,7 @@ test_netplan_parser_interface_has_bridge_netdef(void** state)
 }
 
 void
-test_netplan_parser_interface_has_bond_netdef(void** state)
+test_netplan_parser_interface_has_bond_netdef(__unused void** state)
 {
 
     NetplanState* np_state = load_fixture_to_netplan_state("bond.yaml");
@@ -136,7 +136,7 @@ test_netplan_parser_interface_has_bond_netdef(void** state)
 }
 
 void
-test_netplan_parser_interface_has_peer_netdef(void** state)
+test_netplan_parser_interface_has_peer_netdef(__unused void** state)
 {
 
     NetplanState* np_state = load_fixture_to_netplan_state("ovs.yaml");
@@ -156,7 +156,7 @@ test_netplan_parser_interface_has_peer_netdef(void** state)
 }
 
 void
-test_netplan_parser_sriov_embedded_switch(void** state)
+test_netplan_parser_sriov_embedded_switch(__unused void** state)
 {
 
     char embedded_switch[16];
@@ -176,7 +176,7 @@ test_netplan_parser_sriov_embedded_switch(void** state)
  * LP#2000324
  */
 void
-test_netplan_parser_process_document_proper_error(void** state)
+test_netplan_parser_process_document_proper_error(__unused void** state)
 {
 
     NetplanParser *npp = netplan_parser_new();
@@ -207,7 +207,7 @@ test_netplan_parser_process_document_proper_error(void** state)
 }
 
 void
-test_netplan_parser_process_document_missing_interface_error(void** state)
+test_netplan_parser_process_document_missing_interface_error(__unused void** state)
 {
 
     NetplanParser *npp = netplan_parser_new();
@@ -237,7 +237,7 @@ test_netplan_parser_process_document_missing_interface_error(void** state)
 }
 
 void
-test_nm_device_backend_is_nm_by_default(void** state)
+test_nm_device_backend_is_nm_by_default(__unused void** state)
 {
     const char* yaml =
         "network:\n"
@@ -263,13 +263,13 @@ test_nm_device_backend_is_nm_by_default(void** state)
 }
 
 int
-setup(void** state)
+setup(__unused void** state)
 {
     return 0;
 }
 
 int
-tear_down(void** state)
+tear_down(__unused void** state)
 {
     return 0;
 }
