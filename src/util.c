@@ -939,7 +939,7 @@ is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route
 {
     const GArray* routes = netdef->routes;
 
-    for (int i = 0; i < routes->len; i++) {
+    for (guint i = 0; i < routes->len; i++) {
         const NetplanIPRoute* entry = g_array_index(routes, NetplanIPRoute*, i);
         if (
                 entry->family == route->family &&
@@ -963,7 +963,7 @@ is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* r
 {
     const GArray* rules = netdef->ip_rules;
 
-    for (int i = 0; i < rules->len; i++) {
+    for (guint i = 0; i < rules->len; i++) {
         const NetplanIPRule* entry = g_array_index(rules, NetplanIPRule*, i);
         if (
                 entry->family == rule->family &&

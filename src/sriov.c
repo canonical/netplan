@@ -128,7 +128,7 @@ _netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanN
 {
     GHashTableIter iter;
     gpointer key, value;
-    int count = 0;
+    guint count = 0;
 
     g_hash_table_iter_init(&iter, np_state->netdefs);
     while (g_hash_table_iter_next (&iter, &key, &value)) {

@@ -518,7 +518,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (seconds > 0)
         poll_timeout = seconds * 100;
     /* Timeout after up to 10 sec of waiting for the stamp file */
-    for (int i = 0; i < poll_timeout; i++) {
+    for (guint i = 0; i < poll_timeout; i++) {
         struct timespec timeout = {
             .tv_sec = 0,
             .tv_nsec = 1000 * 1000 * 10, // 10 ms
