@@ -818,7 +818,8 @@ netplan_copy_string(const char* input, char* out_buffer, size_t out_size)
     char* end = stpncpy(out_buffer, input, out_size);
     // If it point to the first byte past the buffer, we don't have enough
     // space in the buffer.
-    if (end - out_buffer == out_size)
+    size_t len = end - out_buffer;
+    if (len == out_size)
         return NETPLAN_BUFFER_TOO_SMALL;
     return end - out_buffer + 1;
 }
