@@ -244,7 +244,7 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
             *routes_arr = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
         route = g_new0(NetplanIPRoute, 1);
         route->type = g_strdup("unicast");
-        route->family = G_MAXUINT; /* 0 is a valid family ID */
+        route->family = -1; /* 0 is a valid family ID */
         route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
         g_debug("%s: adding new route (kf)", key);
 

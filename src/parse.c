@@ -1699,7 +1699,7 @@ get_ip_family(const char* address)
 }
 
 static gboolean
-check_and_set_family(int family, guint* dest)
+check_and_set_family(gint family, gint* dest)
 {
     if (*dest != -1 && *dest != family)
         return FALSE;
@@ -1986,7 +1986,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, const void* _, GError** err
         route = g_new0(NetplanIPRoute, 1);
         route->type = g_strdup("unicast");
         route->scope = NULL;
-        route->family = G_MAXUINT; /* 0 is a valid family ID */
+        route->family = -1; /* 0 is a valid family ID */
         route->metric = NETPLAN_METRIC_UNSPEC; /* 0 is a valid metric */
         route->table = NETPLAN_ROUTE_TABLE_UNSPEC;
         g_debug("%s: adding new route", npp->current.netdef->id);
