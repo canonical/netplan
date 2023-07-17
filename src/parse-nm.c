@@ -34,7 +34,7 @@
  * https://bugzilla.gnome.org/show_bug.cgi?id=696940
  * https://gitlab.freedesktop.org/NetworkManager/NetworkManager/-/commit/c36200a225aefb2a3919618e75682646899b82c0
  */
-static const NetplanDefType
+static NetplanDefType
 type_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "ethernet") || !g_strcmp0(type_str, "802-3-ethernet"))
@@ -59,7 +59,7 @@ type_from_str(const char* type_str)
     return NETPLAN_DEF_TYPE_NM;
 }
 
-static const NetplanWifiMode
+static NetplanWifiMode
 ap_type_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "infrastructure"))
@@ -72,7 +72,7 @@ ap_type_from_str(const char* type_str)
     return NETPLAN_WIFI_MODE_OTHER;
 }
 
-static const NetplanTunnelMode
+static NetplanTunnelMode
 tunnel_mode_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "wireguard"))

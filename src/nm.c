@@ -42,7 +42,7 @@
  * This is done by checking for certain modem_params, which are only
  * applicable to GSM connections.
  */
-static const gboolean
+static gboolean
 modem_is_gsm(const NetplanNetDefinition* def)
 {
     if (   def->modem_params.apn
