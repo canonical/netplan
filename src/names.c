@@ -130,7 +130,7 @@ NAME_FUNCTION_FLAGS(vxlan_extension);
 
 #define ENUM_FUNCTION(_radical, _type) _type netplan_ ## _radical ## _from_name(const char* val) \
 { \
-    for (int i = 0; i < sizeof(netplan_ ## _radical ## _to_str); ++i) { \
+    for (size_t i = 0; i < sizeof(netplan_ ## _radical ## _to_str); ++i) { \
         if (g_strcmp0(val, netplan_ ## _radical ## _to_str[i]) == 0) \
             return i; \
     } \
