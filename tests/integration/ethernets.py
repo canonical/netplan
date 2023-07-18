@@ -346,7 +346,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     # TODO: implement link-local handling in NetworkManager backend and move this test into CommonTests()
     def test_link_local_ipv6(self):
-        self.setup_eth(None)
+        self.setup_eth('ra-only')
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
