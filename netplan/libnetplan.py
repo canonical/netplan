@@ -203,12 +203,27 @@ class _netplan_net_definition(ctypes.Structure):
     pass
 
 
+class _NetplanAddress(ctypes.Structure):
+    _fields_ = [("address", c_char_p), ("lifetime", c_char_p), ("label", c_char_p)]
+
+
+class NetplanAddress:
+    def __init__(self, address: str, lifetime: str, label: str):
+        self.address = address
+        self.lifetime = lifetime
+        self.label = label
+
+    def __str__(self) -> str:
+        return self.address
+
+
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
 _NetplanErrorPP = ctypes.POINTER(ctypes.POINTER(_NetplanError))
 _NetplanParserP = ctypes.POINTER(_netplan_parser)
 _NetplanStateP = ctypes.POINTER(_netplan_state)
 _NetplanNetDefinitionP = ctypes.POINTER(_netplan_net_definition)
+_NetplanAddressP = ctypes.POINTER(_NetplanAddress)
 
 lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
@@ -515,6 +530,10 @@ class NetDefinition:
         self._parent = np_state
 
     @property
+    def addresses(self):
+        return _NetdefAddressIterator(self._ptr)
+
+    @property
     def has_match(self):
         return bool(lib.netplan_netdef_has_match(self._ptr))
 
@@ -666,6 +685,52 @@ class _NetdefIterator:
         if not next_value:
             raise StopIteration
         return NetDefinition(self.np_state, next_value)
+
+
+class _NetdefAddressIterator:
+    _abi_loaded = False
+
+    @classmethod
+    def _load_abi(cls):
+        if cls._abi_loaded:
+            return
+
+        if not hasattr(lib, '_netplan_new_netdef_address_iter'):  # pragma: nocover (hard to unit-test against the WRONG lib)
+            raise NetplanException('''
+                The current version of libnetplan does not allow iterating by IP addresses.
+                Please ensure that both the netplan CLI package and its library are up to date.
+            ''')
+        lib._netplan_new_netdef_address_iter.argtypes = [_NetplanNetDefinitionP]
+        lib._netplan_new_netdef_address_iter.restype = c_void_p
+
+        lib._netplan_netdef_address_iter_next.argtypes = [c_void_p]
+        lib._netplan_netdef_address_iter_next.restype = _NetplanAddressP
+
+        lib._netplan_netdef_address_free_iter.argtypes = [c_void_p]
+        lib._netplan_netdef_address_free_iter.restype = None
+
+        cls._abi_loaded = True
+
+    def __init__(self, netdef):
+        self._load_abi()
+        self.netdef = netdef
+        self.iterator = lib._netplan_new_netdef_address_iter(netdef)
+
+    def __del__(self):
+        lib._netplan_netdef_address_free_iter(self.iterator)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        next_value = lib._netplan_netdef_address_iter_next(self.iterator)
+        if not next_value:
+            raise StopIteration
+        content = next_value.contents
+        address = content.address.decode('utf-8') if content.address else None
+        lifetime = content.lifetime.decode('utf-8') if content.lifetime else None
+        label = content.label.decode('utf-8') if content.label else None
+        return NetplanAddress(address, lifetime, label)
 
 
 lib.netplan_util_create_yaml_patch.argtypes = [c_char_p, c_char_p, c_int, _NetplanErrorPP]
