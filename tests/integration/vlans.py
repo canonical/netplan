@@ -68,7 +68,7 @@ class _CommonTests():
                       subprocess.check_output(['ip', 'route', 'show', 'dev', 'nptesttwo']))
 
     def test_vlan_mac_address(self):
-        self.setup_eth(None)
+        self.setup_eth('ra-only')
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'myvlan'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
             f.write('''network:

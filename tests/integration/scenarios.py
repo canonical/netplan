@@ -35,7 +35,7 @@ from base import IntegrationTestsBase, test_backends
 class _CommonTests():
 
     def test_mix_bridge_on_bond(self):
-        self.setup_eth(None)
+        self.setup_eth('ra-only')
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
@@ -65,7 +65,7 @@ class _CommonTests():
             self.assertIn(self.dev_e2_client, result)
 
     def test_mix_vlan_on_bridge_on_bond(self):
-        self.setup_eth(None, False)
+        self.setup_eth('ra-only')
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'bond0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br1'], stderr=subprocess.DEVNULL)
