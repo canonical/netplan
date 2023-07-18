@@ -709,6 +709,83 @@ get_unspecified_address(int ip_family)
     return (ip_family == AF_INET) ? "0.0.0.0" : "::";
 }
 
+struct netdef_address_iter {
+    guint ip4_index;
+    guint ip6_index;
+    guint address_options_index;
+    NetplanNetDefinition* netdef;
+    NetplanAddressOptions* last_address;
+};
+
+NETPLAN_INTERNAL struct netdef_address_iter*
+_netplan_new_netdef_address_iter(NetplanNetDefinition* netdef)
+{
+    struct netdef_address_iter* it = g_malloc0(sizeof(struct netdef_address_iter));
+    it->ip4_index = 0;
+    it->ip6_index = 0;
+    it->address_options_index = 0;
+    it->netdef = netdef;
+    it->last_address = NULL;
+
+    return it;
+}
+
+/*
+ * The netdef address iterator produces NetplanAddressOptions
+ * for all the addresses stored in ip4_address, ip6_address and
+ * address_options (in this order).
+ *
+ * The current value produced by the iterator is saved in it->last_address
+ * and the previous one is released. The idea is to not leave to the caller
+ * the responsibility of releasing each value. The very last value
+ * will be released either when the iterator is destroyed or when there is
+ * nothing else to be produced and the iterator was called one last time.
+ */
+NETPLAN_INTERNAL NetplanAddressOptions*
+_netplan_netdef_address_iter_next(struct netdef_address_iter* it)
+{
+    NetplanAddressOptions* options = NULL;
+
+    if (it->last_address) {
+        free_address_options(it->last_address);
+        it->last_address = NULL;
+    }
+
+    if (it->netdef->ip4_addresses && it->ip4_index < it->netdef->ip4_addresses->len) {
+        options = g_malloc0(sizeof(NetplanAddressOptions));
+        options->address = g_strdup(g_array_index(it->netdef->ip4_addresses, char*, it->ip4_index++));
+        it->last_address = options;
+        return options;
+    }
+
+    if (it->netdef->ip6_addresses && it->ip6_index < it->netdef->ip6_addresses->len) {
+        options = g_malloc0(sizeof(NetplanAddressOptions));
+        options->address = g_strdup(g_array_index(it->netdef->ip6_addresses, char*, it->ip6_index++));
+        it->last_address = options;
+        return options;
+    }
+
+    if (it->netdef->address_options && it->address_options_index < it->netdef->address_options->len) {
+        options = g_malloc0(sizeof(NetplanAddressOptions));
+        NetplanAddressOptions* netdef_options = g_array_index(it->netdef->address_options, NetplanAddressOptions*, it->address_options_index++);
+        options->address = g_strdup(netdef_options->address);
+        options->lifetime = g_strdup(netdef_options->lifetime);
+        options->label = g_strdup(netdef_options->label);
+        it->last_address = options;
+        return options;
+    }
+
+    return options;
+}
+
+NETPLAN_INTERNAL void
+_netplan_netdef_address_free_iter(struct netdef_address_iter* it)
+{
+    if (it->last_address)
+        free_address_options(it->last_address);
+    g_free(it);
+}
+
 struct netdef_pertype_iter {
     NetplanDefType type;
     GHashTableIter iter;

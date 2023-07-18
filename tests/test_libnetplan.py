@@ -195,6 +195,67 @@ class TestNetdefIterator(TestBase):
         self.assertSetEqual(set(["eth0", "eth1"]), set(d.id for d in libnetplan._NetdefIterator(state, "ethernets")))
 
 
+class TestNetdefAddressesIterator(TestBase):
+    def test_with_empty_ip_addresses(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: true''')
+
+        netdef = next(libnetplan._NetdefIterator(state, "ethernets"))
+        self.assertSetEqual(set(), set(ip for ip in netdef.addresses))
+
+    def test_iter_ethernets(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.0.1/24
+        - 172.16.0.1/24
+        - 1234:4321:abcd::cdef/96
+        - abcd::1234/64''')
+
+        expected = set(["1234:4321:abcd::cdef/96", "abcd::1234/64", "192.168.0.1/24", "172.16.0.1/24"])
+        netdef = next(libnetplan._NetdefIterator(state, "ethernets"))
+        self.assertSetEqual(expected, set(ip.address for ip in netdef.addresses))
+        self.assertSetEqual(expected, set(str(ip) for ip in netdef.addresses))
+
+    def test_iter_ethernets_with_options(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.0.1/24
+        - 172.16.0.1/24:
+            lifetime: 0
+            label: label1
+        - 1234:4321:abcd::cdef/96:
+            lifetime: forever
+            label: label2''')
+
+        expected_ips = set(["1234:4321:abcd::cdef/96", "192.168.0.1/24", "172.16.0.1/24"])
+        expected_lifetime_options = set([None, "0", "forever"])
+        expected_label_options = set([None, "label1", "label2"])
+        netdef = next(libnetplan._NetdefIterator(state, "ethernets"))
+        self.assertSetEqual(expected_ips, set(ip.address for ip in netdef.addresses))
+        self.assertSetEqual(expected_lifetime_options, set(ip.lifetime for ip in netdef.addresses))
+        self.assertSetEqual(expected_label_options, set(ip.label for ip in netdef.addresses))
+
+    def test_drop_iterator_before_finishing(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.0.1/24
+        - 1234:4321:abcd::cdef/96''')
+
+        netdef = next(libnetplan._NetdefIterator(state, "ethernets"))
+        iter = netdef.addresses.__iter__()
+        address = next(iter)
+        self.assertEqual(address.address, "192.168.0.1/24")
+        del iter
+
+
 class TestParser(TestBase):
     def test_load_yaml_from_fd_empty(self):
         parser = libnetplan.Parser()
