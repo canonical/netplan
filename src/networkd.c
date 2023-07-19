@@ -106,7 +106,7 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
 }
 
 static void
-write_bridge_params(GString* s, const NetplanNetDefinition* def)
+write_bridge_params_networkd(GString* s, const NetplanNetDefinition* def)
 {
     GString *params = NULL;
 
@@ -504,7 +504,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
     switch (def->type) {
         case NETPLAN_DEF_TYPE_BRIDGE:
             g_string_append(s, "Kind=bridge\n");
-            write_bridge_params(s, def);
+            write_bridge_params_networkd(s, def);
             break;
 
         case NETPLAN_DEF_TYPE_BOND:
