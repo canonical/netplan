@@ -167,8 +167,8 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
     GHashTableIter iter;
     gchar* key;
     guint i = 0;
-    GString* s = NULL;
-    GString* patch_ports = g_string_new("");
+    g_autoptr(GString) s = NULL;
+    g_autoptr(GString) patch_ports = g_string_new("");
 
     if (!def->bridge) {
         g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "Bond %s needs to be a member of an OpenVSwitch bridge\n", def->id);
@@ -194,9 +194,7 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
     }
 
     g_string_append(s, patch_ports->str);
-    g_string_free(patch_ports, TRUE);
     append_systemd_cmd(cmds, s->str, def->bridge, def->id);
-    g_string_free(s, TRUE);
     return def->bridge;
 }
 
