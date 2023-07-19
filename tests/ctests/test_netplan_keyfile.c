@@ -213,7 +213,9 @@ test_load_keyfile_multiple_addresses_and_routes(__unused void** state)
         "address1=10.100.1.38/24\n"
         "address2=10.100.1.39/24\n"
         "route1=0.0.0.0/0,10.100.1.1\n"
+        "route1_options=onlink=true,initrwnd=33,initcwnd=44,mtu=1024,table=102\n"
         "route2=192.168.0.0/24,1.2.3.4\n"
+        "route2_options=onlink=true,initrwnd=33,initcwnd=44,mtu=1024,table=103\n"
         "[ipv6]\n"
         "method=manual\n"
         "address1=2001:cafe:face::1/64\n"
@@ -230,6 +232,37 @@ test_load_keyfile_multiple_addresses_and_routes(__unused void** state)
 
     netplan_state_clear(&np_state);
 }
+
+void
+test_load_keyfile_route_options_without_route(__unused void** state)
+{
+    NetplanState *np_state = NULL;
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+
+    /* Should this even be allowed? */
+    const char* keyfile =
+        "[connection]\n"
+        "id=netplan-enp3s0\n"
+        "type=ethernet\n"
+        "interface-name=enp3s0\n"
+        "uuid=6352c897-174c-4f61-9623-556eddad05b2\n"
+        "[ipv4]\n"
+        "method=manual\n"
+        "address1=10.100.1.38/24\n"
+        "address2=10.100.1.39/24\n"
+        "route1_options=onlink=true,initrwnd=33,initcwnd=44,mtu=1024,table=102,src=10.10.10.11\n";
+
+    np_state = load_keyfile_string_to_netplan_state(keyfile);
+
+    netplan_state_iterator_init(np_state, &iter);
+    netdef = netplan_state_iterator_next(&iter);
+
+    assert_string_equal(netdef->id, "NM-6352c897-174c-4f61-9623-556eddad05b2");
+
+    netplan_state_clear(&np_state);
+}
+
 
 int
 setup(__unused void** state)
@@ -254,6 +287,7 @@ main()
         cmocka_unit_test(test_load_keyfile_wireguard_with_bad_peer_key),
         cmocka_unit_test(test_load_keyfile_vxlan),
         cmocka_unit_test(test_load_keyfile_multiple_addresses_and_routes),
+        cmocka_unit_test(test_load_keyfile_route_options_without_route),
     };
 
     return cmocka_run_group_tests(tests, setup, tear_down);
