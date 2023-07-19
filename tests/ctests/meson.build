@@ -6,6 +6,7 @@ tests = {
   'test_netplan_deprecated': false,
   'test_netplan_validation': false,
   'test_netplan_keyfile': false,
+  'test_netplan_nm': false,
 }
 
 cmocka = dependency('cmocka', required: true)
