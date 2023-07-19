@@ -31,6 +31,17 @@ test_write_ovs_bond_interfaces_null_bridge(__unused void** state)
     g_free(netdef);
 }
 
+void
+test_validate_ovs_target(__unused void** state)
+{
+    assert_true(validate_ovs_target(TRUE, "10.2.3.4:12345"));
+    assert_true(validate_ovs_target(TRUE, "10.2.3.4"));
+    assert_true(validate_ovs_target(TRUE, "[::1]:12345"));
+    assert_true(validate_ovs_target(TRUE, "[::1]"));
+
+    assert_true(validate_ovs_target(FALSE, "12345:10.2.3.4"));
+    assert_true(validate_ovs_target(FALSE, "12345:[::1]"));
+}
 
 int
 setup(__unused void** state)
@@ -50,6 +61,7 @@ main()
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_write_ovs_bond_interfaces_null_bridge),
+        cmocka_unit_test(test_validate_ovs_target),
     };
 
     return cmocka_run_group_tests(tests, setup, tear_down);
