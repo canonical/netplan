@@ -223,23 +223,17 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 {
     g_assert(routes_arr);
     NetplanIPRoute *route = NULL;
-    gchar *key = NULL;
-    gchar *kf_value = NULL;
-    gchar *options_key = NULL;
-    gchar *options_kf_value = NULL;
     gchar **split = NULL;
     for (unsigned i = 1;; ++i) {
         gboolean unhandled_data = FALSE;
-        key = g_strdup_printf("route%u", i);
-        kf_value = g_key_file_get_string(kf, group, key, NULL);
-        options_key = g_strdup_printf("route%u_options", i);
-        options_kf_value = g_key_file_get_string(kf, group, options_key, NULL);
-        if (!options_kf_value)
-            g_free(options_key);
-        if (!kf_value) {
-            g_free(key);
+        g_autofree gchar* key = g_strdup_printf("route%u", i);
+        g_autofree gchar* kf_value = g_key_file_get_string(kf, group, key, NULL);
+        g_autofree gchar* options_key = g_strdup_printf("route%u_options", i);
+        g_autofree gchar* options_kf_value = g_key_file_get_string(kf, group, options_key, NULL);
+
+        if (!kf_value)
             break;
-        }
+
         if (!*routes_arr)
             *routes_arr = g_array_new(FALSE, TRUE, sizeof(NetplanIPRoute*));
         route = g_new0(NetplanIPRoute, 1);
@@ -303,16 +297,12 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 
             if (!unhandled_data)
                 _kf_clear_key(kf, group, options_key);
-            g_free(options_key);
-            g_free(options_kf_value);
         }
 
         /* Add route to array, clear keyfile */
         g_array_append_val(*routes_arr, route);
         if (!unhandled_data)
             _kf_clear_key(kf, group, key);
-        g_free(key);
-        g_free(kf_value);
     }
 }
 
