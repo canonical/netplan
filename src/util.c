@@ -388,8 +388,14 @@ err_path:
 cleanup:
     if (input)
         fclose(input);
+    else
+        close(in_dup);
+
     if (output)
         fclose(output);
+    else
+        close(out_dup);
+
     if (yaml_path)
         g_strfreev(yaml_path);
     return ret;
