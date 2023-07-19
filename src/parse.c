@@ -1896,7 +1896,7 @@ handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const char* key_p
                                   npp->current.netdef->id, scalar(key), *ref_ptr);
 
             v = g_ascii_strtoull(scalar(value), &endptr, 10);
-            if (*endptr != '\0' || v > G_MAXUINT)
+            if (*endptr != '\0')
                 return yaml_error(npp, node, error, "invalid unsigned int value '%s'", scalar(value));
 
             g_debug("%s: adding path '%s' of cost: %d", npp->current.netdef->id, scalar(key), v);
