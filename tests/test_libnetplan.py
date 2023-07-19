@@ -605,9 +605,21 @@ class TestFreeFunctions(TestBase):
             patchfile.seek(0, io.SEEK_END)
             self.assertEqual(patchfile.tell(), 0)
 
-    def test_dump_yaml_subtree_bad_file_perms(self):
+    def test_dump_yaml_subtree_bad_input_file_perms(self):
         input_file = os.path.join(self.workdir.name, 'input.yaml')
         with open(input_file, "w") as f, tempfile.TemporaryFile() as output:
+            with self.assertRaises(libnetplan.NetplanFileException) as context:
+                libnetplan.dump_yaml_subtree('network', f, output)
+        self.assertIn('Invalid argument', str(context.exception))
+
+    def test_dump_yaml_subtree_bad_output_file_perms(self):
+        input_file = os.path.join(self.workdir.name, 'input.yaml')
+        output_file = os.path.join(self.workdir.name, 'output.yaml')
+        with open(input_file, 'w') as input, open(output_file, 'w') as output:
+            input.write('network: {}')
+            output.write('')
+
+        with open(input_file, "r") as f, open(output_file, 'r') as output:
             with self.assertRaises(libnetplan.NetplanFileException) as context:
                 libnetplan.dump_yaml_subtree('network', f, output)
         self.assertIn('Invalid argument', str(context.exception))
