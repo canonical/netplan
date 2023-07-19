@@ -202,6 +202,8 @@ netplan_get_filename_by_id(const char* netdef_id, const char* rootdir)
     if (!netplan_parser_load_yaml_hierarchy(npp, rootdir, &error) ||
             !netplan_state_import_parser_results(np_state, npp, &error)) {
         g_fprintf(stderr, "%s\n", error->message);
+        netplan_parser_clear(&npp);
+        netplan_state_clear(&np_state);
         return NULL;
     }
     netplan_parser_clear(&npp);
