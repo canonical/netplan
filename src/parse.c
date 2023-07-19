@@ -2490,6 +2490,7 @@ handle_wireguard_peers(NetplanParser* npp, yaml_node_t* node, __unused const voi
 
         if (!process_mapping(npp, entry, NULL, wireguard_peer_handlers, NULL, error)) {
             wireguard_peer_clear(&npp->current.wireguard_peer);
+            npp->current.wireguard_peer = NULL;
             return FALSE;
         }
         g_array_append_val(npp->current.netdef->wireguard_peers, npp->current.wireguard_peer);
