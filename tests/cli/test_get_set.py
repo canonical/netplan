@@ -25,6 +25,7 @@ import glob
 
 import yaml
 
+from netplan.cli.commands.set import FALLBACK_FILENAME
 from netplan.libnetplan import NetplanException
 from tests.test_utils import call_cli
 
@@ -247,6 +248,78 @@ class TestSet(unittest.TestCase):
         self.assertEqual(any_yaml, [])
         self.assertFalse(os.path.isfile(self.path))
         self.assertFalse(os.path.isfile(some_hint))
+
+    def test_set_no_netdefs_just_globals(self):  # LP: #2027584
+        keepme1 = os.path.join(self.workdir.name, 'etc', 'netplan',
+                               '00-no-netdefs-just-renderer.yaml')
+        with open(keepme1, 'w') as f:
+            f.write('''network: {renderer: NetworkManager}''')
+        keepme2 = os.path.join(self.workdir.name, 'etc', 'netplan',
+                               '00-no-netdefs-just-version.yaml')
+        with open(keepme2, 'w') as f:
+            f.write('''network: {version: 2}''')
+        deleteme = os.path.join(self.workdir.name, 'etc', 'netplan',
+                                '90-some-netdefs.yaml')
+        with open(deleteme, 'w') as f:
+            f.write('''network: {ethernets: {eth99: {dhcp4: true}}}''')
+
+        self._set(['ethernets.eth99=NULL'])
+        self.assertFalse(os.path.isfile(deleteme))
+        self.assertTrue(os.path.isfile(keepme1))
+        with open(keepme1, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual('NetworkManager', yml['network']['renderer'])
+        # XXX: It's probably fine to delete a file that just contains "version: 2"
+        #      Or is it? And what about other globals, such as OVS ports?
+        self.assertFalse(os.path.isfile(keepme2))
+
+    def test_set_clear_netdefs_keep_globals(self):  # LP: #2027584
+        keep = os.path.join(self.workdir.name, 'etc', 'netplan', '00-keep.yaml')
+        with open(keep, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+  bridges:
+    br54:
+      addresses: [1.2.3.4/24]
+''')
+        self._set(['network.bridges.br54=NULL'])
+        self.assertTrue(os.path.isfile(keep))
+        with open(keep, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual(2, yml['network']['version'])
+            self.assertEqual('NetworkManager', yml['network']['renderer'])
+            self.assertNotIn('bridges', yml['network'])
+        default = os.path.join(self.workdir.name, 'etc', 'netplan', FALLBACK_FILENAME)
+        self.assertFalse(os.path.isfile(default))
+
+    def test_set_clear_netdefs_keep_globals_default_renderer(self):
+        keep = os.path.join(self.workdir.name, 'etc', 'netplan', '00-keep.yaml')
+        with open(keep, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+  bridges:
+    br54:
+      addresses: [1.2.3.4/24]
+''')
+        default = os.path.join(self.workdir.name, 'etc', 'netplan', FALLBACK_FILENAME)
+        with open(default, 'w') as f:
+            f.write('''network:
+  renderer: networkd
+''')
+        self._set(['network.bridges.br54=NULL'])
+        self.assertTrue(os.path.isfile(keep))
+        with open(keep, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual(2, yml['network']['version'])
+            self.assertEqual('NetworkManager', yml['network']['renderer'])
+            self.assertNotIn('bridges', yml['network'])
+        self.assertTrue(os.path.isfile(default))
+        with open(default, 'r') as f:
+            yml = yaml.safe_load(f)
+            self.assertEqual(2, yml['network']['version'])
+            self.assertEqual('networkd', yml['network']['renderer'])
 
     def test_set_invalid(self):
         with self.assertRaises(Exception) as context:

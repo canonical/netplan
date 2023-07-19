@@ -1198,8 +1198,10 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
 
     /* Dump global conf to the default path */
     if (!np_state->netdefs || g_hash_table_size(np_state->netdefs) == 0) {
-        if ((np_state->backend != NETPLAN_BACKEND_NONE)
-                || has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL)) {
+        if (   has_openvswitch(&np_state->ovs_settings, NETPLAN_BACKEND_NONE, NULL)
+            || (np_state->backend != NETPLAN_BACKEND_NONE && np_state->global_renderer &&
+                (   g_hash_table_contains(np_state->global_renderer, default_path) // 70-netplan-set.yaml already exsits and defines a global renderer
+                 || g_hash_table_contains(np_state->global_renderer, "")))) { // 70-netplan-set.yaml doesn't exist, but we need to create it to define a global renderer
             g_hash_table_insert(perfile_netdefs, default_path, NULL);
         }
     } else {
@@ -1211,6 +1213,22 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
             g_hash_table_steal_extended(perfile_netdefs, filename, NULL, (gpointer*)&list);
             g_hash_table_insert(perfile_netdefs, (gpointer)filename, g_list_append(list, netdef));
             iter = iter->next;
+        }
+    }
+
+    /* Add files containing a global renderer value to "perfile_netdefs", so
+     * they are updated on disk. */
+    if (np_state->global_renderer && g_hash_table_size(np_state->global_renderer) > 0) {
+        g_hash_table_iter_init(&hash_iter, np_state->global_renderer);
+        while (g_hash_table_iter_next (&hash_iter, &key, &value)) {
+            char *filename = key;
+            /* Anonymous globals will go to the default YAML (see above) */
+            if (g_strcmp0(filename, "") == 0)
+                continue;
+            /* Ignore the update of this file if it's already going to be
+             * written, caused by updated netdefs. */
+            if (!g_hash_table_contains(perfile_netdefs, filename))
+                g_hash_table_insert(perfile_netdefs, filename, NULL);
         }
     }
 
