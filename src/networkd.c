@@ -709,8 +709,8 @@ netplan_netdef_write_network_file(
         gboolean* has_been_written,
         GError** error)
 {
-    GString* network = NULL;
-    GString* link = NULL;
+    g_autoptr(GString) network = NULL;
+    g_autoptr(GString) link = NULL;
     GString* s = NULL;
     mode_t orig_umask;
     gboolean is_optional = def->optional;
@@ -962,9 +962,6 @@ netplan_netdef_write_network_file(
             g_string_append_printf(s, "\n[Link]\n%s", link->str);
         if (network->len > 0)
             g_string_append_printf(s, "\n[Network]\n%s", network->str);
-
-        g_string_free(link, TRUE);
-        g_string_free(network, TRUE);
 
         /* these do not contain secrets and need to be readable by
          * systemd-networkd - LP: #1736965 */
