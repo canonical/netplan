@@ -7,6 +7,7 @@ tests = {
   'test_netplan_validation': false,
   'test_netplan_keyfile': false,
   'test_netplan_nm': false,
+  'test_netplan_openvswitch': false,
 }
 
 cmocka = dependency('cmocka', required: true)
