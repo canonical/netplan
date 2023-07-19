@@ -1003,10 +1003,13 @@ netplan_state_finish_nm_write(
         __unused GError** error)
 {
     GString* udev_rules = g_string_new(NULL);
-    GString *nm_conf = g_string_new(NULL);
+    GString* nm_conf = g_string_new(NULL);
 
-    if (netplan_state_get_netdefs_size(np_state) == 0)
-        return TRUE; // LCOV_EXCL_LINE as generate.c already deals with it.
+    if (netplan_state_get_netdefs_size(np_state) == 0) {
+        g_string_free(udev_rules, TRUE);
+        g_string_free(nm_conf, TRUE);
+        return TRUE;
+    }
 
     /* Set all devices not managed by us to unmanaged, so that NM does not
      * auto-connect and interferes.
