@@ -124,14 +124,19 @@ NETPLAN_ABI void
 write_netplan_conf_full(const char* file_hint, const char* rootdir)
 {
     g_autofree gchar *path = NULL;
+    int fd = -1;
     netplan_finish_parse(NULL);
     if (!netplan_state_has_nondefault_globals(&global_state) &&
         !netplan_state_get_netdefs_size(&global_state))
         return;
     path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", file_hint, NULL);
-    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    netplan_state_dump_yaml(&global_state, fd, NULL);
-    close(fd);
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if (fd >= 0) {
+        netplan_state_dump_yaml(&global_state, fd, NULL);
+        close(fd);
+    } else
+        g_warning("write_netplan_conf_full: failed to open %s.", path); // LCOV_EXCL_LINE
+
 }
 
 NETPLAN_PUBLIC gboolean
