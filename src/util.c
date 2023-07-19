@@ -163,6 +163,7 @@ netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payloa
         goto file_error; // LCOV_EXCL_LINE
 
     yaml_emitter_initialize(&emitter);
+    yaml_parser_initialize(&parser);
     yaml_emitter_set_output_file(&emitter, out_stream);
     yaml_stream_start_event_initialize(&event, YAML_UTF8_ENCODING);
     if (!yaml_emitter_emit(&emitter, &event))
@@ -178,7 +179,6 @@ netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payloa
     }
     g_strfreev(tokens);
 
-    yaml_parser_initialize(&parser);
     yaml_parser_set_input_string(&parser, (const unsigned char *)obj_payload, strlen(obj_payload));
     while (TRUE) {
         if (!yaml_parser_parse(&parser, &event)) {
