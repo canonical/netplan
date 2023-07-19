@@ -819,7 +819,7 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, __unused const char* 
 {
     gboolean ret = FALSE;
     yaml_node_t *elem = NULL;
-    GString *sequence = NULL;
+    g_autoptr(GString) sequence = NULL;
 
     /* We overload the 'driver' setting for matches; such that it can either be a
      * single scalar specifying a single driver glob/match, or a sequence of many
@@ -845,7 +845,6 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, __unused const char* 
             return yaml_error(npp, node, error, "invalid sequence for 'driver'");
 
         npp->current.netdef->match.driver = g_strdup(sequence->str);
-        g_string_free(sequence, TRUE);
         ret = TRUE;
     } else
         return yaml_error(npp, node, error, "invalid type for 'driver': must be a scalar or a sequence of scalars");
