@@ -174,7 +174,7 @@ write_search_domains(const NetplanNetDefinition* def, const char* group, GKeyFil
 }
 
 static gboolean
-write_routes(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GError** error)
+write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GError** error)
 {
     const gchar* group = NULL;
     gchar* tmp_key = NULL;
@@ -312,7 +312,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
 }
 
 static void
-write_bridge_params(const NetplanNetDefinition* def, GKeyFile *kf)
+write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
 {
     if (def->custom_bridging) {
         if (def->bridge_params.ageing_time)
@@ -669,10 +669,10 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_string(kf, "connection", "interface-name", def->id);
 
         if (def->type == NETPLAN_DEF_TYPE_BRIDGE)
-            write_bridge_params(def, kf);
+            write_bridge_params_nm(def, kf);
         if (def->type == NETPLAN_DEF_TYPE_VRF) {
             g_key_file_set_uint64(kf, "vrf", "table", def->vrf_table);
-            if (!write_routes(def, kf, AF_INET, error) || !write_routes(def, kf, AF_INET6, error))
+            if (!write_routes_nm(def, kf, AF_INET, error) || !write_routes_nm(def, kf, AF_INET6, error))
                 return FALSE;
         }
     }
@@ -821,7 +821,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     /* We can only write search domains and routes if we have an address */
     if (def->ip4_addresses || def->dhcp4) {
         write_search_domains(def, "ipv4", kf);
-        if (!write_routes(def, kf, AF_INET, error))
+        if (!write_routes_nm(def, kf, AF_INET, error))
             return FALSE;
     }
 
@@ -866,7 +866,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         write_search_domains(def, "ipv6", kf);
 
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
-        if (!write_routes(def, kf, AF_INET6, error))
+        if (!write_routes_nm(def, kf, AF_INET6, error))
             return FALSE;
 
         if (!def->dhcp6_overrides.use_routes) {
