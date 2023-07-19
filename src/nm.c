@@ -60,7 +60,7 @@ modem_is_gsm(const NetplanNetDefinition* def)
 /**
  * Return NM "type=" string.
  */
-static const char*
+static char*
 type_str(const NetplanNetDefinition* def)
 {
     const NetplanDefType type = def->type;
@@ -109,7 +109,7 @@ type_str(const NetplanNetDefinition* def)
 /**
  * Return NM wifi "mode=" string.
  */
-static const char*
+static char*
 wifi_mode_str(const NetplanWifiMode mode)
 {
     switch (mode) {
@@ -129,7 +129,7 @@ wifi_mode_str(const NetplanWifiMode mode)
 /**
  * Return NM wifi "band=" string.
  */
-static const char*
+static char*
 wifi_band_str(const NetplanWifiBand band)
 {
     switch (band) {
@@ -147,7 +147,7 @@ wifi_band_str(const NetplanWifiBand band)
 /**
  * Return NM addr-gen-mode string.
  */
-static const char*
+static char*
 addr_gen_mode_str(const NetplanAddrGenMode mode)
 {
     switch (mode) {
