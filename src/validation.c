@@ -96,15 +96,21 @@ validate_ovs_target(gboolean host_first, gchar* s) {
             gchar* tmp = NULL;
             tmp = s+1; //get rid of leading '['
             // append default port to unify parsing
-            if (!g_strrstr(tmp, "]:"))
-                vec = g_strsplit(g_strdup_printf("%s:%u", tmp, dport), "]:", 2);
+            if (!g_strrstr(tmp, "]:")) {
+                gchar* host_port = g_strdup_printf("%s:%u", tmp, dport);
+                vec = g_strsplit(host_port, "]:", 2);
+                g_free(host_port);
+            }
             else
                 vec = g_strsplit(tmp, "]:", 2);
         // IP4 host
         } else {
             // append default port to unify parsing
-            if (!g_strrstr(s, ":"))
-                vec = g_strsplit(g_strdup_printf("%s:%u", s, dport), ":", 2);
+            if (!g_strrstr(s, ":")) {
+                gchar* host_port = g_strdup_printf("%s:%u", s, dport);
+                vec = g_strsplit(host_port, ":", 2);
+                g_free(host_port);
+            }
             else
                 vec = g_strsplit(s, ":", 2);
         }
