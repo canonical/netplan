@@ -3286,7 +3286,7 @@ process_document(NetplanParser* npp, GError** error)
         missing = (NetplanMissingNode*) value;
 
         ret = yaml_error(npp, missing->node, error, "%s: interface '%s' is not defined",
-                         missing->netdef_id, key);
+                         missing->netdef_id, (char*)key);
         goto cleanup;
     }
 
