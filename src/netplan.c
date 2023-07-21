@@ -1137,7 +1137,15 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     }
 
     tmp_path = g_strdup_printf("%s.XXXXXX", path);
+    /*
+     * glibc will create a file with mode 600 by default.
+     * Although, mkstemp manpage says that the POSIX spec doesn't say anything
+     * about file modes and the application should make sure umask is set
+     * appropriately before calling mkstemp().
+     */
+    mode_t old_umask = umask(077);
     out_fd = mkstemp(tmp_path); // permissions 0600 by default
+    umask(old_umask);
     if (out_fd < 0) {
         g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
         return FALSE;
