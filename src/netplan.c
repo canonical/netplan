@@ -1264,6 +1264,7 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
         if (!netplan_netdef_list_write_yaml(np_state, netdefs, out_fd, filename, is_fallback, error))
             goto cleanup; // LCOV_EXCL_LINE
         close(out_fd);
+        out_fd = -1;
     }
 
     /* Remove any referenced source file that doesn't have any associated data.
@@ -1286,7 +1287,7 @@ file_error:
     ret = FALSE;
 cleanup:
     if (out_fd >= 0)
-        close(out_fd);
+        close(out_fd); // LCOV_EXCL_LINE
     g_hash_table_destroy(perfile_netdefs);
     return ret;
 }
