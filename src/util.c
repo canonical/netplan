@@ -908,7 +908,7 @@ netplan_copy_string(const char* input, char* out_buffer, size_t out_size)
 }
 
 gboolean
-netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name)
+netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name, const char* pciid)
 {
     if (!netdef->has_match)
         return !g_strcmp0(name, netdef->id);
@@ -937,6 +937,11 @@ netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* n
         }
         g_strfreev(tokens);
         return matches_driver;
+    }
+
+    if (netdef->match.pciid) {
+        if (g_strcmp0(netdef->match.pciid, pciid))
+            return FALSE;
     }
 
     return TRUE;

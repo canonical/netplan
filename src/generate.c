@@ -174,13 +174,14 @@ find_interface(gchar* interface, GHashTable* netdefs)
     }
     else {
          const NetplanNetDefinition *nd = (NetplanNetDefinition *)g_ptr_array_index (found, 0);
-         g_printf("id=%s, backend=%s, set_name=%s, match_name=%s, match_mac=%s, match_driver=%s\n",
+         g_printf("id=%s, backend=%s, set_name=%s, match_name=%s, match_mac=%s, match_driver=%s, match_pciid=%s\n",
              nd->id,
              netplan_backend_name(nd->backend),
              nd->set_name,
              nd->match.original_name,
              nd->match.mac,
-             nd->match.driver);
+             nd->match.driver,
+             nd->match.pciid);
     }
 
     ret = EXIT_SUCCESS;

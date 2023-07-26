@@ -91,6 +91,11 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
          */
         g_string_append_printf(s, "PermanentMACAddress=%s\n", def->match.mac);
     }
+
+    // Append pciid to match interface
+    if (def->match.pciid)
+        g_string_append_printf(s, "Path=pci-%s\n", def->match.pciid);
+
     /* name matching is special: if the .link renames the interface, the
      * .network has to use the renamed one, otherwise the original one */
     if (!match_rename && def->match.original_name)
@@ -994,7 +999,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
      * renamed name. If you match by the unstable kernel name, the
      * device no longer has that name when udevd reads the file, so
      * the rule doesn't fire. So only support mac and driver. */
-    if (!def->set_name || (!def->match.mac && !def->match.driver))
+    if (!def->set_name || (!def->match.mac && !def->match.driver && !def->match.pciid))
         return;
 
     /* build file contents */
@@ -1010,6 +1015,9 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 
     if (def->match.mac)
         g_string_append_printf(s, "ATTR{address}==\"%s\", ", def->match.mac);
+
+    if (def->match.pciid)
+        g_string_append_printf(s, "ENV{ID_PATH}==\"pci-%s\", ", def->match.pciid);
 
     g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
 

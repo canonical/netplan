@@ -106,6 +106,7 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
     YAML_MAPPING_OPEN(event, emitter);
     YAML_NONNULL_STRING(event, emitter, "name", def->match.original_name);
     YAML_NONNULL_STRING(event, emitter, "macaddress", def->match.mac)
+    YAML_NONNULL_STRING(event, emitter, "pciid", def->match.pciid)
     if (def->match.driver && strchr(def->match.driver, '\t')) {
         gchar **split = g_strsplit(def->match.driver, "\t", 0);
         YAML_SCALAR_PLAIN(event, emitter, "driver");

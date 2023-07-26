@@ -278,6 +278,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->match.driver);
     FREE_AND_NULLIFY(netdef->match.mac);
     FREE_AND_NULLIFY(netdef->match.original_name);
+    FREE_AND_NULLIFY(netdef->match.pciid);
     netdef->has_match = FALSE;
     netdef->wake_on_lan = FALSE;
     netdef->wowlan = 0;

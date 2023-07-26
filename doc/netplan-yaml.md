@@ -105,6 +105,12 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
     > A sequence of globs is supported, any of which must match.
     > Matching on driver is *only* supported with networkd.
 
+  - **pciid** (scalar) – since **0.107**
+
+    > The PCI ID, corresponding to the `ID_PATH` udev properity. (`0000:98:00.1`)
+    > Matching on pci id is *only* supported with networkd.
+    > `udevadm info /sys/class/net/DEVICE_NAME`
+
   Examples:
 
   - All cards on second PCI bus:
@@ -143,6 +149,15 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
           match:
             driver: ["bcmgenet", "smsc*"]
             name: en*
+    ```
+
+  - Matching with PCI ID `0000:98:00.1`:
+    ```yaml
+    network:
+      ethernets:
+        nic0:
+          match:
+            pciid: 0000:98:00.1
     ```
 
 - **set-name** (scalar)

@@ -174,6 +174,33 @@ def get_interface_macaddress(interface):
     return link.get('addr', '')
 
 
+def get_interface_pciid(interface):  # pragma: nocover (covered in autopkgtest)
+    devdir = os.path.join('/sys/class/net', interface)
+    pciid = ''
+    try:
+        uevent = os.path.realpath(os.path.join(devdir, 'device', 'uevent'))
+        if os.path.exists(uevent):
+            with open(uevent) as f:
+                contents = f.read().splitlines()
+                f.close()
+        else:
+            return None
+
+        for line in contents:
+            if line.split('=')[0] == 'PCI_SLOT_NAME':
+                pciid = line.split('=')[1]  # 0000:4b:00.0
+                break
+    except IOError as e:
+        logging.debug('Cannot replug %s: cannot read link %s: %s', interface, devdir, str(e))
+        return None
+
+    # 0000:4b:00.0
+    if re.match('[0-9a-f]+:[0-9a-f]+:[0-9a-f]+.+', pciid, re.IGNORECASE) is None:
+        return None
+
+    return pciid
+
+
 def find_matching_iface(interfaces: list, netdef):
     assert isinstance(netdef, np.NetDefinition)
     assert netdef.has_match
@@ -181,7 +208,8 @@ def find_matching_iface(interfaces: list, netdef):
     matches = list(filter(lambda itf: netdef.match_interface(
             itf_name=itf,
             itf_driver=get_interface_driver_name(itf),
-            itf_mac=get_interface_macaddress(itf)), interfaces))
+            itf_mac=get_interface_macaddress(itf),
+            itf_pciid=get_interface_pciid(itf)), interfaces))
 
     # Return current name of unique matched interface, if available
     if len(matches) != 1:

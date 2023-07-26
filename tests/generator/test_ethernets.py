@@ -20,7 +20,7 @@ import os
 
 from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, UDEV_SRIOV_RULE, \
     NM_MANAGED, NM_UNMANAGED, NM_MANAGED_MAC, NM_UNMANAGED_MAC, \
-    NM_MANAGED_DRIVER, NM_UNMANAGED_DRIVER
+    NM_MANAGED_DRIVER, NM_UNMANAGED_DRIVER, NM_UNMANAGED_PCIID, UDEV_PCIID_RULE
 
 
 class TestNetworkd(TestBase):
@@ -163,6 +163,27 @@ LinkLocalAddressing=ipv6
         self.assert_networkd_udev({'def1.rules': (UDEV_MAC_RULE % ('?*', '11:22:33:44:55:66', 'lom1'))})
         self.assert_nm(None)
         self.assert_nm_udev(NM_UNMANAGED % 'lom1' + NM_UNMANAGED_MAC % '11:22:33:44:55:66')
+
+    def test_eth_match_by_pciid_rename(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        pciid: 0000:98:00.1
+      set-name: lom1''')
+
+        self.assert_networkd({'def1.link': '[Match]\nPath=pci-0000:98:00.1\n\n[Link]\nName=lom1\nWakeOnLan=off\n',
+                              'def1.network': '''[Match]
+Path=pci-0000:98:00.1
+Name=lom1
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+        self.assert_networkd_udev({'def1.rules': (UDEV_PCIID_RULE % ('?*', '0000:98:00.1', 'lom1'))})
+        self.assert_nm(None)
+        self.assert_nm_udev(NM_UNMANAGED % 'lom1' + NM_UNMANAGED_PCIID % '0000:98:00.1')
 
     # https://bugs.launchpad.net/netplan/+bug/1848474
     def test_eth_match_by_mac_infiniband(self):

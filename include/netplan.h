@@ -125,7 +125,7 @@ NETPLAN_PUBLIC gboolean
 netplan_netdef_has_match(const NetplanNetDefinition* netdef);
 
 NETPLAN_PUBLIC gboolean
-netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name);
+netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name, const char* pciid);
 
 /********** Old API below this ***********/
 

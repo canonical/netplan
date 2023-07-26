@@ -73,6 +73,7 @@ OVS_CLEANUP = _OVS_BASE + 'ConditionFileIsExecutable=/usr/bin/ovs-vsctl\nBefore=
 [Service]\nType=oneshot\nTimeoutStartSec=10s\nExecStart=/usr/sbin/netplan apply --only-ovs-cleanup\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
+UDEV_PCIID_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ENV{ID_PATH}=="pci-%s", NAME="%s"\n'
 UDEV_SRIOV_RULE = 'ACTION=="add", SUBSYSTEM=="net", ATTRS{sriov_totalvfs}=="?*", RUN+="/usr/sbin/netplan apply --sriov-only"\n'
 ND_WITHIPGW = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=%s\nAddress=%s\nGateway=%s\n\
 ConfigureWithoutCarrier=yes\n'
@@ -102,6 +103,7 @@ NM_MANAGED_MAC = 'SUBSYSTEM=="net", ACTION=="add|change|move", ATTR{address}=="%
 NM_UNMANAGED_MAC = 'SUBSYSTEM=="net", ACTION=="add|change|move", ATTR{address}=="%s", ENV{NM_UNMANAGED}="1"\n'
 NM_MANAGED_DRIVER = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_DRIVER}=="%s", ENV{NM_UNMANAGED}="0"\n'
 NM_UNMANAGED_DRIVER = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_DRIVER}=="%s", ENV{NM_UNMANAGED}="1"\n'
+NM_UNMANAGED_PCIID = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_PATH}=="%s", ENV{NM_UNMANAGED}="1"\n'
 
 WOKE_REPLACE_REGEX = ' +# wokeignore:rule=[a-z]+'
 
