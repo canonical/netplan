@@ -107,11 +107,17 @@ if get_option('b_coverage')
     gcovr = find_program('gcovr')
     ninja = find_program('ninja')
     grep  = find_program('grep')
+    cat  = find_program('cat')
     test('coverage-c-output',
          find_program('ninja'),
          args: ['-C', meson.current_build_dir(), 'coverage'],
          timeout: 60,
          priority: -90, # run before 'coverage-c'
+         is_parallel: false)
+    test('coverage-c-cat',
+         cat,
+         args: [join_paths(meson.current_build_dir(), 'meson-logs', 'coverage.txt')],
+         priority: -98, # run before 'coverage-c'
          is_parallel: false)
     test('coverage-c',
          grep,

@@ -38,7 +38,7 @@ pre-coverage: _build-cov
 	meson compile -C _build-cov --verbose
 
 check-coverage: pre-coverage
-	meson test -C _build-cov
+	meson test -C _build-cov --verbose
 
 install: default
 	meson install -C _build --destdir $(DESTDIR)

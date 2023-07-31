@@ -23,7 +23,7 @@ jobs:
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          sudo apt -y install python3-rich python3-coverage python3-pytest python3-pytest-cov curl meson gcovr expect libcmocka-dev
+          sudo apt -y install python3-rich python3-coverage python3-pytest python3-pytest-cov curl meson gcovr expect libcmocka-dev python3-cffi libpython3-dev
           sudo apt -y build-dep netplan.io
 
       - name: Run unit tests
