@@ -46,6 +46,9 @@ jobs:
           dget -u "https://deb.debian.org/debian/pool/main/n/netplan.io/netplan.io_$V.dsc"
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
+          echo "usr/lib/python3/dist-packages/netplan/*" >> debian/netplan.io.install  # bindings
+          echo "override_dh_auto_configure:" >> debian/rules
+          echo "	dh_auto_configure -- -Dpython.purelibdir=/usr/lib/python3/dist-packages -Dpython.platlibdir=/usr/lib/python3/dist-packages" >> debian/rules
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
@@ -54,4 +57,4 @@ jobs:
         run: |
           # using --setup-commands='apt -y install ...' temporarily to install
           # (test-/build-) deps until they become part of the packaging
-          sudo autopkgtest . -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxc autopkgtest-testing-amd64 || test $? -eq 2  # allow OVS test to be skipped (exit code = 2)
+          sudo autopkgtest . -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck --setup-commands='apt -y install python3-cffi libpython3-dev' -- lxc autopkgtest-testing-amd64 || test $? -eq 2  # allow OVS test to be skipped (exit code = 2)

@@ -17,7 +17,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       # Setup LXD + Docker fixes
       - uses: canonical/setup-lxd@v0.1.1
         with:
@@ -32,24 +32,35 @@ jobs:
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
-      # work around LP: #1878225 as fallback
-      - name: Preparing autopkgtest-build-lxd
-        run: |
-          sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
-          autopkgtest-build-lxd ubuntu-daily:mantic
       - name: Prepare test
         run: |
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
+          echo "3.0 (native)" > debian/source/format  # force native build
+          echo "usr/lib/python3/dist-packages/netplan/*" >> debian/netplan.io.install  # bindings
+          echo "override_dh_auto_configure:" >> debian/rules
+          echo "	dh_auto_configure -- -Dpython.purelibdir=/usr/lib/python3/dist-packages -Dpython.platlibdir=/usr/lib/python3/dist-packages" >> debian/rules
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
           dch -v "$VER" "Autopkgtest CI"
-          sudo apt -y build-dep ./
-          DEB_BUILD_OPTIONS=nocheck DPKG_GENSYMBOLS_CHECK_LEVEL=0 dpkg-buildpackage -b
+      # Build deb
+      - uses: jtdor/build-deb-action@v1
+        env:
+          DEB_BUILD_OPTIONS: nocheck
+          DPKG_GENSYMBOLS_CHECK_LEVEL: 0
+        with:
+          docker-image: ubuntu:mantic
+          buildpackage-opts: --build=binary --no-sign
+          extra-build-deps: python3-cffi libpython3-dev
+      # work around LP: #1878225 as fallback
+      - name: Preparing autopkgtest-build-lxd
+        run: |
+          sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
+          autopkgtest-build-lxd ubuntu-daily:mantic
       - name: Run autopkgtest
         run: |
           # using --setup-commands temporarily to install:
           # cmocka/pytest/rich/ethtool until they become proper test-deps
-          autopkgtest -U ../*.deb network-manager --apt-pocket=proposed=src:network-manager -- lxd autopkgtest/ubuntu/mantic/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+          sudo autopkgtest -U debian/artifacts/*.deb network-manager --apt-pocket=proposed=src:network-manager -- lxd autopkgtest/ubuntu/mantic/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)

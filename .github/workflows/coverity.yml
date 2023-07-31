@@ -16,7 +16,7 @@ jobs:
           sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           sudo apt -y build-dep netplan.io
-          sudo apt -y install libcmocka-dev meson python3-pytest curl
+          sudo apt -y install libcmocka-dev meson python3-pytest curl python3-cffi libpython3-dev
       - name: Download Coverity
         run: |
           curl https://scan.coverity.com/download/cxx/linux64 --no-progress-meter --output ${HOME}/coverity.tar.gz --data "token=${{ secrets.COVERITY_TOKEN }}&project=Netplan"

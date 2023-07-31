@@ -25,13 +25,14 @@ prepare: |
   apt update -qq
   apt install -y build-essential meson pkg-config libyaml-dev \
     libglib2.0-dev uuid-dev python3 libsystemd-dev pandoc python3-pytest \
-    python3-coverage libcmocka-dev python3-rich
+    python3-coverage libcmocka-dev python3-rich python3-cffi libpython3-dev
   # install, a bit ugly but this is a container (did I mention the packaging?)
   meson setup build --prefix=/usr
   meson compile -C build
   # FIXME: enable, this crashes right now with:
   #        https://paste.ubuntu.com/p/qRnJvjyddN/
   #meson test -C build --verbose
+  rm -rf /usr/share/netplan/netplan  # clear (old) system installation
   meson install -C build --destdir=/
   # set some defaults
   cat > /etc/netplan/0-snapd-defaults.yaml <<'EOF'
