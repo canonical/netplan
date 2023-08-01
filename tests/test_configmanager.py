@@ -21,7 +21,7 @@ import shutil
 import tempfile
 import unittest
 
-from netplan.configmanager import ConfigManager, ConfigurationError
+from netplan_cli.configmanager import ConfigManager, ConfigurationError
 
 
 class TestConfigManager(unittest.TestCase):

@@ -18,9 +18,9 @@
 import unittest
 
 from unittest.mock import patch, call
-from netplan.cli.ovs import OPENVSWITCH_OVS_VSCTL as OVS
+from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL as OVS
 
-import netplan.cli.ovs as ovs
+import netplan_cli.cli.ovs as ovs
 
 from utils import state_from_yaml
 import tempfile

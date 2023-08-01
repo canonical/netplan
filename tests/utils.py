@@ -1,5 +1,5 @@
 import os
-import netplan.libnetplan as libnetplan
+import netplan_cli.libnetplan as libnetplan
 
 
 def state_from_yaml(confdir, yaml, filename="a.yml"):

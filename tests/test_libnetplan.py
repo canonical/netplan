@@ -28,9 +28,9 @@ from parser.base import capture_stderr
 from tests.test_utils import MockCmd
 
 from utils import state_from_yaml
-from netplan.cli.commands.set import FALLBACK_FILENAME
+from netplan_cli.cli.commands.set import FALLBACK_FILENAME
 
-import netplan.libnetplan as libnetplan
+import netplan_cli.libnetplan as libnetplan
 
 lib = libnetplan.lib
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -22,14 +22,14 @@ import os
 import termios
 import unittest
 
-import netplan.terminal
+import netplan_cli.terminal
 
 
 @unittest.skipUnless(sys.__stdin__.isatty(), "not supported when run from a script")
 class TestTerminal(unittest.TestCase):
 
     def setUp(self):
-        self.terminal = netplan.terminal.Terminal(sys.stdin.fileno())
+        self.terminal = netplan_cli.terminal.Terminal(sys.stdin.fileno())
 
     def test_echo(self):
         self.terminal.disable_echo()
