@@ -38,61 +38,7 @@ DNS_IP6 = bytearray([0xfd, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xce, 0xce, 0x1e, 
 DNS_ADDRESSES = [(5, 2, DNS_IP4), (5, 10, DNS_IP6), (2, 2, DNS_IP4), (2, 10, DNS_IP6)]  # (IFidx, IPfamily, IPbytes)
 DNS_SEARCH = [(5, 'search.domain', False), (2, 'search.domain', False)]
 FAKE_DEV = {'ifindex': 42, 'ifname': 'fakedev0', 'flags': [], 'operstate': 'DOWN'}
-
-
-class TestStatus(unittest.TestCase):
-    '''Test netplan status'''
-
-    def setUp(self):
-        self.maxDiff = None
-
-    def _call(self, args):
-        args.insert(0, 'status')
-        return call_cli(args)
-
-    def _get_itf(self, ifname):
-        return next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifname'] == ifname), None)
-
-    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
-    @patch('netplan_cli.cli.state.Interface.query_networkctl')
-    def test_pretty_print(self, networkctl_mock, nm_ssid_mock):
-        SSID = 'MYCON'
-        nm_ssid_mock.return_value = SSID
-        # networkctl mock output reduced to relevant lines
-        networkctl_mock.return_value = \
-            '''Activation Policy: manual
-            WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
-
-        nd = SystemConfigState.process_networkd(NETWORKD)
-        nm = SystemConfigState.process_nm(NMCLI)
-        dns = (DNS_ADDRESSES, DNS_SEARCH)
-        routes = (SystemConfigState.process_generic(ROUTE4), SystemConfigState.process_generic(ROUTE6))
-        fakeroute = {'type': 'local', 'dst': '10.0.0.0/16', 'gateway': '10.0.0.1', 'dev': FAKE_DEV['ifname'], 'table': 'main'}
-
-        interfaces = [
-            Interface(self._get_itf('enp0s31f6'), nd, nm, dns, routes),
-            Interface(self._get_itf('wlan0'), nd, nm, dns, routes),
-            Interface(self._get_itf('wg0'), nd, nm, dns, routes),
-            Interface(self._get_itf('tun0'), nd, nm, dns, routes),
-            Interface(FAKE_DEV, [], None, (None, None), ([fakeroute], None)),
-            ]
-        data = {'netplan-global-state': {
-            'online': True,
-            'nameservers': {
-                'addresses': ['127.0.0.53'],
-                'search': ['search.domain'],
-                'mode': 'stub',
-            }}}
-        for itf in interfaces:
-            ifname, obj = itf.json()
-            data[ifname] = obj
-        f = io.StringIO()
-        with redirect_stdout(f):
-            status = NetplanStatus()
-            status.verbose = False
-            status.pretty_print(data, len(interfaces)+1, _console_width=130)
-            out = f.getvalue()
-            self.assertEqual(out, '''\
+STATUS_OUTPUT = '''\
      Online state: online
     DNS Addresses: 127.0.0.53 (stub)
        DNS Search: search.domain
@@ -142,7 +88,104 @@ class TestStatus(unittest.TestCase):
            Routes: 10.0.0.0/16 via 10.0.0.1 (local)
 
 1 inactive interfaces hidden. Use "--all" to show all.
-''')
+'''
+
+
+class TestStatus(unittest.TestCase):
+    '''Test netplan status'''
+
+    def setUp(self):
+        self.maxDiff = None
+
+    def _call(self, args):
+        args.insert(0, 'status')
+        return call_cli(args)
+
+    def _get_itf(self, ifname):
+        return next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifname'] == ifname), None)
+
+    @patch('netplan_cli.cli.commands.status.RICH_OUTPUT', False)
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    @patch('netplan_cli.cli.state.Interface.query_networkctl')
+    def test_plain_print(self, networkctl_mock, nm_ssid_mock):
+        SSID = 'MYCON'
+        nm_ssid_mock.return_value = SSID
+        # networkctl mock output reduced to relevant lines
+        networkctl_mock.return_value = \
+            '''Activation Policy: manual
+            WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
+
+        nd = SystemConfigState.process_networkd(NETWORKD)
+        nm = SystemConfigState.process_nm(NMCLI)
+        dns = (DNS_ADDRESSES, DNS_SEARCH)
+        routes = (SystemConfigState.process_generic(ROUTE4), SystemConfigState.process_generic(ROUTE6))
+        fakeroute = {'type': 'local', 'dst': '10.0.0.0/16', 'gateway': '10.0.0.1', 'dev': FAKE_DEV['ifname'], 'table': 'main'}
+
+        interfaces = [
+            Interface(self._get_itf('enp0s31f6'), nd, nm, dns, routes),
+            Interface(self._get_itf('wlan0'), nd, nm, dns, routes),
+            Interface(self._get_itf('wg0'), nd, nm, dns, routes),
+            Interface(self._get_itf('tun0'), nd, nm, dns, routes),
+            Interface(FAKE_DEV, [], None, (None, None), ([fakeroute], None)),
+            ]
+        data = {'netplan-global-state': {
+            'online': True,
+            'nameservers': {
+                'addresses': ['127.0.0.53'],
+                'search': ['search.domain'],
+                'mode': 'stub',
+            }}}
+        for itf in interfaces:
+            ifname, obj = itf.json()
+            data[ifname] = obj
+        f = io.StringIO()
+        with redirect_stdout(f):
+            status = NetplanStatus()
+            status.verbose = False
+            status.pretty_print(data, len(interfaces)+1, _console_width=130)
+            out = f.getvalue()
+            self.assertEqual(out, STATUS_OUTPUT)
+
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    @patch('netplan_cli.cli.state.Interface.query_networkctl')
+    def test_pretty_print(self, networkctl_mock, nm_ssid_mock):
+        SSID = 'MYCON'
+        nm_ssid_mock.return_value = SSID
+        # networkctl mock output reduced to relevant lines
+        networkctl_mock.return_value = \
+            '''Activation Policy: manual
+            WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
+
+        nd = SystemConfigState.process_networkd(NETWORKD)
+        nm = SystemConfigState.process_nm(NMCLI)
+        dns = (DNS_ADDRESSES, DNS_SEARCH)
+        routes = (SystemConfigState.process_generic(ROUTE4), SystemConfigState.process_generic(ROUTE6))
+        fakeroute = {'type': 'local', 'dst': '10.0.0.0/16', 'gateway': '10.0.0.1', 'dev': FAKE_DEV['ifname'], 'table': 'main'}
+
+        interfaces = [
+            Interface(self._get_itf('enp0s31f6'), nd, nm, dns, routes),
+            Interface(self._get_itf('wlan0'), nd, nm, dns, routes),
+            Interface(self._get_itf('wg0'), nd, nm, dns, routes),
+            Interface(self._get_itf('tun0'), nd, nm, dns, routes),
+            Interface(FAKE_DEV, [], None, (None, None), ([fakeroute], None)),
+            ]
+        data = {'netplan-global-state': {
+            'online': True,
+            'nameservers': {
+                'addresses': ['127.0.0.53'],
+                'search': ['search.domain'],
+                'mode': 'stub',
+            }}}
+        for itf in interfaces:
+            ifname, obj = itf.json()
+            data[ifname] = obj
+        f = io.StringIO()
+        with redirect_stdout(f):
+            status = NetplanStatus()
+            status.verbose = False
+            status.pretty_print(data, len(interfaces)+1, _console_width=130)
+            out = f.getvalue()
+            self.assertEqual(out, STATUS_OUTPUT)
 
     @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
     @patch('netplan_cli.cli.state.Interface.query_networkctl')

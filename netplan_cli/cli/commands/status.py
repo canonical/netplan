@@ -18,22 +18,30 @@
 '''netplan status command line'''
 
 import json
+import logging
+import re
 
 import yaml
-from rich.console import Console
-from rich.highlighter import RegexHighlighter
-from rich.theme import Theme
 
 from .. import utils
 from ..state import SystemConfigState, JSON
 
 
-class NetplanHighlighter(RegexHighlighter):
-    base_style = 'netplan.'
-    highlights = [
-        r'(^|[\s\/])(?P<int>\d+)([\s:]?\s|$)',
-        r'(?P<str>(\"|\').+(\"|\'))',
-        ]
+RICH_OUTPUT = False
+try:
+    from rich.console import Console
+    from rich.highlighter import RegexHighlighter
+    from rich.theme import Theme
+
+    class NetplanHighlighter(RegexHighlighter):
+        base_style = 'netplan.'
+        highlights = [
+            r'(^|[\s\/])(?P<int>\d+)([\s:]?\s|$)',
+            r'(?P<str>(\"|\').+(\"|\'))',
+            ]
+    RICH_OUTPUT = True
+except ImportError:  # pragma: nocover (we mock RICH_OUTPUT, ignore the logging)
+    logging.debug("python3-rich not found, falling back to plain output")
 
 
 class NetplanStatus(utils.NetplanCommand):
@@ -57,20 +65,31 @@ class NetplanStatus(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
+    def plain_print(self, *args, **kwargs):
+        if len(args):
+            pattern = r'\[\/?\w+\]'
+            lst = list(args)
+            lst[0] = re.sub(pattern, '', lst[0])  # remove any tags, like '[...]' or '[/...]'
+            return print(*lst, **kwargs)
+        return print(*args, **kwargs)
+
     def pretty_print(self, data: JSON, total: int, _console_width=None) -> None:
-        # TODO: Use a proper (subiquity?) color palette
-        theme = Theme({
-            'netplan.int': 'bold cyan',
-            'netplan.str': 'yellow',
-            'muted': 'grey62',
-            'online': 'green bold',
-            'offline': 'red bold',
-            'unknown': 'yellow bold',
-            'highlight': 'bold'
-            })
-        console = Console(highlighter=NetplanHighlighter(), theme=theme,
-                          width=_console_width, emoji=False)
-        pprint = console.print
+        if RICH_OUTPUT:
+            # TODO: Use a proper (subiquity?) color palette
+            theme = Theme({
+                'netplan.int': 'bold cyan',
+                'netplan.str': 'yellow',
+                'muted': 'grey62',
+                'online': 'green bold',
+                'offline': 'red bold',
+                'unknown': 'yellow bold',
+                'highlight': 'bold'
+                })
+            console = Console(highlighter=NetplanHighlighter(), theme=theme,
+                              width=_console_width, emoji=False)
+            pprint = console.print
+        else:
+            pprint = self.plain_print
 
         pad = '18'
         global_state = data.get('netplan-global-state', {})
