@@ -1,6 +1,6 @@
 #!/bin/sh
 BASE=$(dirname $0)
-OUTPUT=$BASE/netplan/_features.py
+OUTPUT=$BASE/netplan_cli/_features.py
 INPUT=$BASE/src/[!_]*.[hc]
 echo "# Generated file" > $OUTPUT
 echo "NETPLAN_FEATURE_FLAGS = [" >> $OUTPUT

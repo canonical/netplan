@@ -23,9 +23,9 @@ import typing
 
 from collections import defaultdict
 
-import netplan.cli.utils as utils
-import netplan.libnetplan as libnetplan
-from netplan.configmanager import ConfigurationError
+from . import utils
+from .. import libnetplan
+from ..configmanager import ConfigurationError
 
 import netifaces
 

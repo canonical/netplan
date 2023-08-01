@@ -24,9 +24,9 @@ import netifaces
 import fnmatch
 import re
 
-import netplan.libnetplan as np
-from netplan.configmanager import ConfigurationError
-from netplan.libnetplan import NetplanException
+from .. import libnetplan as np
+from ..configmanager import ConfigurationError
+from ..libnetplan import NetplanException
 
 
 NM_SERVICE_NAME = 'NetworkManager.service'

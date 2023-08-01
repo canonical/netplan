@@ -30,7 +30,7 @@ except ImportError:  # pragma: nocover
 from collections import OrderedDict
 import ipaddress
 
-import netplan.cli.utils as utils
+from .. import utils
 
 
 class NetplanMigrate(utils.NetplanCommand):

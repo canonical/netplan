@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 #
-# Copyright (C) 2020 Canonical, Ltd.
-# Author: Lukas Märdian <lukas.maerdian@canonical.com>
+# Copyright (C) 2020-2023 Canonical, Ltd.
+# Author: Lukas Märdian <slyon@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
 
 '''netplan get command line'''
 
-from netplan.cli.state import NetplanConfigState
-import netplan.cli.utils as utils
+from ..state import NetplanConfigState
+from .. import utils
 
 
 class NetplanGet(utils.NetplanCommand):

@@ -19,8 +19,8 @@
 
 import logging
 
-import netplan.cli.utils as utils
-from netplan.cli.sriov import PCIDevice, bind_vfs, _get_pci_slot_name
+from .. import utils
+from ..sriov import PCIDevice, bind_vfs, _get_pci_slot_name
 
 
 class NetplanSriovRebind(utils.NetplanCommand):

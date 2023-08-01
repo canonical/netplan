@@ -25,7 +25,7 @@ import tempfile
 
 from typing import Optional
 
-from netplan import libnetplan
+from . import libnetplan
 
 
 class ConfigManager(object):

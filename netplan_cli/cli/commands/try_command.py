@@ -25,11 +25,11 @@ import signal
 import sys
 import tempfile
 
-from netplan.configmanager import ConfigManager
-import netplan.cli.utils as utils
-from netplan.cli.commands.apply import NetplanApply
-import netplan.terminal
-import netplan.libnetplan as libnetplan
+from ...configmanager import ConfigManager
+from .. import utils
+from .apply import NetplanApply
+from ... import terminal
+from ... import libnetplan
 
 # Keep a timeout long enough to allow the network to converge, 60 seconds may
 # be slightly short given some complex configs, i.e. if STP must reconverge.
@@ -88,7 +88,7 @@ class NetplanTry(utils.NetplanCommand):
 
         try:
             fd = sys.stdin.fileno()
-            self.t = netplan.terminal.Terminal(fd)
+            self.t = terminal.Terminal(fd)
             self.t.save(self.t_settings)
 
             # we really don't want to be interrupted while doing backup/revert operations
@@ -104,10 +104,10 @@ class NetplanTry(utils.NetplanCommand):
             # ready to accept any Accept/Reject input (like SIGUSR1 or SIGTERM)
             self.touch_ready_stamp()
             self.t.get_confirmation_input(timeout=self.timeout)
-        except netplan.terminal.InputRejected:
+        except terminal.InputRejected:
             print("\nReverting.")
             self.revert()
-        except netplan.terminal.InputAccepted:
+        except terminal.InputAccepted:
             print("\nConfiguration accepted.")
         except Exception as e:
             print("\nAn error occurred: %s" % e)
@@ -196,7 +196,7 @@ class NetplanTry(utils.NetplanCommand):
 
     def _signal_handler(self, sig, frame):  # pragma: nocover (requires user input)
         if sig == signal.SIGUSR1:
-            raise netplan.terminal.InputAccepted()
+            raise terminal.InputAccepted()
         else:
             if self.configuration_changed:
-                raise netplan.terminal.InputRejected()
+                raise terminal.InputRejected()
