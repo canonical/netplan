@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import ConfigParser
-from netplan.libnetplan import _NetplanError
+from netplan_cli.libnetplan import _NetplanError
 import os
 import re
 import sys

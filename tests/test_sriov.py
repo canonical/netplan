@@ -24,10 +24,10 @@ from subprocess import CalledProcessError
 from collections import defaultdict
 from unittest.mock import patch, mock_open, call
 
-import netplan.cli.sriov as sriov
-import netplan.libnetplan as libnetplan
+import netplan_cli.cli.sriov as sriov
+import netplan_cli.libnetplan as libnetplan
 
-from netplan.configmanager import ConfigManager, ConfigurationError
+from netplan_cli.configmanager import ConfigManager, ConfigurationError
 from generator.base import TestBase
 from tests.test_utils import call_cli
 
@@ -143,8 +143,8 @@ class TestSRIOV(unittest.TestCase):
         for i in range(len(vfs)):
             os.symlink(os.path.join('../../..', vfs[i][1]), os.path.join(pf_dev_path, 'virtfn'+str(i)))
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_and_functions(self, gim, gidn):
         # we mock-out get_interface_driver_name and get_interface_macaddress
         # to return useful values for the test
@@ -214,8 +214,8 @@ class TestSRIOV(unittest.TestCase):
             {'enp1': 'enp1', 'enp2': 'enp2', 'enp3': 'enp3',
              'enpx': 'enp5', 'enp8': 'enp8'})
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_and_functions_set_name(self, gim, gidn):
         # we mock-out get_interface_driver_name and get_interface_macaddress
         # to return useful values for the test
@@ -263,8 +263,8 @@ class TestSRIOV(unittest.TestCase):
             pfs,
             {'enp1': 'pf1', 'enp8': 'enp8'})
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_and_functions_many_match(self, gim, gidn):
         # we mock-out get_interface_driver_name and get_interface_macaddress
         # to return useful values for the test
@@ -297,8 +297,8 @@ class TestSRIOV(unittest.TestCase):
         self.assertIn('matched more than one interface for a PF device: enpx',
                       str(e.exception))
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_and_functions_not_enough_explicit(self, gim, gidn):
         # we mock-out get_interface_driver_name and get_interface_macaddress
         # to return useful values for the test
@@ -476,12 +476,12 @@ class TestSRIOV(unittest.TestCase):
                       str(e.exception))
 
     @patch('netifaces.interfaces')
-    @patch('netplan.cli.sriov.get_vf_count_and_functions')
-    @patch('netplan.cli.sriov.set_numvfs_for_pf')
-    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
-    @patch('netplan.cli.sriov.apply_vlan_filter_for_vf')
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.sriov.get_vf_count_and_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_apply_sriov_config(self, gim, gidn, apply_vlan, quirks,
                                 set_numvfs, get_counts, netifs):
         # set up the environment
@@ -536,12 +536,12 @@ class TestSRIOV(unittest.TestCase):
         apply_vlan.assert_called_once_with('enp2', 'enp2s16f1', 'vf1.15', 15)
 
     @patch('netifaces.interfaces')
-    @patch('netplan.cli.sriov.get_vf_count_and_functions')
-    @patch('netplan.cli.sriov.set_numvfs_for_pf')
-    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
-    @patch('netplan.cli.sriov.apply_vlan_filter_for_vf')
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.sriov.get_vf_count_and_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_apply_sriov_config_invalid_vlan(self, gim, gidn, apply_vlan, quirks,
                                              set_numvfs, get_counts, netifs):
         # set up the environment
@@ -604,12 +604,12 @@ class TestSRIOV(unittest.TestCase):
                           logs.output[0])
 
     @patch('netifaces.interfaces')
-    @patch('netplan.cli.sriov.get_vf_count_and_functions')
-    @patch('netplan.cli.sriov.set_numvfs_for_pf')
-    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
-    @patch('netplan.cli.sriov.apply_vlan_filter_for_vf')
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.sriov.get_vf_count_and_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_apply_sriov_config_too_many_vlans(self, gim, gidn, apply_vlan, quirks,
                                                set_numvfs, get_counts, netifs):
         # set up the environment
@@ -659,12 +659,12 @@ class TestSRIOV(unittest.TestCase):
         self.assertEqual(apply_vlan.call_count, 1)
 
     @patch('netifaces.interfaces')
-    @patch('netplan.cli.sriov.get_vf_count_and_functions')
-    @patch('netplan.cli.sriov.set_numvfs_for_pf')
-    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
-    @patch('netplan.cli.sriov.apply_vlan_filter_for_vf')
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.sriov.get_vf_count_and_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_apply_sriov_config_many_match(self, gim, gidn, apply_vlan, quirks,
                                            set_numvfs, get_counts, netifs):
         # set up the environment
@@ -723,7 +723,7 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         pcidev = sriov.PCIDevice('0000:00:1f.6')
         self.assertEqual('/sys', pcidev.sys)
         self.assertLessEqual('/sys/bus/pci/devices/0000:00:1f.6', pcidev.path)
-        with patch('netplan.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock) as sys_mock:
+        with patch('netplan_cli.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock) as sys_mock:
             sys_mock.return_value = os.path.join(self.workdir.name, 'sys_mock')
             os.makedirs(os.path.join(self.workdir.name, 'sys_mock/bus/pci/devices/0000:00:1f.6/driver'))
             self.assertTrue(pcidev.bound)
@@ -731,13 +731,13 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             self.assertTrue(pcidev.is_vf)
 
     @patch('netifaces.interfaces')
-    @patch('netplan.cli.sriov.get_vf_count_and_functions')
-    @patch('netplan.cli.sriov.set_numvfs_for_pf')
-    @patch('netplan.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan_cli.cli.sriov.get_vf_count_and_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
     @patch('subprocess.check_call')
-    @patch('netplan.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
-    @patch('netplan.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
-    @patch('netplan.cli.sriov._get_pci_slot_name')
+    @patch('netplan_cli.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
     def test_apply_sriov_config_eswitch_mode(self, gpsn, pcidevice_sys, pcidevice_bound,
                                              scc, quirks, set_numvfs, get_counts, netifs):
         handle = mock_open()
@@ -824,9 +824,9 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.1', 'mode', 'switchdev'])
         ])
 
-    @patch('netplan.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
-    @patch('netplan.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
-    @patch('netplan.cli.commands.sriov_rebind._get_pci_slot_name')
+    @patch('netplan_cli.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
     def test_cli_rebind(self, gpsn, sys_mock, bound_mock):
         self._prepare_sysfs_dir_structure(pf=('enp3s0f0', '0000:03:00.0'),
                                           vfs=[('enp3s0f0v0', '0000:03:00.2'),

@@ -24,9 +24,9 @@ import glob
 import netifaces
 
 from contextlib import redirect_stdout
-from netplan.cli.core import Netplan
-import netplan.cli.utils as utils
-import netplan.libnetplan as libnetplan
+from netplan_cli.cli.core import Netplan
+import netplan_cli.cli.utils as utils
+import netplan_cli.libnetplan as libnetplan
 from unittest.mock import patch
 
 
@@ -170,8 +170,8 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(len(ifaces) == 4)
 
     # For the matching tests, we mock out the functions querying extra data
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_find_matching_iface_too_many(self, gim, gidn):
         gidn.side_effect = lambda x: 'foo' if x == 'ens4' else 'bar'
         gim.side_effect = lambda x: '00:01:02:03:04:05' if x == 'eth1' else '00:00:00:00:00:00'
@@ -185,8 +185,8 @@ class TestUtils(unittest.TestCase):
         iface = utils.find_matching_iface(DEVICES, state['netplan-id'])
         self.assertEqual(iface, None)
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_find_matching_iface(self, gim, gidn):
         # we mock-out get_interface_macaddress to return useful values for the test
         gidn.side_effect = lambda x: 'foo' if x == 'ens4' else 'bar'
@@ -202,8 +202,8 @@ class TestUtils(unittest.TestCase):
         iface = utils.find_matching_iface(DEVICES, state['netplan-id'])
         self.assertEqual(iface, 'eth1')
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_find_matching_iface_name_and_driver(self, gim, gidn):
         gidn.side_effect = lambda x: 'foo' if x == 'ens4' else 'bar'
         gim.side_effect = lambda x: '00:01:02:03:04:05' if x == 'eth1' else '00:00:00:00:00:00'
@@ -218,8 +218,8 @@ class TestUtils(unittest.TestCase):
         iface = utils.find_matching_iface(DEVICES, state['netplan-id'])
         self.assertEqual(iface, 'ens4')
 
-    @patch('netplan.cli.utils.get_interface_driver_name')
-    @patch('netplan.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_find_matching_iface_name_and_drivers(self, gim, gidn):
         # we mock-out get_interface_driver_name to return useful values for the test
         gidn.side_effect = lambda x: 'foo' if x == 'ens4' else 'bar'

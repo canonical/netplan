@@ -23,8 +23,8 @@ import yaml
 
 from contextlib import redirect_stdout
 from unittest.mock import patch
-from netplan.cli.commands.status import NetplanStatus
-from netplan.cli.state import Interface, SystemConfigState
+from netplan_cli.cli.commands.status import NetplanStatus
+from netplan_cli.cli.state import Interface, SystemConfigState
 from tests.test_utils import call_cli
 
 
@@ -53,8 +53,8 @@ class TestStatus(unittest.TestCase):
     def _get_itf(self, ifname):
         return next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifname'] == ifname), None)
 
-    @patch('netplan.cli.state.Interface.query_nm_ssid')
-    @patch('netplan.cli.state.Interface.query_networkctl')
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    @patch('netplan_cli.cli.state.Interface.query_networkctl')
     def test_pretty_print(self, networkctl_mock, nm_ssid_mock):
         SSID = 'MYCON'
         nm_ssid_mock.return_value = SSID
@@ -145,14 +145,14 @@ class TestStatus(unittest.TestCase):
 1 inactive interfaces hidden. Use "--all" to show all.
 ''')
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_call_cli(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock,
                       systemctl_mock):
         systemctl_mock.return_value = None
@@ -170,9 +170,9 @@ Online state: offline
 
 ● 42: fakedev0 other DOWN (unmanaged)''')
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
     def test_fail_cli(self, networkd_mock, iproute2_mock, systemctl_mock):
         systemctl_mock.return_value = None
         iproute2_mock.return_value = [FAKE_DEV]
@@ -180,14 +180,14 @@ Online state: offline
         with self.assertRaises(SystemExit):
             self._call([])
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_call_cli_ifname(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock,
                              systemctl_mock):
         systemctl_mock.return_value = None
@@ -207,14 +207,14 @@ Online state: offline
 
 1 inactive interfaces hidden. Use "--all" to show all.''')
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_fail_cli_ifname(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock,
                              systemctl_mock):
         systemctl_mock.return_value = None
@@ -229,14 +229,14 @@ Online state: offline
         with self.assertRaises(SystemExit):
             self._call(['notaninteface0'])
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_call_cli_json(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock,
                            systemctl_mock):
         systemctl_mock.return_value = None
@@ -253,14 +253,14 @@ Online state: offline
 "netplan-global-state": {"online": false, "nameservers": {"addresses": [], "search": [], "mode": null}}, \
 "fakedev0": {"index": 42, "adminstate": "DOWN", "operstate": "DOWN"}}\n''')
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_call_cli_yaml(self, online_mock, resolvconf_mock, rd_mock, routes_mock, nm_mock, networkd_mock, iproute2_mock,
                            systemctl_mock):
         systemctl_mock.return_value = None
@@ -285,15 +285,15 @@ netplan-global-state:
     search: []
   online: false'''.strip())
 
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
-    @patch('netplan.cli.utils.systemctl_is_active')
-    @patch('netplan.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl_is_active')
+    @patch('netplan_cli.cli.utils.systemctl')
     def test_call_cli_no_networkd(self, systemctl_mock, is_active_mock,
                                   online_mock, resolvconf_mock, rd_mock,
                                   routes_mock, nm_mock, networkd_mock,
@@ -313,8 +313,8 @@ netplan-global-state:
                           cm.output[0])
         systemctl_mock.assert_called_with('start', ['systemd-networkd.service'], True)
 
-    @patch('netplan.cli.utils.systemctl_is_active')
-    @patch('netplan.cli.utils.systemctl_is_masked')
+    @patch('netplan_cli.cli.utils.systemctl_is_active')
+    @patch('netplan_cli.cli.utils.systemctl_is_masked')
     def test_call_cli_networkd_masked(self, is_masked_mock, is_active_mock):
         is_active_mock.return_value = False
         is_masked_mock.return_value = True

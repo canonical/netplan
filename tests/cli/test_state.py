@@ -27,7 +27,7 @@ import unittest
 import yaml
 
 from unittest.mock import patch, call, mock_open
-from netplan.cli.state import Interface, NetplanConfigState, SystemConfigState
+from netplan_cli.cli.state import Interface, NetplanConfigState, SystemConfigState
 from .test_status import (DNS_ADDRESSES, DNS_IP4, DNS_SEARCH, FAKE_DEV,
                           IPROUTE2, NETWORKD, NMCLI, ROUTE4, ROUTE6)
 
@@ -214,14 +214,14 @@ search search.domain  another.one
         res = SystemConfigState.query_online_state([Interface(FAKE_DEV, [])])
         self.assertFalse(res)
 
-    @patch('netplan.cli.utils.systemctl')
-    @patch('netplan.cli.state.SystemConfigState.query_iproute2')
-    @patch('netplan.cli.state.SystemConfigState.query_networkd')
-    @patch('netplan.cli.state.SystemConfigState.query_nm')
-    @patch('netplan.cli.state.SystemConfigState.query_routes')
-    @patch('netplan.cli.state.SystemConfigState.query_resolved')
-    @patch('netplan.cli.state.SystemConfigState.resolvconf_json')
-    @patch('netplan.cli.state.SystemConfigState.query_online_state')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_system_state_config_data_interfaces(self, online_mock, resolvconf_mock, rd_mock,
                                                  routes_mock, nm_mock, networkd_mock, iproute2_mock,
                                                  systemctl_mock):
@@ -317,8 +317,8 @@ class TestInterface(unittest.TestCase):
             self.assertIsNone(res)
             self.assertIn('WARNING:root:Cannot query networkctl for {}:'.format(dev), cm.output[0])
 
-    @patch('netplan.cli.state.Interface.query_nm_ssid')
-    @patch('netplan.cli.state.Interface.query_networkctl')
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    @patch('netplan_cli.cli.state.Interface.query_networkctl')
     def test_json_nm_wlan0(self, networkctl_mock, nm_ssid_mock):
         SSID = 'MYCON'
         nm_ssid_mock.return_value = SSID
@@ -351,7 +351,7 @@ class TestInterface(unittest.TestCase):
         self.assertEqual(len(json.get('dns_search')), 1)
         self.assertEqual(len(json.get('routes')), 6)
 
-    @patch('netplan.cli.state.Interface.query_networkctl')
+    @patch('netplan_cli.cli.state.Interface.query_networkctl')
     def test_json_nd_enp0s31f6(self, networkctl_mock):
         # networkctl mock output reduced to relevant lines
         networkctl_mock.return_value = 'Activation Policy: manual'

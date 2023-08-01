@@ -25,9 +25,9 @@ import subprocess
 import tempfile
 
 from unittest.mock import patch
-from netplan.cli.commands.apply import NetplanApply
-from netplan.cli.commands.try_command import NetplanTry
-from netplan.cli.core import Netplan
+from netplan_cli.cli.commands.apply import NetplanApply
+from netplan_cli.cli.commands.try_command import NetplanTry
+from netplan_cli.cli.core import Netplan
 
 
 class TestCLI(unittest.TestCase):
