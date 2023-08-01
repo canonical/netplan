@@ -4,7 +4,7 @@ install_symlink(
     pointing_to: '../share/netplan/netplan.script',
     install_dir: get_option('sbindir'))
 
-netplan_module = join_paths(get_option('datadir'), meson.project_name(), 'netplan')
+netplan_module = join_paths(get_option('datadir'), meson.project_name(), 'netplan_cli')
 features_py = custom_target(
     build_always_stale: true,
     output: '_features.py',

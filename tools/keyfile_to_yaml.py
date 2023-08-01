@@ -6,7 +6,7 @@
 import io
 import sys
 
-from netplan import libnetplan
+from netplan_cli import libnetplan
 
 if len(sys.argv) < 2:
     print("Pass the NM keyfile as parameter")

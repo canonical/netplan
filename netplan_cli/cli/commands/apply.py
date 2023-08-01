@@ -28,10 +28,10 @@ import shutil
 import netifaces
 import time
 
-import netplan.cli.utils as utils
-from netplan.configmanager import ConfigManager, ConfigurationError
-from netplan.cli.sriov import apply_sriov_config
-from netplan.cli.ovs import OvsDbServerNotRunning, apply_ovs_cleanup
+from .. import utils
+from ...configmanager import ConfigManager, ConfigurationError
+from ..sriov import apply_sriov_config
+from ..ovs import OvsDbServerNotRunning, apply_ovs_cleanup
 
 
 OVS_CLEANUP_SERVICE = 'netplan-ovs-cleanup.service'

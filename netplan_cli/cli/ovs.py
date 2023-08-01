@@ -20,7 +20,7 @@ import os
 import subprocess
 import re
 
-from netplan.cli.utils import systemctl_is_active
+from .utils import systemctl_is_active
 
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
 OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server.service'

@@ -17,8 +17,8 @@
 
 '''netplan info command line'''
 
-import netplan.cli.utils as utils
-import netplan._features
+from .. import utils
+from ... import _features
 
 
 class NetplanInfo(utils.NetplanCommand):
@@ -49,7 +49,7 @@ class NetplanInfo(utils.NetplanCommand):
             }
         }
 
-        flags = netplan._features.NETPLAN_FEATURE_FLAGS
+        flags = _features.NETPLAN_FEATURE_FLAGS
         netplan_version['netplan.io'].update({'features': flags})
 
         # Default to output in YAML format.
@@ -64,5 +64,5 @@ class NetplanInfo(utils.NetplanCommand):
             print('''netplan.io:
   website: "{}"
   features:'''.format(netplan_version['netplan.io']['website']))
-            for feature in netplan._features.NETPLAN_FEATURE_FLAGS:
+            for feature in _features.NETPLAN_FEATURE_FLAGS:
                 print('  - ' + feature)

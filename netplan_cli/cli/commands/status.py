@@ -24,8 +24,8 @@ from rich.console import Console
 from rich.highlighter import RegexHighlighter
 from rich.theme import Theme
 
-import netplan.cli.utils as utils
-from netplan.cli.state import SystemConfigState, JSON
+from .. import utils
+from ..state import SystemConfigState, JSON
 
 
 class NetplanHighlighter(RegexHighlighter):

@@ -23,7 +23,7 @@ import sys
 import subprocess
 from subprocess import CalledProcessError
 
-import netplan.cli.utils as utils
+from .. import utils
 
 lease_path = {
     'networkd': {

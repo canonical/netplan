@@ -23,7 +23,7 @@ import sys
 import subprocess
 import shutil
 
-import netplan.cli.utils as utils
+from .. import utils
 
 
 class NetplanGenerate(utils.NetplanCommand):

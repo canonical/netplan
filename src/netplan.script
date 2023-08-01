@@ -17,7 +17,7 @@
 
 '''netplan command line'''
 
-from netplan import Netplan
+from netplan_cli import Netplan
 
 netplan = Netplan()
 netplan.main()

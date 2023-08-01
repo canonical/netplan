@@ -39,7 +39,7 @@ inc = include_directories('include')
 subdir('include')
 subdir('src')
 subdir('dbus')
-subdir('netplan')
+subdir('netplan_cli')
 subdir('examples')
 subdir('doc')
 

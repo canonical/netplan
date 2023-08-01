@@ -21,8 +21,8 @@ import tempfile
 import re
 import io
 
-from netplan.cli.utils import NetplanCommand
-import netplan.libnetplan as libnetplan
+from ..utils import NetplanCommand
+from ... import libnetplan
 
 FALLBACK_FILENAME = '70-netplan-set.yaml'
 GLOBAL_KEYS = ['renderer', 'version']

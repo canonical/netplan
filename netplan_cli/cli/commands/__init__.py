@@ -15,16 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from netplan.cli.commands.apply import NetplanApply
-from netplan.cli.commands.generate import NetplanGenerate
-from netplan.cli.commands.ip import NetplanIp
-from netplan.cli.commands.migrate import NetplanMigrate
-from netplan.cli.commands.try_command import NetplanTry
-from netplan.cli.commands.info import NetplanInfo
-from netplan.cli.commands.set import NetplanSet
-from netplan.cli.commands.get import NetplanGet
-from netplan.cli.commands.sriov_rebind import NetplanSriovRebind
-from netplan.cli.commands.status import NetplanStatus
+from .apply import NetplanApply
+from .generate import NetplanGenerate
+from .ip import NetplanIp
+from .migrate import NetplanMigrate
+from .try_command import NetplanTry
+from .info import NetplanInfo
+from .set import NetplanSet
+from .get import NetplanGet
+from .sriov_rebind import NetplanSriovRebind
+from .status import NetplanStatus
 
 __all__ = [
     'NetplanApply',

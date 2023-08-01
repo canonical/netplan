@@ -21,8 +21,8 @@
 import logging
 import os
 
-import netplan.cli.utils as utils
-from netplan.libnetplan import NetplanException, NetplanValidationException, NetplanParserException
+from . import utils
+from ..libnetplan import NetplanException, NetplanValidationException, NetplanParserException
 
 
 FALLBACK_PATH = '/usr/bin:/snap/bin'
@@ -39,9 +39,9 @@ class Netplan(utils.NetplanCommand):
             'PATH': os.getenv('PATH', FALLBACK_PATH)})
 
     def parse_args(self):
-        import netplan.cli.commands
+        from . import commands as cli_commands
 
-        self._import_subcommands(netplan.cli.commands)
+        self._import_subcommands(cli_commands)
 
         super().parse_args()
 

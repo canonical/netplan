@@ -31,8 +31,8 @@ import yaml
 
 import dbus
 
-import netplan.cli.utils as utils
-import netplan.libnetplan as libnetplan
+from . import utils
+from .. import libnetplan
 
 JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
 
