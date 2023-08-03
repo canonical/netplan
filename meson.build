@@ -126,12 +126,12 @@ if get_option('b_coverage')
     test('coverage-py-output',
          pycoverage,
          args: ['html', '-d', join_paths(meson.current_build_dir(),
-                'meson-logs', 'coveragereport-py'), '--omit=/usr*'],
+                'meson-logs', 'coveragereport-py'), '--omit=/usr/*'],
          priority: -95, # run before 'coverage-py'
          is_parallel: false)
     test('coverage-py',
          pycoverage,
-         args: ['report', '--omit=/usr*', '--show-missing', '--fail-under=100'],
+         args: ['report', '--omit=/usr/*', '--show-missing', '--fail-under=100'],
          priority: -99, # run last
          is_parallel: false)
 endif
