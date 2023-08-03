@@ -36,6 +36,35 @@ from . import utils
 
 JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
 
+DEVICE_TYPES = {
+    'bond': 'bond',
+    'bridge': 'bridge',
+    'ether': 'ethernet',
+    'ipgre': 'tunnel',
+    'ip6gre': 'tunnel',
+    'loopback': 'ethernet',
+    'sit': 'tunnel',
+    'tunnel': 'tunnel',
+    'tunnel6': 'tunnel',
+    'wireguard': 'tunnel',
+    'wlan': 'wifi',
+    'wwan': 'modem',
+    'vlan': 'vlan',
+    'vrf': 'vrf',
+    'vxlan': 'tunnel',
+
+    # Netplan netdef types
+    'wifis': 'wifi',
+    'ethernets': 'ethernet',
+    'bridges': 'bridge',
+    'bonds': 'bond',
+    'nm-devices': 'nm-device',
+    'dummy-devices': 'dummy',
+    'modems': 'modem',
+    'vlans': 'vlan',
+    'vrfs': 'vrf',
+    }
+
 
 class Interface():
     def __extract_mac(self, ip: dict) -> str:
@@ -193,26 +222,9 @@ class Interface():
 
     @property
     def type(self) -> str:
-        match = dict({
-            'bond': 'bond',
-            'bridge': 'bridge',
-            'ether': 'ethernet',
-            'ipgre': 'tunnel',
-            'ip6gre': 'tunnel',
-            'loopback': 'ethernet',
-            'sit': 'tunnel',
-            'tunnel': 'tunnel',
-            'tunnel6': 'tunnel',
-            'wireguard': 'tunnel',
-            'wlan': 'wifi',
-            'wwan': 'modem',
-            'vlan': 'vlan',
-            'vrf': 'vrf',
-            'vxlan': 'tunnel',
-            })
         nd_type = self.nd.get('Type') if self.nd else None
-        if nd_type in match:
-            return match[nd_type]
+        if device_type := DEVICE_TYPES.get(nd_type):
+            return device_type
         logging.warning('Unknown device type: {}'.format(nd_type))
         return None
 
