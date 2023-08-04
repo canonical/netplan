@@ -117,6 +117,8 @@ class Interface():
             for obj in _routes:
                 if obj.get('dev') == self.name:
                     elem = {'to': obj.get('dst')}
+                    if val := obj.get('family'):
+                        elem['family'] = val
                     if val := obj.get('gateway'):
                         elem['via'] = val
                     if val := obj.get('prefsrc'):
@@ -463,6 +465,15 @@ class SystemConfigState():
             data6: JSON = cls.process_generic(output6)
         except Exception as e:
             logging.debug('Cannot query iproute2 route data: {}'.format(str(e)))
+
+        # Add the address family to the data
+        # IPv4: 2, IPv6: 10
+        if data4:
+            for route in data4:
+                route.update({'family': socket.AF_INET.value})
+        if data6:
+            for route in data6:
+                route.update({'family': socket.AF_INET6.value})
         return (data4, data6)
 
     @classmethod
