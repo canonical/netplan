@@ -126,11 +126,11 @@ _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef);
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef);
 
-NETPLAN_INTERNAL gboolean
+NETPLAN_INTERNAL gboolean //FIXME: avoid exporting private symbol
 is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route);
 
-NETPLAN_INTERNAL gboolean
+NETPLAN_INTERNAL gboolean //FIXME: avoid exporting private symbol
 is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* rule);
 
-NETPLAN_INTERNAL gboolean
+NETPLAN_INTERNAL gboolean //FIXME: avoid exporting private symbol
 is_string_in_array(GArray* array, const char* value);

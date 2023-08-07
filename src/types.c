@@ -59,7 +59,7 @@ free_hashtable_with_destructor(GHashTable** hash, void (destructor)(void *)) {
     }
 }
 
-NETPLAN_INTERNAL void
+void
 free_address_options(void* ptr)
 {
     NetplanAddressOptions* opts = ptr;
