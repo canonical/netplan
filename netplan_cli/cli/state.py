@@ -88,23 +88,17 @@ class Interface():
             for obj in _routes:
                 if obj.get('dev') == self.name:
                     elem = {'to': obj.get('dst')}
-                    val = obj.get('gateway')
-                    if val:
+                    if val := obj.get('gateway'):
                         elem['via'] = val
-                    val = obj.get('prefsrc')
-                    if val:
+                    if val := obj.get('prefsrc'):
                         elem['from'] = val
-                    val = obj.get('metric')
-                    if val:
+                    if val := obj.get('metric'):
                         elem['metric'] = val
-                    val = obj.get('type')
-                    if val:
+                    if val := obj.get('type'):
                         elem['type'] = val
-                    val = obj.get('scope')
-                    if val:
+                    if val := obj.get('scope'):
                         elem['scope'] = val
-                    val = obj.get('protocol')
-                    if val:
+                    if val := obj.get('protocol'):
                         elem['protocol'] = val
                     self.routes.append(elem)
 
