@@ -116,12 +116,12 @@ class TestSystemState(unittest.TestCase):
         mock.side_effect = [ROUTE4, ROUTE6]
         res4, res6 = SystemConfigState.query_routes()
         mock.assert_has_calls([
-            call(['ip', '-d', '-j', 'route'], text=True),
-            call(['ip', '-d', '-j', '-6', 'route'], text=True),
+            call(['ip', '-d', '-j', '-4', 'route', 'show', 'table', 'all'], text=True),
+            call(['ip', '-d', '-j', '-6', 'route', 'show', 'table', 'all'], text=True),
             ])
-        self.assertEqual(len(res4), 6)
+        self.assertEqual(len(res4), 7)
         self.assertListEqual([route.get('dev') for route in res4],
-                             ['enp0s31f6', 'wlan0', 'wg0', 'enp0s31f6', 'wlan0', 'enp0s31f6'])
+                             ['enp0s31f6', 'wlan0', 'wg0', 'enp0s31f6', 'wlan0', 'enp0s31f6', 'enp0s31f6'])
         self.assertEqual(len(res6), 10)
         self.assertListEqual([route.get('dev') for route in res6],
                              ['lo', 'enp0s31f6', 'wlan0', 'enp0s31f6', 'wlan0',
@@ -132,7 +132,7 @@ class TestSystemState(unittest.TestCase):
         mock.side_effect = subprocess.CalledProcessError(1, '', 'ERR')
         with self.assertLogs(level='DEBUG') as cm:
             res4, res6 = SystemConfigState.query_routes()
-            mock.assert_called_with(['ip', '-d', '-j', 'route'], text=True)
+            mock.assert_called_with(['ip', '-d', '-j', '-4', 'route', 'show', 'table', 'all'], text=True)
             self.assertIsNone(res4)
             self.assertIsNone(res6)
             self.assertIn('DEBUG:root:Cannot query iproute2 route data:', cm.output[0])
@@ -381,7 +381,7 @@ class TestInterface(unittest.TestCase):
         self.assertIn('dhcp', meta.get('flags'))
         self.assertEqual(len(json.get('dns_addresses')), 2)
         self.assertEqual(len(json.get('dns_search')), 1)
-        self.assertEqual(len(json.get('routes')), 7)
+        self.assertEqual(len(json.get('routes')), 8)
 
     def test_json_nd_tunnel(self):
         data = next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifindex'] == 41), {})
