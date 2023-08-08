@@ -48,6 +48,8 @@ class NetplanStatus(utils.NetplanCommand):
                                  help='Show only this interface')
         self.parser.add_argument('-a', '--all', action='store_true',
                                  help='Show all interface data (incl. inactive)')
+        self.parser.add_argument('-v', '--verbose', action='store_true',
+                                 help='Show extra information')
         self.parser.add_argument('-f', '--format', default='tabular',
                                  help='Output in machine readable `json` or `yaml` format')
 
@@ -172,6 +174,8 @@ class NetplanStatus(utils.NetplanCommand):
             lst = data.get('routes', [])
             if lst:
                 for i, obj in enumerate(lst):
+                    if not self.verbose and obj.get('table') != 'main':
+                        continue
                     default_start = ''
                     default_end = ''
                     if obj['to'] == 'default':
@@ -186,6 +190,9 @@ class NetplanStatus(utils.NetplanCommand):
                     metric = ''
                     if 'metric' in obj:
                         metric = ' metric ' + str(obj['metric'])
+                    table = ''
+                    if self.verbose and 'table' in obj:
+                        table = ' table ' + str(obj['table'])
 
                     extra = []
                     if 'protocol' in obj and obj['protocol'] != 'kernel':
@@ -198,12 +205,13 @@ class NetplanStatus(utils.NetplanCommand):
                         type = obj['type']
                         extra.append(type)
 
-                    pprint(('{title:>'+pad+'} {start}{to}{via}{src}{metric}{end}[muted]{extra}[/muted]').format(
+                    pprint(('{title:>'+pad+'} {start}{to}{via}{src}{metric}{table}{end}[muted]{extra}[/muted]').format(
                         title='Routes:' if i == 0 else '',
                         to=obj['to'],
                         via=via,
                         src=src,
                         metric=metric,
+                        table=table,
                         extra=' ('+', '.join(extra)+')' if extra else '',
                         start=default_start,
                         end=default_end))

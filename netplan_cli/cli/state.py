@@ -100,6 +100,8 @@ class Interface():
                         elem['scope'] = val
                     if val := obj.get('protocol'):
                         elem['protocol'] = val
+                    if val := obj.get('table'):
+                        elem['table'] = val
                     self.routes.append(elem)
 
         self.addresses: list = None
@@ -441,10 +443,10 @@ class SystemConfigState():
         data4 = None
         data6 = None
         try:
-            output4: str = subprocess.check_output(['ip', '-d', '-j', 'route'],
+            output4: str = subprocess.check_output(['ip', '-d', '-j', '-4', 'route', 'show', 'table', 'all'],
                                                    text=True)
             data4: JSON = cls.process_generic(output4)
-            output6: str = subprocess.check_output(['ip', '-d', '-j', '-6', 'route'],
+            output6: str = subprocess.check_output(['ip', '-d', '-j', '-6', 'route', 'show', 'table', 'all'],
                                                    text=True)
             data6: JSON = cls.process_generic(output6)
         except Exception as e:
