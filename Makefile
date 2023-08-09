@@ -26,6 +26,7 @@ clean:
 	rm -rf _build-cov
 	rm -rf _leakcheckbuild
 	rm -rf tmproot
+	rm -f python-cffi/netplan/_netplan_cffi.*
 
 check: default
 	meson test -C _build --verbose
