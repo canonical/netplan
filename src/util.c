@@ -313,8 +313,8 @@ parser_err_path:
     return FALSE;
 }
 
-NETPLAN_INTERNAL gboolean
-netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, GError** error) {
+gboolean
+netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error) {
     gboolean ret = TRUE;
     char **yaml_path = NULL;
 	yaml_emitter_t emitter;

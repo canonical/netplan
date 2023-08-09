@@ -61,9 +61,6 @@ wifi_get_freq5(int channel);
 NETPLAN_ABI gchar*
 systemd_escape(char* string);
 
-NETPLAN_INTERNAL gboolean
-netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payload, int out_fd, GError** error);
-
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
 
 void
@@ -80,9 +77,6 @@ netplan_netdef_new(NetplanParser* npp, const char* id, NetplanDefType type, Netp
 
 const char *
 netplan_parser_get_filename(NetplanParser* npp);
-
-NETPLAN_INTERNAL gboolean
-netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GError** error);
 
 NETPLAN_INTERNAL void
 process_input_file(const char* f);
