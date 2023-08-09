@@ -18,14 +18,13 @@
 '''netplan configuration manager'''
 
 import logging
+import netplan
 import os
 import shutil
 import sys
 import tempfile
 
 from typing import Optional
-
-from . import libnetplan
 
 
 class ConfigManager(object):
@@ -36,7 +35,7 @@ class ConfigManager(object):
         self.temp_run = os.path.join(self.tempdir, "run")
         self.extra_files = extra_files
         self.new_interfaces = set()
-        self.np_state: Optional[libnetplan.State] = None
+        self.np_state: Optional[netplan.State] = None
 
     def __getattr__(self, attr):
         assert self.np_state is not None, "Must call parse() before accessing the config."
@@ -58,7 +57,9 @@ class ConfigManager(object):
         # what about ovs_ports?
         interfaces.update(self.np_state.bridges)
         interfaces.update(self.np_state.bonds)
+        interfaces.update(self.np_state.dummy_devices)
         interfaces.update(self.np_state.tunnels)
+        interfaces.update(self.np_state.virtual_ethernets)
         interfaces.update(self.np_state.vlans)
         interfaces.update(self.np_state.vrfs)
         return interfaces
@@ -72,7 +73,7 @@ class ConfigManager(object):
         """
 
         # /run/netplan shadows /etc/netplan/, which shadows /lib/netplan
-        parser = libnetplan.Parser()
+        parser = netplan.Parser()
         try:
             parser.load_yaml_hierarchy(rootdir=self.prefix)
 
@@ -80,12 +81,16 @@ class ConfigManager(object):
                 for f in extra_config:
                     parser.load_yaml(f)
 
-            self.np_state = libnetplan.State()
+            self.np_state = netplan.State()
             self.np_state.import_parser_results(parser)
-        except libnetplan.NetplanException as e:
+        except netplan.NetplanException as e:
             raise ConfigurationError(str(e))
 
-        self.np_state.dump_to_logs()
+        # Convoluted way to dump the parsed config to the logs...
+        with tempfile.TemporaryFile() as tmp:
+            self.np_state._dump_yaml(output_file=tmp)
+            logging.debug("Merged config:\n{}".format(tmp.read()))
+
         return self.np_state
 
     def add(self, config_dict):

@@ -19,15 +19,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import ConfigParser
-from netplan_cli.libnetplan import _NetplanError
+import netplan
 import os
 import re
 import sys
 import shutil
 import tempfile
 import unittest
-import ctypes
-import ctypes.util
 import contextlib
 import subprocess
 
@@ -40,8 +38,6 @@ os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_P
 
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'
-
-lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
 
 WOKE_REPLACE_REGEX = ' +# wokeignore:rule=[a-z]+'
 
@@ -72,29 +68,30 @@ class TestKeyfileBase(unittest.TestCase):
         os.makedirs(self.confdir)
 
     def tearDown(self):
-        lib.netplan_clear_netdefs()
         shutil.rmtree(self.workdir.name)
         super().tearDown()
 
     def generate_from_keyfile(self, keyfile, netdef_id=None, expect_fail=False, filename=None, regenerate=True):
         '''Call libnetplan with given keyfile string as configuration'''
-        err = ctypes.POINTER(_NetplanError)()
         # Autodetect default 'NM-<UUID>' netdef-id
         ssid = ''
         keyfile = re.sub(WOKE_REPLACE_REGEX, '', keyfile)
+        # calculate the UUID+SSID string
+        found_values = 0
+        uuid = 'UNKNOWN_UUID'
+        ssid = ''
+        for line in keyfile.splitlines():
+            if line.startswith('uuid='):
+                uuid = line.split('=')[1]
+                found_values += 1
+            elif line.startswith('ssid='):
+                ssid += '-' + line.split('=')[1]
+                found_values += 1
+            if found_values >= 2:
+                break
         if not netdef_id:
-            found_values = 0
-            uuid = 'UNKNOWN_UUID'
-            for line in keyfile.splitlines():
-                if line.startswith('uuid='):
-                    uuid = line.split('=')[1]
-                    found_values += 1
-                elif line.startswith('ssid='):
-                    ssid += '-' + line.split('=')[1]
-                    found_values += 1
-                if found_values >= 2:
-                    break
             netdef_id = 'NM-' + uuid
+        yaml_path = os.path.join(self.workdir.name, 'etc', 'netplan', '90-NM-'+uuid+'.yaml')
         generated_file = 'netplan-{}{}.nmconnection'.format(netdef_id, ssid)
         original_file = filename or generated_file
         f = os.path.join(self.workdir.name,
@@ -105,21 +102,25 @@ class TestKeyfileBase(unittest.TestCase):
             file.write(keyfile)
 
         with capture_stderr() as outf:
+            parser = netplan.Parser()
             if expect_fail:
-                self.assertFalse(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
-                if err:
-                    return err.contents.message.decode('utf-8')
+                try:
+                    parser.load_keyfile(f)
+                except netplan.NetplanException as err:
+                    return err.message
             else:
-                self.assertTrue(lib.netplan_parse_keyfile(f.encode(), ctypes.byref(err)))
-                if err:  # pragma: nocover (only happens if a test fails so irrelevant for coverage)
-                    return err.contents.message.decode('utf-8')
+                ret = parser.load_keyfile(f)  # Throws netplan.NetplanExcption on failure
+                self.assertTrue(ret)
                 # If the original file does not have a standard netplan-*.nmconnection
                 # filename it is being deleted in favor of the newly generated file.
                 # It has been parsed and is not needed anymore in this case
                 if generated_file != original_file:
                     os.remove(f)
-                lib._write_netplan_conf(netdef_id.encode(), self.workdir.name.encode())
-                lib.netplan_clear_netdefs()
+                state = netplan.State()
+                state.import_parser_results(parser)
+                with open(yaml_path, 'w') as f:
+                    os.chmod(yaml_path, mode=0o600)
+                    state._dump_yaml(f)
                 # check re-generated keyfile
                 if regenerate:
                     self.assert_nm_regenerate({generated_file: keyfile})

@@ -24,8 +24,8 @@ import typing
 from collections import defaultdict
 
 from . import utils
-from .. import libnetplan
 from ..configmanager import ConfigurationError
+import netplan
 
 import netifaces
 
@@ -186,7 +186,7 @@ def _get_target_interface(interfaces, np_state, pf_link, pfs):
     if pf_link not in pfs:
         # handle the match: syntax, get the actual device name
         pf_dev = np_state[pf_link]
-        if pf_dev.has_match:
+        if pf_dev._has_match:
             # now here it's a bit tricky
             set_name = pf_dev.set_name
             if set_name and set_name in interfaces:
@@ -196,10 +196,10 @@ def _get_target_interface(interfaces, np_state, pf_link, pfs):
                 pfs[pf_link] = set_name
             else:
                 for interface in interfaces:
-                    if not pf_dev.match_interface(
-                            itf_name=interface,
-                            itf_driver=utils.get_interface_driver_name(interface),
-                            itf_mac=utils.get_interface_macaddress(interface)):
+                    if not pf_dev._match_interface(
+                            iface_name=interface,
+                            iface_driver=utils.get_interface_driver_name(interface),
+                            iface_mac=utils.get_interface_macaddress(interface)):
                         continue
                     # we have a matching PF
                     # store the matching interface in the dictionary of
@@ -240,12 +240,12 @@ def get_vf_count_and_functions(interfaces, np_state,
     Count how many VFs each PF will need.
     """
     for nid, netdef in np_state.ethernets.items():
-        if netdef.sriov_link and _get_target_interface(interfaces, np_state, netdef.sriov_link.id, pfs):
+        if netdef.links.get('sriov') and _get_target_interface(interfaces, np_state, netdef.links.get('sriov').id, pfs):
             vfs[nid] = None
 
         try:
-            count = netdef.vf_count
-        except libnetplan.NetplanException as e:
+            count = netdef._vf_count
+        except netplan.NetplanException as e:
             raise ConfigurationError(str(e))
         if count == 0:
             continue
@@ -375,10 +375,10 @@ def apply_sriov_config(config_manager, rootdir='/'):
     Go through all interfaces, identify which ones are SR-IOV VFs, create
     them and perform all other necessary setup.
     """
-    parser = libnetplan.Parser()
+    parser = netplan.Parser()
     parser.load_yaml_hierarchy(rootdir)
 
-    np_state = libnetplan.State()
+    np_state = netplan.State()
     np_state.import_parser_results(parser)
 
     config_manager.parse()
@@ -426,13 +426,13 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # XXX: does matching those even make sense?
     for vf in vfs:
         netdef = np_state[vf]
-        if netdef.has_match:
+        if netdef._has_match:
             # right now we only match by name, as I don't think matching per
             # driver and/or macaddress makes sense
             # TODO: print warning if other matches are provided
 
             for interface in interfaces:
-                if netdef.match_interface(itf_name=interface):
+                if netdef._match_interface(iface_name=interface):
                     if vf in vfs and vfs[vf]:
                         raise ConfigurationError('matched more than one interface for a VF device: %s' % vf)
                     vfs[vf] = interface
@@ -443,14 +443,14 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # Walk the SR-IOV PFs and check if we need to change the eswitch mode
     for netdef_id, iface in pfs.items():
         netdef = np_state[netdef_id]
-        eswitch_mode = netdef.embedded_switch_mode
+        eswitch_mode = netdef._embedded_switch_mode
         if eswitch_mode in ['switchdev', 'legacy']:
             pci_addr = _get_pci_slot_name(iface)
             pcidev = PCIDevice(pci_addr)
             if pcidev.is_pf:
                 logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
                 if pcidev.vfs:
-                    rebind_delayed = netdef.delay_virtual_functions_rebind
+                    rebind_delayed = netdef._delay_virtual_functions_rebind
                     try:
                         unbind_vfs(pcidev.vfs, pcidev.driver)
                         pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
@@ -462,10 +462,10 @@ def apply_sriov_config(config_manager, rootdir='/'):
     for vlan, netdef in np_state.vlans.items():
         # there is a special sriov vlan renderer that one can use to mark
         # a selected vlan to be done in hardware (VLAN filtering)
-        if netdef.has_sriov_vlan_filter:
+        if netdef._has_sriov_vlan_filter:
             # this only works for SR-IOV VF interfaces
-            link = netdef.vlan_link
-            vlan_id = netdef.vlan_id
+            link = netdef.links.get('vlan')
+            vlan_id = netdef._vlan_id
 
             vf = vfs.get(link.id)
             if not vf:
@@ -479,7 +479,7 @@ def apply_sriov_config(config_manager, rootdir='/'):
             # get the parent pf interface
             # first we fetch the related vf netplan entry
             # and finally, get the matched pf interface
-            pf = pfs.get(link.sriov_link.id)
+            pf = pfs.get(link.links.get('sriov').id)
 
             if vf in filtered_vlans_set:
                 raise ConfigurationError(

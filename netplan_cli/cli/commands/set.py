@@ -22,7 +22,7 @@ import re
 import io
 
 from ..utils import NetplanCommand
-from ... import libnetplan
+import netplan
 
 FALLBACK_FILENAME = '70-netplan-set.yaml'
 GLOBAL_KEYS = ['renderer', 'version']
@@ -67,9 +67,9 @@ class NetplanSet(NetplanCommand):
         # Split the string into a list on the dot separators, and unescape the remaining dots
         yaml_path = [s.replace(r'\.', '.') for s in re.split(r'(?<!\\)\.', key)]
 
-        parser = libnetplan.Parser()
+        parser = netplan.Parser()
         with tempfile.TemporaryFile() as tmp:
-            libnetplan.create_yaml_patch(yaml_path, value, tmp)
+            netplan._create_yaml_patch(yaml_path, value, tmp)
             tmp.flush()
 
             # Load fields that are about to be deleted (e.g. some.setting=NULL)
@@ -85,11 +85,11 @@ class NetplanSet(NetplanCommand):
             parser.load_yaml(tmp)
 
             # Validate the final parser state
-            state = libnetplan.State()
+            state = netplan.State()
             state.import_parser_results(parser)
 
             if filename:  # only act on the output file (a.k.a. "origin-hint")
-                parser_output_file = libnetplan.Parser()
+                parser_output_file = netplan.Parser()
 
                 # Load fields that are about to be deleted ("some.setting=NULL")
                 # Ignore those fields when parsing subsequent YAML files
@@ -103,7 +103,7 @@ class NetplanSet(NetplanCommand):
                 # (a.k.a. "origin-hint", <filename>), have they been defined in
                 # pre-existing YAML files or not.
                 tmp.seek(0, io.SEEK_SET)
-                parser_output_file.load_nullable_overrides(tmp, constraint=filename)
+                parser_output_file._load_nullable_overrides(tmp, constraint=filename)
 
                 # Parse the full YAML hierarchy and new patch, ignoring any
                 # nullable overrides (netdefs/globals) from pre-existing files
@@ -122,8 +122,8 @@ class NetplanSet(NetplanCommand):
                 # Import the partial parser state, ignoring duplicated netdefs
                 # from pre-existing YAML files, so we can force write the patch
                 # contents to the output file or update this file if exists.
-                state_output_file = libnetplan.State()
+                state_output_file = netplan.State()
                 state_output_file.import_parser_results(parser_output_file)
-                state_output_file.write_yaml_file(filename, self.root_dir)
+                state_output_file._write_yaml_file(filename, self.root_dir)
             else:
-                state.update_yaml_hierarchy(FALLBACK_FILENAME, self.root_dir)
+                state._update_yaml_hierarchy(FALLBACK_FILENAME, self.root_dir)

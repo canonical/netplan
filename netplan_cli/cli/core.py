@@ -22,7 +22,7 @@ import logging
 import os
 
 from . import utils
-from ..libnetplan import NetplanException, NetplanValidationException, NetplanParserException
+from netplan import NetplanException, NetplanValidationException, NetplanParserException
 
 
 FALLBACK_PATH = '/usr/bin:/snap/bin'

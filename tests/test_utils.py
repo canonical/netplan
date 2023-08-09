@@ -22,11 +22,11 @@ import unittest
 import tempfile
 import glob
 import netifaces
+import netplan
 
 from contextlib import redirect_stdout
 from netplan_cli.cli.core import Netplan
 import netplan_cli.cli.utils as utils
-import netplan_cli.libnetplan as libnetplan
 from unittest.mock import patch
 
 
@@ -125,9 +125,9 @@ class TestUtils(unittest.TestCase):
     def load_conf(self, conf_txt):
         with open(self.default_conf, 'w') as f:
             f.write(conf_txt)
-        parser = libnetplan.Parser()
+        parser = netplan.Parser()
         parser.load_yaml_hierarchy(rootdir=self.workdir.name)
-        state = libnetplan.State()
+        state = netplan.State()
         state.import_parser_results(parser)
         return state
 
