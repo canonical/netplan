@@ -87,7 +87,7 @@ struct _NetplanStateIterator {
  * Errors and error domains
  *
  * NOTE: if new errors or domains are added,
- * netplan/libnetplan.py must be updated with the new entries.
+ * python-cffi/netplan/_utils.py must be updated with the new entries.
  */
 
 enum NETPLAN_ERROR_DOMAINS {
