@@ -18,7 +18,6 @@ features_py = custom_target(
 netplan_sources = files(
     '__init__.py',
     'configmanager.py',
-    'libnetplan.py',
     'terminal.py')
 
 cli_sources = files(
