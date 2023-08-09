@@ -624,13 +624,17 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     netdef_id_size = netplan_get_id_from_nm_filepath(filename, ssid, netdef_id, strlen(filename));
     uuid = g_key_file_get_string(kf, "connection", "uuid", NULL);
     if (!uuid) {
-        g_warning("netplan: Keyfile: cannot find connection.uuid");
+        const char* msg = "netplan: Keyfile: cannot find connection.uuid";
+        g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC, "%s", msg);
+        g_warning("%s", msg);
         return FALSE;
     }
 
     type = g_key_file_get_string(kf, "connection", "type", NULL);
     if (!type) {
-        g_warning("netplan: Keyfile: cannot find connection.type");
+        const char* msg = "netplan: Keyfile: cannot find connection.type";
+        g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC, "%s", msg);
+        g_warning("%s", msg);
         return FALSE;
     }
     nd_type = type_from_str(type);
@@ -908,7 +912,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         ap = g_new0(NetplanWifiAccessPoint, 1);
         ap->ssid = g_key_file_get_string(kf, "wifi", "ssid", NULL);
         if (!ap->ssid) {
-            g_warning("netplan: Keyfile: cannot find SSID for WiFi connection");
+            const char* msg = "netplan: Keyfile: cannot find SSID for WiFi connection";
+            g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC, "%s", msg);
+            g_warning("%s", msg);
             g_free(ap);
             return FALSE;
         } else
