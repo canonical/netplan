@@ -96,6 +96,9 @@ complex_object_is_dirty(const NetplanNetDefinition* def, const void* obj, size_t
 gboolean
 is_multicast_address(const char*);
 
+NETPLAN_INTERNAL int
+_netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanNetDefinition* netdef, NetplanError** error);
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef);
 
@@ -128,3 +131,21 @@ is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* r
 
 NETPLAN_INTERNAL gboolean //FIXME: avoid exporting private symbol
 is_string_in_array(GArray* array, const char* value);
+
+NETPLAN_INTERNAL struct netdef_address_iter*
+_netplan_new_netdef_address_iter(NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL NetplanAddressOptions*
+_netplan_netdef_address_iter_next(struct netdef_address_iter* it);
+
+NETPLAN_INTERNAL void
+_netplan_netdef_address_free_iter(struct netdef_address_iter* it);
+
+NETPLAN_INTERNAL struct netdef_pertype_iter*
+_netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type);
+
+NETPLAN_INTERNAL NetplanNetDefinition*
+_netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it);
+
+NETPLAN_INTERNAL void
+_netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it);

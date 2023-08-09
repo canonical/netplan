@@ -99,6 +99,14 @@ typedef struct {
     char* label;
 } NetplanAddressOptions;
 
+struct netdef_address_iter {
+    guint ip4_index;
+    guint ip6_index;
+    guint address_options_index;
+    NetplanNetDefinition* netdef;
+    NetplanAddressOptions* last_address;
+};
+
 typedef struct {
     NetplanWifiMode mode;
     char* ssid;
