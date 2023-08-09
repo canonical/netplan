@@ -6,14 +6,14 @@
 import io
 import sys
 
-from netplan_cli import libnetplan
+import netplan
 
 if len(sys.argv) < 2:
     print("Pass the NM keyfile as parameter")
     sys.exit(1)
 
-parser = libnetplan.Parser()
-state = libnetplan.State()
+parser = netplan.Parser()
+state = netplan.State()
 
 try:
     parser.load_keyfile(sys.argv[1])
@@ -23,6 +23,6 @@ except Exception as e:
     sys.exit(1)
 
 output = io.StringIO()
-state.dump_yaml(output)
+state._dump_yaml(output)
 
 print(output.getvalue())

@@ -368,7 +368,7 @@ class NetplanApply(utils.NetplanCommand):
             newname = netdef.set_name
             if not newname:
                 continue  # Skip if no new name needs to be set
-            if not netdef.has_match:
+            if not netdef._has_match:
                 continue  # Skip if no match for current name is given
             if NetplanApply.is_composite_member(composite_interfaces, netdef.id):
                 logging.debug('Skipping composite member {}'.format(netdef.id))

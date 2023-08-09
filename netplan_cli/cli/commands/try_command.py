@@ -18,6 +18,7 @@
 '''netplan try command line'''
 
 import logging
+import netplan
 import os
 import time
 import shutil
@@ -29,7 +30,6 @@ from ...configmanager import ConfigManager
 from .. import utils
 from .apply import NetplanApply
 from ... import terminal
-from ... import libnetplan
 
 # Keep a timeout long enough to allow the network to converge, 60 seconds may
 # be slightly short given some complex configs, i.e. if STP must reconverge.
@@ -179,11 +179,11 @@ class NetplanTry(utils.NetplanCommand):
         # more than one device in them, and they can be set with special parameters
         # to tweak their behavior, which are really hard to "revert", especially
         # as systemd-networkd doesn't necessarily touch them when config changes.
-        multi_iface = {}  # type: dict[str, libnetplan.NetDefinition]
+        multi_iface = {}  # type: dict[str, netplan.NetDefinition]
         multi_iface.update(np_state.bridges)
         multi_iface.update(np_state.bonds)
         for itf in multi_iface.values():
-            if not itf.is_trivial_compound_itf:
+            if not itf._is_trivial_compound_itf:
                 reason = "reverting custom parameters for bridges and bonds is not supported"
                 revert_unsupported.append((itf.id, reason))
 

@@ -26,7 +26,7 @@ import glob
 import yaml
 
 from netplan_cli.cli.commands.set import FALLBACK_FILENAME
-from netplan_cli.libnetplan import NetplanException
+from netplan import NetplanException
 from tests.test_utils import call_cli
 
 

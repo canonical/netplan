@@ -30,9 +30,9 @@ from typing import Dict, List, Type, Union
 import yaml
 
 import dbus
+import netplan
 
 from . import utils
-from .. import libnetplan
 
 JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
 
@@ -481,25 +481,27 @@ class NetplanConfigState():
 
     def __init__(self, subtree='all', rootdir='/'):
 
-        parser = libnetplan.Parser()
+        parser = netplan.Parser()
         parser.load_yaml_hierarchy(rootdir)
 
-        np_state = libnetplan.State()
+        np_state = netplan.State()
         np_state.import_parser_results(parser)
 
         self.state = StringIO()
 
         if subtree == 'all':
-            np_state.dump_yaml(output_file=self.state)
+            np_state._dump_yaml(output_file=self.state)
         else:
             if not subtree.startswith('network'):
                 subtree = '.'.join(('network', subtree))
-            # Replace the '.' with '\t' but not at '\.' via negative lookbehind expression
-            subtree = re.sub(r'(?<!\\)\.', '\t', subtree).replace(r'\.', '.')
+            # Split at '.' but not at '\.' via negative lookbehind expression
+            subtree = re.split(r'(?<!\\)\.', subtree)
+            # Replace remaining '\.' by plain '.'
+            subtree = [elem.replace(r'\.', '.') for elem in subtree]
 
             tmp_in = StringIO()
-            np_state.dump_yaml(output_file=tmp_in)
-            libnetplan.dump_yaml_subtree(subtree, tmp_in, self.state)
+            np_state._dump_yaml(output_file=tmp_in)
+            netplan._dump_yaml_subtree(subtree, tmp_in, self.state)
 
     def __str__(self) -> str:
         return self.state.getvalue()

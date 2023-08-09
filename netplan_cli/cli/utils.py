@@ -24,9 +24,8 @@ import netifaces
 import fnmatch
 import re
 
-from .. import libnetplan as np
 from ..configmanager import ConfigurationError
-from ..libnetplan import NetplanException
+from netplan import NetDefinition, NetplanException
 
 
 NM_SERVICE_NAME = 'NetworkManager.service'
@@ -175,13 +174,13 @@ def get_interface_macaddress(interface):
 
 
 def find_matching_iface(interfaces: list, netdef):
-    assert isinstance(netdef, np.NetDefinition)
-    assert netdef.has_match
+    assert isinstance(netdef, NetDefinition)
+    assert netdef._has_match
 
-    matches = list(filter(lambda itf: netdef.match_interface(
-            itf_name=itf,
-            itf_driver=get_interface_driver_name(itf),
-            itf_mac=get_interface_macaddress(itf)), interfaces))
+    matches = list(filter(lambda itf: netdef._match_interface(
+            iface_name=itf,
+            iface_driver=get_interface_driver_name(itf),
+            iface_mac=get_interface_macaddress(itf)), interfaces))
 
     # Return current name of unique matched interface, if available
     if len(matches) != 1:

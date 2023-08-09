@@ -130,8 +130,8 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
 
     config_manager.parse()
     ovs_ifaces = set()
-    for i in config_manager.all_defs.keys():
-        if (is_ovs_interface(i, config_manager.all_defs)):
+    for i in config_manager.netdefs.keys():
+        if (is_ovs_interface(i, config_manager.netdefs)):
             ovs_ifaces.add(i)
 
     # Tear down old OVS interfaces, not defined in the current config.

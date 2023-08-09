@@ -1,5 +1,5 @@
 import os
-import netplan_cli.libnetplan as libnetplan
+import netplan
 
 
 def state_from_yaml(confdir, yaml, filename="a.yml"):
@@ -7,8 +7,8 @@ def state_from_yaml(confdir, yaml, filename="a.yml"):
     conf = os.path.join(confdir, filename)
     with open(conf, "w+") as f:
         f.write(yaml)
-    parser = libnetplan.Parser()
+    parser = netplan.Parser()
     parser.load_yaml(conf)
-    state = libnetplan.State()
+    state = netplan.State()
     state.import_parser_results(parser)
     return state

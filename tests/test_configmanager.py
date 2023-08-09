@@ -170,6 +170,20 @@ class TestConfigManager(unittest.TestCase):
           connection.uuid: some-uuid
           connection.type: ethernet
 ''', file=fd)
+        with open(os.path.join(self.workdir.name, "etc/netplan/test2.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  dummy-devices:
+    dm0:
+      addresses:
+        - 192.168.0.123/24
+  virtual-ethernets:
+    veth0-peer1:
+      peer: veth0-peer2
+    veth0-peer2:
+      peer: veth0-peer1
+''', file=fd)
         with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'w') as fd:
             print("pretend .network", file=fd)
         with open(os.path.join(self.workdir.name, "run/NetworkManager/system-connections/pretend"), 'w') as fd:
@@ -183,7 +197,7 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('eth0',   state.ethernets)
         self.assertIn('bond6',  state.bonds)
         self.assertIn('eth0',   self.configmanager.physical_interfaces)
-        self.assertNotIn('bond7', self.configmanager.all_defs)
+        self.assertNotIn('bond7', self.configmanager.netdefs)
         self.assertNotIn('bond6', self.configmanager.physical_interfaces)
         self.assertIn('wwan0', state.modems)
         self.assertIn('wwan0', self.configmanager.physical_interfaces)
@@ -201,6 +215,9 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('vlan2',   self.configmanager.virtual_interfaces)
         self.assertIn('br3',     self.configmanager.virtual_interfaces)
         self.assertIn('br4',     self.configmanager.virtual_interfaces)
+        self.assertIn('veth0-peer1', self.configmanager.virtual_interfaces)
+        self.assertIn('veth0-peer2', self.configmanager.virtual_interfaces)
+        self.assertIn('dm0',     self.configmanager.virtual_interfaces)
         self.assertIn('vxlan1005', self.configmanager.virtual_interfaces)
         self.assertIn('vxlan1',  self.configmanager.virtual_interfaces)
         self.assertIn('bond5',   self.configmanager.virtual_interfaces)

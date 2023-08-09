@@ -1423,6 +1423,8 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key
         g_debug("%s: adding wifi AP '%s'", npp->current.netdef->id, access_point->ssid);
 
         /* Check if there's already an SSID with that name */
+        // FIXME: This check fails on multi-pass parsing, e.g. when defined in
+        //        the same YAML file with a set of virtual-ethernets peers.
         if (npp->current.netdef->access_points &&
                 g_hash_table_lookup(npp->current.netdef->access_points, access_point->ssid)) {
             ret = yaml_error(npp, key, error, "%s: Duplicate access point SSID '%s'", npp->current.netdef->id, access_point->ssid);
