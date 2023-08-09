@@ -54,6 +54,12 @@ netplan_state_iterator_next(NetplanStateIterator* iter);
 NETPLAN_PUBLIC gboolean
 netplan_state_iterator_has_next(const NetplanStateIterator* iter);
 
+NETPLAN_PUBLIC gboolean
+netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payload, int out_fd, NetplanError** error);
+
+NETPLAN_PUBLIC gboolean
+netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error);
+
 /********** Old API below this ***********/
 
 NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
