@@ -36,10 +36,12 @@ add_project_arguments(
     language: 'c')
 
 inc = include_directories('include')
+inc_internal = include_directories('src')
 subdir('include')
 subdir('src')
 subdir('dbus')
 subdir('netplan_cli')
+subdir('python-cffi')
 subdir('examples')
 subdir('doc')
 
@@ -60,7 +62,7 @@ install_data(
 # Testing #
 ###########
 test_env = [
-    'PYTHONPATH=' + meson.current_source_dir(),
+    'PYTHONPATH=' + join_paths(meson.current_build_dir(), 'python-cffi') + ':' + meson.current_source_dir(),
     'LD_LIBRARY_PATH=' + join_paths(meson.current_build_dir(), 'src'),
     'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
