@@ -123,7 +123,7 @@ netplan_sriov_cleanup(const char* rootdir)
 
 }
 
-NETPLAN_INTERNAL int
+int
 _netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanNetDefinition* netdef, GError** error)
 {
     GHashTableIter iter;

@@ -715,15 +715,7 @@ get_unspecified_address(int ip_family)
     return (ip_family == AF_INET) ? "0.0.0.0" : "::";
 }
 
-struct netdef_address_iter {
-    guint ip4_index;
-    guint ip6_index;
-    guint address_options_index;
-    NetplanNetDefinition* netdef;
-    NetplanAddressOptions* last_address;
-};
-
-NETPLAN_INTERNAL struct netdef_address_iter*
+struct netdef_address_iter*
 _netplan_new_netdef_address_iter(NetplanNetDefinition* netdef)
 {
     struct netdef_address_iter* it = g_malloc0(sizeof(struct netdef_address_iter));
@@ -747,7 +739,7 @@ _netplan_new_netdef_address_iter(NetplanNetDefinition* netdef)
  * will be released either when the iterator is destroyed or when there is
  * nothing else to be produced and the iterator was called one last time.
  */
-NETPLAN_INTERNAL NetplanAddressOptions*
+NetplanAddressOptions*
 _netplan_netdef_address_iter_next(struct netdef_address_iter* it)
 {
     NetplanAddressOptions* options = NULL;
@@ -784,7 +776,7 @@ _netplan_netdef_address_iter_next(struct netdef_address_iter* it)
     return options;
 }
 
-NETPLAN_INTERNAL void
+void
 _netplan_netdef_address_free_iter(struct netdef_address_iter* it)
 {
     if (it->last_address)
@@ -798,7 +790,7 @@ struct netdef_pertype_iter {
     NetplanState* np_state;
 };
 
-NETPLAN_INTERNAL struct netdef_pertype_iter*
+struct netdef_pertype_iter*
 _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type)
 {
     NetplanDefType type = def_type ? netplan_def_type_from_name(def_type) : NETPLAN_DEF_TYPE_NONE;
@@ -811,7 +803,7 @@ _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_t
 }
 
 
-NETPLAN_INTERNAL NetplanNetDefinition*
+NetplanNetDefinition*
 _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it)
 {
     gpointer key, value;
@@ -827,7 +819,7 @@ _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it)
     return NULL;
 }
 
-NETPLAN_INTERNAL void
+void
 _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it)
 {
     g_free(it);
