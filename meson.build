@@ -80,7 +80,7 @@ test('linting',
 test('codestyle',
      pycodestyle,
      timeout: 100,
-     args: ['--max-line-length=130', '--exclude=doc/env', meson.current_source_dir()])
+     args: ['--max-line-length=130', '--exclude=doc/env,*meson-private/pycompile.py', meson.current_source_dir()])
 test('documentation',
      find_program('tests/validate_docs.sh'),
      timeout: 100,
