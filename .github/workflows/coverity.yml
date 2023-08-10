@@ -1,0 +1,32 @@
+name: Coverity
+
+on:
+  schedule:
+    - cron: '0 0 * * MON'
+
+jobs:
+  coverity:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
+          sudo apt update
+          sudo apt -y build-dep netplan.io
+          sudo apt -y install libcmocka-dev meson python3-pytest curl
+      - name: Download Coverity
+        run: |
+          curl https://scan.coverity.com/download/cxx/linux64 --no-progress-meter --output ${HOME}/coverity.tar.gz --data "token=${{ secrets.COVERITY_TOKEN }}&project=Netplan"
+          mkdir ${HOME}/coverity
+          tar --strip=1 -C ${HOME}/coverity -xzf ${HOME}/coverity.tar.gz
+          echo "$HOME/coverity/bin" >> $GITHUB_PATH
+      - name: Run Coverity
+        run: |
+          meson setup coveritybuild --prefix=/usr
+          cov-build --dir cov-int meson compile -C coveritybuild
+          tar czf netplan.tar.gz cov-int
+      - name: Upload results
+        run: |
+          curl --form token=${{ secrets.COVERITY_TOKEN }} --form email=${{ secrets.COVERITY_EMAIL }} --form file=@netplan.tar.gz --form version="0.106" --form description="Coverity scan" https://scan.coverity.com/builds?project=Netplan
