@@ -2097,6 +2097,7 @@ handle_routes(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GEr
 
 err:
     route_clear(&npp->current.route);
+    npp->current.route = NULL;
     return FALSE;
 }
 
