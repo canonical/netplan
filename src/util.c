@@ -388,12 +388,12 @@ err_path:
 cleanup:
     if (input)
         fclose(input);
-    else
+    else if (in_dup >= 0)
         close(in_dup);
 
     if (output)
         fclose(output);
-    else
+    else if (out_dup >= 0)
         close(out_dup);
 
     if (yaml_path)
