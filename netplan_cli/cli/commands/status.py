@@ -27,6 +27,7 @@ from .. import utils
 from ..state import SystemConfigState, JSON
 
 
+MATCH_TAGS = re.compile(r'\[([a-z0-9]+)\].*\[\/\1\]')
 RICH_OUTPUT = False
 try:
     from rich.console import Console
@@ -67,9 +68,11 @@ class NetplanStatus(utils.NetplanCommand):
 
     def plain_print(self, *args, **kwargs):
         if len(args):
-            pattern = r'\[\/?\w+\]'
             lst = list(args)
-            lst[0] = re.sub(pattern, '', lst[0])  # remove any tags, like '[...]' or '[/...]'
+            for tag in MATCH_TAGS.findall(lst[0]):
+                # remove matching opening and closing tag
+                lst[0] = lst[0].replace('[{}]'.format(tag), '')\
+                               .replace('[/{}]'.format(tag), '')
             return print(*lst, **kwargs)
         return print(*args, **kwargs)
 
