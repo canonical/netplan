@@ -941,6 +941,18 @@ netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer
 }
 
 gboolean
+netplan_netdef_get_dhcp4(const NetplanNetDefinition* netdef)
+{
+    return netdef->dhcp4;
+}
+
+gboolean
+netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef)
+{
+    return netdef->dhcp6;
+}
+
+gboolean
 is_multicast_address(const char* address)
 {
     struct in_addr a4;

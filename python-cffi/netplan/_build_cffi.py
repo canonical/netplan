@@ -85,6 +85,8 @@ ffibuilder.cdef("""
     gboolean netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
     gboolean netplan_netdef_match_interface(
         const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name);
+    gboolean netplan_netdef_get_dhcp4(const NetplanNetDefinition* netdef);
+    gboolean netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef);
 
     // NetDefinition (internal)
     ssize_t _netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);

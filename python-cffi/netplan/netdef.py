@@ -41,6 +41,14 @@ class NetDefinition():
         return _NetdefAddressIterator(self._ptr)
 
     @property
+    def dhcp4(self) -> bool:
+        return bool(lib.netplan_netdef_get_dhcp4(self._ptr))
+
+    @property
+    def dhcp6(self) -> bool:
+        return bool(lib.netplan_netdef_get_dhcp6(self._ptr))
+
+    @property
     def _has_match(self) -> bool:
         return bool(lib.netplan_netdef_has_match(self._ptr))
 

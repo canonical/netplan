@@ -127,6 +127,12 @@ netplan_netdef_has_match(const NetplanNetDefinition* netdef);
 NETPLAN_PUBLIC gboolean
 netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name);
 
+NETPLAN_PUBLIC gboolean
+netplan_netdef_get_dhcp4(const NetplanNetDefinition* netdef);
+
+NETPLAN_PUBLIC gboolean
+netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef);
+
 /********** Old API below this ***********/
 
 NETPLAN_DEPRECATED NETPLAN_PUBLIC const char *

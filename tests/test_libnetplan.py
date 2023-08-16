@@ -663,6 +663,27 @@ class TestNetDefinition(TestBase):
         self.assertEqual(state['patch0-1'].links.get('peer').id, "patch1-0")
         self.assertEqual(state['patch1-0'].links.get('peer').id, "patch0-1")
 
+    def test_dhcp4_dhcp6(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: false
+      ''')
+
+        self.assertTrue(state['eth0'].dhcp4)
+        self.assertFalse(state['eth0'].dhcp6)
+
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: true
+      ''')
+
+        self.assertFalse(state['eth0'].dhcp4)
+        self.assertTrue(state['eth0'].dhcp6)
+
 
 class TestFreeFunctions(TestBase):
     def test_create_yaml_patch_dict(self):
