@@ -684,6 +684,21 @@ class TestNetDefinition(TestBase):
         self.assertFalse(state['eth0'].dhcp4)
         self.assertTrue(state['eth0'].dhcp6)
 
+    def test_get_macaddress(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      macaddress: aa:bb:cc:dd:ee:ff
+      ''')
+
+        self.assertEqual(state['eth0'].macaddress, 'aa:bb:cc:dd:ee:ff')
+
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0: {}''')
+
+        self.assertIsNone(state['eth0'].macaddress)
+
 
 class TestFreeFunctions(TestBase):
     def test_create_yaml_patch_dict(self):

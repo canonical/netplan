@@ -940,6 +940,12 @@ netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer
     return netplan_copy_string(netdef->set_name, out_buffer, out_buf_size);
 }
 
+ssize_t
+netplan_netdef_get_macaddress(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
+{
+    return netplan_copy_string(netdef->set_mac, out_buffer, out_buf_size);
+}
+
 gboolean
 netplan_netdef_get_dhcp4(const NetplanNetDefinition* netdef)
 {

@@ -48,6 +48,9 @@ class NetDefinition():
     def dhcp6(self) -> bool:
         return bool(lib.netplan_netdef_get_dhcp6(self._ptr))
 
+    def macaddress(self) -> str:
+        return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_macaddress(self._ptr, b, len(b)))
+
     @property
     def _has_match(self) -> bool:
         return bool(lib.netplan_netdef_has_match(self._ptr))
