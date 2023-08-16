@@ -39,7 +39,7 @@ network:
 
   > Creates and configures bridge devices.
 
-- [**dummy-devices**](#properties-for-device-type-dummy-devices) (mapping)
+- [**dummy-devices**](#properties-for-device-type-dummy-devices) (mapping) – since **0.107**
 
   > Creates and configures virtual devices.
 
@@ -55,7 +55,7 @@ network:
 
   > Creates and configures different types of virtual tunnels.
 
-- [**virtual-ethernets**](#properties-for-device-type-virtual-ethernets) (mapping)
+- [**virtual-ethernets**](#properties-for-device-type-virtual-ethernets) (mapping) – since **0.107**
 
   > Creates and configures Virtual Ethernet (veth) devices.
 
