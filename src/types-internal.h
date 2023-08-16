@@ -107,6 +107,13 @@ struct address_iter {
     NetplanAddressOptions* last_address;
 };
 
+struct nameserver_iter {
+    guint ip4_index;
+    guint ip6_index;
+    guint search_index;
+    NetplanNetDefinition* netdef;
+};
+
 typedef struct {
     NetplanWifiMode mode;
     char* ssid;

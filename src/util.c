@@ -784,6 +784,63 @@ _netplan_address_iter_free(struct address_iter* it)
     g_free(it);
 }
 
+struct nameserver_iter*
+_netplan_netdef_new_nameserver_iter(NetplanNetDefinition* netdef)
+{
+    struct nameserver_iter* it = g_malloc0(sizeof(struct nameserver_iter));
+    it->ip4_index = 0;
+    it->ip6_index = 0;
+    it->netdef = netdef;
+
+    return it;
+}
+
+char*
+_netplan_nameserver_iter_next(struct nameserver_iter* it)
+{
+    if (it->netdef->ip4_nameservers && it->ip4_index < it->netdef->ip4_nameservers->len) {
+        return g_array_index(it->netdef->ip4_nameservers, char*, it->ip4_index++);
+    }
+
+    if (it->netdef->ip6_nameservers && it->ip6_index < it->netdef->ip6_nameservers->len) {
+        return g_array_index(it->netdef->ip6_nameservers, char*, it->ip6_index++);
+    }
+
+    return NULL;
+}
+
+void
+_netplan_nameserver_iter_free(struct nameserver_iter* it)
+{
+    g_free(it);
+}
+
+struct nameserver_iter*
+_netplan_netdef_new_search_domain_iter(NetplanNetDefinition* netdef)
+{
+    struct nameserver_iter* it = g_malloc0(sizeof(struct nameserver_iter));
+    it->search_index = 0;
+    it->netdef = netdef;
+
+    return it;
+}
+
+char*
+_netplan_search_domain_iter_next(struct nameserver_iter* it)
+{
+    if (it->netdef->search_domains && it->search_index < it->netdef->search_domains->len) {
+        return g_array_index(it->netdef->search_domains, char*, it->search_index++);
+    }
+
+    return NULL;
+}
+
+void
+_netplan_search_domain_iter_free(struct nameserver_iter* it)
+{
+    g_free(it);
+}
+
 struct netdef_pertype_iter {
     NetplanDefType type;
     GHashTableIter iter;

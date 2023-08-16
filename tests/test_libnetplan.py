@@ -262,6 +262,37 @@ class TestNetdefAddressesIterator(TestBase):
         del iter
 
 
+class TestNetdefNameserverSearchDomainIterator(TestBase):
+    def test_with_empty_nameservers(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0: {}''')
+
+        netdef = next(netplan.netdef.NetDefinitionIterator(state, "ethernets"))
+        self.assertSetEqual(set(), set(ip for ip in netdef.nameserver_addresses))
+        self.assertSetEqual(set(), set(ip for ip in netdef.nameserver_search))
+
+    def test_iter_ethernets_nameservers_and_domains(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      nameservers:
+        search:
+          - home.local
+          - mynet.local
+        addresses:
+          - 192.168.0.1
+          - 172.16.0.1
+          - 1234:4321:abcd::cdef
+          - abcd::1234''')
+
+        expected_addresses = set(["1234:4321:abcd::cdef", "abcd::1234", "192.168.0.1", "172.16.0.1"])
+        expected_domains = set(["home.local", "mynet.local"])
+        netdef = next(netplan.netdef.NetDefinitionIterator(state, "ethernets"))
+        self.assertSetEqual(expected_addresses, set(ip for ip in netdef.nameserver_addresses))
+        self.assertSetEqual(expected_domains, set(domain for domain in netdef.nameserver_search))
+
+
 class TestParser(TestBase):
     def test_load_yaml_from_fd_empty(self):
         parser = netplan.Parser()

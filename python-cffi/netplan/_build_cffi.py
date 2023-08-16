@@ -41,6 +41,7 @@ ffibuilder.cdef("""
         char* label;
     } NetplanAddressOptions;
     struct address_iter { ...; };
+    struct nameserver_iter { ...; };
 
     // Error handling
     uint64_t netplan_error_code(NetplanError* error);
@@ -105,6 +106,12 @@ ffibuilder.cdef("""
     struct address_iter* _netplan_netdef_new_address_iter(NetplanNetDefinition* netdef);
     NetplanAddressOptions* _netplan_address_iter_next(struct address_iter* it);
     void _netplan_address_iter_free(struct address_iter* it);
+    struct nameserver_iter* _netplan_netdef_new_nameserver_iter(NetplanNetDefinition* netdef);
+    char* _netplan_nameserver_iter_next(struct nameserver_iter* it);
+    void _netplan_nameserver_iter_free(struct nameserver_iter* it);
+    struct nameserver_iter* _netplan_netdef_new_search_domain_iter(NetplanNetDefinition* netdef);
+    char* _netplan_search_domain_iter_next(struct nameserver_iter* it);
+    void _netplan_search_domain_iter_free(struct nameserver_iter* it);
 
     // Utils
     gboolean netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error);
