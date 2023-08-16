@@ -133,6 +133,9 @@ netplan_netdef_get_dhcp4(const NetplanNetDefinition* netdef);
 NETPLAN_PUBLIC gboolean
 netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef);
 
+NETPLAN_PUBLIC ssize_t
+netplan_netdef_get_macaddress(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
+
 /********** Old API below this ***********/
 
 NETPLAN_DEPRECATED NETPLAN_PUBLIC const char *
