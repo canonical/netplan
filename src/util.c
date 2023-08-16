@@ -841,6 +841,31 @@ _netplan_search_domain_iter_free(struct nameserver_iter* it)
     g_free(it);
 }
 
+struct route_iter*
+_netplan_netdef_new_route_iter(NetplanNetDefinition* netdef)
+{
+    struct route_iter* it = g_malloc0(sizeof(struct route_iter));
+    it->route_index = 0;
+    it->netdef = netdef;
+
+    return it;
+}
+
+NetplanIPRoute*
+_netplan_route_iter_next(struct route_iter* it)
+{
+    if (it->netdef->routes && it->route_index < it->netdef->routes->len)
+        return g_array_index(it->netdef->routes, NetplanIPRoute*, it->route_index++);
+
+    return NULL;
+}
+
+void
+_netplan_route_iter_free(struct route_iter* it)
+{
+    g_free(it);
+}
+
 struct netdef_pertype_iter {
     NetplanDefType type;
     GHashTableIter iter;

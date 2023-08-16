@@ -293,6 +293,50 @@ class TestNetdefNameserverSearchDomainIterator(TestBase):
         self.assertSetEqual(expected_domains, set(domain for domain in netdef.nameserver_search))
 
 
+class TestNetdefRouteIterator(TestBase):
+    def test_with_empty_routes(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0: {}''')
+
+        netdef = next(netplan.netdef.NetDefinitionIterator(state, "ethernets"))
+        self.assertTrue(len([ip for ip in netdef.routes]) == 0)
+
+    def test_iter_routes(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      routes:
+        - to: default
+          via: 192.168.0.1
+        - to: 1.2.3.0/24
+          via: 10.20.30.40
+          metric: 1000
+          table: 1000
+          from: 192.168.0.0/24
+        - to: 3.2.1.0/24
+          via: 10.20.30.40
+          metric: 1000
+          table: 1000
+          on-link: true
+          type: local
+          scope: host
+          mtu: 1500
+          congestion-window: 123
+          advertised-receive-window: 321
+          from: 192.168.0.0/24''')
+
+        netdef = next(netplan.netdef.NetDefinitionIterator(state, "ethernets"))
+        routes = [route for route in netdef.routes]
+        self.assertSetEqual({routes[0].to, routes[0].via}, {'default', '192.168.0.1'})
+        self.assertSetEqual({routes[1].to, routes[1].via, routes[1].metric, routes[1].table, routes[1].from_addr},
+                            {'1.2.3.0/24', '10.20.30.40', 1000, 1000, '192.168.0.0/24'})
+        self.assertSetEqual({routes[2].to, routes[2].via, routes[2].metric, routes[2].table, routes[2].from_addr,
+                             routes[2].onlink, routes[2].type, routes[2].scope, routes[2].mtubytes, routes[2].congestion_window,
+                             routes[2].advertised_receive_window},
+                            {'3.2.1.0/24', '10.20.30.40', 1000, 1000, True, 'local', 'host', 1500, 123, 321, '192.168.0.0/24'})
+
+
 class TestParser(TestBase):
     def test_load_yaml_from_fd_empty(self):
         parser = netplan.Parser()

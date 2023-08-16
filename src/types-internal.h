@@ -114,6 +114,11 @@ struct nameserver_iter {
     NetplanNetDefinition* netdef;
 };
 
+struct route_iter {
+    guint route_index;
+    NetplanNetDefinition* netdef;
+};
+
 typedef struct {
     NetplanWifiMode mode;
     char* ssid;
