@@ -48,6 +48,15 @@ class NetDefinition():
     def dhcp6(self) -> bool:
         return bool(lib.netplan_netdef_get_dhcp6(self._ptr))
 
+    @property
+    def nameserver_addresses(self) -> '_NetdefNameserverIterator':
+        return _NetdefNameserverIterator(self._ptr)
+
+    @property
+    def nameserver_search(self) -> '_NetdefSearchDomainIterator':
+        return _NetdefSearchDomainIterator(self._ptr)
+
+    @property
     def macaddress(self) -> str:
         return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_macaddress(self._ptr, b, len(b)))
 
@@ -189,3 +198,39 @@ class _NetdefAddressIterator:
         lifetime = ffi.string(content.lifetime).decode('utf-8') if content.lifetime else None
         label = ffi.string(content.label).decode('utf-8') if content.label else None
         return NetplanAddress(address, lifetime, label)
+
+
+class _NetdefNameserverIterator:
+    def __init__(self, netdef: NetDefinition):
+        self.netdef = netdef
+        self.iterator = lib._netplan_netdef_new_nameserver_iter(netdef)
+
+    def __del__(self):
+        lib._netplan_nameserver_iter_free(self.iterator)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        next_value = lib._netplan_nameserver_iter_next(self.iterator)
+        if not next_value:
+            raise StopIteration
+        return ffi.string(next_value).decode('utf-8')
+
+
+class _NetdefSearchDomainIterator:
+    def __init__(self, netdef):
+        self.netdef = netdef
+        self.iterator = lib._netplan_netdef_new_search_domain_iter(netdef)
+
+    def __del__(self):
+        lib._netplan_search_domain_iter_free(self.iterator)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        next_value = lib._netplan_search_domain_iter_next(self.iterator)
+        if not next_value:
+            raise StopIteration
+        return ffi.string(next_value).decode('utf-8')

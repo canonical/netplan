@@ -141,6 +141,24 @@ _netplan_address_iter_next(struct address_iter* it);
 NETPLAN_INTERNAL void
 _netplan_address_iter_free(struct address_iter* it);
 
+NETPLAN_INTERNAL struct nameserver_iter*
+_netplan_netdef_new_nameserver_iter(NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL char*
+_netplan_nameserver_iter_next(struct nameserver_iter* it);
+
+NETPLAN_INTERNAL void
+_netplan_nameserver_iter_free(struct nameserver_iter* it);
+
+NETPLAN_INTERNAL struct nameserver_iter*
+_netplan_netdef_new_search_domain_iter(NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL char*
+_netplan_search_domain_iter_next(struct nameserver_iter* it);
+
+NETPLAN_INTERNAL void
+_netplan_search_domain_iter_free(struct nameserver_iter* it);
+
 NETPLAN_INTERNAL struct netdef_pertype_iter*
 _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type);
 
