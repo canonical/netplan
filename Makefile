@@ -1,4 +1,5 @@
 .PHONY: clean default check linting pre-coverage
+VER = $(shell meson introspect _build/ --projectinfo | jq -r '.version' && rm -rf _build)
 
 DESTDIR ?= ../tmproot
 
@@ -27,6 +28,10 @@ clean:
 	rm -rf _leakcheckbuild
 	rm -rf tmproot
 	rm -f python-cffi/netplan/_netplan_cffi.*
+
+dist: clean _build
+	tar --exclude="_build" --exclude=".git" --exclude="debian" --exclude=".vscode" -cvJf ../netplan-$(VER).tar.xz .
+	ln -sf netplan-$(VER).tar.xz ../netplan.io_$(VER).orig.tar.xz  # Debian .orig symlink
 
 check: default
 	meson test -C _build --verbose
