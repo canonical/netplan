@@ -1930,3 +1930,49 @@ interface-name=veth-peer1
 
 [ipv4]
 method=auto\n'''.format(UUID), expect_fail=True)
+
+    def test_vrf_basic(self):
+        self.generate_from_keyfile('''[connection]
+id=vrf0
+uuid={}
+type=vrf
+interface-name=vrf0
+
+[vrf]
+table=1000
+
+[ipv4]
+route1=10.10.0.0/16,10.10.10.1
+route1_options=table=1000
+method=link-local\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  vrfs:
+    NM-{}:
+      renderer: NetworkManager
+      routes:
+      - to: "10.10.0.0/16"
+        via: "10.10.10.1"
+      table: 1000
+      networkmanager:
+        uuid: "{}"
+        name: "vrf0"
+        passthrough:
+          connection.interface-name: "vrf0"
+'''.format(UUID, UUID)})
+
+    def test_vrf_without_table_should_fail(self):
+        out = self.generate_from_keyfile('''[connection]
+id=vrf0
+uuid={}
+type=vrf
+interface-name=vrf0
+
+[vrf]
+
+[ipv4]
+route1=10.10.0.0/16,10.10.10.1
+route1_options=table=1000
+method=link-local\n'''.format(UUID), expect_fail=True)
+
+        self.assertIn('missing \'table\' property', out)

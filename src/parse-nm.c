@@ -53,6 +53,8 @@ type_from_str(const char* type_str)
         return NETPLAN_DEF_TYPE_VETH;
     else if (!g_strcmp0(type_str, "vlan"))
         return NETPLAN_DEF_TYPE_VLAN;
+    else if (!g_strcmp0(type_str, "vrf"))
+        return NETPLAN_DEF_TYPE_VRF;
     else if (   !g_strcmp0(type_str, "wireguard")
              || !g_strcmp0(type_str, "vxlan")
              || !g_strcmp0(type_str, "ip-tunnel"))
@@ -697,6 +699,14 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
     }
 
+    /* Handle VRFs */
+    if (nd_type == NETPLAN_DEF_TYPE_VRF) {
+        if (g_key_file_has_key(kf, "vrf", "table", NULL)) {
+            nd->vrf_table = g_key_file_get_uint64(kf, "vrf", "table", NULL);
+            _kf_clear_key(kf, "vrf", "table");
+        }
+    }
+
     /* remove supported values from passthrough, which have been handled */
     if (   nd_type == NETPLAN_DEF_TYPE_ETHERNET
         || nd_type == NETPLAN_DEF_TYPE_WIFI
@@ -706,6 +716,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         || nd_type == NETPLAN_DEF_TYPE_DUMMY       /* wokeignore:rule=dummy */
         || nd_type == NETPLAN_DEF_TYPE_VLAN
         || nd_type == NETPLAN_DEF_TYPE_VETH
+        || nd_type == NETPLAN_DEF_TYPE_VRF
         || (nd_type == NETPLAN_DEF_TYPE_TUNNEL && nd->tunnel.mode != NETPLAN_TUNNEL_MODE_UNKNOWN))
         _kf_clear_key(kf, "connection", "type");
 
