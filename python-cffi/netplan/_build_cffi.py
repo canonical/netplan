@@ -27,6 +27,7 @@ ffibuilder.cdef("""
     #define UINT_MAX ...
     typedef int gboolean;
     typedef unsigned int guint;
+    typedef int gint;
     typedef struct GError NetplanError;
     typedef struct netplan_parser NetplanParser;
     typedef struct netplan_state NetplanState;
@@ -42,6 +43,23 @@ ffibuilder.cdef("""
     } NetplanAddressOptions;
     struct address_iter { ...; };
     struct nameserver_iter { ...; };
+    struct route_iter { ...; };
+
+    // TODO: Introduce getters for all these fields to avoid exposing the raw struct
+    typedef struct {
+        gint family;
+        char* type;
+        char* scope;
+        guint table;
+        char* from;
+        char* to;
+        char* via;
+        gboolean onlink;
+        guint metric;
+        guint mtubytes;
+        guint congestion_window;
+        guint advertised_receive_window;
+    } NetplanIPRoute;
 
     // Error handling
     uint64_t netplan_error_code(NetplanError* error);
@@ -112,6 +130,9 @@ ffibuilder.cdef("""
     struct nameserver_iter* _netplan_netdef_new_search_domain_iter(NetplanNetDefinition* netdef);
     char* _netplan_search_domain_iter_next(struct nameserver_iter* it);
     void _netplan_search_domain_iter_free(struct nameserver_iter* it);
+    struct route_iter* _netplan_netdef_new_route_iter(NetplanNetDefinition* netdef);
+    NetplanIPRoute* _netplan_route_iter_next(struct route_iter* it);
+    void _netplan_route_iter_free(struct route_iter* it);
 
     // Utils
     gboolean netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error);

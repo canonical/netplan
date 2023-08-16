@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass
+
 from ._netplan_cffi import ffi, lib
 from ._utils import _string_realloc_call_no_error, NetplanException
 
@@ -55,6 +57,10 @@ class NetDefinition():
     @property
     def nameserver_search(self) -> '_NetdefSearchDomainIterator':
         return _NetdefSearchDomainIterator(self._ptr)
+
+    @property
+    def routes(self) -> '_NetdefRouteIterator':
+        return _NetdefRouteIterator(self._ptr)
 
     @property
     def macaddress(self) -> str:
@@ -234,3 +240,53 @@ class _NetdefSearchDomainIterator:
         if not next_value:
             raise StopIteration
         return ffi.string(next_value).decode('utf-8')
+
+
+@dataclass
+class NetplanRoute:
+    to: str
+    via: str
+    from_addr: str
+    type: str
+    scope: str
+    family: int
+    table: int
+    metric: int
+    mtubytes: int
+    congestion_window: int
+    advertised_receive_window: int
+    onlink: bool
+
+
+class _NetdefRouteIterator:
+    def __init__(self, netdef):
+        self.netdef = netdef
+        self.iterator = lib._netplan_netdef_new_route_iter(netdef)
+
+    def __del__(self):
+        lib._netplan_route_iter_free(self.iterator)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        next_value = lib._netplan_route_iter_next(self.iterator)
+        if not next_value:
+            raise StopIteration
+
+        # The field 'from' happens to be a reserved keyword in Python
+        from_addr = getattr(next_value, 'from')
+        return NetplanRoute(
+            ffi.string(next_value.to).decode('utf-8') if next_value.to else None,
+            ffi.string(next_value.via).decode('utf-8') if next_value.via else None,
+            ffi.string(from_addr).decode('utf-8') if from_addr else None,
+            ffi.string(next_value.type).decode('utf-8') if next_value.type else None,
+            ffi.string(next_value.scope).decode('utf-8') if next_value.scope else None,
+            next_value.family,
+            next_value.table,
+            next_value.metric,
+            next_value.mtubytes,
+            next_value.congestion_window,
+            next_value.advertised_receive_window,
+            next_value.onlink,
+        )
