@@ -132,14 +132,14 @@ is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* r
 NETPLAN_INTERNAL gboolean //FIXME: avoid exporting private symbol
 is_string_in_array(GArray* array, const char* value);
 
-NETPLAN_INTERNAL struct netdef_address_iter*
-_netplan_new_netdef_address_iter(NetplanNetDefinition* netdef);
+NETPLAN_INTERNAL struct address_iter*
+_netplan_netdef_new_address_iter(NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL NetplanAddressOptions*
-_netplan_netdef_address_iter_next(struct netdef_address_iter* it);
+_netplan_address_iter_next(struct address_iter* it);
 
 NETPLAN_INTERNAL void
-_netplan_netdef_address_free_iter(struct netdef_address_iter* it);
+_netplan_address_iter_free(struct address_iter* it);
 
 NETPLAN_INTERNAL struct netdef_pertype_iter*
 _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type);

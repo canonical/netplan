@@ -715,10 +715,10 @@ get_unspecified_address(int ip_family)
     return (ip_family == AF_INET) ? "0.0.0.0" : "::";
 }
 
-struct netdef_address_iter*
-_netplan_new_netdef_address_iter(NetplanNetDefinition* netdef)
+struct address_iter*
+_netplan_netdef_new_address_iter(NetplanNetDefinition* netdef)
 {
-    struct netdef_address_iter* it = g_malloc0(sizeof(struct netdef_address_iter));
+    struct address_iter* it = g_malloc0(sizeof(struct address_iter));
     it->ip4_index = 0;
     it->ip6_index = 0;
     it->address_options_index = 0;
@@ -740,7 +740,7 @@ _netplan_new_netdef_address_iter(NetplanNetDefinition* netdef)
  * nothing else to be produced and the iterator was called one last time.
  */
 NetplanAddressOptions*
-_netplan_netdef_address_iter_next(struct netdef_address_iter* it)
+_netplan_address_iter_next(struct address_iter* it)
 {
     NetplanAddressOptions* options = NULL;
 
@@ -777,7 +777,7 @@ _netplan_netdef_address_iter_next(struct netdef_address_iter* it)
 }
 
 void
-_netplan_netdef_address_free_iter(struct netdef_address_iter* it)
+_netplan_address_iter_free(struct address_iter* it)
 {
     if (it->last_address)
         free_address_options(it->last_address);

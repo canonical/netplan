@@ -40,7 +40,7 @@ ffibuilder.cdef("""
         char* lifetime;
         char* label;
     } NetplanAddressOptions;
-    struct netdef_address_iter { ...; };
+    struct address_iter { ...; };
 
     // Error handling
     uint64_t netplan_error_code(NetplanError* error);
@@ -102,9 +102,9 @@ ffibuilder.cdef("""
     struct netdef_pertype_iter* _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type);
     NetplanNetDefinition* _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it);
     void _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it);
-    struct netdef_address_iter* _netplan_new_netdef_address_iter(NetplanNetDefinition* netdef);
-    NetplanAddressOptions* _netplan_netdef_address_iter_next(struct netdef_address_iter* it);
-    void _netplan_netdef_address_free_iter(struct netdef_address_iter* it);
+    struct address_iter* _netplan_netdef_new_address_iter(NetplanNetDefinition* netdef);
+    NetplanAddressOptions* _netplan_address_iter_next(struct address_iter* it);
+    void _netplan_address_iter_free(struct address_iter* it);
 
     // Utils
     gboolean netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error);

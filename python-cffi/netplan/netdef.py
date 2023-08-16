@@ -170,21 +170,21 @@ class NetplanAddress:
 class _NetdefAddressIterator:
     def __init__(self, netdef: NetDefinition):
         self.netdef = netdef
-        self.iterator = lib._netplan_new_netdef_address_iter(netdef)
+        self.iterator = lib._netplan_netdef_new_address_iter(netdef)
 
     def __del__(self):
-        lib._netplan_netdef_address_free_iter(self.iterator)
+        lib._netplan_address_iter_free(self.iterator)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        next_value = lib._netplan_netdef_address_iter_next(self.iterator)
+        next_value = lib._netplan_address_iter_next(self.iterator)
         if not next_value:
             raise StopIteration
         content = next_value
         # XXX: Introduce getters for .address/.lifetime/.label, to avoid
-        #      exposing the 'netdef_address_iter' struct in _netplan_cffi.so
+        #      exposing the 'address_iter' struct in _netplan_cffi.so
         address = ffi.string(content.address).decode('utf-8') if content.address else None
         lifetime = ffi.string(content.lifetime).decode('utf-8') if content.lifetime else None
         label = ffi.string(content.label).decode('utf-8') if content.label else None
