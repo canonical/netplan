@@ -32,6 +32,7 @@ from utils import state_from_yaml
 from netplan_cli.cli.commands.set import FALLBACK_FILENAME
 
 import netplan
+from netplan.netdef import NetplanRoute
 
 # We still need direct (ctypes) access to libnetplan.so to test certain cases
 # that are not covered by the 'netplan' module bindings
@@ -335,6 +336,58 @@ class TestNetdefRouteIterator(TestBase):
                              routes[2].onlink, routes[2].type, routes[2].scope, routes[2].mtubytes, routes[2].congestion_window,
                              routes[2].advertised_receive_window},
                             {'3.2.1.0/24', '10.20.30.40', 1000, 1000, True, 'local', 'host', 1500, 123, 321, '192.168.0.0/24'})
+
+
+class TestRoute(TestBase):
+    def test_route_str(self):
+        route1 = {}
+        route1['to'] = 'default'
+        route1['via'] = '192.168.0.1'
+        route1['from_addr'] = '192.168.0.1'
+        route1['metric'] = 1000
+
+        route = NetplanRoute(**route1)
+
+        expected_str = 'default via 192.168.0.1 type unicast scope global src 192.168.0.1 metric 1000'
+
+        self.assertEqual(str(route), expected_str)
+
+    def test_route_str_with_table(self):
+        route1 = {}
+        route1['to'] = 'default'
+        route1['via'] = '192.168.0.1'
+        route1['from_addr'] = '192.168.0.1'
+        route1['metric'] = 1000
+        route1['table'] = 1234
+
+        route = NetplanRoute(**route1)
+
+        expected_str = 'default via 192.168.0.1 type unicast scope global src 192.168.0.1 metric 1000 table 1234'
+
+        self.assertEqual(str(route), expected_str)
+
+    def test_routes_to_dict(self):
+        route1 = {}
+        route1['to'] = 'default'
+        route1['via'] = '192.168.0.1'
+        route1['from_addr'] = '192.168.0.1'
+        route1['metric'] = 1000
+        route1['table'] = 1234
+        route1['family'] = 2
+
+        route = NetplanRoute(**route1)
+
+        expected_dict = {
+            'from': '192.168.0.1',
+            'metric': 1000,
+            'table': 1234,
+            'to': 'default',
+            'type': 'unicast',
+            'via': '192.168.0.1',
+            'family': 2,
+        }
+
+        self.assertDictEqual(route.to_dict(), expected_dict)
 
 
 class TestParser(TestBase):

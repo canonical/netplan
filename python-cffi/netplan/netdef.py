@@ -242,20 +242,61 @@ class _NetdefSearchDomainIterator:
         return ffi.string(next_value).decode('utf-8')
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class NetplanRoute:
-    to: str
-    via: str
-    from_addr: str
-    type: str
-    scope: str
-    family: int
-    table: int
-    metric: int
-    mtubytes: int
-    congestion_window: int
-    advertised_receive_window: int
-    onlink: bool
+    _METRIC_UNSPEC_ = lib.UINT_MAX
+    _TABLE_UNSPEC_ = 0
+
+    to: str = None
+    via: str = None
+    from_addr: str = None
+    type: str = 'unicast'
+    scope: str = 'global'
+    protocol: str = None
+    table: int = _TABLE_UNSPEC_
+    family: int = -1
+    metric: int = _METRIC_UNSPEC_
+    mtubytes: int = 0
+    congestion_window: int = 0
+    advertised_receive_window: int = 0
+    onlink: bool = False
+
+    def __str__(self):
+        route = ""
+        if self.to:
+            route = route + self.to
+        if self.via:
+            route = route + f' via {self.via}'
+        if self.type:
+            route = route + f' type {self.type}'
+        if self.scope:
+            route = route + f' scope {self.scope}'
+        if self.from_addr:
+            route = route + f' src {self.from_addr}'
+        if self.metric < self._METRIC_UNSPEC_:
+            route = route + f' metric {self.metric}'
+        if self.table > self._TABLE_UNSPEC_:
+            route = route + f' table {self.table}'
+        return route.strip()
+
+    def to_dict(self):
+        route = {}
+        if self.family >= 0:
+            route['family'] = self.family
+        if self.to:
+            route['to'] = self.to
+        if self.via:
+            route['via'] = self.via
+        if self.from_addr:
+            route['from'] = self.from_addr
+        if self.metric < self._METRIC_UNSPEC_:
+            route['metric'] = self.metric
+        if self.table > self._TABLE_UNSPEC_:
+            route['table'] = self.table
+
+        route['type'] = self.type
+
+        return route
 
 
 class _NetdefRouteIterator:
@@ -276,17 +317,21 @@ class _NetdefRouteIterator:
 
         # The field 'from' happens to be a reserved keyword in Python
         from_addr = getattr(next_value, 'from')
-        return NetplanRoute(
-            ffi.string(next_value.to).decode('utf-8') if next_value.to else None,
-            ffi.string(next_value.via).decode('utf-8') if next_value.via else None,
-            ffi.string(from_addr).decode('utf-8') if from_addr else None,
-            ffi.string(next_value.type).decode('utf-8') if next_value.type else None,
-            ffi.string(next_value.scope).decode('utf-8') if next_value.scope else None,
-            next_value.family,
-            next_value.table,
-            next_value.metric,
-            next_value.mtubytes,
-            next_value.congestion_window,
-            next_value.advertised_receive_window,
-            next_value.onlink,
-        )
+
+        route = {
+            'to': ffi.string(next_value.to).decode('utf-8') if next_value.to else None,
+            'via': ffi.string(next_value.via).decode('utf-8') if next_value.via else None,
+            'from_addr': ffi.string(from_addr).decode('utf-8') if from_addr else None,
+            'type': ffi.string(next_value.type).decode('utf-8') if next_value.type else None,
+            'scope': ffi.string(next_value.scope).decode('utf-8') if next_value.scope else None,
+            'protocol': None,
+            'table': next_value.table,
+            'family': next_value.family,
+            'metric': next_value.metric,
+            'mtubytes': next_value.mtubytes,
+            'congestion_window': next_value.congestion_window,
+            'advertised_receive_window': next_value.advertised_receive_window,
+            'onlink': next_value.onlink
+        }
+
+        return NetplanRoute(**route)
