@@ -37,8 +37,3 @@ executable(
 meson.add_install_script(meson_make_symlink,
     join_paths(get_option('prefix'), libexec_netplan, 'generate'),
     join_paths(systemd_generator_dir, 'netplan'))
-# FIXME: Drop legacy symlink after 0.107 is released:
-# It's only around for legacy reasons, see netplan/cli/utils.py: get_generator_path()
-meson.add_install_script(meson_make_symlink,
-    join_paths(get_option('prefix'), libexec_netplan, 'generate'),
-    join_paths('/', 'lib', 'netplan', 'generate'))
