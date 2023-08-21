@@ -295,6 +295,7 @@ class _CommonTests():
         table: 1000
   vrfs:
     vrf0:
+      addresses: [10.10.10.20/24]
       table: 1000
       interfaces: [%(ec)s]
       routes:
