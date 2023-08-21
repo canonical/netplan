@@ -2864,6 +2864,7 @@ static const mapping_entry_handler vlan_def_handlers[] = {
 };
 
 static const mapping_entry_handler vrf_def_handlers[] = {
+    COMMON_LINK_HANDLERS,
     COMMON_BACKEND_HANDLERS,
     {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}, NULL},
     {"interfaces", YAML_SEQUENCE_NODE, {.generic=handle_vrf_interfaces}, NULL},
