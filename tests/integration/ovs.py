@@ -76,9 +76,12 @@ class _CommonTests():
   openvswitch:
     ports:
       - [patch0-1, patch1-0]
+  ethernets:
+    # define this eth to avoid NM taking control and breaking the following .generate_and_settle()
+    %(ec)s: {}
   bridges:
     ovs0: {interfaces: [patch0-1]}
-    ovs1: {interfaces: [patch1-0]}''')
+    ovs1: {interfaces: [patch1-0]}''' % {'ec': self.dev_e_client})
         self.generate_and_settle(['ovs0', 'ovs1'])
         # Basic verification that the bridges/ports/interfaces are there in OVS
         out = subprocess.check_output(['ovs-vsctl', '-t', '5', 'show'])
