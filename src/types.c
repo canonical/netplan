@@ -114,6 +114,7 @@ reset_auth_settings(NetplanAuthenticationSettings* auth)
     FREE_AND_NULLIFY(auth->phase2_auth);
     auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_NONE;
     auth->eap_method = NETPLAN_AUTH_EAP_NONE;
+    auth->pmf_mode = NETPLAN_AUTH_PMF_MODE_NONE;
 }
 
 void

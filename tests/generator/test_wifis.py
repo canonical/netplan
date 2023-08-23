@@ -342,7 +342,7 @@ network={
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
-    def test_wifi_wpa3(self):
+    def test_wifi_wpa3_personal(self):
         self.generate('''network:
   version: 2
   wifis:
@@ -360,6 +360,72 @@ network={
   key_mgmt=SAE
   ieee80211w=2
   psk="********"
+}
+""")
+
+    def test_wifi_wpa3_enterprise_eap_sha256(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: eap-sha256
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "**********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  key_mgmt=WPA-EAP WPA-EAP-SHA256
+  eap=TLS
+  ieee80211w=1
+  identity="cert-joe@cust.example.com"
+  anonymous_identity="@cust.example.com"
+  ca_cert="/etc/ssl/cust-cacrt.pem"
+  client_cert="/etc/ssl/cust-crt.pem"
+  private_key="/etc/ssl/cust-key.pem"
+  private_key_passwd="**********"
+}
+""")
+
+    def test_wifi_wpa3_enterprise_eap_suite_b_192(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: eap-suite-b-192
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "**********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  key_mgmt=WPA-EAP-SUITE-B-192
+  eap=TLS
+  ieee80211w=2
+  identity="cert-joe@cust.example.com"
+  anonymous_identity="@cust.example.com"
+  ca_cert="/etc/ssl/cust-cacrt.pem"
+  client_cert="/etc/ssl/cust-crt.pem"
+  private_key="/etc/ssl/cust-key.pem"
+  private_key_passwd="**********"
 }
 """)
 
@@ -671,7 +737,7 @@ network={
 }
 """)
 
-    def test_wifi_wpa3(self):
+    def test_wifi_wpa3_personal(self):
         self.generate('''network:
   version: 2
   renderer: NetworkManager
@@ -700,7 +766,102 @@ mode=infrastructure
 
 [wifi-security]
 key-mgmt=sae
+pmf=3
 psk=********
+'''})
+
+    def test_wifi_wpa3_enterprise_eap_sha256(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: eap-sha256
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "**********"''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-eap
+pmf=2
+
+[802-1x]
+eap=tls
+identity=cert-joe@cust.example.com
+anonymous-identity=@cust.example.com
+ca-cert=/etc/ssl/cust-cacrt.pem
+client-cert=/etc/ssl/cust-crt.pem
+private-key=/etc/ssl/cust-key.pem
+private-key-password=**********
+'''})
+
+    def test_wifi_wpa3_enterprise_eap_suite_b_192(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: eap-suite-b-192
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "**********"''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-eap-suite-b-192
+pmf=3
+
+[802-1x]
+eap=tls
+identity=cert-joe@cust.example.com
+anonymous-identity=@cust.example.com
+ca-cert=/etc/ssl/cust-cacrt.pem
+client-cert=/etc/ssl/cust-crt.pem
+private-key=/etc/ssl/cust-key.pem
+private-key-password=**********
 '''})
 
     def test_wifi_wowlan(self):

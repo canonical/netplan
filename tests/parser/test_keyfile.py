@@ -1259,6 +1259,7 @@ ssid=ubuntu-wpa2-wpa3-mixed
 [wifi-security]
 key-mgmt=sae
 psk=test1234
+pmf=3
 
 [ipv4]
 method=auto
@@ -1284,6 +1285,136 @@ method=auto
           auth:
             key-management: "sae"
             password: "test1234"
+          networkmanager:
+            uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
+            name: "test2"
+            passthrough:
+              ipv6.ip6-privacy: "-1"
+              proxy._: ""
+      networkmanager:
+        uuid: "{}"
+        name: "test2"
+'''.format(UUID, UUID)})
+
+    def test_keyfile_wpa3_enterprise_eap_sha256(self):
+        self.generate_from_keyfile('''[connection]
+id=test2
+uuid={}
+type=wifi
+interface-name=wlan0
+
+[wifi]
+mode=infrastructure
+ssid=enterprisenet
+
+[wifi-security]
+key-mgmt=wpa-eap
+pmf=2
+
+[802-1x]
+eap=tls
+identity=cert-joe@cust.example.com
+anonymous-identity=@cust.example.com
+ca-cert=/etc/ssl/cust-cacrt.pem
+client-cert=/etc/ssl/cust-crt.pem
+private-key=/etc/ssl/cust-key.pem
+private-key-password=**********
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+method=auto
+
+[proxy]
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlan0"
+      dhcp4: true
+      dhcp6: true
+      ipv6-address-generation: "stable-privacy"
+      access-points:
+        "enterprisenet":
+          auth:
+            key-management: "eap-sha256"
+            method: "tls"
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: "/etc/ssl/cust-cacrt.pem"
+            client-certificate: "/etc/ssl/cust-crt.pem"
+            client-key: "/etc/ssl/cust-key.pem"
+            client-key-password: "**********"
+          networkmanager:
+            uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
+            name: "test2"
+            passthrough:
+              ipv6.ip6-privacy: "-1"
+              proxy._: ""
+      networkmanager:
+        uuid: "{}"
+        name: "test2"
+'''.format(UUID, UUID)})
+
+    def test_keyfile_wpa3_enterprise_eap_suite_b_192(self):
+        self.generate_from_keyfile('''[connection]
+id=test2
+uuid={}
+type=wifi
+interface-name=wlan0
+
+[wifi]
+mode=infrastructure
+ssid=enterprisenet
+
+[wifi-security]
+key-mgmt=wpa-eap-suite-b-192
+pmf=3
+
+[802-1x]
+eap=tls
+identity=cert-joe@cust.example.com
+anonymous-identity=@cust.example.com
+ca-cert=/etc/ssl/cust-cacrt.pem
+client-cert=/etc/ssl/cust-crt.pem
+private-key=/etc/ssl/cust-key.pem
+private-key-password=**********
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=stable-privacy
+method=auto
+
+[proxy]
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "wlan0"
+      dhcp4: true
+      dhcp6: true
+      ipv6-address-generation: "stable-privacy"
+      access-points:
+        "enterprisenet":
+          auth:
+            key-management: "eap-suite-b-192"
+            method: "tls"
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: "/etc/ssl/cust-cacrt.pem"
+            client-certificate: "/etc/ssl/cust-crt.pem"
+            client-key: "/etc/ssl/cust-key.pem"
+            client-key-password: "**********"
           networkmanager:
             uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
             name: "test2"

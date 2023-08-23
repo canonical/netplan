@@ -447,7 +447,12 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-psk");
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSHA256:
+            /* NM uses "wpa-eap" to enable both EAP and EAP-SHA256 */
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-eap");
+            break;
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSUITE_B_192:
+            g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-eap-suite-b-192");
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "sae");
@@ -456,6 +461,20 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "ieee8021x");
             break;
         default: break; // LCOV_EXCL_LINE
+    }
+
+    switch (auth->pmf_mode) {
+        case NETPLAN_AUTH_PMF_MODE_NONE:
+        case NETPLAN_AUTH_PMF_MODE_DISABLED:
+            break;
+
+        case NETPLAN_AUTH_PMF_MODE_OPTIONAL:
+            g_key_file_set_integer(kf, "wifi-security", "pmf", 2);
+            break;
+
+        case NETPLAN_AUTH_PMF_MODE_REQUIRED:
+            g_key_file_set_integer(kf, "wifi-security", "pmf", 3);
+            break;
     }
 
     if (auth->eap_method != NETPLAN_AUTH_EAP_NONE)

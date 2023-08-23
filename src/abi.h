@@ -106,6 +106,8 @@ typedef enum {
     NETPLAN_AUTH_KEY_MANAGEMENT_NONE,
     NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK,
     NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP,
+    NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSHA256,
+    NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSUITE_B_192,
     NETPLAN_AUTH_KEY_MANAGEMENT_8021X,
     NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE,
     NETPLAN_AUTH_KEY_MANAGEMENT_MAX,
@@ -119,9 +121,17 @@ typedef enum {
     NETPLAN_AUTH_EAP_METHOD_MAX,
 } NetplanAuthEAPMethod;
 
+typedef enum {
+    NETPLAN_AUTH_PMF_MODE_NONE,
+    NETPLAN_AUTH_PMF_MODE_DISABLED,
+    NETPLAN_AUTH_PMF_MODE_OPTIONAL,
+    NETPLAN_AUTH_PMF_MODE_REQUIRED,
+} NetplanAuthPMFMode;
+
 typedef struct authentication_settings {
     NetplanAuthKeyManagementType key_management;
     NetplanAuthEAPMethod eap_method;
+    NetplanAuthPMFMode pmf_mode;
     char* identity;
     char* anonymous_identity;
     char* password;

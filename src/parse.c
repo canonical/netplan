@@ -915,8 +915,27 @@ handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, __unused const
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
     else if (strcmp(scalar(node), "eap") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
-    else if (strcmp(scalar(node), "sae") == 0)
+    else if (strcmp(scalar(node), "eap-sha256") == 0) {
+        /* WPA-EAP-SHA256 is commonly used with Protected Management Frames
+         * so let's set it as optional
+         */
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSHA256;
+        auth->pmf_mode = NETPLAN_AUTH_PMF_MODE_OPTIONAL;
+    }
+    else if (strcmp(scalar(node), "eap-suite-b-192") == 0) {
+        /* Settings for WPA3-Enterprise for sensitive enterprise environments.
+         * Protected Management Frames (ieee80211w) is mandatory.
+         */
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSUITE_B_192;
+        auth->pmf_mode = NETPLAN_AUTH_PMF_MODE_REQUIRED;
+    }
+    else if (strcmp(scalar(node), "sae") == 0) {
+        /* SAE is used by WPA3 and Protected Management Frames
+         * (ieee80211w) is mandatory.
+         */
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE;
+        auth->pmf_mode = NETPLAN_AUTH_PMF_MODE_REQUIRED;
+    }
     else if (strcmp(scalar(node), "802.1x") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_8021X;
     else
