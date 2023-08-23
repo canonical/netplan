@@ -43,6 +43,12 @@ class _CommonTests():
       dhcp4: false
       dhcp6: false
       peer: veth0''' % {'r': self.backend})
+        # Workaround for NetworkManager on Ubuntu Jammy
+        # NM will not change the link state to UP after creating the interfaces and
+        # emit an error saying the second interface already exists. It looks like a bug in NM.
+        # NM will change the link state to IP after trying to create them again.
+        # Running netplan apply twice will workaround the issue.
+        subprocess.call(['netplan', 'apply'], stderr=subprocess.DEVNULL)
         self.generate_and_settle(['veth0', 'veth1'])
         self.assert_iface_up('veth0')
         self.assert_iface_up('veth1')
@@ -65,6 +71,12 @@ class _CommonTests():
       dhcp4: false
       dhcp6: false
       peer: veth0''' % {'r': self.backend})
+        # Workaround for NetworkManager on Ubuntu Jammy
+        # NM will not change the link state to UP after creating the interfaces and
+        # emit an error saying the second interface already exists. It looks like a bug in NM.
+        # NM will change the link state to IP after trying to create them again.
+        # Running netplan apply twice will workaround the issue.
+        subprocess.call(['netplan', 'apply'], stderr=subprocess.DEVNULL)
         self.generate_and_settle(['veth0', 'veth1'])
         self.assert_iface_up('veth0')
         self.assert_iface_up('veth1')
