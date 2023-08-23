@@ -609,6 +609,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     g_autofree gchar* netdef_id = NULL;
     ssize_t netdef_id_size = 0;
     gchar *tmp_str = NULL;
+    gint pmf = 0;
     NetplanNetDefinition* nd = NULL;
     NetplanWifiAccessPoint* ap = NULL;
     g_autoptr(GKeyFile) kf = g_key_file_new();
@@ -970,6 +971,10 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
             ap->has_auth = TRUE;
             _kf_clear_key(kf, "wifi-security", "key-mgmt");
+        } else if (tmp_str && g_strcmp0(tmp_str, "wpa-eap-suite-b-192") == 0) {
+            ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSUITE_B_192;
+            ap->has_auth = TRUE;
+            _kf_clear_key(kf, "wifi-security", "key-mgmt");
         } else if (tmp_str && g_strcmp0(tmp_str, "sae") == 0) {
             ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE;
             ap->has_auth = TRUE;
@@ -980,6 +985,26 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             _kf_clear_key(kf, "wifi-security", "key-mgmt");
         }
         g_free(tmp_str);
+
+        pmf = g_key_file_get_integer(kf, "wifi-security", "pmf", NULL);
+        switch (pmf) {
+            case 2:
+                ap->auth.pmf_mode = NETPLAN_AUTH_PMF_MODE_OPTIONAL;
+                _kf_clear_key(kf, "wifi-security", "pmf");
+                /* If pmf is set to 2 (optional) and the key management is EAP
+                 * we set it to EAPSHA256 so the correct method is emitted in the YAML
+                 */
+                if (ap->auth.key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP)
+                    ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSHA256;
+                break;
+
+            case 3:
+                ap->auth.pmf_mode = NETPLAN_AUTH_PMF_MODE_REQUIRED;
+                _kf_clear_key(kf, "wifi-security", "pmf");
+                break;
+
+            default: break;
+        }
 
         keyfile_handle_generic_str(kf, "wifi-security", "psk", &ap->auth.password);
         if (ap->auth.password)
