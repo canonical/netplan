@@ -850,8 +850,9 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
 
     > The supported key management modes are `none` (no key management);
     > `psk` (WPA with pre-shared key, common for home wifi); `eap` (WPA
-    > with EAP, common for enterprise wifi); `sae` (used by WPA3); and `802.1x`
-    > (used primarily for wired Ethernet connections).
+    > with EAP, common for enterprise wifi); `eap-sha256` (used with WPA3-Enterprise);
+    > `eap-suite-b-192` (used with WPA3-Enterprise); `sae` (used by WPA3);
+    > and `802.1x` (used primarily for wired Ethernet connections).
 
   - **password** (scalar)
 
@@ -863,7 +864,7 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
   - **method** (scalar)
 
      > The EAP method to use. The supported EAP methods are `tls` (TLS),
-    > `peap` (Protected EAP), and `ttls` (Tunneled TLS).
+     > `peap` (Protected EAP), and `ttls` (Tunneled TLS).
 
   - **identity** (scalar)
 

@@ -1,0 +1,26 @@
+network:
+  version: 2
+  wifis:
+    wl0:
+      dhcp4: yes
+      access-points:
+        university:
+          auth:
+            key-management: eap-sha256
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "d3cryptPr1v4t3K3y"
+        enterprise:
+          auth:
+            key-management: eap-suite-b-192
+            method: tls
+            anonymous-identity: "@cust.example.com"
+            identity: "cert-joe@cust.example.com"
+            ca-certificate: /etc/ssl/cust-cacrt.pem
+            client-certificate: /etc/ssl/cust-crt.pem
+            client-key: /etc/ssl/cust-key.pem
+            client-key-password: "d3cryptPr1v4t3K3y"

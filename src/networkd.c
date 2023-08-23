@@ -1049,13 +1049,16 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
             g_string_append(s, "  key_mgmt=WPA-EAP\n");
             break;
 
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSHA256:
+            g_string_append(s, "  key_mgmt=WPA-EAP WPA-EAP-SHA256\n");
+            break;
+
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSUITE_B_192:
+            g_string_append(s, "  key_mgmt=WPA-EAP-SUITE-B-192\n");
+            break;
+
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE:
-            /*
-             * SAE is used by WPA3 and Management Frame Protection
-             * (ieee80211w) is mandatory.
-             */
             g_string_append(s, "  key_mgmt=SAE\n");
-            g_string_append(s, "  ieee80211w=2\n");
             break;
 
         case NETPLAN_AUTH_KEY_MANAGEMENT_8021X:
@@ -1082,6 +1085,20 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
             break;
 
         default: break; // LCOV_EXCL_LINE
+    }
+
+    switch (auth->pmf_mode) {
+        case NETPLAN_AUTH_PMF_MODE_NONE:
+        case NETPLAN_AUTH_PMF_MODE_DISABLED:
+            break;
+
+        case NETPLAN_AUTH_PMF_MODE_OPTIONAL:
+            g_string_append(s, "  ieee80211w=1\n");
+            break;
+
+        case NETPLAN_AUTH_PMF_MODE_REQUIRED:
+            g_string_append(s, "  ieee80211w=2\n");
+            break;
     }
 
     if (auth->identity) {
