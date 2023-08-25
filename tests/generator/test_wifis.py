@@ -101,14 +101,16 @@ network={
 network={
   ssid="hidden-y"
   scan_ssid=1
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="0bscur1ty"
 }
 ''', new_config)
             self.assertIn('''
 network={
   ssid="hidden-n"
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="5ecur1ty"
 }
 ''', new_config)
@@ -117,7 +119,8 @@ network={
   ssid="workplace"
   bssid=de:ad:be:ef:ca:fe
   freq_list=5500
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="c0mpany1"
 }
 ''', new_config)
@@ -126,7 +129,8 @@ network={
   ssid="Joe's Home"
   bssid=00:11:22:33:44:55
   freq_list=2462
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="s0s3kr1t"
 }
 ''', new_config)
@@ -481,6 +485,7 @@ channel=11
 
 [wifi-security]
 key-mgmt=wpa-psk
+pmf=2
 psk=s0s3kr1t
 ''',
                         'wl0-workplace': '''[connection]
@@ -503,6 +508,7 @@ channel=100
 
 [wifi-security]
 key-mgmt=wpa-psk
+pmf=2
 psk=c0mpany1
 ''',
                         'wl0-hidden-y': '''[connection]
@@ -523,6 +529,7 @@ hidden=true
 
 [wifi-security]
 key-mgmt=wpa-psk
+pmf=2
 psk=0bscur1ty
 ''',
                         'wl0-hidden-n': '''[connection]
@@ -542,6 +549,7 @@ mode=infrastructure
 
 [wifi-security]
 key-mgmt=wpa-psk
+pmf=2
 psk=5ecur1ty
 ''',
                         'wl0-channel-no-band': '''[connection]
@@ -660,6 +668,7 @@ mode=ap
 
 [wifi-security]
 key-mgmt=wpa-psk
+pmf=2
 psk=s0s3cret
 '''})
         self.assert_networkd({})
@@ -709,7 +718,8 @@ network={
   ssid="homenet"
   frequency=2442
   mode=1
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="********"
 }
 """)
@@ -732,7 +742,8 @@ network={
   ssid="homenet"
   frequency=5035
   mode=1
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="********"
 }
 """)
