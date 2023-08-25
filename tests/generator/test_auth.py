@@ -107,7 +107,8 @@ network={
             self.assertIn('''
 network={
   ssid="BobsHome"
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk=e03ce667c87bc81ca968d9120ca37f89eb09aec3c55b80386e5d772efd6b926e
 }
 ''', new_config)
@@ -170,7 +171,8 @@ network={
             self.assertIn('''
 network={
   ssid="Joe's Home"
-  key_mgmt=WPA-PSK
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
   psk="s0s3kr1t"
 }
 ''', new_config)
@@ -303,6 +305,7 @@ mode=infrastructure
 
 [wifi-security]
 key-mgmt=wpa-psk
+pmf=2
 psk=s0s3kr1t
 ''',
                         'wl0-Luke%27s%20Home': '''[connection]

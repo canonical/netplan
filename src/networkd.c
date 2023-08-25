@@ -1042,7 +1042,13 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
             break;
 
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
-            g_string_append(s, "  key_mgmt=WPA-PSK\n");
+            if (auth->pmf_mode == NETPLAN_AUTH_PMF_MODE_OPTIONAL)
+                /* Case where the user only provided the password.
+                 * We enable support for WPA2 and WPA3 personal.
+                 */
+                g_string_append(s, "  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE\n");
+            else
+                g_string_append(s, "  key_mgmt=WPA-PSK\n");
             break;
 
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
