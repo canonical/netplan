@@ -46,9 +46,6 @@ jobs:
           dget -u "https://deb.debian.org/debian/pool/main/n/netplan.io/netplan.io_$V.dsc"
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          echo "usr/lib/python3/dist-packages/netplan/*" >> debian/netplan.io.install  # bindings
-          echo "override_dh_auto_configure:" >> debian/rules
-          echo "	dh_auto_configure -- -Dpython.purelibdir=/usr/lib/python3/dist-packages -Dpython.platlibdir=/usr/lib/python3/dist-packages" >> debian/rules
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
