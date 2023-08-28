@@ -30,6 +30,7 @@ jobs:
           tar czf netplan.tar.gz cov-int
       - name: Upload results
         run: |
+          git fetch --unshallow --tags
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
