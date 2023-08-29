@@ -22,18 +22,17 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Installs the build dependencies
       # Always include phased updates (LP: #1979244)
       - name: Install build depends
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          #sudo apt install lcov python3-coverage curl
-          sudo apt install abigail-tools meson python3-coverage python3-pytest python3-pytest-cov python3-cffi libpython3-dev
-          sudo apt build-dep netplan.io
+          sudo apt install abigail-tools ubuntu-dev-tools devscripts equivs
+          pull-lp-source netplan.io
+          mk-build-deps -i -B -s sudo netplan.io-*/debian/control
 
       # Runs the build
       - name: Run build

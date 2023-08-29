@@ -23,15 +23,14 @@ prepare: |
   # FIXME: having the debian packging available would allow "apt
   # build-dep -y ./" would make this easier :)
   apt update -qq
-  apt install -y build-essential meson pkg-config libyaml-dev \
-    libglib2.0-dev uuid-dev python3 libsystemd-dev pandoc python3-pytest \
-    python3-coverage libcmocka-dev python3-rich python3-cffi libpython3-dev
+  apt install -y ubuntu-dev-tools devscripts equivs
+  pull-lp-source netplan.io
+  sed -i 's| openvswitch-switch|# DELETED: openvswitch-switch|' netplan.io-*/debian/control
+  mk-build-deps -i -r -B -s sudo -t "apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends" netplan.io-*/debian/control
   # install, a bit ugly but this is a container (did I mention the packaging?)
   meson setup build --prefix=/usr
   meson compile -C build
-  # FIXME: enable, this crashes right now with:
-  #        https://paste.ubuntu.com/p/qRnJvjyddN/
-  #meson test -C build --verbose
+  #meson test -C build --verbose, cannot run OVS test in container
   rm -rf /usr/share/netplan/netplan  # clear (old) system installation
   meson install -C build --destdir=/
   # set some defaults

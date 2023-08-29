@@ -21,7 +21,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: |
           git fetch --unshallow --tags
       # Install openvswitch-switch to make the OVS integration tests work
@@ -29,7 +29,6 @@ jobs:
       # it's needed (will be auto-loaded) by routing.test_vrf_basic
       - name: Install dependencies
         run: |
-          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
           sudo apt install debci lxc lxc-templates debian-archive-keyring autopkgtest ubuntu-dev-tools devscripts linux-modules-extra-$(uname -r) #openvswitch-switch
       # See: https://discourse.ubuntu.com/t/containers-lxc/11526 (Apparmor section)
@@ -50,6 +49,7 @@ jobs:
           dget -u "https://deb.debian.org/debian/pool/main/n/netplan.io/netplan.io_$V.dsc"
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
+          sed -i 's|rm debian/tmp/lib/netplan/generate|# DELETED|' debian/rules
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
@@ -58,4 +58,5 @@ jobs:
         run: |
           # using --setup-commands='apt -y install ...' temporarily to install
           # (test-/build-) deps until they become part of the packaging
-          sudo autopkgtest . -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck --setup-commands='apt -y install python3-cffi libpython3-dev' -- lxc autopkgtest-testing-amd64 || test $? -eq 2  # allow OVS test to be skipped (exit code = 2)
+          sudo autopkgtest . \
+            -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxc autopkgtest-testing-amd64 || test $? -eq 2  # allow OVS test to be skipped (exit code = 2)

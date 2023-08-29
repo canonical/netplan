@@ -217,11 +217,6 @@ sed -e "s/werror=true/werror=false/g" -i meson.build
 %install
 %meson_install
 
-# Remove useless "compat" symlink and path
-rm -f %{buildroot}/lib/netplan/generate
-rmdir %{buildroot}/lib/netplan
-rmdir %{buildroot}/lib
-
 # Remove superfluous __pycache__
 rm -rf %{buildroot}/usr/lib/python3.11/site-packages/netplan/__pycache__
 
