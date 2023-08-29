@@ -20,15 +20,15 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install build depends
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          sudo apt -y install python3-rich python3-coverage python3-pytest python3-pytest-cov curl meson gcovr expect libcmocka-dev python3-cffi libpython3-dev
-          sudo apt -y build-dep netplan.io
+          sudo apt -y install curl expect ubuntu-dev-tools devscripts equivs
+          pull-lp-source netplan.io
+          mk-build-deps -i -B -s sudo netplan.io-*/debian/control
 
       - name: Run unit tests
         run: |

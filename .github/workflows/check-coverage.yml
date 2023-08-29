@@ -26,10 +26,11 @@ jobs:
       - name: Install build depends
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
           sudo apt update
-          sudo apt install python3-rich python3-coverage python3-pytest python3-pytest-cov curl meson gcovr expect libcmocka-dev python3-cffi libpython3-dev
-          sudo apt build-dep netplan.io
+          sudo apt install curl expect ubuntu-dev-tools devscripts equivs gcovr
+          pull-lp-source netplan.io
+          mk-build-deps -i -B -s sudo netplan.io-*/debian/control
+          rm -rf netplan.io-*/
           wget http://archive.ubuntu.com/ubuntu/pool/universe/g/gcovr/gcovr_5.2-1_all.deb
           sudo dpkg -i gcovr*.deb # we need newer gcovr to make the gcovr.cfg:exclude setting work
 
