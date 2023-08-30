@@ -242,7 +242,7 @@ class _NetdefSearchDomainIterator:
         return ffi.string(next_value).decode('utf-8')
 
 
-@dataclass(unsafe_hash=True)
+@dataclass
 class NetplanRoute:
     _METRIC_UNSPEC_ = lib.UINT_MAX
     _TABLE_UNSPEC_ = 0
@@ -297,6 +297,25 @@ class NetplanRoute:
         route['type'] = self.type
 
         return route
+
+    def __hash__(self):
+        return hash(
+            (self.to, self.via,
+             self.from_addr, self.table,
+             self.family, self.metric,
+             self.type, self.scope))
+
+    def __eq__(self, route):
+        return (
+            self.to == route.to and
+            self.via == route.via and
+            self.from_addr == route.from_addr and
+            self.table == route.table and
+            self.family == route.family and
+            self.metric == route.metric and
+            self.type == route.type and
+            self.scope == route.scope
+        )
 
 
 class _NetdefRouteIterator:
