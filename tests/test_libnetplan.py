@@ -189,6 +189,25 @@ class TestNetdefIterator(TestBase):
       dhcp4: false''')
         self.assertSetEqual(set(["eth0", "br0"]), set(d.id for d in netplan.netdef.NetDefinitionIterator(state, None)))
 
+    def test_iter_all_types_with_placeholder(self):
+        state = state_from_yaml(self.confdir, '''network:
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: false
+  virtual-ethernets:
+    # Netplan will create a placeholder netdef for veth321
+    veth123:
+      peer: veth321
+  bridges:
+    br0:
+      dhcp4: false''')
+
+        # We call the property "type" here so it will try to translate the netdef type to a string
+        # and crash if it's a placeholder
+        expected = {"ethernets", "virtual-ethernets", "bridges"}
+        self.assertSetEqual(expected, set(d.type for d in netplan.netdef.NetDefinitionIterator(state, None)))
+
     def test_iter_ethernets(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:

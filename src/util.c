@@ -895,6 +895,8 @@ _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it)
 
     while (g_hash_table_iter_next(&it->iter, &key, &value)) {
         NetplanNetDefinition* netdef = value;
+        if (netdef->type == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_)
+            continue;
         if (it->type == NETPLAN_DEF_TYPE_NONE || netdef->type == it->type)
             return netdef;
     }
