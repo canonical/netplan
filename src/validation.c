@@ -241,8 +241,6 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
 
     /* Validate local/remote IPs */
     if (nd->tunnel.mode != NETPLAN_TUNNEL_MODE_VXLAN) {
-        if (!nd->tunnel.local_ip)
-            return yaml_error(npp, node, error, "%s: missing 'local' property for tunnel", nd->id);
         if (!nd->tunnel.remote_ip)
             return yaml_error(npp, node, error, "%s: missing 'remote' property for tunnel", nd->id);
     }
@@ -255,7 +253,7 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
         case NETPLAN_TUNNEL_MODE_IP6GRE:
         case NETPLAN_TUNNEL_MODE_IP6GRETAP:
         case NETPLAN_TUNNEL_MODE_VTI6:
-            if (!is_ip6_address(nd->tunnel.local_ip))
+            if (nd->tunnel.local_ip && !is_ip6_address(nd->tunnel.local_ip))
                 return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
             if (!is_ip6_address(nd->tunnel.remote_ip))
                 return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
@@ -268,7 +266,7 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
             break;
 
         default:
-            if (!is_ip4_address(nd->tunnel.local_ip))
+            if (nd->tunnel.local_ip && !is_ip4_address(nd->tunnel.local_ip))
                 return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
             if (!is_ip4_address(nd->tunnel.remote_ip))
                 return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
