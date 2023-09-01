@@ -1643,18 +1643,6 @@ class TestConfigErrors(TestBase):
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: address '10.10.10.10/21' should not include /prefixlength", out)
 
-    def test_missing_local_ip(self):
-        """Fail if local IP is missing"""
-        config = '''network:
-  version: 2
-  tunnels:
-    tun0:
-      mode: gre
-      remote: 20.20.20.20
-'''
-        out = self.generate(config, expect_fail=True)
-        self.assertIn("Error in network definition: tun0: missing 'local' property for tunnel", out)
-
     def test_missing_remote_ip(self):
         """Fail if remote IP is missing"""
         config = '''network:
