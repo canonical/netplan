@@ -1,0 +1,13 @@
+[Unit]
+Description=Netplan generator
+Documentation=man:netplan(5)
+Before=systemd-networkd.service cloud-init-local.service NetworkManager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/netplan/generate
+ExecReload=/usr/libexec/netplan/generate
+
+[Install]
+WantedBy=systemd-networkd.service cloud-init-local.service NetworkManager.service
