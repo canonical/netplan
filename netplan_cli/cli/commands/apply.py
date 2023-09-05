@@ -286,12 +286,18 @@ class NetplanApply(utils.NetplanCommand):
         if restart_nm:
             # Flush all IP addresses of NM managed interfaces, to avoid NM creating
             # new, non netplan-* connection profiles, using the existing IPs.
-            for iface in utils.nm_interfaces(restart_nm_glob, devices):
+            nm_interfaces = utils.nm_interfaces(restart_nm_glob, devices)
+            for iface in nm_interfaces:
                 utils.ip_addr_flush(iface)
             # clear NM state, especially the [device].managed=true config, as that might have been
             # re-set via an udev rule setting "NM_UNMANAGED=1"
             shutil.rmtree('/run/NetworkManager/devices', ignore_errors=True)
             utils.systemctl_network_manager('start', sync=sync)
+            # If 'lo' is in the nm_interfaces set we flushed it's IPs (see above) and will need to bring it
+            # back manually. For that, we need NM up and ready to accept commands
+            if 'lo' in nm_interfaces:
+                sync = True
+
             if sync:
                 # 'nmcli' could be /usr/bin/nmcli or
                 # /snap/bin/nmcli -> /snap/bin/network-manager.nmcli
@@ -308,6 +314,14 @@ class NetplanApply(utils.NetplanCommand):
                     if '\nconnected' in str(out.stdout):
                         break
                     time.sleep(0.5)
+
+            # If "lo" is managed by NM through Netplan, apply will flush its addresses and NM
+            # will not bring it back automatically like other connections.
+            # This is a possible scenario with netplan-everywhere. If a user tries to change the 'lo'
+            # connection with nmcli for example, NM will create a persistent nmconnection file and emit a YAML for it.
+            if 'lo' in nm_interfaces:
+                cmd = ['nmcli', 'con', 'up', 'lo']
+                subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     @staticmethod
     def is_composite_member(composites, phy):
