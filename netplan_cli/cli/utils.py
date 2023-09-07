@@ -78,6 +78,20 @@ def nm_interfaces(paths, devices):
     return interfaces
 
 
+def nm_get_connection_for_interface(interface: str) -> str:
+    output = nmcli_out(['-m', 'tabular', '-f', 'GENERAL.CONNECTION', 'device', 'show', interface])
+    lines = output.strip().split('\n')
+    connection = lines[1]
+    return connection if connection != '--' else ''
+
+
+def nm_bring_interface_up(connection: str) -> None:  # pragma: nocover (must be covered by NM autopkgtests)
+    try:
+        nmcli(['connection', 'up', connection])
+    except subprocess.CalledProcessError:
+        pass
+
+
 def systemctl_network_manager(action, sync=False):
     # If the network-manager snap is installed use its service
     # name rather than the one of the deb packaged NetworkManager
