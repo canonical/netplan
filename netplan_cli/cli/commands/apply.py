@@ -176,9 +176,12 @@ class NetplanApply(utils.NetplanCommand):
         else:
             logging.debug('no netplan generated networkd configuration exists')
 
+        loopback_connection = ''
         if restart_nm:
             logging.debug('netplan generated NM configuration changed, restarting NM')
             if utils.nm_running():
+                if 'lo' in nm_ifaces:
+                    loopback_connection = utils.nm_get_connection_for_interface('lo')
                 # restarting NM does not cause new config to be applied, need to shut down devices first
                 for device in devices:
                     if device not in nm_ifaces:
@@ -293,8 +296,10 @@ class NetplanApply(utils.NetplanCommand):
             # re-set via an udev rule setting "NM_UNMANAGED=1"
             shutil.rmtree('/run/NetworkManager/devices', ignore_errors=True)
             utils.systemctl_network_manager('start', sync=sync)
-            # If 'lo' is in the nm_interfaces set we flushed it's IPs (see above) and will need to bring it
-            # back manually. For that, we need NM up and ready to accept commands
+
+            # If 'lo' is in the nm_interfaces set we flushed it's IPs (see above) and disconnected it.
+            # NM will not bring it back automatically after restarting and we need to do that manually.
+            # For that, we need NM up and ready to accept commands
             if 'lo' in nm_interfaces:
                 sync = True
 
@@ -315,13 +320,12 @@ class NetplanApply(utils.NetplanCommand):
                         break
                     time.sleep(0.5)
 
-            # If "lo" is managed by NM through Netplan, apply will flush its addresses and NM
-            # will not bring it back automatically like other connections.
+            # If "lo" is managed by NM through Netplan, apply will flush its addresses and disconnect it.
+            # NM will not bring it back automatically.
             # This is a possible scenario with netplan-everywhere. If a user tries to change the 'lo'
             # connection with nmcli for example, NM will create a persistent nmconnection file and emit a YAML for it.
-            if 'lo' in nm_interfaces:
-                cmd = ['nmcli', 'con', 'up', 'lo']
-                subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if 'lo' in nm_interfaces and loopback_connection:
+                utils.nm_bring_interface_up(loopback_connection)
 
     @staticmethod
     def is_composite_member(composites, phy):

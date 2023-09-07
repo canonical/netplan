@@ -371,3 +371,15 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(self.mock_cmd.calls(), [
             ['ip', 'addr', 'flush', 'eth42']
         ])
+
+    @patch('netplan_cli.cli.utils.nmcli_out')
+    def test_nm_get_connection_for_interface(self, nmcli):
+        nmcli.return_value = 'CONNECTION \nlo         \n'
+        out = utils.nm_get_connection_for_interface('lo')
+        self.assertEqual(out, 'lo')
+
+    @patch('netplan_cli.cli.utils.nmcli_out')
+    def test_nm_get_connection_for_interface_no_connection(self, nmcli):
+        nmcli.return_value = 'CONNECTION \n--         \n'
+        out = utils.nm_get_connection_for_interface('asd0')
+        self.assertEqual(out, '')
