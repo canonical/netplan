@@ -56,6 +56,46 @@ class NetplanDiffState():
 
         return full_state
 
+    def get_diff(self, interface: str = '') -> dict:
+        '''
+        Compare the configuration of interfaces currently found in the system against Netplan configuration.
+        A number of heuristics are used to eliminate configuration that is automatically set in the system,
+        such as certain routes and IP addresses. That is necessary because this configuration will not be found
+        in Netplan. For example, if Netplan is enabling DHCP on an interface and not defining any extra IP addresses,
+        we don't count the IPs automatically assigned to the interface as a difference. We do though count the eventual
+        absence of addresses that should be assigned by DHCP as a difference.
+        '''
+
+        report = self._create_new_report()
+
+        self._analyze_missing_interfaces(report)
+
+        return report
+
+    def _create_new_report(self) -> dict:
+        return {
+            'interfaces': {},
+            'missing_interfaces_system': {},
+            'missing_interfaces_netplan': {},
+        }
+
+    def _analyze_missing_interfaces(self, report: dict) -> None:
+        netplan_interfaces = {iface for iface in self.netplan_state.netdefs}
+        system_interfaces_netdef_ids = {iface.netdef_id for iface in self.system_state.interface_list if iface.netdef_id}
+
+        netplan_only = netplan_interfaces.difference(system_interfaces_netdef_ids)
+        # Filtering out disconnected wifi netdefs
+        # If a wifi netdef is present in the netplan_only list it's because it's disconnected
+        netplan_only = list(filter(lambda i: self.netplan_state.netdefs.get(i).type != 'wifis', netplan_only))
+
+        system_only = []
+        for iface in self.system_state.interface_list:
+            if iface.netdef_id not in netplan_interfaces:
+                system_only.append(iface.name)
+
+        report['missing_interfaces_system'] = sorted(netplan_only)
+        report['missing_interfaces_netplan'] = sorted(system_only)
+
     def _get_netplan_interfaces(self) -> dict:
         system_interfaces = self.system_state.get_data()
         interfaces = {}
