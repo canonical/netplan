@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import os
 import tempfile
 import unittest
@@ -24,7 +25,7 @@ import unittest
 from unittest.mock import Mock
 from netplan.netdef import NetplanRoute
 from netplan_cli.cli.state import Interface, NetplanConfigState, SystemConfigState
-from netplan_cli.cli.state_diff import NetplanDiffState
+from netplan_cli.cli.state_diff import DiffJSONEncoder, NetplanDiffState
 
 
 class TestNetplanDiff(unittest.TestCase):
@@ -1304,3 +1305,44 @@ class TestNetplanDiff(unittest.TestCase):
         missing_netplan = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_routes', [])
         self.assertListEqual([], missing_system)
         self.assertListEqual([], missing_netplan)
+
+    def test_diff_json_encoder(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      routes:
+        - to: 1.2.3.0/24
+          via: 192.168.0.1''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'routes': [
+                    {
+                        'to': 'default',
+                        'via': '192.168.5.1',
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'family': 2,
+                        'table': 'main'
+                    }
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        diff_data_str = json.dumps(diff_data, cls=DiffJSONEncoder)
+        diff_data_dict = json.loads(diff_data_str)
+        self.assertTrue(len(diff_data_dict['interfaces']['eth0']['system_state']['missing_routes']) > 0)
+        self.assertTrue(len(diff_data_dict['interfaces']['eth0']['netplan_state']['missing_routes']) > 0)

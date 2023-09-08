@@ -16,10 +16,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import ipaddress
+import json
 from typing import AbstractSet
 
 from netplan.netdef import NetplanRoute
 from netplan_cli.cli.state import SystemConfigState, NetplanConfigState, DEVICE_TYPES
+
+
+class DiffJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, NetplanRoute):
+            return obj.to_dict()
+
+        # Shouldn't be reached as the only non-serializable type we have at the moment is NetplanRoute
+        return json.JSONEncoder.default(self, obj)  # pragma: nocover (only NetplanRoute requires the encoder)
 
 
 class NetplanDiffState():
