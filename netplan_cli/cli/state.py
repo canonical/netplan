@@ -509,6 +509,7 @@ class NetplanConfigState():
 
         np_state = netplan.State()
         np_state.import_parser_results(parser)
+        self.netdefs = np_state.netdefs
 
         self.state = StringIO()
 

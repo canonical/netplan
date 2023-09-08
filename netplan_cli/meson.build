@@ -25,6 +25,7 @@ cli_sources = files(
     'cli/core.py',
     'cli/ovs.py',
     'cli/state.py',
+    'cli/state_diff.py',
     'cli/sriov.py',
     'cli/utils.py')
 
