@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import ipaddress
+from typing import AbstractSet
 
 from netplan.netdef import NetplanRoute
 from netplan_cli.cli.state import SystemConfigState, NetplanConfigState, DEVICE_TYPES
@@ -87,6 +88,7 @@ class NetplanDiffState():
             self._analyze_nameservers(config, iface)
             self._analyze_search_domains(config, iface)
             self._analyze_mac_addresses(config, iface)
+            self._analyze_routes(config, iface)
 
             report['interfaces'].update(iface)
 
@@ -277,6 +279,29 @@ class NetplanDiffState():
                     'missing_macaddress': system_macaddress
                 })
 
+    def _analyze_routes(self, config: dict, iface: dict) -> None:
+        name = list(iface.keys())[0]
+        netplan_routes = set(config.get('netplan_state', {}).get('routes', []))
+        system_routes = set(config.get('system_state', {}).get('routes', []))
+        netplan_routes = self._normalize_routes(netplan_routes)
+
+        # Filter out some routes that are expected to be added automatically
+        system_addresses = config.get('system_state', {}).get('addresses', [])
+        system_routes = self._filter_system_routes(system_routes, system_addresses)
+
+        present_only_in_netplan = netplan_routes.difference(system_routes)
+        present_only_in_system = system_routes.difference(netplan_routes)
+
+        if present_only_in_system:
+            iface[name]['netplan_state'].update({
+                'missing_routes': [route for route in present_only_in_system],
+            })
+
+        if present_only_in_netplan:
+            iface[name]['system_state'].update({
+                'missing_routes': [route for route in present_only_in_netplan],
+            })
+
     def _analyze_missing_interfaces(self, report: dict) -> None:
         netplan_interfaces = {iface for iface in self.netplan_state.netdefs}
         system_interfaces_netdef_ids = {iface.netdef_id for iface in self.system_state.interface_list if iface.netdef_id}
@@ -293,6 +318,67 @@ class NetplanDiffState():
 
         report['missing_interfaces_system'] = sorted(netplan_only)
         report['missing_interfaces_netplan'] = sorted(system_only)
+
+    def _normalize_routes(self, routes: set) -> set:
+        ''' Apply some transformations to Netplan routes so their representation
+        will match the system's.
+        '''
+        new_routes_set = set()
+        for route in routes:
+            # If the table is unspecified we set it to main
+            if route.table == NetplanRoute._TABLE_UNSPEC_:
+                route.table = self._default_route_tables_name_to_number('main')
+
+            # If the addresses are IPv6, compress them so it will match the system representation
+            route.to = self._compress_ipv6_address(route.to)
+            route.from_addr = self._compress_ipv6_address(route.from_addr)
+            route.via = self._compress_ipv6_address(route.via)
+
+            # If the route.to prefix is either /32 and /128 we remove it to match
+            # the system representation:
+            if route.to != 'default':
+                ip_prefix = route.to.split('/')
+                if ip_prefix[1] == '32' or ip_prefix[1] == '128':
+                    route.to = ip_prefix[0]
+
+            new_routes_set.add(route)
+
+        return new_routes_set
+
+    def _filter_system_routes(self, system_routes: AbstractSet[NetplanRoute], system_addresses: list[str]) -> set:
+        '''
+        Some routes found in the system are installed automatically/dynamically without
+        being configured in Netplan.
+        Here we implement some heuristics to remove these routes from the list we want
+        to compare. We do that because these type of routes will probably never be found in the
+        Netplan configuration so there is no point in comparing them against Netplan.
+        '''
+
+        local_networks = [str(ipaddress.ip_interface(ip).network) for ip in system_addresses]
+        addresses = [str(ipaddress.ip_interface(ip).ip) for ip in system_addresses]
+        routes = set()
+        for route in system_routes:
+            # Filter out link routes
+            if route.scope == 'link':
+                continue
+            # Filter out routes installed by DHCP or RA
+            if route.protocol == 'dhcp' or route.protocol == 'ra':
+                continue
+            # Filter out Link Local routes
+            if route.to != 'default' and ipaddress.ip_interface(route.to).is_link_local:
+                continue
+            # Filter out host scoped routes
+            if route.scope == 'host' and route.type == 'local' and route.to == route.from_addr:
+                continue
+            # Filter out the default IPv6 multicast route
+            if route.family == 10 and route.type == 'multicast' and route.to == 'ff00::/8':
+                continue
+            # Filter IPv6 local routes
+            if route.family == 10 and (route.to in local_networks or route.to in addresses):
+                continue
+
+            routes.add(route)
+        return routes
 
     def _get_netplan_interfaces(self) -> dict:
         system_interfaces = self.system_state.get_data()
