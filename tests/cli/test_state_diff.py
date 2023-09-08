@@ -23,7 +23,7 @@ import unittest
 
 from unittest.mock import Mock
 from netplan.netdef import NetplanRoute
-from netplan_cli.cli.state import NetplanConfigState, SystemConfigState
+from netplan_cli.cli.state import Interface, NetplanConfigState, SystemConfigState
 from netplan_cli.cli.state_diff import NetplanDiffState
 
 
@@ -334,3 +334,132 @@ class TestNetplanDiff(unittest.TestCase):
                                 metric=100, type='unicast', scope='global', protocol='kernel',
                                 family=2, table=254)
         self.assertEqual(netplan_route, expected)
+
+    def test_diff_missing_netplan_interface(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets: {}''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'index': 2,
+            },
+            'lo': {
+                'name': 'lo',
+                'index': 1,
+            }
+        }
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface2 = Mock(spec=Interface)
+        interface2.name = 'lo'
+        system_state.interface_list = [interface1, interface2]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('missing_interfaces_netplan', [])
+        self.assertIn('eth0', missing)
+        # lo is included
+        self.assertIn('lo', missing)
+
+    def test_diff_missing_system_interface(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0: {}
+    eth1: {}''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+            }
+        }
+        interface = Mock(spec=Interface)
+        interface.name = 'eth0'
+        interface.netdef_id = 'eth0'
+        system_state.interface_list = [interface]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+        missing = diff_data.get('missing_interfaces_system', [])
+        self.assertIn('eth1', missing)
+
+    def test_diff_missing_system_interface_with_match(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    mynics:
+      dhcp4: false
+      match:
+        name: eth*''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'enp0s1': {
+                'name': 'enp0s1',
+                'id': 'enp0s1',
+                'index': 2,
+            }
+        }
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'enp0s1'
+        interface1.netdef_id = 'enp0s1'
+        system_state.interface_list = [interface1]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+        missing = diff_data.get('missing_interfaces_system', [])
+        self.assertIn('mynics', missing)
+
+    def test_diff_not_missing_system_interface_with_match(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    mynics:
+      dhcp4: false
+      match:
+        name: eth*''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'mynics',
+                'index': 2,
+            },
+            'enp0s1': {
+                'name': 'enp0s1',
+                'id': 'enp0s1',
+                'index': 3,
+            }
+        }
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'mynics'
+        interface2 = Mock(spec=Interface)
+        interface2.name = 'enp0s1'
+        interface2.netdef_id = 'enp0s1'
+        system_state.interface_list = [interface1, interface2]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+        missing = diff_data.get('missing_interfaces_system', [])
+        self.assertListEqual(missing, [])
