@@ -1018,6 +1018,13 @@ netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* n
     return TRUE;
 }
 
+char *
+netplan_netdef_get_keep_configuration(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->keep_configuration;
+}
+
 ssize_t
 netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {

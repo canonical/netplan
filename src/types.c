@@ -594,13 +594,6 @@ _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef)
     return netdef->vlan_id;
 }
 
-char *
-_netplan_netdef_get_keep_configuration(const NetplanNetDefinition* netdef)
-{
-    g_assert(netdef);
-    return netdef->keep_configuration;
-}
-
 gboolean
 _netplan_netdef_get_optional(const NetplanNetDefinition* netdef)
 {

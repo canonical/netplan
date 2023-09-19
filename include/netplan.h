@@ -118,6 +118,9 @@ netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
 NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
 
+NETPLAN_PUBLIC char *
+netplan_netdef_get_keep_configuration(const NetplanNetDefinition* netdef);
+
 NETPLAN_PUBLIC ssize_t
 netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
 

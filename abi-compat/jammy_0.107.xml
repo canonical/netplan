@@ -15,7 +15,6 @@
     <elf-symbol name='_netplan_iter_defs_per_devtype_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_nameserver_iter_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_nameserver_iter_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='_netplan_netdef_get_keep_configuration' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_delay_vf_rebind' type='func-type' binding='global-binding' visibility='default-visibility' alias='netplan_netdef_get_delay_virtual_functions_rebind' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_embedded_switch_mode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_optional' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -59,6 +58,7 @@
     <elf-symbol name='netplan_get_global_backend' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_get_id_from_nm_filename' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_get_id_from_nm_filepath' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='netplan_netdef_get_keep_configuration' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_backend' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_bond_link' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_bridge_link' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -4191,10 +4191,6 @@
       <parameter type-id='type-id-181' name='netdef' filepath='../src/types.c' line='590' column='1'/>
       <return type-id='type-id-44'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_get_keep_configuration' mangled-name='_netplan_netdef_get_keep_configuration' filepath='../src/types.c' line='597' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_get_keep_configuration'>
-      <parameter type-id='type-id-181' name='netdef' filepath='../src/types.c' line='597' column='1'/>
-      <return type-id='type-id-43'/>
-    </function-decl>
     <function-decl name='_netplan_netdef_get_optional' mangled-name='_netplan_netdef_get_optional' filepath='../src/types.c' line='604' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_get_optional'>
       <parameter type-id='type-id-181' name='netdef' filepath='../src/types.c' line='604' column='1'/>
       <return type-id='type-id-42'/>
@@ -4372,6 +4368,10 @@
     <function-decl name='netplan_generate' mangled-name='netplan_generate' filepath='../src/util.c' line='590' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_generate'>
       <parameter type-id='type-id-106' name='rootdir' filepath='../src/util.c' line='590' column='1'/>
       <return type-id='type-id-42'/>
+    </function-decl>
+    <function-decl name='netplan_netdef_get_keep_configuration' mangled-name='netplan_netdef_get_keep_configuration' filepath='../src/types.c' line='597' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_keep_configuration'>
+      <parameter type-id='type-id-181' name='netdef' filepath='../src/types.c' line='597' column='1'/>
+      <return type-id='type-id-43'/>
     </function-decl>
     <function-decl name='netplan_netdef_get_output_filename' mangled-name='netplan_netdef_get_output_filename' filepath='../src/util.c' line='645' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_output_filename'>
       <parameter type-id='type-id-181' name='netdef' filepath='../src/util.c' line='645' column='1'/>
