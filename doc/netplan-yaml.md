@@ -374,11 +374,14 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > (networkd backend only) Allow the specified interface to be configured even
   > if it has no carrier.
 
-- **critical** (bool)
+- **keep-configuration** (scalar)
 
-  > Designate the connection as "critical to the system", meaning that special
-  > care will be taken by to not release the assigned IP when the daemon is
-  > restarted. (not recognized by NetworkManager)
+  > When set to "static", static addresses and routes won't be dropped on starting up process.
+  > When set to "dhcp-on-stop", addresses and routes won't be dropped when stopping the daemon.
+  > When set to "dhcp", addresses and routes provided by a DHCP server will never be dropped even if the DHCP lease expires, implies "dhcp-on-stop"
+  > When set to "yes", "dhcp" and "static" is implied.
+  > Defaults to "no".
+  > (not recognized by NetworkManager)
 
 - **dhcp-identifier** (scalar)
 

@@ -75,8 +75,8 @@ class NetDefinition():
         return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_set_name(self._ptr, b, len(b)))
 
     @property
-    def critical(self) -> bool:
-        return bool(lib._netplan_netdef_get_critical(self._ptr))
+    def keep_configuration(self) -> str:
+        return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_keep_configuration(self._ptr, b, len(b)))
 
     @property
     def links(self) -> dict:

@@ -112,7 +112,7 @@ ffibuilder.cdef("""
     ssize_t _netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
     gboolean _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef);
     guint _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef);
-    gboolean _netplan_netdef_get_critical(const NetplanNetDefinition* netdef);
+    char* _netplan_netdef_get_keep_configuration(const NetplanNetDefinition* netdef);
     gboolean _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef);
     int _netplan_state_get_vf_count_for_def(
         const NetplanState* np_state, const NetplanNetDefinition* netdef, NetplanError** error);

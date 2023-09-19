@@ -211,7 +211,7 @@ struct netplan_net_definition {
     /* status options */
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
-    gboolean critical;
+    char* keep_configuration;
 
     /* addresses */
     gboolean dhcp4;

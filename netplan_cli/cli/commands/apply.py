@@ -233,7 +233,7 @@ class NetplanApply(utils.NetplanCommand):
         devices_after_udev = netifaces.interfaces()
         # apply some more changes manually
         for iface, settings in changes.items():
-            # rename non-critical network interfaces
+            # rename network interfaces without keep_configuration set
             new_name = settings.get('name')
             if new_name:
                 if len(new_name) >= IF_NAMESIZE:
@@ -356,7 +356,7 @@ class NetplanApply(utils.NetplanCommand):
     def process_link_changes(interfaces, config_manager: ConfigManager):  # pragma: nocover (covered in autopkgtest)
         """
         Go through the pending changes and pick what needs special handling.
-        Only applies to non-critical interfaces which can be safely updated.
+        Only applies to interfaces not having keep_configuration set, which can be safely updated.
         """
 
         changes = {}
@@ -384,9 +384,9 @@ class NetplanApply(utils.NetplanCommand):
                 # Skip interface if it already has the correct name
                 logging.debug('Skipping correctly named interface: {}'.format(newname))
                 continue
-            if netdef.critical:
-                # Skip interfaces defined as critical, as we should not take them down in order to rename
-                logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to being critical'
+            if netdef.keep_configuration:
+                # Skip interfaces with keep_configuration set, as we should not take them down in order to rename
+                logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to keep_configuration being set'
                                 .format(netdef.id, current_iface_name, newname))
                 continue
 

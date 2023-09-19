@@ -742,8 +742,8 @@ _serialize_yaml(
 
     if (def->optional)
         YAML_NONNULL_STRING_PLAIN(event, emitter, "optional", "true");
-    if (def->critical)
-        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "true");
+    if (def->keep_configuration)
+        YAML_STRING_PLAIN(def, event, emitter, "keep-configuration", def->keep_configuration);
 
     if (def->ignore_carrier)
         YAML_NONNULL_STRING_PLAIN(event, emitter, "ignore-carrier", "true");
