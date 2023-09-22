@@ -742,8 +742,18 @@ _serialize_yaml(
 
     if (def->optional)
         YAML_NONNULL_STRING_PLAIN(event, emitter, "optional", "true");
-    if (def->keep_configuration)
-        YAML_STRING_PLAIN(def, event, emitter, "keep-configuration", def->keep_configuration);
+
+    if (def->critical == NETPLAN_CRITICAL_TRUE) {
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "true");
+    } else if (def->critical == NETPLAN_CRITICAL_FALSE) {
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "false");
+    } else if (def->critical == NETPLAN_CRITICAL_STATIC) {
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "static");
+    } else if (def->critical == NETPLAN_CRITICAL_DHCP) {
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "dhcp");
+    } else if (def->critical == NETPLAN_CRITICAL_DHCP_ON_STOP) {
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "dhcp-on-stop");
+    }
 
     if (def->ignore_carrier)
         YAML_NONNULL_STRING_PLAIN(event, emitter, "ignore-carrier", "true");

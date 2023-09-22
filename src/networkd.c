@@ -916,13 +916,26 @@ netplan_netdef_write_network_file(
         }
     }
 
-    if (def->dhcp4 || def->dhcp6 || def->keep_configuration) {
+    if (def->dhcp4 || def->dhcp6 || def->critical) {
         /* NetworkManager compatible route metrics */
         g_string_append(network, "\n[DHCP]\n");
     }
 
-    if (def->keep_configuration)
-        g_string_append_printf(network, "KeepConfiguration=%s\n", def->keep_configuration);
+    switch (def->critical) {
+        case NETPLAN_CRITICAL_TRUE:
+            g_string_append(s, "KeepConnection=true\n");
+            break;
+        case NETPLAN_CRITICAL_STATIC:
+            g_string_append(s, "KeepConnection=static\n");
+            break;
+        case NETPLAN_CRITICAL_DHCP:
+            g_string_append(s, "KeepConnection=dhcp\n");
+            break;
+        case NETPLAN_CRITICAL_DHCP_ON_STOP:
+            g_string_append(s, "KeepConnection=dhcp-on-stop\n");
+            break;
+        default: g_assert_not_reached(); // LCOV_EXCL_LINE
+    }
 
     if (def->dhcp4 || def->dhcp6) {
         if (def->dhcp_identifier)

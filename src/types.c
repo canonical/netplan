@@ -225,7 +225,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
 
     netdef->optional = FALSE;
     netdef->optional_addresses = 0;
-    FREE_AND_NULLIFY(netdef->keep_configuration);
+    netdef->critical = NETPLAN_CRITICAL_FALSE;
 
     netdef->dhcp4 = FALSE;
     netdef->dhcp6 = FALSE;
@@ -592,6 +592,13 @@ _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->vlan_id;
+}
+
+NetplanCriticalOption
+_netplan_netdef_get_critical(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->critical;
 }
 
 gboolean

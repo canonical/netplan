@@ -467,12 +467,12 @@ LinkLocalAddressing=no
 Bond=bond0
 '''})
 
-    def test_dhcp_keep_configuration_true(self):
+    def test_dhcp_critical_true(self):
         self.generate('''network:
   version: 2
   ethernets:
     engreen:
-      keep-configuration: yes
+      critical: yes
 ''')
 
         self.assert_networkd({'engreen.network': '''[Match]

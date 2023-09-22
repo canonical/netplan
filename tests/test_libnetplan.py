@@ -581,15 +581,15 @@ class TestNetDefinition(TestBase):
         self.assertEqual(state['eth0'].backend, 'networkd')
         self.assertEqual(state['eth1'].backend, 'NetworkManager')
 
-    def test_keep_configuration(self):
+    def test_critical(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:
     eth0:
-      keep-configuration: true
+      critical: true
     eth1: {}''')
 
-        self.assertTrue(state['eth0'].keep_configuration)
-        self.assertFalse(state['eth1'].keep_configuration)
+        self.assertTrue(state['eth0'].critical)
+        self.assertFalse(state['eth1'].critical)
 
     def test_eq(self):
         state = state_from_yaml(self.confdir, '''network:

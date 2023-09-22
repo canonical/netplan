@@ -32,6 +32,14 @@ typedef enum {
     NETPLAN_OPTIONAL_STATIC  = 1<<4,
 } NetplanOptionalAddressFlag;
 
+typedef enum {
+    NETPLAN_CRITICAL_FALSE,
+    NETPLAN_CRITICAL_TRUE,
+    NETPLAN_CRITICAL_STATIC,
+    NETPLAN_CRITICAL_DHCP,
+    NETPLAN_CRITICAL_DHCP_ON_STOP,
+} NetplanCriticalOption;
+
 /* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
 typedef struct dhcp_overrides {
     gboolean use_dns;
@@ -211,7 +219,7 @@ struct netplan_net_definition {
     /* status options */
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
-    char* keep_configuration;
+    NetplanCriticalOption critical;
 
     /* addresses */
     gboolean dhcp4;

@@ -102,6 +102,9 @@ _netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanN
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef);
 
+NETPLAN_INTERNAL NetplanCriticalOption
+_netplan_netdef_get_critical(const NetplanNetDefinition* netdef);
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_optional(const NetplanNetDefinition* netdef);
 
