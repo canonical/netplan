@@ -851,15 +851,20 @@ _netplan_netdef_write_network_file(
 
         if (   def->bridge_params.path_cost
             || def->bridge_params.port_priority
+            || def->bridge_hairpin != NETPLAN_TRISTATE_UNSET
+            || def->bridge_learning != NETPLAN_TRISTATE_UNSET
             || def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET)
             g_string_append_printf(network, "\n[Bridge]\n");
         if (def->bridge_params.path_cost)
             g_string_append_printf(network, "Cost=%u\n", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
             g_string_append_printf(network, "Priority=%u\n", def->bridge_params.port_priority);
-        if (def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET) {
+        if (def->bridge_hairpin != NETPLAN_TRISTATE_UNSET)
+            g_string_append_printf(network, "HairPin=%s\n", def->bridge_hairpin ? "true" : "false");
+        if (def->bridge_learning != NETPLAN_TRISTATE_UNSET)
+            g_string_append_printf(network, "Learning=%s\n", def->bridge_learning ? "true" : "false");
+        if (def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET)
             g_string_append_printf(network, "NeighborSuppression=%s\n", def->bridge_neigh_suppress ? "true" : "false");
-    }
 
     }
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {

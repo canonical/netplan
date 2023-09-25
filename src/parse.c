@@ -2840,6 +2840,8 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"renderer", YAML_SCALAR_NODE, {.generic=handle_netdef_renderer}, NULL}, \
     {"routes", YAML_SEQUENCE_NODE, {.generic=handle_routes}, NULL}, \
     {"routing-policy", YAML_SEQUENCE_NODE, {.generic=handle_ip_rules}, NULL}, \
+    {"hairpin", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(bridge_hairpin)}, \
+    {"learning", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(bridge_learning)}, \
     {"neigh-suppress", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(bridge_neigh_suppress)}
 
 #define COMMON_BACKEND_HANDLERS \
