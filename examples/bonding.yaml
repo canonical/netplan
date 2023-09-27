@@ -13,3 +13,4 @@ network:
       parameters:
         mode: active-backup
         primary: enp3s0
+        mii-monitor-interval: 100
