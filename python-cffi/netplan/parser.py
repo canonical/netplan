@@ -13,10 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from enum import IntEnum
 from typing import Union, IO
 
 from ._netplan_cffi import ffi, lib
 from ._utils import _checked_lib_call
+
+
+class NETPLAN_PARSER_FLAGS(IntEnum):
+    IGNORE_ERRORS = 1
 
 
 class Parser():
@@ -46,3 +51,6 @@ class Parser():
     def _load_nullable_overrides(self, input_file: IO, constraint: str):
         return _checked_lib_call(lib.netplan_parser_load_nullable_overrides,
                                  self._ptr, input_file.fileno(), constraint.encode('utf-8'))
+
+    def set_flags(self, flags: int):
+        lib.netplan_parser_set_flags(self._ptr, flags)

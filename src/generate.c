@@ -44,10 +44,12 @@ static gchar** files;
 static gboolean any_networkd = FALSE;
 static gboolean any_nm = FALSE;
 static gchar* mapping_iface;
+static gboolean ignore_errors = FALSE;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /", NULL},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/netplan/*.yaml", "[config file ..]"},
+    {"ignore-errors", 'i', 0, G_OPTION_ARG_NONE, &ignore_errors, "Ignores files and/or interfaces that fail parsing.", NULL},
     {"mapping", 0, 0, G_OPTION_ARG_STRING, &mapping_iface, "Only show the device to backend mapping for the specified interface.", NULL},
     {NULL}
 };
@@ -243,6 +245,9 @@ int main(int argc, char** argv)
     }
 
     npp = netplan_parser_new();
+    if (ignore_errors || called_as_generator)
+        netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS);
+
     /* Read all input files */
     if (files && !called_as_generator) {
         for (gchar** f = files; f && *f; ++f) {

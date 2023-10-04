@@ -999,3 +999,76 @@ class TestConfigErrors(TestBase):
       routing-policy:
         - to: 1.2.3.4/24''', expect_fail=True)
         self.assertIn("NetworkManager only supports unicast routes", err)
+
+    def test_ignore_errors(self):
+        ''' Test if a bad netdef (eth1 in this case) will be ignored '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+    eth1:
+      dhcp4: yesplease
+    eth2:
+      renderer: NetworkManager
+      dhcp4: false''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth0.network'))
+        self.assertFalse(self.file_exists('10-netplan-eth1.network'))
+        self.assertTrue(self.file_exists('netplan-eth2.nmconnection', backend='NetworkManager'))
+
+        self.assertIn('Skipping interface due to parsing errors. eth1', out)
+
+    def test_ignore_errors_multiple_files(self):
+        ''' Test that a bad YAML file will be ignored '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''', confs={'b': '''network:
+  ethernets:
+    eth1: {}''',
+                             'c': ''':''',
+                             'd': '''network:
+  ethernets:
+    eth2: {}'''}, expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth0.network'))
+        self.assertTrue(self.file_exists('10-netplan-eth1.network'))
+        self.assertTrue(self.file_exists('10-netplan-eth2.network'))
+        self.assertIn('Skipping YAML file due to parsing errors.', out)
+
+    def test_ignore_syntax_errors(self):
+        ''' Test that an error in the same netdef in the next file will not remove the netdef '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''', confs={'b': '''network:
+  ethernets:
+    eth0:
+      abc: 123'''}, expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth0.network'))
+        self.assertIn('Skipping interface due to parsing errors. eth0', out)
+
+    def test_ignore_errors_dependencies(self):
+        ''' Test that an interface that depends on a bad interface will still have configuration generated '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth123:
+      dhcp4: true
+    eth321:
+      dhcp4: 1''', confs={'b': '''network:
+  bridges:
+    br0:
+      interfaces: [ eth123 ]
+    br1:
+      interfaces: [ eth321 ]'''}, expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth123.network'))
+        self.assertTrue(self.file_exists('10-netplan-br0.network'))
+        self.assertFalse(self.file_exists('10-netplan-321.network'))
+        self.assertTrue(self.file_exists('10-netplan-br1.network'))
+        self.assertIn('Skipping interface due to parsing errors. eth321', out)

@@ -34,6 +34,7 @@ from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL
 
 import netplan
 from netplan.netdef import NetplanRoute
+from netplan.parser import NETPLAN_PARSER_FLAGS
 
 # We still need direct (ctypes) access to libnetplan.so to test certain cases
 # that are not covered by the 'netplan' module bindings
@@ -368,6 +369,51 @@ class TestParser(TestBase):
             with self.assertRaises(netplan.NetplanParserException) as context:
                 parser.load_yaml(f)
             self.assertIn('Invalid YAML', str(context.exception))
+
+    def test_load_yaml_with_bad_definition_and_ignore_error(self):
+        ''' Test that the parser will not fail when the parser flag is set '''
+        parser = netplan.Parser()
+        parser.set_flags(NETPLAN_PARSER_FLAGS.IGNORE_ERRORS)
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(b'''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      dhcp4: 1
+    eth2:
+      dhcp4: true''')
+            f.seek(0, io.SEEK_SET)
+            parser.load_yaml(f.name)
+
+            state = netplan.State()
+            state.import_parser_results(parser)
+            self.assertFalse(state.ethernets.get('eth0').dhcp4)
+            self.assertTrue(state.ethernets.get('eth2').dhcp4)
+            self.assertNotIn('eth1', state.ethernets)
+
+    def test_load_hierarchy_with_bad_yaml_and_ignore_error(self):
+        ''' Test that the parser will not fail when the parser flag is set '''
+        parser = netplan.Parser()
+        parser.set_flags(NETPLAN_PARSER_FLAGS.IGNORE_ERRORS)
+        with tempfile.TemporaryDirectory() as d:
+            full_dir = d + '/etc/netplan'
+            os.makedirs(full_dir)
+            with (tempfile.NamedTemporaryFile(suffix='.yaml', dir=full_dir) as f1,
+                  tempfile.NamedTemporaryFile(suffix='.yaml', dir=full_dir) as f2):
+                f1.write(b'''network:
+  ethernets:
+    eth0: {}''')
+                f1.flush()
+
+                f2.write(b''':''')
+                f2.flush()
+
+                parser.load_yaml_hierarchy(d)
+
+                state = netplan.State()
+                state.import_parser_results(parser)
+                self.assertIn('eth0', state.ethernets)
 
     def test_load_keyfile(self):
         parser = netplan.Parser()

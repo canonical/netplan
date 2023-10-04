@@ -3134,6 +3134,23 @@ node_is_nulled_out(yaml_document_t* doc, yaml_node_t* node, const char* key_pref
     return TRUE;
 }
 
+/*
+ * Remove a given netdef from the parser state
+ */
+STATIC void
+netplan_parser_drop_netdef(NetplanParser* npp, NetplanNetDefinition *netdef)
+{
+    if(npp->parsed_defs) {
+        g_hash_table_steal(npp->parsed_defs, netdef->id);
+    }
+    if(npp->ordered) {
+        npp->ordered = g_list_remove(npp->ordered, netdef);
+    }
+
+    reset_netdef(netdef, NETPLAN_DEF_TYPE_NONE, NETPLAN_BACKEND_NONE);
+    g_free(netdef);
+}
+
 /**
  * Callback for a net device type entry like "ethernets:" in "network:"
  * @data: netdef_type (as pointer)
@@ -3145,6 +3162,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         yaml_node_t* key, *value;
         const mapping_entry_handler* handlers;
         g_autofree char* full_key = NULL;
+        gboolean new_netdef = FALSE;
 
         key = yaml_document_get_node(&npp->doc, entry->key);
         if (!assert_valid_id(npp, key, error))
@@ -3180,12 +3198,6 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
 
         assert_type(npp, value, YAML_MAPPING_NODE);
 
-        /* At this point we've seen a new starting definition, if it has been
-         * already mentioned in another netdef, removing it from our "missing"
-         * list. */
-        if(g_hash_table_remove(npp->missing_id, scalar(key)))
-            npp->missing_ids_found++;
-
         npp->current.netdef = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(key)) : NULL;
         if (npp->current.netdef) {
             /* already exists, overriding/amending previous definition */
@@ -3198,6 +3210,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             }
         } else {
             npp->current.netdef = netplan_netdef_new(npp, scalar(key), GPOINTER_TO_UINT(data), npp->current.backend);
+            new_netdef = TRUE;
         }
         if (npp->current.filepath) {
             if (npp->current.netdef->filepath)
@@ -3245,8 +3258,29 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             npp->current.netdef->vxlan = vxlan;
         }
 
-        if (!process_mapping(npp, value, full_key, handlers, NULL, error))
-            return FALSE;
+        if (!process_mapping(npp, value, full_key, handlers, NULL, error)) {
+            if (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) {
+                gchar* warning_msg = NULL;
+                if (error && *error)
+                    warning_msg = (*error)->message;
+                g_warning("Skipping interface due to parsing errors. %s: %s", scalar(key), warning_msg);
+                if (new_netdef) {
+                    netplan_parser_drop_netdef(npp, npp->current.netdef);
+                    npp->current.netdef = NULL;
+                }
+                g_clear_error(error);
+                continue;
+            } else {
+                return FALSE;
+            }
+        }
+
+        /* At this point we've seen a new starting definition, if it has been
+         * already mentioned in another netdef, removing it from our "missing"
+         * list. */
+        if(g_hash_table_remove(npp->missing_id, scalar(key)))
+            npp->missing_ids_found++;
+
 
         /* Postprocessing */
         /* Implicit VXLAN settings, which can be deduced from parsed data. */
@@ -3454,6 +3488,11 @@ _netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filepath, y
     yaml_document_delete(doc);
     g_hash_table_destroy(npp->ids_in_file);
     npp->ids_in_file = NULL;
+
+    if (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) {
+        g_clear_error(error);
+        return TRUE;
+    }
     return ret;
 }
 
@@ -3653,6 +3692,8 @@ netplan_parser_reset(NetplanParser* npp)
         g_hash_table_destroy(npp->global_renderer);
         npp->global_renderer = NULL;
     }
+
+    npp->flags = 0;
 }
 
 void
@@ -3662,6 +3703,12 @@ netplan_parser_clear(NetplanParser** npp_p)
     *npp_p = NULL;
     netplan_parser_reset(npp);
     g_free(npp);
+}
+
+void
+netplan_parser_set_flags(NetplanParser* npp, const int flags)
+{
+    npp->flags = flags;
 }
 
 /* Check if this is a Netdef-ID or global keyword which can be nullified.

@@ -263,6 +263,9 @@ struct netplan_parser {
     GHashTable* null_fields;
     GHashTable* null_overrides;
     GHashTable* global_renderer;
+
+    /* Flags used to change the parser's behavior */
+    int flags;
 };
 
 struct netplan_state_iterator {
