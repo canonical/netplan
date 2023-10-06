@@ -1557,6 +1557,28 @@ Table=1
 ''',
                               'eth0.network': ND_EMPTY % ('eth0', 'no') + 'Bond=aggi\n'})
 
+    def test_check_parser_second_pass_will_not_lead_to_duplicate_access_point(self):
+        '''
+        When the parser needs more than one pass we shouldn't
+        try to load the same access-point again from wifi devices.
+        Testcase for LP: #1809994'''
+
+        self.generate('''network:
+  bridges:
+    br0:
+      interfaces:
+        - eth0
+  ethernets:
+    eth0:
+      dhcp4: false
+  wifis:
+    wlan0:
+      dhcp4: true
+      access-points:
+        "mywifi":
+          password: "aaaaaaaa"
+''')
+
 
 class TestMerging(TestBase):
     '''multiple *.yaml merging'''
@@ -1740,3 +1762,37 @@ LinkLocalAddressing=ipv6
 ''',
                               'enyellow.network': ND_DHCP4 % 'enyellow',
                               'enblue.network': ND_DHCP4 % 'enblue'})
+
+    def test_wifi_access_points_merging(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wlan0:
+      dhcp4: true
+      access-points:
+        "mywifi":
+          password: "aaaaaaaa"''',
+                      confs={'newwifi': '''network:
+  version: 2
+  wifis:
+    wlan0:
+      dhcp4: true
+      access-points:
+        "mynewwifi":
+          password: "aaaaaaaa"'''})
+
+        self.assert_wpa_supplicant("wlan0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="mynewwifi"
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
+  psk="aaaaaaaa"
+}
+network={
+  ssid="mywifi"
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
+  psk="aaaaaaaa"
+}
+""")

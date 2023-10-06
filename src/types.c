@@ -201,7 +201,7 @@ reset_vxlan(NetplanVxlan* vxlan)
  * @data: pointer to a NetplanBackend value representing the renderer context in which
  *        to interpret the processed object, especially regarding the backend settings
  */
-static void
+void
 free_access_point(__unused void* key, void* value, __unused void* data)
 {
     NetplanWifiAccessPoint* ap = value;

@@ -59,6 +59,9 @@ extern NetplanState global_state;
 
 NetplanParser global_parser = {0};
 
+static gboolean
+insert_kv_into_hash(void *key, void *value, void *hash);
+
 /**
  * Load YAML file into a yaml_document_t.
  *
@@ -1424,11 +1427,13 @@ handle_gateway6(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
 static gboolean
 handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* data, GError** error)
 {
+    GHashTable* access_points = g_hash_table_new(g_str_hash, g_str_equal);
+
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         NetplanWifiAccessPoint *access_point = NULL;
         g_autofree char* full_key = NULL;
         yaml_node_t* key, *value;
-        gboolean ret = TRUE;
+        const gchar* ssid;
 
         key = yaml_document_get_node(&npp->doc, entry->key);
         assert_type(npp, key, YAML_SCALAR_NODE);
@@ -1441,31 +1446,43 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key
                 continue;
         }
 
-        g_assert(access_point == NULL);
-        access_point = g_new0(NetplanWifiAccessPoint, 1);
-        access_point->ssid = g_strdup(scalar(key));
-        g_debug("%s: adding wifi AP '%s'", npp->current.netdef->id, access_point->ssid);
+        ssid = scalar(key);
 
-        /* Check if there's already an SSID with that name */
-        // FIXME: This check fails on multi-pass parsing, e.g. when defined in
-        //        the same YAML file with a set of virtual-ethernets peers.
-        if (npp->current.netdef->access_points &&
-                g_hash_table_lookup(npp->current.netdef->access_points, access_point->ssid)) {
-            ret = yaml_error(npp, key, error, "%s: Duplicate access point SSID '%s'", npp->current.netdef->id, access_point->ssid);
+        /* Skip access-points that already exist in the netdef */
+        if (npp->current.netdef->access_points && g_hash_table_contains(npp->current.netdef->access_points, ssid))
+            continue;
+
+        /* Check if there's already an SSID with that name in the list of APs we are parsing */
+        if (g_hash_table_contains(access_points, ssid)) {
+            g_hash_table_foreach(access_points, free_access_point, NULL);
+            g_hash_table_destroy(access_points);
+            return yaml_error(npp, key, error, "%s: Duplicate access point SSID '%s'", npp->current.netdef->id, ssid);
         }
 
+        g_assert(access_point == NULL);
+        access_point = g_new0(NetplanWifiAccessPoint, 1);
+        access_point->ssid = g_strdup(ssid);
+        g_debug("%s: adding wifi AP '%s'", npp->current.netdef->id, access_point->ssid);
+
         npp->current.access_point = access_point;
-        if (!ret || !process_mapping(npp, value, full_key, wifi_access_point_handlers, NULL, error)) {
+        if (!process_mapping(npp, value, full_key, wifi_access_point_handlers, NULL, error)) {
             access_point_clear(&npp->current.access_point, npp->current.backend);
+            g_hash_table_foreach(access_points, free_access_point, NULL);
+            g_hash_table_destroy(access_points);
             return FALSE;
         }
 
-        if (!npp->current.netdef->access_points)
-            npp->current.netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
-        g_hash_table_insert(npp->current.netdef->access_points, access_point->ssid, access_point);
+        g_hash_table_insert(access_points, access_point->ssid, access_point);
         npp->current.access_point = NULL;
     }
-    mark_data_as_dirty(npp, &npp->current.netdef->access_points);
+
+    if (g_hash_table_size(access_points) > 0) {
+        if (!npp->current.netdef->access_points)
+            npp->current.netdef->access_points = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_foreach_steal(access_points, insert_kv_into_hash, npp->current.netdef->access_points);
+        mark_data_as_dirty(npp, &npp->current.netdef->access_points);
+    }
+    g_hash_table_destroy(access_points);
     return TRUE;
 }
 
