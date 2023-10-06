@@ -313,3 +313,6 @@ clear_netdef_from_list(void* def);
 
 void
 free_address_options(void* ptr);
+
+void
+free_access_point(void* key, void* value, void* data);
