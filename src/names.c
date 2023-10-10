@@ -72,6 +72,8 @@ netplan_auth_eap_method_to_str[NETPLAN_AUTH_EAP_METHOD_MAX] = {
     [NETPLAN_AUTH_EAP_TLS] = "tls",
     [NETPLAN_AUTH_EAP_PEAP] = "peap",
     [NETPLAN_AUTH_EAP_TTLS] = "ttls",
+    [NETPLAN_AUTH_EAP_LEAP] = "leap",
+    [NETPLAN_AUTH_EAP_PWD] = "pwd",
 };
 
 static const char* const
