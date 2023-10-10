@@ -2465,6 +2465,11 @@ handle_wireguard_endpoint(NetplanParser* npp, yaml_node_t* node, __unused const 
     char* address;
     guint64 port_num;
 
+    /* If endpoint is an empty string just ignore it */
+    if (!g_strcmp0(scalar(node), "")) {
+        return TRUE;
+    }
+
     endpoint = g_strdup(scalar(node));
     /* absolute minimal length of endpoint is 3 chars: 'h:8' */
     if (strlen(endpoint) < 3) {
