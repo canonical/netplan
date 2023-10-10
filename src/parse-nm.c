@@ -386,6 +386,10 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
             auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
         } else if (g_strcmp0(first_method, "ttls") == 0) {
             auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
+        } else if (g_strcmp0(first_method, "leap") == 0) {
+            auth->eap_method = NETPLAN_AUTH_EAP_LEAP;
+        } else if (g_strcmp0(first_method, "pwd") == 0) {
+            auth->eap_method = NETPLAN_AUTH_EAP_PWD;
         }
 
         /* If "method" (which is a list separated by ";") has more than one value,

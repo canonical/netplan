@@ -954,6 +954,10 @@ handle_auth_method(NetplanParser* npp, yaml_node_t* node, __unused const void* _
         auth->eap_method = NETPLAN_AUTH_EAP_PEAP;
     else if (strcmp(scalar(node), "ttls") == 0)
         auth->eap_method = NETPLAN_AUTH_EAP_TTLS;
+    else if (strcmp(scalar(node), "leap") == 0)
+        auth->eap_method = NETPLAN_AUTH_EAP_LEAP;
+    else if (strcmp(scalar(node), "pwd") == 0)
+        auth->eap_method = NETPLAN_AUTH_EAP_PWD;
     else
         return yaml_error(npp, node, error, "unknown EAP method '%s'", scalar(node));
     return TRUE;
