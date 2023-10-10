@@ -1091,6 +1091,14 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
             g_string_append(s, "  eap=TTLS\n");
             break;
 
+        case NETPLAN_AUTH_EAP_LEAP:
+            g_string_append(s, "  eap=LEAP\n");
+            break;
+
+        case NETPLAN_AUTH_EAP_PWD:
+            g_string_append(s, "  eap=PWD\n");
+            break;
+
         default: break; // LCOV_EXCL_LINE
     }
 

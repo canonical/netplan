@@ -433,6 +433,54 @@ network={
 }
 """)
 
+    def test_wifi_ieee8021x_eap_leap(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: 802.1x
+            method: leap
+            identity: some-id
+            password: "********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  key_mgmt=IEEE8021X
+  eap=LEAP
+  identity="some-id"
+  password="********"
+}
+""")
+
+    def test_wifi_ieee8021x_eap_pwd(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: 802.1x
+            method: pwd
+            identity: some-id
+            password: "********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  key_mgmt=IEEE8021X
+  eap=PWD
+  identity="some-id"
+  password="********"
+}
+""")
+
 
 class TestNetworkManager(TestBase):
 
@@ -873,6 +921,82 @@ ca-cert=/etc/ssl/cust-cacrt.pem
 client-cert=/etc/ssl/cust-crt.pem
 private-key=/etc/ssl/cust-key.pem
 private-key-password=**********
+'''})
+
+    def test_wifi_ieee8021x_leap(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: 802.1x
+            method: leap
+            identity: "some-id"
+            password: "**********"''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=ieee8021x
+
+[802-1x]
+eap=leap
+identity=some-id
+password=**********
+'''})
+
+    def test_wifi_ieee8021x_pwd(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: 802.1x
+            method: pwd
+            identity: "some-id"
+            password: "**********"''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=ieee8021x
+
+[802-1x]
+eap=pwd
+identity=some-id
+password=**********
 '''})
 
     def test_wifi_wowlan(self):

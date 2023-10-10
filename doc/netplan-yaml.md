@@ -864,7 +864,8 @@ interfaces, as well as individual wifi networks, by means of the `auth` block.
   - **method** (scalar)
 
      > The EAP method to use. The supported EAP methods are `tls` (TLS),
-     > `peap` (Protected EAP), and `ttls` (Tunneled TLS).
+     > `peap` (Protected EAP), `leap` (Lightweight EAP), `pwd` (EAP Password)
+     > and `ttls` (Tunneled TLS).
 
   - **identity** (scalar)
 

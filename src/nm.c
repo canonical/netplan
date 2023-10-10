@@ -417,6 +417,12 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile 
         case NETPLAN_AUTH_EAP_TTLS:
             g_key_file_set_string(kf, "802-1x", "eap", "ttls");
             break;
+        case NETPLAN_AUTH_EAP_LEAP:
+            g_key_file_set_string(kf, "802-1x", "eap", "leap");
+            break;
+        case NETPLAN_AUTH_EAP_PWD:
+            g_key_file_set_string(kf, "802-1x", "eap", "pwd");
+            break;
         default: break;  // LCOV_EXCL_LINE
     }
 
