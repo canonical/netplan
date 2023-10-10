@@ -309,6 +309,15 @@ must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", out)
         out = self.generate(config, expect_fail=True)
         self.assertIn("Error in network definition: wg0: a public key is required.", out)
 
+    def test_empty_string_as_endpoint_should_be_ignored(self):
+        """[wireguard] If the endpoint key is present but set to '' it should just be ignored"""
+        config = prepare_wg_config(listen=12345, privkey='KPt9BzQjejRerEv8RMaFlpsD675gNexELOQRXt/AcH0=',
+                                   peers=[{'public-key': 'rlbInAj0qV69CysWPQY7KEBnKxpYCpaWqOs/dLevdWc=',
+                                           'allowed-ips': '[0.0.0.0/0, "2001:fe:ad:de:ad:be:ef:1/24"]',
+                                           'keepalive': 14,
+                                           'endpoint': '\"\"'}], renderer=self.backend)
+        self.generate(config, skip_generated_yaml_validation=True)
+
     def test_vxlan_port_range_fail(self):
         out = self.generate('''network:
   tunnels:
