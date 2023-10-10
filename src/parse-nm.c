@@ -552,7 +552,11 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
                 }
 
                 /* Handle endpoint */
-                wireguard_peer->endpoint = g_key_file_get_string(kf, group, "endpoint", NULL);
+                gchar* endpoint = g_key_file_get_string(kf, group, "endpoint", NULL);
+                if (endpoint && g_strcmp0(endpoint, "")) {
+                    /* Only set the endpoint if it's not NULL nor an empty string */
+                    wireguard_peer->endpoint = endpoint;
+                }
                 _kf_clear_key(kf, group, "endpoint");
 
                 g_array_append_val(nd->wireguard_peers, wireguard_peer);
