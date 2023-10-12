@@ -4,4 +4,5 @@
 examples
 dbus-config
 netplan-everywhere
+contribute-docs
 ```
