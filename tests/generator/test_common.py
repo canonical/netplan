@@ -1796,3 +1796,34 @@ network={
   psk="aaaaaaaa"
 }
 """)
+
+    def test_wifi_access_points_overwriting(self):
+        ''' If we find an AP that is already defined we drop the first one.
+            XXX: this test must be removed once we implement support for AP merging
+        '''
+        self.generate('''network:
+  version: 2
+  wifis:
+    wlan0:
+      dhcp4: true
+      access-points:
+        "mywifi":
+          password: "aaaaaaaa"''',
+                      confs={'newwifi': '''network:
+  version: 2
+  wifis:
+    wlan0:
+      dhcp4: true
+      access-points:
+        "mywifi":
+          password: "bbbbbbbb"'''})
+
+        self.assert_wpa_supplicant("wlan0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="mywifi"
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
+  psk="bbbbbbbb"
+}
+""")

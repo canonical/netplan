@@ -1448,11 +1448,20 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key
 
         ssid = scalar(key);
 
-        /* Skip access-points that already exist in the netdef */
-        if (npp->current.netdef->access_points && g_hash_table_contains(npp->current.netdef->access_points, ssid))
-            continue;
+        /*
+         * Delete the access-point if it already exists in the netdef and let the new
+         * one be added. It has the side effect of reprocessing APs if the parser requires a
+         * second pass.
+         *
+         * TODO: implement support for merging AP settings if they were previously defined
+         */
+        if (npp->current.netdef->access_points && g_hash_table_contains(npp->current.netdef->access_points, ssid)) {
+            NetplanWifiAccessPoint *ap = g_hash_table_lookup(npp->current.netdef->access_points, ssid);
+            g_hash_table_remove(npp->current.netdef->access_points, ssid);
+            free_access_point(NULL, ap, NULL);
+        }
 
-        /* Check if there's already an SSID with that name in the list of APs we are parsing */
+        /* Check if the SSID was already defined in the same netdef in this YAML file we are parsing */
         if (g_hash_table_contains(access_points, ssid)) {
             g_hash_table_foreach(access_points, free_access_point, NULL);
             g_hash_table_destroy(access_points);
