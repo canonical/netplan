@@ -389,6 +389,8 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         }
 
         YAML_UINT_0(def, event, emitter, "channel", ap->channel);
+        if (ap->auth.psk)
+            YAML_NONNULL_STRING(event, emitter, "password", ap->auth.psk);
         if (ap->has_auth || DIRTY(def, ap->auth))
             write_auth(event, emitter, ap->auth);
         if (ap->mode != NETPLAN_WIFI_MODE_INFRASTRUCTURE || DIRTY(def, ap->mode))

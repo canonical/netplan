@@ -481,6 +481,33 @@ network={
 }
 """)
 
+    def test_wifi_ieee8021x_eap_and_psk(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          password: psk_password
+          auth:
+            key-management: eap
+            method: leap
+            identity: some-id
+            password: "********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid="homenet"
+  key_mgmt=WPA-EAP
+  eap=LEAP
+  ieee80211w=1
+  identity="some-id"
+  psk="psk_password"
+  password="********"
+}
+""")
+
 
 class TestNetworkManager(TestBase):
 
@@ -995,6 +1022,47 @@ key-mgmt=ieee8021x
 
 [802-1x]
 eap=pwd
+identity=some-id
+password=**********
+'''})
+
+    def test_wifi_eap_and_psk(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          password: psk_password
+          auth:
+            key-management: eap
+            method: leap
+            identity: "some-id"
+            password: "**********"''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-eap
+pmf=2
+psk=psk_password
+
+[802-1x]
+eap=leap
 identity=some-id
 password=**********
 '''})

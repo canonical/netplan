@@ -107,6 +107,7 @@ reset_auth_settings(NetplanAuthenticationSettings* auth)
     FREE_AND_NULLIFY(auth->identity);
     FREE_AND_NULLIFY(auth->anonymous_identity);
     FREE_AND_NULLIFY(auth->password);
+    FREE_AND_NULLIFY(auth->psk);
     FREE_AND_NULLIFY(auth->ca_certificate);
     FREE_AND_NULLIFY(auth->client_certificate);
     FREE_AND_NULLIFY(auth->client_key);
