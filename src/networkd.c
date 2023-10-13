@@ -1122,33 +1122,45 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
     if (auth->anonymous_identity) {
         g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", auth->anonymous_identity);
     }
-    if (auth->password) {
-        if (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK ||
-            auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE) {
-            size_t len = strlen(auth->password);
-            if (len == 64) {
-                /* must be a hex-digit key representation */
-                for (unsigned i = 0; i < 64; ++i)
-                    if (!isxdigit(auth->password[i])) {
-                        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: PSK length of 64 is only supported for hex-digit representation\n", id);
-                        return FALSE;
-                    }
-                /* this is required to be unquoted */
-                g_string_append_printf(s, "  psk=%s\n", auth->password);
-            } else if (len < 8 || len > 63) {
-                /* per wpa_supplicant spec, passphrase needs to be between 8
-                   and 63 characters */
-                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "ERROR: %s: ASCII passphrase must be between 8 and 63 characters (inclusive)\n", id);
-                return FALSE;
-            } else {
-                g_string_append_printf(s, "  psk=\"%s\"\n", auth->password);
-            }
+
+    char* psk = NULL;
+    if (auth->psk)
+        psk = auth->psk;
+    else if (auth->password
+            && (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+                || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE)
+        )
+            psk = auth->password;
+
+    if (psk) {
+        size_t len = strlen(psk);
+        if (len == 64) {
+            /* must be a hex-digit key representation */
+            for (unsigned i = 0; i < 64; ++i)
+                if (!isxdigit(psk[i])) {
+                    g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: PSK length of 64 is only supported for hex-digit representation\n", id);
+                    return FALSE;
+                }
+            /* this is required to be unquoted */
+            g_string_append_printf(s, "  psk=%s\n", psk);
+        } else if (len < 8 || len > 63) {
+            /* per wpa_supplicant spec, passphrase needs to be between 8 and 63 characters */
+            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "ERROR: %s: ASCII passphrase must be between 8 and 63 characters (inclusive)\n", id);
+            return FALSE;
         } else {
-            if (strncmp(auth->password, "hash:", 5) == 0) {
-                g_string_append_printf(s, "  password=%s\n", auth->password);
-            } else {
-                g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
-            }
+            g_string_append_printf(s, "  psk=\"%s\"\n", psk);
+        }
+    }
+
+    if (auth->password
+        && ((   auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+             && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE
+            )
+            || auth->eap_method != NETPLAN_AUTH_EAP_NONE)) {
+        if (strncmp(auth->password, "hash:", 5) == 0) {
+            g_string_append_printf(s, "  password=%s\n", auth->password);
+        } else {
+            g_string_append_printf(s, "  password=\"%s\"\n", auth->password);
         }
     }
     if (auth->ca_certificate) {

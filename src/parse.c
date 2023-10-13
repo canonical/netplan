@@ -1045,10 +1045,12 @@ handle_access_point_password(NetplanParser* npp, yaml_node_t* node, __unused con
     g_assert(access_point);
     /* shortcut for WPA-PSK */
     access_point->has_auth = TRUE;
-    access_point->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+    if (access_point->auth.key_management == NETPLAN_AUTH_KEY_MANAGEMENT_NONE)
+        access_point->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+
     access_point->auth.pmf_mode = NETPLAN_AUTH_PMF_MODE_OPTIONAL;
-    g_free(access_point->auth.password);
-    access_point->auth.password = g_strdup(scalar(node));
+    g_free(access_point->auth.psk);
+    access_point->auth.psk = g_strdup(scalar(node));
     return TRUE;
 }
 

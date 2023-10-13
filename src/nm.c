@@ -430,7 +430,16 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile 
         g_key_file_set_string(kf, "802-1x", "identity", auth->identity);
     if (auth->anonymous_identity)
         g_key_file_set_string(kf, "802-1x", "anonymous-identity", auth->anonymous_identity);
-    if (auth->password && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK)
+    /* auth->password might contain the PSK if it was defined inside the auth key in the YAML file.
+     * We only write auth-password in [802-1x].password if it's not a PSK used by either PSK or SAE
+     * or if an EAP method was defined.
+     */
+    if (auth->password
+        && ((   auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+             && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE
+            )
+            || auth->eap_method != NETPLAN_AUTH_EAP_NONE)
+    )
         g_key_file_set_string(kf, "802-1x", "password", auth->password);
     if (auth->ca_certificate)
         g_key_file_set_string(kf, "802-1x", "ca-cert", auth->ca_certificate);
@@ -470,23 +479,29 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
         default: break; // LCOV_EXCL_LINE
     }
 
-    switch (auth->pmf_mode) {
-        case NETPLAN_AUTH_PMF_MODE_NONE:
-        case NETPLAN_AUTH_PMF_MODE_DISABLED:
-            break;
+    if (auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_8021X) {
+        switch (auth->pmf_mode) {
+            case NETPLAN_AUTH_PMF_MODE_NONE:
+            case NETPLAN_AUTH_PMF_MODE_DISABLED:
+                break;
 
-        case NETPLAN_AUTH_PMF_MODE_OPTIONAL:
-            g_key_file_set_integer(kf, "wifi-security", "pmf", 2);
-            break;
+            case NETPLAN_AUTH_PMF_MODE_OPTIONAL:
+                g_key_file_set_integer(kf, "wifi-security", "pmf", 2);
+                break;
 
-        case NETPLAN_AUTH_PMF_MODE_REQUIRED:
-            g_key_file_set_integer(kf, "wifi-security", "pmf", 3);
-            break;
+            case NETPLAN_AUTH_PMF_MODE_REQUIRED:
+                g_key_file_set_integer(kf, "wifi-security", "pmf", 3);
+                break;
+        }
     }
 
-    if (auth->eap_method != NETPLAN_AUTH_EAP_NONE)
-        write_dot1x_auth_parameters(auth, kf);
-    else if (auth->password)
+    write_dot1x_auth_parameters(auth, kf);
+
+    if (auth->psk)
+        g_key_file_set_string(kf, "wifi-security", "psk", auth->psk);
+    else if (auth->password
+        && (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+            || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE))
         g_key_file_set_string(kf, "wifi-security", "psk", auth->password);
 }
 

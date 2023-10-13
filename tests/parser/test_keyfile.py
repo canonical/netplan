@@ -626,6 +626,102 @@ method=auto'''.format(UUID))
         name: "myid with spaces"
 '''.format(UUID, UUID, UUID)})
 
+    def test_keyfile_wifi_eap_md5_not_supported(self):
+        self.generate_from_keyfile('''[connection]
+type=wifi
+uuid={}
+permissions=
+id=myid with spaces
+interface-name=eth0
+
+[wifi]
+ssid=SOME-SSID
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=ieee8021x
+
+[802-1x]
+eap=md5
+identity=some-id
+password=v3rys3cr3t!
+
+[ipv4]
+method=auto'''.format(UUID), regenerate=False)
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "eth0"
+      dhcp4: true
+      access-points:
+        "SOME-SSID":
+          auth:
+            key-management: "802.1x"
+            identity: "some-id"
+            password: "v3rys3cr3t!"
+          networkmanager:
+            uuid: "{}"
+            name: "myid with spaces"
+            passthrough:
+              connection.permissions: ""
+              802-1x.eap: "md5"
+      networkmanager:
+        uuid: "{}"
+        name: "myid with spaces"
+'''.format(UUID, UUID, UUID)})
+
+    def test_keyfile_wifi_eap_psk_with_eap(self):
+        self.generate_from_keyfile('''[connection]
+type=wifi
+uuid={}
+permissions=
+id=myid with spaces
+interface-name=eth0
+
+[wifi]
+ssid=SOME-SSID
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-eap
+psk=pskpassword
+
+[802-1x]
+eap=leap
+identity=some-id
+password=v3rys3cr3t!
+
+[ipv4]
+method=auto'''.format(UUID), regenerate=False)
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  wifis:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "eth0"
+      dhcp4: true
+      access-points:
+        "SOME-SSID":
+          password: "pskpassword"
+          auth:
+            key-management: "eap"
+            method: "leap"
+            identity: "some-id"
+            password: "v3rys3cr3t!"
+          networkmanager:
+            uuid: "{}"
+            name: "myid with spaces"
+            passthrough:
+              connection.permissions: ""
+      networkmanager:
+        uuid: "{}"
+        name: "myid with spaces"
+'''.format(UUID, UUID, UUID)})
+
     def _template_keyfile_type_wifi(self, nd_mode, nm_mode):
         self.generate_from_keyfile('''[connection]
 type=wifi
