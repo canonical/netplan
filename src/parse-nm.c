@@ -390,6 +390,8 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
             auth->eap_method = NETPLAN_AUTH_EAP_LEAP;
         } else if (g_strcmp0(first_method, "pwd") == 0) {
             auth->eap_method = NETPLAN_AUTH_EAP_PWD;
+        } else {
+            auth->eap_method = NETPLAN_AUTH_EAP_UNKNOWN;
         }
 
         /* If "method" (which is a list separated by ";") has more than one value,
@@ -398,8 +400,11 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
          * but Netplan accepts only one.
          *
          * TODO: eap_method needs to be fixed to store multiple methods.
+         *
+         * If at this point the eap_method is still NONE we also keep the property because
+         * it's probably a setting we still don't support.
          */
-        if (split[1] == NULL || !g_strcmp0(split[1], ""))
+        if (auth->eap_method != NETPLAN_AUTH_EAP_UNKNOWN && (split[1] == NULL || !g_strcmp0(split[1], "")))
             _kf_clear_key(kf, "802-1x", "eap");
 
         g_strfreev(split);
@@ -407,7 +412,8 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
 
     keyfile_handle_generic_str(kf, "802-1x", "identity", &auth->identity);
     keyfile_handle_generic_str(kf, "802-1x", "anonymous-identity", &auth->anonymous_identity);
-    if (!auth->password)
+    if (auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK &&
+        auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE)
         keyfile_handle_generic_str(kf, "802-1x", "password", &auth->password);
     keyfile_handle_generic_str(kf, "802-1x", "ca-cert", &auth->ca_certificate);
     keyfile_handle_generic_str(kf, "802-1x", "client-cert", &auth->client_certificate);
@@ -1014,9 +1020,16 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             default: break;
         }
 
-        keyfile_handle_generic_str(kf, "wifi-security", "psk", &ap->auth.password);
-        if (ap->auth.password)
-            ap->has_auth = TRUE;
+        if (ap->auth.key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+            || ap->auth.key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE) {
+            keyfile_handle_generic_str(kf, "wifi-security", "psk", &ap->auth.password);
+            if (ap->auth.password)
+                ap->has_auth = TRUE;
+        } else {
+            keyfile_handle_generic_str(kf, "wifi-security", "psk", &ap->auth.psk);
+            if (ap->auth.psk)
+                ap->has_auth = TRUE;
+        }
 
         parse_dot1x_auth(kf, &ap->auth);
         if (ap->auth.eap_method != NETPLAN_AUTH_EAP_NONE)

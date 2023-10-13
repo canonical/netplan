@@ -120,6 +120,7 @@ typedef enum {
     NETPLAN_AUTH_EAP_TTLS,
     NETPLAN_AUTH_EAP_LEAP,
     NETPLAN_AUTH_EAP_PWD,
+    NETPLAN_AUTH_EAP_UNKNOWN,
     NETPLAN_AUTH_EAP_METHOD_MAX,
 } NetplanAuthEAPMethod;
 
@@ -142,6 +143,7 @@ typedef struct authentication_settings {
     char* client_key;
     char* client_key_password;
     char* phase2_auth;  /* netplan-feature: auth-phase2 */
+    char* psk;
 } NetplanAuthenticationSettings;
 
 typedef enum {
