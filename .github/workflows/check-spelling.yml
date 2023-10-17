@@ -1,0 +1,33 @@
+name: Check Documentation Spelling
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  check-spelling:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install build depends
+        run: |
+          echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
+          sudo apt update
+          sudo apt build-dep netplan.io
+
+      - name: Run spelling checker
+        continue-on-error: true
+        run: |
+          make -C doc install
+          make -C doc spelling
+
+      - name: Check results
+        run: |
+          SPELLING=$(find doc/_build/spelling/ -name '*.spelling')
+          echo ${SPELLING}
+          [ -z "${SPELLING}" ] && exit 0 || { cat ${SPELLING} ; exit 1; }
