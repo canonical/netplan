@@ -647,7 +647,7 @@ identity=some-id
 password=v3rys3cr3t!
 
 [ipv4]
-method=auto'''.format(UUID), regenerate=False)
+method=auto'''.format(UUID))
         self.assert_netplan({UUID: '''network:
   version: 2
   wifis:
@@ -696,6 +696,12 @@ password=v3rys3cr3t!
 
 [ipv4]
 method=auto'''.format(UUID), regenerate=False)
+        # Regeneration is disabled for the previous test because when both,
+        # identity and PSK passwords are used, the PSK will be stored in the
+        # access-points.<ap>.password key and, because of that, a keyfile with
+        # [wifi-security].pmf=2 will be emitted and will differ from the original
+        # keyfile.
+
         self.assert_netplan({UUID: '''network:
   version: 2
   wifis:

@@ -1126,11 +1126,8 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
     char* psk = NULL;
     if (auth->psk)
         psk = auth->psk;
-    else if (auth->password
-            && (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
-                || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE)
-        )
-            psk = auth->password;
+    else if (auth->password && _is_auth_key_management_psk(auth))
+        psk = auth->password;
 
     if (psk) {
         size_t len = strlen(psk);
@@ -1153,10 +1150,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
     }
 
     if (auth->password
-        && ((   auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
-             && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE
-            )
-            || auth->eap_method != NETPLAN_AUTH_EAP_NONE)) {
+        && (!_is_auth_key_management_psk(auth) || auth->eap_method != NETPLAN_AUTH_EAP_NONE)) {
         if (strncmp(auth->password, "hash:", 5) == 0) {
             g_string_append_printf(s, "  password=%s\n", auth->password);
         } else {
