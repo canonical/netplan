@@ -135,7 +135,11 @@ write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSe
     YAML_NONNULL_STRING(event, emitter, "client-key", auth.client_key);
     YAML_NONNULL_STRING(event, emitter, "client-key-password", auth.client_key_password);
     YAML_NONNULL_STRING(event, emitter, "phase2-auth", auth.phase2_auth);
-    YAML_NONNULL_STRING(event, emitter, "password", auth.password);
+    if (!auth.password && auth.psk) {
+        YAML_NONNULL_STRING(event, emitter, "password", auth.psk);
+    } else {
+        YAML_NONNULL_STRING(event, emitter, "password", auth.password);
+    }
     YAML_MAPPING_CLOSE(event, emitter);
     return TRUE;
 err_path: return FALSE; // LCOV_EXCL_LINE
@@ -389,7 +393,7 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
         }
 
         YAML_UINT_0(def, event, emitter, "channel", ap->channel);
-        if (ap->auth.psk)
+        if (ap->auth.psk && !_is_auth_key_management_psk(&ap->auth))
             YAML_NONNULL_STRING(event, emitter, "password", ap->auth.psk);
         if (ap->has_auth || DIRTY(def, ap->auth))
             write_auth(event, emitter, ap->auth);

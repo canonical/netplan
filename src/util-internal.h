@@ -132,6 +132,9 @@ is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* r
 NETPLAN_INTERNAL gboolean //FIXME: avoid exporting private symbol
 is_string_in_array(GArray* array, const char* value);
 
+gboolean
+_is_auth_key_management_psk(const NetplanAuthenticationSettings* auth);
+
 NETPLAN_INTERNAL struct address_iter*
 _netplan_netdef_new_address_iter(NetplanNetDefinition* netdef);
 

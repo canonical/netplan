@@ -434,12 +434,7 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile 
      * We only write auth-password in [802-1x].password if it's not a PSK used by either PSK or SAE
      * or if an EAP method was defined.
      */
-    if (auth->password
-        && ((   auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
-             && auth->key_management != NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE
-            )
-            || auth->eap_method != NETPLAN_AUTH_EAP_NONE)
-    )
+    if (auth->password && (!_is_auth_key_management_psk(auth) || auth->eap_method != NETPLAN_AUTH_EAP_NONE))
         g_key_file_set_string(kf, "802-1x", "password", auth->password);
     if (auth->ca_certificate)
         g_key_file_set_string(kf, "802-1x", "ca-cert", auth->ca_certificate);
@@ -499,9 +494,7 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
 
     if (auth->psk)
         g_key_file_set_string(kf, "wifi-security", "psk", auth->psk);
-    else if (auth->password
-        && (auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
-            || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE))
+    else if (auth->password && _is_auth_key_management_psk(auth))
         g_key_file_set_string(kf, "wifi-security", "psk", auth->password);
 }
 
