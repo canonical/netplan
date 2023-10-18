@@ -1169,3 +1169,11 @@ is_string_in_array(GArray* array, const char* value)
     }
     return FALSE;
 }
+
+/* Check if the authentication key management algorithm uses a PSK password */
+gboolean
+_is_auth_key_management_psk(const NetplanAuthenticationSettings* auth)
+{
+    return (   auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+            || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE);
+}
