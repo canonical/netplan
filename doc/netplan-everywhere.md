@@ -1,6 +1,6 @@
 # Desktop integration
 
-## NetworkManager YAML settings backend (Netplan everywhere)
+## NetworkManager YAML settings backend
 
 NetworkManager is the tool used by Ubuntu Desktop systems to manage
 network devices such as Ethernet and Wifi adapters. While it is a great
@@ -8,85 +8,79 @@ tool for the job and users can directly use it through the command line
 and the graphical interfaces to configure their devices, Ubuntu has its
 own way of describing and storing network configuration via Netplan.
 
-On Ubuntu, NetworkManager uses (or will use, depending on when you are
-reading this) Netplan's APIs to save the configuration created by the
-user using any of its interfaces. Our goal is to have a centralized place
-to store network configuration. In the Desktop it's convenient to use
-graphical tools for configuration when they are available, so nothing will
-change from the user perspective, only the way the configuration is
-handled under the hood.
+On Ubuntu 23.10 "Mantic Minotaur" and later, NetworkManager uses Netplan APIs
+to save the configuration created using any of its graphical or programmatic
+interfaces. This leads to having a centralized location to store network
+configuration. On the Desktop, it's convenient to use graphical tools for
+configuration when they are available, so nothing changes from the user
+perspective; only the way the system handles the configuration in the background.
 
-For more information on Netplan, check https://netplan.io/
+For more information on Netplan, see [https://netplan.io](https://netplan.io).
 
-For more information on NetworkManager, check https://networkmanager.dev/
+For more information on NetworkManager, see [https://networkmanager.dev](https://networkmanager.dev).
 
 ## How it works
 
 Every time a non-temporary connection is created in NetworkManager, instead
-of persisting the original .nmconnection file, it will create a Netplan YAML
-at `/etc/netplan` called `90-NM-<connection UUID>.yaml`. After creating the
-file, NetworkManager will call the Netplan generator to emit the configuration
-for that connection.	Connections that are temporary, like the ones created
-for virtual network interfaces when you connect to a VPN for example, are not
-persisted as Netplan files. The reason for that is that these interfaces are
-usually managed by external services and we don't want to cause any unexpected
-change that would affect them.
+of persisting the original `.nmconnection` file, it creates a Netplan YAML
+file in `/etc/netplan/` called `90-NM-<connection UUID>.yaml`. After creating
+the file, NetworkManager calls the Netplan generator to provide the
+configuration for that connection. Connections that are temporary, like the ones
+created for virtual network interfaces when you connect to a VPN for example,
+are not persisted as Netplan files. The reason for that is that these interfaces
+are usually managed by external services and we don't want to cause any
+unexpected change that would affect them.
 
-## How to install it
-
-### Creating a backup of your current configuration
-
-The new NetworkManager will remove connection profiles that you eventually
-modify from `/etc/NetworkManager`. So you might want to create a copy of all
-your connection profiles before installing the new network-manager package:
-
-```
-$ mkdir ~/NetworkManager.bak && cd ~/NetworkManager.bak/
-$ sudo cp -r /etc/NetworkManager/system-connections .
-```
-
-In any case, a backup will be created automatically for you at
-`/root/NetworkManager.bak` during package installation.
-
-And also keep a copy of all the original network-manager related packages in
-case you want to revert to the previous installation:
-
-```
-$ apt download gir1.2-nm-1.0 libnm0 network-manager network-manager-config-connectivity-ubuntu
-```
+## How to use
 
 ### Installing NetworkManager
 
-The NetworkManager 1.42.0 package containing the Netplan integration patch
-is currently available as a PPA. In order to install it, you will need to
-have `netplan.io >= 0.106` installed in your system (it is available in Lunar).
-
+The NetworkManager 1.44.2 package containing the Netplan integration patch
+is available by default in Ubuntu 23.10 "Mantic Minotaur" and later as part of
+the official Ubuntu archive.
 ```
-$ sudo add-apt-repository ppa:canonical-foundations/networkmanager-netplan
 $ sudo apt update
 $ sudo apt install network-manager
 ```
 
-## How connections are managed from now on
+### User interface
 
-After installing the new NetworkManager, your existing connection profiles
-will not be imported to Netplan YAML files, only new connections and the
-existing ones you eventually modify.
+From this point on, Netplan is aware of all your network configuration and
+you can query it using its CLI tools, such as `sudo netplan get` or `sudo
+netplan status`. All while keeping untouched the traditional way of modifying
+it using NetworkManager (graphical UI, GNOME Quick Settings, `nmcli`,
+`nmtui`, D-Bus APIs, ...).
 
-For example, if you have a Wifi connection, you will find the connection
-profile file at `/etc/NetworkManager/system-connections`. If you modify it
-using one of the NetworkManager's interfaces (or delete and create a new one),
-the respective file will be removed from `/etc/NetworkManager/system-connections`,
-a Netplan YAML called `90-NM-<connection UUID>.yaml` will be created at
-`/etc/netplan` and a new profile will be generated and stored at
-`/run/NetworkManager/system-connections`.
+### Management of connection profiles
+
+The NetworkManager-Netplan integration imports connection profiles from
+`/etc/NetworkManager/system-connections/` to Netplan during the installation
+process. It automatically creates a copy of all your connection profiles during
+the installation of the new network-manager package in
+`/root/NetworkManager.bak/system-connections/`. The same migration happens
+in the background whenever you add or modify any connection profile.
+
+You can observe this migration on the `apt-get`` command line. Watch for
+logs like the following:
+```
+Setting up network-manager (1.44.2-1ubuntu1.2) ...
+Migrating HomeNet (9d087126-ae71-4992-9e0a-18c5ea92a4ed) to /etc/netplan
+Migrating eduroam (37d643bb-d81d-4186-9402-7b47632c59b1) to /etc/netplan
+Migrating DebConf (f862be9c-fb06-4c0f-862f-c8e210ca4941) to /etc/netplan
+```
+
+For example, if you have a Wifi connection, you will not find the connection
+profile file at `/etc/NetworkManager/system-connections/` anymore. Instead,
+the system removes the profile file, and Netplan creates a new YAML file called
+`90-NM-<connection UUID>.yaml` in `/etc/netplan/` and generates a new ephemeral
+profile in `/run/NetworkManager/system-connections/`.
 
 ## Limitation
 
-Netplan doesn't yet support all the configuration available in
+Netplan doesn't yet support all the configuration options available in
 NetworkManager (or doesn't know how to interpret some of the keywords
 found in the keyfile). After creating a new connection you might find
-a section called "passthrough" in your YAML file, like in the example below:
+a section called `passthrough` in your YAML file, like in the example below:
 
 ```yaml
 network:
@@ -113,12 +107,12 @@ network:
           proxy._: ""
 ```
 
-All the configuration under the "passthrough" mapping will be added to
+All the configuration under the `passthrough` mapping is added to
 the `.nmconnection` file as they are.
 
-In cases where the connection type is not supported by Netplan the
-`nm-devices` network type will be used. The example below is an OpenVPN
-client connection, which is not supported by Netplan at the moment.
+In cases where the connection type is not supported by Netplan, the system uses
+the `nm-devices` network type. The example below is an OpenVPN client
+connection, which is not supported by Netplan at the moment.
 
 ```yaml
 network:
