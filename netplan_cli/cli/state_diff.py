@@ -86,6 +86,7 @@ class NetplanDiffState():
             self._analyze_ip_addresses(config, iface)
             self._analyze_nameservers(config, iface)
             self._analyze_search_domains(config, iface)
+            self._analyze_mac_addresses(config, iface)
 
             report['interfaces'].update(iface)
 
@@ -261,6 +262,20 @@ class NetplanDiffState():
             iface[name]['system_state'].update({
                 'missing_nameservers_search': list(present_only_in_netplan),
             })
+
+    def _analyze_mac_addresses(self, config: dict, iface: dict) -> None:
+        name = list(iface.keys())[0]
+        system_macaddress = config.get('system_state', {}).get('macaddress')
+        netplan_macaddress = config.get('netplan_state', {}).get('macaddress')
+
+        if system_macaddress and netplan_macaddress:
+            if system_macaddress != netplan_macaddress:
+                iface[name]['system_state'].update({
+                    'missing_macaddress': netplan_macaddress
+                })
+                iface[name]['netplan_state'].update({
+                    'missing_macaddress': system_macaddress
+                })
 
     def _analyze_missing_interfaces(self, report: dict) -> None:
         netplan_interfaces = {iface for iface in self.netplan_state.netdefs}
