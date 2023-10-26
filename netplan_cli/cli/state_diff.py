@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import ipaddress
 
 from netplan.netdef import NetplanRoute
 from netplan_cli.cli.state import SystemConfigState, NetplanConfigState, DEVICE_TYPES
@@ -66,9 +67,25 @@ class NetplanDiffState():
         absence of addresses that should be assigned by DHCP as a difference.
         '''
 
+        full_state = self.get_full_state()
+        interfaces = self._get_comparable_interfaces(full_state.get('interfaces', {}))
+
+        if interface:
+            if config := interfaces.get(interface):
+                interfaces = {interface: config}
+
         report = self._create_new_report()
 
         self._analyze_missing_interfaces(report)
+
+        for interface, config in interfaces.items():
+            netdef_id = config.get('system_state', {}).get('id')
+            index = config.get('system_state', {}).get('index')
+            iface = self._create_new_iface(netdef_id, interface, index)
+
+            self._analyze_ip_addresses(config, iface)
+
+            report['interfaces'].update(iface)
 
         return report
 
@@ -78,6 +95,103 @@ class NetplanDiffState():
             'missing_interfaces_system': {},
             'missing_interfaces_netplan': {},
         }
+
+    def _create_new_iface(self, netdef_id: str, interface: str, index: int) -> dict:
+        return {
+            interface: {
+                'index': index,
+                'name': interface,
+                'id': netdef_id,
+                'system_state': {},
+                'netplan_state': {},
+            }
+        }
+
+    def _analyze_ip_addresses(self, config: dict, iface: dict) -> None:
+        name = list(iface.keys())[0]
+        netplan_ips = {ip for ip in config.get('netplan_state', {}).get('addresses', [])}
+        netplan_ips = self._normalize_ip_addresses(netplan_ips)
+
+        missing_dhcp4_address = config.get('netplan_state', {}).get('dhcp4', False)
+        missing_dhcp6_address = config.get('netplan_state', {}).get('dhcp6', False)
+        system_ips = set()
+        for addr, addr_data in config.get('system_state', {}).get('addresses', {}).items():
+            ip = ipaddress.ip_interface(addr)
+            flags = addr_data.get('flags', [])
+
+            # Select only static IPs
+            if 'dhcp' not in flags and 'link' not in flags:
+                system_ips.add(addr)
+
+            # TODO: improve the detection of addresses assigned dynamically
+            # in the class Interface.
+            if 'dhcp' in flags:
+                if isinstance(ip.ip, ipaddress.IPv4Address):
+                    missing_dhcp4_address = False
+                if isinstance(ip.ip, ipaddress.IPv6Address):
+                    missing_dhcp6_address = False
+
+        present_only_in_netplan = netplan_ips.difference(system_ips)
+        present_only_in_system = system_ips.difference(netplan_ips)
+
+        if missing_dhcp4_address:
+            iface[name]['system_state']['missing_dhcp4_address'] = True
+
+        if missing_dhcp6_address:
+            iface[name]['system_state']['missing_dhcp6_address'] = True
+
+        if present_only_in_system:
+            iface[name]['netplan_state'].update({
+                'missing_addresses': list(present_only_in_system),
+            })
+
+        if present_only_in_netplan:
+            iface[name]['system_state'].update({
+                'missing_addresses': list(present_only_in_netplan),
+            })
+
+    def _get_comparable_interfaces(self, interfaces: dict) -> dict:
+        ''' In order to compare interfaces, they must exist in the system AND in Netplan.
+            Here we filter out interfaces that don't have a system_state and a netdef ID.
+        '''
+        filtered = {}
+
+        for interface, config in interfaces.items():
+            if config.get('system_state') is None:
+                continue
+
+            if not config.get('system_state', {}).get('id'):
+                continue
+
+            filtered[interface] = config
+
+        return filtered
+
+    def _normalize_ip_addresses(self, addresses: set) -> set:
+        ''' Apply some transformations to IP addresses so their representation
+        will match the system's.
+        '''
+        new_ips_set = set()
+        for ip in addresses:
+            ip = self._compress_ipv6_address(ip)
+            new_ips_set.add(ip)
+
+        return new_ips_set
+
+    def _compress_ipv6_address(self, address: str) -> str:
+        '''
+        Compress IPv6 addresses to match the system representation
+        Example: 1:2:0:0::123/64 -> 1:2::123/64
+                 1:2:0:0::123 -> 1:2::123
+        If "address" is not an IPv6Address, return the original value
+        '''
+        try:
+            addr = ipaddress.ip_interface(address)
+            if '/' in address:
+                return addr.with_prefixlen
+            return str(addr.ip)
+        except ValueError:
+            return address
 
     def _analyze_missing_interfaces(self, report: dict) -> None:
         netplan_interfaces = {iface for iface in self.netplan_state.netdefs}

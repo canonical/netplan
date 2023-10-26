@@ -463,3 +463,250 @@ class TestNetplanDiff(unittest.TestCase):
         diff_data = diff.get_diff()
         missing = diff_data.get('missing_interfaces_system', [])
         self.assertListEqual(missing, [])
+
+    def test__get_comparable_interfaces_empty(self):
+        res = self.diff_state._get_comparable_interfaces({})
+        self.assertDictEqual(res, {})
+
+    def test__get_comparable_interfaces(self):
+        input = {
+            'eth0': {
+                'system_state': {
+                    'id': 'eth0'
+                }
+            },
+            'eth1': {
+                'netplan_state': {}
+            },
+            'eth2': {
+                'system_state': {}
+            }
+        }
+        res = self.diff_state._get_comparable_interfaces(input)
+        self.assertDictEqual(res, {'eth0': {'system_state': {'id': 'eth0'}}})
+
+    def test__compress_ipv6_address_with_prefix(self):
+        self.assertEqual(self.diff_state._compress_ipv6_address('a:b:c:0:0:0::d/64'), 'a:b:c::d/64')
+
+    def test__compress_ipv6_address_without_prefix(self):
+        self.assertEqual(self.diff_state._compress_ipv6_address('a:b:c:0:0:0::d'), 'a:b:c::d')
+
+    def test__compress_ipv6_address_ipv4_with_prefix(self):
+        self.assertEqual(self.diff_state._compress_ipv6_address('192.168.0.1/24'), '192.168.0.1/24')
+
+    def test__compress_ipv6_address_ipv4_without_prefix(self):
+        self.assertEqual(self.diff_state._compress_ipv6_address('192.168.0.1'), '192.168.0.1')
+
+    def test__compress_ipv6_address_not_an_ip(self):
+        self.assertEqual(self.diff_state._compress_ipv6_address('default'), 'default')
+
+    def test__normalize_ip_addresses(self):
+        ips = {'abcd:0:0:0::1/64', '1:2:0:0::123', '1.2.3.4/24', '1.2.3.4'}
+        expected = {'abcd::1/64', '1:2::123', '1.2.3.4/24', '1.2.3.4'}
+        result = self.diff_state._normalize_ip_addresses(ips)
+        self.assertSetEqual(expected, result)
+
+    def test_diff_missing_system_address(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 192.168.0.2/24:
+            label: myip
+            lifetime: forever
+        - 192.168.0.1/24''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_addresses', [])
+        self.assertIn('192.168.0.1/24', missing)
+        self.assertIn('192.168.0.2/24', missing)
+
+    def test_diff_missing_system_address_with_match(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    mynic:
+      match:
+        name: "eth*"
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 192.168.0.2/24:
+            label: myip
+            lifetime: forever
+        - 192.168.0.1/24''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'mynic',
+                'index': 2,
+            }
+        }
+
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'mynic'
+        system_state.interface_list = [interface1]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_addresses', [])
+        self.assertIn('192.168.0.1/24', missing)
+        self.assertIn('192.168.0.2/24', missing)
+
+    def test_diff_dhcp_addresses_are_filtered_out(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: true''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'addresses': [
+                    {'192.168.0.1': {'prefix': 24, 'flags': ['dhcp']}},
+                    {'192.168.254.1': {'prefix': 24, 'flags': ['dhcp']}},
+                    {'abcd:1234::1': {'prefix': 64, 'flags': ['dhcp']}}
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_addresses', [])
+        self.assertEqual(missing, [])
+
+    def test_diff_missing_netplan_address(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 192.168.0.1/24''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'addresses': [
+                    {'192.168.0.1': {'prefix': 24}},
+                    {'192.168.254.1': {'prefix': 24}}
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+
+        diff_data = diff.get_diff()
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_addresses', [])
+        self.assertIn('192.168.254.1/24', missing)
+
+        diff_data = diff.get_diff('eth0')
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_addresses', [])
+        self.assertIn('192.168.254.1/24', missing)
+
+    def test_diff_addresses_compressed_ipv6(self):
+        ''' Check if IPv6 address will not mismatch due to their representation'''
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 1:2:3:0:0:0::123/64''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'addresses': [
+                    {'1:2:3::123': {'prefix': 64}},
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing_netplan = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_addresses', [])
+        missing_system = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_addresses', [])
+        self.assertListEqual([], missing_netplan)
+        self.assertListEqual([], missing_system)
+
+    def test_diff_missing_system_dhcp_addresses(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: true''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        dhcp4 = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_dhcp4_address')
+        dhcp6 = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_dhcp6_address')
+        self.assertTrue(dhcp4)
+        self.assertTrue(dhcp6)
