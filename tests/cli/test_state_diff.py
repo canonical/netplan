@@ -803,3 +803,97 @@ class TestNetplanDiff(unittest.TestCase):
         missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_nameservers_addresses', [])
         self.assertIn('1.2.3.4', missing)
         self.assertIn('4.3.2.1', missing)
+
+    def test_diff_missing_system_nameservers_search(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      nameservers:
+        search:
+          - mydomain.local
+          - anotherdomain.local''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_nameservers_search', [])
+        self.assertIn('mydomain.local', missing)
+        self.assertIn('anotherdomain.local', missing)
+
+    def test_diff_missing_netplan_nameservers_search(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: false''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'dns_search': ['mydomain.local', 'anotherdomain.local'],
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_nameservers_search', [])
+        self.assertIn('mydomain.local', missing)
+        self.assertIn('anotherdomain.local', missing)
+
+    def test_diff_missing_system_nameservers_search_with_match(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    mynic:
+      match:
+        name: eth0
+      nameservers:
+        search:
+          - mydomain.local
+          - anotherdomain.local''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'mynic',
+                'index': 2,
+            }
+        }
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'mynic'
+        system_state.interface_list = [interface1]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_nameservers_search', [])
+        self.assertIn('mydomain.local', missing)
+        self.assertIn('anotherdomain.local', missing)
