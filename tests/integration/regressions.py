@@ -137,6 +137,33 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 
+    def test_try_accept_lp1959570(self):
+        original_env = dict(os.environ)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br54'], stderr=subprocess.DEVNULL)
+        self.addCleanup(subprocess.call, ['mv', '/snap/bin/nmcli', '/usr/bin/nmcli'], stderr=subprocess.DEVNULL)
+        self.addCleanup(os.environ.update, original_env)
+        os.makedirs('/snap/bin', exist_ok=True)
+        subprocess.call(['mv', '/usr/bin/nmcli', '/snap/bin/nmcli'])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  version: 2
+  bridges:
+    br54:
+      addresses:
+      - "10.0.0.20/24"''' % {'r': self.backend})
+            os.chmod(self.config, mode=0o600)
+        del os.environ['PATH']  # clear PATH, to test for LP: #1959570
+        p = subprocess.Popen(['/usr/sbin/netplan', 'try'], bufsize=1, text=True,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(2)
+        p.send_signal(signal.SIGUSR1)
+        out, err = p.communicate(timeout=10)
+        os.environ = original_env
+        self.assertEqual('', err)
+        self.assertNotIn('An error occurred:', out)
+        self.assertIn('Configuration accepted.', out)
+
 
 class TestDbus(IntegrationTestsBase):
     # This test can be dropped when tests/integration/dbus.py is
