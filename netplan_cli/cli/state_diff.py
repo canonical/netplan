@@ -85,6 +85,7 @@ class NetplanDiffState():
 
             self._analyze_ip_addresses(config, iface)
             self._analyze_nameservers(config, iface)
+            self._analyze_search_domains(config, iface)
 
             report['interfaces'].update(iface)
 
@@ -235,6 +236,30 @@ class NetplanDiffState():
         if present_only_in_netplan:
             iface[name]['system_state'].update({
                 'missing_nameservers_addresses': list(present_only_in_netplan),
+            })
+
+    def _analyze_search_domains(self, config: dict, iface: dict) -> None:
+        name = list(iface.keys())[0]
+        netplan_search_domains = set(config.get('netplan_state', {}).get('nameservers_search', []))
+        system_search_domains = set(config.get('system_state', {}).get('nameservers_search', []))
+
+        # If the netplan configuration has DHCP enabled and an empty list of search domains
+        # we assume it's dynamic
+        if not netplan_search_domains:
+            if config.get('netplan_state', {}).get('dhcp4') or config.get('netplan_state', {}).get('dhcp6'):
+                system_search_domains = set()
+
+        present_only_in_netplan = netplan_search_domains.difference(system_search_domains)
+        present_only_in_system = system_search_domains.difference(netplan_search_domains)
+
+        if present_only_in_system:
+            iface[name]['netplan_state'].update({
+                'missing_nameservers_search': list(present_only_in_system),
+            })
+
+        if present_only_in_netplan:
+            iface[name]['system_state'].update({
+                'missing_nameservers_search': list(present_only_in_netplan),
             })
 
     def _analyze_missing_interfaces(self, report: dict) -> None:
