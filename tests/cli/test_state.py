@@ -28,7 +28,7 @@ import yaml
 
 from unittest.mock import patch, call, mock_open
 from netplan_cli.cli.state import Interface, NetplanConfigState, SystemConfigState
-from .test_status import (DNS_ADDRESSES, DNS_IP4, DNS_SEARCH, FAKE_DEV,
+from .test_status import (BRIDGE, DNS_ADDRESSES, DNS_IP4, DNS_SEARCH, FAKE_DEV,
                           IPROUTE2, NETWORKD, NMCLI, ROUTE4, ROUTE6)
 
 
@@ -77,9 +77,9 @@ class TestSystemState(unittest.TestCase):
         mock.return_value = NETWORKD
         res = SystemConfigState.query_networkd()
         mock.assert_called_with(['networkctl', '--json=short'], text=True)
-        self.assertEqual(len(res), 6)
+        self.assertEqual(len(res), 8)
         self.assertListEqual([itf.get('Name') for itf in res],
-                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0'])
+                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0', 'mybr0', 'mybond0'])
 
     @patch('subprocess.check_output')
     def test_query_networkd_fail(self, mock):
@@ -215,6 +215,7 @@ search search.domain  another.one
         self.assertFalse(res)
 
     @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_members')
     @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
     @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
     @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
@@ -224,17 +225,73 @@ search search.domain  another.one
     @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
     def test_system_state_config_data_interfaces(self, online_mock, resolvconf_mock, rd_mock,
                                                  routes_mock, nm_mock, networkd_mock, iproute2_mock,
-                                                 systemctl_mock):
+                                                 members_mock, systemctl_mock):
         systemctl_mock.return_value = None
-        iproute2_mock.return_value = [FAKE_DEV]
+        members_mock.return_value = []
+        iproute2_mock.return_value = [FAKE_DEV, BRIDGE]
         nm_mock.return_value = []
         routes_mock.return_value = (None, None)
         rd_mock.return_value = (None, None)
         resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
         online_mock.return_value = False
+        networkd_mock.return_value = SystemConfigState.process_networkd(NETWORKD)
         state = SystemConfigState()
-        networkd_mock.return_value = state.process_networkd(NETWORKD)
         self.assertIn('fakedev0', [iface.name for iface in state.interface_list])
+
+    @patch('subprocess.check_output')
+    def test_query_members(self, mock):
+        mock.return_value = '[{"ifname":"eth0"}, {"ifname":"eth1"}]'
+        members = SystemConfigState.query_members('mybr0')
+        mock.assert_has_calls([
+            call(['ip', '-d', '-j', 'link', 'show', 'master', 'mybr0'], text=True),     # wokeignore:rule=master
+            ])
+        self.assertListEqual(members, ['eth0', 'eth1'])
+
+    @patch('subprocess.check_output')
+    def test_query_members_fail(self, mock):
+        mock.side_effect = subprocess.CalledProcessError(1, '', 'ERR')
+        with self.assertLogs(level='WARNING') as cm:
+            bridge = SystemConfigState.query_members('mybr0')
+            mock.assert_has_calls([
+                call(['ip', '-d', '-j', 'link', 'show', 'master', 'mybr0'], text=True),     # wokeignore:rule=master
+                ])
+            self.assertListEqual(bridge, [])
+            self.assertIn('WARNING:root:Cannot query bridge:', cm.output[0])
+
+    @classmethod
+    def mock_query_members(cls, interface):
+        if interface == 'br0':
+            return ['eth0', 'eth1']
+        if interface == 'bond0':
+            return ['eth2', 'eth3']
+
+    @patch('netplan_cli.cli.state.SystemConfigState.query_members')
+    def test_correlate_members_and_uplink_bridge(self, mock):
+        mock.side_effect = self.mock_query_members
+        interface1 = Interface({'ifname': 'eth0'})
+        interface1.nd = {'Type': 'ether'}
+        interface2 = Interface({'ifname': 'eth1'})
+        interface2.nd = {'Type': 'ether'}
+        interface3 = Interface({'ifname': 'br0'})
+        interface3.nd = {'Type': 'bridge'}
+        SystemConfigState.correlate_members_and_uplink([interface1, interface2, interface3])
+        self.assertEqual(interface1.bridge, 'br0')
+        self.assertEqual(interface2.bridge, 'br0')
+        self.assertListEqual(interface3.members, ['eth0', 'eth1'])
+
+    @patch('netplan_cli.cli.state.SystemConfigState.query_members')
+    def test_correlate_members_and_uplink_bond(self, mock):
+        mock.side_effect = self.mock_query_members
+        interface1 = Interface({'ifname': 'eth2'})
+        interface1.nd = {'Type': 'ether'}
+        interface2 = Interface({'ifname': 'eth3'})
+        interface2.nd = {'Type': 'ether'}
+        interface3 = Interface({'ifname': 'bond0'})
+        interface3.nd = {'Type': 'bond'}
+        SystemConfigState.correlate_members_and_uplink([interface1, interface2, interface3])
+        self.assertEqual(interface1.bond, 'bond0')
+        self.assertEqual(interface2.bond, 'bond0')
+        self.assertListEqual(interface3.members, ['eth2', 'eth3'])
 
 
 class TestNetplanState(unittest.TestCase):
