@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from collections import defaultdict, namedtuple
 import ipaddress
 import json
 import logging
@@ -83,6 +84,9 @@ class Interface():
         self.adminstate: str = 'UP' if 'UP' in ip.get('flags', []) else 'DOWN'
         self.operstate: str = ip.get('operstate', 'unknown').upper()
         self.macaddress: str = self.__extract_mac(ip)
+        self.bridge: str = None
+        self.bond: str = None
+        self.members: List[str] = []
 
         # Filter networkd/NetworkManager data
         nm_data = nm_data or []  # avoid 'None' value on systems without NM
@@ -212,6 +216,12 @@ class Interface():
             json['routes'] = self.routes
         if self.activation_mode:
             json['activation_mode'] = self.activation_mode
+        if self.bridge:
+            json['bridge'] = self.bridge
+        if self.bond:
+            json['bond'] = self.bond
+        if self.members:
+            json['members'] = self.members
         return (self.name, json)
 
     @property
@@ -326,6 +336,9 @@ class SystemConfigState():
 
         self.interface_list = [Interface(itf, networkd, nmcli, (dns_addresses, dns_search),
                                          (route4, route6)) for itf in iproute2]
+
+        # get bridge/bond data
+        self.correlate_members_and_uplink(self.interface_list)
 
         # show only active interfaces by default
         filtered = [itf for itf in self.interface_list if itf.operstate != 'DOWN']
@@ -490,6 +503,46 @@ class SystemConfigState():
         except Exception as e:
             logging.debug('Cannot query resolved DNS data: {}'.format(str(e)))
         return (addresses, search)
+
+    @classmethod
+    def query_members(cls, ifname: str) -> List[str]:
+        members = []
+        output: str = None
+        try:
+            output = subprocess.check_output(
+                ['ip', '-d', '-j', 'link', 'show', 'master', ifname], text=True)   # wokeignore:rule=master
+        except Exception as e:
+            logging.warning('Cannot query bridge: {}'.format(str(e)))
+            return []
+
+        output_json = json.loads(output)
+        for member in output_json:
+            members.append(member.get('ifname'))
+
+        return members
+
+    @classmethod
+    def correlate_members_and_uplink(cls, interfaces: List[Interface]) -> None:
+        members_to_uplink = {}
+        uplink_to_members = defaultdict(list)
+        for interface in filter(lambda i: i.type in ['bond', 'bridge'], interfaces):
+            members = cls.query_members(interface.name)
+            for member in members:
+                member_tuple = namedtuple('Member', ['name', 'type'])
+                members_to_uplink[member] = member_tuple(interface.name, interface.type)
+            uplink_to_members[interface.name] = members
+
+        for interface in interfaces:
+            if interface.type not in ['bridge', 'bond']:
+                if uplink := members_to_uplink.get(interface.name):
+                    if uplink.type == 'bridge':
+                        interface.bridge = uplink.name
+                    if uplink.type == 'bond':
+                        interface.bond = uplink.name
+
+            if interface.type in ['bridge', 'bond']:
+                if members := uplink_to_members.get(interface.name):
+                    interface.members = members
 
     @property
     def number_of_interfaces(self) -> int:

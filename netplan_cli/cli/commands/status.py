@@ -244,6 +244,28 @@ class NetplanStatus(utils.NetplanCommand):
                     title='Activation Mode:',
                     value=val,
                     ))
+
+            val = data.get('bridge')
+            if val:
+                pprint(('{title:>'+pad+'} {value}').format(
+                    title='Bridge:',
+                    value=val,
+                    ))
+
+            val = data.get('bond')
+            if val:
+                pprint(('{title:>'+pad+'} {value}').format(
+                    title='Bond:',
+                    value=val,
+                    ))
+
+            lst = data.get('members', [])
+            for i, val in enumerate(lst):
+                pprint(('{title:>'+pad+'} {value}').format(
+                    title='Members:' if i == 0 else '',
+                    value=val,
+                    ))
+
             pprint()
 
         hidden = total - len(interfaces)
