@@ -20,7 +20,7 @@ import os
 import subprocess
 import re
 
-from .utils import systemctl_is_active
+from .utils import systemctl_is_active, systemctl_is_installed
 
 OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
 OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server.service'
@@ -40,6 +40,10 @@ GLOBALS = {
 
 
 class OvsDbServerNotRunning(Exception):
+    pass
+
+
+class OvsDbServerNotInstalled(Exception):
     pass
 
 
@@ -125,6 +129,9 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     Also filter for individual settings tagged netplan/<column>[/<key]=value
     in external-ids and clear them if they have been set by netplan.
     """
+    if not systemctl_is_installed(OPENVSWITCH_OVSDB_SERVER_UNIT):
+        raise OvsDbServerNotInstalled("Cannot apply OVS cleanup: %s is 'not-found'.",
+                                      OPENVSWITCH_OVSDB_SERVER_UNIT)
     if not systemctl_is_active(OPENVSWITCH_OVSDB_SERVER_UNIT):
         raise OvsDbServerNotRunning('{} is not running'.format(OPENVSWITCH_OVSDB_SERVER_UNIT))
 
