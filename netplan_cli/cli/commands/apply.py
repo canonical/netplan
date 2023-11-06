@@ -31,7 +31,7 @@ import time
 from .. import utils
 from ...configmanager import ConfigManager, ConfigurationError
 from ..sriov import apply_sriov_config
-from ..ovs import OvsDbServerNotRunning, apply_ovs_cleanup
+from ..ovs import OvsDbServerNotRunning, OvsDbServerNotInstalled, apply_ovs_cleanup
 
 
 OVS_CLEANUP_SERVICE = 'netplan-ovs-cleanup.service'
@@ -433,3 +433,5 @@ class NetplanApply(utils.NetplanCommand):
                 sys.exit(1)
         except OvsDbServerNotRunning as e:
             logging.warning('Cannot call Open vSwitch: {}.'.format(e))
+        except OvsDbServerNotInstalled as e:
+            logging.debug('Cannot call Open vSwitch: %s.', e)
