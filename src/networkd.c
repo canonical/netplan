@@ -759,15 +759,12 @@ netplan_netdef_write_network_file(
         is_optional = TRUE;
     }
 
-    if (is_optional || def->optional_addresses) {
-        if (is_optional) {
-            g_string_append(link, "RequiredForOnline=no\n");
-        }
-        for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
-            if (def->optional_addresses & NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag) {
-            g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
-            }
-        }
+    if (is_optional) {
+        g_string_append(link, "RequiredForOnline=no\n");
+    }
+
+    if (def->optional_addresses & NETPLAN_OPTIONAL_NONE) {
+        g_string_append(link, "RequiredFamilyForOnline=both\n");
     }
 
     if (def->mtubytes)

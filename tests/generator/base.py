@@ -407,7 +407,7 @@ class TestBase(unittest.TestCase):
     def get_optional_addresses(self, eth_name):
         config = self.get_network_config_for_link(eth_name)
         r = set()
-        prefix = "OptionalAddresses="
+        prefix = "RequiredFamilyForOnline="
         for line in config.splitlines():
             if line.startswith(prefix):
                 r.add(line[len(prefix):])

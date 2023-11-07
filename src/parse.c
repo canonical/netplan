@@ -1685,6 +1685,10 @@ NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
     {"dhcp4",   NETPLAN_OPTIONAL_DHCP4},
     {"dhcp6",   NETPLAN_OPTIONAL_DHCP6},
     {"static",  NETPLAN_OPTIONAL_STATIC},
+    /* All above are deprecated */
+    {"ipv4",    NETPLAN_OPTIONAL_IPV4},
+    {"ipv6",    NETPLAN_OPTIONAL_IPV6},
+    {"none",    NETPLAN_OPTIONAL_NONE},
     {NULL},
 };
 
@@ -1698,6 +1702,14 @@ handle_optional_addresses(NetplanParser* npp, yaml_node_t* node, __unused const 
 
         for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
             if (g_ascii_strcasecmp(scalar(entry), NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name) == 0) {
+
+                /* Values below NETPLAN_OPTIONAL_STATIC (including it) are not valid and
+                 * considered deprecated. See LP: #1880029
+                 */
+                if (NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag <= NETPLAN_OPTIONAL_STATIC)
+                    g_warning("Flag \"%s\" in optional-addresses is deprecated. Valid values are: "
+                            "\"ipv4\", \"ipv6\" and \"none\"\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
+
                 npp->current.netdef->optional_addresses |= NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag;
                 found = TRUE;
                 break;

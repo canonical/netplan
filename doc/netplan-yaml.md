@@ -541,11 +541,12 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 - **optional-addresses** (sequence of scalars)
 
-  > Specify types of addresses that are not required for a device to be
+  > Specify address families that are not required for a device to be
   > considered online. This changes the behavior of backends at boot time to
   > avoid waiting for addresses that are marked optional, and thus consider
   > the interface as "usable" sooner. This does not disable these addresses,
-  > which will be brought up anyway.
+  > which will be brought up anyway. Valid values are: ipv4, ipv6 and none.
+  > If "none" is used, ipv4 and ipv6 will be considered mandatory.
 
   Example:
 
@@ -555,7 +556,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
       eth7:
         dhcp4: true
         dhcp6: true
-        optional-addresses: [ ipv4-ll, dhcp6 ]
+        optional-addresses: [ ipv6 ]
   ```
 
 - **activation-mode** (scalar) – since **0.103**

@@ -30,6 +30,9 @@ typedef enum {
     NETPLAN_OPTIONAL_DHCP4   = 1<<2,
     NETPLAN_OPTIONAL_DHCP6   = 1<<3,
     NETPLAN_OPTIONAL_STATIC  = 1<<4,
+    NETPLAN_OPTIONAL_IPV4    = 1<<5,
+    NETPLAN_OPTIONAL_IPV6    = 1<<6,
+    NETPLAN_OPTIONAL_NONE    = 1<<7,
 } NetplanOptionalAddressFlag;
 
 /* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
