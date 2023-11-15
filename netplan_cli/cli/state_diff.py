@@ -326,8 +326,22 @@ class NetplanDiffState():
             if iface.netdef_id not in netplan_interfaces:
                 system_only.append(iface.name)
 
-        report['missing_interfaces_system'] = sorted(netplan_only)
-        report['missing_interfaces_netplan'] = sorted(system_only)
+        netplan_only = sorted(netplan_only)
+        system_only = sorted(system_only)
+
+        system_state = self.system_state.get_data()
+
+        for iface in netplan_only:
+            iface_type = self.netplan_state.netdefs.get(iface).type
+            report['missing_interfaces_system'][iface] = {
+                'type': DEVICE_TYPES.get(iface_type, 'unknown')
+            }
+
+        for iface in system_only:
+            report['missing_interfaces_netplan'][iface] = {
+                'type': system_state.get(iface).get('type', 'unknown'),
+                'index': system_state.get(iface).get('index'),
+            }
 
     def _normalize_routes(self, routes: set) -> set:
         ''' Apply some transformations to Netplan routes so their representation
