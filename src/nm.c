@@ -618,6 +618,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     g_autoptr(GKeyFile) kf = NULL;
     g_autofree gchar* conf_path = NULL;
     g_autofree gchar* full_path = NULL;
+    g_autofree gchar* nm_run_path = NULL;
     g_autofree gchar* nd_nm_id = NULL;
     const gchar* nm_type = NULL;
     gchar* tmp_key = NULL;
@@ -966,8 +967,16 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         }
     }
 
-    /* NM connection files might contain secrets, and NM insists on tight permissions */
+    /* Create /run/NetworkManager/ with 755 permissions if the folder is missing.
+     * Letting the next invokation of safe_mkdir_p_dir do it would result in 
+     * more restrictive access because of the call to umask. */
+    nm_run_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", "run/NetworkManager/", NULL);
+    if (!g_file_test(nm_run_path, G_FILE_TEST_EXISTS))
+        safe_mkdir_p_dir(nm_run_path);
+
     full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", conf_path, NULL);
+
+    /* NM connection files might contain secrets, and NM insists on tight permissions */
     orig_umask = umask(077);
     safe_mkdir_p_dir(full_path);
     if (!g_key_file_save_to_file(kf, full_path, error))
