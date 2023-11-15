@@ -462,8 +462,8 @@ class TestNetplanDiff(unittest.TestCase):
 
         diff = NetplanDiffState(system_state, netplan_state)
         diff_data = diff.get_diff()
-        missing = diff_data.get('missing_interfaces_system', [])
-        self.assertListEqual(missing, [])
+        missing = diff_data.get('missing_interfaces_system', {})
+        self.assertDictEqual(missing, {})
 
     def test__get_comparable_interfaces_empty(self):
         res = self.diff_state._get_comparable_interfaces({})
