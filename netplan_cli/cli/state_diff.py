@@ -102,6 +102,8 @@ class NetplanDiffState():
 
             report['interfaces'].update(iface)
 
+        # Sort the list of interfaces according to their indices.
+        report['interfaces'] = dict(sorted(report['interfaces'].items(), key=lambda iface: iface[1].get('index')))
         return report
 
     def _create_new_report(self) -> dict:
