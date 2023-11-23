@@ -18,7 +18,6 @@
 '''netplan try command line'''
 
 import logging
-import netplan
 import os
 import time
 import shutil
@@ -179,7 +178,7 @@ class NetplanTry(utils.NetplanCommand):
         # more than one device in them, and they can be set with special parameters
         # to tweak their behavior, which are really hard to "revert", especially
         # as systemd-networkd doesn't necessarily touch them when config changes.
-        multi_iface = {}  # type: dict[str, netplan.NetDefinition]
+        multi_iface = {}  # dict[str, netplan.NetDefinition]
         multi_iface.update(np_state.bridges)
         multi_iface.update(np_state.bonds)
         for itf in multi_iface.values():
