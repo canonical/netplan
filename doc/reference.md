@@ -20,8 +20,8 @@ maxdepth: 1
 netplan-yaml
 ```
 
-## API specification
-`libnetplan` is a component of the Netplan. project that contains the logic for
+## libnetplan API
+`libnetplan` is a component of the Netplan project that contains the logic for
 data parsing, validation and generation. It is build as a dynamic `.so` library
 that can be used from different binaries (like Netplan’s `generate`,
 `netplan-dbus`, the `netplan apply/try/get/set/...` CLI or via the corresponding
@@ -29,7 +29,7 @@ Python bindings or external applications like the NetworkManager, using the
 Netplan backend).
 
 ```{toctree}
-API specification <https://discourse.ubuntu.com/t/29106>
+libnetplan API <apidoc/index>
 ```
 
 ## Netplan CLI
