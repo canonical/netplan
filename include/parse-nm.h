@@ -15,6 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*! \file parse-nm.h
+ *  \brief Parsing native NetworkManager keyfile into Netplan state.
+ */
+
 #pragma once
 #include "types.h"
 

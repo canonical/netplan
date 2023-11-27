@@ -15,12 +15,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*! \file util.h
+ *  \brief A set of high-level helper functions that can be used when working
+ *  with datastructures of the library.
+ *
+ *  For example, it can be used to initialize iterators or clear error structures.
+ */
+
 #pragma once
 
 #include <glib.h>
 #include <stdint.h>
 #include "types.h"
 
+/**
+ * @brief Parses YAML hierarchy from @rootdir, drops the configuration for @id
+ * from the state and re-generates the YAML files.
+ * 
+ * @param id The NetplanID for a specific configuration block of network interface(s)
+ * @param rootdir The location where the YAML hierarchy is read from and written to.
+ * @return gboolean, Indicating success.
+ */
 NETPLAN_PUBLIC gboolean
 netplan_delete_connection(const char* id, const char* rootdir);
 
@@ -62,8 +77,14 @@ netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, 
 
 /********** Old API below this ***********/
 
+/**
+ * \deprecated Use `netplan_netdef_get_filepath()` instead.
+ */
 NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
 netplan_get_filename_by_id(const char* netdef_id, const char* rootdir);
 
+/**
+ * \deprecated Use `netplan_get_id_from_nm_filepath()` instead.
+ */
 NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
 netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
