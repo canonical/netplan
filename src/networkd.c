@@ -922,7 +922,7 @@ netplan_netdef_write_network_file(
     }
 
     if (def->critical)
-        g_string_append_printf(network, "CriticalConnection=true\n");
+        g_string_append_printf(network, "KeepConfiguration=true\n");
 
     if (def->dhcp4 || def->dhcp6) {
         if (def->dhcp_identifier)

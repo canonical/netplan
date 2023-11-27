@@ -482,7 +482,7 @@ Name=engreen
 LinkLocalAddressing=ipv6
 
 [DHCP]
-CriticalConnection=true
+KeepConfiguration=true
 '''})
 
     def test_dhcp_identifier_mac(self):
