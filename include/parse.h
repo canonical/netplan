@@ -15,6 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*! \file parse.h
+ *  \brief Netplan YAML parsing and validation.
+ */
+
 #pragma once
 #include <glib.h>
 #include "types.h"

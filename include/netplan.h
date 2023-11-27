@@ -15,6 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*! \file netplan.h
+ *  \brief NetplanState and NetplanNetDefinition manipulation.
+ */
+
 #pragma once
 #include <stdlib.h>
 #include "types.h"

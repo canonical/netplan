@@ -15,6 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*! \file types.h
+ *  \brief Definition of public types and placeholders.
+ */
+
 #pragma once
 
 #define NETPLAN_PUBLIC __attribute__ ((visibility("default")))
