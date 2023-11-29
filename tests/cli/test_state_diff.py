@@ -653,6 +653,10 @@ class TestNetplanDiff(unittest.TestCase):
         missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_addresses', [])
         self.assertIn('192.168.254.1/24', missing)
 
+        # eth1 does not exist
+        diff_data = diff.get_diff('eth1')
+        self.assertDictEqual(diff_data['interfaces'], {})
+
     def test_diff_addresses_compressed_ipv6(self):
         ''' Check if IPv6 address will not mismatch due to their representation'''
         with open(self.path, "w") as f:

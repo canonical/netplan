@@ -195,7 +195,10 @@ class TestStatus(unittest.TestCase):
         f = io.StringIO()
         with redirect_stdout(f):
             status = NetplanStatus()
+            status.ifname = None
             status.verbose = False
+            status.diff = False
+            status.diff_only = False
             status.pretty_print(data, len(interfaces)+1, _console_width=130)
             out = f.getvalue()
             self.assertEqual(out, STATUS_OUTPUT)
@@ -264,7 +267,10 @@ class TestStatus(unittest.TestCase):
         f = io.StringIO()
         with redirect_stdout(f):
             status = NetplanStatus()
+            status.ifname = None
             status.verbose = False
+            status.diff = False
+            status.diff_only = False
             status.pretty_print(data, len(interfaces)+1, _console_width=130)
             out = f.getvalue()
             self.assertEqual(out, STATUS_OUTPUT)
@@ -300,7 +306,10 @@ class TestStatus(unittest.TestCase):
         f = io.StringIO()
         with redirect_stdout(f):
             status = NetplanStatus()
+            status.ifname = None
             status.verbose = True
+            status.diff = False
+            status.diff_only = False
             status.pretty_print(data, len(interfaces), _console_width=130)
             out = f.getvalue()
             self.assertEqual(out, '''\
@@ -324,7 +333,7 @@ class TestStatus(unittest.TestCase):
                    2001:9e8:a19f:1c00::/56 via fe80::cece:1eff:fe3d:c737 metric 100 table main (ra)
                    fe80::/64 metric 256 table main
                    default via fe80::cece:1eff:fe3d:c737 metric 100 table 1234 (ra)
-  Activation Mode: manual\n\n''')
+  Activation Mode: manual\n''')
 
     @patch('netplan_cli.cli.utils.systemctl')
     @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
@@ -503,3 +512,119 @@ netplan-global-state:
             self._call([])
         self.assertEqual(1, e.exception.code)
         self.assertIn('systemd-networkd.service is masked', cm.output[0])
+
+    @patch('netplan_cli.cli.state.NetplanConfigState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.get_diff')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
+    def test_call_cli_diff_shallow(self, online_mock, resolvconf_mock, rd_mock, routes_mock,
+                                   nm_mock, networkd_mock, iproute2_mock, systemctl_mock,
+                                   diff_state_get_diff_mock, diff_state_init_mock, state_init_mock):
+        systemctl_mock.return_value = None
+        iproute2_mock.return_value = [FAKE_DEV]
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        state_init_mock.return_value = None
+        diff_state_init_mock.return_value = None
+        diff_state_get_diff_mock.return_value = {}
+        state = SystemConfigState()
+        networkd_mock.return_value = state.process_networkd(NETWORKD)
+        out = self._call(['--diff'])
+        self.assertIn('Use "--diff-only" to omit the information that is consistent', out)
+
+    @patch('netplan_cli.cli.state.NetplanConfigState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.get_diff')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
+    def test_call_cli_diff_only_shallow(self, online_mock, resolvconf_mock, rd_mock, routes_mock,
+                                        nm_mock, networkd_mock, iproute2_mock, systemctl_mock,
+                                        diff_state_get_diff_mock, diff_state_init_mock, state_init_mock):
+        systemctl_mock.return_value = None
+        iproute2_mock.return_value = [FAKE_DEV]
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        state_init_mock.return_value = None
+        diff_state_init_mock.return_value = None
+        diff_state_get_diff_mock.return_value = {}
+        state = SystemConfigState()
+        networkd_mock.return_value = state.process_networkd(NETWORKD)
+        out = self._call(['--diff-only'])
+        self.assertEqual('', out)
+
+    @patch('netplan_cli.cli.state.NetplanConfigState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.get_diff')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
+    def test_call_cli_diff_json_shallow(self, online_mock, resolvconf_mock, rd_mock, routes_mock,
+                                        nm_mock, networkd_mock, iproute2_mock, systemctl_mock,
+                                        diff_state_get_diff_mock, diff_state_init_mock, state_init_mock):
+        systemctl_mock.return_value = None
+        iproute2_mock.return_value = [FAKE_DEV]
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        state_init_mock.return_value = None
+        diff_state_init_mock.return_value = None
+        diff_state_get_diff_mock.return_value = {}
+        state = SystemConfigState()
+        networkd_mock.return_value = state.process_networkd(NETWORKD)
+        out = self._call(['--diff', '--format=json'])
+        self.assertIn('{}', out)
+
+    @patch('netplan_cli.cli.state.NetplanConfigState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.__init__')
+    @patch('netplan_cli.cli.state_diff.NetplanDiffState.get_diff')
+    @patch('netplan_cli.cli.utils.systemctl')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_iproute2')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_networkd')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_nm')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_routes')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_resolved')
+    @patch('netplan_cli.cli.state.SystemConfigState.resolvconf_json')
+    @patch('netplan_cli.cli.state.SystemConfigState.query_online_state')
+    def test_call_cli_diff_yaml_shallow(self, online_mock, resolvconf_mock, rd_mock, routes_mock,
+                                        nm_mock, networkd_mock, iproute2_mock, systemctl_mock,
+                                        diff_state_get_diff_mock, diff_state_init_mock, state_init_mock):
+        systemctl_mock.return_value = None
+        iproute2_mock.return_value = [FAKE_DEV]
+        nm_mock.return_value = []
+        routes_mock.return_value = (None, None)
+        rd_mock.return_value = (None, None)
+        resolvconf_mock.return_value = {'addresses': [], 'search': [], 'mode': None}
+        online_mock.return_value = False
+        state_init_mock.return_value = None
+        diff_state_init_mock.return_value = None
+        diff_state_get_diff_mock.return_value = {}
+        state = SystemConfigState()
+        networkd_mock.return_value = state.process_networkd(NETWORKD)
+        out = self._call(['--diff', '--format=yaml'])
+        self.assertIn('{}', out)
