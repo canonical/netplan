@@ -85,10 +85,12 @@ class NetplanDiffState():
         if interface:
             if config := interfaces.get(interface):
                 interfaces = {interface: config}
+            else:
+                interfaces = {}
 
         report = self._create_new_report()
 
-        self._analyze_missing_interfaces(report)
+        self._analyze_missing_interfaces(report, interface)
 
         for interface, config in interfaces.items():
             netdef_id = config.get('system_state', {}).get('id')
@@ -321,7 +323,7 @@ class NetplanDiffState():
                 'missing_routes': [route for route in sorted(present_only_in_netplan, key=lambda r: r.to)],
             })
 
-    def _analyze_missing_interfaces(self, report: dict) -> None:
+    def _analyze_missing_interfaces(self, report: dict, interface: str) -> None:
         netplan_interfaces = {iface for iface in self.netplan_state.netdefs}
         system_interfaces_netdef_ids = {iface.netdef_id for iface in self.system_state.interface_list if iface.netdef_id}
 
@@ -337,6 +339,10 @@ class NetplanDiffState():
 
         netplan_only = sorted(netplan_only)
         system_only = sorted(system_only)
+
+        if interface:
+            netplan_only = filter(lambda i: i == interface, netplan_only)
+            system_only = filter(lambda i: i == interface, system_only)
 
         system_state = self.system_state.get_data()
 
