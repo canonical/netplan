@@ -353,7 +353,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
     if (def->bond_params.selection_logic)
         g_string_append_printf(params, "\nAdSelect=%s", def->bond_params.selection_logic);
     if (def->bond_params.all_members_active)
-        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_members_active); /* wokeignore:rule=slave */ 
+        g_string_append_printf(params, "\nAllSlavesActive=%d", def->bond_params.all_members_active); /* wokeignore:rule=slave */
     if (def->bond_params.arp_interval) {
         g_string_append(params, "\nARPIntervalSec=");
         if (interval_has_suffix(def->bond_params.arp_interval))
@@ -393,7 +393,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
         g_string_append_printf(params, "\nGratuitousARP=%d", def->bond_params.gratuitous_arp);
     /* TODO: add unsolicited_na, not documented as supported by NM. */
     if (def->bond_params.packets_per_member)
-        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_member); /* wokeignore:rule=slave */ 
+        g_string_append_printf(params, "\nPacketsPerSlave=%d", def->bond_params.packets_per_member); /* wokeignore:rule=slave */
     if (def->bond_params.primary_reselect_policy)
         g_string_append_printf(params, "\nPrimaryReselectPolicy=%s", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
@@ -921,8 +921,21 @@ netplan_netdef_write_network_file(
         g_string_append(network, "\n[DHCP]\n");
     }
 
-    if (def->critical)
-        g_string_append_printf(network, "CriticalConnection=true\n");
+    switch (def->critical) {
+        case NETPLAN_CRITICAL_TRUE:
+            g_string_append(s, "KeepConnection=true\n");
+            break;
+        case NETPLAN_CRITICAL_STATIC:
+            g_string_append(s, "KeepConnection=static\n");
+            break;
+        case NETPLAN_CRITICAL_DHCP:
+            g_string_append(s, "KeepConnection=dhcp\n");
+            break;
+        case NETPLAN_CRITICAL_DHCP_ON_STOP:
+            g_string_append(s, "KeepConnection=dhcp-on-stop\n");
+            break;
+        default: g_assert_not_reached(); // LCOV_EXCL_LINE
+    }
 
     if (def->dhcp4 || def->dhcp6) {
         if (def->dhcp_identifier)
