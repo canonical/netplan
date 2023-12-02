@@ -5,10 +5,18 @@ set -x
 
 BUILDDIR="_leakcheckbuild"
 CLEANBUILDDIR="_cleanbuild"
+CTESTSBUILDDIR="_ctestsbuild"
 CC=gcc
 
 meson setup ${BUILDDIR} -Db_sanitize=address,undefined
 meson compile -C ${BUILDDIR} --verbose
+
+tests/ctests/build.sh \
+    ${CTESTSBUILDDIR} \
+    tests/ctests \
+    -Dparent_current_source_dir=$(realpath .) \
+    -Dparent_current_build_dir=$(realpath ${BUILDDIR}) \
+    -Db_sanitize=address,undefined
 
 meson setup ${CLEANBUILDDIR}
 meson compile -C ${CLEANBUILDDIR} --verbose
@@ -18,10 +26,11 @@ ${CC} tools/keyfile_to_yaml.c -o tools/keyfile_to_yaml \
     -Iinclude -L${BUILDDIR}/src \
     -fsanitize=address,undefined -g
 
-TESTS=$(find ${BUILDDIR}/tests/ctests/ -executable -type f)
+TESTS=$(find ${CTESTSBUILDDIR} -executable -type f)
 for test in ${TESTS}
 do
-    ./${test}
+    # https://github.com/google/sanitizers/issues/1017
+    ASAN_OPTIONS=detect_odr_violation=0 ./${test}
 done
 
 mkdir -p ${BUILDDIR}/fakeroot/{etc/netplan,run}

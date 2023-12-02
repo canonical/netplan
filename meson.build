@@ -71,7 +71,12 @@ test_env = [
 ]
 
 if get_option('unit_testing')
-  subdir('tests/ctests')
+    test('ctests',
+         find_program('tests/ctests/run.sh'),
+         workdir: join_paths(meson.current_source_dir(), 'tests/ctests'),
+         args: [join_paths(meson.current_build_dir(), '_ctestsbuild'),
+                '-Dparent_current_source_dir=' + meson.current_source_dir(),
+                '-Dparent_current_build_dir=' + meson.current_build_dir()])
 endif
 
 #FIXME: exclude doc/env/
