@@ -61,8 +61,6 @@ wifi_get_freq5(int channel);
 NETPLAN_ABI gchar*
 systemd_escape(char* string);
 
-#define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
-
 void
 mark_data_as_dirty(NetplanParser* npp, const void* data_ptr);
 
@@ -179,3 +177,7 @@ _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it);
 
 NETPLAN_INTERNAL void
 _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it);
+
+#ifndef MAX
+#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
+#endif
