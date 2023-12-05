@@ -844,6 +844,9 @@ netplan_netdef_write_network_file(
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL || def->ignore_carrier)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
+    if (def->critical)
+        g_string_append_printf(network, "KeepConfiguration=true\n");
+
     if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bridge=%s\n", def->bridge);
 
@@ -916,13 +919,10 @@ netplan_netdef_write_network_file(
         }
     }
 
-    if (def->dhcp4 || def->dhcp6 || def->critical) {
+    if (def->dhcp4 || def->dhcp6) {
         /* NetworkManager compatible route metrics */
         g_string_append(network, "\n[DHCP]\n");
     }
-
-    if (def->critical)
-        g_string_append_printf(network, "KeepConfiguration=true\n");
 
     if (def->dhcp4 || def->dhcp6) {
         if (def->dhcp_identifier)
