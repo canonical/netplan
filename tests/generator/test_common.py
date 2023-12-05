@@ -480,8 +480,6 @@ Name=engreen
 
 [Network]
 LinkLocalAddressing=ipv6
-
-[DHCP]
 KeepConfiguration=true
 '''})
 
