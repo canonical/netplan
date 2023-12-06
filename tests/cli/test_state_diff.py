@@ -983,7 +983,19 @@ class TestNetplanDiff(unittest.TestCase):
 
     def test__filter_system_routes_link_local_routes(self):
         route = NetplanRoute(scope='host', type='local', to='1.2.3.4', from_addr='1.2.3.4')
-        filtered = self.diff_state._filter_system_routes({route}, [])
+        system_addresses = ['1.2.3.4/24']
+        filtered = self.diff_state._filter_system_routes({route}, system_addresses)
+        self.assertSetEqual(filtered, set())
+
+    def test__filter_system_routes_link_local_routes_with_multiple_ips_same_subnet(self):
+        # When an interface has multiple IPs in the same subnet the routing table will
+        # have routes using one of the IPs as source. Example:
+        # local 192.168.0.123 dev eth0 table local proto kernel scope host src 192.168.0.123
+        # local 192.168.0.124 dev eth0 table local proto kernel scope host src 192.168.0.123
+        route1 = NetplanRoute(scope='host', type='local', to='1.2.3.4', from_addr='1.2.3.4')
+        route2 = NetplanRoute(scope='host', type='local', to='1.2.3.5', from_addr='1.2.3.4')
+        system_addresses = ['1.2.3.4/24', '1.2.3.5/24']
+        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses)
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_ipv6_multicast_routes(self):
