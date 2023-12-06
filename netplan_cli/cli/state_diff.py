@@ -298,7 +298,7 @@ class NetplanDiffState():
         netplan_routes = self._normalize_routes(netplan_routes)
 
         # Filter out some routes that are expected to be added automatically
-        system_addresses = config.get('system_state', {}).get('addresses', [])
+        system_addresses = [ip for ip in config.get('system_state', {}).get('addresses', {})]
         system_routes = self._filter_system_routes(system_routes, system_addresses)
 
         present_only_in_netplan = netplan_routes.difference(system_routes)
@@ -394,7 +394,7 @@ class NetplanDiffState():
             if route.to != 'default' and ipaddress.ip_interface(route.to).is_link_local:
                 continue
             # Filter out host scoped routes
-            if route.scope == 'host' and route.type == 'local' and route.to == route.from_addr:
+            if route.scope == 'host' and route.type == 'local' and route.to in addresses:
                 continue
             # Filter out the default IPv6 multicast route
             if route.family == 10 and route.type == 'multicast' and route.to == 'ff00::/8':
