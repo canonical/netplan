@@ -1963,7 +1963,8 @@ method=auto\n'''.format(UUID), regenerate=False)
 
     def test_wireguard_allowed_ips_without_prefix(self):
         '''
-        When the IP prefix is not present we should default to /32
+        When the IP prefix is not present we should default to /32 for IPv4
+        and /128 for IPv6.
         '''
         self.generate_from_keyfile('''[connection]
 id=wg0
@@ -1976,7 +1977,7 @@ private-key=aPUcp5vHz8yMLrzk8SsDyYnV33IhE/k20e52iKJFV0A=
 
 [wireguard-peer.cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI=]
 endpoint=1.2.3.4:12345
-allowed-ips=192.168.0.10
+allowed-ips=192.168.0.10;2001::1;
 
 [ipv4]
 method=auto\n'''.format(UUID), regenerate=False)
@@ -1995,6 +1996,7 @@ method=auto\n'''.format(UUID), regenerate=False)
           public: "cwkb7k0xDgLSnunZpFIjLJw4u+mJDDr+aBR5DqzpmgI="
         allowed-ips:
         - "192.168.0.10/32"
+        - "2001::1/128"
       networkmanager:
         uuid: "{}"
         name: "wg0"

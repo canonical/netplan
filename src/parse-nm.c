@@ -543,13 +543,16 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
                             /*
                              * NM doesn't care if the prefix was omitted.
                              * Even though the WG manual says it requires the prefix,
-                             * if it's omitted in its config file it will default to /32
-                             * so we should do the same here and append a /32 if it's not present,
-                             * otherwise we will generate a YAML that will fail validation.
+                             * if it's omitted in its config file it will default to /32 for IPv4
+                             * and /128 for IPv6 so we should do the same here and append a /32 or /128
+                             * if it's not present, otherwise we will generate a YAML that will fail validation.
                              */
-                            if (!g_strrstr(ip, "/"))
-                                address = g_strdup_printf("%s/32", ip);
-                            else
+                            if (!g_strrstr(ip, "/")) {
+                                if (is_ip4_address(ip))
+                                    address = g_strdup_printf("%s/32", ip);
+                                else
+                                    address = g_strdup_printf("%s/128", ip);
+                            } else
                                 address = g_strdup(ip);
                             g_array_append_val(wireguard_peer->allowed_ips, address);
                         }
