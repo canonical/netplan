@@ -207,6 +207,15 @@ breathe_projects_source = {"auto-apidoc": ("../", [
     "src/validation.c",
 ])}
 
+breathe_doxygen_config_options = {
+    'MACRO_EXPANSION': 'YES',
+    'EXPAND_ONLY_PREDEF': 'YES',
+    'PREDEFINED': 'NETPLAN_PUBLIC NETPLAN_DEPRECATED',
+}
+breathe_domain_by_extension = {
+    "h": "c",
+    "c": "c",
+}
 # breathe_doxygen_aliases =
 breathe_default_project = "auto-apidoc"
 
