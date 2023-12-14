@@ -1,5 +1,5 @@
 ---
-title: netplan-info
+title: NETPLAN-INFO
 section: 8
 author:
 - Danilo Egea Gondolfo (danilo.egea.gondolfo@canonical.com)
@@ -7,32 +7,32 @@ author:
 
 ## NAME
 
-netplan-info - show available features
+`netplan-info` - show available features
 
 ## SYNOPSIS
 
-  **netplan** [--debug] **info** -h | --help
+  **`netplan`** \[*--debug*\] **info** **-h**|**--help**
 
-  **netplan** [--debug] **info** [--json | --yaml]
+  **`netplan`** \[*--debug*\] **info** \[*--json*|*--yaml*\]
 
 ## DESCRIPTION
 
-**netplan info** displays the supported features.
+**`netplan info`** displays the supported features.
 
 ## OPTIONS
 
-  -h, --help
-:   Print basic help.
+`-h`, `--help`
+:    Print basic help.
 
-  --debug
+`--debug`
 :   Print debugging output during the process.
 
-  --json
+`--json`
 :   Output version and features in JSON format.
 
-  --yaml
+`--yaml`
 :   Output version and features in YAML format (default).
 
 ## SEE ALSO
 
-  **netplan**(5)
+  **`netplan`**(5)

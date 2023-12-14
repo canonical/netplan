@@ -1,5 +1,5 @@
 ---
-title: netplan-get
+title: NETPLAN-GET
 section: 8
 author:
 - Lukas Märdian (lukas.maerdian@canonical.com)
@@ -7,33 +7,33 @@ author:
 
 ## NAME
 
-netplan-get - read merged netplan YAML configuration
+`netplan-get` - read merged Netplan YAML configuration
 
 ## SYNOPSIS
 
-  **netplan** [--debug] **get** -h | --help
+  **`netplan`** \[*--debug*\] **get** **-h**|**--help**
 
-  **netplan** [--debug] **get** [--root-dir=ROOT_DIR] [key]
+  **`netplan`** \[*--debug*\] **get** \[*--root-dir=ROOT_DIR*\] \[*key*\]
 
 ## DESCRIPTION
 
-**netplan get [key]** reads all YAML files from ``/{etc,lib,run}/netplan/*.yaml`` and returns a merged view of the current configuration
+**`netplan get key`** reads all YAML files from `/{etc,lib,run}/netplan/*.yaml` and returns a merged view of the current configuration.
 
-You can specify ``all`` as a key (the default) to get the full YAML tree or extract a subtree by specifying a nested key like: ``[network.]ethernets.eth0``.
+You can specify `all` as a key (the default) to get the full YAML tree or extract a subtree by specifying a nested key like: `[network.]ethernets.eth0`.
 
-For details of the configuration file format, see **netplan**(5).
+For details of the configuration file format, see **`netplan`**(5).
 
 ## OPTIONS
 
-  -h, --help
+`-h`, `--help`
 :    Print basic help.
 
-  --debug
+`--debug`
 :    Print debugging output during the process.
 
-  --root-dir
-:    Read YAML files from this root instead of /
+`--root-dir`
+:    Read YAML files from this root instead of `/`.
 
 ## SEE ALSO
 
-  **netplan**(5), **netplan-set**(8), **netplan-dbus**(8)
+  **`netplan`**(5), **`netplan-set`**(8), **`netplan-dbus`**(8)

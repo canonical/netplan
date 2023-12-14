@@ -1,6 +1,6 @@
 # Introduction
 
-Below is a collection of howtos for common scenarios.
+Below is a collection of how-to guides for common scenarios.
 If you see a scenario missing or have one to contribute, please file a bug
 against this documentation with the example.
 
@@ -10,7 +10,9 @@ To configure Netplan, save configuration files under `/etc/netplan/` with a
 system. Configuration written to disk under `/etc/netplan/` will persist between
 reboots.
 
-For each of the example below, use the `renderer` that applies to your scenario. For example, for Ubuntu Desktop your `renderer` will probably be `NetworkManager` and `networkd` for Ubuntu Server.
+For each of the example below, use the `renderer` that applies to your scenario.
+For example, for Ubuntu Desktop your `renderer` will probably be `NetworkManager`
+and `networkd` for Ubuntu Server.
 
 Also, see [/examples](https://github.com/canonical/netplan/tree/main/examples)
 on GitHub.
@@ -44,7 +46,7 @@ network:
 
 # How to configure DNS servers and search domains
 
-The lists of search domains and DNS server IPs can be defined as below:
+The lists of search domains and DNS server IP addresses can be defined as below:
 
 ```yaml
 network:
@@ -96,9 +98,9 @@ network:
       dhcp4: yes
 ```
 
-# How to configure your computer to connect to your home wifi network
+# How to configure your computer to connect to your home Wi-Fi network
 
-If all you need is to connect to your local domestic wifi network, use the configuration below:
+If all you need is to connect to your local domestic Wi-Fi network, use the configuration below:
 
 ```yaml
 network:
@@ -220,9 +222,9 @@ We configure individual routes to default (or 0.0.0.0/0) using the address of th
 
 DHCP can be used to receive one of the IP addresses for the interface. In this case, the default route for that address will be automatically configured with a `metric` value of 100.
 
-# How to use Network Manager as a renderer
+# How to use NetworkManager as a renderer
 
-Netplan supports both networkd and Network Manager as backends.    You can specify which network backend should be used to configure particular devices by using the `renderer` key. You can also delegate all configuration of the network to Network Manager itself by specifying only the `renderer` key:
+Netplan supports both `networkd` and NetworkManager as back ends. You can specify which network back end should be used to configure particular devices by using the `renderer` key. You can also delegate all configuration of the network to NetworkManager itself by specifying only the `renderer` key:
 
 ```yaml
 network:
@@ -321,7 +323,7 @@ network:
 ```
 
 # How to create a bridge with a VLAN for libvirtd
-To get libvirtd to use a specific bridge with a tagged vlan, while continuing to provide an untagged interface as well would involve:
+To get libvirtd to use a specific bridge with a tagged VLAN, while continuing to provide an untagged interface as well would involve:
 
 ```yaml
 network:
@@ -341,7 +343,7 @@ network:
       link: enp0s25
 ```
 
-Then libvirtd would be configured to use this bridge by adding the following content to a new XML file under `/etc/libvirtd/qemu/networks/`. The name of the bridge in the &lt;bridge&gt; tag as well as in &lt;name&gt; need to match the name of the bridge device configured using netplan:
+Then libvirtd would be configured to use this bridge by adding the following content to a new XML file under `/etc/libvirtd/qemu/networks/`. The name of the bridge in the &lt;bridge&gt; tag as well as in &lt;name&gt; need to match the name of the bridge device configured using Netplan:
 
 ```xml
 <network>
@@ -402,7 +404,7 @@ network:
           on-link: true
 ```
 
-For IPv6 the config would be very similar:
+For IPv6 the configuration would be very similar:
 
 ```yaml
 network:
@@ -456,7 +458,7 @@ network:
 
 # How to configure a loopback interface
 
-Networkd does not allow creating new loopback devices, but a user can add new addresses to the standard loopback interface, lo, in order to have it considered a valid address on the machine as well as for custom routing:
+`networkd` does not allow creating new loopback devices, but a user can add new addresses to the standard loopback interface, `lo`, in order to have it considered a valid address on the machine as well as for custom routing:
 
 ```yaml
 network:
@@ -469,7 +471,7 @@ network:
 
 # How to integrate with Windows DHCP Server
 
-For networks where DHCP is provided by a Windows Server using the dhcp-identifier keyword allows for interoperability:
+For networks where DHCP is provided by a Windows Server using the `dhcp-identifier` keyword allows for interoperability:
 
 ```yaml
 network:
@@ -511,7 +513,7 @@ network:
 
 # How to configure SR-IOV Virtual Functions
 
-For SR-IOV network cards, it is possible to dynamically allocate Virtual Function interfaces for every configured Physical Function. In netplan, a VF is defined by having a link: property pointing to the parent PF.
+For SR-IOV network cards, it is possible to dynamically allocate Virtual Function interfaces for every configured Physical Function. In Netplan, a VF is defined by having a link: property pointing to the parent PF.
 
 ```yaml
 network:
@@ -553,7 +555,7 @@ UAmjvLDVuV384OWFJkmI4bG8AIAZAfV7LarshnV3+lc=
 AIm+QeCoC23zInKASmhu6z/3iaT0R2IKraB7WwYB5ms=
 ```
 
-Use the following configuration in the `first peer` (replace the keys and IPs as needed):
+Use the following configuration in the `first peer` (replace the keys and IP addresses as needed):
 
 ```yaml
 network:
@@ -598,7 +600,7 @@ In the YAML file above, `key` is the second peer's `private key` and
 
 # How to connect your home computer to a cloud instance with a WireGuard VPN
 
-Follow the same steps from the previous howto to generate the necessary keys.
+Follow the same steps from the previous how-to to generate the necessary keys.
 
 The difference here is that your computer is likely behind one or more devices doing NAT so you probably don't have a static public IP to use as endpoint in the remote system.
 

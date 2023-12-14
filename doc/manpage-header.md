@@ -1,5 +1,5 @@
 ---
-title: netplan
+title: NETPLAN
 section: 5
 author:
 - Mathieu Trudel-Lapierre (<cyphermox@ubuntu.com>)
@@ -9,11 +9,11 @@ author:
 
 # NAME
 
-netplan - YAML network configuration abstraction for various backends
+`netplan` - YAML network configuration abstraction for various backends
 
 # SYNOPSIS
 
-**netplan** [ *COMMAND* | help ]
+**netplan** \[*COMMAND*|help\]
 
 # COMMANDS
 
