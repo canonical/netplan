@@ -5,8 +5,12 @@ name: Build & ABI compatibility
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'doc/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'doc/**'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
