@@ -1,4 +1,4 @@
-# Desktop integration
+# How to integrate Netplan with desktop
 
 ## NetworkManager YAML settings back end
 

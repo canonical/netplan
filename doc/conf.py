@@ -1,6 +1,9 @@
 import sys
-
 import datetime
+import atexit
+import fileinput
+import os
+import re
 
 # Custom configuration for the Sphinx documentation builder.
 # All configuration specific to your project should be done in this file.
@@ -373,3 +376,31 @@ html_js_files = ['header-nav.js']
 if 'github_issues' in html_context and html_context['github_issues'] and not disable_feedback_button:
     html_js_files.append('github_issue_links.js')
 html_js_files.extend(custom_html_js_files)
+
+
+# Clip the "How to" string from how-to titles in the left navigation sidebar
+#     and capitalizes the first letter of the remaining title.
+def clip_howto():
+    pattern = re.compile(r'(toctree-l2.*>)How to ([a-zA-Z])')
+    # Check if the build is running on ReadTheDocs
+    if os.environ.get('READTHEDOCS') == 'True':
+        output_dir = os.environ.get('READTHEDOCS_OUTPUT') + '/html'
+    else:
+        output_dir = '_build'
+
+    print("Clipping 'How to' from the Table of Contents...")
+
+    for root, dirs, files in os.walk(output_dir):
+        for file in files:
+            if file.endswith('.html'):
+                file_path = os.path.join(root, file)
+
+                with fileinput.FileInput(file_path, inplace=True) as f:
+                    for line in f:
+                        line = pattern.sub(lambda match: match.group(1) + match.group(2).upper(), line)
+                        print(line, end='')
+
+
+# Register the clip_howto function to be called on exit
+atexit.register(clip_howto)
+# End how-to clipping
