@@ -1,22 +1,3 @@
-# Introduction
-
-Below is a collection of how-to guides for common scenarios.
-If you see a scenario missing or have one to contribute, please file a bug
-against this documentation with the example.
-
-To configure Netplan, save configuration files under `/etc/netplan/` with a
-`.yaml` extension (e.g. `/etc/netplan/config.yaml`), then run
-`sudo netplan apply`. This command parses and applies the configuration to the
-system. Configuration written to disk under `/etc/netplan/` will persist between
-reboots.
-
-For each of the example below, use the `renderer` that applies to your scenario.
-For example, for Ubuntu Desktop your `renderer` will probably be `NetworkManager`
-and `networkd` for Ubuntu Server.
-
-Also, see [/examples](https://github.com/canonical/netplan/tree/main/examples)
-on GitHub.
-
 # How to enable DHCP on an interface
 
 To let the interface named `enp3s0` get an address via DHCP, create a YAML file with the following:
@@ -533,25 +514,29 @@ network:
 
 # How to connect two systems with a WireGuard VPN
 
-Generate the private and public keys in the first peer:
+Generate the private and public keys in the first peer. Run the following commands with administrator privileges:
 
-```bash
-# wg genkey > private.key
-# wg pubkey < private.key > public.key
-# cat private.key
+```console
+wg genkey > private.key
+wg pubkey < private.key > public.key
+
+cat private.key
 UMjI9WbobURkCDh2RT8SRM5osFI7siiR/sPOuuTIDns=
-# cat public.key
+
+cat public.key
 EdNnZ1/2OJZ9HcScSVcwDVUsctCkKQ/xzjEyd3lZFFs=
 ```
 
 Do the same in the second peer:
 
-```bash
-# wg genkey > private.key
-# wg pubkey < private.key > public.key
-# cat private.key
+```console
+wg genkey > private.key
+wg pubkey < private.key > public.key
+
+cat private.key
 UAmjvLDVuV384OWFJkmI4bG8AIAZAfV7LarshnV3+lc=
-# cat public.key
+
+cat public.key
 AIm+QeCoC23zInKASmhu6z/3iaT0R2IKraB7WwYB5ms=
 ```
 

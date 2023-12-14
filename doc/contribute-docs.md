@@ -1,4 +1,4 @@
-# Contribute documentation
+# How to contribute documentation
 
 ## Reporting an issue
 
