@@ -1,0 +1,2 @@
+.. _reStructuredText style guide: https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/
+.. _Example product documentation: https://canonical-example-product-documentation.readthedocs-hosted.com/

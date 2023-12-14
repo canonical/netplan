@@ -1,2 +1,6 @@
 _build
-/*env*/
+.sphinx/venv/
+.sphinx/breathe/
+.sphinx/.doctrees/
+.sphinx/warnings.txt
+.sphinx/.wordlist.dic

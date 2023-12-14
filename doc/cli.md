@@ -14,16 +14,16 @@ ip <netplan-ip>
 rebind <netplan-rebind>
 status <netplan-status>
 ```
-Netplan provides a command line interface, called `netplan`, which a user can
-utilize to control certain aspects of the Netplan configuration.
+Netplan provides a command line interface called `netplan`, which a user can
+use to control certain aspects of the Netplan configuration.
 
 | Tool | Description |
 | --- | --- |
 | help | Show a generic help message |
-| [generate](/netplan-generate) | Generate backend specific configuration files from `/etc/netplan/*.yaml` |
-| [apply](/netplan-apply) | Apply current netplan config to running system |
-| [try](/netplan-try) | Try to apply a new netplan config to running system, with automatic rollback |
-| [get](/netplan-get) | Get a setting by specifying a nested key like `"ethernets.eth0.addresses"`, or "all" |
+| [generate](/netplan-generate) | Generate back-end specific configuration files from `/etc/netplan/*.yaml` |
+| [apply](/netplan-apply) | Apply current Netplan configuration to running system |
+| [try](/netplan-try) | Try to apply a new Netplan configuration to running system, with automatic rollback |
+| [get](/netplan-get) | Get a setting by specifying a nested key like `"ethernets.eth0.addresses"`, or `"all"` |
 | [set](/netplan-set) | Add new setting by specifying a dotted `key=value` pair like `"ethernets.eth0.dhcp4=true"` |
 | [info](/netplan-info) | Show available features |
 | [ip](/netplan-ip) | Retrieve IP information (like DHCP leases) from the system |

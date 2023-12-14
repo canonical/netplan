@@ -20,7 +20,7 @@ Netplan meets the need of **easy, descriptive network configuration** in YAML
 across a versatile set of server, desktop, cloud or IoT installations.
 
 It is useful for **administrators of a Linux system** who want to use a common
-network configuration, controlling different backends like NetworkManager or
+network configuration, controlling different back ends like NetworkManager or
 systemd-networkd.
 
 ## In this documentation
@@ -64,14 +64,14 @@ Netplan is a member of the Ubuntu family. It’s an open source project that
 warmly welcomes community contributions, suggestions, fixes and constructive
 feedback.
 
-* **[Read our code of conduct](https://ubuntu.com/community/code-of-conduct)**:
+* **[Read our code of conduct](https://ubuntu.com/community/ethos/code-of-conduct)**:
 As a community we adhere to the Ubuntu code of conduct.
 
 * **[Get support](https://askubuntu.com/questions/tagged/netplan)**:
 Ask Ubuntu is a question and answer site for Ubuntu users and developers.
 
 * **[Join our online chat](https://web.libera.chat/gamja/?channels=%23netplan)**:
-Meet us in #netplan on IRC Libera.Chat.
+Meet us in `#netplan` on IRC Libera.Chat.
 
 * **[Report bugs](https://bugs.launchpad.net/netplan/+filebug)**:
 We want to know about the problems so we can fix them.

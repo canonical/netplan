@@ -1,0 +1,79 @@
+name: Automatic documentation checks
+
+on:
+  pull_request:
+    paths:
+      - 'doc/**'
+  push:
+    paths:
+      - 'doc/**'
+  workflow_dispatch:
+    paths:
+      - 'doc/**'
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Working directory'
+        required: true
+        type: string
+        default: 'doc'
+      python-version:
+        description: 'Version of the Python interpreter to use (defaults to 3.10)'
+        required: false
+        type: string
+        default: "3.10"
+    outputs:
+      spellcheck-result:
+        description: "Result of the spelling check"
+        value: ${{ jobs.docchecks.outputs.result_spelling }}
+      woke-result:
+        description: "Result of the inclusive language check"
+        value: ${{ jobs.docchecks.outputs.result_woke }}
+      linkcheck-result:
+        description: "Result of the link check"
+        value: ${{ jobs.docchecks.outputs.result_links }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docchecks:
+    name: Run documentation checks
+    runs-on: ubuntu-20.04
+    outputs:
+      result_spelling: ${{ steps.spellcheck-step.outcome }}
+      result_woke: ${{ steps.woke-step.outcome }}
+      result_links: ${{ steps.linkcheck-step.outcome }}
+    steps:
+      - name: Add Doxygen
+        uses: ssciwr/doxygen-install@v1
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Spell Check
+        id: spellcheck-step
+        if: success() || failure()
+        uses: canonical/documentation-workflows/spellcheck@main
+        with:
+          working-directory: 'doc'
+
+      - name: Inclusive Language Check
+        id: woke-step
+        if: success() || failure()
+        uses: canonical/documentation-workflows/inclusive-language@main
+        with:
+          working-directory: 'doc'
+
+      - name: Link Check
+        id: linkcheck-step
+        if: success() || failure()
+        uses: canonical/documentation-workflows/linkcheck@main
+        with:
+          working-directory: 'doc'
