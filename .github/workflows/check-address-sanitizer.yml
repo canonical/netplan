@@ -8,8 +8,12 @@ name: Check for memory issues
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'doc/**'
   pull_request:
     branches: [ '**' ]
+    paths-ignore:
+      - 'doc/**'
 
 jobs:
   memory-sanitizer:

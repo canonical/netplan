@@ -3,8 +3,12 @@ name: RPM build
 on:
   push:
     branches: [ main, 'stable/**' ]
+    paths-ignore:
+      - 'doc/**'
   pull_request:
     branches: [ '**' ]
+    paths-ignore:
+      - 'doc/**'
 
 jobs:
   rpm:
