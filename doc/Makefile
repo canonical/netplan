@@ -54,7 +54,7 @@ woke-install:
 install: $(VENVDIR) woke-install
 
 run: install
-	. $(VENV); sphinx-autobuild -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
+	. $(VENV); sphinx-autobuild -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) --re-ignore '\.sphinx/breathe/doxygen/.*'
 
 # Doesn't depend on $(BUILDDIR) to rebuild properly at every run.
 html: install
