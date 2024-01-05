@@ -8,6 +8,19 @@
 #include "util.h"
 #include "types-internal.h"
 
+gboolean
+process_document(NetplanParser*, GError**);
+gboolean
+load_yaml_from_fd(int, yaml_document_t*, GError**);
+gboolean
+load_yaml(const char*, yaml_document_t*, GError**);
+const char*
+normalize_ip_address(const char*, const guint);
+char*
+write_ovs_bond_interfaces(const NetplanState*, const NetplanNetDefinition*, GString*, GError**);
+gboolean
+validate_interface_name_length(const NetplanNetDefinition*);
+
 // LCOV_EXCL_START
 NetplanState *
 load_fixture_to_netplan_state(const char* filename)

@@ -3,20 +3,16 @@
 #include <stddef.h>
 #include <setjmp.h>
 
+#include <sys/stat.h>
+#include <netinet/in.h>
+
 #include <cmocka.h>
 
 #include "netplan.h"
 #include "parse.h"
+#include "util-internal.h"
 #include "types-internal.h"
 #include "types.h"
-
-#include "error.c"
-#include "names.c"
-#include "validation.c"
-#include "types.c"
-#include "util.c"
-#include "parse.c"
-#include "netplan.c"
 
 #include "test_utils.h"
 

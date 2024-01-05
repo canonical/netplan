@@ -42,7 +42,7 @@
  * This is done by checking for certain modem_params, which are only
  * applicable to GSM connections.
  */
-static gboolean
+STATIC gboolean
 modem_is_gsm(const NetplanNetDefinition* def)
 {
     if (   def->modem_params.apn
@@ -60,7 +60,7 @@ modem_is_gsm(const NetplanNetDefinition* def)
 /**
  * Return NM "type=" string.
  */
-static char*
+STATIC char*
 type_str(const NetplanNetDefinition* def)
 {
     const NetplanDefType type = def->type;
@@ -111,7 +111,7 @@ type_str(const NetplanNetDefinition* def)
 /**
  * Return NM wifi "mode=" string.
  */
-static char*
+STATIC char*
 wifi_mode_str(const NetplanWifiMode mode)
 {
     switch (mode) {
@@ -131,7 +131,7 @@ wifi_mode_str(const NetplanWifiMode mode)
 /**
  * Return NM wifi "band=" string.
  */
-static char*
+STATIC char*
 wifi_band_str(const NetplanWifiBand band)
 {
     switch (band) {
@@ -149,7 +149,7 @@ wifi_band_str(const NetplanWifiBand band)
 /**
  * Return NM addr-gen-mode string.
  */
-static char*
+STATIC char*
 addr_gen_mode_str(const NetplanAddrGenMode mode)
 {
     switch (mode) {
@@ -164,7 +164,7 @@ addr_gen_mode_str(const NetplanAddrGenMode mode)
     }
 }
 
-static void
+STATIC void
 write_search_domains(const NetplanNetDefinition* def, const char* group, GKeyFile *kf)
 {
     if (def->search_domains) {
@@ -175,7 +175,7 @@ write_search_domains(const NetplanNetDefinition* def, const char* group, GKeyFil
     }
 }
 
-static gboolean
+STATIC gboolean
 write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GError** error)
 {
     const gchar* group = NULL;
@@ -255,8 +255,8 @@ write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GErr
     return TRUE;
 }
 
-static void
-write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
+STATIC void
+write_nm_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
 {
     GString* tmp_val = NULL;
     if (def->bond_params.mode)
@@ -313,7 +313,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
         g_key_file_set_string(kf, "bond", "primary", def->bond_params.primary_member);
 }
 
-static void
+STATIC void
 write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
 {
     if (def->custom_bridging) {
@@ -331,8 +331,8 @@ write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
     }
 }
 
-static gboolean
-write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** error)
+STATIC gboolean
+write_nm_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** error)
 {
     /* The key was already validated via validate_tunnel_grammar(), but we need
      * to differentiate between base64 key VS absolute path key-file. And a base64
@@ -389,8 +389,8 @@ write_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError** e
     return TRUE;
 }
 
-static void
-write_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
+STATIC void
+write_nm_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
 {
     g_key_file_set_integer(kf, "ip-tunnel", "mode", def->tunnel.mode);
     if (def->tunnel.local_ip)
@@ -404,7 +404,7 @@ write_tunnel_params(const NetplanNetDefinition* def, GKeyFile *kf)
         g_key_file_set_string(kf, "ip-tunnel", "output-key", def->tunnel.output_key);
 }
 
-static void
+STATIC void
 write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *kf)
 {
     switch (auth->eap_method) {
@@ -448,7 +448,7 @@ write_dot1x_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile 
         g_key_file_set_string(kf, "802-1x", "phase2-auth", auth->phase2_auth);
 }
 
-static void
+STATIC void
 write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *kf)
 {
     switch (auth->key_management) {
@@ -498,15 +498,15 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
         g_key_file_set_string(kf, "wifi-security", "psk", auth->password);
 }
 
-static void
+STATIC void
 maybe_generate_uuid(const NetplanNetDefinition* def)
 {
     if (uuid_is_null(def->uuid))
         uuid_generate((unsigned char*)def->uuid);
 }
 
-static void
-write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
+STATIC void
+write_nm_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
 {
     g_assert(def->vxlan);
     char uuidstr[37];
@@ -563,7 +563,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
  * Special handling for passthrough mode: read key-value pairs from
  * "backend_settings.passthrough" and inject them into the keyfile as-is.
  */
-static void
+STATIC void
 write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
@@ -620,7 +620,7 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
  * @ap: The access point for which to create a connection. Must be %NULL for
  *      non-wifi types.
  */
-static gboolean
+STATIC gboolean
 write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir, const NetplanWifiAccessPoint* ap, GError** error)
 {
     g_autoptr(GKeyFile) kf = NULL;
@@ -815,16 +815,16 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     }
 
     if (def->type == NETPLAN_DEF_TYPE_BOND)
-        write_bond_parameters(def, kf);
+        write_nm_bond_parameters(def, kf);
 
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {
         if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
-            if (!write_wireguard_params(def, kf, error))
+            if (!write_nm_wireguard_params(def, kf, error))
                 return FALSE;
         } else if (def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
-            write_vxlan_parameters(def, kf);
+            write_nm_vxlan_parameters(def, kf);
         } else
-            write_tunnel_params(def, kf);
+            write_nm_tunnel_params(def, kf);
     }
 
     if (match_interface_name) {

@@ -55,7 +55,7 @@
     dst = g_strdup(src); \
 } }
 
-static gboolean
+STATIC gboolean
 insert_kv_into_hash(void *key, void *value, void *hash);
 
 /**
@@ -66,7 +66,7 @@ insert_kv_into_hash(void *key, void *value, void *hash);
  *
  * Returns: TRUE on success, FALSE if the document is malformed; @error gets set then.
  */
-static gboolean
+STATIC gboolean
 load_yaml_from_fd(int input_fd, yaml_document_t* doc, GError** error)
 {
     int in_dup = -1;
@@ -109,7 +109,7 @@ file_error:
  *
  * Returns: TRUE on success, FALSE if the document is malformed; @error gets set then.
  */
-static gboolean
+STATIC gboolean
 load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
 {
     FILE* fyaml = NULL;
@@ -138,7 +138,7 @@ load_yaml(const char* yaml, yaml_document_t* doc, GError** error)
 /**
  * Raise a GError about a type mismatch and return FALSE.
  */
-static gboolean
+STATIC gboolean
 assert_type_fn(const NetplanParser* npp, yaml_node_t* node, yaml_node_type_t expected_type, GError** error)
 {
     if (node->type == expected_type)
@@ -175,7 +175,7 @@ scalar(const yaml_node_t* node)
     return (const char*) node->data.scalar.value;
 }
 
-static void
+STATIC void
 add_missing_node(NetplanParser *npp, const yaml_node_t* node)
 {
     NetplanMissingNode* missing;
@@ -195,7 +195,7 @@ add_missing_node(NetplanParser *npp, const yaml_node_t* node)
 /**
  * Check that node contains a valid ID/interface name. Raise GError if not.
  */
-static gboolean
+STATIC gboolean
 assert_valid_id(const NetplanParser* npp, yaml_node_t* node, GError** error)
 {
     static regex_t re;
@@ -257,7 +257,7 @@ typedef struct mapping_entry_handler_s {
 /**
  * Return the #mapping_entry_handler that matches @key, or NULL if not found.
  */
-static const mapping_entry_handler*
+STATIC const mapping_entry_handler*
 get_handler(const mapping_entry_handler* handlers, const char* key)
 {
     for (unsigned i = 0; handlers[i].key != NULL; ++i) {
@@ -276,7 +276,7 @@ get_handler(const mapping_entry_handler* handlers, const char* key)
  *
  * Returns: TRUE on success, FALSE on error (@error gets set then).
  */
-static gboolean
+STATIC gboolean
 process_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const mapping_entry_handler* handlers, GList** out_values, GError** error)
 {
     yaml_node_pair_t* entry;
@@ -331,7 +331,7 @@ process_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, c
  * @entryptr: pointer to the begining of the to-be-modified data structure
  * @data: offset into entryptr struct where the guint field to write is located
  */
-static gboolean
+STATIC gboolean
 handle_generic_guint(NetplanParser* npp, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
@@ -354,7 +354,7 @@ handle_generic_guint(NetplanParser* npp, yaml_node_t* node, const void* entryptr
  * @data: offset into entryptr struct where the const char* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, __unused GError** error)
 {
     g_assert(entryptr);
@@ -372,7 +372,7 @@ handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
  * @data: offset into entryptr struct where the const char* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_generic_mac(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
@@ -397,7 +397,7 @@ handle_generic_mac(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
  */
-static gboolean
+STATIC gboolean
 handle_generic_bool(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
@@ -428,7 +428,7 @@ handle_generic_bool(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
  */
-static gboolean
+STATIC gboolean
 handle_generic_tristate(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
@@ -459,7 +459,7 @@ handle_generic_tristate(NetplanParser* npp, yaml_node_t* node, void* entryptr, c
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
 */
-static gboolean
+STATIC gboolean
 handle_generic_map(NetplanParser *npp, yaml_node_t* node, const char* key_prefix, void* entryptr, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -503,7 +503,7 @@ handle_generic_map(NetplanParser *npp, yaml_node_t* node, const char* key_prefix
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
 */
-static gboolean
+STATIC gboolean
 handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_prefix, void* entryptr, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -539,7 +539,7 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_str(npp, node, npp->current.netdef, data, error);
@@ -550,7 +550,7 @@ handle_netdef_str(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_id(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (!assert_valid_id(npp, node, error))
@@ -558,7 +558,7 @@ handle_netdef_id(NetplanParser* npp, yaml_node_t* node, const void* data, GError
     return handle_netdef_str(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_embedded_switch_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_strcmp0(scalar(node), "switchdev") != 0 && g_strcmp0(scalar(node), "legacy") != 0)
@@ -567,7 +567,7 @@ handle_embedded_switch_mode(NetplanParser* npp, yaml_node_t* node, const void* d
     return handle_netdef_str(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ib_mode(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     if (g_strcmp0(scalar(node), "datagram") == 0)
@@ -587,7 +587,7 @@ handle_ib_mode(NetplanParser* npp, yaml_node_t* node, __unused const void* data,
  * @data: offset into NetplanNetDefinition where the NetplanNetDefinition* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, __unused GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -616,7 +616,7 @@ handle_netdef_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, __
  * @data: offset into NetplanVxlan where the NetplanNetDefinition* field to
  *        write is located
  */
-static gboolean
+STATIC gboolean
 handle_vxlan_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, __unused GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -639,7 +639,7 @@ handle_vxlan_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, __u
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_mac(npp, node, npp->current.netdef, data, error);
@@ -649,7 +649,7 @@ handle_netdef_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
  * Generic handler for setting a npp->current.netdef gboolean field from a scalar node
  * @data: offset into NetplanNetDefinition where the gboolean field to write is located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_bool(npp, node, npp->current.netdef, data, error);
@@ -659,7 +659,7 @@ handle_netdef_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
  * Generic handler for tri-state settings that can bei "UNSET", "TRUE", or "FALSE".
  * @data: offset into NetplanNetDefinition where the guint field to write is located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_tristate(npp, node, npp->current.netdef, data, error);
@@ -669,13 +669,13 @@ handle_netdef_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, 
  * Generic handler for setting a npp->current.netdef guint field from a scalar node
  * @data: offset into NetplanNetDefinition where the guint field to write is located
  */
-static gboolean
+STATIC gboolean
 handle_netdef_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_guint(npp, node, npp->current.netdef, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_ip4(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -706,7 +706,7 @@ handle_netdef_ip4(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_ip6(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
@@ -737,7 +737,7 @@ handle_netdef_ip6(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_addrgen(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     g_assert(npp->current.netdef);
@@ -750,7 +750,7 @@ handle_netdef_addrgen(NetplanParser* npp, yaml_node_t* node, __unused const void
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_addrtok(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.netdef);
@@ -760,14 +760,14 @@ handle_netdef_addrtok(NetplanParser* npp, yaml_node_t* node, const void* data, G
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_map(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.netdef);
     return handle_generic_map(npp, node, key_prefix, npp->current.netdef, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     npp->current.netdef->has_backend_settings_nm = TRUE;
@@ -778,7 +778,7 @@ handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const 
  * Check if the passthrough key format is incorrect and remove it from the list.
  * user_data is expected to contain a pointer to the GData list.
  */
-static void
+STATIC void
 validate_kf_group_key(GQuark key_id, __unused gpointer value, gpointer user_data)
 {
     GData** list = user_data;
@@ -791,7 +791,7 @@ validate_kf_group_key(GQuark key_id, __unused gpointer value, gpointer user_data
     g_strfreev(group_key);
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.netdef);
@@ -809,7 +809,7 @@ handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const 
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 handle_veth_peer(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     NetplanNetDefinition* netdef = npp->current.netdef;
@@ -842,7 +842,7 @@ handle_veth_peer(NetplanParser* npp, yaml_node_t* node, __unused const void* dat
  * Grammar and handlers for network config "match" entry
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_match_driver(NetplanParser* npp, yaml_node_t* node, __unused const char* key_prefix, __unused const void* _, GError** error)
 {
     gboolean ret = FALSE;
@@ -880,7 +880,7 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, __unused const char* 
     return ret;
 }
 
-static const mapping_entry_handler match_handlers[] = {
+STATIC const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_NO_NODE, {.variable=handle_match_driver}, NULL},
     {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_id}, netdef_offset(match.original_name)},
@@ -891,7 +891,7 @@ static const mapping_entry_handler match_handlers[] = {
  * Grammar and handlers for network config "auth" entry
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_auth_str(NetplanParser* npp, yaml_node_t* node, const void* data, __unused GError** error)
 {
     g_assert(npp->current.auth);
@@ -903,7 +903,7 @@ handle_auth_str(NetplanParser* npp, yaml_node_t* node, const void* data, __unuse
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     NetplanAuthenticationSettings* auth = npp->current.auth;
@@ -942,7 +942,7 @@ handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, __unused const
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_auth_method(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     NetplanAuthenticationSettings* auth = npp->current.auth;
@@ -962,7 +962,7 @@ handle_auth_method(NetplanParser* npp, yaml_node_t* node, __unused const void* _
     return TRUE;
 }
 
-static const mapping_entry_handler auth_handlers[] = {
+STATIC const mapping_entry_handler auth_handlers[] = {
     {"key-management", YAML_SCALAR_NODE, {.generic=handle_auth_key_management}, NULL},
     {"method", YAML_SCALAR_NODE, {.generic=handle_auth_method}, NULL},
     {"identity", YAML_SCALAR_NODE, {.generic=handle_auth_str}, auth_offset(identity)},
@@ -991,14 +991,14 @@ get_default_backend_for_type(NetplanBackend global_backend, __unused NetplanDefT
     return NETPLAN_BACKEND_NETWORKD;
 }
 
-static gboolean
+STATIC gboolean
 handle_ap_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     npp->current.netdef->has_backend_settings_nm = TRUE;
     return handle_generic_str(npp, node, npp->current.access_point, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.access_point);
@@ -1016,25 +1016,25 @@ handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* 
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_guint(npp, node, npp->current.access_point, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_mac(npp, node, npp->current.access_point, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_bool(npp, node, npp->current.access_point, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_password(NetplanParser* npp, yaml_node_t* node, __unused const void* _, __unused GError** error)
 {
     NetplanWifiAccessPoint *access_point = npp->current.access_point;
@@ -1050,7 +1050,7 @@ handle_access_point_password(NetplanParser* npp, yaml_node_t* node, __unused con
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_auth(NetplanParser* npp, yaml_node_t* node, __unused const char* key_prefix, __unused const void* _, GError** error)
 {
     NetplanWifiAccessPoint *access_point = npp->current.access_point;
@@ -1066,7 +1066,7 @@ handle_access_point_auth(NetplanParser* npp, yaml_node_t* node, __unused const c
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_mode(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     NetplanWifiAccessPoint *access_point = npp->current.access_point;
@@ -1082,7 +1082,7 @@ handle_access_point_mode(NetplanParser* npp, yaml_node_t* node, __unused const v
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_access_point_band(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     NetplanWifiAccessPoint *access_point = npp->current.access_point;
@@ -1096,7 +1096,7 @@ handle_access_point_band(NetplanParser* npp, yaml_node_t* node, __unused const v
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_tunnel_key_flags(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -1157,7 +1157,7 @@ static const mapping_entry_handler wifi_access_point_handlers[] = {
 /**
  * Parse scalar node's string into a netdef_backend.
  */
-static gboolean
+STATIC gboolean
 parse_renderer(NetplanParser* npp, yaml_node_t* node, NetplanBackend* backend, GError** error)
 {
     if (strcmp(scalar(node), "networkd") == 0)
@@ -1170,7 +1170,7 @@ parse_renderer(NetplanParser* npp, yaml_node_t* node, NetplanBackend* backend, G
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_netdef_renderer(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     if (npp->current.netdef->type == NETPLAN_DEF_TYPE_VLAN) {
@@ -1183,7 +1183,7 @@ handle_netdef_renderer(NetplanParser* npp, yaml_node_t* node, __unused const voi
     return parse_renderer(npp, node, &npp->current.netdef->backend, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_accept_ra(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     gboolean ret = handle_generic_bool(npp, node, npp->current.netdef, data, error);
@@ -1194,7 +1194,7 @@ handle_accept_ra(NetplanParser* npp, yaml_node_t* node, const void* data, GError
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 handle_activation_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_strcmp0(scalar(node), "manual") && g_strcmp0(scalar(node), "off"))
@@ -1203,7 +1203,7 @@ handle_activation_mode(NetplanParser* npp, yaml_node_t* node, const void* data, 
     return handle_netdef_str(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_match(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     npp->current.netdef->has_match = TRUE;
@@ -1224,7 +1224,7 @@ NETPLAN_WIFI_WOWLAN_TYPES[] = {
     {NULL},
 };
 
-static gboolean
+STATIC gboolean
 handle_wowlan(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -1247,7 +1247,7 @@ handle_wowlan(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GEr
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_auth(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     gboolean ret;
@@ -1262,7 +1262,7 @@ handle_auth(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unu
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 handle_address_option_lifetime(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_ascii_strcasecmp(scalar(node), "0") != 0 &&
@@ -1272,7 +1272,7 @@ handle_address_option_lifetime(NetplanParser* npp, yaml_node_t* node, const void
     return handle_generic_str(npp, node, npp->current.addr_options, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_address_option_label(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_str(npp, node, npp->current.addr_options, data, error);
@@ -1289,7 +1289,7 @@ const mapping_entry_handler address_option_handlers[] = {
  * @entryptr: pointer to the beginning of the do-be-modified data structure
  * @data: offset into entryptr struct where the array to write is located
  */
-static gboolean
+STATIC gboolean
 handle_generic_addresses(NetplanParser* npp, yaml_node_t* node, gboolean check_zero_prefix, GArray** ip4, GArray** ip6, GError** error)
 {
     g_assert(ip4);
@@ -1392,13 +1392,13 @@ skip_ip6:
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_addresses(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     return handle_generic_addresses(npp, node, TRUE, &(npp->current.netdef->ip4_addresses), &(npp->current.netdef->ip6_addresses), error);
 }
 
-static gboolean
+STATIC gboolean
 handle_gateway4(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     if (!is_ip4_address(scalar(node)))
@@ -1410,7 +1410,7 @@ handle_gateway4(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_gateway6(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     if (!is_ip6_address(scalar(node)))
@@ -1422,7 +1422,7 @@ handle_gateway6(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* data, GError** error)
 {
     GHashTable* access_points = g_hash_table_new(g_str_hash, g_str_equal);
@@ -1498,7 +1498,7 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key
  * but set npp->current.netdef's ID in all listed interfaces' "bond" or "bridge" field.
  * @data: ignored
  */
-static gboolean
+STATIC gboolean
 handle_bridge_interfaces(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
@@ -1534,7 +1534,7 @@ handle_bridge_interfaces(NetplanParser* npp, yaml_node_t* node, __unused const v
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
-static gboolean
+STATIC gboolean
 handle_bond_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (!(strcmp(scalar(node), "balance-rr") == 0 ||
@@ -1563,7 +1563,7 @@ handle_bond_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError
  * Handler for bond "interfaces:" list.
  * @data: ignored
  */
-static gboolean
+STATIC gboolean
 handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
@@ -1596,7 +1596,7 @@ handle_bond_interfaces(NetplanParser* npp, yaml_node_t* node, __unused const voi
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_nameservers_search(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -1617,7 +1617,7 @@ handle_nameservers_search(NetplanParser* npp, yaml_node_t* node, __unused const 
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_nameservers_addresses(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -1649,7 +1649,7 @@ handle_nameservers_addresses(NetplanParser* npp, yaml_node_t* node, __unused con
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_link_local(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     gboolean ipv4 = FALSE;
@@ -1686,7 +1686,7 @@ NETPLAN_OPTIONAL_ADDRESS_TYPES[] = {
     {NULL},
 };
 
-static gboolean
+STATIC gboolean
 handle_optional_addresses(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -1709,7 +1709,7 @@ handle_optional_addresses(NetplanParser* npp, yaml_node_t* node, __unused const 
 }
 
 /* TODO: unify optional_addresses/wowlan_types, using flags */
-static gboolean
+STATIC gboolean
 handle_vxlan_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.vxlan);
@@ -1765,21 +1765,21 @@ handle_vxlan_flags(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_vxlan_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.vxlan);
     return handle_generic_guint(npp, node, npp->current.vxlan, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_vxlan_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.vxlan);
     return handle_generic_tristate(npp, node, npp->current.vxlan, data, error);
 }
 
-static int
+STATIC int
 get_ip_family(const char* address)
 {
     g_autofree char *ip_str;
@@ -1799,7 +1799,7 @@ get_ip_family(const char* address)
     return -1;
 }
 
-static gboolean
+STATIC gboolean
 check_and_set_family(gint family, gint* dest)
 {
     if (*dest != -1 && *dest != family)
@@ -1812,14 +1812,14 @@ check_and_set_family(gint family, gint* dest)
 
 /* TODO: (cyphermox) Refactor the functions below. There's a lot of room for reuse. */
 
-static gboolean
+STATIC gboolean
 handle_routes_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.route);
     return handle_generic_bool(npp, node, npp->current.route, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_routes_scope(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     NetplanIPRoute* route = npp->current.route;
@@ -1835,7 +1835,7 @@ handle_routes_scope(NetplanParser* npp, yaml_node_t* node, __unused const void* 
     return yaml_error(npp, node, error, "invalid route scope '%s'", route->scope);
 }
 
-static gboolean
+STATIC gboolean
 handle_routes_type(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     NetplanIPRoute* route = npp->current.route;
@@ -1862,7 +1862,7 @@ handle_routes_type(NetplanParser* npp, yaml_node_t* node, __unused const void* d
     return yaml_error(npp, node, error, "invalid route type '%s'", route->type);
 }
 
-static gboolean
+STATIC gboolean
 handle_routes_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanIPRoute* route = npp->current.route;
@@ -1883,7 +1883,7 @@ handle_routes_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GError
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_routes_destination(NetplanParser *npp, yaml_node_t *node, __unused const void *data, GError **error)
 {
     const char *addr = scalar(node);
@@ -1893,7 +1893,7 @@ handle_routes_destination(NetplanParser *npp, yaml_node_t *node, __unused const 
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_ip_rule_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanIPRule* ip_rule = npp->current.ip_rule;
@@ -1914,21 +1914,21 @@ handle_ip_rule_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_ip_rule_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.ip_rule);
     return handle_generic_guint(npp, node, npp->current.ip_rule, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_routes_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.route);
     return handle_generic_guint(npp, node, npp->current.route, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ip_rule_tos(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanIPRule* ip_rule = npp->current.ip_rule;
@@ -1942,7 +1942,7 @@ handle_ip_rule_tos(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
  * Grammar and handlers for network config "bridge_params" entry
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
@@ -1986,7 +1986,7 @@ handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const char* key_p
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
@@ -2044,7 +2044,7 @@ static const mapping_entry_handler bridge_params_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_bridge(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     npp->current.netdef->custom_bridging = TRUE;
@@ -2071,7 +2071,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_routes(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     if (!npp->current.netdef->routes)
@@ -2161,7 +2161,7 @@ static const mapping_entry_handler ip_rules_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_ip_rules(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
@@ -2207,7 +2207,7 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
  * Grammar and handlers for bond parameters
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     if (!npp->current.netdef->bond_params.arp_ip_targets) {
@@ -2243,7 +2243,7 @@ handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, __unused const void
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanNetDefinition *component;
@@ -2270,7 +2270,7 @@ handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* da
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_bond_lacp_rate(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (!(strcmp(scalar(node), "slow") == 0 || strcmp(scalar(node), "fast") == 0))
@@ -2309,7 +2309,7 @@ static const mapping_entry_handler bond_params_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_vrf_interfaces(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     /* all entries must refer to already defined IDs */
@@ -2332,7 +2332,7 @@ handle_vrf_interfaces(NetplanParser* npp, yaml_node_t* node, __unused const void
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_vxlan_source_port(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     assert_type(npp, node, YAML_SEQUENCE_NODE);
@@ -2359,13 +2359,13 @@ handle_vxlan_source_port(NetplanParser* npp, yaml_node_t* node, __unused const v
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_bonding(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     return process_mapping(npp, node, key_prefix, bond_params_handlers, NULL, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_dhcp_identifier(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     g_free(npp->current.netdef->dhcp_identifier);
@@ -2386,7 +2386,7 @@ handle_dhcp_identifier(NetplanParser* npp, yaml_node_t* node, __unused const voi
  * Grammar and handlers for tunnels
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_tunnel_addr(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_autofree char* addr = NULL;
@@ -2409,7 +2409,7 @@ handle_tunnel_addr(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
     return yaml_error(npp, node, error, "malformed address '%s', must be X.X.X.X or X:X:X:X:X:X:X:X", scalar(node));
 }
 
-static gboolean
+STATIC gboolean
 handle_tunnel_mode(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     const char *key = scalar(node);
@@ -2434,7 +2434,7 @@ static const mapping_entry_handler tunnel_keys_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_tunnel_key_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     gboolean ret = FALSE;
@@ -2460,7 +2460,7 @@ handle_tunnel_key_mapping(NetplanParser* npp, yaml_node_t* node, const char* key
  * Handler for setting a NetplanWireguardPeer string field from a scalar node
  * @data: pointer to the const char* field to write
  */
-static gboolean
+STATIC gboolean
 handle_wireguard_peer_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.wireguard_peer);
@@ -2471,21 +2471,21 @@ handle_wireguard_peer_str(NetplanParser* npp, yaml_node_t* node, const void* dat
  * Handler for setting a NetplanWireguardPeer string field from a scalar node
  * @data: pointer to the guint field to write
  */
-static gboolean
+STATIC gboolean
 handle_wireguard_peer_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.wireguard_peer);
     return handle_generic_guint(npp, node, npp->current.wireguard_peer, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_wireguard_allowed_ips(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     return handle_generic_addresses(npp, node, FALSE, &(npp->current.wireguard_peer->allowed_ips),
                                     &(npp->current.wireguard_peer->allowed_ips), error);
 }
 
-static gboolean
+STATIC gboolean
 handle_wireguard_endpoint(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     g_autofree char* endpoint = NULL;
@@ -2535,7 +2535,7 @@ static const mapping_entry_handler wireguard_peer_keys_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_wireguard_peer_key_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     return process_mapping(npp, node, key_prefix, wireguard_peer_keys_handlers, NULL, error);
@@ -2549,7 +2549,7 @@ const mapping_entry_handler wireguard_peer_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_wireguard_peers(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     if (!npp->current.netdef->wireguard_peers)
@@ -2587,7 +2587,7 @@ handle_wireguard_peers(NetplanParser* npp, yaml_node_t* node, __unused const voi
  * Grammar and handlers for network devices
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_ovs_bond_lacp(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BOND)
@@ -2599,7 +2599,7 @@ handle_ovs_bond_lacp(NetplanParser* npp, yaml_node_t* node, const void* data, GE
     return handle_netdef_str(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ovs_bridge_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
@@ -2608,7 +2608,7 @@ handle_ovs_bridge_bool(NetplanParser* npp, yaml_node_t* node, const void* data, 
     return handle_netdef_bool(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ovs_bridge_fail_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
@@ -2620,7 +2620,7 @@ handle_ovs_bridge_fail_mode(NetplanParser* npp, yaml_node_t* node, const void* d
     return handle_netdef_str(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     const char* deprecated[] = { "OpenFlow16" };
@@ -2660,7 +2660,7 @@ handle_ovs_protocol(NetplanParser* npp, yaml_node_t* node, void* entryptr, const
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_ovs_bridge_protocol(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
@@ -2669,7 +2669,7 @@ handle_ovs_bridge_protocol(NetplanParser* npp, yaml_node_t* node, const void* da
     return handle_ovs_protocol(npp, node, npp->current.netdef, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ovs_bridge_controller_connection_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
@@ -2681,7 +2681,7 @@ handle_ovs_bridge_controller_connection_mode(NetplanParser* npp, yaml_node_t* no
     return handle_netdef_str(npp, node, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_ovs_bridge_controller_addresses(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     if (npp->current.netdef->type != NETPLAN_DEF_TYPE_BRIDGE)
@@ -2759,7 +2759,7 @@ static const mapping_entry_handler ovs_backend_settings_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_ovs_backend(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     GList* values = NULL;
@@ -2991,7 +2991,7 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
  * Grammar and handlers for network node
  ****************************************************/
 
-static gboolean
+STATIC gboolean
 handle_network_version(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     long mangled_version;
@@ -3003,7 +3003,7 @@ handle_network_version(NetplanParser* npp, yaml_node_t* node, __unused const voi
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 handle_network_renderer(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
 {
     gboolean res = parse_renderer(npp, node, &npp->global_backend, error);
@@ -3017,19 +3017,19 @@ handle_network_renderer(NetplanParser* npp, yaml_node_t* node, __unused const vo
     return res;
 }
 
-static gboolean
+STATIC gboolean
 handle_network_ovs_settings_global(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     return handle_generic_map(npp, node, key_prefix, &npp->global_ovs_settings, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_network_ovs_settings_global_protocol(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_ovs_protocol(npp, node, &npp->global_ovs_settings, data, error);
 }
 
-static gboolean
+STATIC gboolean
 handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
 {
     yaml_node_t* port = NULL;
@@ -3107,7 +3107,7 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 node_is_nulled_out(yaml_document_t* doc, yaml_node_t* node, const char* key_prefix, GHashTable* null_fields)
 {
     if (node->type != YAML_MAPPING_NODE)
@@ -3138,7 +3138,7 @@ node_is_nulled_out(yaml_document_t* doc, yaml_node_t* node, const char* key_pref
  * Callback for a net device type entry like "ethernets:" in "network:"
  * @data: netdef_type (as pointer)
  */
-static gboolean
+STATIC gboolean
 handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
@@ -3278,7 +3278,7 @@ static const mapping_entry_handler ovs_global_ssl_handlers[] = {
     {NULL}
 };
 
-static gboolean
+STATIC gboolean
 handle_ovs_global_ssl(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, __unused const void* _, GError** error)
 {
     gboolean ret;
@@ -3330,7 +3330,7 @@ static const mapping_entry_handler root_handlers[] = {
  * Post-process some specific missing interfaces that are not required
  * to exist but are needed in order to generate backend configuration.
  */
-static void
+STATIC void
 process_missing_ids(NetplanParser* npp, __unused GError** error)
 {
     GHashTableIter iter;
@@ -3371,7 +3371,7 @@ process_missing_ids(NetplanParser* npp, __unused GError** error)
 /**
  * Handle multiple-pass parsing of the yaml document.
  */
-static gboolean
+STATIC gboolean
 process_document(NetplanParser* npp, GError** error)
 {
     gboolean ret;
@@ -3427,7 +3427,7 @@ cleanup:
     return ret;
 }
 
-static gboolean
+STATIC gboolean
 _netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filepath, yaml_document_t *doc, GError** error)
 {
     int ret = FALSE;
@@ -3494,7 +3494,7 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
     return _netplan_parser_load_single_file(npp, filename, doc, error);
 }
 
-static gboolean
+STATIC gboolean
 finish_iterator(const NetplanParser* npp, NetplanNetDefinition* nd, GError **error)
 {
     /* Take more steps to make sure we always have a backend set for netdefs */
@@ -3507,7 +3507,7 @@ finish_iterator(const NetplanParser* npp, NetplanNetDefinition* nd, GError **err
     return validate_backend_rules(npp, nd, error) && validate_sriov_rules(npp, nd, error);
 }
 
-static gboolean
+STATIC gboolean
 insert_kv_into_hash(void *key, void *value, void *hash)
 {
     g_hash_table_insert(hash, key, value);
@@ -3673,7 +3673,7 @@ netplan_parser_clear(NetplanParser** npp_p)
  * Overrides (depending on YAML hierarchy) can only happen on global values
  * (like "renderer") or on the individual netdef level.
  * @return the Netdef-ID/keyword or NULL */
-static gboolean
+STATIC gboolean
 is_netdef_id_or_global_value(const char* full_key)
 {
     g_autofree gchar* key = g_strstrip(g_strdup(full_key)); // strip leading '\t'
@@ -3704,7 +3704,7 @@ cleanup:
     return ret;
 }
 
-static void
+STATIC void
 extract_null_fields(yaml_document_t* doc, yaml_node_t* node, GHashTable* null_fields, char* key_prefix, const char* origin_hint)
 {
     yaml_node_pair_t* entry;

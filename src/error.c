@@ -31,7 +31,7 @@
  * Loading and error handling
  ****************************************************/
 
-static void
+STATIC void
 write_error_marker(GString *message, int column)
 {
     int i;
@@ -42,7 +42,7 @@ write_error_marker(GString *message, int column)
     g_string_append_printf(message, "^");
 }
 
-static char *
+STATIC char *
 get_syntax_error_context(const NetplanParser* npp, const int line_num, const int column, GError **error)
 {
     GString *message = NULL;
@@ -72,7 +72,7 @@ get_syntax_error_context(const NetplanParser* npp, const int line_num, const int
     return g_string_free(message, FALSE);
 }
 
-static char *
+STATIC char *
 get_parser_error_context(const yaml_parser_t *parser, __unused GError **error)
 {
     GString *message = NULL;

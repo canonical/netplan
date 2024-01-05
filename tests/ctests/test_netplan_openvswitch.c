@@ -6,16 +6,8 @@
 #include <cmocka.h>
 
 #include "netplan.h"
-
-#include "error.c"
-#include "names.c"
-#include "netplan.c"
-#include "validation.c"
-#include "types.c"
-#include "util.c"
-#include "parse.c"
-#include "networkd.c"
-#include "openvswitch.c"
+#include "util-internal.h"
+#include "validation.h"
 
 #include "test_utils.h"
 

@@ -36,7 +36,7 @@
 /**
  * Append WiFi frequencies to wpa_supplicant's freq_list=
  */
-static void
+STATIC void
 wifi_append_freq(__unused gpointer key, gpointer value, gpointer user_data)
 {
     GString* s = user_data;
@@ -46,7 +46,7 @@ wifi_append_freq(__unused gpointer key, gpointer value, gpointer user_data)
 /**
  * append wowlan_triggers= string for wpa_supplicant.conf
  */
-static gboolean
+STATIC gboolean
 append_wifi_wowlan_flags(NetplanWifiWowlanFlag flag, GString* str, GError** error) {
     if (flag & NETPLAN_WIFI_WOWLAN_TYPES[0].flag || flag >= NETPLAN_WIFI_WOWLAN_TCP) {
         g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: unsupported wowlan_triggers mask: 0x%x\n", flag);
@@ -65,7 +65,7 @@ append_wifi_wowlan_flags(NetplanWifiWowlanFlag flag, GString* str, GError** erro
 /**
  * Append [Match] section of @def to @s.
  */
-static void
+STATIC void
 append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match_rename)
 {
     /* Note: an empty [Match] section is interpreted as matching all devices,
@@ -105,7 +105,7 @@ append_match_section(const NetplanNetDefinition* def, GString* s, gboolean match
     }
 }
 
-static void
+STATIC void
 write_bridge_params_networkd(GString* s, const NetplanNetDefinition* def)
 {
     GString *params = NULL;
@@ -131,7 +131,7 @@ write_bridge_params_networkd(GString* s, const NetplanNetDefinition* def)
     }
 }
 
-static void
+STATIC void
 write_tunnel_params(GString* s, const NetplanNetDefinition* def)
 {
     GString *params = NULL;
@@ -155,7 +155,7 @@ write_tunnel_params(GString* s, const NetplanNetDefinition* def)
     g_string_free(params, TRUE);
 }
 
-static void
+STATIC void
 write_wireguard_params(GString* s, const NetplanNetDefinition* def)
 {
     GString *params = NULL;
@@ -218,7 +218,7 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     }
 }
 
-static void
+STATIC void
 write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -289,7 +289,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     umask(orig_umask);
 }
 
-static gboolean
+STATIC gboolean
 write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** error)
 {
     g_assert(def->regulatory_domain);
@@ -316,7 +316,7 @@ write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** erro
 }
 
 
-static gboolean
+STATIC gboolean
 interval_has_suffix(const char* param) {
     gchar* endptr;
 
@@ -328,7 +328,7 @@ interval_has_suffix(const char* param) {
 }
 
 
-static void
+STATIC void
 write_bond_parameters(const NetplanNetDefinition* def, GString* s)
 {
     GString* params = NULL;
@@ -407,7 +407,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
     g_string_free(params, TRUE);
 }
 
-static void
+STATIC void
 write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
 {
     g_assert(def->vxlan);
@@ -480,7 +480,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
     g_string_free(params, TRUE);
 }
 
-static void
+STATIC void
 write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
@@ -587,7 +587,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
     umask(orig_umask);
 }
 
-static void
+STATIC void
 write_route(NetplanIPRoute* r, GString* s)
 {
     const char *to;
@@ -622,7 +622,7 @@ write_route(NetplanIPRoute* r, GString* s)
         g_string_append_printf(s, "InitialAdvertisedReceiveWindow=%u\n", r->advertised_receive_window);
 }
 
-static void
+STATIC void
 write_ip_rule(NetplanIPRule* r, GString* s)
 {
     g_string_append_printf(s, "\n[RoutingPolicyRule]\n");
@@ -642,7 +642,7 @@ write_ip_rule(NetplanIPRule* r, GString* s)
         g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
 }
 
-static void
+STATIC void
 write_addr_option(NetplanAddressOptions* o, GString* s)
 {
     g_string_append_printf(s, "\n[Address]\n");
@@ -659,7 +659,7 @@ write_addr_option(NetplanAddressOptions* o, GString* s)
     "ERROR: %s: networkd requires that %s has the same value in both "  \
     "dhcp4_overrides and dhcp6_overrides\n"
 
-static gboolean
+STATIC gboolean
 combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* combined_dhcp_overrides, GError** error)
 {
     /* if only one of dhcp4 or dhcp6 is enabled, those overrides are used */
@@ -990,7 +990,7 @@ netplan_netdef_write_network_file(
     return TRUE;
 }
 
-static void
+STATIC void
 write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* s = NULL;
@@ -1034,7 +1034,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
     umask(orig_umask);
 }
 
-static gboolean
+STATIC gboolean
 append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, const char* id, GError** error)
 {
     switch (auth->key_management) {
@@ -1176,7 +1176,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
 }
 
 /* netplan-feature: generated-supplicant */
-static void
+STATIC void
 write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autofree gchar *stdouth = NULL;
@@ -1204,7 +1204,7 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
     umask(orig_umask);
 }
 
-static gboolean
+STATIC gboolean
 write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** error)
 {
     GHashTableIter iter;
