@@ -278,6 +278,12 @@ struct netplan_state_iterator {
 #define NETPLAN_IP_RULE_FW_MARK_UNSPEC 0
 #define NETPLAN_IP_RULE_TOS_UNSPEC G_MAXUINT
 
+#if defined(UNITTESTS)
+#define STATIC
+#else
+#define STATIC static
+#endif
+
 void
 reset_netdef(NetplanNetDefinition* netdef, NetplanDefType type, NetplanBackend renderer);
 

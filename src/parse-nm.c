@@ -34,7 +34,7 @@
  * https://bugzilla.gnome.org/show_bug.cgi?id=696940
  * https://gitlab.freedesktop.org/NetworkManager/NetworkManager/-/commit/c36200a225aefb2a3919618e75682646899b82c0
  */
-static NetplanDefType
+STATIC NetplanDefType
 type_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "ethernet") || !g_strcmp0(type_str, "802-3-ethernet"))
@@ -63,7 +63,7 @@ type_from_str(const char* type_str)
     return NETPLAN_DEF_TYPE_NM;
 }
 
-static NetplanWifiMode
+STATIC NetplanWifiMode
 ap_type_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "infrastructure"))
@@ -76,7 +76,7 @@ ap_type_from_str(const char* type_str)
     return NETPLAN_WIFI_MODE_OTHER;
 }
 
-static NetplanTunnelMode
+STATIC NetplanTunnelMode
 tunnel_mode_from_str(const char* type_str)
 {
     if (!g_strcmp0(type_str, "wireguard"))
@@ -87,7 +87,7 @@ tunnel_mode_from_str(const char* type_str)
     return NETPLAN_TUNNEL_MODE_UNKNOWN;
 }
 
-static void
+STATIC void
 _kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
 {
     gsize len = 1;
@@ -98,14 +98,14 @@ _kf_clear_key(GKeyFile* kf, const gchar* group, const gchar* key)
         g_key_file_remove_group(kf, group, NULL);
 }
 
-static gboolean
+STATIC gboolean
 kf_matches(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match)
 {
     g_autofree gchar *kf_value = g_key_file_get_string(kf, group, key, NULL);
     return g_strcmp0(kf_value, match) == 0;
 }
 
-static void
+STATIC void
 set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match, const void* dataptr)
 {
     g_assert(dataptr);
@@ -115,7 +115,7 @@ set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gcha
     }
 }
 
-static void
+STATIC void
 keyfile_handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, gboolean* dataptr)
 {
     g_assert(dataptr);
@@ -123,7 +123,7 @@ keyfile_handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, 
     _kf_clear_key(kf, group, key);
 }
 
-static void
+STATIC void
 keyfile_handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** dataptr)
 {
     g_assert(dataptr);
@@ -133,7 +133,7 @@ keyfile_handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, c
         _kf_clear_key(kf, group, key);
 }
 
-static void
+STATIC void
 keyfile_handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* dataptr, guint default_value)
 {
     g_assert(dataptr);
@@ -145,7 +145,7 @@ keyfile_handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, 
     }
 }
 
-static void
+STATIC void
 keyfile_handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group) {
     keyfile_handle_generic_uint(kf, group, "mtu", &nd->mtubytes, NETPLAN_MTU_UNSPEC);
     keyfile_handle_generic_str(kf, group, "mac-address", &nd->match.mac);
@@ -153,7 +153,7 @@ keyfile_handle_common(GKeyFile* kf, NetplanNetDefinition* nd, const gchar* group
         nd->has_match = TRUE;
 }
 
-static void
+STATIC void
 keyfile_handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition* nd, char** dataptr) {
     if (g_key_file_get_uint64(kf, "bridge", key, NULL)) {
         nd->custom_bridging = TRUE;
@@ -162,7 +162,7 @@ keyfile_handle_bridge_uint(GKeyFile* kf, const gchar* key, NetplanNetDefinition*
     }
 }
 
-static void
+STATIC void
 keyfile_handle_cloned_mac_address(GKeyFile *kf, NetplanNetDefinition* nd, const gchar* group)
 {
     g_autofree gchar* mac = g_key_file_get_string(kf, group, "cloned-mac-address", NULL);
@@ -182,7 +182,7 @@ keyfile_handle_cloned_mac_address(GKeyFile *kf, NetplanNetDefinition* nd, const 
     }
 }
 
-static void
+STATIC void
 parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 {
     g_assert(ip_arr);
@@ -222,7 +222,7 @@ parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
     }
 }
 
-static void
+STATIC void
 parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 {
     g_assert(routes_arr);
@@ -310,7 +310,7 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
     }
 }
 
-static void
+STATIC void
 parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dataptr)
 {
     g_assert(dataptr);
@@ -351,7 +351,7 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
 }
 */
 
-static void
+STATIC void
 parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
 {
     g_assert(nameserver_arr);
@@ -370,7 +370,7 @@ parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
     }
 }
 
-static void
+STATIC void
 parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
 {
     g_assert(auth);
@@ -420,7 +420,7 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
     keyfile_handle_generic_str(kf, "802-1x", "phase2-auth", &auth->phase2_auth);
 }
 
-static void
+STATIC void
 parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
 {
     g_assert(targets_arr);
@@ -439,7 +439,7 @@ parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
 }
 
 /* Read the key-value pairs from the keyfile and pass them through to a map */
-static void
+STATIC void
 read_passthrough(GKeyFile* kf, GData** list)
 {
     gchar **groups = NULL;
@@ -486,7 +486,7 @@ read_passthrough(GKeyFile* kf, GData** list)
  * Each of these three classes have different requirements so we handle them separately
  * in this function.
  */
-static void
+STATIC void
 parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
 {
     /* Handle wireguard tunnel */

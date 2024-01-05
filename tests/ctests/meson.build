@@ -16,11 +16,13 @@ foreach name, should_fail: tests
     '@0@.c'.format(name),
     include_directories: [inc, inc_internal],
     dependencies: [cmocka, glib, gio, yaml, uuid],
+    link_with: libnetplan_testing,
     c_args: [
       '-DFIXTURESDIR="' + meson.project_source_root() + '/tests/ctests/fixtures"',
       '-Wno-deprecated-declarations',
       '-D_GNU_SOURCE',
       ],
+    install: false,
     )
   test(name, exe, should_fail: should_fail)
 endforeach

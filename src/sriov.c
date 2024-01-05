@@ -26,7 +26,7 @@
 #include "util-internal.h"
 #include "sriov.h"
 
-static gboolean
+STATIC gboolean
 write_sriov_rebind_systemd_unit(const GString* pfs, const char* rootdir, GError** error)
 {
     g_autofree gchar* id_escaped = NULL;

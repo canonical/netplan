@@ -7,14 +7,8 @@
 
 #include "netplan.h"
 #include "parse.h"
-
-#include "error.c"
-#include "names.c"
-#include "netplan.c"
-#include "validation.c"
-#include "types.c"
-#include "util.c"
-#include "parse.c"
+#include "util.h"
+#include "util-internal.h"
 
 void
 test_netplan_error_message(__unused void** state)

@@ -99,7 +99,7 @@ gchar *tmp = NULL;
 
 #define DIRTY_COMPLEX(_def, _data) complex_object_is_dirty(_def, (char*)(&_data), sizeof(_data))
 
-static gboolean
+STATIC gboolean
 write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_SCALAR_PLAIN(event, emitter, "match");
@@ -121,7 +121,7 @@ write_match(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSettings auth)
 {
     YAML_SCALAR_PLAIN(event, emitter, "auth");
@@ -145,7 +145,7 @@ write_auth(yaml_event_t* event, yaml_emitter_t* emitter, NetplanAuthenticationSe
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     if (DIRTY(def, def->bond_params)
@@ -205,7 +205,7 @@ write_bond_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_vxlan(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL && def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
@@ -267,7 +267,7 @@ write_vxlan(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefini
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def, const GArray *interfaces)
 {
     if (def->custom_bridging || DIRTY_COMPLEX(def, def->bridge_params)) {
@@ -316,7 +316,7 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_modem_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     /* some modem settings to auto-detect GSM vs CDMA connections */
@@ -339,7 +339,7 @@ typedef struct {
     yaml_emitter_t* emitter;
 } _passthrough_handler_data;
 
-static void
+STATIC void
 _passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
 {
     _passthrough_handler_data *d = user_data;
@@ -348,7 +348,7 @@ _passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
 err_path: return; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBackendSettings s) {
     if (s.uuid || s.name || s.passthrough) {
         YAML_SCALAR_PLAIN(event, emitter, "networkmanager");
@@ -371,7 +371,7 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     NetplanWifiAccessPoint* ap = NULL;
@@ -407,7 +407,7 @@ write_access_points(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_SCALAR_PLAIN(event, emitter, "addresses");
@@ -438,7 +438,7 @@ write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_nameservers(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_SCALAR_PLAIN(event, emitter, "nameservers");
@@ -470,7 +470,7 @@ write_nameservers(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNet
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanNetDefinition* def, const NetplanDHCPOverrides* data)
 {
     if (DIRTY_COMPLEX(def, *data)
@@ -500,7 +500,7 @@ write_dhcp_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* k
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_NONNULL_STRING(event, emitter, "mode", netplan_tunnel_mode_name(def->tunnel.mode));
@@ -573,7 +573,7 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     if (def->routes && def->routes->len > 0) {
@@ -625,7 +625,7 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static gboolean
+STATIC gboolean
 write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports)
 {
     GHashTableIter iter;
@@ -714,7 +714,7 @@ write_openvswitch(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanOVS
 err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
-static void
+STATIC void
 _serialize_yaml(
         const NetplanState* np_state,
         yaml_event_t* event,
@@ -1007,7 +1007,7 @@ err_path:
     // LCOV_EXCL_STOP
 }
 
-static int
+STATIC int
 contains_netdef_type(gconstpointer value, gconstpointer user_data)
 {
     const NetplanNetDefinition *nd = value;
@@ -1015,7 +1015,7 @@ contains_netdef_type(gconstpointer value, gconstpointer user_data)
     return nd->type == *type ? 0 : -1;
 }
 
-static gboolean
+STATIC gboolean
 netplan_netdef_list_write_yaml(const NetplanState* np_state, GList* netdefs, int out_fd, const char* out_fname, gboolean is_fallback, GError** error)
 {
     GHashTable *ovs_ports = NULL;

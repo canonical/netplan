@@ -238,7 +238,7 @@ file_error:
 // LCOV_EXCL_STOP
 }
 
-static gboolean
+STATIC gboolean
 copy_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, GError** error) {
 	yaml_event_t event;
     int map_count = 0, seq_count = 0;
@@ -278,7 +278,7 @@ copy_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, GError** error
  * Given a YAML tree and a YAML path (array of keys with NULL as the last array element),
  * emits the subtree matching the path, while emitting the rest of the data into the void.
  */
-static gboolean
+STATIC gboolean
 emit_yaml_subtree(yaml_parser_t *parser, yaml_emitter_t *emitter, char** yaml_path, GError** error) {
 	yaml_event_t event;
     /* If the path component is NULL, we're done with the trimming, we can just copy the whole subtree */
@@ -1084,7 +1084,7 @@ netplan_state_iterator_has_next(const NetplanStateIterator* iter)
     return _iter->next != NULL;
 }
 
-static const char*
+STATIC const char*
 normalize_ip_address(const char* addr, const guint family)
 {
     if (!g_strcmp0(addr, "default")) {

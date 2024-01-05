@@ -29,7 +29,7 @@
 #include "util.h"
 #include "util-internal.h"
 
-static gboolean
+STATIC gboolean
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency, GError** error)
 {
     g_autofree gchar* id_escaped = NULL;
@@ -86,7 +86,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     g_string_append(s, "\n"); \
 }
 
-static char*
+STATIC char*
 netplan_type_to_table_name(const NetplanDefType type)
 {
     switch (type) {
@@ -100,7 +100,7 @@ netplan_type_to_table_name(const NetplanDefType type)
     }
 }
 
-static gboolean
+STATIC gboolean
 netplan_type_is_physical(const NetplanDefType type)
 {
     switch (type) {
@@ -113,7 +113,7 @@ netplan_type_is_physical(const NetplanDefType type)
     }
 }
 
-static void
+STATIC void
 write_ovs_tag_setting(const gchar* id, const char* type, const char* col, const char* key, const char* value, GString* cmds)
 {
     g_assert(col);
@@ -136,7 +136,7 @@ write_ovs_tag_setting(const gchar* id, const char* type, const char* col, const 
     g_string_free(s, TRUE);
 }
 
-static void
+STATIC void
 write_ovs_additional_data(GHashTable *data, const char* type, const gchar* id, GString* cmds, const char* setting)
 {
     GHashTableIter iter;
@@ -153,7 +153,7 @@ write_ovs_additional_data(GHashTable *data, const char* type, const gchar* id, G
     }
 }
 
-static void
+STATIC void
 setup_patch_port(GString* s, const NetplanNetDefinition* def)
 {
     /* Execute the setup commands to create an OVS patch port atomically within
@@ -165,7 +165,7 @@ setup_patch_port(GString* s, const NetplanNetDefinition* def)
                            def->id, def->peer);
 }
 
-static char*
+STATIC char*
 write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefinition* def, GString* cmds, GError** error)
 {
     NetplanNetDefinition* tmp_nd;
@@ -203,7 +203,7 @@ write_ovs_bond_interfaces(const NetplanState* np_state, const NetplanNetDefiniti
     return def->bridge;
 }
 
-static void
+STATIC void
 write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
 {
     /* Mark this bridge/port/interface as created by netplan */
@@ -211,7 +211,7 @@ write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
                        type, id);
 }
 
-static gboolean
+STATIC gboolean
 write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds, GError** error)
 {
     char* value = NULL;
@@ -231,7 +231,7 @@ write_ovs_bond_mode(const NetplanNetDefinition* def, GString* cmds, GError** err
     return TRUE;
 }
 
-static void
+STATIC void
 write_ovs_bridge_interfaces(const NetplanState* np_state, const NetplanNetDefinition* def, GString* cmds)
 {
     NetplanNetDefinition* tmp_nd;
@@ -255,7 +255,7 @@ write_ovs_bridge_interfaces(const NetplanState* np_state, const NetplanNetDefini
     }
 }
 
-static void
+STATIC void
 write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge, GString* cmds)
 {
     g_assert(bridge);
@@ -269,7 +269,7 @@ write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge,
     g_string_free(s, TRUE);
 }
 
-static gboolean
+STATIC gboolean
 check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* needs_ssl, GError** error)
 {
     /* Check if target needs ssl */
@@ -287,7 +287,7 @@ check_ovs_ssl(const NetplanOVSSettings* settings, gchar* target, gboolean* needs
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 write_ovs_bridge_controller_targets(const NetplanOVSSettings* settings, const NetplanOVSController* controller, const gchar* bridge, GString* cmds, GError** error)
 {
     gchar* target = g_array_index(controller->addresses, char*, 0);

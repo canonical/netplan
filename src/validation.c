@@ -158,7 +158,7 @@ validate_ovs_target(gboolean host_first, gchar* s) {
     return FALSE;
 }
 
-static gboolean
+STATIC gboolean
 validate_interface_name_length(const NetplanNetDefinition* netdef)
 {
     gboolean validation = TRUE;
@@ -187,7 +187,7 @@ validate_interface_name_length(const NetplanNetDefinition* netdef)
 /************************************************
  * Validation for grammar and backend rules.
  ************************************************/
-static gboolean
+STATIC gboolean
 validate_tunnel_key(const NetplanParser* npp, yaml_node_t* node, gchar* key, GError** error)
 {
     /* Tunnel key should be a number or dotted quad, except for wireguard. */
@@ -201,7 +201,7 @@ validate_tunnel_key(const NetplanParser* npp, yaml_node_t* node, gchar* key, GEr
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
@@ -276,7 +276,7 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
     return TRUE;
 }
 
-static gboolean
+STATIC gboolean
 validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
     /* Backend-specific validation rules for tunnels */
@@ -548,7 +548,7 @@ struct _defroute_entry {
     const char *netdef_id;
 };
 
-static void
+STATIC void
 defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **error) {
     char table_name[128] = {};
     char metric_name[128] = {};
@@ -575,7 +575,7 @@ defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **
             new_netdef_id);
 }
 
-static gboolean
+STATIC gboolean
 check_defroute(struct _defroute_entry *candidate,
                GSList **entries,
                GError **error)

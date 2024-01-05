@@ -29,7 +29,7 @@
 /* Helper function to free a GArray after applying a destructor to its
  * elements. Note that in the most trivial case (g_free) we should probably
  * have used a GPtrArray directly... */
-static void
+STATIC void
 free_garray_with_destructor(GArray** array, void (destructor)(void *))
 {
     if (*array) {
@@ -44,7 +44,7 @@ free_garray_with_destructor(GArray** array, void (destructor)(void *))
 
 /* Helper function to free a GHashTable after applying a simple destructor to its
  * elements. */
-static void
+STATIC void
 free_hashtable_with_destructor(GHashTable** hash, void (destructor)(void *)) {
     if (*hash) {
         GHashTableIter iter;
@@ -69,7 +69,7 @@ free_address_options(void* ptr)
     g_free(opts);
 }
 
-static void
+STATIC void
 free_route(void* ptr)
 {
     NetplanIPRoute* route = ptr;
@@ -81,7 +81,7 @@ free_route(void* ptr)
     g_free(route);
 }
 
-static void
+STATIC void
 free_ip_rules(void* ptr)
 {
     NetplanIPRule* rule = ptr;
@@ -90,7 +90,7 @@ free_ip_rules(void* ptr)
     g_free(rule);
 }
 
-static void
+STATIC void
 free_wireguard_peer(void* ptr)
 {
     NetplanWireguardPeer* wg = ptr;
@@ -101,7 +101,7 @@ free_wireguard_peer(void* ptr)
     g_free(wg);
 }
 
-static void
+STATIC void
 reset_auth_settings(NetplanAuthenticationSettings* auth)
 {
     FREE_AND_NULLIFY(auth->identity);
@@ -137,7 +137,7 @@ reset_ovs_settings(NetplanOVSSettings* settings)
     FREE_AND_NULLIFY(settings->controller.connection_mode);
 }
 
-static void
+STATIC void
 reset_dhcp_overrides(NetplanDHCPOverrides* overrides)
 {
     overrides->use_dns = TRUE;
@@ -162,7 +162,7 @@ reset_ip_rule(NetplanIPRule* ip_rule)
 }
 
 /* Reset a backend settings object. */
-static void
+STATIC void
 reset_backend_settings(NetplanBackendSettings* settings)
 {
     FREE_AND_NULLIFY(settings->name);
@@ -172,7 +172,7 @@ reset_backend_settings(NetplanBackendSettings* settings)
     g_datalist_clear(&settings->passthrough);
 }
 
-static void
+STATIC void
 reset_private_netdef_data(struct private_netdef_data* data) {
     if (!data)
         return;
