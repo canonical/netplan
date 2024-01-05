@@ -70,7 +70,7 @@ rstp_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-id
 OVS_BR_EMPTY = _OVS_BASE + 'After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n\n[Service]\n\
 Type=oneshot\nTimeoutStartSec=10s\nExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\n' + OVS_BR_DEFAULT
 OVS_CLEANUP = _OVS_BASE + 'ConditionFileIsExecutable=/usr/bin/ovs-vsctl\nBefore=network.target\nWants=network.target\n\n\
-[Service]\nType=oneshot\nTimeoutStartSec=10s\nExecStart=/usr/sbin/netplan apply --only-ovs-cleanup\n'
+[Service]\nType=oneshot\nTimeoutStartSec=10s\nStartLimitBurst=0\nExecStart=/usr/sbin/netplan apply --only-ovs-cleanup\n'
 UDEV_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", ATTR{address}=="%s", NAME="%s"\n'
 UDEV_NO_MAC_RULE = 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="%s", NAME="%s"\n'
 UDEV_SRIOV_RULE = 'ACTION=="add", SUBSYSTEM=="net", ATTRS{sriov_totalvfs}=="?*", RUN+="/usr/sbin/netplan apply --sriov-only"\n'

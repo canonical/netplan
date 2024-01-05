@@ -60,6 +60,11 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     }
 
     g_string_append(s, "\n[Service]\nType=oneshot\nTimeoutStartSec=10s\n");
+    /* During tests the rate in which the netplan-ovs-cleanup service is started/stopped
+     * might exceed StartLimitBurst.
+     */
+    if (cleanup)
+        g_string_append(s, "StartLimitBurst=0\n");
     g_string_append(s, cmds->str);
 
     g_string_free_to_file(s, rootdir, path, NULL);
