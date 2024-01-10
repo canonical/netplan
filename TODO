@@ -1,7 +1,5 @@
 - improve IPv6 RA handling
 
-- support tunnel device types
-
 - support ethtool/sysctl knobs (TSO, LRO, txqueuelen)
 
 - inspecting current network config via "netplan show $interface" for a
@@ -10,10 +8,6 @@
 - debugging config generation via "netplan diff [backend|system]":
   - netplan diff system: compare generated config with current ip addr output
   - netplan diff backend: compare generated config with current config for backend
-
-- support other devices types from networkd/NetworkManager:
-  - infiniband
-  - veth
 
 - better handle VLAN Q-in-Q (mostly generation tweaks + patching backends)
 
@@ -26,21 +20,13 @@
 
 - better parsing/validation for time-based values (ie. bond, bridge params)
 
-- openvswitch integration
-
-- wpa enterprise support
-
 - better parsing/validation for all schema
-
-- improve exit codes / behavior on error
 
 - integrate 'netplan try' in tmux/screen
 
 - add automated integration tests for WPA Enterprise / 802.1x that can run self-contained
 
 # After soname bump (ABI break)
-
-- get rid of abi_compat.c
 
 - change route->scope to ENUM
 
