@@ -5,6 +5,7 @@ CDMA
 CIDR
 CONFIG
 ConnectX
+Coverity
 D-Bus
 DF
 DHCP
@@ -119,5 +120,7 @@ udev
 unencrypted
 untagged
 vSwitch
+Wi-Fi
+WireGuard
 wpasupplicant
 yaml

@@ -20,6 +20,12 @@ Network configuration abstraction via `systemd-generator`
 Netplan Design <https://netplan.io/design>
 ```
 
+## Security
+
+```{toctree}
+security
+```
+
 ## FAQs
 
 Find answers to common questions
