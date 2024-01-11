@@ -35,10 +35,10 @@
 #include "names.h"
 #include "yaml-helpers.h"
 
-NETPLAN_ABI GHashTable*
+GHashTable*
 wifi_frequency_24;
 
-NETPLAN_ABI GHashTable*
+GHashTable*
 wifi_frequency_5;
 
 const gchar* FALLBACK_FILENAME = "70-netplan-set.yaml";
@@ -884,7 +884,6 @@ _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_t
     return iter;
 }
 
-
 NetplanNetDefinition*
 _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it)
 {
@@ -908,12 +907,6 @@ _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it)
 {
     g_free(it);
 }
-
-__attribute((alias("_netplan_netdef_pertype_iter_next"))) NETPLAN_ABI NetplanNetDefinition*
-_netplan_iter_defs_per_devtype_next(struct netdef_pertype_iter* it);
-
-__attribute((alias("_netplan_netdef_pertype_iter_free"))) NETPLAN_ABI void
-_netplan_iter_defs_per_devtype_free(struct netdef_pertype_iter* it);
 
 gboolean
 has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports)
