@@ -3,7 +3,6 @@ tests = {
   'test_netplan_state': false,
   'test_netplan_error': false,
   'test_netplan_misc': false,
-  'test_netplan_deprecated': false,
   'test_netplan_validation': false,
   'test_netplan_keyfile': false,
   'test_netplan_nm': false,
