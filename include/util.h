@@ -74,17 +74,3 @@ netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payloa
 
 NETPLAN_PUBLIC gboolean
 netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error);
-
-/********** Old API below this ***********/
-
-/**
- * \deprecated Use `netplan_netdef_get_filepath()` instead.
- */
-NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
-netplan_get_filename_by_id(const char* netdef_id, const char* rootdir);
-
-/**
- * \deprecated Use `netplan_get_id_from_nm_filepath()` instead.
- */
-NETPLAN_DEPRECATED NETPLAN_PUBLIC gchar*
-netplan_get_id_from_nm_filename(const char* filename, const char* ssid);
