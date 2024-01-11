@@ -39,8 +39,6 @@ from netplan.netdef import NetplanRoute
 # We still need direct (ctypes) access to libnetplan.so to test certain cases
 # that are not covered by the 'netplan' module bindings
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
-# Define some libnetplan.so ABI
-lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
@@ -55,40 +53,15 @@ class TestRawLibnetplan(TestBase):
 
     def tearDown(self):
         shutil.rmtree(self.workdir.name)
-        lib.netplan_clear_netdefs()
         super().tearDown()
 
-    def test_get_id_from_filename(self):
-        out = lib.netplan_get_id_from_nm_filename(
-          '/run/NetworkManager/system-connections/netplan-some-id.nmconnection'.encode(), None)
-        self.assertEqual(out, b'some-id')
-
-    def test_get_id_from_filename_rootdir(self):
-        out = lib.netplan_get_id_from_nm_filename(
-          '/some/rootdir/run/NetworkManager/system-connections/netplan-some-id.nmconnection'.encode(), None)
-        self.assertEqual(out, b'some-id')
-
-    def test_get_id_from_filename_wifi(self):
-        out = lib.netplan_get_id_from_nm_filename(
-          '/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID.nmconnection'.encode(), 'SOME-SSID'.encode())
-        self.assertEqual(out, b'some-id')
-
-    def test_get_id_from_filename_wifi_invalid_suffix(self):
-        out = lib.netplan_get_id_from_nm_filename(
-          '/run/NetworkManager/system-connections/netplan-some-id-SOME-SSID'.encode(), 'SOME-SSID'.encode())
-        self.assertEqual(out, None)
-
-    def test_get_id_from_filename_invalid_prefix(self):
-        out = lib.netplan_get_id_from_nm_filename('INVALID/netplan-some-id.nmconnection'.encode(), None)
-        self.assertEqual(out, None)
-
     def test_parse_keyfile_missing(self):
+        parser = netplan.Parser()
         f = os.path.join(self.workdir.name, 'tmp/some.keyfile')
         os.makedirs(os.path.dirname(f))
-        with capture_stderr() as outf:
-            self.assertFalse(lib.netplan_parse_keyfile(f.encode(), None))
-            with open(outf.name, 'r') as f:
-                self.assertIn('netplan: cannot load keyfile', f.read().strip())
+        with self.assertRaises(netplan.NetplanException) as ctx:
+            parser.load_keyfile(f)
+        self.assertIn('No such file or directory', str(ctx.exception))
 
     def test_generate(self):
         self.mock_netplan_cmd = MockCmd("netplan")
@@ -152,28 +125,6 @@ class TestRawLibnetplan(TestBase):
             self.assertFalse(lib.netplan_delete_connection('some-netplan-id'.encode(), self.workdir.name.encode()))
             with open(outf.name, 'r') as f:
                 self.assertIn('Cannot parse input', f.read())
-
-    def test_write_netplan_conf(self):
-        netdef_id = 'some-netplan-id'
-        orig = os.path.join(self.confdir, 'some-filename.yaml')
-        generated = os.path.join(self.confdir, '10-netplan-{}.yaml'.format(netdef_id))
-        with open(orig, 'w') as f:
-            f.write('''network:
-  version: 2
-  ethernets:
-    some-netplan-id:
-      renderer: networkd
-      match:
-        name: "eth42"
-''')
-        # Parse YAML and and re-write the specified netdef ID into a new file
-        self.assertTrue(lib.netplan_parse_yaml(orig.encode(), None))
-        lib._write_netplan_conf(netdef_id.encode(), self.workdir.name.encode())
-        self.assertEqual(lib.netplan_clear_netdefs(), 1)
-        self.assertTrue(os.path.isfile(generated))
-        with open(orig, 'r') as f:
-            with open(generated, 'r') as new:
-                self.assertEqual(f.read(), new.read())
 
 
 class TestNetdefIterator(TestBase):

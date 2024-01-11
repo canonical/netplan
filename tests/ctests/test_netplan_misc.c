@@ -48,6 +48,18 @@ test_netplan_get_id_from_nm_filepath_no_ssid(__unused void **state)
 }
 
 void
+test_netplan_get_id_from_nm_filepath_no_nmconnection(__unused void **state)
+{
+
+    const char* filename = "/some/rootdir/run/NetworkManager/system-connections/netplan-some-id";
+    char id[16];
+
+    ssize_t bytes_copied = netplan_get_id_from_nm_filepath(filename, NULL, id, sizeof(id));
+
+    assert_int_equal(bytes_copied, 0);
+}
+
+void
 test_netplan_get_id_from_nm_filepath_with_ssid(__unused void **state)
 {
 
@@ -175,6 +187,107 @@ test_netplan_netdef_get_output_filename_invalid_backend(__unused void** state)
     ssize_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, 0);
+}
+
+void
+test_netplan_netdef_write_yaml(__unused void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth0:\n"
+        "      dhcp4: true";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eth0");
+
+    char template[] = "/tmp/netplan.XXXXXX";
+    // no need to free() rootdir, as it will modify the template[] buffer
+    char *rootdir = mkdtemp(template);
+    char etc[24] = {0};
+    char etc_netplan[32] = {0};
+    snprintf(etc, 24, "%s/etc", rootdir);
+    snprintf(etc_netplan, 32, "%s/netplan", etc);
+    mkdir(etc, 0770);
+    mkdir(etc_netplan, 0770);
+
+    /* Check API call */
+    NetplanError* err = NULL;
+    assert_true(netplan_netdef_write_yaml(np_state, interface, rootdir, &err));
+    assert_true(err == NULL);
+
+    /* Check file exists */
+    struct stat st = {0};
+    char output_yaml[53] = {0};
+    snprintf(output_yaml, 53, "%s/10-netplan-eth0.yaml", etc_netplan);
+    assert_true(stat(output_yaml, &st) == 0);
+
+    /* Check file contents */
+    FILE *fd = fopen(output_yaml, "r");
+    char file_buffer[600] = {0};
+    assert_true(fread(file_buffer, 1, strlen(yaml), fd) > 0);
+    assert_string_equal(yaml, file_buffer);
+
+    /* Cleanup */
+    netplan_state_clear(&np_state);
+    fclose(fd);
+    remove(output_yaml);
+    rmdir(etc_netplan);
+    rmdir(etc);
+    rmdir(rootdir);
+}
+
+void
+test_netplan_netdef_write_yaml_90NM(__unused void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        //"  renderer: NetworkManager\n" //FIXME: renderer get's eaten by the API call...
+        "  ethernets:\n"
+        "    eth0:\n"
+        "      dhcp4: true\n"
+        "      networkmanager:\n"
+        "        uuid: \"990548be-01ed-42d7-9f9f-cd4966b25c08\"";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eth0");
+
+    char template[] = "/tmp/netplan.XXXXXX";
+    // no need to free() rootdir, as it will modify the template[] buffer
+    char *rootdir = mkdtemp(template);
+    char etc[24] = {0};
+    char etc_netplan[32] = {0};
+    snprintf(etc, 24, "%s/etc", rootdir);
+    snprintf(etc_netplan, 32, "%s/netplan", etc);
+    mkdir(etc, 0770);
+    mkdir(etc_netplan, 0770);
+
+    /* Check API call */
+    NetplanError* err = NULL;
+    assert_true(netplan_netdef_write_yaml(np_state, interface, rootdir, &err));
+    assert_true(err == NULL);
+
+    /* Check file exists */
+    struct stat st = {0};
+    char output_yaml[80] = {0};
+    snprintf(output_yaml, 80, "%s/90-NM-990548be-01ed-42d7-9f9f-cd4966b25c08.yaml", etc_netplan);
+    assert_true(stat(output_yaml, &st) == 0);
+
+    /* Check file contents */
+    FILE *fd = fopen(output_yaml, "r");
+    char file_buffer[600] = {0};
+    assert_true(fread(file_buffer, 1, strlen(yaml), fd) > 0);
+    assert_string_equal(yaml, file_buffer);
+
+    /* Cleanup */
+    netplan_state_clear(&np_state);
+    fclose(fd);
+    remove(output_yaml);
+    rmdir(etc_netplan);
+    rmdir(etc);
+    rmdir(rootdir);
 }
 
 void
@@ -367,6 +480,7 @@ main()
        const struct CMUnitTest tests[] = {
            cmocka_unit_test(test_netplan_get_optional),
            cmocka_unit_test(test_netplan_get_id_from_nm_filepath_no_ssid),
+           cmocka_unit_test(test_netplan_get_id_from_nm_filepath_no_nmconnection),
            cmocka_unit_test(test_netplan_get_id_from_nm_filepath_with_ssid),
            cmocka_unit_test(test_netplan_get_id_from_nm_filepath_buffer_is_too_small),
            cmocka_unit_test(test_netplan_get_id_from_nm_filepath_buffer_is_the_exact_size),
@@ -376,6 +490,8 @@ main()
            cmocka_unit_test(test_netplan_netdef_get_output_filename_networkd),
            cmocka_unit_test(test_netplan_netdef_get_output_filename_buffer_is_too_small),
            cmocka_unit_test(test_netplan_netdef_get_output_filename_invalid_backend),
+           cmocka_unit_test(test_netplan_netdef_write_yaml),
+           cmocka_unit_test(test_netplan_netdef_write_yaml_90NM),
            cmocka_unit_test(test_util_is_route_present),
            cmocka_unit_test(test_util_is_route_rule_present),
            cmocka_unit_test(test_util_is_string_in_array),
