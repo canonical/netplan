@@ -75,11 +75,36 @@ class NetplanGenerate(utils.NetplanCommand):
             else:
                 return
 
-        argv = [utils.get_generator_path()]
+        argv = []
+        generate_out = None
+        if 'NETPLAN_PROFILE' in os.environ:  # pragma: nocover (only used for profiling)
+            argv.extend(['valgrind', '--leak-check=full'])
+            generate_out = subprocess.STDOUT
+
+        argv.append(utils.get_generator_path())
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
         if self.mapping:
             argv += ['--mapping', self.mapping]
         logging.debug('command generate: running %s', argv)
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
-        sys.exit(subprocess.call(argv))
+        res = subprocess.call(argv, stderr=generate_out)
+
+        if res != 0:
+            logging.warning("netplan generator failed to run: error %s", res)
+            sys.exit(res)
+
+        if self.mapping:
+            sys.exit(0)
+
+        # We may have written .rules & .link files, thus we must
+        # invalidate udevd cache of its config as by default it only
+        # invalidates cache at most every 3 seconds.
+        argv = ["udevadm", "control", "--reload"]
+        logging.debug('command udevadm: running %s', argv)
+        res = subprocess.call(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        if res != 0:
+            logging.warning('command udevadm failed to running %s', argv)
+
+        sys.exit(0)

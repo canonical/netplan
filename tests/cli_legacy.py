@@ -86,6 +86,12 @@ class TestGenerate(unittest.TestCase):
         self.assertEqual(os.listdir(self.workdir.name), ['run'])
 
     def test_with_empty_config(self):
+        mock_udevadm = MockCmd('udevadm')
+        mock_udevadm.set_returncode(0)
+        mock_udevadm.set_output(b'')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(mock_udevadm.path) + os.pathsep + path_env
+
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         path_a = os.path.join(c, 'a.yaml')
@@ -104,6 +110,12 @@ class TestGenerate(unittest.TestCase):
                          ['10-netplan-enlol.network'])
 
     def test_with_config(self):
+        mock_udevadm = MockCmd('udevadm')
+        mock_udevadm.set_returncode(0)
+        mock_udevadm.set_output(b'')
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(mock_udevadm.path) + os.pathsep + path_env
+
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
         with open(os.path.join(c, 'a.yaml'), 'w') as f:
