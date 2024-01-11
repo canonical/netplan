@@ -1,0 +1,2 @@
+option('parent_current_source_dir', type: 'string', value: '')
+option('parent_current_build_dir', type: 'string', value: '')

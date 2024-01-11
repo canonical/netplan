@@ -20,10 +20,9 @@ import os
 import subprocess
 import re
 
-from .utils import systemctl_is_active
-
-OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
-OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server.service'
+OPENVSWITCH_OVS_VSCTL = (
+    '/snap/bin/ovs-vsctl' if os.path.exists('/snap/bin/ovs-vsctl') else
+    '/usr/bin/ovs-vsctl')
 # Defaults for non-optional settings, as defined here:
 # http://www.openvswitch.org/ovs-vswitchd.conf.db.5.pdf
 DEFAULTS = {
@@ -41,6 +40,19 @@ GLOBALS = {
 
 class OvsDbServerNotRunning(Exception):
     pass
+
+
+def _assert_ovsdb_server_connection():
+    """Invoke OPENVSWITCH_OVS_VSCTL, raise OvsDbServerNotRunning on error."""
+    try:
+        # The `get-manager` command is a light weight database operation which
+        # we use as indication of the client being able to connect.
+        subprocess.check_call(
+            [OPENVSWITCH_OVS_VSCTL, '--timeout', '5', 'get-manager'])
+    except (subprocess.CalledProcessError, OSError):
+        raise OvsDbServerNotRunning('{} is unable to connect to database, '
+                                    'ensure ovsdb-server is running'
+                                    .format(OPENVSWITCH_OVS_VSCTL))
 
 
 def _del_col(type, iface, column, value):
@@ -125,8 +137,7 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     Also filter for individual settings tagged netplan/<column>[/<key]=value
     in external-ids and clear them if they have been set by netplan.
     """
-    if not systemctl_is_active(OPENVSWITCH_OVSDB_SERVER_UNIT):
-        raise OvsDbServerNotRunning('{} is not running'.format(OPENVSWITCH_OVSDB_SERVER_UNIT))
+    _assert_ovsdb_server_connection()
 
     config_manager.parse()
     ovs_ifaces = set()
