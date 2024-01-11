@@ -1470,8 +1470,11 @@ route-metric=5050
       link: eth0''',
                              '10-table1': '''network:
   version: 2
+  ethernets: {eth0: {dhcp4: true}}
   vlans:
     vlan100:
+      id: 100
+      link: eth0
       routing-policy:
         - from: 10.0.0.1
           table: 1001
@@ -1481,8 +1484,11 @@ route-metric=5050
           table: 1001''',
                              '10-table2': '''network:
   version: 2
+  ethernets: {eth0: {dhcp4: true}}
   vlans:
     vlan100:
+      id: 100
+      link: eth0
       routing-policy:
         - from: 10.0.0.2
           table: 1002
@@ -1530,8 +1536,11 @@ Table=1002
       link: eth0''',
                              '10-table1': '''network:
   version: 2
+  ethernets: {eth0: {dhcp4: true}}
   vlans:
     vlan100:
+      id: 100
+      link: eth0
       routing-policy:
         - from: 10.0.0.1
           table: 1001
@@ -1541,8 +1550,11 @@ Table=1002
           table: 1001''',
                              '10-table2': '''network:
   version: 2
+  ethernets: {eth0: {dhcp4: true}}
   vlans:
     vlan100:
+      id: 100
+      link: eth0
       routing-policy:
         - from: 10.0.0.2
           table: 1002

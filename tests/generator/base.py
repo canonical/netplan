@@ -32,6 +32,9 @@ import ctypes.util
 import yaml
 import difflib
 import re
+from io import StringIO
+
+import netplan
 
 exe_generate = os.environ.get('NETPLAN_GENERATE_PATH',
                               os.path.join(os.path.dirname(os.path.dirname(
@@ -269,30 +272,32 @@ class TestBase(unittest.TestCase):
         original (and normalized) input with the generated (and normalized)
         output.
         '''
-        output = '_generated_test_output.yaml'
-        output_path = os.path.join(self.confdir, output)
 
         for input in yaml_input:
-            lib.netplan_clear_netdefs()  # clear previous netdefs
-            lib.netplan_parse_yaml(input.encode(), None)
-            lib.write_netplan_conf_full(output.encode(), self.workdir.name.encode())
+            parser = netplan.Parser()
+            parser.load_yaml(input)
+            state = netplan.State()
+            state.import_parser_results(parser)
 
-            input_yaml = None
-            output_yaml = None
+            # TODO: Allow handling of full hierarchy overrides,
+            #       dealing only with the current element of 'yaml_input'.
+            #       E.g. allow vlan.id & vlan.link to be defined in a base file.
+            #       See test_routing.py:
+            #       test_add_routes_to_different_tables_from_multiple_files
+            #       test_add_duplicate_routes_from_multiple_files
+
+            # Read output of the YAML generator (if any)
+            output_fd = StringIO()
+            state._dump_yaml(output_fd)
+            output_yaml = yaml.safe_load(output_fd.getvalue())
 
             # Read input YAML file, as defined by the self.generate('...') method
+            input_yaml = None
             with open(input, 'r') as orig:
                 input_yaml = yaml.safe_load(orig.read())
                 # Consider 'network: {}' and 'network: {version: 2}' to be empty
                 if input_yaml is None or input_yaml == {'network': {}} or input_yaml == {'network': {'version': 2}}:
                     input_yaml = yaml.safe_load('')
-
-            # Read output of the YAML generator (if any)
-            if os.path.isfile(output_path):
-                with open(output_path, 'r') as generated:
-                    output_yaml = yaml.safe_load(generated.read())
-            else:
-                output_yaml = yaml.safe_load('')
 
             # Normalize input and output YAML
             netplan_normalizer = NetplanV2Normalizer()
@@ -311,11 +316,6 @@ class TestBase(unittest.TestCase):
                 for line in difflib.unified_diff(input_lines, output_lines, fromfile, tofile='generated', lineterm=''):
                     print(line, flush=True)
                 self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
-
-            # Cleanup the generated file and data structures
-            lib.netplan_clear_netdefs()
-            if os.path.isfile(output_path):
-                os.remove(output_path)
 
     def generate(self, yaml, expect_fail=False, extra_args=[], confs=None, skip_generated_yaml_validation=False):
         '''Call generate with given YAML string as configuration
