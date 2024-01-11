@@ -60,16 +60,3 @@ NETPLAN_PUBLIC gboolean
 netplan_parser_load_nullable_overrides(
     NetplanParser* npp, int input_fd, const char* constraint, NetplanError** error);
 
-/********** Old API below this ***********/
-
-NETPLAN_PUBLIC gboolean
-netplan_parse_yaml(const char* filename, GError** error);
-
-NETPLAN_PUBLIC GHashTable*
-netplan_finish_parse(GError** error);
-
-NETPLAN_PUBLIC guint
-netplan_clear_netdefs();
-
-NETPLAN_PUBLIC NetplanBackend
-netplan_get_global_backend();
