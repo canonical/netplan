@@ -27,7 +27,7 @@ gboolean is_ip6_address(const char* address);
 gboolean is_hostname(const char* hostname);
 gboolean validate_ovs_target(gboolean host_first, gchar* s);
 
-NETPLAN_ABI gboolean
+gboolean
 is_wireguard_key(const char* hostname);
 
 gboolean

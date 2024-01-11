@@ -34,7 +34,7 @@ wifi_frequency_24;
 extern GHashTable*
 wifi_frequency_5;
 
-NETPLAN_ABI void
+NETPLAN_INTERNAL void
 safe_mkdir_p_dir(const char* file_path);
 
 NETPLAN_INTERNAL void
@@ -46,19 +46,19 @@ unlink_glob(const char* rootdir, const char* _glob);
 NETPLAN_INTERNAL int
 find_yaml_glob(const char* rootdir, glob_t* out_glob);
 
-NETPLAN_ABI const char*
+const char*
 get_global_network(int ip_family);
 
-NETPLAN_ABI const char*
+const char*
 get_unspecified_address(int ip_family);
 
-NETPLAN_ABI int
+int
 wifi_get_freq24(int channel);
 
-NETPLAN_ABI int
+int
 wifi_get_freq5(int channel);
 
-NETPLAN_ABI gchar*
+gchar*
 systemd_escape(char* string);
 
 #define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
@@ -77,12 +77,6 @@ netplan_netdef_new(NetplanParser* npp, const char* id, NetplanDefType type, Netp
 
 const char *
 netplan_parser_get_filename(NetplanParser* npp);
-
-NETPLAN_INTERNAL void
-process_input_file(const char* f);
-
-NETPLAN_INTERNAL gboolean
-process_yaml_hierarchy(const char* rootdir);
 
 gboolean
 has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports);
