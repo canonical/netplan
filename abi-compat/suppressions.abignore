@@ -3,7 +3,3 @@
 #
 # Documentation about the syntax can be found here:
 # https://sourceware.org/libabigail/manual/libabigail-concepts.html#suppression-specifications
-
-[suppress_variable]
-  name = global_state
-  type_name = NetplanState

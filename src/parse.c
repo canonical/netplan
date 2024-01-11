@@ -55,10 +55,6 @@
     dst = g_strdup(src); \
 } }
 
-extern NetplanState global_state;
-
-NetplanParser global_parser = {0};
-
 static gboolean
 insert_kv_into_hash(void *key, void *value, void *hash);
 

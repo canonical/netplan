@@ -38,6 +38,3 @@ ovs_settings_global;
 
 extern NetplanBackend
 global_backend;
-
-extern NetplanParser
-global_parser;
