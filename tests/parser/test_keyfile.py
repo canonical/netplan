@@ -21,13 +21,14 @@ import os
 import ctypes
 import ctypes.util
 
+import netplan
+
 from .base import TestKeyfileBase
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
 
 lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
-lib.netplan_get_id_from_nm_filename.restype = ctypes.c_char_p
 UUID = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
 
 
@@ -362,28 +363,34 @@ address1=192.168.123.123/24
         name: "Test"
 '''.format(UUID, UUID)})
 
-    def _template_keyfile_type(self, nd_type, nm_type, supported=True):
+    def _template_keyfile_type(self, nd_type, nm_type):
         self.maxDiff = None
+        extra = ''
         file = os.path.join(self.workdir.name, 'tmp/some.keyfile')
         os.makedirs(os.path.dirname(file))
         with open(file, 'w') as f:
             f.write('[connection]\ntype={}\nuuid={}'.format(nm_type, UUID))
-        self.assertEqual(lib.netplan_clear_netdefs(), 0)
-        lib.netplan_parse_keyfile(file.encode(), None)
-        lib._write_netplan_conf('NM-{}'.format(UUID).encode(), self.workdir.name.encode())
-        lib.netplan_clear_netdefs()
-        self.assertTrue(os.path.isfile(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID))))
-        t = '\n        passthrough:\n          connection.type: "{}"'.format(nm_type) if not supported else ''
-        match = '\n      match: {}' if nd_type in ['ethernets', 'modems', 'wifis'] else ''
-        with open(os.path.join(self.confdir, '90-NM-{}.yaml'.format(UUID)), 'r') as f:
+            if nm_type == 'ip-tunnel':
+                f.write('\n\n[ip-tunnel]\nmode=4\nremote=10.0.0.1')
+                extra = '\n      mode: "isatap"\n      remote: "10.0.0.1"'
+        if nd_type in ['ethernets', 'modems', 'wifis']:
+            extra = '\n      match: {}'
+        parser = netplan.Parser()
+        state = netplan.State()
+        parser.load_keyfile(file)
+        state.import_parser_results(parser)
+        output_file = '90-NM-{}.yaml'.format(UUID)
+        state._write_yaml_file(output_file, self.workdir.name)
+        self.assertTrue(os.path.isfile(os.path.join(self.confdir, output_file)))
+        with open(os.path.join(self.confdir, output_file), 'r') as f:
             self.assertEqual(f.read(), '''network:
   version: 2
   {}:
     NM-{}:
       renderer: NetworkManager{}
       networkmanager:
-        uuid: "{}"{}
-'''.format(nd_type, UUID, match, UUID, t))
+        uuid: "{}"
+'''.format(nd_type, UUID, extra, UUID))
 
     def test_keyfile_ethernet(self):
         self._template_keyfile_type('ethernets', 'ethernet')
@@ -401,7 +408,7 @@ address1=192.168.123.123/24
         self._template_keyfile_type('bonds', 'bond')
 
     def test_keyfile_type_tunnel(self):
-        self._template_keyfile_type('tunnels', 'ip-tunnel', False)
+        self._template_keyfile_type('tunnels', 'ip-tunnel')
 
     def test_keyfile_type_wifi(self):
         self.generate_from_keyfile('''[connection]
