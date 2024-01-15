@@ -26,8 +26,10 @@ clean:
 	rm -rf _build
 	rm -rf _build-cov
 	rm -rf _leakcheckbuild
+	rm -rf _cleanbuild
 	rm -rf tmproot
 	rm -f python-cffi/netplan/_netplan_cffi.*
+	rm -f tools/keyfile_to_yaml
 
 dist: clean _build
 	tar --exclude="_build" --exclude=".git" --exclude="debian" --exclude=".vscode" -cvJf ../netplan-$(VER).tar.xz .
