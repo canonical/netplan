@@ -45,7 +45,7 @@ jobs:
       - name: Prepare test
         run: |
           # pull-debian-source netplan.io  # snapshot.debian.org is not up-to-date
-          V=$(rmadison -u debian -s unstable netplan.io | cut -d"|" -f2 | xargs)
+          V=$(rmadison -u debian -s unstable netplan.io | tail -n1 | cut -d"|" -f2 | xargs)
           dget -u "https://deb.debian.org/debian/pool/main/n/netplan.io/netplan.io_$V.dsc"
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
