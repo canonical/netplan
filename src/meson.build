@@ -18,7 +18,7 @@ libnetplan = library(
     gnu_symbol_visibility: 'hidden',
     dependencies: [glib, gio, yaml, uuid],
     include_directories: inc,
-    soversion: '0.0',
+    soversion: 1,
     install: true)
 
 libnetplan_testing = library(
@@ -28,7 +28,7 @@ libnetplan_testing = library(
     c_args: ['-DUNITTESTS'],
     dependencies: [glib, gio, yaml, uuid],
     include_directories: inc,
-    soversion: '0.0',
+    soversion: 1,
     install: false)
 
 libexec_netplan = join_paths(get_option('libexecdir'), 'netplan')
