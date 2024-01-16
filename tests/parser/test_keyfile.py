@@ -28,7 +28,7 @@ from .base import TestKeyfileBase
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')
 
-lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
+lib = ctypes.CDLL('libnetplan.so.1')
 UUID = 'ff9d6ebc-226d-4f82-a485-b7ff83b9607f'
 
 

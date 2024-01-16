@@ -38,7 +38,7 @@ from netplan.netdef import NetplanRoute
 
 # We still need direct (ctypes) access to libnetplan.so to test certain cases
 # that are not covered by the 'netplan' module bindings
-lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
+lib = ctypes.CDLL('libnetplan.so.1')
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = os.path.join(rootdir, 'src', 'netplan.script')

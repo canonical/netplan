@@ -5,7 +5,7 @@
 %{?!_systemdgeneratordir:%global _systemdgeneratordir /usr/lib/systemd/system-generators}
 
 # Netplan library soversion major
-%global libsomajor 0.0
+%global libsomajor 1
 
 # networkd is not available everywhere
 %if 0%{?rhel}

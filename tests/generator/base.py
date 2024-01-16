@@ -46,7 +46,7 @@ os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_P
 # make sure we fail on criticals
 os.environ['G_DEBUG'] = 'fatal-criticals'
 
-lib = ctypes.CDLL(ctypes.util.find_library('netplan'))
+lib = ctypes.CDLL('libnetplan.so.1')
 
 # common patterns for expected output
 ND_EMPTY = '[Match]\nName=%s\n\n[Network]\nLinkLocalAddressing=%s\nConfigureWithoutCarrier=yes\n'
