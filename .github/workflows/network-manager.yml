@@ -41,9 +41,6 @@ jobs:
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
           # usrmerge-fix
-          mkdir debian/extra
-          touch debian/extra/PLACEHOLDER
-          echo "../extra/PLACEHOLDER usr/lib/netplan/PLACEHOLDER" >> debian/extra/PLACEHOLDER
           sed -i 's|rm debian/tmp/lib/netplan/generate|sh -c "mkdir -p debian/tmp/usr/lib/systemd/system-generators; rm -rf debian/tmp/lib; ln -sf /usr/libexec/netplan/generate debian/tmp/usr/lib/systemd/system-generators/netplan"|' debian/rules
           # usrmerge-fix-end
           echo "3.0 (native)" > debian/source/format  # force native build

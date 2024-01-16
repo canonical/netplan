@@ -26,6 +26,7 @@ prepare: |
   apt install -y ubuntu-dev-tools devscripts equivs
   pull-lp-source netplan.io
   sed -i 's| openvswitch-switch|# DELETED: openvswitch-switch|' netplan.io-*/debian/control
+  sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
   mk-build-deps -i -r -B -s sudo -t "apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends" netplan.io-*/debian/control
   # install, a bit ugly but this is a container (did I mention the packaging?)
   meson setup build --prefix=/usr
