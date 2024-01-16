@@ -77,9 +77,9 @@ class TestSystemState(unittest.TestCase):
         mock.return_value = NETWORKD
         res = SystemConfigState.query_networkd()
         mock.assert_called_with(['networkctl', '--json=short'], text=True)
-        self.assertEqual(len(res), 8)
+        self.assertEqual(len(res), 9)
         self.assertListEqual([itf.get('Name') for itf in res],
-                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0', 'mybr0', 'mybond0'])
+                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0', 'mybr0', 'mybond0', 'myvrf0'])
 
     @patch('subprocess.check_output')
     def test_query_networkd_fail(self, mock):
@@ -258,16 +258,9 @@ search search.domain  another.one
             self.assertListEqual(bridge, [])
             self.assertIn('WARNING:root:Cannot query bridge:', cm.output[0])
 
-    @classmethod
-    def mock_query_members(cls, interface):
-        if interface == 'br0':
-            return ['eth0', 'eth1']
-        if interface == 'bond0':
-            return ['eth2', 'eth3']
-
     @patch('netplan_cli.cli.state.SystemConfigState.query_members')
     def test_correlate_members_and_uplink_bridge(self, mock):
-        mock.side_effect = self.mock_query_members
+        mock.side_effect = lambda _: ['eth0', 'eth1']
         interface1 = Interface({'ifname': 'eth0'})
         interface1.nd = {'Type': 'ether'}
         interface2 = Interface({'ifname': 'eth1'})
@@ -281,7 +274,7 @@ search search.domain  another.one
 
     @patch('netplan_cli.cli.state.SystemConfigState.query_members')
     def test_correlate_members_and_uplink_bond(self, mock):
-        mock.side_effect = self.mock_query_members
+        mock.side_effect = lambda _: ['eth2', 'eth3']
         interface1 = Interface({'ifname': 'eth2'})
         interface1.nd = {'Type': 'ether'}
         interface2 = Interface({'ifname': 'eth3'})
@@ -291,6 +284,20 @@ search search.domain  another.one
         SystemConfigState.correlate_members_and_uplink([interface1, interface2, interface3])
         self.assertEqual(interface1.bond, 'bond0')
         self.assertEqual(interface2.bond, 'bond0')
+        self.assertListEqual(interface3.members, ['eth2', 'eth3'])
+
+    @patch('netplan_cli.cli.state.SystemConfigState.query_members')
+    def test_correlate_members_and_uplink_vrf(self, mock):
+        mock.side_effect = lambda _: ['eth2', 'eth3']
+        interface1 = Interface({'ifname': 'eth2'})
+        interface1.nd = {'Type': 'ether'}
+        interface2 = Interface({'ifname': 'eth3'})
+        interface2.nd = {'Type': 'ether'}
+        interface3 = Interface({'ifname': 'vrf0'})
+        interface3.nd = {'Type': 'ether', 'Kind': 'vrf'}
+        SystemConfigState.correlate_members_and_uplink([interface1, interface2, interface3])
+        self.assertEqual(interface1.vrf, 'vrf0')
+        self.assertEqual(interface2.vrf, 'vrf0')
         self.assertListEqual(interface3.members, ['eth2', 'eth3'])
 
 
