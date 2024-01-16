@@ -259,6 +259,13 @@ class NetplanStatus(utils.NetplanCommand):
                     value=val,
                     ))
 
+            val = data.get('vrf')
+            if val:
+                pprint(('{title:>'+pad+'} {value}').format(
+                    title='VRF:',
+                    value=val,
+                    ))
+
             lst = data.get('members', [])
             for i, val in enumerate(lst):
                 pprint(('{title:>'+pad+'} {value}').format(

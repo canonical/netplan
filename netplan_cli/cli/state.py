@@ -40,16 +40,19 @@ JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
 DEVICE_TYPES = {
     'bond': 'bond',
     'bridge': 'bridge',
+    'dummy': 'dummy',
     'ether': 'ethernet',
     'ipgre': 'tunnel',
     'ip6gre': 'tunnel',
     'loopback': 'ethernet',
     'sit': 'tunnel',
     'tunnel': 'tunnel',
+    'tun': 'tunnel',
     'tunnel6': 'tunnel',
     'wireguard': 'tunnel',
     'wlan': 'wifi',
     'wwan': 'modem',
+    'veth': 'veth',
     'vlan': 'vlan',
     'vrf': 'vrf',
     'vxlan': 'tunnel',
@@ -86,6 +89,7 @@ class Interface():
         self.macaddress: str = self.__extract_mac(ip)
         self.bridge: str = None
         self.bond: str = None
+        self.vrf: str = None
         self.members: List[str] = []
 
         # Filter networkd/NetworkManager data
@@ -220,6 +224,8 @@ class Interface():
             json['bridge'] = self.bridge
         if self.bond:
             json['bond'] = self.bond
+        if self.vrf:
+            json['vrf'] = self.vrf
         if self.members:
             json['members'] = self.members
         return (self.name, json)
@@ -235,6 +241,10 @@ class Interface():
     @property
     def type(self) -> str:
         nd_type = self.nd.get('Type') if self.nd else None
+        if nd_type == 'ether':
+            # There are different kinds of 'ether' devices, such as VRFs, veth and dummies
+            if kind := self.nd.get('Kind'):
+                nd_type = kind
         if device_type := DEVICE_TYPES.get(nd_type):
             return device_type
         logging.warning('Unknown device type: {}'.format(nd_type))
@@ -337,7 +347,7 @@ class SystemConfigState():
         self.interface_list = [Interface(itf, networkd, nmcli, (dns_addresses, dns_search),
                                          (route4, route6)) for itf in iproute2]
 
-        # get bridge/bond data
+        # get bridge/bond/vrf data
         self.correlate_members_and_uplink(self.interface_list)
 
         # show only active interfaces by default
@@ -523,9 +533,10 @@ class SystemConfigState():
 
     @classmethod
     def correlate_members_and_uplink(cls, interfaces: List[Interface]) -> None:
+        uplink_types = ['bond', 'bridge', 'vrf']
         members_to_uplink = {}
         uplink_to_members = defaultdict(list)
-        for interface in filter(lambda i: i.type in ['bond', 'bridge'], interfaces):
+        for interface in filter(lambda i: i.type in uplink_types, interfaces):
             members = cls.query_members(interface.name)
             for member in members:
                 member_tuple = namedtuple('Member', ['name', 'type'])
@@ -533,14 +544,15 @@ class SystemConfigState():
             uplink_to_members[interface.name] = members
 
         for interface in interfaces:
-            if interface.type not in ['bridge', 'bond']:
-                if uplink := members_to_uplink.get(interface.name):
-                    if uplink.type == 'bridge':
-                        interface.bridge = uplink.name
-                    if uplink.type == 'bond':
-                        interface.bond = uplink.name
+            if uplink := members_to_uplink.get(interface.name):
+                if uplink.type == 'bridge':
+                    interface.bridge = uplink.name
+                if uplink.type == 'bond':
+                    interface.bond = uplink.name
+                if uplink.type == 'vrf':
+                    interface.vrf = uplink.name
 
-            if interface.type in ['bridge', 'bond']:
+            if interface.type in uplink_types:
                 if members := uplink_to_members.get(interface.name):
                     interface.members = members
 
