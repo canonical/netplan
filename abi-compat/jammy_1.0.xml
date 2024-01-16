@@ -1,4 +1,4 @@
-<abi-corpus version='2.0' path='_build/src/libnetplan.so.0.0' architecture='elf-amd-x86_64' soname='libnetplan.so.0.0'>
+<abi-corpus version='2.0' path='_build/src/libnetplan.so.1' architecture='elf-amd-x86_64' soname='libnetplan.so.1'>
   <elf-needed>
     <dependency name='libglib-2.0.so.0'/>
     <dependency name='libgio-2.0.so.0'/>
@@ -10,9 +10,12 @@
   <elf-function-symbols>
     <elf-symbol name='_netplan_address_iter_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_address_iter_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_find_yaml_glob' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_g_string_free_to_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_nameserver_iter_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_nameserver_iter_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_critical' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_netdef_get_delay_virtual_functions_rebind' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_embedded_switch_mode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_optional' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_get_sriov_vlan_filter' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -24,17 +27,22 @@
     <elf-symbol name='_netplan_netdef_new_search_domain_iter' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_pertype_iter_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_netdef_pertype_iter_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_netdef_write_network_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_netdef_write_networkd' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_netdef_write_nm' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_netdef_write_ovs' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_networkd_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_nm_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_ovs_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_route_iter_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_route_iter_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_safe_mkdir_p_dir' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_search_domain_iter_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_search_domain_iter_next' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_sriov_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_state_get_vf_count_for_def' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='_netplan_state_new_netdef_pertype_iter' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='find_yaml_glob' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='g_string_free_to_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='is_route_present' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='is_route_rule_present' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='is_string_in_array' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
+    <elf-symbol name='_netplan_unlink_glob' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_backend_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_def_type_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_delete_connection' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -46,7 +54,6 @@
     <elf-symbol name='netplan_netdef_get_backend' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_bond_link' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_bridge_link' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_netdef_get_delay_virtual_functions_rebind' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_dhcp4' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_dhcp6' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_get_filepath' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -60,14 +67,7 @@
     <elf-symbol name='netplan_netdef_get_vlan_link' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_has_match' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_match_interface' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_netdef_write_network_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_netdef_write_networkd' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_netdef_write_nm' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_netdef_write_ovs' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_netdef_write_yaml' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_networkd_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_nm_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_ovs_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_parser_clear' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_parser_load_keyfile' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_parser_load_nullable_fields' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -77,7 +77,6 @@
     <elf-symbol name='netplan_parser_load_yaml_hierarchy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_parser_new' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_parser_reset' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='netplan_sriov_cleanup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_state_clear' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_state_dump_yaml' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_state_finish_nm_write' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
@@ -96,8 +95,6 @@
     <elf-symbol name='netplan_state_write_yaml_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_util_create_yaml_patch' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
     <elf-symbol name='netplan_util_dump_yaml_subtree' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='safe_mkdir_p_dir' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
-    <elf-symbol name='unlink_glob' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes'/>
   </elf-function-symbols>
   <abi-instr address-size='64' path='../src/error.c' comp-dir-path='/root/netplan/_build' language='LANG_C99'>
     <type-decl name='char' size-in-bits='8' id='type-id-1'/>
@@ -128,7 +125,7 @@
     <type-decl name='unsigned long int' size-in-bits='64' id='type-id-14'/>
     <type-decl name='variadic parameter type' id='type-id-15'/>
     <type-decl name='void' id='type-id-16'/>
-    <typedef-decl name='NetplanError' type-id='type-id-17' filepath='../include/types.h' line='82' column='1' id='type-id-18'/>
+    <typedef-decl name='NetplanError' type-id='type-id-17' filepath='../include/types.h' line='81' column='1' id='type-id-18'/>
     <typedef-decl name='GBufferedInputStreamPrivate' type-id='type-id-2' filepath='/usr/include/glib-2.0/gio/gbufferedinputstream.h' line='45' column='1' id='type-id-19'/>
     <class-decl name='_GBufferedInputStream' size-in-bits='384' is-struct='yes' visibility='default' filepath='/usr/include/glib-2.0/gio/gbufferedinputstream.h' line='47' column='1' id='type-id-20'>
       <data-member access='public' layout-offset-in-bits='0'>
@@ -380,7 +377,7 @@
   </abi-instr>
   <abi-instr address-size='64' path='../src/names.c' comp-dir-path='/root/netplan/_build' language='LANG_C99'>
     <type-decl name='unnamed-enum-underlying-type-32' is-anonymous='yes' size-in-bits='32' alignment-in-bits='32' id='type-id-88'/>
-    <enum-decl name='NetplanDefType' naming-typedef-id='type-id-89' filepath='../include/types.h' line='39' column='1' id='type-id-90'>
+    <enum-decl name='NetplanDefType' naming-typedef-id='type-id-89' filepath='../include/types.h' line='38' column='1' id='type-id-90'>
       <underlying-type type-id='type-id-88'/>
       <enumerator name='NETPLAN_DEF_TYPE_NONE' value='0'/>
       <enumerator name='NETPLAN_DEF_TYPE_ETHERNET' value='1'/>
@@ -399,8 +396,8 @@
       <enumerator name='NETPLAN_DEF_TYPE_NM_PLACEHOLDER_' value='13'/>
       <enumerator name='NETPLAN_DEF_TYPE_MAX_' value='14'/>
     </enum-decl>
-    <typedef-decl name='NetplanDefType' type-id='type-id-90' filepath='../include/types.h' line='64' column='1' id='type-id-89'/>
-    <enum-decl name='NetplanBackend' naming-typedef-id='type-id-91' filepath='../include/types.h' line='74' column='1' id='type-id-92'>
+    <typedef-decl name='NetplanDefType' type-id='type-id-90' filepath='../include/types.h' line='63' column='1' id='type-id-89'/>
+    <enum-decl name='NetplanBackend' naming-typedef-id='type-id-91' filepath='../include/types.h' line='73' column='1' id='type-id-92'>
       <underlying-type type-id='type-id-88'/>
       <enumerator name='NETPLAN_BACKEND_NONE' value='0'/>
       <enumerator name='NETPLAN_BACKEND_NETWORKD' value='1'/>
@@ -408,7 +405,7 @@
       <enumerator name='NETPLAN_BACKEND_OVS' value='3'/>
       <enumerator name='NETPLAN_BACKEND_MAX_' value='4'/>
     </enum-decl>
-    <typedef-decl name='NetplanBackend' type-id='type-id-92' filepath='../include/types.h' line='80' column='1' id='type-id-91'/>
+    <typedef-decl name='NetplanBackend' type-id='type-id-92' filepath='../include/types.h' line='79' column='1' id='type-id-91'/>
     <function-decl name='netplan_backend_name' mangled-name='netplan_backend_name' filepath='../src/names.c' line='132' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_backend_name'>
       <parameter type-id='type-id-91' name='val' filepath='../src/names.c' line='132' column='1'/>
       <return type-id='type-id-83'/>
@@ -440,8 +437,8 @@
       <subrange length='16' type-id='type-id-14' id='type-id-104'/>
     </array-type-def>
     <type-decl name='unsigned short int' size-in-bits='16' id='type-id-105'/>
-    <typedef-decl name='NetplanNetDefinition' type-id='type-id-106' filepath='../include/types.h' line='71' column='1' id='type-id-107'/>
-    <typedef-decl name='NetplanState' type-id='type-id-108' filepath='../include/types.h' line='72' column='1' id='type-id-109'/>
+    <typedef-decl name='NetplanNetDefinition' type-id='type-id-106' filepath='../include/types.h' line='70' column='1' id='type-id-107'/>
+    <typedef-decl name='NetplanState' type-id='type-id-108' filepath='../include/types.h' line='71' column='1' id='type-id-109'/>
     <typedef-decl name='NetplanFlags' type-id='type-id-12' filepath='../src/abi.h' line='23' column='1' id='type-id-110'/>
     <enum-decl name='NetplanOptionalAddressFlag' naming-typedef-id='type-id-111' filepath='../src/abi.h' line='27' column='1' id='type-id-112'>
       <underlying-type type-id='type-id-88'/>
@@ -2092,7 +2089,7 @@
       <parameter type-id='type-id-73' name='error' filepath='../src/netplan.c' line='1215' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_state_has_nondefault_globals' filepath='../src/types-internal.h' line='309' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='netplan_state_has_nondefault_globals' filepath='../src/types-internal.h' line='315' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-281'/>
       <return type-id='type-id-54'/>
     </function-decl>
@@ -2113,7 +2110,7 @@
       <parameter type-id='type-id-69'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='_is_auth_key_management_psk' filepath='../src/util-internal.h' line='130' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='_is_auth_key_management_psk' filepath='../src/util-internal.h' line='127' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-275'/>
       <return type-id='type-id-54'/>
     </function-decl>
@@ -2430,39 +2427,39 @@
     <pointer-type-def type-id='type-id-295' size-in-bits='64' id='type-id-296'/>
     <pointer-type-def type-id='type-id-54' size-in-bits='64' id='type-id-297'/>
     <pointer-type-def type-id='type-id-298' size-in-bits='64' id='type-id-290'/>
-    <function-decl name='netplan_netdef_write_network_file' mangled-name='netplan_netdef_write_network_file' filepath='../src/networkd.c' line='720' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_write_network_file'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/networkd.c' line='721' column='1'/>
-      <parameter type-id='type-id-277' name='def' filepath='../src/networkd.c' line='722' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/networkd.c' line='723' column='1'/>
-      <parameter type-id='type-id-83' name='path' filepath='../src/networkd.c' line='724' column='1'/>
-      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/networkd.c' line='725' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/networkd.c' line='726' column='1'/>
+    <function-decl name='_netplan_netdef_write_network_file' mangled-name='_netplan_netdef_write_network_file' filepath='../src/networkd.c' line='719' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_write_network_file'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/networkd.c' line='720' column='1'/>
+      <parameter type-id='type-id-277' name='def' filepath='../src/networkd.c' line='721' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/networkd.c' line='722' column='1'/>
+      <parameter type-id='type-id-83' name='path' filepath='../src/networkd.c' line='723' column='1'/>
+      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/networkd.c' line='724' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/networkd.c' line='725' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_netdef_write_networkd' mangled-name='netplan_netdef_write_networkd' filepath='../src/networkd.c' line='1317' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_write_networkd'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/networkd.c' line='1318' column='1'/>
-      <parameter type-id='type-id-277' name='def' filepath='../src/networkd.c' line='1319' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/networkd.c' line='1320' column='1'/>
-      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/networkd.c' line='1321' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/networkd.c' line='1322' column='1'/>
+    <function-decl name='_netplan_netdef_write_networkd' mangled-name='_netplan_netdef_write_networkd' filepath='../src/networkd.c' line='1316' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_write_networkd'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/networkd.c' line='1317' column='1'/>
+      <parameter type-id='type-id-277' name='def' filepath='../src/networkd.c' line='1318' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/networkd.c' line='1319' column='1'/>
+      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/networkd.c' line='1320' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/networkd.c' line='1321' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_networkd_cleanup' mangled-name='netplan_networkd_cleanup' filepath='../src/networkd.c' line='1385' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_networkd_cleanup'>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/networkd.c' line='1385' column='1'/>
+    <function-decl name='_netplan_networkd_cleanup' mangled-name='_netplan_networkd_cleanup' filepath='../src/networkd.c' line='1384' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_networkd_cleanup'>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/networkd.c' line='1384' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='safe_mkdir_p_dir' mangled-name='safe_mkdir_p_dir' filepath='../src/util-internal.h' line='38' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='safe_mkdir_p_dir'>
+    <function-decl name='_netplan_safe_mkdir_p_dir' mangled-name='_netplan_safe_mkdir_p_dir' filepath='../src/util-internal.h' line='38' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_safe_mkdir_p_dir'>
       <parameter type-id='type-id-83'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='g_string_free_to_file' mangled-name='g_string_free_to_file' filepath='../src/util-internal.h' line='41' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='g_string_free_to_file'>
+    <function-decl name='_netplan_g_string_free_to_file' mangled-name='_netplan_g_string_free_to_file' filepath='../src/util-internal.h' line='41' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_g_string_free_to_file'>
       <parameter type-id='type-id-76'/>
       <parameter type-id='type-id-83'/>
       <parameter type-id='type-id-83'/>
       <parameter type-id='type-id-83'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='unlink_glob' mangled-name='unlink_glob' filepath='../src/util-internal.h' line='44' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='unlink_glob'>
+    <function-decl name='_netplan_unlink_glob' mangled-name='_netplan_unlink_glob' filepath='../src/util-internal.h' line='44' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_unlink_glob'>
       <parameter type-id='type-id-83'/>
       <parameter type-id='type-id-83'/>
       <return type-id='type-id-16'/>
@@ -2578,22 +2575,22 @@
       <parameter type-id='type-id-281'/>
       <return type-id='type-id-55'/>
     </function-decl>
-    <function-decl name='netplan_netdef_write_nm' mangled-name='netplan_netdef_write_nm' filepath='../src/nm.c' line='1003' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_write_nm'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/nm.c' line='1004' column='1'/>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/nm.c' line='1005' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/nm.c' line='1006' column='1'/>
-      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/nm.c' line='1007' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/nm.c' line='1008' column='1'/>
+    <function-decl name='_netplan_netdef_write_nm' mangled-name='_netplan_netdef_write_nm' filepath='../src/nm.c' line='1002' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_write_nm'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/nm.c' line='1003' column='1'/>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/nm.c' line='1004' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/nm.c' line='1005' column='1'/>
+      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/nm.c' line='1006' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/nm.c' line='1007' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_state_finish_nm_write' mangled-name='netplan_state_finish_nm_write' filepath='../src/nm.c' line='1058' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_finish_nm_write'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/nm.c' line='1059' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/nm.c' line='1060' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/nm.c' line='1061' column='1'/>
+    <function-decl name='netplan_state_finish_nm_write' mangled-name='netplan_state_finish_nm_write' filepath='../src/nm.c' line='1057' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_finish_nm_write'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/nm.c' line='1058' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/nm.c' line='1059' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/nm.c' line='1060' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_nm_cleanup' mangled-name='netplan_nm_cleanup' filepath='../src/nm.c' line='1169' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_nm_cleanup'>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/nm.c' line='1169' column='1'/>
+    <function-decl name='_netplan_nm_cleanup' mangled-name='_netplan_nm_cleanup' filepath='../src/nm.c' line='1168' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_nm_cleanup'>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/nm.c' line='1168' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
     <function-decl name='validate_veth_pair' filepath='../src/validation.h' line='49' column='1' visibility='default' binding='global' size-in-bits='64'>
@@ -2746,22 +2743,22 @@
     </function-decl>
   </abi-instr>
   <abi-instr address-size='64' path='../src/openvswitch.c' comp-dir-path='/root/netplan/_build' language='LANG_C99'>
-    <function-decl name='netplan_netdef_write_ovs' mangled-name='netplan_netdef_write_ovs' filepath='../src/openvswitch.c' line='323' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_write_ovs'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/openvswitch.c' line='323' column='1'/>
-      <parameter type-id='type-id-277' name='def' filepath='../src/openvswitch.c' line='323' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/openvswitch.c' line='323' column='1'/>
-      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/openvswitch.c' line='323' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/openvswitch.c' line='323' column='1'/>
+    <function-decl name='_netplan_netdef_write_ovs' mangled-name='_netplan_netdef_write_ovs' filepath='../src/openvswitch.c' line='322' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_write_ovs'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/openvswitch.c' line='322' column='1'/>
+      <parameter type-id='type-id-277' name='def' filepath='../src/openvswitch.c' line='322' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/openvswitch.c' line='322' column='1'/>
+      <parameter type-id='type-id-297' name='has_been_written' filepath='../src/openvswitch.c' line='322' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/openvswitch.c' line='322' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_state_finish_ovs_write' mangled-name='netplan_state_finish_ovs_write' filepath='../src/openvswitch.c' line='464' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_finish_ovs_write'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/openvswitch.c' line='464' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/openvswitch.c' line='464' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/openvswitch.c' line='464' column='1'/>
+    <function-decl name='netplan_state_finish_ovs_write' mangled-name='netplan_state_finish_ovs_write' filepath='../src/openvswitch.c' line='463' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_finish_ovs_write'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/openvswitch.c' line='463' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/openvswitch.c' line='463' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/openvswitch.c' line='463' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_ovs_cleanup' mangled-name='netplan_ovs_cleanup' filepath='../src/openvswitch.c' line='510' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_ovs_cleanup'>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/openvswitch.c' line='510' column='1'/>
+    <function-decl name='_netplan_ovs_cleanup' mangled-name='_netplan_ovs_cleanup' filepath='../src/openvswitch.c' line='509' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_ovs_cleanup'>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/openvswitch.c' line='509' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
     <function-decl name='g_str_has_prefix' filepath='/usr/include/glib-2.0/glib/gstrfuncs.h' line='141' column='1' visibility='default' binding='global' size-in-bits='64'>
@@ -2900,7 +2897,7 @@
       <subrange length='3' type-id='type-id-14' id='type-id-323'/>
     </array-type-def>
     <class-decl name='re_dfa_t' is-struct='yes' visibility='default' is-declaration-only='yes' id='type-id-324'/>
-    <typedef-decl name='NetplanParser' type-id='type-id-325' filepath='../include/types.h' line='66' column='1' id='type-id-326'/>
+    <typedef-decl name='NetplanParser' type-id='type-id-325' filepath='../include/types.h' line='65' column='1' id='type-id-326'/>
     <enum-decl name='NetplanWifiWowlanFlag' naming-typedef-id='type-id-327' filepath='../src/abi.h' line='62' column='1' id='type-id-328'>
       <underlying-type type-id='type-id-88'/>
       <enumerator name='NETPLAN_WIFI_WOWLAN_DEFAULT' value='1'/>
@@ -3687,50 +3684,50 @@
     </function-decl>
     <var-decl name='NETPLAN_OPTIONAL_ADDRESS_TYPES' type-id='type-id-315' visibility='default' filepath='../src/types-internal.h' line='61' column='1'/>
     <var-decl name='NETPLAN_WIFI_WOWLAN_TYPES' type-id='type-id-320' visibility='default' filepath='../src/types-internal.h' line='63' column='1'/>
-    <function-decl name='reset_netdef' filepath='../src/types-internal.h' line='282' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='reset_netdef' filepath='../src/types-internal.h' line='288' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-145'/>
       <parameter type-id='type-id-89'/>
       <parameter type-id='type-id-91'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='reset_ip_rule' filepath='../src/types-internal.h' line='285' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='reset_ip_rule' filepath='../src/types-internal.h' line='291' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-347'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='reset_ovs_settings' filepath='../src/types-internal.h' line='288' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='reset_ovs_settings' filepath='../src/types-internal.h' line='294' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-403'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='reset_vxlan' filepath='../src/types-internal.h' line='291' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='reset_vxlan' filepath='../src/types-internal.h' line='297' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-152'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='access_point_clear' filepath='../src/types-internal.h' line='294' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='access_point_clear' filepath='../src/types-internal.h' line='300' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-406'/>
       <parameter type-id='type-id-91'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='wireguard_peer_clear' filepath='../src/types-internal.h' line='297' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='wireguard_peer_clear' filepath='../src/types-internal.h' line='303' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-407'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='address_options_clear' filepath='../src/types-internal.h' line='300' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='address_options_clear' filepath='../src/types-internal.h' line='306' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-400'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='ip_rule_clear' filepath='../src/types-internal.h' line='303' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='ip_rule_clear' filepath='../src/types-internal.h' line='309' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-402'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='route_clear' filepath='../src/types-internal.h' line='306' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='route_clear' filepath='../src/types-internal.h' line='312' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-401'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='clear_netdef_from_list' filepath='../src/types-internal.h' line='312' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='clear_netdef_from_list' filepath='../src/types-internal.h' line='318' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-11'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='free_access_point' filepath='../src/types-internal.h' line='318' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='free_access_point' filepath='../src/types-internal.h' line='324' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-11'/>
       <parameter type-id='type-id-11'/>
       <parameter type-id='type-id-11'/>
@@ -3741,17 +3738,17 @@
       <parameter type-id='type-id-11'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='is_route_present' mangled-name='is_route_present' filepath='../src/util-internal.h' line='121' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='is_route_present'>
+    <function-decl name='is_route_present' filepath='../src/util-internal.h' line='118' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-277'/>
       <parameter type-id='type-id-410'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='is_route_rule_present' mangled-name='is_route_rule_present' filepath='../src/util-internal.h' line='124' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='is_route_rule_present'>
+    <function-decl name='is_route_rule_present' filepath='../src/util-internal.h' line='121' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-277'/>
       <parameter type-id='type-id-412'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='is_string_in_array' mangled-name='is_string_in_array' filepath='../src/util-internal.h' line='127' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='is_string_in_array'>
+    <function-decl name='is_string_in_array' filepath='../src/util-internal.h' line='124' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-132'/>
       <parameter type-id='type-id-83'/>
       <return type-id='type-id-54'/>
@@ -3978,7 +3975,7 @@
       <parameter type-id='type-id-73' name='error' filepath='../src/sriov.c' line='68' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_sriov_cleanup' mangled-name='netplan_sriov_cleanup' filepath='../src/sriov.c' line='118' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_sriov_cleanup'>
+    <function-decl name='_netplan_sriov_cleanup' mangled-name='_netplan_sriov_cleanup' filepath='../src/sriov.c' line='118' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_sriov_cleanup'>
       <parameter type-id='type-id-83' name='rootdir' filepath='../src/sriov.c' line='118' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
@@ -4058,7 +4055,7 @@
       <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/types.c' line='555' column='1'/>
       <return type-id='type-id-68'/>
     </function-decl>
-    <function-decl name='netplan_netdef_get_delay_virtual_functions_rebind' mangled-name='netplan_netdef_get_delay_virtual_functions_rebind' filepath='../src/types.c' line='562' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_delay_virtual_functions_rebind'>
+    <function-decl name='_netplan_netdef_get_delay_virtual_functions_rebind' mangled-name='_netplan_netdef_get_delay_virtual_functions_rebind' filepath='../src/types.c' line='562' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_get_delay_virtual_functions_rebind'>
       <parameter type-id='type-id-277' name='netdef' filepath='../src/types.c' line='562' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
@@ -4091,10 +4088,10 @@
     <array-type-def dimensions='1' type-id='type-id-1' size-in-bits='2048' id='type-id-431'>
       <subrange length='256' type-id='type-id-14' id='type-id-432'/>
     </array-type-def>
-    <typedef-decl name='NetplanStateIterator' type-id='type-id-433' filepath='../include/types.h' line='84' column='1' id='type-id-434'/>
-    <class-decl name='_NetplanStateIterator' size-in-bits='64' is-struct='yes' visibility='default' filepath='../include/types.h' line='86' column='1' id='type-id-433'>
+    <typedef-decl name='NetplanStateIterator' type-id='type-id-433' filepath='../include/types.h' line='83' column='1' id='type-id-434'/>
+    <class-decl name='_NetplanStateIterator' size-in-bits='64' is-struct='yes' visibility='default' filepath='../include/types.h' line='85' column='1' id='type-id-433'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='placeholder' type-id='type-id-11' visibility='default' filepath='../include/types.h' line='87' column='1'/>
+        <var-decl name='placeholder' type-id='type-id-11' visibility='default' filepath='../include/types.h' line='86' column='1'/>
       </data-member>
     </class-decl>
     <class-decl name='address_iter' size-in-bits='256' is-struct='yes' visibility='default' filepath='../src/types-internal.h' line='102' column='1' id='type-id-435'>
@@ -4136,15 +4133,15 @@
         <var-decl name='netdef' type-id='type-id-145' visibility='default' filepath='../src/types-internal.h' line='119' column='1'/>
       </data-member>
     </class-decl>
-    <class-decl name='netdef_pertype_iter' size-in-bits='448' is-struct='yes' visibility='default' filepath='../src/util.c' line='869' column='1' id='type-id-438'>
+    <class-decl name='netdef_pertype_iter' size-in-bits='448' is-struct='yes' visibility='default' filepath='../src/util.c' line='868' column='1' id='type-id-438'>
       <data-member access='public' layout-offset-in-bits='0'>
-        <var-decl name='type' type-id='type-id-89' visibility='default' filepath='../src/util.c' line='870' column='1'/>
+        <var-decl name='type' type-id='type-id-89' visibility='default' filepath='../src/util.c' line='869' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='64'>
-        <var-decl name='iter' type-id='type-id-165' visibility='default' filepath='../src/util.c' line='871' column='1'/>
+        <var-decl name='iter' type-id='type-id-165' visibility='default' filepath='../src/util.c' line='870' column='1'/>
       </data-member>
       <data-member access='public' layout-offset-in-bits='384'>
-        <var-decl name='np_state' type-id='type-id-405' visibility='default' filepath='../src/util.c' line='872' column='1'/>
+        <var-decl name='np_state' type-id='type-id-405' visibility='default' filepath='../src/util.c' line='871' column='1'/>
       </data-member>
     </class-decl>
     <typedef-decl name='GSpawnChildSetupFunc' type-id='type-id-175' filepath='/usr/include/glib-2.0/glib/gspawn.h' line='138' column='1' id='type-id-439'/>
@@ -4234,152 +4231,152 @@
       <parameter type-id='type-id-83'/>
       <return type-id='type-id-89'/>
     </function-decl>
-    <function-decl name='free_address_options' filepath='../src/types-internal.h' line='315' column='1' visibility='default' binding='global' size-in-bits='64'>
+    <function-decl name='free_address_options' filepath='../src/types-internal.h' line='321' column='1' visibility='default' binding='global' size-in-bits='64'>
       <parameter type-id='type-id-11'/>
       <return type-id='type-id-16'/>
     </function-decl>
     <var-decl name='wifi_frequency_24' type-id='type-id-135' visibility='default' filepath='../src/util-internal.h' line='32' column='1'/>
     <var-decl name='wifi_frequency_5' type-id='type-id-135' visibility='default' filepath='../src/util-internal.h' line='35' column='1'/>
-    <function-decl name='find_yaml_glob' mangled-name='find_yaml_glob' filepath='../src/util.c' line='116' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='find_yaml_glob'>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='116' column='1'/>
-      <parameter type-id='type-id-460' name='out_glob' filepath='../src/util.c' line='116' column='1'/>
+    <function-decl name='_netplan_find_yaml_glob' mangled-name='_netplan_find_yaml_glob' filepath='../src/util.c' line='115' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_find_yaml_glob'>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='115' column='1'/>
+      <parameter type-id='type-id-460' name='out_glob' filepath='../src/util.c' line='115' column='1'/>
       <return type-id='type-id-12'/>
     </function-decl>
-    <function-decl name='netplan_util_create_yaml_patch' mangled-name='netplan_util_create_yaml_patch' filepath='../src/util.c' line='148' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_util_create_yaml_patch'>
-      <parameter type-id='type-id-83' name='conf_obj_path' filepath='../src/util.c' line='148' column='1'/>
-      <parameter type-id='type-id-83' name='obj_payload' filepath='../src/util.c' line='148' column='1'/>
-      <parameter type-id='type-id-12' name='output_fd' filepath='../src/util.c' line='148' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/util.c' line='148' column='1'/>
+    <function-decl name='netplan_util_create_yaml_patch' mangled-name='netplan_util_create_yaml_patch' filepath='../src/util.c' line='147' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_util_create_yaml_patch'>
+      <parameter type-id='type-id-83' name='conf_obj_path' filepath='../src/util.c' line='147' column='1'/>
+      <parameter type-id='type-id-83' name='obj_payload' filepath='../src/util.c' line='147' column='1'/>
+      <parameter type-id='type-id-12' name='output_fd' filepath='../src/util.c' line='147' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/util.c' line='147' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_util_dump_yaml_subtree' mangled-name='netplan_util_dump_yaml_subtree' filepath='../src/util.c' line='317' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_util_dump_yaml_subtree'>
-      <parameter type-id='type-id-83' name='prefix' filepath='../src/util.c' line='317' column='1'/>
-      <parameter type-id='type-id-12' name='input_fd' filepath='../src/util.c' line='317' column='1'/>
-      <parameter type-id='type-id-12' name='output_fd' filepath='../src/util.c' line='317' column='1'/>
-      <parameter type-id='type-id-79' name='error' filepath='../src/util.c' line='317' column='1'/>
+    <function-decl name='netplan_util_dump_yaml_subtree' mangled-name='netplan_util_dump_yaml_subtree' filepath='../src/util.c' line='316' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_util_dump_yaml_subtree'>
+      <parameter type-id='type-id-83' name='prefix' filepath='../src/util.c' line='316' column='1'/>
+      <parameter type-id='type-id-12' name='input_fd' filepath='../src/util.c' line='316' column='1'/>
+      <parameter type-id='type-id-12' name='output_fd' filepath='../src/util.c' line='316' column='1'/>
+      <parameter type-id='type-id-79' name='error' filepath='../src/util.c' line='316' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_delete_connection' mangled-name='netplan_delete_connection' filepath='../src/util.c' line='497' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_delete_connection'>
-      <parameter type-id='type-id-83' name='id' filepath='../src/util.c' line='497' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='497' column='1'/>
+    <function-decl name='netplan_delete_connection' mangled-name='netplan_delete_connection' filepath='../src/util.c' line='496' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_delete_connection'>
+      <parameter type-id='type-id-83' name='id' filepath='../src/util.c' line='496' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='496' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_generate' mangled-name='netplan_generate' filepath='../src/util.c' line='590' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_generate'>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='590' column='1'/>
+    <function-decl name='netplan_generate' mangled-name='netplan_generate' filepath='../src/util.c' line='589' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_generate'>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='589' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_netdef_get_output_filename' mangled-name='netplan_netdef_get_output_filename' filepath='../src/util.c' line='645' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_output_filename'>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='645' column='1'/>
-      <parameter type-id='type-id-83' name='ssid' filepath='../src/util.c' line='645' column='1'/>
-      <parameter type-id='type-id-81' name='out_buffer' filepath='../src/util.c' line='645' column='1'/>
-      <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/util.c' line='645' column='1'/>
+    <function-decl name='netplan_netdef_get_output_filename' mangled-name='netplan_netdef_get_output_filename' filepath='../src/util.c' line='644' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_output_filename'>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='644' column='1'/>
+      <parameter type-id='type-id-83' name='ssid' filepath='../src/util.c' line='644' column='1'/>
+      <parameter type-id='type-id-81' name='out_buffer' filepath='../src/util.c' line='644' column='1'/>
+      <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/util.c' line='644' column='1'/>
       <return type-id='type-id-68'/>
     </function-decl>
-    <function-decl name='netplan_parser_load_yaml_hierarchy' mangled-name='netplan_parser_load_yaml_hierarchy' filepath='../src/util.c' line='668' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_parser_load_yaml_hierarchy'>
-      <parameter type-id='type-id-310' name='npp' filepath='../src/util.c' line='668' column='1'/>
-      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='668' column='1'/>
-      <parameter type-id='type-id-73' name='error' filepath='../src/util.c' line='668' column='1'/>
+    <function-decl name='netplan_parser_load_yaml_hierarchy' mangled-name='netplan_parser_load_yaml_hierarchy' filepath='../src/util.c' line='667' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_parser_load_yaml_hierarchy'>
+      <parameter type-id='type-id-310' name='npp' filepath='../src/util.c' line='667' column='1'/>
+      <parameter type-id='type-id-83' name='rootdir' filepath='../src/util.c' line='667' column='1'/>
+      <parameter type-id='type-id-73' name='error' filepath='../src/util.c' line='667' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_new_address_iter' mangled-name='_netplan_netdef_new_address_iter' filepath='../src/util.c' line='719' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_address_iter'>
-      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='719' column='1'/>
+    <function-decl name='_netplan_netdef_new_address_iter' mangled-name='_netplan_netdef_new_address_iter' filepath='../src/util.c' line='718' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_address_iter'>
+      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='718' column='1'/>
       <return type-id='type-id-453'/>
     </function-decl>
-    <function-decl name='_netplan_address_iter_next' mangled-name='_netplan_address_iter_next' filepath='../src/util.c' line='743' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_address_iter_next'>
-      <parameter type-id='type-id-453' name='it' filepath='../src/util.c' line='743' column='1'/>
+    <function-decl name='_netplan_address_iter_next' mangled-name='_netplan_address_iter_next' filepath='../src/util.c' line='742' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_address_iter_next'>
+      <parameter type-id='type-id-453' name='it' filepath='../src/util.c' line='742' column='1'/>
       <return type-id='type-id-345'/>
     </function-decl>
-    <function-decl name='_netplan_address_iter_free' mangled-name='_netplan_address_iter_free' filepath='../src/util.c' line='780' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_address_iter_free'>
-      <parameter type-id='type-id-453' name='it' filepath='../src/util.c' line='780' column='1'/>
+    <function-decl name='_netplan_address_iter_free' mangled-name='_netplan_address_iter_free' filepath='../src/util.c' line='779' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_address_iter_free'>
+      <parameter type-id='type-id-453' name='it' filepath='../src/util.c' line='779' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_new_nameserver_iter' mangled-name='_netplan_netdef_new_nameserver_iter' filepath='../src/util.c' line='788' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_nameserver_iter'>
-      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='788' column='1'/>
+    <function-decl name='_netplan_netdef_new_nameserver_iter' mangled-name='_netplan_netdef_new_nameserver_iter' filepath='../src/util.c' line='787' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_nameserver_iter'>
+      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='787' column='1'/>
       <return type-id='type-id-465'/>
     </function-decl>
-    <function-decl name='_netplan_nameserver_iter_next' mangled-name='_netplan_nameserver_iter_next' filepath='../src/util.c' line='799' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_nameserver_iter_next'>
-      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='799' column='1'/>
+    <function-decl name='_netplan_nameserver_iter_next' mangled-name='_netplan_nameserver_iter_next' filepath='../src/util.c' line='798' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_nameserver_iter_next'>
+      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='798' column='1'/>
       <return type-id='type-id-81'/>
     </function-decl>
-    <function-decl name='_netplan_nameserver_iter_free' mangled-name='_netplan_nameserver_iter_free' filepath='../src/util.c' line='813' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_nameserver_iter_free'>
-      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='813' column='1'/>
+    <function-decl name='_netplan_nameserver_iter_free' mangled-name='_netplan_nameserver_iter_free' filepath='../src/util.c' line='812' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_nameserver_iter_free'>
+      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='812' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_new_search_domain_iter' mangled-name='_netplan_netdef_new_search_domain_iter' filepath='../src/util.c' line='819' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_search_domain_iter'>
-      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='819' column='1'/>
+    <function-decl name='_netplan_netdef_new_search_domain_iter' mangled-name='_netplan_netdef_new_search_domain_iter' filepath='../src/util.c' line='818' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_search_domain_iter'>
+      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='818' column='1'/>
       <return type-id='type-id-465'/>
     </function-decl>
-    <function-decl name='_netplan_search_domain_iter_next' mangled-name='_netplan_search_domain_iter_next' filepath='../src/util.c' line='829' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_search_domain_iter_next'>
-      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='829' column='1'/>
+    <function-decl name='_netplan_search_domain_iter_next' mangled-name='_netplan_search_domain_iter_next' filepath='../src/util.c' line='828' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_search_domain_iter_next'>
+      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='828' column='1'/>
       <return type-id='type-id-81'/>
     </function-decl>
-    <function-decl name='_netplan_search_domain_iter_free' mangled-name='_netplan_search_domain_iter_free' filepath='../src/util.c' line='839' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_search_domain_iter_free'>
-      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='839' column='1'/>
+    <function-decl name='_netplan_search_domain_iter_free' mangled-name='_netplan_search_domain_iter_free' filepath='../src/util.c' line='838' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_search_domain_iter_free'>
+      <parameter type-id='type-id-465' name='it' filepath='../src/util.c' line='838' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_new_route_iter' mangled-name='_netplan_netdef_new_route_iter' filepath='../src/util.c' line='845' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_route_iter'>
-      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='845' column='1'/>
+    <function-decl name='_netplan_netdef_new_route_iter' mangled-name='_netplan_netdef_new_route_iter' filepath='../src/util.c' line='844' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_new_route_iter'>
+      <parameter type-id='type-id-145' name='netdef' filepath='../src/util.c' line='844' column='1'/>
       <return type-id='type-id-467'/>
     </function-decl>
-    <function-decl name='_netplan_route_iter_next' mangled-name='_netplan_route_iter_next' filepath='../src/util.c' line='855' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_route_iter_next'>
-      <parameter type-id='type-id-467' name='it' filepath='../src/util.c' line='855' column='1'/>
+    <function-decl name='_netplan_route_iter_next' mangled-name='_netplan_route_iter_next' filepath='../src/util.c' line='854' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_route_iter_next'>
+      <parameter type-id='type-id-467' name='it' filepath='../src/util.c' line='854' column='1'/>
       <return type-id='type-id-346'/>
     </function-decl>
-    <function-decl name='_netplan_route_iter_free' mangled-name='_netplan_route_iter_free' filepath='../src/util.c' line='864' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_route_iter_free'>
-      <parameter type-id='type-id-467' name='it' filepath='../src/util.c' line='864' column='1'/>
+    <function-decl name='_netplan_route_iter_free' mangled-name='_netplan_route_iter_free' filepath='../src/util.c' line='863' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_route_iter_free'>
+      <parameter type-id='type-id-467' name='it' filepath='../src/util.c' line='863' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='_netplan_state_new_netdef_pertype_iter' mangled-name='_netplan_state_new_netdef_pertype_iter' filepath='../src/util.c' line='876' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_state_new_netdef_pertype_iter'>
-      <parameter type-id='type-id-405' name='np_state' filepath='../src/util.c' line='876' column='1'/>
-      <parameter type-id='type-id-83' name='def_type' filepath='../src/util.c' line='876' column='1'/>
+    <function-decl name='_netplan_state_new_netdef_pertype_iter' mangled-name='_netplan_state_new_netdef_pertype_iter' filepath='../src/util.c' line='875' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_state_new_netdef_pertype_iter'>
+      <parameter type-id='type-id-405' name='np_state' filepath='../src/util.c' line='875' column='1'/>
+      <parameter type-id='type-id-83' name='def_type' filepath='../src/util.c' line='875' column='1'/>
       <return type-id='type-id-466'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_pertype_iter_next' mangled-name='_netplan_netdef_pertype_iter_next' filepath='../src/util.c' line='888' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_pertype_iter_next'>
-      <parameter type-id='type-id-466' name='it' filepath='../src/util.c' line='888' column='1'/>
+    <function-decl name='_netplan_netdef_pertype_iter_next' mangled-name='_netplan_netdef_pertype_iter_next' filepath='../src/util.c' line='887' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_pertype_iter_next'>
+      <parameter type-id='type-id-466' name='it' filepath='../src/util.c' line='887' column='1'/>
       <return type-id='type-id-145'/>
     </function-decl>
-    <function-decl name='_netplan_netdef_pertype_iter_free' mangled-name='_netplan_netdef_pertype_iter_free' filepath='../src/util.c' line='906' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_pertype_iter_free'>
-      <parameter type-id='type-id-466' name='it' filepath='../src/util.c' line='906' column='1'/>
+    <function-decl name='_netplan_netdef_pertype_iter_free' mangled-name='_netplan_netdef_pertype_iter_free' filepath='../src/util.c' line='905' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_netplan_netdef_pertype_iter_free'>
+      <parameter type-id='type-id-466' name='it' filepath='../src/util.c' line='905' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='netplan_netdef_match_interface' mangled-name='netplan_netdef_match_interface' filepath='../src/util.c' line='980' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_match_interface'>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='980' column='1'/>
-      <parameter type-id='type-id-83' name='name' filepath='../src/util.c' line='980' column='1'/>
-      <parameter type-id='type-id-83' name='mac' filepath='../src/util.c' line='980' column='1'/>
-      <parameter type-id='type-id-83' name='driver_name' filepath='../src/util.c' line='980' column='1'/>
+    <function-decl name='netplan_netdef_match_interface' mangled-name='netplan_netdef_match_interface' filepath='../src/util.c' line='979' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_match_interface'>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='979' column='1'/>
+      <parameter type-id='type-id-83' name='name' filepath='../src/util.c' line='979' column='1'/>
+      <parameter type-id='type-id-83' name='mac' filepath='../src/util.c' line='979' column='1'/>
+      <parameter type-id='type-id-83' name='driver_name' filepath='../src/util.c' line='979' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_netdef_get_set_name' mangled-name='netplan_netdef_get_set_name' filepath='../src/util.c' line='1015' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_set_name'>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1015' column='1'/>
-      <parameter type-id='type-id-81' name='out_buffer' filepath='../src/util.c' line='1015' column='1'/>
-      <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/util.c' line='1015' column='1'/>
+    <function-decl name='netplan_netdef_get_set_name' mangled-name='netplan_netdef_get_set_name' filepath='../src/util.c' line='1014' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_set_name'>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1014' column='1'/>
+      <parameter type-id='type-id-81' name='out_buffer' filepath='../src/util.c' line='1014' column='1'/>
+      <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/util.c' line='1014' column='1'/>
       <return type-id='type-id-68'/>
     </function-decl>
-    <function-decl name='netplan_netdef_get_macaddress' mangled-name='netplan_netdef_get_macaddress' filepath='../src/util.c' line='1021' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_macaddress'>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1021' column='1'/>
-      <parameter type-id='type-id-81' name='out_buffer' filepath='../src/util.c' line='1021' column='1'/>
-      <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/util.c' line='1021' column='1'/>
+    <function-decl name='netplan_netdef_get_macaddress' mangled-name='netplan_netdef_get_macaddress' filepath='../src/util.c' line='1020' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_macaddress'>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1020' column='1'/>
+      <parameter type-id='type-id-81' name='out_buffer' filepath='../src/util.c' line='1020' column='1'/>
+      <parameter type-id='type-id-69' name='out_buf_size' filepath='../src/util.c' line='1020' column='1'/>
       <return type-id='type-id-68'/>
     </function-decl>
-    <function-decl name='netplan_netdef_get_dhcp4' mangled-name='netplan_netdef_get_dhcp4' filepath='../src/util.c' line='1027' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_dhcp4'>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1027' column='1'/>
+    <function-decl name='netplan_netdef_get_dhcp4' mangled-name='netplan_netdef_get_dhcp4' filepath='../src/util.c' line='1026' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_dhcp4'>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1026' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_netdef_get_dhcp6' mangled-name='netplan_netdef_get_dhcp6' filepath='../src/util.c' line='1033' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_dhcp6'>
-      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1033' column='1'/>
+    <function-decl name='netplan_netdef_get_dhcp6' mangled-name='netplan_netdef_get_dhcp6' filepath='../src/util.c' line='1032' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_netdef_get_dhcp6'>
+      <parameter type-id='type-id-277' name='netdef' filepath='../src/util.c' line='1032' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
-    <function-decl name='netplan_state_iterator_init' mangled-name='netplan_state_iterator_init' filepath='../src/util.c' line='1056' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_iterator_init'>
-      <parameter type-id='type-id-281' name='np_state' filepath='../src/util.c' line='1056' column='1'/>
-      <parameter type-id='type-id-452' name='iter' filepath='../src/util.c' line='1056' column='1'/>
+    <function-decl name='netplan_state_iterator_init' mangled-name='netplan_state_iterator_init' filepath='../src/util.c' line='1055' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_iterator_init'>
+      <parameter type-id='type-id-281' name='np_state' filepath='../src/util.c' line='1055' column='1'/>
+      <parameter type-id='type-id-452' name='iter' filepath='../src/util.c' line='1055' column='1'/>
       <return type-id='type-id-16'/>
     </function-decl>
-    <function-decl name='netplan_state_iterator_next' mangled-name='netplan_state_iterator_next' filepath='../src/util.c' line='1064' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_iterator_next'>
-      <parameter type-id='type-id-452' name='iter' filepath='../src/util.c' line='1064' column='1'/>
+    <function-decl name='netplan_state_iterator_next' mangled-name='netplan_state_iterator_next' filepath='../src/util.c' line='1063' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_iterator_next'>
+      <parameter type-id='type-id-452' name='iter' filepath='../src/util.c' line='1063' column='1'/>
       <return type-id='type-id-145'/>
     </function-decl>
-    <function-decl name='netplan_state_iterator_has_next' mangled-name='netplan_state_iterator_has_next' filepath='../src/util.c' line='1078' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_iterator_has_next'>
-      <parameter type-id='type-id-456' name='iter' filepath='../src/util.c' line='1078' column='1'/>
+    <function-decl name='netplan_state_iterator_has_next' mangled-name='netplan_state_iterator_has_next' filepath='../src/util.c' line='1077' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='netplan_state_iterator_has_next'>
+      <parameter type-id='type-id-456' name='iter' filepath='../src/util.c' line='1077' column='1'/>
       <return type-id='type-id-54'/>
     </function-decl>
     <function-decl name='inet_pton' filepath='/usr/include/arpa/inet.h' line='58' column='1' visibility='default' binding='global' size-in-bits='64'>
