@@ -28,6 +28,7 @@ jobs:
           sudo apt update
           sudo apt -y install curl expect ubuntu-dev-tools devscripts equivs
           pull-lp-source netplan.io
+          sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
 
       - name: Run unit tests
