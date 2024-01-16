@@ -17,12 +17,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import unittest
+
+from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL
 from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, \
                             OVS_PHYSICAL, OVS_VIRTUAL, \
                             OVS_BR_EMPTY, OVS_BR_DEFAULT, \
                             OVS_CLEANUP
 
 
+@unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+                 'OpenVSwitch not installed')
 class TestOpenVSwitch(TestBase):
     '''OVS output'''
 

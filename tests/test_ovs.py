@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import unittest
 
 from unittest.mock import patch, call
@@ -26,6 +27,8 @@ from utils import state_from_yaml
 import tempfile
 
 
+@unittest.skipIf(not os.path.exists(OVS),
+                 'OpenVSwitch not installed')
 class TestOVS(unittest.TestCase):
 
     @patch('subprocess.check_call')

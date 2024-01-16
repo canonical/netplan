@@ -31,7 +31,7 @@ test_netplan_parser_new_parser(__unused void** state)
 void
 test_netplan_parser_load_yaml(__unused void** state)
 {
-    const char* filename = FIXTURESDIR "/ovs.yaml";
+    const char* filename = FIXTURESDIR "/bridge.yaml";
     GError *error = NULL;
     NetplanParser* npp = netplan_parser_new();
 
@@ -45,7 +45,7 @@ test_netplan_parser_load_yaml(__unused void** state)
 void
 test_netplan_parser_load_yaml_from_fd(__unused void** state)
 {
-    const char* filename = FIXTURESDIR "/ovs.yaml";
+    const char* filename = FIXTURESDIR "/bridge.yaml";
     FILE* f = fopen(filename, "r");
     GError *error = NULL;
 
