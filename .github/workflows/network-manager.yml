@@ -54,17 +54,21 @@ jobs:
           DEB_BUILD_OPTIONS: nocheck
           DPKG_GENSYMBOLS_CHECK_LEVEL: 0
         with:
-          docker-image: ubuntu:mantic
+          docker-image: ubuntu:noble
           buildpackage-opts: --build=binary --no-sign
           #extra-build-deps: python3-cffi libpython3-dev
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
           sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
-          autopkgtest-build-lxd ubuntu-daily:mantic
+          autopkgtest-build-lxd ubuntu-daily:noble
       - name: Run autopkgtest
         run: |
           # using --setup-commands temporarily to install:
           # cmocka/pytest/rich/ethtool until they become proper test-deps
-          sudo autopkgtest -U debian/artifacts/*.deb \
-            network-manager --apt-pocket=proposed=src:network-manager -- lxd autopkgtest/ubuntu/mantic/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+          pull-lp-source network-manager noble
+          sudo autopkgtest -U \
+            --copy=debian/artifacts:/root/ --setup-commands='dpkg -i /root/*.deb' \
+            --env=DEB_BUILD_OPTIONS=nocheck \
+            --apt-pocket=proposed=src:network-manager \
+            network-manager_*.dsc -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
