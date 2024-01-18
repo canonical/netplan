@@ -25,7 +25,6 @@
 #include "openvswitch.h"
 #include "networkd.h"
 #include "parse.h"
-#include "parse-globals.h"
 #include "util.h"
 #include "util-internal.h"
 

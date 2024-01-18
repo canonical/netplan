@@ -31,7 +31,6 @@
 #include "netplan.h"
 #include "nm.h"
 #include "parse.h"
-#include "parse-globals.h"
 #include "parse-nm.h"
 #include "util.h"
 #include "util-internal.h"
