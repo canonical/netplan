@@ -975,17 +975,17 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     }
 
     /* Create /run/NetworkManager/ with 755 permissions if the folder is missing.
-     * Letting the next invokation of safe_mkdir_p_dir do it would result in 
-     * more restrictive access because of the call to umask. */
+     * Letting the next invokation of _netplan_safe_mkdir_p_dir do it would
+     * result in more restrictive access because of the call to umask. */
     nm_run_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", "run/NetworkManager/", NULL);
     if (!g_file_test(nm_run_path, G_FILE_TEST_EXISTS))
-        safe_mkdir_p_dir(nm_run_path);
+        _netplan_safe_mkdir_p_dir(nm_run_path);
 
     full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", conf_path, NULL);
 
     /* NM connection files might contain secrets, and NM insists on tight permissions */
     orig_umask = umask(077);
-    safe_mkdir_p_dir(full_path);
+    _netplan_safe_mkdir_p_dir(full_path);
     if (!g_key_file_save_to_file(kf, full_path, error))
         return FALSE; // LCOV_EXCL_LINE
     umask(orig_umask);
@@ -999,7 +999,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
  *           (useful for testing).
  */
 gboolean
-netplan_netdef_write_nm(
+_netplan_netdef_write_nm(
         __unused const NetplanState* np_state,
         const NetplanNetDefinition* netdef,
         const char* rootdir,
@@ -1148,13 +1148,13 @@ netplan_state_finish_nm_write(
 
     /* write generated NetworkManager drop-in config */
     if (nm_conf->len > 0)
-        g_string_free_to_file(nm_conf, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL);
+        _netplan_g_string_free_to_file(nm_conf, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL);
     else
         g_string_free(nm_conf, TRUE);
 
     /* write generated udev rules */
     if (udev_rules->len > 0)
-        g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL);
+        _netplan_g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL);
     else
         g_string_free(udev_rules, TRUE);
 
@@ -1165,12 +1165,12 @@ netplan_state_finish_nm_write(
  * Clean up all generated configurations in @rootdir from previous runs.
  */
 gboolean
-netplan_nm_cleanup(const char* rootdir)
+_netplan_nm_cleanup(const char* rootdir)
 {
     g_autofree char* confpath = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/netplan.conf", NULL);
     g_autofree char* global_manage_path = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
     unlink(confpath);
     unlink(global_manage_path);
-    unlink_glob(rootdir, "/run/NetworkManager/system-connections/netplan-*");
+    _netplan_unlink_glob(rootdir, "/run/NetworkManager/system-connections/netplan-*");
     return TRUE;
 }

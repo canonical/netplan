@@ -66,9 +66,9 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
         g_string_append(s, "StartLimitBurst=0\n");
     g_string_append(s, cmds->str);
 
-    g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
 
-    safe_mkdir_p_dir(link);
+    _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
@@ -319,7 +319,7 @@ cleanup:
  *           (useful for testing).
  */
 gboolean
-netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinition* def, const char* rootdir, gboolean* has_been_written, GError** error)
+_netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinition* def, const char* rootdir, gboolean* has_been_written, GError** error)
 {
     g_autoptr(GString) cmds = g_string_new(NULL);
     gchar* dependency = NULL;
@@ -416,7 +416,7 @@ netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefinitio
         /* Try writing out a base config */
         /* TODO: make use of netplan_netdef_get_output_filename() */
         base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
-        if (!netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
+        if (!_netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
             return FALSE;
     } else {
         /* Other interfaces must be part of an OVS bridge or bond to carry additional data */
@@ -506,9 +506,9 @@ netplan_state_finish_ovs_write(const NetplanState* np_state, const char* rootdir
  */
 
 gboolean
-netplan_ovs_cleanup(const char* rootdir)
+_netplan_ovs_cleanup(const char* rootdir)
 {
-    unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-*.service");
-    unlink_glob(rootdir, "/run/systemd/system/netplan-ovs-*.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-*.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-ovs-*.service");
     return TRUE;
 }

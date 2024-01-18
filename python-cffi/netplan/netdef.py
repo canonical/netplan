@@ -131,7 +131,7 @@ class NetDefinition():
 
     @property
     def _delay_virtual_functions_rebind(self) -> bool:
-        return bool(lib.netplan_netdef_get_delay_virtual_functions_rebind(self._ptr))
+        return bool(lib._netplan_netdef_get_delay_virtual_functions_rebind(self._ptr))
 
     @property
     def _vf_count(self) -> int:

@@ -21,7 +21,7 @@
 #include <glib.h>
 
 NETPLAN_INTERNAL gboolean
-netplan_netdef_write_networkd(
+_netplan_netdef_write_networkd(
         const NetplanState* np_state,
         const NetplanNetDefinition* def,
         const char *rootdir,
@@ -29,7 +29,7 @@ netplan_netdef_write_networkd(
         GError** error);
 
 NETPLAN_INTERNAL gboolean
-netplan_netdef_write_network_file(
+_netplan_netdef_write_network_file(
         const NetplanState* np_state,
         const NetplanNetDefinition* def,
         const char *rootdir,
@@ -38,4 +38,4 @@ netplan_netdef_write_network_file(
         GError** error);
 
 NETPLAN_INTERNAL void
-netplan_networkd_cleanup(const char* rootdir);
+_netplan_networkd_cleanup(const char* rootdir);

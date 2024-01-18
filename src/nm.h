@@ -20,7 +20,7 @@
 #include "netplan.h"
 
 NETPLAN_INTERNAL gboolean
-netplan_netdef_write_nm(
+_netplan_netdef_write_nm(
         const NetplanState* np_state,
         const NetplanNetDefinition* netdef,
         const char* rootdir,
@@ -28,4 +28,4 @@ netplan_netdef_write_nm(
         GError** error);
 
 NETPLAN_INTERNAL gboolean
-netplan_nm_cleanup(const char* rootdir);
+_netplan_nm_cleanup(const char* rootdir);

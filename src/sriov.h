@@ -19,4 +19,4 @@
 #include "netplan.h"
 
 NETPLAN_INTERNAL gboolean
-netplan_sriov_cleanup(const char* rootdir);
+_netplan_sriov_cleanup(const char* rootdir);
