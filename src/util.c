@@ -31,7 +31,6 @@
 #include "util-internal.h"
 #include "netplan.h"
 #include "parse.h"
-#include "parse-globals.h"
 #include "names.h"
 #include "yaml-helpers.h"
 

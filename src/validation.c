@@ -26,7 +26,6 @@
 
 #include "parse.h"
 #include "types-internal.h"
-#include "parse-globals.h"
 #include "names.h"
 #include "error.h"
 #include "util-internal.h"
