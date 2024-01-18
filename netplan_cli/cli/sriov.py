@@ -375,12 +375,6 @@ def apply_sriov_config(config_manager, rootdir='/'):
     Go through all interfaces, identify which ones are SR-IOV VFs, create
     them and perform all other necessary setup.
     """
-    parser = netplan.Parser()
-    parser.load_yaml_hierarchy(rootdir)
-
-    np_state = netplan.State()
-    np_state.import_parser_results(parser)
-
     config_manager.parse()
     interfaces = netifaces.interfaces()
     np_state = config_manager.np_state

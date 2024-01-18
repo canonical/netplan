@@ -24,7 +24,6 @@ from subprocess import CalledProcessError
 from collections import defaultdict
 from unittest.mock import patch, mock_open, call
 
-import netplan
 import netplan_cli.cli.sriov as sriov
 
 from netplan_cli.configmanager import ConfigManager, ConfigurationError
@@ -578,7 +577,7 @@ class TestSRIOV(unittest.TestCase):
         gim.return_value = '00:01:02:03:04:05'
 
         # call method under test
-        with self.assertRaises(netplan.NetplanValidationException) as e:
+        with self.assertRaises(ConfigurationError) as e:
             sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
 
         self.assertIn('vf1.15: missing \'id\' property', str(e.exception))
