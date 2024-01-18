@@ -47,7 +47,7 @@ typedef struct netplan_state_iterator RealStateIter;
  * Create the parent directories of given file path. Exit program on failure.
  */
 void
-safe_mkdir_p_dir(const char* file_path)
+_netplan_safe_mkdir_p_dir(const char* file_path)
 {
     g_autofree char* dir = g_path_get_dirname(file_path);
 
@@ -65,7 +65,7 @@ safe_mkdir_p_dir(const char* file_path)
  * @path: path of file to write (@rootdir will be prepended)
  * @suffix: optional suffix to append to path
  */
-void g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix)
+void _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix)
 {
     g_autofree char* full_path = NULL;
     g_autofree char* path_suffix = NULL;
@@ -74,7 +74,7 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
 
     path_suffix = g_strjoin(NULL, path, suffix, NULL);
     full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, path_suffix, NULL);
-    safe_mkdir_p_dir(full_path);
+    _netplan_safe_mkdir_p_dir(full_path);
     if (!g_file_set_contents(full_path, contents, -1, &error)) {
         /* the mkdir() just succeeded, there is no sensible
          * method to test this without root privileges, bind mounts, and
@@ -90,7 +90,7 @@ void g_string_free_to_file(GString* s, const char* rootdir, const char* path, co
  * Remove all files matching given glob.
  */
 void
-unlink_glob(const char* rootdir, const char* _glob)
+_netplan_unlink_glob(const char* rootdir, const char* _glob)
 {
     glob_t gl;
     int rc;
@@ -112,7 +112,7 @@ unlink_glob(const char* rootdir, const char* _glob)
 /**
  * Return a glob of all *.yaml files in /{lib,etc,run}/netplan/ (in this order)
  */
-int find_yaml_glob(const char* rootdir, glob_t* out_glob)
+int _netplan_find_yaml_glob(const char* rootdir, glob_t* out_glob)
 {
     int rc;
     g_autofree char* rglob = g_build_path(G_DIR_SEPARATOR_S,
@@ -673,7 +673,7 @@ netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GErr
      * To do that, we put all found files in a hash table, then sort it by
      * file name, and add the entries from /run after the ones from /etc
      * and those after the ones from /lib. */
-    if (find_yaml_glob(rootdir, &gl) != 0)
+    if (_netplan_find_yaml_glob(rootdir, &gl) != 0)
         return FALSE; // LCOV_EXCL_LINE
     /* keys are strdup()ed, free them; values point into the glob_t, don't free them */
     g_autoptr(GHashTable) configs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);

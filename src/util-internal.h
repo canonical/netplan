@@ -35,16 +35,16 @@ extern GHashTable*
 wifi_frequency_5;
 
 NETPLAN_INTERNAL void
-safe_mkdir_p_dir(const char* file_path);
+_netplan_safe_mkdir_p_dir(const char* file_path);
 
 NETPLAN_INTERNAL void
-g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
+_netplan_g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
 
 NETPLAN_INTERNAL void
-unlink_glob(const char* rootdir, const char* _glob);
+_netplan_unlink_glob(const char* rootdir, const char* _glob);
 
 NETPLAN_INTERNAL int
-find_yaml_glob(const char* rootdir, glob_t* out_glob);
+_netplan_find_yaml_glob(const char* rootdir, glob_t* out_glob);
 
 const char*
 get_global_network(int ip_family);
@@ -106,10 +106,7 @@ NETPLAN_INTERNAL ssize_t
 _netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
 
 NETPLAN_INTERNAL gboolean
-_netplan_netdef_get_delay_vf_rebind(const NetplanNetDefinition* netdef);
-
-NETPLAN_INTERNAL gboolean
-netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
+_netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef);
 
 NETPLAN_INTERNAL guint
 _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef);

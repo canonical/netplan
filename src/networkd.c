@@ -284,7 +284,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
         (def->large_receive_offload ? "true" : "false"));
 
     orig_umask = umask(022);
-    g_string_free_to_file(s, rootdir, path, ".link");
+    _netplan_g_string_free_to_file(s, rootdir, path, ".link");
     umask(orig_umask);
 }
 
@@ -303,8 +303,8 @@ write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** erro
     g_string_append(s, "\n[Service]\nType=oneshot\n");
     g_string_append_printf(s, "ExecStart="SBINDIR"/iw reg set %s\n", def->regulatory_domain);
 
-    g_string_free_to_file(s, rootdir, path, NULL);
-    safe_mkdir_p_dir(link);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
@@ -582,7 +582,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
     /* these do not contain secrets and need to be readable by
      * systemd-networkd - LP: #1736965 */
     orig_umask = umask(022);
-    g_string_free_to_file(s, rootdir, path, ".netdev");
+    _netplan_g_string_free_to_file(s, rootdir, path, ".netdev");
     umask(orig_umask);
 }
 
@@ -716,7 +716,7 @@ combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* co
  * Write the needed networkd .network configuration for the selected netplan definition.
  */
 gboolean
-netplan_netdef_write_network_file(
+_netplan_netdef_write_network_file(
         const NetplanState* np_state,
         const NetplanNetDefinition* def,
         const char *rootdir,
@@ -981,7 +981,7 @@ netplan_netdef_write_network_file(
         /* these do not contain secrets and need to be readable by
          * systemd-networkd - LP: #1736965 */
         orig_umask = umask(022);
-        g_string_free_to_file(s, rootdir, path, ".network");
+        _netplan_g_string_free_to_file(s, rootdir, path, ".network");
         umask(orig_umask);
     }
 
@@ -1029,7 +1029,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
     g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
 
     orig_umask = umask(022);
-    g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
     umask(orig_umask);
 }
 
@@ -1199,7 +1199,7 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
         g_string_append(s, " -Dnl80211,wext\n");
     }
     orig_umask = umask(022);
-    g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
     umask(orig_umask);
 }
 
@@ -1299,7 +1299,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
 
     /* use tight permissions as this contains secrets */
     orig_umask = umask(077);
-    g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
     umask(orig_umask);
     return TRUE;
 }
@@ -1313,7 +1313,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
  * Returns: FALSE on error.
  */
 gboolean
-netplan_netdef_write_networkd(
+_netplan_netdef_write_networkd(
         const NetplanState* np_state,
         const NetplanNetDefinition* def,
         const char *rootdir,
@@ -1358,7 +1358,7 @@ netplan_netdef_write_networkd(
         write_wpa_unit(def, rootdir);
 
         g_debug("Creating wpa_supplicant service enablement link %s", link);
-        safe_mkdir_p_dir(link);
+        _netplan_safe_mkdir_p_dir(link);
 
         if (symlink(slink, link) < 0 && errno != EEXIST) {
             // LCOV_EXCL_START
@@ -1371,7 +1371,7 @@ netplan_netdef_write_networkd(
 
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         write_netdev_file(def, rootdir, path_base);
-    if (!netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
+    if (!_netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
         return FALSE;
     SET_OPT_OUT_PTR(has_been_written, TRUE);
     return TRUE;
@@ -1381,16 +1381,16 @@ netplan_netdef_write_networkd(
  * Clean up all generated configurations in @rootdir from previous runs.
  */
 void
-netplan_networkd_cleanup(const char* rootdir)
+_netplan_networkd_cleanup(const char* rootdir)
 {
-    unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
-    unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
-    unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-*.service");
-    unlink_glob(rootdir, "/run/systemd/system/netplan-wpa-*.service");
-    unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
-    unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
-    unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
+    _netplan_unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-*.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-wpa-*.service");
+    _netplan_unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
      * upgraded system, we need to make sure to clean those up. */
-    unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
 }

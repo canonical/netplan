@@ -26,15 +26,18 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#include "util.h"
-#include "util-internal.h"
+/* Public API (from include/) */
+#include "netplan.h"
 #include "parse.h"
+#include "util.h"
+
+/* Netplan internal (from src/) */
 #include "names.h"
 #include "networkd.h"
 #include "nm.h"
 #include "openvswitch.h"
 #include "sriov.h"
-#include "netplan.h"
+#include "util-internal.h"
 
 static gchar* rootdir;
 static gchar** files;
@@ -64,7 +67,7 @@ enable_networkd(const char* generator_dir)
 {
     g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
-    safe_mkdir_p_dir(link);
+    _netplan_safe_mkdir_p_dir(link);
     if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to create enablement symlink: %m\n");
@@ -73,7 +76,7 @@ enable_networkd(const char* generator_dir)
     }
 
     g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
-    safe_mkdir_p_dir(link2);
+    _netplan_safe_mkdir_p_dir(link2);
     if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to create enablement symlink: %m\n");
@@ -261,10 +264,10 @@ int main(int argc, char** argv)
     }
 
     /* Clean up generated config from previous runs */
-    netplan_networkd_cleanup(rootdir);
-    netplan_nm_cleanup(rootdir);
-    netplan_ovs_cleanup(rootdir);
-    netplan_sriov_cleanup(rootdir);
+    _netplan_networkd_cleanup(rootdir);
+    _netplan_nm_cleanup(rootdir);
+    _netplan_ovs_cleanup(rootdir);
+    _netplan_sriov_cleanup(rootdir);
 
     /* Generate backend specific configuration files from merged data. */
     CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error)); // OVS cleanup unit is always written
@@ -273,11 +276,11 @@ int main(int argc, char** argv)
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             NetplanNetDefinition* def = (NetplanNetDefinition*) iterator->data;
             gboolean has_been_written = FALSE;
-            CHECK_CALL(netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error));
+            CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error));
             any_networkd = any_networkd || has_been_written;
 
-            CHECK_CALL(netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error));
-            CHECK_CALL(netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error));
+            CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error));
+            CHECK_CALL(_netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error));
             any_nm = any_nm || has_been_written;
         }
 
@@ -295,7 +298,7 @@ int main(int argc, char** argv)
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if "renderer: NetworkManager" is used anywhere */
     if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm)
-        g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
+        _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */

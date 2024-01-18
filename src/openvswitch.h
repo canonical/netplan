@@ -20,7 +20,7 @@
 #include "netplan.h"
 
 NETPLAN_INTERNAL gboolean
-netplan_netdef_write_ovs(
+_netplan_netdef_write_ovs(
         const NetplanState* np_state,
         const NetplanNetDefinition* netdef,
         const char* rootdir,
@@ -28,4 +28,4 @@ netplan_netdef_write_ovs(
         GError** error);
 
 NETPLAN_INTERNAL gboolean
-netplan_ovs_cleanup(const char* rootdir);
+_netplan_ovs_cleanup(const char* rootdir);

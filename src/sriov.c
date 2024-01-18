@@ -48,9 +48,9 @@ write_sriov_rebind_systemd_unit(const GString* pfs, const char* rootdir, GError*
     g_string_append(s, "\n[Service]\nType=oneshot\n");
     g_string_append_printf(s, "ExecStart=" SBINDIR "/netplan rebind %s\n", pfs->str);
 
-    g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
 
-    safe_mkdir_p_dir(link);
+    _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_set_error(error, NETPLAN_FILE_ERROR, errno,
@@ -108,17 +108,17 @@ netplan_state_finish_sriov_write(const NetplanState* np_state, const char* rootd
         /* For now we execute apply --sriov-only everytime there is a new
         SR-IOV device appearing, which is fine as it's relatively fast */
         GString *udev_rule = g_string_new("ACTION==\"add\", SUBSYSTEM==\"net\", ATTRS{sriov_totalvfs}==\"?*\", RUN+=\"/usr/sbin/netplan apply --sriov-only\"\n");
-        g_string_free_to_file(udev_rule, rootdir, "run/udev/rules.d/99-sriov-netplan-setup.rules", NULL);
+        _netplan_g_string_free_to_file(udev_rule, rootdir, "run/udev/rules.d/99-sriov-netplan-setup.rules", NULL);
     }
 
     return ret;
 }
 
 gboolean
-netplan_sriov_cleanup(const char* rootdir)
+_netplan_sriov_cleanup(const char* rootdir)
 {
-    unlink_glob(rootdir, "/run/udev/rules.d/*-sriov-netplan-*.rules");
-    unlink_glob(rootdir, "/run/systemd/system/netplan-sriov-*.service");
+    _netplan_unlink_glob(rootdir, "/run/udev/rules.d/*-sriov-netplan-*.rules");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-sriov-*.service");
     return TRUE;
 
 }

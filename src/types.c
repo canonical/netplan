@@ -558,8 +558,8 @@ _netplan_netdef_get_embedded_switch_mode(const NetplanNetDefinition* netdef, cha
     return netplan_copy_string(netdef->embedded_switch_mode, out_buffer, out_buf_size);
 }
 
-NETPLAN_INTERNAL gboolean
-netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef)
+gboolean
+_netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
     return netdef->sriov_delay_virtual_functions_rebind;
