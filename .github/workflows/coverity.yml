@@ -15,7 +15,7 @@ jobs:
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
           sudo apt update
-          sudo apt -y install curl
+          sudo apt -y install curl ubuntu-dev-tools equivs
           pull-lp-source netplan.io
           sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
