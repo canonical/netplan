@@ -609,10 +609,6 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
     }
 }
 
-/**
- * Parse keyfile into a NetplanNetDefinition struct
- * @filename: full path to the NetworkManager keyfile
- */
 gboolean
 netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** error)
 {

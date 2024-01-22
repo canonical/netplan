@@ -3457,9 +3457,6 @@ _netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filepath, y
     return ret;
 }
 
-/**
- * Parse given YAML file from FD and create/update the parser's "netdefs" list.
- */
 gboolean
 netplan_parser_load_yaml_from_fd(NetplanParser* npp, int fd, GError** error)
 {
@@ -3470,9 +3467,7 @@ netplan_parser_load_yaml_from_fd(NetplanParser* npp, int fd, GError** error)
     return _netplan_parser_load_single_file(npp, NULL, doc, error);
 
 }
-/**
- * Parse given YAML file and create/update the parser's "netdefs" list.
- */
+
 gboolean
 netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** error)
 {
