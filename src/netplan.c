@@ -942,13 +942,6 @@ err_path:
     // LCOV_EXCL_STOP
 }
 
-/**
- * Generate the Netplan YAML configuration for the selected netdef
- * @np_state: NetplanState (as pointer), the global state to which the netdef belongs
- * @def: NetplanNetDefinition (as pointer), the data to be serialized
- * @rootdir: If not %NULL, generate configuration in this root directory
- *           (useful for testing).
- */
 gboolean
 netplan_netdef_write_yaml(
         const NetplanState* np_state,
@@ -1119,16 +1112,6 @@ file_error:
     return FALSE;
 }
 
-/**
- * Generate the YAML configuration, filtered to the data relevant to a particular file.
- * Any data that's assigned to another file is ignored. Data that is not assigned is considered
- * relevant.
- *
- * @np_state: the state for which to generate the config
- * @filename: Relevant file basename (e.g. origin-hint.yaml)
- * @rootdir: If not %NULL, generate configuration in this root directory
- *           (useful for testing).
- */
 gboolean
 netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename, const char* rootdir, GError** error)
 {
@@ -1186,12 +1169,6 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     return FALSE;
 }
 
-/**
- * Dump the whole state into a single YAML file.
- *
- * @np_state: the state for which to generate the config
- * @out_fd: File descriptor to an opened file into which to dump the content
- */
 gboolean
 netplan_state_dump_yaml(const NetplanState* np_state, int out_fd, GError** error)
 {
@@ -1201,16 +1178,6 @@ netplan_state_dump_yaml(const NetplanState* np_state, int out_fd, GError** error
     return netplan_netdef_list_write_yaml(np_state, np_state->netdefs_ordered, out_fd, NULL, TRUE, error);
 }
 
-/**
- * Regenerate the YAML configuration files from a given state. Any state that
- * hasn't an associated filepath will use the default_filename output in the
- * standard config directory.
- *
- * @np_state: the state for which to generate the config
- * @default_filename: Default config file, cannot be NULL or empty
- * @rootdir: If not %NULL, generate configuration in this root directory
- *           (useful for testing).
- */
 gboolean
 netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* default_filename, const char* rootdir, GError** error)
 {

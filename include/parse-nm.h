@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Canonical, Ltd.
+ * Copyright (C) 2021-2024 Canonical, Ltd.
  * Author: Lukas Märdian <slyon@ubuntu.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,15 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*! \file parse-nm.h
- *  \brief Parsing native NetworkManager keyfile into Netplan state.
+/**
+ * @file  parse-nm.h
+ * @brief Parsing NetworkManager keyfile configuration into @ref NetplanParser data structures.
  */
 
 #pragma once
 #include "types.h"
 
+/// The value `_` indicates an emtpy keyfile group in `networkmanager.passthrough` handling.
 #define NETPLAN_NM_EMPTY_GROUP "_"
 
+/**
+ * @brief   Parse a NetworkManager keyfile into a @ref NetplanNetDefinition struct.
+ * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
+ * @param[in]  filename Full path to the NetworkManager keyfile
+ * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @return              Indication of success or failure
+ */
 NETPLAN_PUBLIC gboolean
 netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, NetplanError** error);
 

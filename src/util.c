@@ -129,20 +129,6 @@ int _netplan_find_yaml_glob(const char* rootdir, glob_t* out_glob)
     return 0;
 }
 
-
-/**
- * create a yaml patch from a "set expression"
- *
- * A "set expression" here consists of a path formed of TAB-separated
- * keys, indicating where in the YAML doc we want to make our changes, and
- * a valid YAML expression that will be the payload to insert at that
- * place. The result is a well-formed YAML document.
- *
- * @conf_obj_path: TAB-separated YAML path
- * @obj_payload: YAML expression
- * @output_file: file path to write out the result document
- */
-
 gboolean
 netplan_util_create_yaml_patch(const char* conf_obj_path, const char* obj_payload, int output_fd, GError** error)
 {
