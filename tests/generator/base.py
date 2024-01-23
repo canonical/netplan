@@ -491,3 +491,10 @@ class TestBase(unittest.TestCase):
         self.assertEqual(set(os.path.basename(file) for file in sriov_systemd_dir),
                          {'netplan-sriov-' + f for f in file_contents_map})
         self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
+
+        for file in sriov_systemd_dir:
+            basename = os.path.basename(file)
+            with open(file, 'r') as f:
+                contents = f.read()
+                map_contents = file_contents_map.get(basename.replace('netplan-sriov-', ''))
+                self.assertEqual(map_contents, contents)
