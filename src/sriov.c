@@ -27,28 +27,34 @@
 #include "sriov.h"
 
 STATIC gboolean
-write_sriov_rebind_systemd_unit(const GString* pfs, const char* rootdir, GError** error)
+write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* rootdir, GError** error)
 {
     g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/multi-user.target.wants/netplan-sriov-rebind.service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-sriov-rebind.service", NULL);
-    gchar** split = NULL;
+
+    GHashTableIter iter;
+    gpointer key;
+    GString* interfaces = g_string_new("");
 
     GString* s = g_string_new("[Unit]\n");
     g_string_append(s, "Description=(Re-)bind SR-IOV Virtual Functions to their driver\n");
     g_string_append_printf(s, "After=network.target\n");
 
     /* Run after udev */
-    split = g_strsplit(pfs->str, " ", 0);
-    for (unsigned i = 0; split[i]; ++i)
-        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n",
-                               split[i]);
-    g_strfreev(split);
+    g_hash_table_iter_init(&iter, pfs);
+    while (g_hash_table_iter_next (&iter, &key, NULL)) {
+        const gchar* id = key;
+        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id);
+        g_string_append_printf(interfaces, "%s ", id);
+    }
 
     g_string_append(s, "\n[Service]\nType=oneshot\n");
-    g_string_append_printf(s, "ExecStart=" SBINDIR "/netplan rebind %s\n", pfs->str);
+    g_string_truncate(interfaces, interfaces->len-1); /* cut trailing whitespace */
+    g_string_append_printf(s, "ExecStart=" SBINDIR "/netplan rebind %s\n", interfaces->str);
 
     _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    g_string_free(interfaces, TRUE);
 
     _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
@@ -73,7 +79,7 @@ netplan_state_finish_sriov_write(const NetplanState* np_state, const char* rootd
     gboolean ret = TRUE;
 
     if (np_state) {
-        GString* pfs = g_string_new(NULL);
+        GHashTable* rebind_pfs = g_hash_table_new(g_str_hash, g_str_equal);
         /* Find netdev interface names for SR-IOV PFs*/
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             def = (NetplanNetDefinition*) iterator->data;
@@ -88,20 +94,19 @@ netplan_state_finish_sriov_write(const NetplanState* np_state, const char* rootd
 
             if (pf && pf->sriov_delay_virtual_functions_rebind) {
                 if (pf->set_name)
-                    g_string_append_printf(pfs, "%s ", pf->set_name);
+                    g_hash_table_add(rebind_pfs, pf->set_name);
                 else if (!pf->has_match) /* netdef_id == interface name */
-                    g_string_append_printf(pfs, "%s ", pf->id);
+                    g_hash_table_add(rebind_pfs, pf->id);
                 else
                     g_warning("%s: Cannot rebind SR-IOV virtual functions, unknown interface name. "
                               "Use 'netplan rebind <IFACE>' to rebind manually or use the 'set-name' stanza.",
                               pf->id);
             }
         }
-        if (pfs->len > 0) {
-            g_string_truncate(pfs, pfs->len-1); /* cut trailing whitespace */
-            ret = write_sriov_rebind_systemd_unit(pfs, rootdir, NULL);
+        if (g_hash_table_size(rebind_pfs) > 0) {
+            ret = write_sriov_rebind_systemd_unit(rebind_pfs, rootdir, NULL);
         }
-        g_string_free(pfs, TRUE);
+        g_hash_table_destroy(rebind_pfs);
     }
 
     if (any_sriov) {
