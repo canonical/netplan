@@ -879,6 +879,42 @@ Type=oneshot
 ExecStart=/usr/sbin/netplan rebind enblue engreen
 '''})
 
+    def test_rebind_service_generation(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      embedded-switch-mode: switchdev
+      delay-virtual-functions-rebind: true
+    enblue:
+      match: {driver: fake_driver}
+      set-name: enblue
+      embedded-switch-mode: legacy
+      delay-virtual-functions-rebind: true
+      virtual-function-count: 4
+    sriov_blue_vf0:
+      link: enblue
+    sriov_blue_vf1:
+      link: enblue
+    sriov_blue_vf1:
+      link: enblue
+    sriov_green_vf0:
+      link: engreen
+    sriov_green_vf1:
+      link: engreen
+    sriov_green_vf2:
+      link: engreen''')
+        self.assert_sriov({'rebind.service': '''[Unit]
+Description=(Re-)bind SR-IOV Virtual Functions to their driver
+After=network.target
+After=sys-subsystem-net-devices-enblue.device
+After=sys-subsystem-net-devices-engreen.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan rebind enblue engreen
+'''})
+
     def test_rebind_not_delayed(self):
         self.generate('''network:
   version: 2
