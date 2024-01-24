@@ -27,7 +27,6 @@ import yaml
 
 from generator.base import TestBase
 from parser.base import capture_stderr
-from tests.test_utils import MockCmd
 
 from utils import state_from_yaml
 from netplan_cli.cli.commands.set import FALLBACK_FILENAME
@@ -62,14 +61,6 @@ class TestRawLibnetplan(TestBase):
         with self.assertRaises(netplan.NetplanException) as ctx:
             parser.load_keyfile(f)
         self.assertIn('No such file or directory', str(ctx.exception))
-
-    def test_generate(self):
-        self.mock_netplan_cmd = MockCmd("netplan")
-        os.environ["TEST_NETPLAN_CMD"] = self.mock_netplan_cmd.path
-        self.assertTrue(lib.netplan_generate(self.workdir.name.encode()))
-        self.assertEqual(self.mock_netplan_cmd.calls(), [
-            ["netplan", "generate", "--root-dir", self.workdir.name],
-        ])
 
     def test_delete_connection(self):
         os.environ["TEST_NETPLAN_CMD"] = exe_cli

@@ -38,9 +38,6 @@
 NETPLAN_PUBLIC gboolean
 netplan_delete_connection(const char* id, const char* rootdir);
 
-NETPLAN_PUBLIC gboolean
-netplan_generate(const char* rootdir);
-
 /**
  * @brief   Extract the Netplan ID from the filepath of a NetworkManager keyfile.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
