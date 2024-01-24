@@ -195,19 +195,21 @@ smartquotes_action = 'qe'
 # https://breathe.readthedocs.io/en/latest/directives.html
 # breathe_projects = {"Netplan": "../doxyxml/"}
 breathe_projects_source = {"auto-apidoc": ("../", [
+    "include/netdef.h",
     "include/netplan.h",
     "include/parse-nm.h",
     "include/parse.h",
+    "include/state.h",
     "include/types.h",
     "include/util.h",
-    "src/error.c",
-    "src/names.c",
-    "src/netplan.c",
-    "src/parse-nm.c",
-    "src/parse.c",
-    "src/types.c",
-    "src/util.c",
-    "src/validation.c",
+    # "src/error.c",
+    # "src/names.c",
+    # "src/netplan.c",
+    # "src/parse-nm.c",
+    # "src/parse.c",
+    # "src/types.c",
+    # "src/util.c",
+    # "src/validation.c",
 ])}
 
 breathe_doxygen_config_options = {
