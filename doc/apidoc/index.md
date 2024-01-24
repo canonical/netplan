@@ -1,13 +1,14 @@
 # Reference: libnetplan API
 
 ## Public headers
+
 ```{toctree}
 ---
 maxdepth: 1
 ---
-inc-netplan
+inc-parse
 ```
-> ```{autodoxygenfile} include/netplan.h
+> ```{autodoxygenfile} include/parse.h
 > :sections: briefdescription
 > ```
 
@@ -25,9 +26,9 @@ inc-parse-nm
 ---
 maxdepth: 1
 ---
-inc-parse
+inc-state
 ```
-> ```{autodoxygenfile} include/parse.h
+> ```{autodoxygenfile} include/state.h
 > :sections: briefdescription
 > ```
 
@@ -35,9 +36,9 @@ inc-parse
 ---
 maxdepth: 1
 ---
-inc-types
+inc-netdef
 ```
-> ```{autodoxygenfile} include/types.h
+> ```{autodoxygenfile} include/netdef.h
 > :sections: briefdescription
 > ```
 
@@ -48,5 +49,15 @@ maxdepth: 1
 inc-util
 ```
 > ```{autodoxygenfile} include/util.h
+> :sections: briefdescription
+> ```
+
+```{toctree}
+---
+maxdepth: 1
+---
+inc-types
+```
+> ```{autodoxygenfile} include/types.h
 > :sections: briefdescription
 > ```

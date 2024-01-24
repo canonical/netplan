@@ -54,21 +54,6 @@ NETPLAN_PUBLIC ssize_t
 netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* out_buffer, size_t out_buf_size);
 
 /**
- * @brief   Get the full path that a @ref NetplanNetDefinition will be written to by its backend renderer.
- * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
- *          buffer is too small its content will not be `NUL`-terminated.
- * @note    Used by the NetworkManager YAML backend but also applicable to the systemd-networkd renderer.
- * @param[in]  netdef       The @ref NetplanNetDefinition to query
- * @param[in]  ssid         Wi-Fi SSID of this connection, or `NULL`
- * @param[out] out_buffer   A pre-allocated buffer to write the output string into, owned by the caller
- * @param[in]  out_buf_size The maximum size (in bytes) available for @p out_buffer
- * @return                  The size of the copied string, including the final `NUL` character.
- *                          If the buffer is too small, returns @ref NETPLAN_BUFFER_TOO_SMALL instead.
- */
-NETPLAN_PUBLIC ssize_t
-netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const char* ssid, char* out_buffer, size_t out_buf_size);
-
-/**
  * @brief   Free a @ref NetplanError, including any dynamically allocated data.
  * @details Free @p error and set `*error` to `NULL`.
  * @param[out] error The @ref NetplanError to free and nullify
@@ -103,30 +88,6 @@ netplan_error_message(NetplanError* error, char* buf, size_t buf_size);
  */
 NETPLAN_PUBLIC uint64_t
 netplan_error_code(NetplanError* error);
-
-/**
- * @brief Initialize a @ref NetplanStateIterator for walking through a list of @ref NetplanNetDefinition inside @p np_state.
- * @param[in]     np_state The @ref NetplanState to query
- * @param[in,out] iter     A @ref NetplanStateIterator structure to be initialized
- */
-NETPLAN_PUBLIC void
-netplan_state_iterator_init(const NetplanState* np_state, NetplanStateIterator* iter);
-
-/**
- * @brief Get the next @ref NetplanNetDefinition in the list of a @ref NetplanState object.
- * @param[in,out] iter A @ref NetplanStateIterator to work with
- * @return             The next @ref NetplanNetDefinition or `NULL`
- */
-NETPLAN_PUBLIC NetplanNetDefinition*
-netplan_state_iterator_next(NetplanStateIterator* iter);
-
-/**
- * @brief Check if there is any next @ref NetplanNetDefinition in the list of a @ref NetplanState object.
- * @param[in,out] iter A @ref NetplanStateIterator to work with
- * @return             Indication if this @ref NetplanStateIterator contains any further @ref NetplanNetDefinition
- */
-NETPLAN_PUBLIC gboolean
-netplan_state_iterator_has_next(const NetplanStateIterator* iter);
 
 /**
  * @brief   Create a YAML document from a "netplan-set expression".

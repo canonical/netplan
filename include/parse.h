@@ -116,14 +116,3 @@ netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, NetplanErr
 NETPLAN_PUBLIC gboolean
 netplan_parser_load_nullable_overrides(
     NetplanParser* npp, int input_fd, const char* constraint, NetplanError** error);
-
-/**
- * @brief   Validate pre-parsed Netplan configuration data inside a @ref NetplanParser and import them into a @ref NetplanState.
- * @details This will transfer ownership of the contained data from @p npp to @p np_state and clean up by calling @ref netplan_parser_reset.
- * @param[in]  np_state The @ref NetplanState to be filled with validated Netplan configuration from @p npp
- * @param[in]  npp      The @ref NetplanParser containing unvalidated Netplan configuration from raw inputs
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
- * @return              Indication of success or failure
- */
-NETPLAN_PUBLIC gboolean
-netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, NetplanError** error);
