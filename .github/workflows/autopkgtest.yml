@@ -57,7 +57,9 @@ jobs:
         run: |
           # using --setup-commands temporarily to install:
           # cmocka/pytest/rich/ethtool until they become proper test-deps
-          # The network-manager PPA is used here temporally due to a bug with veths and network-manager 1.36. See LP: #2032824
+          # The netplan-ci PPA is used here temporally to fix some quirks:
+          # - A bug with veths and network-manager 1.36. See LP: #2032824
+          # - A bug with gre6/vti6 and systemd-networkd 249.11. See LP: #2037667
           autopkgtest . \
-            --setup-commands='sudo add-apt-repository -y -u -s ppa:danilogondolfo/network-manager' \
+            --setup-commands='sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci' \
             -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/jammy/amd64
