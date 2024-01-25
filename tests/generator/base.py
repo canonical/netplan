@@ -378,12 +378,6 @@ class TestBase(unittest.TestCase):
             with open(os.path.join(networkd_dir, '10-netplan-' + fname)) as f:
                 self.assertEqual(f.read(), contents)
 
-    def assert_additional_udev(self, file_contents_map):
-        udev_dir = os.path.join(self.workdir.name, 'run', 'udev', 'rules.d')
-        for fname, contents in file_contents_map.items():
-            with open(os.path.join(udev_dir, fname)) as f:
-                self.assertEqual(f.read(), contents)
-
     def assert_networkd_udev(self, file_contents_map):
         udev_dir = os.path.join(self.workdir.name, 'run', 'udev', 'rules.d')
         if not file_contents_map:

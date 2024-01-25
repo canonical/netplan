@@ -16,13 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from io import StringIO
 import os
+import subprocess
 import tempfile
 import unittest
 
 from subprocess import CalledProcessError
 from collections import defaultdict
 from unittest.mock import patch, mock_open, call
+from netplan_cli.cli.commands.sriov_rebind import INTERVAL_SEC, MAX_WAITING_TIME_SEC, NetplanSriovRebind
 
 import netplan_cli.cli.sriov as sriov
 
@@ -736,8 +739,9 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
     @patch('subprocess.check_call')
     @patch('netplan_cli.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
     @patch('netplan_cli.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_eswitch_mode')
     @patch('netplan_cli.cli.sriov._get_pci_slot_name')
-    def test_apply_sriov_config_eswitch_mode(self, gpsn, pcidevice_sys, pcidevice_bound,
+    def test_apply_sriov_config_eswitch_mode(self, gpsn, pcidevice_devlink, pcidevice_sys, pcidevice_bound,
                                              scc, quirks, set_numvfs, get_counts, netifs):
         handle = mock_open()
         builtin_open = open  # save the unpatched version of open()
@@ -764,6 +768,7 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         enp2_pci_addr = '0000:03:00.1'
         gpsn.side_effect = lambda iface: enp1_pci_addr if iface == 'enp1' else enp2_pci_addr
         sys_path = os.path.join(self.workdir.name, 'sys')
+        pcidevice_devlink.return_value = '__undetermined'
         pcidevice_sys.return_value = sys_path
         pcidevice_bound.side_effect = [
             True, True,  # 2x unbind (enp1 VFs)
@@ -850,6 +855,242 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
                 call('0000:03:00.2'),
                 call('0000:03:00.3')])
 
+    @patch('netplan_cli.cli.sriov.PCIDevice.is_pf', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.driver', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
+    @patch('netplan_cli.cli.commands.sriov_rebind.bind_vfs')
+    def test_cli_rebind_mellanox_with_unsupported_bond_mode(self, bind_mock, gpsn, driver_mock, is_pf_mock):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+  bonds:
+    bond0:
+      parameters:
+        mode: balance-rr
+      interfaces:
+        - enp1
+''', file=fd)
+
+        gpsn.return_value = '0000:03:00.0'
+        bind_mock.return_value = []
+        driver_mock.return_value = 'mlx5_core'
+        is_pf_mock.return_value = True
+
+        out = call_cli(['rebind', '--debug', '--root-dir', self.workdir.name, 'enp1'])
+        self.assertIn('LAG mode balance-rr is not supported by VF LAG', out)
+
+    @patch('netplan_cli.cli.commands.sriov_rebind.sleep')
+    @patch('netplan_cli.cli.sriov.PCIDevice.is_pf', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.driver', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
+    @patch('netplan_cli.cli.commands.sriov_rebind.bind_vfs')
+    @patch('os.path.exists')
+    def test_cli_rebind_mellanox_state_file_not_found(self, path_mock, bind_mock, gpsn, driver_mock,
+                                                      is_pf_mock, sleep_mock):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+      interfaces:
+        - enp1
+''', file=fd)
+
+        sleep_mock.return_value = None
+        path_mock.return_value = False
+        gpsn.return_value = '0000:03:00.0'
+        bind_mock.return_value = []
+        driver_mock.return_value = 'mlx5_core'
+        is_pf_mock.return_value = True
+
+        out = call_cli(['rebind', '--debug', '--root-dir', self.workdir.name, 'enp1'])
+        self.assertIn('VF LAG state debugfs file not found', out)
+
+    @patch('netplan_cli.cli.commands.sriov_rebind.NetplanSriovRebind._get_mlx5_vf_lag_state')
+    @patch('netplan_cli.cli.commands.sriov_rebind.sleep')
+    @patch('netplan_cli.cli.sriov.PCIDevice.is_pf', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.driver', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
+    @patch('netplan_cli.cli.commands.sriov_rebind.bind_vfs')
+    @patch('os.path.exists')
+    def test_cli_rebind_mellanox_state_file_cannot_be_read(self, path_mock, bind_mock, gpsn, driver_mock,
+                                                           is_pf_mock, sleep_mock, get_mlx5_mock):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+      interfaces:
+        - enp1
+''', file=fd)
+
+        sleep_mock.return_value = None
+        path_mock.return_value = True
+        gpsn.return_value = '0000:03:00.0'
+        bind_mock.return_value = []
+        driver_mock.return_value = 'mlx5_core'
+        is_pf_mock.return_value = True
+        get_mlx5_mock.side_effect = Exception
+
+        out = call_cli(['rebind', '--debug', '--root-dir', self.workdir.name, 'enp1'])
+        self.assertIn('VF LAG state cannot be read', out)
+
+    @patch('netplan_cli.cli.commands.sriov_rebind.NetplanSriovRebind._get_mlx5_vf_lag_state')
+    @patch('netplan_cli.cli.commands.sriov_rebind.sleep')
+    @patch('netplan_cli.cli.sriov.PCIDevice.is_pf', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.driver', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
+    @patch('netplan_cli.cli.commands.sriov_rebind.bind_vfs')
+    @patch('os.path.exists')
+    def test_cli_rebind_mellanox_disabled_after_waiting(self, path_mock, bind_mock, gpsn, driver_mock,
+                                                        is_pf_mock, sleep_mock, get_mlx5_mock):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+      interfaces:
+        - enp1
+''', file=fd)
+
+        sleep_mock.return_value = None
+        path_mock.return_value = True
+        gpsn.return_value = '0000:03:00.0'
+        bind_mock.return_value = []
+        driver_mock.return_value = 'mlx5_core'
+        is_pf_mock.return_value = True
+        get_mlx5_mock.return_value = 'disabled'
+
+        out = call_cli(['rebind', '--debug', '--root-dir', self.workdir.name, 'enp1'])
+        self.assertIn('VF LAG state is still \'disabled\' after waiting', out)
+
+        # check if are we retrying the expected number of times
+        retries = int(MAX_WAITING_TIME_SEC / INTERVAL_SEC)
+        sleep_calls = [call(INTERVAL_SEC)] * retries
+        self.assertEqual(sleep_mock.call_args_list, sleep_calls)
+
+    @patch('netplan_cli.cli.commands.sriov_rebind.NetplanSriovRebind._get_mlx5_vf_lag_state')
+    @patch('netplan_cli.cli.commands.sriov_rebind.sleep')
+    @patch('netplan_cli.cli.sriov.PCIDevice.is_pf', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.driver', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
+    @patch('netplan_cli.cli.commands.sriov_rebind.bind_vfs')
+    @patch('os.path.exists')
+    def test_cli_rebind_mellanox_vf_lag_state_is_active(self, path_mock, bind_mock, gpsn, driver_mock,
+                                                        is_pf_mock, sleep_mock, get_mlx5_mock):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+      interfaces:
+        - enp1
+''', file=fd)
+
+        sleep_mock.return_value = None
+        path_mock.return_value = True
+        gpsn.return_value = '0000:03:00.0'
+        bind_mock.return_value = []
+        driver_mock.return_value = 'mlx5_core'
+        is_pf_mock.return_value = True
+        get_mlx5_mock.return_value = 'active'
+
+        out = call_cli(['rebind', '--debug', '--root-dir', self.workdir.name, 'enp1'])
+        self.assertIn('VF LAG state is \'active\'', out)
+
+    def test_get_mlx5_vf_lag_state(self):
+        rebind = NetplanSriovRebind()
+
+        f = StringIO()
+        f.write(' active')
+        f.seek(0)
+
+        with patch('builtins.open') as open_mock:
+            open_mock.return_value = f
+            state = rebind._get_mlx5_vf_lag_state('fake_pci_address')
+
+            self.assertEqual(state, 'active')
+
+    @patch('subprocess.check_output')
+    def test_PCIDevice_devlink_eswitch_mode_query(self, check_output_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        check_output_mock.return_value = '{"dev":{"pci/0000:03:00.0":{"mode":"switchdev"}}}'
+        self.assertEqual(pcidev.devlink_eswitch_mode(), 'switchdev')
+        check_output_mock.assert_has_calls([
+            call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+        ])
+
+    @patch('subprocess.check_output')
+    def test_PCIDevice_devlink_eswitch_mode_query_not_supported(self, check_output_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        check_output_mock.return_value = '{"dev":{}}'
+        self.assertEqual(pcidev.devlink_eswitch_mode(), '__undetermined')
+        check_output_mock.assert_has_calls([
+            call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+        ])
+
+    @patch('subprocess.check_output')
+    def test_PCIDevice_devlink_eswitch_mode_query_failure(self, check_output_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        check_output_mock.side_effect = subprocess.CalledProcessError(1, None)
+        self.assertEqual(pcidev.devlink_eswitch_mode(), '__undetermined')
+        check_output_mock.assert_has_calls([
+            call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+        ])
+
 
 class TestParser(TestBase):
     def test_eswitch_mode(self):
@@ -870,12 +1111,22 @@ class TestParser(TestBase):
         self.assert_sriov({'rebind.service': '''[Unit]
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
+After=netplan-sriov-apply.service
 After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/netplan rebind enblue engreen
+ExecStart=/usr/sbin/netplan rebind --debug enblue engreen
+''', 'apply.service': '''[Unit]
+Description=Apply SR-IOV configuration
+After=network.target
+After=sys-subsystem-net-devices-enblue.device
+After=sys-subsystem-net-devices-engreen.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
     def test_rebind_service_generation(self):
@@ -906,12 +1157,22 @@ ExecStart=/usr/sbin/netplan rebind enblue engreen
         self.assert_sriov({'rebind.service': '''[Unit]
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
+After=netplan-sriov-apply.service
 After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/netplan rebind enblue engreen
+ExecStart=/usr/sbin/netplan rebind --debug enblue engreen
+''', 'apply.service': '''[Unit]
+Description=Apply SR-IOV configuration
+After=network.target
+After=sys-subsystem-net-devices-enblue.device
+After=sys-subsystem-net-devices-engreen.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
     def test_rebind_not_delayed(self):
@@ -923,7 +1184,15 @@ ExecStart=/usr/sbin/netplan rebind enblue engreen
       delay-virtual-functions-rebind: false
     sriov_vf:
       link: engreen''')
-        self.assert_sriov({})
+        self.assert_sriov({'apply.service': '''[Unit]
+Description=Apply SR-IOV configuration
+After=network.target
+After=sys-subsystem-net-devices-engreen.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan apply --sriov-only
+'''})
 
     def test_rebind_no_iface(self):
         out = self.generate('''network:
@@ -935,7 +1204,14 @@ ExecStart=/usr/sbin/netplan rebind enblue engreen
       delay-virtual-functions-rebind: true
     sriov_vf:
       link: engreen''')
-        self.assert_sriov({})
+        self.assert_sriov({'apply.service': '''[Unit]
+Description=Apply SR-IOV configuration
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan apply --sriov-only
+'''})
         self.assertIn('engreen: Cannot rebind SR-IOV virtual functions, unknown interface name.', out)
 
     def test_invalid_not_a_pf(self):
