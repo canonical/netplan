@@ -354,6 +354,26 @@ class TestUtils(unittest.TestCase):
             ['systemctl', 'is-enabled', 'some.service']
         ])
 
+    def test_systemctl_is_installed(self):
+        self.mock_cmd = MockCmd('systemctl')
+        self.mock_cmd.set_returncode(0)
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        self.assertTrue(utils.systemctl_is_installed('some.service'))
+        self.assertEqual(self.mock_cmd.calls(), [
+            ['systemctl', 'is-enabled', 'some.service']
+        ])
+
+    def test_systemctl_is_installed_false(self):
+        self.mock_cmd = MockCmd('systemctl')
+        self.mock_cmd.set_returncode(4)
+        path_env = os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
+        self.assertFalse(utils.systemctl_is_installed('some.service'))
+        self.assertEqual(self.mock_cmd.calls(), [
+            ['systemctl', 'is-enabled', 'some.service']
+        ])
+
     def test_systemctl_daemon_reload(self):
         self.mock_cmd = MockCmd('systemctl')
         path_env = os.environ['PATH']
