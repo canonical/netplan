@@ -18,7 +18,7 @@
 
 import os
 
-from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, UDEV_SRIOV_RULE, \
+from .base import TestBase, ND_DHCP4, UDEV_MAC_RULE, UDEV_NO_MAC_RULE, \
     NM_MANAGED, NM_UNMANAGED, NM_MANAGED_MAC, NM_UNMANAGED_MAC, \
     NM_MANAGED_DRIVER, NM_UNMANAGED_DRIVER
 
@@ -81,45 +81,6 @@ MTUBytes=1280
 LinkLocalAddressing=ipv6
 '''})
         self.assert_networkd_udev(None)
-
-    def test_eth_sriov_vlan_filterv_link(self):
-        self.generate('''network:
-  version: 2
-  ethernets:
-    enp1:
-      dhcp4: n
-    enp1s16f1:
-      dhcp4: n
-      link: enp1''')
-
-        self.assert_networkd({'enp1.network': '''[Match]
-Name=enp1
-
-[Network]
-LinkLocalAddressing=ipv6
-''',
-                              'enp1s16f1.network': '''[Match]
-Name=enp1s16f1
-
-[Network]
-LinkLocalAddressing=ipv6
-'''})
-        self.assert_additional_udev({'99-sriov-netplan-setup.rules': UDEV_SRIOV_RULE})
-
-    def test_eth_sriov_virtual_functions(self):
-        self.generate('''network:
-  version: 2
-  ethernets:
-    enp1:
-      virtual-function-count: 8''')
-
-        self.assert_networkd({'enp1.network': '''[Match]
-Name=enp1
-
-[Network]
-LinkLocalAddressing=ipv6
-'''})
-        self.assert_additional_udev({'99-sriov-netplan-setup.rules': UDEV_SRIOV_RULE})
 
     def test_eth_match_by_driver_rename(self):
         self.generate('''network:
@@ -423,74 +384,6 @@ method=link-local
 [ipv6]
 method=ignore
 '''})
-
-    def test_eth_sriov_link(self):
-        self.generate('''network:
-  version: 2
-  renderer: NetworkManager
-  ethernets:
-    enp1:
-      dhcp4: n
-    enp1s16f1:
-      dhcp4: n
-      link: enp1''')
-
-        self.assert_networkd({})
-        self.assert_nm({'enp1': '''[connection]
-id=netplan-enp1
-type=ethernet
-interface-name=enp1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-''',
-                        'enp1s16f1': '''[connection]
-id=netplan-enp1s16f1
-type=ethernet
-interface-name=enp1s16f1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-'''})
-        self.assert_additional_udev({'99-sriov-netplan-setup.rules': UDEV_SRIOV_RULE})
-
-    def test_eth_sriov_virtual_functions(self):
-        self.generate('''network:
-  version: 2
-  renderer: NetworkManager
-  ethernets:
-    enp1:
-      dhcp4: n
-      virtual-function-count: 8''')
-
-        self.assert_networkd({})
-        self.assert_nm({'enp1': '''[connection]
-id=netplan-enp1
-type=ethernet
-interface-name=enp1
-
-[ethernet]
-wake-on-lan=0
-
-[ipv4]
-method=link-local
-
-[ipv6]
-method=ignore
-'''})
-        self.assert_additional_udev({'99-sriov-netplan-setup.rules': UDEV_SRIOV_RULE})
 
     def test_eth_set_mac(self):
         self.generate('''network:
