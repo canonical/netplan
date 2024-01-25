@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import logging
 import os
 import subprocess
@@ -151,6 +152,35 @@ class PCIDevice(object):
                 value,
             ]
         )
+
+    def devlink_eswitch_mode(self) -> str:
+        """Query eswitch mode via devlink for the PCI device
+        :return: the eswitch mode or '__undetermined' if it can't be retrieved
+        :rtype: str
+        """
+        pci = f"pci/{self.pci_addr}"
+        try:
+            output = subprocess.check_output(
+                [
+                    "/sbin/devlink",
+                    "-j",
+                    "dev",
+                    "eswitch",
+                    "show",
+                    pci,
+                ],
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError:
+            return '__undetermined'
+
+        json_output = json.loads(output)
+
+        # The JSON document looks like this when the 'mode' is available:
+        # {"dev":{"pci/0000:03:00.0":{"mode":"switchdev"}}}
+        # and like this when it's not available
+        # {"dev":{}}
+        return json_output.get("dev", {}).get(pci, {}).get('mode', '__undetermined')
 
     def __str__(self) -> str:
         """String represenation of object
@@ -441,16 +471,18 @@ def apply_sriov_config(config_manager, rootdir='/'):
         if eswitch_mode in ['switchdev', 'legacy']:
             pci_addr = _get_pci_slot_name(iface)
             pcidev = PCIDevice(pci_addr)
-            if pcidev.is_pf:
-                logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
-                if pcidev.vfs:
-                    rebind_delayed = netdef._delay_virtual_functions_rebind
-                    try:
-                        unbind_vfs(pcidev.vfs, pcidev.driver)
-                        pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
-                    finally:
-                        if not rebind_delayed:
-                            bind_vfs(pcidev.vfs, pcidev.driver)
+            current_eswitch_mode_system = pcidev.devlink_eswitch_mode()
+            if eswitch_mode != current_eswitch_mode_system:
+                if pcidev.is_pf:
+                    logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
+                    if pcidev.vfs:
+                        rebind_delayed = netdef._delay_virtual_functions_rebind
+                        try:
+                            unbind_vfs(pcidev.vfs, pcidev.driver)
+                            pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
+                        finally:
+                            if not rebind_delayed:
+                                bind_vfs(pcidev.vfs, pcidev.driver)
 
     filtered_vlans_set = set()
     for vlan, netdef in np_state.vlans.items():
