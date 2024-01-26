@@ -40,7 +40,7 @@ JSON = Union[Dict[str, 'JSON'], List['JSON'], int, str, float, bool, Type[None]]
 DEVICE_TYPES = {
     'bond': 'bond',
     'bridge': 'bridge',
-    'dummy': 'dummy',
+    'dummy': 'dummy-device',
     'ether': 'ethernet',
     'ipgre': 'tunnel',
     'ip6gre': 'tunnel',
@@ -52,7 +52,7 @@ DEVICE_TYPES = {
     'wireguard': 'tunnel',
     'wlan': 'wifi',
     'wwan': 'modem',
-    'veth': 'veth',
+    'veth': 'virtual-ethernet',
     'vlan': 'vlan',
     'vrf': 'vrf',
     'vxlan': 'tunnel',
@@ -63,7 +63,7 @@ DEVICE_TYPES = {
     'bridges': 'bridge',
     'bonds': 'bond',
     'nm-devices': 'nm-device',
-    'dummy-devices': 'dummy',
+    'dummy-devices': 'dummy-device',
     'modems': 'modem',
     'vlans': 'vlan',
     'vrfs': 'vrf',
@@ -227,7 +227,7 @@ class Interface():
         if self.vrf:
             json['vrf'] = self.vrf
         if self.members:
-            json['members'] = self.members
+            json['interfaces'] = self.members
         return (self.name, json)
 
     @property
@@ -241,6 +241,9 @@ class Interface():
     @property
     def type(self) -> str:
         nd_type = self.nd.get('Type') if self.nd else None
+        if nd_type == 'none':
+            # If the Type is reported as 'none' by networkd, the interface still might have a Kind.
+            nd_type = self.nd.get('Kind')
         if nd_type == 'ether':
             # There are different kinds of 'ether' devices, such as VRFs, veth and dummies
             if kind := self.nd.get('Kind'):
@@ -516,6 +519,7 @@ class SystemConfigState():
 
     @classmethod
     def query_members(cls, ifname: str) -> List[str]:
+        ''' Return a list containing the interfaces that are members of a bond/bridge/vrf '''
         members = []
         output: str = None
         try:
@@ -533,6 +537,11 @@ class SystemConfigState():
 
     @classmethod
     def correlate_members_and_uplink(cls, interfaces: List[Interface]) -> None:
+        '''
+        Associate interfaces with their members and parent interfaces.
+        If an interface is a member of a bond/bridge/vrf, identify which interface
+        if a member of. If an interface has members, identify what are the members.
+        '''
         uplink_types = ['bond', 'bridge', 'vrf']
         members_to_uplink = {}
         uplink_to_members = defaultdict(list)

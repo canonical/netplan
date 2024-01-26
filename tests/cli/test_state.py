@@ -59,9 +59,9 @@ class TestSystemState(unittest.TestCase):
         mock.return_value = IPROUTE2
         res = SystemConfigState.query_iproute2()
         mock.assert_called_with(['ip', '-d', '-j', 'addr'], text=True)
-        self.assertEqual(len(res), 6)
+        self.assertEqual(len(res), 7)
         self.assertListEqual([itf.get('ifname') for itf in res],
-                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0'])
+                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0', 'tun1'])
 
     @patch('subprocess.check_output')
     def test_query_iproute2_fail(self, mock):
@@ -77,9 +77,9 @@ class TestSystemState(unittest.TestCase):
         mock.return_value = NETWORKD
         res = SystemConfigState.query_networkd()
         mock.assert_called_with(['networkctl', '--json=short'], text=True)
-        self.assertEqual(len(res), 9)
+        self.assertEqual(len(res), 10)
         self.assertListEqual([itf.get('Name') for itf in res],
-                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0', 'mybr0', 'mybond0', 'myvrf0'])
+                             ['lo', 'enp0s31f6', 'wlan0', 'wg0', 'wwan0', 'tun0', 'mybr0', 'mybond0', 'myvrf0', 'tun1'])
 
     @patch('subprocess.check_output')
     def test_query_networkd_fail(self, mock):
