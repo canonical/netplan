@@ -266,10 +266,10 @@ class NetplanStatus(utils.NetplanCommand):
                     value=val,
                     ))
 
-            lst = data.get('members', [])
+            lst = data.get('interfaces', [])
             for i, val in enumerate(lst):
                 pprint(('{title:>'+pad+'} {value}').format(
-                    title='Members:' if i == 0 else '',
+                    title='Interfaces:' if i == 0 else '',
                     value=val,
                     ))
 
