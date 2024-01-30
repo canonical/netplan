@@ -531,6 +531,13 @@ netplan_netdef_get_bridge_link(const NetplanNetDefinition* netdef)
 }
 
 NetplanNetDefinition*
+netplan_netdef_get_vrf_link(const NetplanNetDefinition* netdef)
+{
+    g_assert(netdef);
+    return netdef->vrf_link;
+}
+
+NetplanNetDefinition*
 netplan_netdef_get_bond_link(const NetplanNetDefinition* netdef)
 {
     g_assert(netdef);
