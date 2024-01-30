@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import defaultdict
 import ipaddress
 import json
 from typing import AbstractSet
@@ -99,6 +100,7 @@ class NetplanDiffState():
             self._analyze_search_domains(config, iface)
             self._analyze_mac_addresses(config, iface)
             self._analyze_routes(config, iface)
+            self._analyze_parent_links(config, iface)
 
             report['interfaces'].update(iface)
 
@@ -345,6 +347,46 @@ class NetplanDiffState():
                 'index': system_state.get(iface).get('index'),
             }
 
+    def _analyze_parent_links(self, config: dict, iface: dict) -> None:
+        '''
+        Analyze if interfaces such as bonds, bridges and VRFs are correctly attached to their
+        members and vice versa.
+        '''
+        name = list(iface.keys())[0]
+        bond = [config.get('system_state', {}).get('bond'), config.get('netplan_state', {}).get('bond')]
+        bridge = [config.get('system_state', {}).get('bridge'), config.get('netplan_state', {}).get('bridge')]
+        vrf = [config.get('system_state', {}).get('vrf'), config.get('netplan_state', {}).get('vrf')]
+        interfaces = [config.get('system_state', {}).get('interfaces', []), config.get('netplan_state', {}).get('interfaces', [])]
+
+        if bond != [None, None] and bond[0] != bond[1]:
+            if bond[0]:
+                iface[name]['netplan_state']['missing_bond_link'] = bond[0]
+            if bond[1]:
+                iface[name]['system_state']['missing_bond_link'] = bond[1]
+
+        if bridge != [None, None] and bridge[0] != bridge[1]:
+            if bridge[0]:
+                iface[name]['netplan_state']['missing_bridge_link'] = bridge[0]
+            if bridge[1]:
+                iface[name]['system_state']['missing_bridge_link'] = bridge[1]
+
+        if vrf != [None, None] and vrf[0] != vrf[1]:
+            if vrf[0]:
+                iface[name]['netplan_state']['missing_vrf_link'] = vrf[0]
+            if vrf[1]:
+                iface[name]['system_state']['missing_vrf_link'] = vrf[1]
+
+        if interfaces != [[], []]:
+            system = set(interfaces[0])
+            netplan = set(interfaces[1])
+
+            if system != netplan:
+                if missing_system := netplan - system:
+                    iface[name]['system_state']['missing_interfaces'] = list(missing_system)
+
+                if missing_netplan := system - netplan:
+                    iface[name]['netplan_state']['missing_interfaces'] = list(missing_netplan)
+
     def _normalize_routes(self, routes: set) -> set:
         ''' Apply some transformations to Netplan routes so their representation
         will match the system's.
@@ -443,6 +485,15 @@ class NetplanDiffState():
             if mac := config.macaddress:
                 iface_ref['macaddress'] = mac
 
+            if bridge := config.links.get('bridge'):
+                iface_ref['bridge'] = bridge.id
+
+            if bond := config.links.get('bond'):
+                iface_ref['bond'] = bond.id
+
+            if vrf := config.links.get('vrf'):
+                iface_ref['vrf'] = vrf.id
+
             if interface not in system_interfaces:
                 # If the netdef ID doesn't correspond to any interface name in the system,
                 # it might be associated with multiple system interfaces, such as when the 'match' key is used,
@@ -465,7 +516,22 @@ class NetplanDiffState():
             else:
                 interfaces.update(iface)
 
+        self._netplan_state_find_parents(interfaces)
         return interfaces
+
+    def _netplan_state_find_parents(self, interfaces: dict) -> None:
+        ''' Associates interfaces with their parents '''
+        parents = defaultdict(set)
+        for interface, config in interfaces.items():
+            if link := config['netplan_state'].get('bridge'):
+                parents[link].add(interface)
+            if link := config['netplan_state'].get('bond'):
+                parents[link].add(interface)
+            if link := config['netplan_state'].get('vrf'):
+                parents[link].add(interface)
+
+        for interface, members in parents.items():
+            interfaces[interface]['netplan_state']['interfaces'] = list(members)
 
     def _get_system_interfaces(self) -> dict:
         interfaces = {}
@@ -506,6 +572,18 @@ class NetplanDiffState():
 
             if mac := config.get('macaddress'):
                 iface_ref['macaddress'] = mac
+
+            if uplink_interfaces := config.get('interfaces'):
+                iface_ref['interfaces'] = uplink_interfaces
+
+            if bond := config.get('bond'):
+                iface_ref['bond'] = bond
+
+            if bridge := config.get('bridge'):
+                iface_ref['bridge'] = bridge
+
+            if vrf := config.get('vrf'):
+                iface_ref['vrf'] = vrf
 
         return interfaces
 
