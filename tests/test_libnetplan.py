@@ -741,6 +741,29 @@ class TestNetDefinition(TestBase):
 
         self.assertIsNone(state['eth0'].links.get('bond'))
 
+    def test_interface_has_pointer_to_vrf(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  vrfs:
+    vrf0:
+      table: 1000
+      interfaces:
+        - eth0
+      ''')
+
+        self.assertEqual(state['eth0'].links.get('vrf').id, "vrf0")
+
+    def test_interface_pointer_to_vrf_is_none(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      ''')
+
+        self.assertIsNone(state['eth0'].links.get('vrf'))
+
     @unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
                      'OpenVSwitch not installed')
     def test_interface_has_pointer_to_peer(self):

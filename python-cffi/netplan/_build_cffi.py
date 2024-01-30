@@ -99,6 +99,7 @@ ffibuilder.cdef("""
     NetplanNetDefinition* netplan_netdef_get_peer_link(const NetplanNetDefinition* netdef);
     NetplanNetDefinition* netplan_netdef_get_vlan_link(const NetplanNetDefinition* netdef);
     NetplanNetDefinition* netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
+    NetplanNetDefinition* netplan_netdef_get_vrf_link(const NetplanNetDefinition* netdef);
     ssize_t netplan_netdef_get_set_name(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
     gboolean netplan_netdef_has_match(const NetplanNetDefinition* netdef);
     gboolean netplan_netdef_match_interface(

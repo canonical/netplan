@@ -93,6 +93,9 @@ class NetDefinition():
         if bond_link := lib.netplan_netdef_get_bond_link(self._ptr):
             d['bond'] = NetDefinition(self._parent, bond_link)
 
+        if vrf_link := lib.netplan_netdef_get_vrf_link(self._ptr):
+            d['vrf'] = NetDefinition(self._parent, vrf_link)
+
         # TODO: ovs vs veth? Should we use the same field?
         if peer_link := lib.netplan_netdef_get_peer_link(self._ptr):
             d['peer'] = NetDefinition(self._parent, peer_link)

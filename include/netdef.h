@@ -127,6 +127,15 @@ NETPLAN_PUBLIC NetplanNetDefinition*
 netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
 
 /**
+ * @brief   Get a reference to a linked @ref NetplanNetDefinition for a given @p netdef.
+ * @details This defines the parent-child relationship of VRF interfaces.
+ * @param[in] netdef The @ref NetplanNetDefinition to query
+ * @return           Reference to the parent of @p netdef
+ */
+NETPLAN_PUBLIC NetplanNetDefinition*
+netplan_netdef_get_vrf_link(const NetplanNetDefinition* netdef);
+
+/**
  * @brief   Get the `set-name` setting of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
  *          buffer is too small, its content is not `NUL`-terminated.
