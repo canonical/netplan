@@ -161,12 +161,12 @@ class NetplanDiffState():
 
         if present_only_in_system:
             iface[name]['netplan_state'].update({
-                'missing_addresses': list(present_only_in_system),
+                'missing_addresses': list(sorted(present_only_in_system)),
             })
 
         if present_only_in_netplan:
             iface[name]['system_state'].update({
-                'missing_addresses': list(present_only_in_netplan),
+                'missing_addresses': list(sorted(present_only_in_netplan)),
             })
 
     def _get_comparable_interfaces(self, interfaces: dict) -> dict:
