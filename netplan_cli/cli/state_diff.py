@@ -308,12 +308,12 @@ class NetplanDiffState():
 
         if present_only_in_system:
             iface[name]['netplan_state'].update({
-                'missing_routes': [route for route in present_only_in_system],
+                'missing_routes': [route for route in sorted(present_only_in_system, key=lambda r: r.to)],
             })
 
         if present_only_in_netplan:
             iface[name]['system_state'].update({
-                'missing_routes': [route for route in present_only_in_netplan],
+                'missing_routes': [route for route in sorted(present_only_in_netplan, key=lambda r: r.to)],
             })
 
     def _analyze_missing_interfaces(self, report: dict) -> None:
