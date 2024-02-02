@@ -403,3 +403,20 @@ class TestUtils(unittest.TestCase):
         nmcli.return_value = 'CONNECTION \n--         \n'
         out = utils.nm_get_connection_for_interface('asd0')
         self.assertEqual(out, '')
+
+    @patch('builtins.open')
+    def test_route_table_lookup(self, open_mock):
+        file = io.StringIO()
+        data = '#\n# reserved values\n#\n255\tlocal\n254\tmain\n253\tdefault\n0\tunspec\n#\n# local\n#\n#1\tinr.ruhep\n'
+        file.write(data)
+        file.seek(0)
+        open_mock.return_value = file
+        expected = {0: 'unspec', 253: 'default', 254: 'main', 255: 'local'}
+        out = utils.route_table_lookup()
+        self.assertDictEqual(out, expected)
+
+    @patch('builtins.open')
+    def test_route_table_lookup_fail(self, open_mock):
+        open_mock.side_effect = Exception
+        out = utils.route_table_lookup()
+        self.assertDictEqual(out, {})

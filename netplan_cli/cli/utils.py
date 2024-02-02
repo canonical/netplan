@@ -213,6 +213,21 @@ def find_matching_iface(interfaces: list, netdef):
     return matches[0]
 
 
+def route_table_lookup() -> dict:
+    lookup_table = {}
+    try:
+        with open('/etc/iproute2/rt_tables', 'r') as rt_tables:
+            for line in rt_tables:
+                split_line = line.split()
+                if len(split_line) == 2 and split_line[0].isnumeric():
+                    lookup_table[int(split_line[0])] = split_line[1]
+    except Exception:
+        logging.debug('Cannot open \'/etc/iproute2/rt_tables\' for reading')
+        return {}
+
+    return lookup_table
+
+
 class NetplanCommand(argparse.Namespace):
 
     def __init__(self, command_id, description, leaf=True, testing=False):
