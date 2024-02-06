@@ -474,17 +474,22 @@ class TestNetplanDiff(unittest.TestCase):
             'eth0': {
                 'system_state': {
                     'id': 'eth0'
-                }
+                },
+                'netplan_state': {}
             },
             'eth1': {
                 'netplan_state': {}
             },
             'eth2': {
                 'system_state': {}
-            }
+            },
+            'eth3': {
+                'system_state': {},
+                'netplan_state': {}
+            },
         }
         res = self.diff_state._get_comparable_interfaces(input)
-        self.assertDictEqual(res, {'eth0': {'system_state': {'id': 'eth0'}}})
+        self.assertDictEqual(res, {'eth0': {'netplan_state': {}, 'system_state': {'id': 'eth0'}}})
 
     def test__compress_ipv6_address_with_prefix(self):
         self.assertEqual(self.diff_state._compress_ipv6_address('a:b:c:0:0:0::d/64'), 'a:b:c::d/64')
