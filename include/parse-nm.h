@@ -30,7 +30,7 @@
  * @brief   Parse a NetworkManager keyfile into a @ref NetplanNetDefinition struct.
  * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
  * @param[in]  filename Full path to the NetworkManager keyfile
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean

@@ -23,7 +23,7 @@
 
 #pragma once
 
-/// Symbols that are considered part of Netplan's public API.
+/// Symbols that are considered part of Netplan public API.
 #define NETPLAN_PUBLIC __attribute__ ((visibility("default")))
 /// Symbols that are used internally by Netplan.
 /// @warning Do not use those symbols in an external codebase, they might be dropped or changed without notice.
@@ -32,7 +32,7 @@
 /// @note Those symbols will be dropped in the future.
 #define NETPLAN_DEPRECATED __attribute__ ((deprecated))
 
-/// Error of value `-2`, to indicate an issue with the buffer.
+/// Error of value `-2` to indicate an issue with the buffer.
 #define NETPLAN_BUFFER_TOO_SMALL -2
 
 
@@ -101,8 +101,8 @@ typedef struct _NetplanStateIterator NetplanStateIterator;
 
 /**
  * @brief   Defining a non-opaque placeholder type for the private `struct netplan_state_iterator`.
- * @details Do not use directly. Instead use @ref NetplanStateIterator. Enables consumers to place the interator at the stack.
- * @note    The idea is based on GLib's implementation of iterators.
+ * @details Do not use directly. Use @ref NetplanStateIterator instead. Enables consumers to place the iterator at the stack.
+ * @note    The idea is based on the GLib implementation of iterators.
  */
 struct _NetplanStateIterator {
     void* placeholder;
@@ -159,7 +159,7 @@ enum NETPLAN_EMITTER_ERRORS {
 /**
  * @brief   Errors for domain @ref NETPLAN_FORMAT_ERROR.
  * @details Such errors are generic errors emitted from contexts where information
- *          like the file name is not known.
+ *          such as the file name is not known.
  */
 enum NETPLAN_FORMAT_ERRORS {
     NETPLAN_ERROR_FORMAT_INVALID_YAML,
