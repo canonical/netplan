@@ -987,9 +987,11 @@ class TestNetplanDiff(unittest.TestCase):
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_link_local_routes(self):
-        route = NetplanRoute(scope='host', type='local', to='1.2.3.4', from_addr='1.2.3.4')
-        system_addresses = ['1.2.3.4/24']
-        filtered = self.diff_state._filter_system_routes({route}, system_addresses)
+        route1 = NetplanRoute(scope='host', type='local', to='1.2.3.4', from_addr='1.2.3.4')
+        # local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1
+        route2 = NetplanRoute(scope='host', type='local', to='127.0.0.0/8', from_addr='127.0.0.1')
+        system_addresses = ['1.2.3.4/24', '127.0.0.1/8']
+        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses)
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_link_local_routes_with_multiple_ips_same_subnet(self):

@@ -441,7 +441,8 @@ class NetplanDiffState():
             if route.to != 'default' and ipaddress.ip_interface(route.to).is_link_local:
                 continue
             # Filter out host scoped routes
-            if route.scope == 'host' and route.type == 'local' and route.to in addresses:
+            if (route.scope == 'host' and route.type == 'local' and
+                    (route.to in addresses or ipaddress.ip_interface(route.to).is_loopback)):
                 continue
             # Filter out the default IPv6 multicast route
             if route.family == 10 and route.type == 'multicast' and route.to == 'ff00::/8':
