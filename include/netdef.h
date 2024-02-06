@@ -27,7 +27,7 @@
 /**
  * @brief   Get the full path that a @ref NetplanNetDefinition will be written to by its backend renderer.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
- *          buffer is too small its content will not be `NUL`-terminated.
+ *          buffer is too small, its content is not `NUL`-terminated.
  * @note    Used by the NetworkManager YAML backend but also applicable to the systemd-networkd renderer.
  * @param[in]  netdef       The @ref NetplanNetDefinition to query
  * @param[in]  ssid         Wi-Fi SSID of this connection, or `NULL`
@@ -42,7 +42,7 @@ netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const cha
 /**
  * @brief   Get the origin filepath of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
- *          buffer is too small its content will not be `NUL`-terminated.
+ *          buffer is too small, its content is not `NUL`-terminated.
  * @param[in]  netdef          The @ref NetplanNetDefinition to query
  * @param[out] out_buffer      A pre-allocated buffer to write the output string into, owned by the caller
  * @param[in]  out_buffer_size The maximum size (in bytes) available for @p out_buffer
@@ -71,7 +71,7 @@ netplan_netdef_get_type(const NetplanNetDefinition* netdef);
 /**
  * @brief   Get the Netplan ID of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
- *          buffer is too small its content will not be `NUL`-terminated.
+ *          buffer is too small, its content is not `NUL`-terminated.
  * @param[in]  netdef          The @ref NetplanNetDefinition to query
  * @param[out] out_buffer      A pre-allocated buffer to write the output string into, owned by the caller
  * @param[in]  out_buffer_size The maximum size (in bytes) available for @p out_buffer
@@ -129,7 +129,7 @@ netplan_netdef_get_sriov_link(const NetplanNetDefinition* netdef);
 /**
  * @brief   Get the `set-name` setting of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
- *          buffer is too small its content will not be `NUL`-terminated.
+ *          buffer is too small, its content is not `NUL`-terminated.
  * @note    This is unrelated to the `match.name` setting.
  * @param[in]  netdef          The @ref NetplanNetDefinition to query
  * @param[out] out_buffer      A pre-allocated buffer to write the output string into, owned by the caller
@@ -152,7 +152,7 @@ netplan_netdef_has_match(const NetplanNetDefinition* netdef);
 
 /**
  * @brief   Check if a @ref NetplanNetDefinition matches on given interface parameters.
- * @details If defined in @p netdef calculate if it would match on given @p mac AND @p name AND @p driver_name parameters.
+ * @details If defined in @p netdef, calculate if it would match on given @p mac AND @p name AND @p driver_name parameters.
  * @note    Matching a single driver out of a list given in the YAML configuration is enough to satisfy the condition.
  * @param[in] netdef The @ref NetplanNetDefinition to query
  * @param[in] name   The interface name match, optionally using shell wildcard patterns (`fnmatch()`)
@@ -182,7 +182,7 @@ netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef);
 /**
  * @brief   Get the `macaddress` setting of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
- *          buffer is too small its content will not be `NUL`-terminated.
+ *          buffer is too small, its content is not `NUL`-terminated.
  * @note    This is unrelated to the `match.macaddress` setting.
  * @param[in]  netdef          The @ref NetplanNetDefinition to query
  * @param[out] out_buffer      A pre-allocated buffer to write the output string into, owned by the caller

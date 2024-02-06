@@ -57,7 +57,7 @@ netplan_parser_clear(NetplanParser **npp);
  * @brief Parse a given YAML file and create or update the list of @ref NetplanNetDefinition inside @p npp.
  * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
  * @param[in]  filename Full path to a Netplan YAML configuration file
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -68,7 +68,7 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, NetplanError*
           @ref NetplanNetDefinition inside @p npp.
  * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
  * @param[in]  input_fd File descriptor reference to a Netplan YAML configuration file
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -82,35 +82,35 @@ netplan_parser_load_yaml_from_fd(NetplanParser* npp, int input_fd, NetplanError*
  *        `/etc/netplan/`, which shadow files in `/usr/lib/netplan/`.
  * @param[in]  npp     The @ref NetplanParser object that should contain the parsed data
  * @param[in]  rootdir If not `NULL`, parse configuration from this root directory (useful for testing)
- * @param[out] error   Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error   Filled with a @ref NetplanError in case of failure
  * @return             Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
 netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, NetplanError** error);
 
 /**
- * @brief   Parse a Netplan YAML config file from a file descriptor, containing settings
+ * @brief   Parse a Netplan YAML configuration file from a file descriptor, containing settings
  *          that are about to be deleted (e.g. `some.setting=NULL`).
  * @details The `NULL`-settings are ignored when parsing subsequent YAML files.
  * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
  * @param[in]  input_fd File descriptor reference to a Netplan YAML configuration file
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
 netplan_parser_load_nullable_fields(NetplanParser* npp, int input_fd, NetplanError** error);
 
 /**
- * @brief   Parse a Netplan YAML config file from a file descriptor, containing special settings that
- *          are supposed to be overriden inside the YAML hierarchy by the resulting "origin-hint" output file.
+ * @brief   Parse a Netplan YAML configuration file from a file descriptor, containing special settings that
+ *          are to be overriden inside the YAML hierarchy by the resulting "origin-hint" output file.
  * @details Global settings (like `renderer`) or @ref NetplanNetDefinition, defined in @p input_fd
- *          shall be ignored from the existing YAML hierarchy, as @p input_fd configuration is
- *          supposed to override those settings via the "origin-hint" output file.
+ *          are ignored in the existing YAML hierarchy because the @p input_fd configuration
+ *          overrides those settings via the "origin-hint" output file.
  * @note    Those settings are supposed to be parsed from the "origin-hint" output file given in @p constraint only.
  * @param[in]  npp        The @ref NetplanParser object that should contain the parsed data
  * @param[in]  input_fd   File descriptor reference to a Netplan YAML configuration file, which would become the "origin-hint" output file afterwards
  * @param[in]  constraint Basename of the "origin-hint" output file
- * @param[out] error      Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error      Filled with a @ref NetplanError in case of failure
  * @return                Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean

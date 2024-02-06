@@ -51,10 +51,10 @@ netplan_state_clear(NetplanState** np_state);
 
 /**
  * @brief   Validate pre-parsed Netplan configuration data inside a @ref NetplanParser and import them into a @ref NetplanState.
- * @details This will transfer ownership of the contained data from @p npp to @p np_state and clean up by calling @ref netplan_parser_reset.
+ * @details This transfers ownership of the contained data from @p npp to @p np_state and cleans up by calling @ref netplan_parser_reset.
  * @param[in]  np_state The @ref NetplanState to be filled with validated Netplan configuration from @p npp
  * @param[in]  npp      The @ref NetplanParser containing unvalidated Netplan configuration from raw inputs
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -80,7 +80,7 @@ netplan_state_get_netdef(const NetplanState* np_state, const char* id);
 
 /**
  * @brief Get the global @ref NetplanBackend defined in this @ref NetplanState.
- * @note  This will be the default fallback backend to render any contained @ref NetplanNetDefinition on, if not otherwise specified.
+ * @note  This is the default fallback backend to render any contained @ref NetplanNetDefinition on, if not otherwise specified.
  * @param[in] np_state The @ref NetplanState to query
  * @return             Enumeration value, specifiying the @ref NetplanBackend
  */
@@ -88,13 +88,13 @@ NETPLAN_PUBLIC NetplanBackend
 netplan_state_get_backend(const NetplanState* np_state);
 
 /**
- * @brief   Write the selected YAML file, filtered to the data relevant to this file.
- * @details Writes out all @ref NetplanNetDefinition settings that originate from the specified file,
+ * @brief   Write the selected YAML file filtered to the data relevant to this file.
+ * @details Writes all @ref NetplanNetDefinition settings that originate from the specified file,
  *          as well as those without any given origin. Any data that's assigned to another file is ignored.
  * @param[in]  np_state The @ref NetplanState for which to generate the config
- * @param[in]  filename Relevant file basename (e.g. origin-hint.yaml)
+ * @param[in]  filename Relevant file basename (e.g. `origin-hint.yaml`)
  * @param[in]  rootdir  If not `NULL`, generate configuration in this root directory (useful for testing)
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -106,12 +106,12 @@ netplan_state_write_yaml_file(
 
 /**
  * @brief   Update all the YAML files that were used to create this @ref NetplanState.
- * @details Any data that hasn't an associated filepath will use the @p default_filename
- *          output file in the standard config directory.
- * @param[in]  np_state The @ref NetplanState for which to generate the config
- * @param[in]  default_filename Default config file, cannot be `NULL` or empty
+ * @details Data that has no associated filepath uses the @p default_filename
+ *          output file in the standard configuration directory.
+ * @param[in]  np_state The @ref NetplanState for which to generate the configuration
+ * @param[in]  default_filename Default configuration file; cannot be `NULL` or empty
  * @param[in]  rootdir  If not `NULL`, generate configuration in this root directory (useful for testing)
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -124,9 +124,9 @@ netplan_state_update_yaml_hierarchy(
 /**
  * @brief   Dump the whole @ref NetplanState into a single YAML file.
  * @details Ignoring the origin of each @ref NetplanNetDefinition.
- * @param[in]  np_state The @ref NetplanState for which to generate the config
+ * @param[in]  np_state The @ref NetplanState for which to generate the configuration
  * @param[in]  out_fd   File descriptor to an opened file into which to dump the content
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -137,10 +137,10 @@ netplan_state_dump_yaml(
 
 /**
  * @brief Generate the Netplan YAML configuration for the selected @ref NetplanNetDefinition.
- * @param[in]  np_state @ref NetplanState (as pointer), the global state to which the netdef belongs
+ * @param[in]  np_state @ref NetplanState (as pointer), the global state to which the `netdef` belongs
  * @param[in]  netdef   @ref NetplanNetDefinition (as pointer), the data to be serialized
  * @param[in]  rootdir  If not `NULL`, generate configuration in this root directory (useful for testing)
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -176,10 +176,10 @@ netplan_state_iterator_has_next(const NetplanStateIterator* iter);
 
 /**
  * @brief   Write generic NetworkManager configuration to disk.
- * @details This configures global settings, independent of @ref NetplanNetDefinition data, like udev blocklisting to make NetworkManager ignore certain interfaces using `[device].managed=false` or `NM_MANAGED=0`.
+ * @details This configures global settings, independent of @ref NetplanNetDefinition data, such as udev blocklisting to make NetworkManager ignore certain interfaces using `[device].managed=false` or `NM_MANAGED=0`.
  * @param[in]  np_state The @ref NetplanState to read settings from
  * @param[in]  rootdir  If not `NULL`, generate configuration in this root directory (useful for testing)
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -190,10 +190,10 @@ netplan_state_finish_nm_write(
 
 /**
  * @brief   Write generic Open vSwitch  configuration to disk.
- * @details This configures global settings, independent of @ref NetplanNetDefinition data, like patch ports, SSL configuration or the `netplan-ovs-cleanup.service` unit.
+ * @details This configures global settings, independent of @ref NetplanNetDefinition data, such as patch ports, SSL configuration or the `netplan-ovs-cleanup.service` unit.
  * @param[in]  np_state The @ref NetplanState to read settings from
  * @param[in]  rootdir  If not `NULL`, generate configuration in this root directory (useful for testing)
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
@@ -204,10 +204,10 @@ netplan_state_finish_ovs_write(
 
 /**
  * @brief   Write generic SR-IOV  configuration to disk.
- * @details This configures global settings, independent of @ref NetplanNetDefinition data, like udev rules or the `netplan-sriov-rebind.service` unit.
+ * @details This configures global settings, independent of @ref NetplanNetDefinition data, such as udev rules or the `netplan-sriov-rebind.service` unit.
  * @param[in]  np_state The @ref NetplanState to read settings from
  * @param[in]  rootdir  If not `NULL`, generate configuration in this root directory (useful for testing)
- * @param[out] error    Will be filled with a @ref NetplanError in case of failure
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
  * @return              Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
