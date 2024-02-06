@@ -171,12 +171,17 @@ class NetplanDiffState():
 
     def _get_comparable_interfaces(self, interfaces: dict) -> dict:
         ''' In order to compare interfaces, they must exist in the system AND in Netplan.
-            Here we filter out interfaces that don't have a system_state and a netdef ID.
+            Here we filter out interfaces that don't have a system_state, a netplan_state
+            or a netdef ID.
+
+            There is a special case where the interface will have a system_state and a netdef_id
+            but will be missing in Netplan. That will happen when the user removes the interface
+            only from Netplan but doesn't run netplan apply.
         '''
         filtered = {}
 
         for interface, config in interfaces.items():
-            if config.get('system_state') is None:
+            if config.get('system_state') is None or config.get('netplan_state') is None:
                 continue
 
             if not config.get('system_state', {}).get('id'):
