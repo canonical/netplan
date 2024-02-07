@@ -111,6 +111,9 @@ _netplan_netdef_get_delay_virtual_functions_rebind(const NetplanNetDefinition* n
 NETPLAN_INTERNAL guint
 _netplan_netdef_get_vlan_id(const NetplanNetDefinition* netdef);
 
+NETPLAN_INTERNAL ssize_t
+_netplan_netdef_get_bond_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef);
 

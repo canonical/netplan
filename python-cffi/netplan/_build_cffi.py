@@ -117,6 +117,7 @@ ffibuilder.cdef("""
     gboolean _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef);
     int _netplan_state_get_vf_count_for_def(
         const NetplanState* np_state, const NetplanNetDefinition* netdef, NetplanError** error);
+    ssize_t _netplan_netdef_get_bond_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size);
 
     // Iterators (internal)
     struct netdef_pertype_iter* _netplan_state_new_netdef_pertype_iter(NetplanState* np_state, const char* def_type);
