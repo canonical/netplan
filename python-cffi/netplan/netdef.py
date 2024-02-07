@@ -147,6 +147,10 @@ class NetDefinition():
         return count
 
     @property
+    def _bond_mode(self) -> str:
+        return _string_realloc_call_no_error(lambda b: lib._netplan_netdef_get_bond_mode(self._ptr, b, len(b)))
+
+    @property
     def _is_trivial_compound_itf(self) -> bool:
         '''
         Returns True if the interface is a compound interface (bond or bridge),

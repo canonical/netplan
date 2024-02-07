@@ -957,3 +957,33 @@ tail:
         '''
         with self.assertRaises(ValueError):
             netplan.NetplanParserException('not the expected file path, line and column', 0, 0)
+
+    def test_netdef_get_bond_mode(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+      dhcp4: false
+      interfaces:
+        - eth0
+      ''')
+
+        self.assertEqual(state['bond0']._bond_mode, "active-backup")
+
+    def test_netdef_get_bond_mode_unset(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+  bonds:
+    bond0:
+      dhcp4: false
+      interfaces:
+        - eth0
+      ''')
+
+        self.assertIsNone(state['bond0']._bond_mode)

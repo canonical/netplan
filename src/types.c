@@ -617,3 +617,14 @@ _netplan_netdef_is_trivial_compound_itf(const NetplanNetDefinition* netdef)
         return !complex_object_is_dirty(netdef, &netdef->bridge_params, sizeof(netdef->bridge_params));
     return FALSE;
 }
+
+ssize_t
+_netplan_netdef_get_bond_mode(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
+{
+    g_assert(netdef);
+
+    if (netdef->type == NETPLAN_DEF_TYPE_BOND && netdef->bond_params.mode)
+        return netplan_copy_string(netdef->bond_params.mode, out_buffer, out_buf_size);
+    else
+        return FALSE;
+}
