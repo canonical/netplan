@@ -19,6 +19,7 @@
 
 import logging
 import os
+import sys
 from time import sleep
 
 from .. import utils
@@ -57,7 +58,24 @@ class NetplanSriovRebind(utils.NetplanCommand):
                                  help='Space separated list of PF interface names')
         self.func = self.command_rebind
 
+        self.logger = logging.getLogger('sriov_rebind')
+        self.logger.propagate = False
+        log_handler = logging.StreamHandler(stream=sys.stdout)
+
         self.parse_args()
+
+        # netplan rebind --debug setup
+        if self.debug:
+            self.logger.setLevel(logging.DEBUG)
+            log_handler.setLevel(logging.DEBUG)
+            log_handler.setFormatter(logging.Formatter('%(levelname)s:%(message)s'))
+        else:
+            self.logger.setLevel(logging.INFO)
+            log_handler.setLevel(logging.INFO)
+            log_handler.setFormatter(logging.Formatter('%(message)s'))
+
+        self.logger.addHandler(log_handler)
+
         self.run_command()
 
     def command_rebind(self):
@@ -66,7 +84,7 @@ class NetplanSriovRebind(utils.NetplanCommand):
             pci_addr = _get_pci_slot_name(iface)
             pcidev = PCIDevice(pci_addr)
             if not pcidev.is_pf:
-                logging.debug('{} does not seem to be a SR-IOV physical function'.format(iface))
+                self.logger.debug('{} does not seem to be a SR-IOV physical function'.format(iface))
                 continue
 
             # There are some hardware-specific configuration that must happen *before* the bind
@@ -75,7 +93,7 @@ class NetplanSriovRebind(utils.NetplanCommand):
             self._perform_hardware_specific_quirks(iface, pcidev)
 
             bound_vfs = bind_vfs(pcidev.vfs, pcidev.driver)
-            logging.debug('{}: bound {} VFs'.format(pcidev, len(bound_vfs)))
+            self.logger.debug('{}: bound {} VFs'.format(pcidev, len(bound_vfs)))
 
     def _perform_hardware_specific_quirks(self, iface: str, pf: PCIDevice):
         """
@@ -105,20 +123,20 @@ class NetplanSriovRebind(utils.NetplanCommand):
                         # must be one of 'active-backup', 'balanced-xor' or '802.3ad'.
                         bond_mode = bond_link._bond_mode
                         if not self._is_bond_mode_supported(bond_mode):
-                            logging.debug(f'{iface} - LAG mode {bond_mode} is not supported by VF LAG')
+                            self.logger.debug(f'{iface} - LAG mode {bond_mode} is not supported by VF LAG')
                             continue
 
-                        logging.debug(f'{iface} - waiting for the LAG state to be \'active\'')
+                        self.logger.debug(f'{iface} - waiting for the LAG state to be \'active\'')
                         try:
                             self._wait_for_mlx5_pf_lag_state_active(pf)
                         except MLX5VFLAGStateCannotBeRead:
-                            logging.debug(f'{iface} - VF LAG state cannot be read')
+                            self.logger.debug(f'{iface} - VF LAG state cannot be read')
                         except MLX5VFLAGStateNotFound:
-                            logging.debug(f'{iface} - VF LAG state debugfs file not found')
+                            self.logger.debug(f'{iface} - VF LAG state debugfs file not found')
                         except MLX5VFLAGStateDisabled:
-                            logging.debug(f'{iface} - VF LAG state is still \'disabled\' after waiting')
+                            self.logger.debug(f'{iface} - VF LAG state is still \'disabled\' after waiting')
                         else:
-                            logging.debug(f'{iface} - VF LAG state is \'active\'')
+                            self.logger.debug(f'{iface} - VF LAG state is \'active\'')
 
     def _wait_for_mlx5_pf_lag_state_active(self, pf: PCIDevice):
         """
@@ -142,7 +160,7 @@ class NetplanSriovRebind(utils.NetplanCommand):
         while retries > 0:
             try:
                 if self._get_mlx5_vf_lag_state(pci_addr) != 'active':
-                    logging.debug(f'{pci_addr} VF LAG state is not active yet, retrying in 1 second...')
+                    self.logger.debug(f'{pci_addr} VF LAG state is not active yet, retrying...')
                     # Based on tests with a ConnectX-5 NIC, a single 1-second cycle was enough time to
                     # allow the interfaces to change state.
                     sleep(INTERVAL_SEC)
