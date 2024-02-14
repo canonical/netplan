@@ -343,12 +343,12 @@ class NetplanDiffState():
         for iface in netplan_only:
             iface_type = self.netplan_state.netdefs.get(iface).type
             report['missing_interfaces_system'][iface] = {
-                'type': DEVICE_TYPES.get(iface_type, 'unknown')
+                'type': DEVICE_TYPES.get(iface_type, 'other')
             }
 
         for iface in system_only:
             report['missing_interfaces_netplan'][iface] = {
-                'type': system_state.get(iface).get('type', 'unknown'),
+                'type': system_state.get(iface).get('type', 'other'),
                 'index': system_state.get(iface).get('index'),
             }
 
@@ -463,7 +463,7 @@ class NetplanDiffState():
             iface[interface] = {'netplan_state': {'id': interface}}
             iface_ref = iface[interface]['netplan_state']
 
-            iface_ref['type'] = DEVICE_TYPES.get(config.type, 'unknown')
+            iface_ref['type'] = DEVICE_TYPES.get(config.type, 'other')
 
             iface_ref['dhcp4'] = config.dhcp4
             iface_ref['dhcp6'] = config.dhcp6
