@@ -366,6 +366,19 @@ handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
     return TRUE;
 }
 
+STATIC gboolean
+handle_special_macaddress_option(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr);
+    g_assert(node->type == YAML_SCALAR_NODE);
+
+    if (!_is_macaddress_special_nm_option(scalar(node)) &&
+        !_is_macaddress_special_nd_option(scalar(node)))
+        return FALSE;
+
+    return handle_generic_str(npp, node, entryptr, data, error);
+}
+
 /*
  * Handler for setting a MAC address field from a scalar node, inside a given struct
  * @entryptr: pointer to the beginning of the to-be-modified data structure
@@ -376,17 +389,9 @@ STATIC gboolean
 handle_generic_mac(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
     g_assert(entryptr);
-    static regex_t re;
-    static gboolean re_inited = FALSE;
-
     g_assert(node->type == YAML_SCALAR_NODE);
 
-    if (!re_inited) {
-        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]](:[[:xdigit:]][[:xdigit:]]){5}((:[[:xdigit:]][[:xdigit:]]){14})?$", REG_EXTENDED|REG_NOSUB) == 0);
-        re_inited = TRUE;
-    }
-
-    if (regexec(&re, scalar(node), 0, NULL, 0) != 0)
+    if (!_is_valid_macaddress(scalar(node)))
         return yaml_error(npp, node, error, "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX or XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX", scalar(node));
 
     return handle_generic_str(npp, node, entryptr, data, error);
@@ -635,14 +640,37 @@ handle_vxlan_id_ref(NetplanParser* npp, yaml_node_t* node, const void* data, __u
 
 
 /**
+ * Generic handler for setting a npp->current.netdef match MAC address field from a scalar node
+ * @data: offset into NetplanNetDefinition where the const char* field to write is
+ *        located
+ */
+STATIC gboolean
+handle_netdef_match_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_mac(npp, node, npp->current.netdef, data, error);
+}
+
+/**
  * Generic handler for setting a npp->current.netdef MAC address field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
  */
 STATIC gboolean
-handle_netdef_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_set_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_mac(npp, node, npp->current.netdef, data, error);
+    int res = handle_generic_mac(npp, node, npp->current.netdef, data, NULL);
+
+    /* If the generic MAC parsing fails, we check to see if the value is one of the special values */
+    if (!res) {
+        if (!handle_special_macaddress_option(npp, node, npp->current.netdef, data, NULL)) {
+            return yaml_error(npp, node, error,
+                              "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX, XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX"
+                              " or one of 'permanent', 'random', 'stable', 'preserve'.",
+                              scalar(node));
+        }
+    }
+
+    return TRUE;
 }
 
 /**
@@ -882,7 +910,7 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, __unused const char* 
 
 STATIC const mapping_entry_handler match_handlers[] = {
     {"driver", YAML_NO_NODE, {.variable=handle_match_driver}, NULL},
-    {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(match.mac)},
+    {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_match_mac}, netdef_offset(match.mac)},
     {"name", YAML_SCALAR_NODE, {.generic=handle_netdef_id}, netdef_offset(match.original_name)},
     {NULL}
 };
@@ -2832,7 +2860,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"ipv6-mtu", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_mtubytes)}, \
     {"ipv6-privacy", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ip6_privacy)}, \
     {"link-local", YAML_SEQUENCE_NODE, {.generic=handle_link_local}, NULL}, \
-    {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_mac}, netdef_offset(set_mac)}, \
+    {"macaddress", YAML_SCALAR_NODE, {.generic=handle_netdef_set_mac}, netdef_offset(set_mac)}, \
     {"mtu", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(mtubytes)}, \
     {"nameservers", YAML_MAPPING_NODE, {.map={.handlers=nameservers_handlers}}, NULL}, \
     {"optional", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(optional)}, \

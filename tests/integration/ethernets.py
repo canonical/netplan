@@ -60,6 +60,23 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e2_client,
                              ['inet 192.168.6.[0-9]+/24', 'ether 00:01:02:03:04:05'])
 
+    def test_eth_permanent_mac(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'set', self.dev_e2_client, 'address', self.dev_e2_client_mac])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    enmac:
+      match: {name: %(e2c)s}
+      macaddress: permanent
+      dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.state_dhcp4(self.dev_e2_client)])
+        # The "permanent" option doesn't really work with veth interfaces but it at least
+        # tests that the option works
+        self.assert_iface_up(self.dev_e2_client,
+                             ['inet 192.168.6.[0-9]+/24', f'ether {self.dev_e2_client_mac}'])
+
     # Supposed to fail if tested against NetworkManager < 1.14
     # Interface globbing was introduced as of NM 1.14+
     def test_eth_glob(self):
@@ -392,6 +409,24 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
       addresses: [ '192.168.1.100/24' ]''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, [], ['inet6 2600:'])
+
+    def test_eth_random_mac(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'set', self.dev_e2_client, 'address', self.dev_e2_client_mac])
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    enmac:
+      match: {name: %(e2c)s}
+      macaddress: random
+      dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.state_dhcp4(self.dev_e2_client)])
+        out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', self.dev_e2_client],
+                                      text=True)
+        new_mac = out.split()[2]
+        # Tests if the MAC address is different after applying the configuration
+        self.assertNotEqual('00:11:22:33:44:55', new_mac)
 
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

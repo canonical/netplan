@@ -254,6 +254,46 @@ UseMTU=true
                               })
         self.assert_networkd_udev(None)
 
+    def test_eth_set_mac_value_not_valid(self):
+        res = self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: green
+      macaddress: typorandom
+      dhcp4: true''', expect_fail=True)
+
+        self.assertIn('Invalid MAC address \'typorandom\'', res)
+
+    def test_eth_set_mac_value_only_valid_for_network_manager(self):
+        res = self.generate('''network:
+  version: 2
+  ethernets:
+    def1:
+      match:
+        name: green
+      macaddress: stable
+      dhcp4: true''', expect_fail=True)
+
+        self.assertIn('networkd backend does not support the MAC address option \'stable\'', res)
+
+    def test_eth_set_mac_special_values(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      macaddress: permanent
+      dhcp4: true
+    eth1:
+      macaddress: random
+      dhcp4: true''')
+
+        self.assert_networkd({'eth0.link': '[Match]\nOriginalName=eth0\n\n[Link]\nWakeOnLan=off\nMACAddressPolicy=persistent\n',
+                              'eth0.network': ND_DHCP4 % 'eth0',
+                              'eth1.link': '[Match]\nOriginalName=eth1\n\n[Link]\nWakeOnLan=off\nMACAddressPolicy=random\n',
+                              'eth1.network': ND_DHCP4 % 'eth1'})
+
     def test_eth_match_name_rename(self):
         self.generate('''network:
   version: 2
@@ -478,6 +518,101 @@ method=auto
 [ipv6]
 method=ignore
 '''})
+
+    def test_eth_set_mac_special_values(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      macaddress: preserve
+      dhcp4: true
+    eth1:
+      macaddress: permanent
+      dhcp4: true
+    eth2:
+      macaddress: random
+      dhcp4: true
+    eth3:
+      macaddress: stable
+      dhcp4: true''')
+
+        self.assert_networkd(None)
+
+        self.assert_nm({'eth0': '''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+cloned-mac-address=preserve
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+''',
+                       'eth1': '''[connection]
+id=netplan-eth1
+type=ethernet
+interface-name=eth1
+
+[ethernet]
+wake-on-lan=0
+cloned-mac-address=permanent
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+''',
+                        'eth2': '''[connection]
+id=netplan-eth2
+type=ethernet
+interface-name=eth2
+
+[ethernet]
+wake-on-lan=0
+cloned-mac-address=random
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+''',
+                        'eth3': '''[connection]
+id=netplan-eth3
+type=ethernet
+interface-name=eth3
+
+[ethernet]
+wake-on-lan=0
+cloned-mac-address=stable
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_eth_set_mac_special_values_error(self):
+        res = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      macaddress: preservetypo
+      dhcp4: true''', expect_fail=True)
+
+        error = ("Invalid MAC address 'preservetypo', must be XX:XX:XX:XX:XX:XX, "
+                 "XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX or "
+                 "one of 'permanent', 'random', 'stable', 'preserve'")
+        self.assertIn(error, res)
 
     def test_eth_match_by_driver(self):
         err = self.generate('''network:

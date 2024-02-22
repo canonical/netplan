@@ -491,7 +491,10 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 - **`macaddress`** (scalar)
 
   > Set the device's MAC address. The MAC address must be in the form
-  > `XX:XX:XX:XX:XX:XX`.
+  > "XX:XX:XX:XX:XX:XX". The following special options are also accepted:
+  > `permanent` and `random`.
+  > In addition to these options, the NetworkManager renderer also accepts
+  > `stable` and `preserve`.
   >
   > **Note:** This will not work reliably for devices matched by name
   > only and rendered by networkd, due to interactions with device

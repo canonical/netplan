@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <fnmatch.h>
 #include <errno.h>
+#include <regex.h>
 #include <string.h>
 #include <sys/mman.h>
 
@@ -1140,4 +1141,34 @@ _is_auth_key_management_psk(const NetplanAuthenticationSettings* auth)
 {
     return (   auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
             || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE);
+}
+
+gboolean
+_is_macaddress_special_nm_option(const char* value)
+{
+    return (   !g_strcmp0(value, "preserve")
+            || !g_strcmp0(value, "permanent")
+            || !g_strcmp0(value, "random")
+            || !g_strcmp0(value, "stable"));
+}
+
+gboolean
+_is_macaddress_special_nd_option(const char* value)
+{
+    return (   !g_strcmp0(value, "permanent")
+            || !g_strcmp0(value, "random"));
+}
+
+gboolean
+_is_valid_macaddress(const char* value)
+{
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^[[:xdigit:]][[:xdigit:]](:[[:xdigit:]][[:xdigit:]]){5}((:[[:xdigit:]][[:xdigit:]]){14})?$", REG_EXTENDED|REG_NOSUB) == 0);
+        re_inited = TRUE;
+    }
+
+    return regexec(&re, value, 0, NULL, 0) == 0;
 }
