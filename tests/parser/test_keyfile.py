@@ -2229,6 +2229,7 @@ dns-search='''.format(UUID))
       match:
         name: "eth0"
       dhcp4: true
+      macaddress: "random"
       access-points:
         "SOME-SSID":
           auth:
@@ -2237,7 +2238,6 @@ dns-search='''.format(UUID))
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              wifi.cloned-mac-address: "random"
               ipv4.dns-search: ""
       networkmanager:
         uuid: "{}"
@@ -2265,12 +2265,12 @@ dns-search='''.format(UUID))
       match:
         name: "eth0"
       dhcp4: true
+      macaddress: "random"
       wakeonlan: true
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
         passthrough:
-          ethernet.cloned-mac-address: "random"
           ipv4.dns-search: ""
 '''.format(UUID, UUID)})
 

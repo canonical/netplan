@@ -126,6 +126,15 @@ is_string_in_array(GArray* array, const char* value);
 gboolean
 _is_auth_key_management_psk(const NetplanAuthenticationSettings* auth);
 
+gboolean
+_is_macaddress_special_nm_option(const char* value);
+
+gboolean
+_is_macaddress_special_nd_option(const char* value);
+
+gboolean
+_is_valid_macaddress(const char* value);
+
 NETPLAN_INTERNAL struct address_iter*
 _netplan_netdef_new_address_iter(NetplanNetDefinition* netdef);
 

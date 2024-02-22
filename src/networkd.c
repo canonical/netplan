@@ -233,6 +233,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     if (!def->set_name &&
         !def->wake_on_lan &&
         !def->mtubytes &&
+        !(_is_macaddress_special_nd_option(def->set_mac) && def->backend == NETPLAN_BACKEND_NETWORKD) &&
         (def->receive_checksum_offload == NETPLAN_TRISTATE_UNSET) &&
         (def->transmit_checksum_offload == NETPLAN_TRISTATE_UNSET) &&
         (def->tcp_segmentation_offload == NETPLAN_TRISTATE_UNSET) &&
@@ -253,6 +254,15 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     g_string_append_printf(s, "WakeOnLan=%s\n", def->wake_on_lan ? "magic" : "off");
     if (def->mtubytes)
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
+
+    if (_is_macaddress_special_nd_option(def->set_mac) && def->backend == NETPLAN_BACKEND_NETWORKD) {
+        if (!g_strcmp0(def->set_mac, "permanent")) {
+            /* "permanent" is used for both NM and ND, but the actual setting value for ND is "persistent" */
+            g_string_append_printf(s, "MACAddressPolicy=persistent\n");
+        } else {
+            g_string_append_printf(s, "MACAddressPolicy=%s\n", def->set_mac);
+        }
+    }
 
     /* Offload options */
     if (def->receive_checksum_offload != NETPLAN_TRISTATE_UNSET)
@@ -496,7 +506,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
     s = g_string_sized_new(200);
     g_string_append_printf(s, "[NetDev]\nName=%s\n", def->id);
 
-    if (def->set_mac)
+    if (def->set_mac && _is_valid_macaddress(def->set_mac))
         g_string_append_printf(s, "MACAddress=%s\n", def->set_mac);
     if (def->mtubytes)
         g_string_append_printf(s, "MTUBytes=%u\n", def->mtubytes);
@@ -771,7 +781,7 @@ _netplan_netdef_write_network_file(
 
     if (def->mtubytes)
         g_string_append_printf(link, "MTUBytes=%u\n", def->mtubytes);
-    if (def->set_mac)
+    if (def->set_mac && _is_valid_macaddress(def->set_mac))
         g_string_append_printf(link, "MACAddress=%s\n", def->set_mac);
 
     if (def->emit_lldp)
@@ -1367,6 +1377,15 @@ _netplan_netdef_write_networkd(
             // LCOV_EXCL_STOP
         }
 
+    }
+
+    if (def->set_mac &&
+        !_is_valid_macaddress(def->set_mac) &&
+        !_is_macaddress_special_nd_option(def->set_mac)) {
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED,
+                    "ERROR: %s: networkd backend does not support the MAC address option '%s'\n",
+                    def->id, def->set_mac);
+        return FALSE;
     }
 
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)

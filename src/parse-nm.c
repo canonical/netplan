@@ -169,17 +169,8 @@ keyfile_handle_cloned_mac_address(GKeyFile *kf, NetplanNetDefinition* nd, const 
 
     if (!mac) return;
 
-    /* If the value of "cloned-mac-address" is one of the below we don't try to
-     * parse it and leave it in the passthrough section.
-     */
-    if (   g_strcmp0(mac, "preserve")
-        && g_strcmp0(mac, "permanent")
-        && g_strcmp0(mac, "random")
-        && g_strcmp0(mac, "stable")
-    ) {
-        nd->set_mac = g_strdup(mac);
-        _kf_clear_key(kf, group, "cloned-mac-address");
-    }
+    nd->set_mac = g_strdup(mac);
+    _kf_clear_key(kf, group, "cloned-mac-address");
 }
 
 STATIC void

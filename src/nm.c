@@ -1104,7 +1104,7 @@ netplan_state_finish_nm_write(
                 g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, nd->id, suffix);
             }
             /* Also, match by explicit (new) MAC, if available */
-            if (nd->set_mac) {
+            if (nd->set_mac && _is_valid_macaddress(nd->set_mac)) {
                 tmp = g_string_new(nd->set_mac);
                 g_string_append_printf(udev_rules, "%s ATTR{address}==\"%s\",%s", prefix, g_string_ascii_down(tmp)->str, suffix);
                 g_string_free(tmp, TRUE);
