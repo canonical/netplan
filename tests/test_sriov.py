@@ -1120,7 +1120,8 @@ Type=oneshot
 ExecStart=/usr/sbin/netplan rebind --debug enblue engreen
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
-After=network.target
+DefaultDependencies=no
+Before=network-pre.target
 After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
 
@@ -1166,7 +1167,8 @@ Type=oneshot
 ExecStart=/usr/sbin/netplan rebind --debug enblue engreen
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
-After=network.target
+DefaultDependencies=no
+Before=network-pre.target
 After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
 
@@ -1186,7 +1188,8 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
       link: engreen''')
         self.assert_sriov({'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
-After=network.target
+DefaultDependencies=no
+Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 
 [Service]
@@ -1206,7 +1209,8 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
       link: engreen''')
         self.assert_sriov({'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
-After=network.target
+DefaultDependencies=no
+Before=network-pre.target
 
 [Service]
 Type=oneshot
