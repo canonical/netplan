@@ -411,4 +411,7 @@ struct netplan_net_definition {
     /* virtual-ethernet */
     /* netplan-feature: virtual-ethernet */
     NetplanNetDefinition* veth_peer_link;
+
+    NetplanTristate bridge_hairpin;
+    NetplanTristate bridge_learning;
 };

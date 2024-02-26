@@ -323,6 +323,8 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->modem_params.username);
     memset(&netdef->modem_params, 0, sizeof(netdef->modem_params));
 
+    netdef->bridge_hairpin = NETPLAN_TRISTATE_UNSET;
+    netdef->bridge_learning = NETPLAN_TRISTATE_UNSET;
     netdef->bridge_neigh_suppress = NETPLAN_TRISTATE_UNSET;
     FREE_AND_NULLIFY(netdef->bridge_params.ageing_time);
     FREE_AND_NULLIFY(netdef->bridge_params.forward_delay);

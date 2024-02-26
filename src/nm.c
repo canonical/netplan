@@ -758,6 +758,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "bridge-port", "path-cost", def->bridge_params.path_cost);
         if (def->bridge_params.port_priority)
             g_key_file_set_uint64(kf, "bridge-port", "priority", def->bridge_params.port_priority);
+        if (def->bridge_hairpin != NETPLAN_TRISTATE_UNSET)
+            g_key_file_set_boolean(kf, "bridge-port", "hairpin-mode", def->bridge_hairpin);
     }
     if (def->bond) {
         g_key_file_set_string(kf, "connection", "slave-type", "bond"); /* wokeignore:rule=slave */

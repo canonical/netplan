@@ -247,6 +247,36 @@ class _CommonTests():
         with open('/sys/class/net/mybr/brif/%s/priority' % self.dev_e2_client) as f:
             self.assertEqual(f.read().strip(), '42')
 
+    def test_bridge_port_hairpin(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr0:
+      match: {name: %(ec)s}
+      hairpin: true
+    ethbr1:
+      match: {name: %(e2c)s}
+      hairpin: false
+  bridges:
+    mybr:
+      interfaces: [ethbr0, ethbr1]
+      dhcp4: false''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client])
+        self.assert_iface_up(self.dev_e_client, ['master mybr'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])  # wokeignore:rule=master
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        text=True).splitlines()
+        self.assertEqual(len(lines), 2, lines)
+        self.assertIn(self.dev_e_client, lines[0])
+        self.assertIn(self.dev_e2_client, lines[1])
+        with open('/sys/devices/virtual/net/mybr/lower_%s/brport/hairpin_mode' % self.dev_e_client) as f:
+            self.assertEqual(f.read().strip(), '1')
+        with open('/sys/devices/virtual/net/mybr/lower_%s/brport/hairpin_mode' % self.dev_e2_client) as f:
+            self.assertEqual(f.read().strip(), '0')
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")
@@ -308,6 +338,36 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       addresses: [10.10.10.10/24]''' % {'r': self.backend})
         self.generate_and_settle(['mybr'])
         self.assert_iface('mybr', ['inet 10.10.10.10/24'])
+
+    def test_bridge_port_learning(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybr'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbr0:
+      match: {name: %(ec)s}
+      port-mac-learning: true
+    ethbr1:
+      match: {name: %(e2c)s}
+      port-mac-learning: false
+  bridges:
+    mybr:
+      interfaces: [ethbr0, ethbr1]
+      dhcp4: false''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client])
+        self.assert_iface_up(self.dev_e_client, ['master mybr'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up(self.dev_e2_client, ['master mybr'], ['inet '])  # wokeignore:rule=master
+        lines = subprocess.check_output(['bridge', 'link', 'show', 'mybr'],
+                                        text=True).splitlines()
+        self.assertEqual(len(lines), 2, lines)
+        self.assertIn(self.dev_e_client, lines[0])
+        self.assertIn(self.dev_e2_client, lines[1])
+        with open('/sys/devices/virtual/net/mybr/lower_%s/brport/learning' % self.dev_e_client) as f:
+            self.assertEqual(f.read().strip(), '1')
+        with open('/sys/devices/virtual/net/mybr/lower_%s/brport/learning' % self.dev_e2_client) as f:
+            self.assertEqual(f.read().strip(), '0')
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
