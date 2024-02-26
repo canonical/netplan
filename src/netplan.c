@@ -825,7 +825,7 @@ _serialize_yaml(
 
     write_routes(event, emitter, def);
     YAML_BOOL_TRISTATE(def, event, emitter, "hairpin", def->bridge_hairpin);
-    YAML_BOOL_TRISTATE(def, event, emitter, "learning", def->bridge_learning);
+    YAML_BOOL_TRISTATE(def, event, emitter, "port-mac-learning", def->bridge_learning);
     YAML_BOOL_TRISTATE(def, event, emitter, "neigh-suppress", def->bridge_neigh_suppress);
 
     /* VLAN settings */

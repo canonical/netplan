@@ -348,10 +348,10 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
   ethernets:
     ethbr0:
       match: {name: %(ec)s}
-      learning: true
+      port-mac-learning: true
     ethbr1:
       match: {name: %(e2c)s}
-      learning: false
+      port-mac-learning: false
   bridges:
     mybr:
       interfaces: [ethbr0, ethbr1]

@@ -595,7 +595,7 @@ allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
       port-range: [42, 442]
       neigh-suppress: false
       hairpin: false
-      learning: false
+      port-mac-learning: false
   bridges:
     br0:
       interfaces: [vxlan1005]''' % {'r': self.backend})
