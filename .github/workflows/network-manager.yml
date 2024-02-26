@@ -61,7 +61,7 @@ jobs:
       - name: Preparing autopkgtest-build-lxd
         run: |
           sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
-          autopkgtest-build-lxd ubuntu-daily:noble
+          MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:noble # LP: #2052639
       - name: Run autopkgtest
         run: |
           # using --setup-commands temporarily to install:
