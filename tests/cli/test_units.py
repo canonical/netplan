@@ -165,6 +165,7 @@ class TestCLI(unittest.TestCase):
             args = log.call_args.args
             self.assertIn('Error in network definition: invalid boolean value', args[0])
 
+    @unittest.skipIf(os.getuid() == 0, 'Root can always read the file')
     def test_raises_exception_main_function_permission_denied(self):
         with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
             f.write('''network:
