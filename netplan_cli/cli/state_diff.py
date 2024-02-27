@@ -22,7 +22,7 @@ from typing import AbstractSet
 
 from netplan.netdef import NetplanRoute
 from netplan_cli.cli.state import SystemConfigState, NetplanConfigState, DEVICE_TYPES
-from netplan_cli.cli.utils import route_table_lookup
+from netplan_cli.cli.utils import is_valid_macaddress, route_table_lookup
 
 
 class DiffJSONEncoder(json.JSONEncoder):
@@ -293,6 +293,11 @@ class NetplanDiffState():
         name = list(iface.keys())[0]
         system_macaddress = config.get('system_state', {}).get('macaddress')
         netplan_macaddress = config.get('netplan_state', {}).get('macaddress')
+
+        # if the macaddress in netplan is an special option (such as 'random')
+        # don't try to diff it against the system MAC address
+        if netplan_macaddress and not is_valid_macaddress(netplan_macaddress):
+            return
 
         if system_macaddress and netplan_macaddress:
             if system_macaddress != netplan_macaddress:
