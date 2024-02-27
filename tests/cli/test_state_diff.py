@@ -946,6 +946,40 @@ class TestNetplanDiff(unittest.TestCase):
         self.assertEqual(missing_system, 'aa:bb:cc:dd:ee:ff')
         self.assertEqual(missing_netplan, '11:22:33:44:55:66')
 
+    def test_diff_macaddress_option(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      macaddress: random''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'macaddress': '11:22:33:44:55:66'
+            }
+        }
+
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'mynic'
+        system_state.interface_list = [interface1]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        # if the macaddress value in Netplan is one of the supported options, such as 'random', we don't calculated a diff
+        missing_system = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_macaddress')
+        missing_netplan = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_macaddress')
+        self.assertEqual(missing_system, None)
+        self.assertEqual(missing_netplan, None)
+
     def test_diff_macaddress_with_match(self):
         with open(self.path, "w") as f:
             f.write('''network:

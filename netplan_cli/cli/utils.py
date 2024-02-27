@@ -218,6 +218,11 @@ def find_matching_iface(interfaces: list, netdef):
     return matches[0]
 
 
+def is_valid_macaddress(macaddress: str) -> bool:
+    MAC_PATTERN = '^[a-fA-F0-9][a-fA-F0-9](:[a-fA-F0-9][a-fA-F0-9]){5}((:[a-fA-F0-9][a-fA-F0-9]){14})?$'
+    return re.match(MAC_PATTERN, macaddress) is not None
+
+
 def route_table_lookup() -> dict:
     lookup_table = {}
     path = NEW_RT_TABLES_PATH
