@@ -51,6 +51,15 @@ class NetDefinition():
         return bool(lib.netplan_netdef_get_dhcp6(self._ptr))
 
     @property
+    def link_local(self) -> list:
+        linklocal = []
+        if bool(lib.netplan_netdef_get_link_local_ipv4(self._ptr)):
+            linklocal.append('ipv4')
+        if bool(lib.netplan_netdef_get_link_local_ipv6(self._ptr)):
+            linklocal.append('ipv6')
+        return linklocal
+
+    @property
     def nameserver_addresses(self) -> '_NetdefNameserverIterator':
         return _NetdefNameserverIterator(self._ptr)
 

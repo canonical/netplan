@@ -448,6 +448,51 @@ test_util_is_string_in_array(__unused void** state)
     netplan_state_clear(&np_state);
 }
 
+void
+test_util_get_link_local_true(__unused void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth0:\n"
+        "      link-local: [ipv4, ipv6]\n";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+    netplan_state_iterator_init(np_state, &iter);
+
+    netdef = netplan_state_iterator_next(&iter);
+
+    assert_true(netplan_netdef_get_link_local_ipv4(netdef));
+    assert_true(netplan_netdef_get_link_local_ipv6(netdef));
+
+    netplan_state_clear(&np_state);
+}
+
+void
+test_util_get_link_local_false(__unused void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth0:\n"
+        "      link-local: []\n";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+    netplan_state_iterator_init(np_state, &iter);
+
+    netdef = netplan_state_iterator_next(&iter);
+
+    assert_false(netplan_netdef_get_link_local_ipv4(netdef));
+    assert_false(netplan_netdef_get_link_local_ipv6(netdef));
+
+    netplan_state_clear(&np_state);
+}
 
 void
 test_normalize_ip_address(__unused void** state)
@@ -492,6 +537,8 @@ main()
            cmocka_unit_test(test_util_is_route_rule_present),
            cmocka_unit_test(test_util_is_string_in_array),
            cmocka_unit_test(test_normalize_ip_address),
+           cmocka_unit_test(test_util_get_link_local_true),
+           cmocka_unit_test(test_util_get_link_local_false),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
