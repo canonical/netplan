@@ -22,6 +22,7 @@ from typing import AbstractSet
 
 from netplan.netdef import NetplanRoute
 from netplan_cli.cli.state import SystemConfigState, NetplanConfigState, DEVICE_TYPES
+from netplan_cli.cli.utils import route_table_lookup
 
 
 class DiffJSONEncoder(json.JSONEncoder):
@@ -42,6 +43,8 @@ class NetplanDiffState():
     def __init__(self, system_state: SystemConfigState, netplan_state: NetplanConfigState):
         self.system_state = system_state
         self.netplan_state = netplan_state
+
+        self.route_lookup_table_names = {}
 
     def get_full_state(self) -> dict:
         '''
@@ -624,18 +627,10 @@ class NetplanDiffState():
         return NetplanRoute(**route)
 
     def _default_route_tables_name_to_number(self, name: str) -> int:
-        value = 0
-        # Mapped in /etc/iproute2/rt_tables
-        if name == 'default':
-            value = 253
-        elif name == 'main':
-            value = 254
-        elif name == 'local':
-            value = 255
-        else:
-            try:
-                value = int(name)
-            except ValueError:
-                value = 0
+        if name.isdigit():
+            return int(name)
 
-        return value
+        if not self.route_lookup_table_names:
+            self.route_lookup_table_names = route_table_lookup()
+
+        return self.route_lookup_table_names.get(name, 0)

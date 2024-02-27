@@ -31,6 +31,11 @@ from netplan import NetDefinition, NetplanException
 NM_SERVICE_NAME = 'NetworkManager.service'
 NM_SNAP_SERVICE_NAME = 'snap.network-manager.networkmanager.service'
 
+OLD_RT_TABLES_PATH = '/etc/iproute2/rt_tables'
+NEW_RT_TABLES_PATH = '/usr/share/iproute2/rt_tables'
+RT_TABLES_DEFAULT = {0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+                     'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
+
 config_errors = (ConfigurationError, NetplanException, RuntimeError)
 
 
@@ -215,15 +220,22 @@ def find_matching_iface(interfaces: list, netdef):
 
 def route_table_lookup() -> dict:
     lookup_table = {}
+    path = NEW_RT_TABLES_PATH
+
+    if not os.path.exists(path):
+        path = OLD_RT_TABLES_PATH
+
     try:
-        with open('/etc/iproute2/rt_tables', 'r') as rt_tables:
+        with open(path, 'r') as rt_tables:
             for line in rt_tables:
                 split_line = line.split()
                 if len(split_line) == 2 and split_line[0].isnumeric():
                     lookup_table[int(split_line[0])] = split_line[1]
+                    lookup_table[split_line[1]] = int(split_line[0])
     except Exception:
-        logging.debug('Cannot open \'/etc/iproute2/rt_tables\' for reading')
-        return {}
+        logging.debug(f'Cannot open \'{path}\' for reading')
+        # defaults to the standard content found in the file
+        return RT_TABLES_DEFAULT
 
     return lookup_table
 

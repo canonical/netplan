@@ -411,7 +411,8 @@ class TestUtils(unittest.TestCase):
         file.write(data)
         file.seek(0)
         open_mock.return_value = file
-        expected = {0: 'unspec', 253: 'default', 254: 'main', 255: 'local'}
+        expected = {0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+                    'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
         out = utils.route_table_lookup()
         self.assertDictEqual(out, expected)
 
@@ -419,4 +420,5 @@ class TestUtils(unittest.TestCase):
     def test_route_table_lookup_fail(self, open_mock):
         open_mock.side_effect = Exception
         out = utils.route_table_lookup()
-        self.assertDictEqual(out, {})
+        self.assertDictEqual(out, {0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+                                   'unspec': 0, 'default': 253, 'main': 254, 'local': 255})

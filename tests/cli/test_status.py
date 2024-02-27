@@ -133,13 +133,18 @@ class TestStatus(unittest.TestCase):
     @patch('netplan_cli.cli.commands.status.RICH_OUTPUT', False)
     @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
     @patch('netplan_cli.cli.state.Interface.query_networkctl')
-    def test_plain_print(self, networkctl_mock, nm_ssid_mock):
+    @patch('netplan_cli.cli.state_diff.route_table_lookup')
+    def test_plain_print(self, rt_mock, networkctl_mock, nm_ssid_mock):
         SSID = 'MYCON'
         nm_ssid_mock.return_value = SSID
         # networkctl mock output reduced to relevant lines
         networkctl_mock.return_value = \
             '''Activation Policy: manual
             WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
+
+        rt_mock.return_value = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
 
         nd = SystemConfigState.process_networkd(NETWORKD)
         nm = SystemConfigState.process_nm(NMCLI)
@@ -205,13 +210,18 @@ class TestStatus(unittest.TestCase):
 
     @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
     @patch('netplan_cli.cli.state.Interface.query_networkctl')
-    def test_pretty_print(self, networkctl_mock, nm_ssid_mock):
+    @patch('netplan_cli.cli.state_diff.route_table_lookup')
+    def test_pretty_print(self, rt_mock, networkctl_mock, nm_ssid_mock):
         SSID = 'MYCON'
         nm_ssid_mock.return_value = SSID
         # networkctl mock output reduced to relevant lines
         networkctl_mock.return_value = \
             '''Activation Policy: manual
             WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
+
+        rt_mock.return_value = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
 
         nd = SystemConfigState.process_networkd(NETWORKD)
         nm = SystemConfigState.process_nm(NMCLI)
@@ -277,13 +287,18 @@ class TestStatus(unittest.TestCase):
 
     @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
     @patch('netplan_cli.cli.state.Interface.query_networkctl')
-    def test_pretty_print_verbose(self, networkctl_mock, nm_ssid_mock):
+    @patch('netplan_cli.cli.state_diff.route_table_lookup')
+    def test_pretty_print_verbose(self, rt_mock, networkctl_mock, nm_ssid_mock):
         SSID = 'MYCON'
         nm_ssid_mock.return_value = SSID
         # networkctl mock output reduced to relevant lines
         networkctl_mock.return_value = \
             '''Activation Policy: manual
             WiFi access point: {} (b4:fb:e4:75:c6:21)'''.format(SSID)
+
+        rt_mock.return_value = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
 
         nd = SystemConfigState.process_networkd(NETWORKD)
         nm = SystemConfigState.process_nm(NMCLI)
@@ -310,6 +325,9 @@ class TestStatus(unittest.TestCase):
             status.verbose = True
             status.diff = False
             status.diff_only = False
+            status.route_lookup_table_names = {
+                0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+                'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
             status.pretty_print(data, len(interfaces), _console_width=130)
             out = f.getvalue()
             self.assertEqual(out, '''\

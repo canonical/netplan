@@ -38,6 +38,9 @@ class TestNetplanDiff(unittest.TestCase):
         os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
 
         self.diff_state = NetplanDiffState(Mock(spec=SystemConfigState), Mock(spec=NetplanConfigState))
+        self.diff_state.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
 
     def test_get_full_state(self):
         with open(self.path, "w") as f:
@@ -274,6 +277,9 @@ class TestNetplanDiff(unittest.TestCase):
         system_state.interface_list = []
 
         diff_state = NetplanDiffState(system_state, netplan_state)
+        diff_state.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
         interfaces = diff_state._get_system_interfaces()
         expected = {
             'eth0': {
@@ -1121,6 +1127,9 @@ class TestNetplanDiff(unittest.TestCase):
         system_state.interface_list = []
 
         diff = NetplanDiffState(system_state, netplan_state)
+        diff.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
         diff_data = diff.get_diff()
 
         expected = {}
@@ -1170,6 +1179,9 @@ class TestNetplanDiff(unittest.TestCase):
         system_state.interface_list = []
 
         diff = NetplanDiffState(system_state, netplan_state)
+        diff.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
         diff_data = diff.get_diff()
 
         expected = {}
@@ -1218,6 +1230,9 @@ class TestNetplanDiff(unittest.TestCase):
         system_state.interface_list = []
 
         diff = NetplanDiffState(system_state, netplan_state)
+        diff.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
         diff_data = diff.get_diff()
 
         expected = {}
@@ -1918,6 +1933,9 @@ class TestNetplanDiff(unittest.TestCase):
         system_state.interface_list = [interface1, interface2, interface3]
 
         diff = NetplanDiffState(system_state, netplan_state)
+        diff.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
         diff_data = diff.get_diff()
 
         missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_vrf_link')
