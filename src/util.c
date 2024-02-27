@@ -1008,6 +1008,18 @@ netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef)
 }
 
 gboolean
+netplan_netdef_get_link_local_ipv4(const NetplanNetDefinition* netdef)
+{
+    return netdef->linklocal.ipv4;
+}
+
+gboolean
+netplan_netdef_get_link_local_ipv6(const NetplanNetDefinition* netdef)
+{
+    return netdef->linklocal.ipv6;
+}
+
+gboolean
 is_multicast_address(const char* address)
 {
     struct in_addr a4;

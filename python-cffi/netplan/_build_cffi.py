@@ -106,6 +106,8 @@ ffibuilder.cdef("""
         const NetplanNetDefinition* netdef, const char* name, const char* mac, const char* driver_name);
     gboolean netplan_netdef_get_dhcp4(const NetplanNetDefinition* netdef);
     gboolean netplan_netdef_get_dhcp6(const NetplanNetDefinition* netdef);
+    gboolean netplan_netdef_get_link_local_ipv4(const NetplanNetDefinition* netdef);
+    gboolean netplan_netdef_get_link_local_ipv6(const NetplanNetDefinition* netdef);
     ssize_t netplan_netdef_get_macaddress(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
 
     // NetDefinition (internal)

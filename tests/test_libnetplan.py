@@ -804,6 +804,43 @@ class TestNetDefinition(TestBase):
         self.assertFalse(state['eth0'].dhcp4)
         self.assertTrue(state['eth0'].dhcp6)
 
+    def test_link_local(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      link-local: [ipv4, ipv6]
+      ''')
+
+        self.assertIn('ipv4', state['eth0'].link_local)
+        self.assertIn('ipv6', state['eth0'].link_local)
+
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      link-local: []
+      ''')
+
+        self.assertNotIn('ipv4', state['eth0'].link_local)
+        self.assertNotIn('ipv6', state['eth0'].link_local)
+
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      link-local: [ipv4]
+      ''')
+
+        self.assertIn('ipv4', state['eth0'].link_local)
+        self.assertNotIn('ipv6', state['eth0'].link_local)
+
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      link-local: [ipv6]
+      ''')
+
+        self.assertNotIn('ipv4', state['eth0'].link_local)
+        self.assertIn('ipv6', state['eth0'].link_local)
+
     def test_get_macaddress(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:
