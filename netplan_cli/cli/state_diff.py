@@ -138,6 +138,7 @@ class NetplanDiffState():
 
         missing_dhcp4_address = config.get('netplan_state', {}).get('dhcp4', False)
         missing_dhcp6_address = config.get('netplan_state', {}).get('dhcp6', False)
+        link_local = config.get('netplan_state', {}).get('link_local', [])
         system_ips = set()
         for addr, addr_data in config.get('system_state', {}).get('addresses', {}).items():
             ip = ipaddress.ip_interface(addr)
@@ -146,6 +147,15 @@ class NetplanDiffState():
             # Select only static IPs
             if 'dhcp' not in flags and 'link' not in flags:
                 system_ips.add(addr)
+
+            # Handle the link local address
+            # If it's present but the respective setting is not enabled in the netdef
+            # it's considered a difference.
+            if 'link' in flags and ip.is_link_local:
+                if isinstance(ip.ip, ipaddress.IPv4Address) and 'ipv4' not in link_local:
+                    system_ips.add(addr)
+                if isinstance(ip.ip, ipaddress.IPv6Address) and 'ipv6' not in link_local:
+                    system_ips.add(addr)
 
             # TODO: improve the detection of addresses assigned dynamically
             # in the class Interface.
@@ -316,7 +326,7 @@ class NetplanDiffState():
 
         # Filter out some routes that are expected to be added automatically
         system_addresses = [ip for ip in config.get('system_state', {}).get('addresses', {})]
-        system_routes = self._filter_system_routes(system_routes, system_addresses)
+        system_routes = self._filter_system_routes(system_routes, system_addresses, config)
 
         present_only_in_netplan = netplan_routes.difference(system_routes)
         present_only_in_system = system_routes.difference(netplan_routes)
@@ -432,7 +442,7 @@ class NetplanDiffState():
 
         return new_routes_set
 
-    def _filter_system_routes(self, system_routes: AbstractSet[NetplanRoute], system_addresses: list[str]) -> set:
+    def _filter_system_routes(self, system_routes: AbstractSet[NetplanRoute], system_addresses: list[str], config: dict) -> set:
         '''
         Some routes found in the system are installed automatically/dynamically without
         being configured in Netplan.
@@ -442,25 +452,39 @@ class NetplanDiffState():
         '''
 
         local_networks = [str(ipaddress.ip_interface(ip).network) for ip in system_addresses]
+        # filter out the local link network as we give special treatment to it
+        local_networks = list(filter(lambda n: n != 'fe80::/64', local_networks))
         addresses = [str(ipaddress.ip_interface(ip).ip) for ip in system_addresses]
+        link_local = config.get('netplan_state', {}).get('link_local', [])
         routes = set()
         for route in system_routes:
-            # Filter out link routes
-            if route.scope == 'link':
+            # Filter out link routes (but not link local as we handle them differently)
+            if route.scope == 'link' and route.to != 'default' and not ipaddress.ip_interface(route.to).is_link_local:
                 continue
+
             # Filter out routes installed by DHCP or RA
             if route.protocol == 'dhcp' or route.protocol == 'ra':
                 continue
+
             # Filter out Link Local routes
-            if route.to != 'default' and ipaddress.ip_interface(route.to).is_link_local:
-                continue
+            # We only filter them out if the respective 'link-local' setting is present in the netdef
+            if route.to != 'default':
+                route_to = ipaddress.ip_interface(route.to)
+                if route_to.is_link_local:
+                    if route.family == 10 and 'ipv6' in link_local:
+                        continue
+                    if route.family == 2 and 'ipv4' in link_local:
+                        continue
+
             # Filter out host scoped routes
             if (route.scope == 'host' and route.type == 'local' and
                     (route.to in addresses or ipaddress.ip_interface(route.to).is_loopback)):
                 continue
+
             # Filter out the default IPv6 multicast route
             if route.family == 10 and route.type == 'multicast' and route.to == 'ff00::/8':
                 continue
+
             # Filter IPv6 local routes
             if route.family == 10 and (route.to in local_networks or route.to in addresses):
                 continue
@@ -481,6 +505,8 @@ class NetplanDiffState():
 
             iface_ref['dhcp4'] = config.dhcp4
             iface_ref['dhcp6'] = config.dhcp6
+
+            iface_ref['link_local'] = config.link_local
 
             addresses = [addr for addr in config.addresses]
             if addresses:
