@@ -44,7 +44,7 @@ class _CommonTests():
         subprocess.call(['ip', 'addr', 'add', '1.2.3.4/24', 'dev', 'dummy0'])
         subprocess.call(['ip', 'addr', 'add', '1.2.3.40/24', 'dev', 'dummy0'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_ips = diff['interfaces']['dummy0']['netplan_state'].get('missing_addresses')
         self.assertIn('1.2.3.4/24', diff_ips)
         self.assertIn('1.2.3.40/24', diff_ips)
@@ -67,7 +67,7 @@ class _CommonTests():
         subprocess.call(['ip', 'addr', 'del', '1.2.3.4/24', 'dev', 'dummy0'])
         subprocess.call(['ip', 'addr', 'del', '1.2.3.40/24', 'dev', 'dummy0'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_ips = diff['interfaces']['dummy0']['system_state'].get('missing_addresses', [])
         self.assertIn('1.2.3.4/24', diff_ips)
         self.assertIn('1.2.3.40/24', diff_ips)
@@ -90,7 +90,7 @@ class _CommonTests():
         subprocess.call(['ip', 'addr', 'del', '1.2.3.4/24', 'dev', self.dev_e2_client])
         subprocess.call(['ip', 'addr', 'del', '1.2.3.40/24', 'dev', self.dev_e2_client])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_ips = diff['interfaces'][self.dev_e2_client]['system_state'].get('missing_addresses', [])
         netdef_id = diff['interfaces'][self.dev_e2_client]['id']
         self.assertIn('1.2.3.4/24', diff_ips)
@@ -111,7 +111,7 @@ class _CommonTests():
         # Add an extra interface not present in any YAML
         subprocess.check_call(['ip', 'link', 'add', 'type', 'dummy', 'dev', 'dummy1'])
         subprocess.check_call(['ip', 'link', 'add', 'type', 'dummy', 'dev', 'dummy1'])
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         missing_system = diff.get('missing_interfaces_system', {})
         missing_netplan = diff.get('missing_interfaces_netplan', {})
         self.assertIn('dummy1', missing_netplan)
@@ -137,7 +137,7 @@ class _CommonTests():
 
         subprocess.call(['resolvectl', 'dns', 'dummy0', '8.8.8.8'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_dns = diff['interfaces']['dummy0']['system_state'].get('missing_nameservers_addresses', [])
         self.assertIn('1.1.1.1', diff_dns)
 
@@ -160,7 +160,7 @@ class _CommonTests():
 
         subprocess.call(['resolvectl', 'dns', 'dummy0', '1.1.1.1', '8.8.8.8'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_dns = diff['interfaces']['dummy0']['netplan_state'].get('missing_nameservers_addresses', [])
         self.assertIn('8.8.8.8', diff_dns)
 
@@ -187,7 +187,7 @@ class _CommonTests():
 
         subprocess.call(['resolvectl', 'domain', 'dummy0', 'mynet.local'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_dns = diff['interfaces']['dummy0']['system_state'].get('missing_nameservers_search', [])
         self.assertIn('mydomain.local', diff_dns)
 
@@ -212,7 +212,7 @@ class _CommonTests():
 
         subprocess.call(['resolvectl', 'domain', 'dummy0', 'mynet.local', 'mydomain.local'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_dns = diff['interfaces']['dummy0']['netplan_state'].get('missing_nameservers_search', [])
         self.assertIn('mydomain.local', diff_dns)
 
@@ -232,7 +232,7 @@ class _CommonTests():
 
         subprocess.call(['ip', 'route', 'add', '3.2.1.0/24', 'via', '1.2.3.4'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_routes = diff['interfaces']['dummy0']['netplan_state'].get('missing_routes', [])
         self.assertEqual(len(diff_routes), 1)
         route = diff_routes[0]
@@ -259,7 +259,7 @@ class _CommonTests():
 
         subprocess.call(['ip', 'route', 'del', '3.2.1.0/24', 'via', '1.2.3.4'])
 
-        diff = json.loads(subprocess.check_output(['python3', 'tools/diff.py', '-j']))
+        diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         diff_routes = diff['interfaces']['dummy0']['system_state'].get('missing_routes', [])
         self.assertEqual(len(diff_routes), 1)
         route = diff_routes[0]
