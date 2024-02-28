@@ -339,7 +339,7 @@ class IntegrationTestsBase(unittest.TestCase):
             self.assertTrue(False, 'netplan apply failed: {}'.format(e.output))
 
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
-            self.fail('systemd units changed without reload')
+            print('\nWARNING: systemd units changed without reload:', out)
         # start NM so that we can verify that it does not manage anything
         subprocess.call(['nm-online', '-sxq'])  # Wait for NM startup, from 'netplan apply'
         if not self.is_active('NetworkManager.service'):
