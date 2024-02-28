@@ -34,6 +34,23 @@ Currently, **`netplan status`** depends on `systemd-networkd` as a source of dat
 `-a`, `--all`
 :   Show all interface data including inactive.
 
+`--diff`
+:   Analyze and display differences between the current system configuration and network definitions present in the YAML files.
+    The configuration analyzed includes IP addresses, routes, MAC addresses, DNS addresses, search domains and missing network interfaces.
+
+    The output format is similar to popular diff tools, such `diff` and `git diff`. Configuration present only in the system (and therefore missing in the Netplan YAMLs)
+    will be displayed with a `+` sign and will be highlighted in green. Configuration present only in Netplan (and therefore missing in the system) will be displayed
+    with a `-` sign and highlighted in red. The same is applied to network interfaces.
+
+`--diff-only`
+:   Same as `--diff` but omits all the information that is not a difference.
+
+`--root-dir`
+:   Read YAML files from this root instead of `/`.
+
+`--verbose`
+:   Show extra information.
+
 `-f` *`FORMAT`*, `--format` *`FORMAT`*
 :   Output in machine-readable `json` or `yaml` format.
 
