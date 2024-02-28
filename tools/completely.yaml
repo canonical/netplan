@@ -78,6 +78,10 @@ netplan status:
 - --debug
 - -a
 - --all
+- --diff
+- --diff-only
+- --root-dir
+- --verbose
 - -f
 - --format
 - $(ls /sys/class/net 2> /dev/null)
