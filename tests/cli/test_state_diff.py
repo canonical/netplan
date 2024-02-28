@@ -92,7 +92,8 @@ class TestNetplanDiff(unittest.TestCase):
                         'id': 'mynic',
                         'type': 'ethernet',
                         'dhcp4': True,
-                        'dhcp6': False
+                        'dhcp6': False,
+                        'link_local': ['ipv6'],
                     }
                 }
             }
@@ -153,6 +154,7 @@ class TestNetplanDiff(unittest.TestCase):
                     },
                     'dhcp4': False,
                     'dhcp6': False,
+                    'link_local': ['ipv6'],
                     'nameservers_addresses': ['1.1.1.1', '2.2.2.2'],
                     'nameservers_search': ['mydomain.local'],
                     'macaddress': 'aa:bb:cc:dd:ee:ff',
@@ -208,6 +210,7 @@ class TestNetplanDiff(unittest.TestCase):
                     'dhcp4': False,
                     'dhcp6': False,
                     'type': 'ethernet',
+                    'link_local': ['ipv6'],
                 }
             },
             'enp0s4': {
@@ -216,6 +219,7 @@ class TestNetplanDiff(unittest.TestCase):
                     'dhcp4': False,
                     'dhcp6': False,
                     'type': 'ethernet',
+                    'link_local': ['ipv6'],
                 }
             },
             'enp0s5': {
@@ -224,6 +228,7 @@ class TestNetplanDiff(unittest.TestCase):
                     'dhcp4': False,
                     'dhcp6': False,
                     'type': 'ethernet',
+                    'link_local': ['ipv6'],
                 },
             },
             'myeths': {
@@ -232,6 +237,7 @@ class TestNetplanDiff(unittest.TestCase):
                     'dhcp4': False,
                     'dhcp6': False,
                     'type': 'ethernet',
+                    'link_local': ['ipv6'],
                 }
             }
         }
@@ -727,6 +733,39 @@ class TestNetplanDiff(unittest.TestCase):
         self.assertTrue(dhcp4)
         self.assertTrue(dhcp6)
 
+    def test_diff_link_local_addresses(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: false
+      dhcp6: false
+      link-local: []''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'addresses': [
+                    {'169.254.65.85': {'prefix': 16, 'flags': ['link']}},
+                    {'fe80::4e7:f4ff:fe6e:c917': {'prefix': 64, 'flags': ['link']}},
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+
+        diff_data = diff.get_diff()
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_addresses', [])
+        self.assertIn('169.254.65.85/16', missing)
+        self.assertIn('fe80::4e7:f4ff:fe6e:c917/64', missing)
+
     def test_diff_missing_system_nameservers(self):
         with open(self.path, "w") as f:
             f.write('''network:
@@ -1016,18 +1055,18 @@ class TestNetplanDiff(unittest.TestCase):
         self.assertEqual(missing_netplan, '11:22:33:44:55:66')
 
     def test__filter_system_routes_empty_inputs(self):
-        filtered = self.diff_state._filter_system_routes(set(), [])
+        filtered = self.diff_state._filter_system_routes(set(), [], {})
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_link_scope_routes(self):
-        route = NetplanRoute(scope='link')
-        filtered = self.diff_state._filter_system_routes({route}, [])
+        route = NetplanRoute(to='1.2.3.0/24', scope='link')
+        filtered = self.diff_state._filter_system_routes({route}, [], {})
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_dhcp_ra_routes(self):
         route1 = NetplanRoute(protocol='dhcp')
         route2 = NetplanRoute(protocol='ra')
-        filtered = self.diff_state._filter_system_routes({route1, route2}, [])
+        filtered = self.diff_state._filter_system_routes({route1, route2}, [], {})
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_link_local_routes(self):
@@ -1035,7 +1074,25 @@ class TestNetplanDiff(unittest.TestCase):
         # local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1
         route2 = NetplanRoute(scope='host', type='local', to='127.0.0.0/8', from_addr='127.0.0.1')
         system_addresses = ['1.2.3.4/24', '127.0.0.1/8']
-        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses)
+        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses, {})
+        self.assertSetEqual(filtered, set())
+
+    def test__filter_system_routes_keep_link_local_routes(self):
+        route1 = NetplanRoute(scope='link', type='unicast', to='169.254.0.0/16', family=2, from_addr='169.254.65.85')
+        route2 = NetplanRoute(scope='global', type='unicast', to='fe80::/64', family=10)
+        system_addresses = []
+        config = {'netplan_state': {'link_local': []}}
+        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses, config)
+        # link local routes are present but they are disabled in the netdef
+        self.assertSetEqual(filtered, {route1, route2})
+
+    def test__filter_system_routes_remove_link_local_routes(self):
+        route1 = NetplanRoute(scope='link', type='unicast', to='169.254.0.0/16', family=2, from_addr='169.254.65.85')
+        route2 = NetplanRoute(scope='global', type='unicast', to='fe80::/64', family=10)
+        system_addresses = []
+        config = {'netplan_state': {'link_local': ['ipv4', 'ipv6']}}
+        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses, config)
+        # link local routes are present and link local is enabled for both ipv4 and ipv6 in the netdef
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_link_local_routes_with_multiple_ips_same_subnet(self):
@@ -1046,26 +1103,26 @@ class TestNetplanDiff(unittest.TestCase):
         route1 = NetplanRoute(scope='host', type='local', to='1.2.3.4', from_addr='1.2.3.4')
         route2 = NetplanRoute(scope='host', type='local', to='1.2.3.5', from_addr='1.2.3.4')
         system_addresses = ['1.2.3.4/24', '1.2.3.5/24']
-        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses)
+        filtered = self.diff_state._filter_system_routes({route1, route2}, system_addresses, {})
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_ipv6_multicast_routes(self):
         route = NetplanRoute(type='multicast', to='ff00::/8', family=10)
-        filtered = self.diff_state._filter_system_routes({route}, [])
+        filtered = self.diff_state._filter_system_routes({route}, [], {})
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_ipv6_host_local_routes(self):
         route1 = NetplanRoute(family=10, to='fd42:bc43:e20e:8cf7:216:3eff:feaf:4121')
         route2 = NetplanRoute(family=10, to='fd42:bc43:e20e:8cf7::/64')
         addresses = ['fd42:bc43:e20e:8cf7:216:3eff:feaf:4121/64']
-        filtered = self.diff_state._filter_system_routes({route1, route2}, addresses)
+        filtered = self.diff_state._filter_system_routes({route1, route2}, addresses, {})
         self.assertSetEqual(filtered, set())
 
     def test__filter_system_routes_should_not_be_filtered(self):
         route1 = NetplanRoute(to='default', via='1.2.3.4')
         route2 = NetplanRoute(to='1.2.3.0/24', via='4.3.2.1')
         route3 = NetplanRoute(to='1:2:3::/64', via='1:2:3::1234')
-        filtered = self.diff_state._filter_system_routes({route1, route2, route3}, [])
+        filtered = self.diff_state._filter_system_routes({route1, route2, route3}, [], {})
         self.assertSetEqual(filtered, {route1, route2, route3})
 
     def test_diff_missing_netplan_routes(self):
