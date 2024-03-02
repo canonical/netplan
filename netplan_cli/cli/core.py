@@ -49,10 +49,10 @@ class Netplan(utils.NetplanCommand):
         self.parse_args()
 
         if self.debug:
-            logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s')
+            logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s', force=True)
             os.environ['G_MESSAGES_DEBUG'] = 'all'
         else:
-            logging.basicConfig(level=logging.INFO, format='%(message)s')
+            logging.basicConfig(level=logging.INFO, format='%(message)s', force=True)
 
         try:
             self.run_command()
