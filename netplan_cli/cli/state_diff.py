@@ -378,7 +378,7 @@ class NetplanDiffState():
 
     def _analyze_parent_links(self, config: dict, iface: dict) -> None:
         '''
-        Analyze if interfaces such as bonds, bridges and VRFs are correctly attached to their
+        Analyse if interfaces such as bonds, bridges and VRFs are correctly attached to their
         members and vice versa.
         '''
         name = list(iface.keys())[0]
