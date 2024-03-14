@@ -1,4 +1,4 @@
-# netplan - Backend-agnostic network configuration in YAML
+# Netplan - Declarative network configuration for various backends
 
 [![Build+ABI](https://github.com/canonical/netplan/workflows/Build%20&%20ABI%20compatibility/badge.svg?branch=main)](https://github.com/canonical/netplan/actions/workflows/build-abi.yml?query=branch%3Amain)
 [![Test+Coverage](https://github.com/canonical/netplan/workflows/Unit%20tests%20&%20Coverage/badge.svg?branch=main)](https://github.com/canonical/netplan/actions/workflows/check-coverage.yml?query=branch%3Amain)
@@ -13,7 +13,7 @@ http://netplan.io
 
 An overview of the architecture can be found at [netplan.io/design](https://netplan.io/design)
 
-The full documentation for netplan is available in the [doc/](../main/doc/) directory.
+Find the full [documentation for Netplan](https://netplan.readthedocs.io) on "Read the Docs".
 
 # Build using Meson
 
@@ -30,7 +30,7 @@ Please file bug reports in [Launchpad](https://bugs.launchpad.net/netplan/+fileb
 
 # Contact us
 
-Please join us on IRC in #netplan at [Libera.Chat](https://libera.chat/).
+Please join us on [IRC in #netplan](https://web.libera.chat/gamja/?channels=%23netplan) at Libera.Chat.
 
 Our mailing list is [here](https://lists.launchpad.net/netplan-developers/).
 

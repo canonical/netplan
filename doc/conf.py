@@ -159,7 +159,6 @@ custom_excludes = [
     'doc-cheat-sheet*',
     'manpage-footer.md',
     'manpage-header.md',
-    'CODE_OF_CONDUCT.md',
 ]
 
 # Add CSS files (located in .sphinx/_static/)
