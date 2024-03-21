@@ -657,11 +657,21 @@ netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, GErr
 
     config_keys = g_list_sort(g_hash_table_get_keys(configs), (GCompareFunc) strcmp);
 
-    for (GList* i = config_keys; i != NULL; i = i->next)
+    for (GList* i = config_keys; i != NULL; i = i->next) {
         if (!netplan_parser_load_yaml(npp, g_hash_table_lookup(configs, i->data), error)) {
+            if (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) {
+                gchar* warning_msg = NULL;
+                if (error && *error)
+                    warning_msg = (*error)->message;
+
+                g_warning("Skipping YAML file due to parsing errors. %s", warning_msg);
+                g_clear_error(error);
+                continue;
+            }
             globfree(&gl);
             return FALSE;
         }
+    }
     globfree(&gl);
     return TRUE;
 }
