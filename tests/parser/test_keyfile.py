@@ -2355,3 +2355,42 @@ route1_options=table=1000
 method=link-local\n'''.format(UUID), expect_fail=True)
 
         self.assertIn('missing \'table\' property', out)
+
+    def test_nameserver_with_DoT_lp2055148(self):
+        self.generate_from_keyfile('''[connection]
+id=ethernet-eth123
+uuid={}
+type=ethernet
+interface-name=eth123
+
+[ethernet]
+
+[ipv4]
+dns=8.8.8.8;1.1.1.1#lxd;192.168.0.1#domain.local;
+method=auto
+
+[ipv6]
+addr-gen-mode=default
+method=auto
+
+[proxy]\n'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "eth123"
+      dhcp4: true
+      dhcp6: true
+      wakeonlan: true
+      networkmanager:
+        uuid: "{}"
+        name: "ethernet-eth123"
+        passthrough:
+          ethernet._: ""
+          ipv4.dns: "8.8.8.8;1.1.1.1#lxd;192.168.0.1#domain.local;"
+          ipv6.addr-gen-mode: "default"
+          ipv6.ip6-privacy: "-1"
+          proxy._: ""
+'''.format(UUID, UUID)})
