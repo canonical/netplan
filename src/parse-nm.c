@@ -348,6 +348,21 @@ parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
     g_assert(nameserver_arr);
     gchar **split = g_key_file_get_string_list(kf, group, "dns", NULL, NULL);
     if (split) {
+
+        /* Workaround for LP: #2055148
+         * When an SNI server name is appended to the DNS server IP address,
+         * for example: 1.2.3.4#example.com, we skip the parsing and keep the configuration
+         * in the passthrough section by checking if the string is a valid IP address.
+         * TODO: implement proper DNS options for both NM and ND and drop this
+         * workaround.
+         */
+        for (unsigned i = 0; split[i]; ++i) {
+            if (!is_ip4_address(split[i]) && !is_ip6_address(split[i])) {
+                g_strfreev(split);
+                return;
+            }
+        }
+
         if (!*nameserver_arr)
             *nameserver_arr = g_array_new(FALSE, FALSE, sizeof(char*));
         for(unsigned i = 0; split[i]; ++i) {
