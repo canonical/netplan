@@ -6,7 +6,7 @@ project('netplan', 'c',
             'warning_level=2',
             'werror=true',
         ],
-        meson_version: '>= 0.61.0',
+        meson_version: '>= 1.3.0',
 )
 
 glib = dependency('glib-2.0')
