@@ -33,6 +33,8 @@ jobs:
       # it's needed (will be auto-loaded) by routing.test_vrf_basic
       - name: Install dependencies
         run: |
+          echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
       # work around LP: #1878225 as fallback
