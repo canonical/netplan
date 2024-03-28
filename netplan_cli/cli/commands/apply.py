@@ -25,6 +25,8 @@ import sys
 import glob
 import subprocess
 import shutil
+import tempfile
+import filecmp
 import netifaces
 import time
 
@@ -109,7 +111,6 @@ class NetplanApply(utils.NetplanCommand):
                 return
 
         ovs_cleanup_service = '/run/systemd/system/netplan-ovs-cleanup.service'
-        old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
         if ovs_cleanup_service in old_ovs_glob:
@@ -119,30 +120,32 @@ class NetplanApply(utils.NetplanCommand):
         nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
         old_files_nm = bool(old_nm_glob)
 
-        generator_call = []
-        generate_out = None
-        if 'NETPLAN_PROFILE' in os.environ:
-            generator_call.extend(['valgrind', '--leak-check=full'])
-            generate_out = subprocess.STDOUT
+        restart_networkd = False
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # needs to be a subfolder as copytree wants to create it
+            old_files_dir = os.path.join(tmp_dir, 'cfg')
+            shutil.copytree('/run/systemd/network', old_files_dir)
 
-        generator_call.append(utils.get_generator_path())
-        if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
-            if exit_on_error:
-                sys.exit(os.EX_CONFIG)
-            else:
-                raise ConfigurationError("the configuration could not be generated")
+            generator_call = []
+            generate_out = None
+            if 'NETPLAN_PROFILE' in os.environ:
+                generator_call.extend(['valgrind', '--leak-check=full'])
+                generate_out = subprocess.STDOUT
+
+            generator_call.append(utils.get_generator_path())
+            if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
+                if exit_on_error:
+                    sys.exit(os.EX_CONFIG)
+                else:
+                    raise ConfigurationError("the configuration could not be generated")
+
+            # Restart networkd if something in the configuration changed
+            comp = filecmp.dircmp('/run/systemd/network', old_files_dir)
+            if comp.left_only or comp.right_only or comp.diff_files:
+                restart_networkd = True
 
         devices = netifaces.interfaces()
 
-        # Re-start service when
-        # 1. We have configuration files for it
-        # 2. Previously we had config files for it but not anymore
-        # Ideally we should compare the content of the *netplan-* files before and
-        # after generation to minimize the number of re-starts, but the conditions
-        # above works too.
-        restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
-        if not restart_networkd and old_files_networkd:
-            restart_networkd = True
         restart_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
         if ovs_cleanup_service in restart_ovs_glob:
@@ -273,15 +276,20 @@ class NetplanApply(utils.NetplanCommand):
             # exclude the special 'netplan-ovs-cleanup.service' unit
             netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')
                            if not f.endswith('/' + OVS_CLEANUP_SERVICE)]
-            # Run 'systemctl start' command synchronously, to avoid race conditions
+            # Run 'systemctl (re)start' command synchronously, to avoid race conditions
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
-            try:
-                utils.networkctl_reload()
-                utils.networkctl_reconfigure(utils.networkd_interfaces())
-            except subprocess.CalledProcessError:
-                # (re-)start systemd-networkd if it is not running, yet
-                logging.warning('Falling back to a hard restart of systemd-networkd.service')
-                utils.systemctl('restart', ['systemd-networkd.service'], sync=True)
+            #
+            # In the past, calls to networkctl_reload/networkctl_reconfigure
+            # were tried, but due maybe to systemd-networkd bugs, they were not
+            # working as expected: the interface was getting initially the
+            # expected state, but after some minutes it ignored the state of
+            # /run/systemd/network/ and used the configuration read when the
+            # service was started. This happened in the case of removed
+            # .network files. Looking at files in
+            # /run/systemd/netif/links/<num>, the internal state seemed to keep
+            # removed files in NETWORK_FILE= (see LP#2058976).
+            logging.info('Restarting systemd-networkd.service')
+            utils.systemctl('restart', ['systemd-networkd.service'], sync=True)
             # 1st: execute OVS cleanup, to avoid races while applying OVS config
             utils.systemctl('start', [OVS_CLEANUP_SERVICE], sync=True)
             # 2nd: start all other services
