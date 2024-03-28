@@ -15,13 +15,14 @@
 %endif
 
 Name:           netplan
-Version:        0.106
+Version:        1.0
 Release:        0%{?dist}
 Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
 License:        GPL-3.0-only
 URL:            http://netplan.io/
 Source0:        https://github.com/canonical/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
+#Patch0:         meson-python-no-limited-api.diff
 
 BuildRequires:  gcc
 BuildRequires:  meson >= 0.61
