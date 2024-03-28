@@ -25,7 +25,7 @@ URL:            http://netplan.io/
 Source0:        https://github.com/canonical/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  gcc
-BuildRequires:  meson
+BuildRequires:  meson >= 1.3
 BuildRequires:  pkgconfig(bash-completion)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
