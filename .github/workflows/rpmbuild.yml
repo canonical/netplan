@@ -21,7 +21,7 @@ jobs:
           - fedora:latest
           - almalinux:10-kitten
           - almalinux:10
-          - almalinux:9
+          # - almalinux:9  # lacking meson >= 1.3.0
     container:
       image: ${{ matrix.container }}
     steps:
