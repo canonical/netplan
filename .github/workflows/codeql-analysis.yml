@@ -58,6 +58,7 @@ jobs:
     # Installs the build dependencies
     - name: Install build depends
       run: |
+        echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
         sudo sed -i 's/Types: deb/Types: deb deb-src/g' /etc/apt/sources.list.d/ubuntu.sources
         sudo apt update
         sudo apt install meson python3-coverage python3-pytest python3-pytest-cov libcmocka-dev python3-cffi libpython3-dev
