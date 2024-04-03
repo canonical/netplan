@@ -809,12 +809,12 @@ handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const 
 STATIC void
 validate_kf_group_key(GQuark key_id, __unused gpointer value, gpointer user_data)
 {
-    GData** list = user_data;
+    GArray* bad_keys = user_data;
     const gchar* key = g_quark_to_string(key_id);
     gchar** group_key = g_strsplit(key, ".", -1);
     if (g_strv_length(group_key) < 2) {
         g_warning("NetworkManager: passthrough key '%s' format is invalid, should be 'group.key'.", key);
-        g_datalist_id_remove_data(list, key_id);
+        g_array_append_val(bad_keys, key_id);
     }
     g_strfreev(group_key);
 }
@@ -826,7 +826,19 @@ handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const 
     gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.netdef, data, error);
 
     GData** list = &npp->current.netdef->backend_settings.passthrough;
-    g_datalist_foreach(list, validate_kf_group_key, list);
+    GArray* bad_keys = g_array_new(FALSE, FALSE, sizeof(GQuark));
+
+    /* Validate and remove passthrough keys that are not in the
+     * expected format (group.key)
+     */
+    g_datalist_foreach(list, validate_kf_group_key, bad_keys);
+
+    for (unsigned int i = 0; i < bad_keys->len; i++) {
+        GQuark bad_quark = g_array_index(bad_keys, GQuark, i);
+        g_datalist_id_remove_data(list, bad_quark);
+    }
+
+    g_array_free(bad_keys, TRUE);
 
     if (*list == NULL) {
         g_datalist_clear(list);
@@ -1033,7 +1045,19 @@ handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* 
     gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.access_point, data, error);
 
     GData** list = &npp->current.access_point->backend_settings.passthrough;
-    g_datalist_foreach(list, validate_kf_group_key, list);
+    GArray* bad_keys = g_array_new(FALSE, FALSE, sizeof(GQuark));
+
+    /* Validate and remove passthrough keys that are not in the
+     * expected format (group.key)
+     */
+    g_datalist_foreach(list, validate_kf_group_key, bad_keys);
+
+    for (unsigned int i = 0; i < bad_keys->len; i++) {
+        GQuark bad_quark = g_array_index(bad_keys, GQuark, i);
+        g_datalist_id_remove_data(list, bad_quark);
+    }
+
+    g_array_free(bad_keys, TRUE);
 
     if (*list == NULL) {
         g_datalist_clear(list);
