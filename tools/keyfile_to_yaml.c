@@ -1,3 +1,4 @@
+#include "state.h"
 #include <stdio.h>
 
 #include <types.h>
@@ -22,13 +23,26 @@ int main(int argc, char** argv) {
     np_state = netplan_state_new();
 
     netplan_state_import_parser_results(np_state, npp, &error);
-    if (!error) printf("keyfile %s loaded\n", argv[1]);
+    if (error) goto exit_state;
 
+    int stdout_fd = fileno(stdout);
+    netplan_state_dump_yaml(np_state, stdout_fd, &error);
+    if (error) {
+        printf("state_dump_yaml failed\n");
+        goto exit_state;
+    }
+
+    netplan_state_clear(&np_state);
+    netplan_parser_clear(&npp);
+    if (error) netplan_error_clear(&error);
+    return 0;
+
+exit_state:
     netplan_state_clear(&np_state);
 
 exit_parser:
     netplan_parser_clear(&npp);
     if (error) netplan_error_clear(&error);
 
-    return 0;
+    return 1;
 }
