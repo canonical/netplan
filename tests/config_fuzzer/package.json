@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "json-schema-faker": "^0.5.6",
+    "write-yaml-file": "^5.0.0"
+  },
+  "name": "netplan_fuzzer",
+  "version": "0.1.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "run": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
