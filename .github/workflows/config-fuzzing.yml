@@ -1,0 +1,43 @@
+name: Configuration fuzzing
+
+# This action will compile netplan with ASAN (address sanitizer),
+# generate random netplan YAML and call netplan generate against each
+# one of them.
+# The job will fail if issues are detected.
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'doc/**'
+  pull_request:
+    branches: [ '**' ]
+    paths-ignore:
+      - 'doc/**'
+
+jobs:
+  config-fuzzer:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install build depends
+        run: |
+          echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          # This PPA is needed here due to meson
+          sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci
+          sudo apt update
+          sudo apt -y install curl expect ubuntu-dev-tools devscripts equivs
+          sudo snap install node --classic
+          pull-lp-source netplan.io
+          sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
+          # Workaround for https://bugs.launchpad.net/bugs/2048768
+          sudo sysctl vm.mmap_rnd_bits=28
+          mk-build-deps -i -B -s sudo netplan.io-*/debian/control
+
+      - name: Fuzzer Runner
+        run: |
+          cd tests/config_fuzzer
+          unbuffer bash runner.sh ../../ 1000
+
