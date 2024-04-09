@@ -118,13 +118,18 @@ netplan_state_finish_sriov_write(const NetplanState* np_state, const char* rootd
         GHashTable* rebind_pfs = g_hash_table_new(g_str_hash, g_str_equal);
         GHashTable* apply_pfs = g_hash_table_new(g_str_hash, g_str_equal);
 
-        /* Find netdev interface names for SR-IOV PFs*/
+        /* Find netdev interface names for SR-IOV PFs
+         * We consider an interface to be a PF if at least of the conditions below is true:
+         * 1) the user explicitly set a desired number of VFs
+         * 2) there is at least one interface with a link to it (meaning the interface is a VF of this PF)
+         * 3) the user set the embedded-switch-mode (which can be applied regardless if the interface has VFs) 
+         * */
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             def = (NetplanNetDefinition*) iterator->data;
             pf = NULL;
-            if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link) {
+            if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link || def->embedded_switch_mode) {
                 any_sriov = TRUE;
-                if (def->sriov_explicit_vf_count < G_MAXUINT)
+                if (def->sriov_explicit_vf_count < G_MAXUINT || def->embedded_switch_mode)
                     pf = def;
                 else if (def->sriov_link)
                     pf = def->sriov_link;
