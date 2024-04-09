@@ -1112,17 +1112,44 @@ class TestParser(TestBase):
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
 After=netplan-sriov-apply.service
-After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
+After=sys-subsystem-net-devices-enblue.device
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/netplan rebind --debug enblue engreen
+ExecStart=/usr/sbin/netplan rebind --debug engreen enblue
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
 Before=network-pre.target
+After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-enblue.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan apply --sriov-only
+'''})
+
+    def test_eswitch_mode_sets_interface_as_pf(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      embedded-switch-mode: switchdev
+      delay-virtual-functions-rebind: true''')
+        self.assert_sriov({'rebind.service': '''[Unit]
+Description=(Re-)bind SR-IOV Virtual Functions to their driver
+After=network.target
+After=netplan-sriov-apply.service
+After=sys-subsystem-net-devices-engreen.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/netplan rebind --debug engreen
+''', 'apply.service': '''[Unit]
+Description=Apply SR-IOV configuration
+DefaultDependencies=no
+Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 
 [Service]
@@ -1159,18 +1186,18 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
 After=netplan-sriov-apply.service
-After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
+After=sys-subsystem-net-devices-enblue.device
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/netplan rebind --debug enblue engreen
+ExecStart=/usr/sbin/netplan rebind --debug engreen enblue
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
 Before=network-pre.target
-After=sys-subsystem-net-devices-enblue.device
 After=sys-subsystem-net-devices-engreen.device
+After=sys-subsystem-net-devices-enblue.device
 
 [Service]
 Type=oneshot
@@ -1223,7 +1250,7 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
   version: 2
   ethernets:
     engreen:
-      embedded-switch-mode: legacy''', expect_fail=True)
+      delay-virtual-functions-rebind: true''', expect_fail=True)
         self.assertIn("This is not a SR-IOV PF", err)
 
     def test_invalid_eswitch_mode(self):
