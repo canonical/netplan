@@ -474,9 +474,10 @@ validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError*
                 }
             }
         }
-        gboolean eswitch_mode = (nd->embedded_switch_mode ||
-                                 nd->sriov_delay_virtual_functions_rebind);
-        if (eswitch_mode && !is_sriov_pf) {
+        /* Does it set the eswitch mode? It can be set regardless if the interface has VFs */
+        if (nd->embedded_switch_mode)
+            is_sriov_pf = TRUE;
+        if (nd->sriov_delay_virtual_functions_rebind && !is_sriov_pf) {
             valid = yaml_error(npp, node, error, "%s: This is not a SR-IOV PF", nd->id);
             goto sriov_rules_error;
         }
