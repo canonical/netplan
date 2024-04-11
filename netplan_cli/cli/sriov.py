@@ -21,8 +21,7 @@ import logging
 import os
 import subprocess
 import typing
-
-from collections import defaultdict
+from typing import Dict, List, Optional, Set
 
 from . import utils
 from ..configmanager import ConfigurationError
@@ -212,37 +211,47 @@ def unbind_vfs(vfs: typing.Iterable[PCIDevice], driver) -> typing.Iterable[PCIDe
     return unbound_vfs
 
 
-def _get_target_interface(interfaces, np_state, pf_link, pfs):
-    if pf_link not in pfs:
-        # handle the match: syntax, get the actual device name
-        pf_dev = np_state[pf_link]
-        if pf_dev._has_match:
-            # now here it's a bit tricky
-            set_name = pf_dev.set_name
-            if set_name and set_name in interfaces:
-                # if we had a match: stanza and set-name: this means we should
-                # assume that, if found, the interface has already been
-                # renamed - use the new name
-                pfs[pf_link] = set_name
-            else:
-                for interface in interfaces:
-                    if not pf_dev._match_interface(
-                            iface_name=interface,
-                            iface_driver=utils.get_interface_driver_name(interface),
-                            iface_mac=utils.get_interface_macaddress(interface)):
-                        continue
-                    # we have a matching PF
-                    # store the matching interface in the dictionary of
-                    # active PFs, but error out if we matched more than one
-                    if pf_link in pfs:
-                        raise ConfigurationError('matched more than one interface for a PF device: %s' % pf_link)
-                    pfs[pf_link] = interface
-        else:
-            # no match field, assume entry name is the interface name
-            if pf_link in interfaces:
-                pfs[pf_link] = pf_link
+def _interface_matches(netdef: netplan.NetDefinition, interface: str) -> bool:
+    return netdef._match_interface(
+        iface_name=interface,
+        iface_driver=utils.get_interface_driver_name(interface),
+        iface_mac=utils.get_interface_macaddress(interface))
 
-    return pfs.get(pf_link, None)
+
+def _get_interface_name_for_netdef(netdef: netplan.NetDefinition) -> Optional[str]:
+    """
+    Try to match a netdef with the real system network interface.
+    Throws ConfigurationError if there is more than one match.
+    """
+    interfaces: List[str] = netifaces.interfaces()
+    if netdef._has_match:
+        # now here it's a bit tricky
+        set_name: str = netdef.set_name
+        if set_name and set_name in interfaces:
+            # if we had a match: stanza and set-name: this means we should
+            # assume that, if found, the interface has already been
+            # renamed - use the new name
+            return set_name
+        else:
+            matches: Set[str] = set()
+            # we walk through all the system interfaces to determine if there is
+            # more than one matched interface
+            for interface in interfaces:
+                if not _interface_matches(netdef, interface):
+                    continue
+                # we have a matching PF
+                # error out if we matched more than one
+                if len(matches) > 1:
+                    raise ConfigurationError('matched more than one interface for a PF device: %s' % netdef.id)
+                matches.add(interface)
+            if matches:
+                return list(matches)[0]
+    else:
+        # no match field, assume entry name is the interface name
+        if netdef.id in interfaces:
+            return netdef.id
+
+    return None
 
 
 def _get_pci_slot_name(netdev):
@@ -262,27 +271,67 @@ def _get_pci_slot_name(netdev):
         raise RuntimeError('failed parsing PCI slot name for %s: %s' % (netdev, str(e)))
 
 
-def get_vf_count_and_functions(interfaces, np_state,
-                               vf_counts, vfs, pfs):
+def _get_physical_functions(np_state: netplan.State) -> Dict[str, str]:
     """
     Go through the list of netplan ethernet devices and identify which are
-    PFs and VFs, matching the former with actual networking interfaces.
-    Count how many VFs each PF will need.
+    PFs matching them with actual network interfaces.
     """
-    for nid, netdef in np_state.ethernets.items():
-        if netdef.links.get('sriov') and _get_target_interface(interfaces, np_state, netdef.links.get('sriov').id, pfs):
-            vfs[nid] = None
+    pfs = {}
+    for netdef in np_state.ethernets.values():
+        # If the sriov_link is present, the interface is a VF and link is the PF
+        if link := netdef.links.get('sriov'):
+            if iface := _get_interface_name_for_netdef(np_state[link.id]):
+                pfs[link.id] = iface
+        else:
+            # If a netdef also defines the embedded_switch_mode key we consider it's a PF
+            # This enables us to change the eswitch mode even when the PF has no VFs.
+            if netdef._embedded_switch_mode:
+                if iface := _get_interface_name_for_netdef(netdef):
+                    pfs[netdef.id] = iface
 
+            # If the netdef has any (positive) number of VFs that's because it's a PF
+            try:
+                count = netdef._vf_count
+            except netplan.NetplanException as e:
+                raise ConfigurationError(str(e))
+            if count > 0:
+                if iface := _get_interface_name_for_netdef(netdef):
+                    pfs[netdef.id] = iface
+
+    return pfs
+
+
+def _get_vf_number_per_pf(np_state: netplan.State) -> Dict[str, int]:
+    """
+    Go through the list of netplan ethernet devices and identify which ones
+    have VFs. netdef._vf_count ultimately calls _netplan_state_get_vf_count_for_def
+    from libnetplan which return MAX(sriov_explicit_vf_count, number of VF netdefs).
+    """
+    vf_counts = {}
+    for netdef in np_state.ethernets.values():
         try:
             count = netdef._vf_count
         except netplan.NetplanException as e:
             raise ConfigurationError(str(e))
-        if count == 0:
-            continue
+        if count > 0:
+            if iface := _get_interface_name_for_netdef(netdef):
+                vf_counts[iface] = count
 
-        pf = _get_target_interface(interfaces, np_state, nid, pfs)
-        if pf:
-            vf_counts[pf] = count
+    return vf_counts
+
+
+def _get_virtual_functions(np_state: netplan.State) -> Set[str]:
+    """
+    Go through the list of netplan ethernet devices and identify which ones
+    are virtual functions
+    """
+    vfs = set()
+    for netdef in np_state.ethernets.values():
+        # If the sriov_link is present and the PF is also present in the system we save the VF
+        if link := netdef.links.get('sriov'):
+            if _get_interface_name_for_netdef(np_state[link.id]):
+                vfs.add(netdef.id)
+    return vfs
 
 
 def set_numvfs_for_pf(pf, vf_count):
@@ -413,14 +462,11 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # pointing to an PF. So let's browse through all ethernet devices,
     # find all that are VFs and count how many of those are linked to
     # particular PFs, as we need to then set the numvfs for each.
-    vf_counts = defaultdict(int)
+    vf_counts = _get_vf_number_per_pf(np_state)
     # we also store all matches between VF/PF netplan entry names and
     # interface that they're currently matching to
-    vfs = {}
-    pfs = {}
-
-    get_vf_count_and_functions(
-        interfaces, np_state, vf_counts, vfs, pfs)
+    vfs_set = _get_virtual_functions(np_state)
+    pfs = _get_physical_functions(np_state)
 
     # setup the required number of VFs per PF
     # at the same time store which PFs got changed in case the NICs
@@ -448,7 +494,8 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # entries to existing interfaces, otherwise we won't be able to set
     # filtered VLANs for those.
     # XXX: does matching those even make sense?
-    for vf in vfs:
+    vfs = {}
+    for vf in vfs_set:
         netdef = np_state[vf]
         if netdef._has_match:
             # right now we only match by name, as I don't think matching per
