@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
+#include <net/if.h>
 #include <sys/stat.h>
 
 #include <glib.h>
@@ -31,6 +32,68 @@
 #include "util.h"
 #include "util-internal.h"
 #include "validation.h"
+
+/**
+ * Query sysfs for the MAC address (up to 20 bytes for infiniband) of @ifname
+ * The caller owns the returned string and needs to free it.
+ */
+STATIC char*
+_netplan_sysfs_get_mac_by_ifname(const char* ifname, const char* rootdir)
+{
+    g_autofree gchar* content = NULL;
+    g_autofree gchar* sysfs_path = NULL;
+    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+                              "sys", "class", "net", ifname, "address", NULL);
+
+    if (!g_file_get_contents (sysfs_path, &content, NULL, NULL)) {
+        g_debug("%s: Cannot read file contents.", __FUNCTION__);
+        return NULL;
+    }
+
+    // Trim whitespace & clone value
+    return g_strdup(g_strstrip(content));
+}
+
+/**
+ * Query sysfs for the driver used by @ifname
+ * The caller owns the returned string and needs to free it.
+ */
+STATIC char*
+_netplan_sysfs_get_driver_by_ifname(const char* ifname, const char* rootdir)
+{
+    g_autofree gchar* link = NULL;
+    g_autofree gchar* sysfs_path = NULL;
+    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+                              "sys", "class", "net", ifname, "device", "driver", NULL);
+
+    link = g_file_read_link(sysfs_path, NULL);
+    if (!link) {
+        g_debug("%s: Cannot read symlink of %s.", __FUNCTION__, sysfs_path);
+        return NULL;
+    }
+
+    return g_path_get_basename(link);
+}
+
+/**
+ * Enumerate all network interfaces (/sys/clas/net/...) and check
+ * netplan_netdef_match_interface() to see if they match the current NetDef
+ */
+STATIC void
+_netplan_enumerate_interfaces(const NetplanNetDefinition* def, GStrvBuilder* builder, const char* rootdir)
+{
+    struct if_nameindex *if_nidxs, *intf;
+    if_nidxs = if_nameindex();
+    if (if_nidxs != NULL) {
+        for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
+            g_autofree gchar* mac = _netplan_sysfs_get_mac_by_ifname(intf->if_name, rootdir);
+            g_autofree gchar* driver = _netplan_sysfs_get_driver_by_ifname(intf->if_name, rootdir);
+            if (netplan_netdef_match_interface(def, intf->if_name, mac, driver))
+                g_strv_builder_add(builder, intf->if_name);
+        }
+        if_freenameindex(if_nidxs);
+    }
+}
 
 /**
  * Append WiFi frequencies to wpa_supplicant's freq_list=
@@ -738,7 +801,6 @@ _netplan_netdef_write_network_file(
     g_autoptr(GString) link = NULL;
     GString* s = NULL;
     mode_t orig_umask;
-    gboolean is_optional = def->optional;
 
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
@@ -761,17 +823,9 @@ _netplan_netdef_write_network_file(
         else /* "off" */
             mode = "always-down";
         g_string_append_printf(link, "ActivationPolicy=%s\n", mode);
-        /* When activation-mode is used we default to being optional.
-         * Otherwise systemd might wait indefinitely for the interface to
-         * become online.
-         */
-        is_optional = TRUE;
     }
 
-    if (is_optional || def->optional_addresses) {
-        if (is_optional) {
-            g_string_append(link, "RequiredForOnline=no\n");
-        }
+    if (def->optional_addresses) {
         for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
             if (def->optional_addresses & NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag) {
             g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
@@ -1398,6 +1452,48 @@ _netplan_netdef_write_networkd(
     if (!_netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
         return FALSE;
     SET_OPT_OUT_PTR(has_been_written, TRUE);
+
+    /* When activation-mode is used we default to being optional.
+     * Otherwise, systemd might wait indefinitely for the interface to
+     * come online.
+     */
+    if (!(def->optional || def->activation_mode)) {
+        g_autoptr(GStrvBuilder) builder = g_strv_builder_new ();
+        if (!netplan_netdef_has_match(def)) { // no matching => single interface
+            g_strv_builder_add(builder, def->id);
+        } else if (def->set_name) { // matching on a single interface
+            g_strv_builder_add(builder, def->set_name);
+        } else { // matching on potentially multiple interfaces
+            // XXX: we shouldn't run this enumeration for every NetDef...
+            _netplan_enumerate_interfaces(def, builder, rootdir);
+        }
+        g_auto(GStrv) ifnames = g_strv_builder_end (builder);
+
+        // create run/systemd/system/network-online.target.wants/ dir
+        if (g_strv_length(ifnames) > 0) {
+            g_autofree gchar* enablement_dir = NULL;
+            enablement_dir = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+                                          "run", "systemd", "system", "network-online.target.wants", "NOFILE", NULL);
+            _netplan_safe_mkdir_p_dir(enablement_dir);
+        }
+
+        // Create an enablement link for each interface in the <ifnames> vector
+        const char* target = "/lib/systemd/system/systemd-networkd-wait-online@.service";
+        for (unsigned i = 0; ifnames[i]; ++i) {
+            g_autofree char* link = NULL;
+            link = g_strjoin(NULL, rootdir ?: "",
+                             "/run/systemd/system/network-online.target.wants/systemd-networkd-wait-online@",
+                             ifnames[i], ".service", NULL);
+            g_debug("Creating wait-online service enablement link %s", link);
+            if (symlink(target, link) < 0 && errno != EEXIST) {
+                // LCOV_EXCL_START
+                g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
+                return FALSE;
+                // LCOV_EXCL_STOP
+            }
+        }
+    }
+
     return TRUE;
 }
 
@@ -1414,6 +1510,8 @@ _netplan_networkd_cleanup(const char* rootdir)
     _netplan_unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
+    // XXX: How can we make sure we do not clear non-netplan wait-online-enablement links here?
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/network-online.target.wants/systemd-networkd-wait-online@*.service");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
      * upgraded system, we need to make sure to clean those up. */
     _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
