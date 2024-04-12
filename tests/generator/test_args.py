@@ -138,10 +138,13 @@ class TestConfigArgs(TestBase):
         os.unlink(n)
 
         # should auto-enable networkd and -wait-online
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
+        self.assertTrue(os.path.isfile(os.path.join(
+            service_dir, 'netplan-networkd-wait-online@.service')))
         self.assertTrue(os.path.islink(os.path.join(
-            outdir, 'network-online.target.wants', 'systemd-networkd-wait-online@eth0.service')))
+            service_dir, 'network-online.target.wants', 'netplan-networkd-wait-online@eth0.service')))
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],

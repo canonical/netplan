@@ -1478,11 +1478,11 @@ _netplan_netdef_write_networkd(
         }
 
         // Create an enablement link for each interface in the <ifnames> vector
-        const char* target = "/lib/systemd/system/systemd-networkd-wait-online@.service";
+        const char* target = "/run/systemd/system/netplan-networkd-wait-online@.service";
         for (unsigned i = 0; ifnames[i]; ++i) {
             g_autofree char* link = NULL;
             link = g_strjoin(NULL, rootdir ?: "",
-                             "/run/systemd/system/network-online.target.wants/systemd-networkd-wait-online@",
+                             "/run/systemd/system/network-online.target.wants/netplan-networkd-wait-online@",
                              ifnames[i], ".service", NULL);
             g_debug("Creating wait-online service enablement link %s", link);
             if (symlink(target, link) < 0 && errno != EEXIST) {
@@ -1510,8 +1510,8 @@ _netplan_networkd_cleanup(const char* rootdir)
     _netplan_unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
-    // XXX: How can we make sure we do not clear non-netplan wait-online-enablement links here?
-    _netplan_unlink_glob(rootdir, "/run/systemd/system/network-online.target.wants/systemd-networkd-wait-online@*.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/network-online.target.wants/netplan-networkd-wait-online@*.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-networkd-wait-online@.service");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
      * upgraded system, we need to make sure to clean those up. */
     _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
