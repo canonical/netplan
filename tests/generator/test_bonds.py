@@ -980,7 +980,7 @@ class TestConfigErrors(TestBase):
     bond1:
       parameters:
         primary: eno1''', expect_fail=True)
-        self.assertIn("bond1: interface 'eno1' is already a primary of another bond", err)
+        self.assertIn("bond1: interface 'eno1' is already a primary of bond0", err)
 
     def test_bond_bridge_cross_assignments1(self):
         err = self.generate('''network:
