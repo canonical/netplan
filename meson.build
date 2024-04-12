@@ -44,6 +44,7 @@ subdir('netplan_cli')
 subdir('python-cffi')
 subdir('examples')
 subdir('doc')
+subdir('data')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(

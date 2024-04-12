@@ -1478,7 +1478,7 @@ _netplan_netdef_write_networkd(
         }
 
         // Create an enablement link for each interface in the <ifnames> vector
-        const char* target = "/run/systemd/system/netplan-networkd-wait-online@.service";
+        const char* target = "/lib/systemd/system/netplan-networkd-wait-online@.service";
         for (unsigned i = 0; ifnames[i]; ++i) {
             g_autofree char* link = NULL;
             link = g_strjoin(NULL, rootdir ?: "",
@@ -1511,7 +1511,6 @@ _netplan_networkd_cleanup(const char* rootdir)
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network-online.target.wants/netplan-networkd-wait-online@*.service");
-    _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-networkd-wait-online@.service");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
      * upgraded system, we need to make sure to clean those up. */
     _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");

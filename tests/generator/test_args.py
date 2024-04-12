@@ -141,8 +141,6 @@ class TestConfigArgs(TestBase):
         service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
-        self.assertTrue(os.path.isfile(os.path.join(
-            service_dir, 'netplan-networkd-wait-online@.service')))
         self.assertTrue(os.path.islink(os.path.join(
             service_dir, 'network-online.target.wants', 'netplan-networkd-wait-online@eth0.service')))
 
