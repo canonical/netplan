@@ -88,6 +88,7 @@ Currently supported backends are NetworkManager and systemd-networkd.
 %{_datadir}/dbus-1/system-services/io.netplan.Netplan.service
 %{_datadir}/dbus-1/system.d/io.netplan.Netplan.conf
 %{_systemdgeneratordir}/%{name}
+/usr/lib/systemd/system/netplan*.service
 %{_mandir}/man5/%{name}.5*
 %{_mandir}/man8/%{name}*.8*
 %dir %{_sysconfdir}/%{name}

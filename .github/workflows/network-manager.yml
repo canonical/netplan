@@ -43,6 +43,7 @@ jobs:
           # usrmerge-fix
           sed -i 's|rm debian/tmp/lib/netplan/generate|sh -c "mkdir -p debian/tmp/usr/lib/systemd/system-generators; rm -rf debian/tmp/lib; ln -sf /usr/libexec/netplan/generate debian/tmp/usr/lib/systemd/system-generators/netplan"|' debian/rules
           # usrmerge-fix-end
+          echo 'usr/lib/systemd/system/*' >> debian/netplan-generator.install
           echo "3.0 (native)" > debian/source/format  # force native build
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision

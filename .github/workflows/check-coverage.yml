@@ -31,6 +31,7 @@ jobs:
           sudo apt install curl expect ubuntu-dev-tools devscripts equivs gcovr
           pull-lp-source netplan.io
           sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
+          echo 'lib/systemd/system/*' >> netplan.io-*/debian/netplan-generator.install
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
           rm -rf netplan.io-*/
           wget http://archive.ubuntu.com/ubuntu/pool/universe/g/gcovr/gcovr_5.2-1_all.deb
