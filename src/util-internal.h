@@ -78,6 +78,9 @@ netplan_netdef_new(NetplanParser* npp, const char* id, NetplanDefType type, Netp
 const char *
 netplan_parser_get_filename(NetplanParser* npp);
 
+NetplanNetDefinition*
+_netplan_parser_find_bond_for_primary_member(const NetplanParser* npp, const char* primary);
+
 gboolean
 has_openvswitch(const NetplanOVSSettings* ovs, NetplanBackend backend, GHashTable *ovs_ports);
 
