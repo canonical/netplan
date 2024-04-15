@@ -75,21 +75,6 @@ enable_networkd(const char* generator_dir, const char* rootdir)
         // LCOV_EXCL_STOP
     }
 
-    // Mask the generic systemd-networkd-wait-online.service unit, to enforce
-    // "netplan-networkd-wait-online@IFACE.service" wait-online policy
-    g_autofree gchar* masking_link = NULL;
-    masking_link = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
-                                "run/systemd/system/systemd-networkd-wait-online.service",
-                                NULL);
-    g_debug("Masking systemd-networkd-wait-online.service via %s -> /dev/null", masking_link);
-    _netplan_safe_mkdir_p_dir(masking_link);
-    if (symlink("/dev/null", masking_link) < 0 && errno != EEXIST) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to create masking symlink: %m\n");
-        exit(1);
-        // LCOV_EXCL_STOP
-    }
-
     // Copy /usr/lib/systemd/system/systemd-networkd-wait-online@.service to
     // /run/systemd/system/netplan-networkd-wait-online@.service so we can make
     // it our own service.
