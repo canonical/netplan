@@ -1184,3 +1184,23 @@ _is_valid_macaddress(const char* value)
 
     return regexec(&re, value, 0, NULL, 0) == 0;
 }
+
+/* Given a netdef ID, look for the netdef representing a bond device that has it as primary member */
+NetplanNetDefinition*
+_netplan_parser_find_bond_for_primary_member(const NetplanParser* npp, const char* primary)
+{
+    GList* iter = npp->ordered;
+    NetplanNetDefinition* netdef = NULL;
+
+    while (iter) {
+        netdef = iter->data;
+        if (netdef->type == NETPLAN_DEF_TYPE_BOND) {
+            if (!g_strcmp0(netdef->bond_params.primary_member, primary)) {
+                break;
+            }
+        }
+        iter = iter->next;
+    }
+
+    return netdef;
+}

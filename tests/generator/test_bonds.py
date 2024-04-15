@@ -968,6 +968,20 @@ class TestConfigErrors(TestBase):
       interfaces: [eno1]''', expect_fail=True)
         self.assertIn("bond1: interface 'eno1' is already assigned to bond bond0", err)
 
+    def test_bond_primary_multiple_assignments(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    eno1: {}
+  bonds:
+    bond0:
+      parameters:
+        primary: eno1
+    bond1:
+      parameters:
+        primary: eno1''', expect_fail=True)
+        self.assertIn("bond1: interface 'eno1' is already a primary of bond0", err)
+
     def test_bond_bridge_cross_assignments1(self):
         err = self.generate('''network:
   version: 2

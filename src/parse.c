@@ -2313,6 +2313,11 @@ handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* da
                               npp->current.netdef->id, npp->current.netdef->bond_params.primary_member);
 
         ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
+        if (*ref_ptr) {
+            NetplanNetDefinition* bond = _netplan_parser_find_bond_for_primary_member(npp, *ref_ptr);
+            return yaml_error(npp, node, error, "%s: interface '%s' is already a primary of %s",
+                              npp->current.netdef->id, *ref_ptr, bond->id);
+        }
         *ref_ptr = g_strdup(scalar(node));
         npp->current.netdef->bond_params.primary_member = g_strdup(scalar(node));
         mark_data_as_dirty(npp, ref_ptr);
