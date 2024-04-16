@@ -125,6 +125,11 @@ class TestConfigArgs(TestBase):
   version: 2
   ethernets:
     eth0:
+      dhcp4: true
+    eth1:
+      dhcp4: true
+      optional: true
+    eth2:
       dhcp4: true''')
         os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
@@ -138,12 +143,28 @@ class TestConfigArgs(TestBase):
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth0.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth1.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth2.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
 
         # should auto-enable networkd and -wait-online
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
+        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth0 -i eth2\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
@@ -156,6 +177,41 @@ class TestConfigArgs(TestBase):
         os.unlink(os.path.join(outdir, 'netplan.stamp'))
         subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
         self.assertTrue(os.path.exists(n))
+
+    def test_systemd_generator_all_optional(self):
+        conf = os.path.join(self.confdir, 'a.yaml')
+        os.makedirs(os.path.dirname(conf))
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+      optional: true''')
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth0.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
+
+        # should auto-enable networkd but not -wait-online
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        self.assertTrue(os.path.islink(os.path.join(
+            outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
+        self.assertFalse(os.path.islink(os.path.join(
+            outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
+        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+''')
 
     def test_systemd_generator_noconf(self):
         outdir = os.path.join(self.workdir.name, 'out')

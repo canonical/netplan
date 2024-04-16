@@ -35,9 +35,6 @@ class TestNetworkd(TestBase):
         self.assert_networkd({'eth0.network': '''[Match]
 Name=eth0
 
-[Link]
-RequiredForOnline=no
-
 [Network]
 DHCP=ipv6
 LinkLocalAddressing=ipv6
@@ -85,7 +82,6 @@ Name=eth0
 
 [Link]
 ActivationPolicy=always-down
-RequiredForOnline=no
 
 [Network]
 DHCP=ipv6
@@ -109,7 +105,6 @@ Name=eth0
 
 [Link]
 ActivationPolicy=manual
-RequiredForOnline=no
 
 [Network]
 DHCP=ipv6
