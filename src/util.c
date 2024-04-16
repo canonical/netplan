@@ -955,7 +955,7 @@ netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* n
         return !g_strcmp0(name, netdef->id);
 
     if (netdef->match.mac) {
-        if (g_ascii_strcasecmp(netdef->match.mac, mac))
+        if (g_ascii_strcasecmp(netdef->match.mac ?: "", mac ?: ""))
             return FALSE;
     }
 
