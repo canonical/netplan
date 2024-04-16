@@ -803,7 +803,6 @@ _netplan_netdef_write_network_file(
     g_autoptr(GString) link = NULL;
     GString* s = NULL;
     mode_t orig_umask;
-    gboolean is_optional = def->optional;
 
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
@@ -826,17 +825,9 @@ _netplan_netdef_write_network_file(
         else /* "off" */
             mode = "always-down";
         g_string_append_printf(link, "ActivationPolicy=%s\n", mode);
-        /* When activation-mode is used we default to being optional.
-         * Otherwise systemd might wait indefinitely for the interface to
-         * become online.
-         */
-        is_optional = TRUE;
     }
 
-    if (is_optional || def->optional_addresses) {
-        if (is_optional) {
-            g_string_append(link, "RequiredForOnline=no\n");
-        }
+    if (def->optional_addresses) {
         for (unsigned i = 0; NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name != NULL; ++i) {
             if (def->optional_addresses & NETPLAN_OPTIONAL_ADDRESS_TYPES[i].flag) {
             g_string_append_printf(link, "OptionalAddresses=%s\n", NETPLAN_OPTIONAL_ADDRESS_TYPES[i].name);
@@ -1466,6 +1457,60 @@ _netplan_netdef_write_networkd(
     return TRUE;
 }
 
+gboolean
+_netplan_networkd_write_wait_online(const NetplanState* np_state, const char* rootdir)
+{
+    // Hash set of non-optional interfaces to wait for
+    GHashTable* non_optional_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    NetplanStateIterator iter;
+    netplan_state_iterator_init(np_state, &iter);
+    while (netplan_state_iterator_has_next(&iter)) {
+        const NetplanNetDefinition* def = netplan_state_iterator_next(&iter);
+        if (def->backend != NETPLAN_BACKEND_NETWORKD)
+            continue;
+        /* When activation-mode is used we default to being optional.
+         * Otherwise, systemd might wait indefinitely for the interface to
+         * come online.
+         */
+        if (!(def->optional || def->activation_mode)) {
+            if (!netplan_netdef_has_match(def)) { // no matching => single interface
+                g_hash_table_add(non_optional_interfaces, g_strdup(def->id));
+            } else if (def->set_name) { // matching on a single interface
+                g_hash_table_add(non_optional_interfaces, g_strdup(def->set_name));
+            } else { // matching on potentially multiple interfaces
+                // XXX: we shouldn't run this enumeration for every NetDef...
+                _netplan_enumerate_interfaces(def, non_optional_interfaces, rootdir);
+            }
+        }
+    }
+
+    // create run/systemd/system/systemd-networkd-wait-online.service.d/
+    const char* override = "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf";
+    // The "ConditionPathIsSymbolicLink" is Netplan's s-n-wait-online enablement symlink,
+    // as we want to run -wait-online only if enabled by Netplan.
+    GString* content = g_string_new("[Unit]\n"
+        "ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service\n");
+    if (g_hash_table_size(non_optional_interfaces) == 0) {
+        _netplan_g_string_free_to_file(content, rootdir, override, NULL);
+        g_hash_table_destroy(non_optional_interfaces);
+        return FALSE;
+    }
+
+    // We have non-optional interface, so let's wait for those explicitly
+    GHashTableIter idx;
+    gpointer ifname;
+    g_string_append(content, "\n[Service]\nExecStart=\n"
+                                "ExecStart=/lib/systemd/systemd-networkd-wait-online");
+    g_hash_table_iter_init (&idx, non_optional_interfaces);
+    while (g_hash_table_iter_next (&idx, &ifname, NULL))
+        g_string_append_printf(content, " -i %s", (const char*)ifname);
+    g_string_append(content, "\n");
+
+    _netplan_g_string_free_to_file(content, rootdir, override, NULL);
+    g_hash_table_destroy(non_optional_interfaces);
+    return TRUE;
+}
+
 /**
  * Clean up all generated configurations in @rootdir from previous runs.
  */
@@ -1479,6 +1524,7 @@ _netplan_networkd_cleanup(const char* rootdir)
     _netplan_unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
+    _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan*.conf");
     /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
      * upgraded system, we need to make sure to clean those up. */
     _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");

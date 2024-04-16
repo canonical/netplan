@@ -63,7 +63,7 @@ reload_udevd(void)
  * Create enablement symlink for systemd-networkd.service.
  */
 static void
-enable_networkd(const char* generator_dir)
+enable_networkd(const char* generator_dir, gboolean enable_wait_online)
 {
     g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
@@ -75,13 +75,15 @@ enable_networkd(const char* generator_dir)
         // LCOV_EXCL_STOP
     }
 
-    g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
-    _netplan_safe_mkdir_p_dir(link2);
-    if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "failed to create enablement symlink: %m\n");
-        exit(1);
-        // LCOV_EXCL_STOP
+    if (enable_wait_online) {
+        g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
+        _netplan_safe_mkdir_p_dir(link2);
+        if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "failed to create enablement symlink: %m\n");
+            exit(1);
+            // LCOV_EXCL_STOP
+        }
     }
 }
 
@@ -300,10 +302,11 @@ int main(int argc, char** argv)
     if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm)
         _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
+    gboolean enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */
         if (any_networkd)
-            enable_networkd(files[0]);
+            enable_networkd(files[0], enable_wait_online);
 
         /* Leave a stamp file so that we don't regenerate the configuration
          * multiple times and userspace can wait for it to finish */
@@ -324,7 +327,8 @@ int main(int argc, char** argv)
         /* covered via 'cloud-init' integration test */
         if (any_networkd) {
             start_unit_jit("systemd-networkd.socket");
-            start_unit_jit("systemd-networkd-wait-online.service");
+            if (enable_wait_online)
+                start_unit_jit("systemd-networkd-wait-online.service");
             start_unit_jit("systemd-networkd.service");
         }
         g_autofree char* glob_run = g_build_path(G_DIR_SEPARATOR_S,
