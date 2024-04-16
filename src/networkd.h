@@ -37,5 +37,8 @@ _netplan_netdef_write_network_file(
         gboolean* has_been_written,
         GError** error);
 
+NETPLAN_INTERNAL gboolean
+_netplan_networkd_write_wait_online(const NetplanState* np_state, const char* rootdir);
+
 NETPLAN_INTERNAL void
 _netplan_networkd_cleanup(const char* rootdir);

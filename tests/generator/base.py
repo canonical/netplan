@@ -466,6 +466,8 @@ class TestBase(unittest.TestCase):
         self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
         ovs_systemd_dir = set(os.listdir(systemd_dir))
         ovs_systemd_dir.remove('systemd-networkd.service.wants')
+        if 'systemd-networkd-wait-online.service.d' in ovs_systemd_dir:
+            ovs_systemd_dir.remove('systemd-networkd-wait-online.service.d')
         self.assertEqual(ovs_systemd_dir, {'netplan-ovs-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
             fname = 'netplan-ovs-' + fname
