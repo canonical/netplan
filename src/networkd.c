@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
+#include <net/if.h>
 #include <sys/stat.h>
 
 #include <glib.h>
@@ -31,6 +32,70 @@
 #include "util.h"
 #include "util-internal.h"
 #include "validation.h"
+
+/**
+ * Query sysfs for the MAC address (up to 20 bytes for infiniband) of @ifname
+ * The caller owns the returned string and needs to free it.
+ */
+STATIC char*
+_netplan_sysfs_get_mac_by_ifname(const char* ifname, const char* rootdir)
+{
+    g_autofree gchar* content = NULL;
+    g_autofree gchar* sysfs_path = NULL;
+    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+                              "sys", "class", "net", ifname, "address", NULL);
+
+    if (!g_file_get_contents (sysfs_path, &content, NULL, NULL)) {
+        g_debug("%s: Cannot read file contents.", __FUNCTION__);
+        return NULL;
+    }
+
+    // Trim whitespace & clone value
+    return g_strdup(g_strstrip(content));
+}
+
+/**
+ * Query sysfs for the driver used by @ifname
+ * The caller owns the returned string and needs to free it.
+ */
+STATIC char*
+_netplan_sysfs_get_driver_by_ifname(const char* ifname, const char* rootdir)
+{
+    g_autofree gchar* link = NULL;
+    g_autofree gchar* sysfs_path = NULL;
+    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+                              "sys", "class", "net", ifname, "device", "driver", NULL);
+
+    link = g_file_read_link(sysfs_path, NULL);
+    if (!link) {
+        g_debug("%s: Cannot read symlink of %s.", __FUNCTION__, sysfs_path);
+        return NULL;
+    }
+
+    return g_path_get_basename(link);
+}
+
+/**
+ * Enumerate all network interfaces (/sys/clas/net/...) and check
+ * netplan_netdef_match_interface() to see if they match the current NetDef
+ */
+STATIC void
+_netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* tbl, const char* rootdir)
+{
+    g_assert(tbl);
+    struct if_nameindex *if_nidxs, *intf;
+    if_nidxs = if_nameindex();
+    if (if_nidxs != NULL) {
+        for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
+            if (g_hash_table_contains(tbl, intf->if_name)) continue;
+            g_autofree gchar* mac = _netplan_sysfs_get_mac_by_ifname(intf->if_name, rootdir);
+            g_autofree gchar* driver = _netplan_sysfs_get_driver_by_ifname(intf->if_name, rootdir);
+            if (netplan_netdef_match_interface(def, intf->if_name, mac, driver))
+                g_hash_table_add(tbl, g_strdup(intf->if_name));
+        }
+        if_freenameindex(if_nidxs);
+    }
+}
 
 /**
  * Append WiFi frequencies to wpa_supplicant's freq_list=
