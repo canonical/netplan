@@ -523,13 +523,17 @@ def apply_sriov_config(config_manager, rootdir='/'):
                 if pcidev.is_pf:
                     logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
                     if pcidev.vfs:
-                        rebind_delayed = netdef._delay_virtual_functions_rebind
                         try:
                             unbind_vfs(pcidev.vfs, pcidev.driver)
-                            pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
-                        finally:
-                            if not rebind_delayed:
-                                bind_vfs(pcidev.vfs, pcidev.driver)
+                        except Exception as e:
+                            logging.warning(f'Unbinding of VFs for {netdef_id} failed: {str(e)}')
+
+                    logging.debug(f'Changing eswitch mode from {current_eswitch_mode_system} to {eswitch_mode} for: {netdef_id}')
+                    pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
+
+                    if pcidev.vfs:
+                        if not netdef._delay_virtual_functions_rebind:
+                            bind_vfs(pcidev.vfs, pcidev.driver)
 
     filtered_vlans_set = set()
     for vlan, netdef in np_state.vlans.items():

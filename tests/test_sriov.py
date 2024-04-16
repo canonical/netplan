@@ -1020,6 +1020,84 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.1', 'mode', 'switchdev'])
         ])
 
+    @patch('netplan_cli.cli.sriov.unbind_vfs')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
+    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
+    @patch('netplan_cli.cli.sriov._get_virtual_functions')
+    @patch('netplan_cli.cli.sriov._get_physical_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
+    @patch('subprocess.check_call')
+    @patch('netplan_cli.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_eswitch_mode')
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
+    def test_apply_sriov_config_eswitch_mode_unbind_failed(self, gpsn, pcidevice_devlink, pcidevice_sys, pcidevice_bound,
+                                                           scc, quirks, set_numvfs, get_phys, get_virt, get_num, netifs,
+                                                           gima, ubind):
+        # set up the mock sysfs environment
+        self._prepare_sysfs_dir_structure(pf=('enp1', '0000:03:00.0'),
+                                          vfs=[('enp1s16f1', '0000:03:00.2'),
+                                               ('enp1s16f2', '0000:03:00.3')],
+                                          pf_driver='mlx5_core')
+        self._prepare_sysfs_dir_structure(pf=('enp2', '0000:03:00.1'),
+                                          vfs=[('enp2s14f1', '0000:03:08.2'),
+                                               ('enp2s15f1', '0000:03:08.3'),
+                                               ('enp2s16f1', '0000:03:08.4'),
+                                               ('enp2s17f1', '0000:03:08.5')],
+                                          pf_driver='mlx5_core')
+        enp1_pci_addr = '0000:03:00.0'
+        enp2_pci_addr = '0000:03:00.1'
+        gpsn.side_effect = lambda iface: enp1_pci_addr if iface == 'enp1' else enp2_pci_addr
+        sys_path = os.path.join(self.workdir.name, 'sys')
+        pcidevice_devlink.return_value = '__undetermined'
+        pcidevice_sys.return_value = sys_path
+        pcidevice_bound.side_effect = [
+            True, True,  # 2x unbind (enp1 VFs)
+            True, True, True, True,  # 4x unbind (enpx/enp2 VFs)
+            False, False, False, False]  # 4x re-bind (enpx/enp2 VFs)
+        gima.return_value = '00:11:22:33:44:55'
+
+        # YAML config
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1:
+      embedded-switch-mode: "legacy"
+      delay-virtual-functions-rebind: true
+    enpx:
+      match:
+        name: enp[2-3]
+      embedded-switch-mode: "switchdev"
+    enp1s16f1:
+      link: enp1
+    enp1s16f2:
+      link: enp1
+    customvf1:
+      match:
+        name: enp[2-3]s16f[1-4]
+      link: enpx
+''', file=fd)
+
+        # set up all the mock objects
+        netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
+                               'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
+        get_num.return_value = {'enp1': 2, 'enp2': 1}
+        get_virt.return_value = {'enp1s16f1': None, 'enp1s16f2': None, 'customvf1': None}
+        get_phys.return_value = {'enp1': 'enp1', 'enpx': 'enp2'}
+
+        ubind.side_effect = Exception('some IO error related to mlx5_core/unbind')
+
+        # test success case
+        with patch('logging.warning') as log:
+            sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+            log.assert_has_calls([
+                call('Unbinding of VFs for enp1 failed: some IO error related to mlx5_core/unbind'),
+                call('Unbinding of VFs for enpx failed: some IO error related to mlx5_core/unbind')])
+
     @patch('netplan_cli.cli.sriov.PCIDevice.bound', new_callable=unittest.mock.PropertyMock)
     @patch('netplan_cli.cli.sriov.PCIDevice.sys', new_callable=unittest.mock.PropertyMock)
     @patch('netplan_cli.cli.commands.sriov_rebind._get_pci_slot_name')
