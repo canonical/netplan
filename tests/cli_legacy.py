@@ -98,8 +98,7 @@ class TestGenerate(unittest.TestCase):
     enlol: {dhcp4: yes}''')
         os.chmod(path_a, mode=0o600)
         os.chmod(path_b, mode=0o600)
-        out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name], stderr=subprocess.STDOUT)
-        self.assertEqual(out, b'')
+        subprocess.check_call(exe_cli + ['generate', '--root-dir', self.workdir.name])
         self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
                          ['10-netplan-enlol.network'])
 

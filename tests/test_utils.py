@@ -380,7 +380,7 @@ class TestUtils(unittest.TestCase):
         os.environ['PATH'] = os.path.dirname(self.mock_cmd.path) + os.pathsep + path_env
         utils.systemctl_daemon_reload()
         self.assertEqual(self.mock_cmd.calls(), [
-            ['systemctl', 'daemon-reload']
+            ['systemctl', 'daemon-reload', '--no-ask-password']
         ])
 
     def test_ip_addr_flush(self):
