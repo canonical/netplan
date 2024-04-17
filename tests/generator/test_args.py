@@ -129,8 +129,8 @@ class TestConfigArgs(TestBase):
     eth1:
       dhcp4: true
       optional: true
-    eth2:
-      dhcp4: true''')
+    lo:
+      addresses: ["127.0.0.1/8", "::1/128"]''')
         os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
@@ -146,7 +146,7 @@ class TestConfigArgs(TestBase):
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth1.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
-        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth2.network')
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-lo.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
 
@@ -164,7 +164,7 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth0 -i eth2\n''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i lo:carrier -i eth0\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
