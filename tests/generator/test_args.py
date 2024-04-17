@@ -134,7 +134,10 @@ class TestConfigArgs(TestBase):
       dhcp4: true
       optional: true
     lo:
-      addresses: ["127.0.0.1/8", "::1/128"]''')
+      addresses: ["127.0.0.1/8", "::1/128"]
+  bridges:
+    br0:
+      dhcp4: true''')
         os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
@@ -153,6 +156,9 @@ class TestConfigArgs(TestBase):
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-lo.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-br0.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
 
         # should auto-enable networkd and -wait-online
         service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
@@ -168,7 +174,7 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i lo:carrier\n''')  # eth99 does not exist on the system
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded -i lo:carrier\n''')  # eth99 does not exist on the system
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],

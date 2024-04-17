@@ -1501,8 +1501,12 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
                                || netplan_netdef_get_link_local_ipv6(def);
             _netplan_address_iter_free(addr_iter);
 
-            // no matching => single interface, ignoring non-existing interfaces
-            if (!netplan_netdef_has_match(def) && g_hash_table_contains(system_interfaces, def->id)) {
+            // no matching => single physical interface, ignoring non-existing interfaces
+            // OR: virtual interfaces, those will be created later on and cannot have a matching condition
+            gboolean physical_no_match_or_virtual = FALSE
+                || (!netplan_netdef_has_match(def) && g_hash_table_contains(system_interfaces, def->id))
+                || (netplan_netdef_get_type(def) >= NETPLAN_DEF_TYPE_VIRTUAL);
+            if (physical_no_match_or_virtual) {
                 g_hash_table_replace(non_optional_interfaces, g_strdup(def->id), any_ips ? g_strdup("degraded") : g_strdup("carrier"));
             } else if (def->set_name) { // matching on a single interface, to be renamed
                  _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, any_ips ? "degraded" : "carrier", def->set_name, rootdir);
