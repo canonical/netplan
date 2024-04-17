@@ -1494,7 +1494,11 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
         if (!(def->optional || def->activation_mode)) {
             // Check if we have any IP configuration
             struct address_iter* addr_iter = _netplan_netdef_new_address_iter(def);
-            gboolean any_ips = _netplan_address_iter_next(addr_iter) != NULL || netplan_netdef_get_link_local_ipv4(def) || netplan_netdef_get_link_local_ipv6(def);
+            gboolean any_ips =    _netplan_address_iter_next(addr_iter) != NULL
+                               || netplan_netdef_get_dhcp4(def)
+                               || netplan_netdef_get_dhcp6(def)
+                               || netplan_netdef_get_link_local_ipv4(def)
+                               || netplan_netdef_get_link_local_ipv6(def);
             _netplan_address_iter_free(addr_iter);
 
             // no matching => single interface, ignoring non-existing interfaces
