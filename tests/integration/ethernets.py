@@ -409,8 +409,12 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       set-name: "findme"
     %(e2c)s:
       addresses: ["10.0.0.1/24"]
+  bridges:
+    br0:
+      addresses: ["10.0.0.2/24"]
+      interfaces: [%(e2c)s]
 ''' % {'r': self.backend, 'ec_mac': self.dev_e_client_mac, 'e2c': self.dev_e2_client})
-        self.generate_and_settle([self.dev_e2_client])
+        self.generate_and_settle([self.dev_e2_client, 'br0'])
         override = os.path.join('/run', 'systemd', 'system', 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
         self.assertTrue(os.path.isfile(override))
 
@@ -424,7 +428,7 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i %s:degraded -i findme:carrier
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i %s:degraded -i br0:degraded -i findme:carrier
 ''' % self.dev_e2_client)
 
 
