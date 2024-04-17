@@ -22,6 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
 import subprocess
 import unittest
@@ -389,6 +390,42 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         self.assert_iface(self.dev_e_client,
                           ['inet6 9876:bbbb::11/70', 'inet 172.16.5.3/20'],
                           ['inet6 fe80:', 'inet 169.254.'])
+
+    def test_systemd_networkd_wait_online(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    lo:
+      addresses: ["127.0.0.1/8", "::1/128"]
+      optional: true
+    doesnotexist:
+      addresses: ["10.0.0.42/24"]
+    findme:
+      match:
+        macaddress: %(ec_mac)s
+      link-local: []
+      set-name: "findme"
+    %(e2c)s:
+      addresses: ["10.0.0.1/24"]
+''' % {'r': self.backend, 'ec_mac': self.dev_e_client_mac, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.dev_e2_client])
+        override = os.path.join('/run', 'systemd', 'system', 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        self.assertTrue(os.path.isfile(override))
+
+        with open(override, 'r') as f:
+            # lo is optional/ignored and should not be listed
+            # doesnotexist should not be listed, as it does not exist
+            # <dev_e_client> should be listed as "findme", using reduced operational state
+            # <dev_e2_client> should be listed normally
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i %s:degraded -i findme:carrier
+''' % self.dev_e2_client)
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,

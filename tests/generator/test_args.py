@@ -128,9 +128,9 @@ class TestConfigArgs(TestBase):
             f.write('''network:
   version: 2
   ethernets:
-    eth0:
+    eth99:
       dhcp4: true
-    eth1:
+    eth98:
       dhcp4: true
       optional: true
     lo:
@@ -144,10 +144,10 @@ class TestConfigArgs(TestBase):
         os.symlink(exe_generate, generator)
 
         subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
-        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth0.network')
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth99.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
-        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth1.network')
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth98.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-lo.network')
@@ -168,7 +168,7 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i lo:carrier -i eth0\n''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i lo:carrier\n''')  # eth99 does not exist on the system
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
