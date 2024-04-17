@@ -302,7 +302,10 @@ int main(int argc, char** argv)
     if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm)
         _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
-    gboolean enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
+    gboolean enable_wait_online = FALSE;
+    if (any_networkd)
+        enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
+
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */
         if (any_networkd)
