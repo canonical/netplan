@@ -1498,12 +1498,18 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
 
     // We have non-optional interface, so let's wait for those explicitly
     GHashTableIter idx;
-    gpointer ifname;
+    gpointer key;
     g_string_append(content, "\n[Service]\nExecStart=\n"
                                 "ExecStart=/lib/systemd/systemd-networkd-wait-online");
     g_hash_table_iter_init (&idx, non_optional_interfaces);
-    while (g_hash_table_iter_next (&idx, &ifname, NULL))
-        g_string_append_printf(content, " -i %s", (const char*)ifname);
+    while (g_hash_table_iter_next (&idx, &key, NULL)) {
+        const char* ifname = key;
+        g_string_append_printf(content, " -i %s", ifname);
+        // XXX: We should be checking IFF_LOOPBACK instead of interface name.
+        //      But don't have access to the flags here.
+        if (!g_strcmp0(ifname, "lo"))
+            g_string_append(content, ":carrier"); // "carrier" as min-oper state for loopback
+    }
     g_string_append(content, "\n");
 
     _netplan_g_string_free_to_file(content, rootdir, override, NULL);
