@@ -75,25 +75,39 @@ _netplan_sysfs_get_driver_by_ifname(const char* ifname, const char* rootdir)
     return g_path_get_basename(link);
 }
 
-/**
- * Enumerate all network interfaces (/sys/clas/net/...) and check
- * netplan_netdef_match_interface() to see if they match the current NetDef
- */
 STATIC void
-_netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* tbl, const char* rootdir)
+_netplan_query_system_interfaces(GHashTable* tbl)
 {
     g_assert(tbl);
     struct if_nameindex *if_nidxs, *intf;
     if_nidxs = if_nameindex();
     if (if_nidxs != NULL) {
-        for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
-            if (g_hash_table_contains(tbl, intf->if_name)) continue;
-            g_autofree gchar* mac = _netplan_sysfs_get_mac_by_ifname(intf->if_name, rootdir);
-            g_autofree gchar* driver = _netplan_sysfs_get_driver_by_ifname(intf->if_name, rootdir);
-            if (netplan_netdef_match_interface(def, intf->if_name, mac, driver))
-                g_hash_table_add(tbl, g_strdup(intf->if_name));
-        }
+        for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++)
+            g_hash_table_add(tbl, g_strdup(intf->if_name));
         if_freenameindex(if_nidxs);
+    }
+}
+
+/**
+ * Enumerate all network interfaces (/sys/clas/net/...) and check
+ * netplan_netdef_match_interface() to see if they match the current NetDef
+ */
+STATIC void
+_netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* ifaces, GHashTable* tbl, const char* carrier, const char* set_name, const char* rootdir)
+{
+    g_assert(ifaces);
+    g_assert(tbl);
+
+    GHashTableIter iter;
+    gpointer key;
+    g_hash_table_iter_init (&iter, ifaces);
+    while (g_hash_table_iter_next (&iter, &key, NULL)) {
+        const char* ifname = key;
+        if (g_hash_table_contains(tbl, ifname)|| (set_name && g_hash_table_contains(tbl, set_name))) continue;
+        g_autofree gchar* mac = _netplan_sysfs_get_mac_by_ifname(ifname, rootdir);
+        g_autofree gchar* driver = _netplan_sysfs_get_driver_by_ifname(ifname, rootdir);
+        if (netplan_netdef_match_interface(def, ifname, mac, driver))
+            g_hash_table_replace(tbl, set_name ? g_strdup(set_name) : g_strdup(ifname), g_strdup(carrier));
     }
 }
 
@@ -1460,29 +1474,41 @@ _netplan_netdef_write_networkd(
 gboolean
 _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* rootdir)
 {
+    // Set of all current network interfaces, potentially non yet renamed
+    GHashTable* system_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    _netplan_query_system_interfaces(system_interfaces);
+
     // Hash set of non-optional interfaces to wait for
-    GHashTable* non_optional_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    GHashTable* non_optional_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
     NetplanStateIterator iter;
     netplan_state_iterator_init(np_state, &iter);
     while (netplan_state_iterator_has_next(&iter)) {
-        const NetplanNetDefinition* def = netplan_state_iterator_next(&iter);
+        NetplanNetDefinition* def = netplan_state_iterator_next(&iter);
         if (def->backend != NETPLAN_BACKEND_NETWORKD)
             continue;
+
         /* When activation-mode is used we default to being optional.
          * Otherwise, systemd might wait indefinitely for the interface to
          * come online.
          */
         if (!(def->optional || def->activation_mode)) {
-            if (!netplan_netdef_has_match(def)) { // no matching => single interface
-                g_hash_table_add(non_optional_interfaces, g_strdup(def->id));
-            } else if (def->set_name) { // matching on a single interface
-                g_hash_table_add(non_optional_interfaces, g_strdup(def->set_name));
+            // Check if we have any IP configuration
+            struct address_iter* addr_iter = _netplan_netdef_new_address_iter(def);
+            gboolean any_ips = _netplan_address_iter_next(addr_iter) != NULL || netplan_netdef_get_link_local_ipv4(def) || netplan_netdef_get_link_local_ipv6(def);
+            _netplan_address_iter_free(addr_iter);
+
+            // no matching => single interface, ignoring non-existing interfaces
+            if (!netplan_netdef_has_match(def) && g_hash_table_contains(system_interfaces, def->id)) {
+                g_hash_table_replace(non_optional_interfaces, g_strdup(def->id), any_ips ? g_strdup("degraded") : g_strdup("carrier"));
+            } else if (def->set_name) { // matching on a single interface, to be renamed
+                 _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, any_ips ? "degraded" : "carrier", def->set_name, rootdir);
             } else { // matching on potentially multiple interfaces
                 // XXX: we shouldn't run this enumeration for every NetDef...
-                _netplan_enumerate_interfaces(def, non_optional_interfaces, rootdir);
+                _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, any_ips ? "degraded" : "carrier", NULL, rootdir);
             }
         }
     }
+    g_hash_table_destroy(system_interfaces);
 
     // create run/systemd/system/systemd-networkd-wait-online.service.d/
     const char* override = "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf";
@@ -1498,17 +1524,20 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
 
     // We have non-optional interface, so let's wait for those explicitly
     GHashTableIter idx;
-    gpointer key;
+    gpointer key, value;
     g_string_append(content, "\n[Service]\nExecStart=\n"
                                 "ExecStart=/lib/systemd/systemd-networkd-wait-online");
     g_hash_table_iter_init (&idx, non_optional_interfaces);
-    while (g_hash_table_iter_next (&idx, &key, NULL)) {
+    while (g_hash_table_iter_next (&idx, &key, &value)) {
         const char* ifname = key;
+        const char* min_oper_state = value;
         g_string_append_printf(content, " -i %s", ifname);
         // XXX: We should be checking IFF_LOOPBACK instead of interface name.
         //      But don't have access to the flags here.
         if (!g_strcmp0(ifname, "lo"))
             g_string_append(content, ":carrier"); // "carrier" as min-oper state for loopback
+        else if (min_oper_state)
+            g_string_append_printf(content, ":%s", min_oper_state);
     }
     g_string_append(content, "\n");
 
