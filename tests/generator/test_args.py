@@ -39,6 +39,10 @@ class TestConfigArgs(TestBase):
         self.assert_nm(None)
         self.assert_nm_udev(None)
         self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+        # should not touch -wait-online
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        self.assertFalse(os.path.isfile(override))
 
     def test_empty_config(self):
         self.generate('')
