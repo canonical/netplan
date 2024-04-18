@@ -599,7 +599,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > Takes a boolean. Configures whether traffic may be sent back out of the
   > bridge port on which it was received. When this flag is false, then the
   > bridge does not forward traffic back out of the receiving port. When
-  > unset, the back end `default` is be used.
+  > unset, the back end `default` is used.
 
 - **`port-mac-learning`** (scalar) – since **1.0**
 
