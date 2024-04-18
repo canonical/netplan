@@ -1390,7 +1390,8 @@ network:
         - enp5s0
         - enp5s1
         - enp5s2
-      mode: active-backup
+      parameters:
+        mode: active-backup
       ...
 ```
 
