@@ -1,108 +1,119 @@
-# Pre-requisites
+# Netplan tutorial
 
-In order to do the exercises yourself you will need a virtual machine, preferably running Ubuntu. In this tutorial, we will use LXD to create virtual networks and launch virtual machines. Feel free to use a cloud instance or a different hypervisor. As long as you can achieve the same results, you should be fine. If you're going to use your own desktop/laptop system, some of the exercises might interrupt your network connectivity.
-
-If you already have a setup where you can do the exercises you can just skip this section.
-
-## Setting up the environment
-
-You can follow the steps below to install and create a basic LXD configuration you can use to launch virtual machines.
-
-For more information about LXD, please visit [linuxcontainers.org](https://documentation.ubuntu.com/lxd/).
-
-First, install LXD: [LXD | How to install LXD](https://documentation.ubuntu.com/lxd/en/latest/installing/)
-
-On Ubuntu, you can install it using `snap`:
-
-```
-snap install lxd
-```
-
-Now, initialise your LXD configuration:
-
-```
-lxd init --minimal
-```
-
-Run the command below to create a new network in LXD. For some of the exercises you will need a second network interface in your virtual machine.
-
-```
-lxc network create netplanbr0 --type=bridge
-```
-
-You should see the output below:
-
-```
-Network netplanbr0 created
-```
-
-At this point you should have a usable LXD installation with a working network bridge.
-
-Now create a virtual machine called `netplan-lab0`:
-
-```
-lxc init --vm ubuntu:22.04 netplan-lab0
-```
-
-You should see the output below:
-
-```
-Creating netplan-lab0
-```
-
-The new VM will have one network interface attached to the default LXD bridge.
-
-Now attach the network you created just now, `netplanbr0`, to your VM, `netplan-lab0`, as interface `eth1`:
-
-```
-lxc network attach netplanbr0 netplan-lab0 eth1
-```
-
->  See more: [LXD | Attach a network to an instance](https://documentation.ubuntu.com/lxd/en/latest/howto/network_create/#attach-a-network-to-an-instance)
-
-And start your new VM:
-
-```
-lxc start netplan-lab0
-```
-
-Access your new VM using `lxc shell`:
-
-```
-lxc shell netplan-lab0
-```
-
->  **If this doesn't work for you**: Try instead `lxc exec netplan-lab0 bash` or `lxc console netplan-lab0`.
-
-You should now have a root shell inside your VM:
-
-```
-root@netplan-lab0:~#
-```
-
-Run the command `ip link` to show your network interfaces:
-
-```
-ip link
-```
-
-You should see an output similar to the below:
-
-```
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-2: enp5s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:13:ae:10 brd ff:ff:ff:ff:ff:ff
-3: enp6s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-```
-
-In this case, `enp5s0` is the primary interface connected to the default LXD network and `enp6s0` is the second interface you added connected to your custom network.
+Use this tutorial to learn about basic use of the Netplan utility: how to set up an environment to try it, run it for the first time, check its configuration, and modify its settings.
 
 
-Now, let's start with a simple exercise.
+# Trying Netplan in a virtual machine
 
-# Running netplan for the first time
+To try Netplan, you can use a virtual environment, preferably running Ubuntu. This tutorial uses LXD to create virtual networks and launch virtual machines. You can also use a cloud instance or a different hypervisor.
+
+:::{warning}
+When using your own system without virtualisation, some of the exercises might interrupt your network connectivity.
+:::
+
+
+## Setting up the virtual environment
+
+Follow the steps below to install and create a basic LXD configuration to launch virtual machines (VM). For more information about LXD, visit [documentation.ubuntu.com/lxd](https://documentation.ubuntu.com/lxd/).
+
+1. Install LXD: [LXD | How to install LXD](https://documentation.ubuntu.com/lxd/en/latest/installing/).
+
+   On Ubuntu, use `snap` to install LXD:
+
+   ```
+   snap install lxd
+   ```
+
+2. Initialise LXD configuration:
+
+   ```
+   lxd init --minimal
+   ```
+
+3. Create a new network in LXD (some of the exercises require a second network interface in the virtual machine):
+
+   ```
+   lxc network create netplanbr0 --type=bridge
+   ```
+
+   The following output confirms the successful creation of the bridge network:
+
+   ```
+   Network netplanbr0 created
+   ```
+
+   Now you have a usable LXD installation with a working network bridge.
+
+4. Create a virtual machine called `netplan-lab0`:
+
+   ```none
+   lxc init --vm ubuntu:23.10 netplan-lab0
+   ```
+
+   You should see the output below:
+
+   ```
+   Creating netplan-lab0
+   ```
+
+   The new VM has one network interface attached to the default LXD bridge.
+
+5. Attach the network you created (`netplanbr0`) to the VM (`netplan-lab0`) as the `eth1` interface:
+
+   ```
+   lxc network attach netplanbr0 netplan-lab0 eth1
+   ```
+
+   :::{tip}
+   For more on LXD networking, visit [LXD | Attach a network to an instance](https://documentation.ubuntu.com/lxd/en/latest/howto/network_create/#attach-a-network-to-an-instance).
+   :::
+
+6. Start the new VM:
+
+   ```
+   lxc start netplan-lab0
+   ```
+
+7. Access the new VM using `lxc shell`:
+
+   ```
+   lxc shell netplan-lab0
+   ```
+
+   In case of problems, try running `lxc exec netplan-lab0 bash` or `lxc console netplan-lab0`.
+
+   You should now have a root shell inside the VM:
+
+   ```none
+   root@netplan-lab0:~#
+   ```
+
+8. Run the `ip link` command to show the network interfaces:
+
+   ```
+   ip link
+   ```
+
+   You should see an output similar to the below:
+
+   ```none
+   1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+       link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+   2: enp5s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+       link/ether 00:16:3e:13:ae:10 brd ff:ff:ff:ff:ff:ff
+   3: enp6s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+       link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
+   ```
+
+   In this case:
+
+   * `enp5s0` is the primary interface connected to the default LXD network.
+   * `enp6s0` is the second interface you added connected to your custom network.
+
+You're ready to start the first exercise.
+
+
+# Running Netplan for the first time
 
 Start by typing the command `netplan` in your shell:
 
@@ -110,9 +121,9 @@ Start by typing the command `netplan` in your shell:
 netplan
 ```
 
-You should see the output below
+You should see the following output:
 
-```
+```none
 You need to specify a command
 usage: /usr/sbin/netplan  [-h] [--debug]  ...
 
@@ -136,18 +147,18 @@ Available commands:
     try       Try to apply a new Netplan config to running system, with automatic rollback
 ```
 
-As you can see, Netplan has a number of sub commands. Let's explore some of them.
+As you can see, Netplan has a number of sub-commands. Let's explore some of them.
 
-# Showing your current Netplan configuration
 
-To show your current configuration, run the command `netplan get`.
+# Showing current Netplan configuration
+
+To show the current configuration, run the `netplan get` command:
 
 ```
 netplan get
 ```
 
 You should see an output similar to the one below:
-
 
 ```yaml
 network:
@@ -157,16 +168,17 @@ network:
       dhcp4: true
 ```
 
-It shows you have an Ethernet interface called `enp5s0` and it has DHCP enabled for IPv4.
+This means:
+
+* There's an Ethernet interface called `enp5s0`.
+* DHCP is enabled for the IPv4 protocol on `enp5s0`.
 
 
-# Showing your current network configuration
+# Showing current network configuration
 
-Netplan 0.106 introduced the `netplan status` command. You can use it to
-show your system's current network configuration. Try that by typing
-`netplan status --all` in your console:
+Netplan 0.106 introduced the `netplan status` command. The command displays the current network configuration of the system. Try it by running:
 
-```
+```none
 netplan status --all
 ```
 
@@ -202,11 +214,18 @@ You should see an output similar to the one below:
       MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
 ```
 
-# Checking the file where your configuration is stored
 
-The configuration you just listed is stored at `/etc/netplan`. You can see the contents of the file with the command below:
+# Checking Netplan configuration files
 
+Netplan configuration is stored in YAML-formatted files in the `/etc/netplan` directory. To display the contents of the directory, run:
+
+```none
+ls -1 /etc/netplan/
 ```
+
+Provided your system was initialised using `cloud-init`, such as the Ubuntu virtual machine recommended for testing Netplan in [Trying Netplan in a virtual machine](#trying-netplan-in-a-virtual-machine), you can find the initial Netplan configuration in the `50-cloud-init.yaml` file:
+
+```none
 cat /etc/netplan/50-cloud-init.yaml
 ```
 
@@ -225,518 +244,205 @@ network:
             dhcp4: true
 ```
 
-This file was automatically generated by `cloud-init` when the system was initialised. As noted in the comments, changes to this file will not persist.
+This configuration file is automatically generated by the `cloud-init` tool when the system is initialised. As noted in the file comments, direct changes to this file do not persist.
 
-# Enabling your second network interface with DHCP
 
-There are basically 2 ways to create or change Netplan configuration:
+# Creating and modifying Netplan configuration
 
-1) Using the `netplan set` command
-2) Editing the YAML files manually
+There are two methods to create or modify Netplan configuration:
 
-Let's see how you can enable your second network interface using both ways.
+Using the `netplan set` command
+: Example: [Using netplan set to enable a network interface with DHCP](#using-netplan-set-to-enable-a-network-interface-with-dhcp)
 
-## Using `netplan set`
+Editing the YAML configuration files manually
+: Example: [Editing Netplan YAML files to disable IPv6](#editing-netplan-yaml-files-to-disable-ipv6)
 
-For simple tasks, you can use `netplan set` to change your configuration.
 
-In the example below you are going to create a new YAML file called `second-interface.yaml` containing only the configuration needed to enable our second interfaces.
+## Using `netplan set` to enable a network interface with DHCP
 
-Considering your second network interface is `enp6s0`, run the command below:
+For simple configuration changes, use the `netplan set` command. In the example below, you are going to create a new YAML file called `second-interface.yaml` containing only the configuration needed to enable the second network interface.
 
-```
-netplan set --origin-hint second-interface ethernets.enp6s0.dhcp4=true
-```
+1. To create a second network interface called `enp6s0`, run:
 
-The command line parameter `--origin-hint` sets the name of the file where the configuration will be stored.
+   ```
+   netplan set --origin-hint second-interface ethernets.enp6s0.dhcp4=true
+   ```
 
-Now list the files in the directory `/etc/netplan`:
+   The `--origin-hint` command-line parameter sets the name of the file in which the configuration is stored.
 
-```
-ls /etc/netplan
-```
+2. List the files in the directory `/etc/netplan`:
 
-You should see the auto generated `cloud-init` file and a new file called `second-interface.yaml`:
+   ```none
+   ls -1 /etc/netplan
+   ```
 
-```
-root@netplan-lab0:~# ls /etc/netplan/
-50-cloud-init.yaml  second-interface.yaml
-```
+   You should see the auto-generated `cloud-init` file and a new file called `second-interface.yaml`:
 
-Use the command `cat` to see its content:
+   ```none
+   50-cloud-init.yaml
+   second-interface.yaml
+   ```
 
-```
-cat /etc/netplan/second-interface.yaml
-```
+3. Use the command `cat` to see the file content:
 
-```yaml
-network:
-  version: 2
-  ethernets:
-    enp6s0:
-      dhcp4: true
-```
+   ```
+   cat /etc/netplan/second-interface.yaml
+   ```
 
-You will notice it is very similar to the one generated by `cloud-init`.
+   ```yaml
+   network:
+     version: 2
+     ethernets:
+       enp6s0:
+         dhcp4: true
+   ```
 
-Now use `netplan get` to see your full configuration:
+   Notice it is similar to the configuration file generated by `cloud-init` ([Checking Netplan configuration files](#checking-netplan-configuration-files)).
 
-```
-netplan get
-```
+4. Check the full configuration using `netplan get`:
 
-You should see an output similar to the one below with both Ethernet interfaces:
+   ```
+   netplan get
+   ```
 
-```yaml
-network:
-  version: 2
-  ethernets:
-    enp5s0:
-      dhcp4: true
-    enp6s0:
-      dhcp4: true
-```
+   You should see an output similar to the one below with both Ethernet interfaces:
 
-## Applying your new configuration
+   ```yaml
+   network:
+     version: 2
+     ethernets:
+       enp5s0:
+         dhcp4: true
+       enp6s0:
+         dhcp4: true
+   ```
 
-The command `netplan set` created the configuration for your second network interface but it wasn't applied to the running system.
+The interface configuration has been created. To apply the changes to the system, follow the instructions in [Applying new Netplan configuration](#applying-new-netplan-configuration).
 
-Run the command below to see the current state of your second network interface:
 
-```
-ip address show enp6s0
-```
+## Editing Netplan YAML files to disable IPv6
 
-You should see an output similar to the one below:
+For more complex settings, you can edit existing or create new configuration files manually.
 
-```
-3: enp6s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-```
+For example, to disable automatic IPv6 configuration on the second network interface created in [Using netplan set to enable a network interface with DHCP](#using-netplan-set-to-enable-a-network-interface-with-dhcp), edit the `/etc/netplan/second-interface.yaml` file:
 
-As you can see, this interface has no IP address and its state is DOWN.
+1. Add the following lines to the configuration section of the interface:
 
-In order to apply the Netplan configuration, you can use the command `netplan apply`.
+   ```yaml
+   accept-ra: false
+   link-local: []
+   ```
 
-Run the command below in your shell:
+   When you finish, the whole configuration in `second-interface.yaml` should look like this:
 
-```
-netplan apply
-```
+   ```yaml
+   network:
+     version: 2
+     ethernets:
+       enp6s0:
+         dhcp4: true
+         accept-ra: false
+         link-local: []
+   ```
 
-Now check again the state of the interface `enp6s0`:
+   With this new configuration, the network configuration back end (`systemd-networkd` in this case) does not accept Route Advertisements and does not add the `link-local` address to the interface.
 
-```
-ip address show enp6s0
-```
+2. Check the new configuration using the `netplan get` command:
 
-You should see an output similar to this:
-
-```
-3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-    inet 10.33.59.157/24 metric 100 brd 10.33.59.255 scope global dynamic enp6s0
-       valid_lft 3589sec preferred_lft 3589sec
-    inet6 fd42:ee65:61d0:abcb:216:3eff:fe0c:978a/64 scope global dynamic mngtmpaddr noprefixroute
-       valid_lft 3599sec preferred_lft 3599sec
-    inet6 fe80::216:3eff:fe0c:978a/64 scope link
-       valid_lft forever preferred_lft forever
-```
+   ```
+   netplan get
+   ```
 
-You can also use `netplan status` to check the interface:
+   You should see something similar to this:
 
-```
-netplan status enp6s0
-```
+   ```yaml
+   network:
+     version: 2
+     ethernets:
+       enp5s0:
+         dhcp4: true
+       enp6s0:
+         dhcp4: true
+         accept-ra: false
+         link-local: []
+   ```
 
-You should see an output similar to this:
+IPv6 has been disabled for the interface in the configuration. To apply the changes to the system, follow the instructions in [Applying new Netplan configuration](#applying-new-netplan-configuration).
 
-```
-     Online state: online
-    DNS Addresses: 127.0.0.53 (stub)
-       DNS Search: lxd
 
-●  3: enp6s0 ethernet UP (networkd: enp6s0)
-      MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
-        Addresses: 10.33.59.157/24 (dhcp)
-                   fd42:ee65:61d0:abcb:216:3eff:fe0c:978a/64
-                   fe80::216:3eff:fe0c:978a/64 (link)
-    DNS Addresses: 10.33.59.1
-                   fe80::216:3eff:fea1:585b
-       DNS Search: lxd
-           Routes: default via 10.33.59.1 from 10.33.59.157 metric 100 (dhcp)
-                   10.33.59.0/24 from 10.33.59.157 metric 100 (link)
-                   10.33.59.1 from 10.33.59.157 metric 100 (dhcp, link)
-                   fd42:ee65:61d0:abcb::/64 metric 100 (ra)
-                   fe80::/64 metric 256
+# Applying new Netplan configuration
 
-2 inactive interfaces hidden. Use "--all" to show all.
-```
-
-As you can see, even though you haven't enabled DHCP for IPv6 on this interface, the network configuration back end (in this case systemd-networkd) enabled it anyway. But let's assume you want only IPv4.
-
-Let's address this situation in the next exercise.
-
-## Editing YAML files
-
-For more complex configuration, you can just create or edit a new file yourself using your favourite text editor.
-
-Continuing the exercise from the previous section, let's go ahead and disable automatic IPv6 configuration on your second interface. But this time let's do it by manually editing the YAML file.
-
-Use your favourite text editor and open the file `/etc/netplan/second-interface.yaml`.
-
-Add the configuration below to the interface configuration section:
-
-```yaml
-accept-ra: false
-link-local: []
-```
-
-When you finish, it should look like this:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    enp6s0:
-      dhcp4: true
-      accept-ra: false
-      link-local: []
-```
-
-With this new configuration, the network configuration back end (systemd-networkd in this case) will not accept Route Advertisements and will not add the link-local address to our interface.
-
-Now check your new configuration with the `netplan get` command:
-
-```
-netplan get
-```
-
-You should see something similar to this:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    enp5s0:
-      dhcp4: true
-    enp6s0:
-      dhcp4: true
-      accept-ra: false
-      link-local: []
-```
-
-Now use `netplan apply` to apply your new configuration:
-
-```
-netplan apply
-```
-
-And check your interface configuration:
-
-```
-ip address show enp6s0
-```
-
-You should see an output similar to this:
-
-```
-3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-    inet 10.33.59.157/24 metric 100 brd 10.33.59.255 scope global dynamic enp6s0
-       valid_lft 3585sec preferred_lft 3585sec
-```
-
-And as you can see, now it only has an IPv4 address.
-
-In this exercise you explored the `netplan set`, `netplan get`, `netplan apply` and `netplan status` commands. You also used some of the Ethernet configuration options to get a network interface up and running with DHCP.
-
-# Using static IP addresses
-
-In this exercise you're going to add an static IP address to the second interface with a default route and DNS configuration.
-
-Edit the file `/etc/netplan/second-interface.yaml` created previously. Change it so it will look like this:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    enp6s0:
-      dhcp4: false
-      dhcp6: false
-      accept-ra: false
-      link-local: []
-      addresses:
-        - 172.16.0.1/24
-      routes:
-        - to: default
-          via: 172.16.0.254
-      nameservers:
-        search:
-          - netplanlab.local
-        addresses:
-          - 172.16.0.254
-          - 172.16.0.253
-```
-
-The configuration above is what you'd expect in a desktop system for example. It defines the interface's IP address statically as `172.16.0.1/24`, a default route via gateway `172.16.0.254` and the DNS search domain and name servers.
-
-Now use `netplan get` to visualise all your network configuration:
-
-```
-netplan get
-```
-
-You should see an output similar to this:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    enp5s0:
-      dhcp4: true
-    enp6s0:
-      addresses:
-      - "172.16.0.1/24"
-      nameservers:
-        addresses:
-        - 172.16.0.254
-        - 172.16.0.253
-        search:
-        - netplanlab.local
-      dhcp4: false
-      dhcp6: false
-      accept-ra: false
-      routes:
-      - to: "default"
-        via: "172.16.0.254"
-      link-local: []
-```
-
-You will notice that it might be a little different than what you have defined in the YAML file. Some things might be in a different order for example.
-
-The reason for that is that `netplan get` loads and parses your configuration before outputting it, and the YAML parsing engine used by Netplan might shuffle things around. Although, what you see from `netplan get` is equivalent to what you have in the file.
-
-Now use `netplan apply` to apply the new configuration:
-
-```
-netplan apply
-```
-
-And check the interface's new state:
-
-```
-ip address show dev enp6s0
-```
-
-You should see something similar to this:
-```
-3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-    inet 172.16.0.1/24 brd 172.16.0.255 scope global enp6s0
-       valid_lft forever preferred_lft forever
-```
-
-Check the routes associated to the interface:
-
-```
-ip route show dev enp6s0
-```
-
-You should see something similar to this:
-
-```
-default via 172.16.0.254 proto static
-172.16.0.0/24 proto kernel scope link src 172.16.0.1
-```
-
-And check the DNS configuration:
-
-```
-netplan status enp6s0
-```
-
-You should see something similar to this:
-
-```
-     Online state: online
-    DNS Addresses: 127.0.0.53 (stub)
-       DNS Search: netplanlab.local
-                   lxd
-
-●  3: enp6s0 ethernet UP (networkd: enp6s0)
-      MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
-        Addresses: 172.16.0.1/24
-    DNS Addresses: 172.16.0.254
-                   172.16.0.253
-       DNS Search: netplanlab.local
-           Routes: default via 172.16.0.254 (static)
-                   172.16.0.0/24 from 172.16.0.1 (link)
-
-2 inactive interfaces hidden. Use "--all" to show all.
-```
-
-# Matching the interface by MAC address
-
-Sometimes you can't rely on the interface names to apply configuration to them. Changes in the system might cause a change in their names, such as when you move an interface card from a PCI slot to another.
-
-In this exercise you will use the `match` keyword to locate the device based on its MAC address and also set a more meaningful name to the interface.
-
-Let's assume that your second interface is connected to the Netplan ISP internet provider company and you want to identify it as such.
-
-First identify its MAC address:
-
-```
-ip link show enp6s0
-```
-
-In the output, the MAC address is the number in front of the `link/ether` property.
-```
-3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-```
-
-Edit the file `/etc/netplan/second-interface.yaml` and make the following changes:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    netplan-isp-interface:
-      match:
-        macaddress: 00:16:3e:0c:97:8a
-      set-name: netplan-isp
-      dhcp4: false
-      dhcp6: false
-      accept-ra: false
-      link-local: []
-      addresses:
-        - 172.16.0.1/24
-      routes:
-        - to: default
-          via: 172.16.0.254
-      nameservers:
-        search:
-          - netplanlab.local
-        addresses:
-          - 172.16.0.254
-          - 172.16.0.253
-```
-
-These are the important changes in this exercise:
-
-```yaml
-  ethernets:
-    netplan-isp-interface:
-      match:
-        macaddress: 00:16:3e:0c:97:8a
-      set-name: netplan-isp
-```
-
-Note that, as you are now matching the interface by its MAC address, you are free to identify it with a different name. It makes it easier to read and find information in the YAML file.
-
-After changing the file, apply your new configuration:
-
-```
-netplan apply
-```
-
-Now list your interfaces:
-
-```
-ip link show
-```
-
-As you can see, your interface is now called `netplan-isp`.
-
-```
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-2: enp5s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:13:ae:10 brd ff:ff:ff:ff:ff:ff
-3: netplan-isp: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
-```
-
-# Creating a link aggregation
-
-Let's suppose now that you need to configure your system to connect to your
-ISP links via a link aggregation. On Linux you can do that with a `bond`
-virtual interface.
-
-On Netplan, an interface of type `bond` can be created inside a `bonds` mapping.
-
-Now that the traffic will flow through the link aggregation, you will move
-all the addressing configuration to the bond itself.
-
-You can define a list of interfaces that will be attached to the bond. In our
-simple scenario, we have a single one.
-
-Edit the file `/etc/netplan/second-interface.yaml` and make the following changes:
-
-```yaml
-network:
-  version: 2
-  ethernets:
-    netplan-isp-interface:
-      dhcp4: false
-      dhcp6: false
-      match:
-        macaddress: 00:16:3e:0c:97:8a
-      set-name: netplan-isp
-  bonds:
-    isp-bond0:
-      interfaces:
-        - netplan-isp-interface
-      dhcp4: false
-      dhcp6: false
-      accept-ra: false
-      link-local: []
-      addresses:
-        - 172.16.0.1/24
-      routes:
-        - to: default
-          via: 172.16.0.254
-      nameservers:
-        search:
-          - netplanlab.local
-        addresses:
-          - 172.16.0.254
-          - 172.16.0.253
-```
-
-Note that you can reference the interface used in the bond by the name you
-defined for it in the `ethernets` section.
-
-Now use `netplan apply` to apply your changes
-
-```
-netplan apply
-```
-
-Now your system has a new interface called `isp-bond0`. Use the command
-`ip address show isp-bond0` or `netplan status` to check its state:
-
-```
-netplan status isp-bond0
-```
-
-You should see an output similar to the one below:
-
-```
-     Online state: online
-    DNS Addresses: 127.0.0.53 (stub)
-       DNS Search: lxd
-                   netplanlab.local
-
-●  4: isp-bond0 bond UP (networkd: isp-bond0)
-      MAC Address: b2:6b:19:b1:9a:86
-        Addresses: 172.16.0.1/24
-    DNS Addresses: 172.16.0.254
-                   172.16.0.253
-       DNS Search: netplanlab.local
-           Routes: default via 172.16.0.254 (static)
-                   172.16.0.0/24 from 172.16.0.1 (link)
-
-3 inactive interfaces hidden. Use "--all" to show all.
-```
+New or modified Netplan settings need to be applied before they take effect on a running system.
+
+:::{note}
+Using the `netplan set` command to modify configuration or editing (creating) the Netplan YAML configuration files directly does not automatically apply the new settings to the running system.
+:::
+
+After creating a new configuration as described in [Using netplan set to enable a network interface with DHCP](#using-netplan-set-to-enable-a-network-interface-with-dhcp), follow these steps to apply the settings and confirm they have taken effect.
+
+1. Display the current state of the network interface:
+
+   ```
+   ip address show enp6s0
+   ```
+
+   Where `enp6s0` is the interface you wish to display status for. You should see an output similar to the one below:
+
+   ```none
+   3: enp6s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+       link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
+   ```
+
+   This interface has no IP address and its state is `DOWN`.
+
+2. Apply the new Netplan configuration:
+
+   ```
+   netplan apply
+   ```
+
+3. Check the state of the `enp6s0` interface again using one of the following two methods:
+
+   * Using the `ip` tool:
+
+     ```
+     ip address show enp6s0
+     ```
+
+     You should see an output similar to this:
+
+     ```none
+     3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+         link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
+         inet 10.33.59.157/24 metric 100 brd 10.33.59.255 scope global dynamic enp6s0
+           valid_lft 3589sec preferred_lft 3589sec
+     ```
+
+   * Using the `netplan status` command:
+
+     ```
+     netplan status enp6s0
+     ```
+
+     You should see an output similar to this:
+
+     ```
+         Online state: online
+         DNS Addresses: 127.0.0.53 (stub)
+           DNS Search: lxd
+
+     ●  3: enp6s0 ethernet UP (networkd: enp6s0)
+           MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
+             Addresses: 10.33.59.157/24 (dhcp)
+         DNS Addresses: 10.33.59.1
+           DNS Search: lxd
+               Routes: default via 10.33.59.1 from 10.33.59.157 metric 100 (dhcp)
+                       10.33.59.0/24 from 10.33.59.157 metric 100 (link)
+                       10.33.59.1 from 10.33.59.157 metric 100 (dhcp, link)
+
+     2 inactive interfaces hidden. Use "--all" to show all.
+     ```
+
+---
+
+In this tutorial you learned how to set up a learning environment for Netplan using LXD virtual machines, explored Netplan configuration, including its underlying configuration files, and tried the `netplan set`, `netplan get`, `netplan apply`, and `netplan status` commands. You also used some of the Ethernet configuration options to enable a network interface with DHCP.
