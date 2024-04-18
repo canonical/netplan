@@ -135,9 +135,20 @@ class TestConfigArgs(TestBase):
       optional: true
     lo:
       addresses: ["127.0.0.1/8", "::1/128"]
+  vlans:
+    eth99.42:
+      link: eth99
+      id: 42
+      link-local: [ipv4, ipv6] # this is ignored for bridge-members
+    eth99.43:
+      link: eth99
+      id: 43
+      link-local: []
+      addresses: [10.0.0.2/24]
   bridges:
     br0:
-      dhcp4: true''')
+      dhcp4: true
+      interfaces: [eth99.42, eth99.43]''')
         os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
@@ -169,12 +180,13 @@ class TestConfigArgs(TestBase):
         override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
         self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
+            # eth99 does not exist on the system, so will not be listed
             self.assertEqual(f.read(), '''[Unit]
 ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded -i lo:carrier\n''')  # eth99 does not exist on the system
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:degraded -i br0:degraded -i lo:carrier -i eth99.42:carrier\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
