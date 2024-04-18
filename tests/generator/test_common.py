@@ -1825,3 +1825,43 @@ network={
   psk="bbbbbbbb"
 }
 """)
+
+    def test_gateway6_redefinition_works(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [2001:FFfe::1/62]
+      gateway6: 2001:FFfe::2''', confs={'b': '''network:
+  ethernets:
+    engreen:
+      gateway6: 2001:FFfe::34'''}, expect_fail=False)
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=2001:FFfe::1/62
+Gateway=2001:FFfe::34
+'''})
+
+    def test_gateway4_redefinition_works(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: [192.168.0.1/24]
+      gateway4: 192.168.0.123''', confs={'b': '''network:
+  ethernets:
+    engreen:
+      gateway4: 192.168.0.254'''}, expect_fail=False)
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.0.1/24
+Gateway=192.168.0.254
+'''})
