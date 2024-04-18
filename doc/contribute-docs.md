@@ -34,7 +34,7 @@ If you're adding a new article, include it in the appropriate Diátaxis director
 Follow these steps to build the documentation on your local machine.
 1. To build this documentation, first create a fork of the [Netplan repository](https://github.com/canonical/netplan) and clone that into your machine. For example:
     ```shell
-    git clone git@github.com:ade555/netplan.git
+    git clone git@github.com:your_user_name/netplan.git
     ```
 2. Navigate to the `doc/` directory and open it in your code editor.
 
