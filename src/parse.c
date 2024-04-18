@@ -49,9 +49,7 @@
 #define vxlan_offset(field) GUINT_TO_POINTER(offsetof(NetplanVxlan, field))
 
 /* convenience macro to avoid strdup'ing a string into a field if it's already set. */
-#define set_str_if_null(dst, src) { if (dst) {\
-    g_assert_cmpstr(src, ==, dst); \
-} else { \
+#define set_str_if_null(dst, src) { if (dst == NULL) {\
     dst = g_strdup(src); \
 } }
 
@@ -1455,6 +1453,10 @@ handle_gateway4(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
 {
     if (!is_ip4_address(scalar(node)))
         return yaml_error(npp, node, error, "invalid IPv4 address '%s'", scalar(node));
+    if (npp->current.netdef->gateway4) {
+        g_free(npp->current.netdef->gateway4);
+        npp->current.netdef->gateway4 = NULL;
+    }
     set_str_if_null(npp->current.netdef->gateway4, scalar(node));
     mark_data_as_dirty(npp, &npp->current.netdef->gateway4);
     g_warning("`gateway4` has been deprecated, use default routes instead.\n"
@@ -1467,6 +1469,10 @@ handle_gateway6(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
 {
     if (!is_ip6_address(scalar(node)))
         return yaml_error(npp, node, error, "invalid IPv6 address '%s'", scalar(node));
+    if (npp->current.netdef->gateway6) {
+        g_free(npp->current.netdef->gateway6);
+        npp->current.netdef->gateway6 = NULL;
+    }
     set_str_if_null(npp->current.netdef->gateway6, scalar(node));
     mark_data_as_dirty(npp, &npp->current.netdef->gateway6);
     g_warning("`gateway6` has been deprecated, use default routes instead.\n"
