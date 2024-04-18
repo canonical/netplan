@@ -598,14 +598,14 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
   > Takes a boolean. Configures whether traffic may be sent back out of the
   > bridge port on which it was received. When this flag is false, then the
-  > bridge will not forward traffic back out of the receiving port. When
-  > unset, the backend default will be used.
+  > bridge does not forward traffic back out of the receiving port. When
+  > unset, the back end `default` is be used.
 
 - **`port-mac-learning`** (scalar) – since **1.0**
 
   > Takes a boolean. Configures whether MAC address learning is enabled for
-  > this bridge port. When unset, the kernel's default will be used.
-  > Currently supported on the `networkd` backend only.
+  > this bridge port. When unset, the kernel default is used.
+  > Currently supported on the `networkd` back end only.
 
 ## DHCP Overrides
 Several DHCP behaviour overrides are available. Most currently only have any
