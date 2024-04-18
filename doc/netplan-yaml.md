@@ -609,7 +609,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 ## DHCP Overrides
 Several DHCP behaviour overrides are available. Most currently only have any
-effect when using the networkd back end, with the exception of `use-routes`
+effect when using the `networkd` back end, with the exception of `use-routes`
 and `route-metric`.
 
 Overrides only have an effect if the corresponding `dhcp4` or `dhcp6` is
