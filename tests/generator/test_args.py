@@ -86,6 +86,7 @@ class TestConfigArgs(TestBase):
   ethernets:
     eth0:
       dhcp4: true''')
+        os.chmod(conf, mode=0o600)
 
         p = subprocess.Popen([exe_generate, '--root-dir', self.workdir.name, '--help'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -125,6 +126,7 @@ class TestConfigArgs(TestBase):
   ethernets:
     eth0:
       dhcp4: true''')
+        os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
 

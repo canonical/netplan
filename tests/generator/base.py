@@ -335,6 +335,7 @@ class TestBase(unittest.TestCase):
                 path = os.path.join(self.confdir, f + '.yaml')
                 with open(path, 'w') as f:
                     f.write(contents)
+                os.chmod(path, mode=0o600)
                 yaml_input.append(path)
 
         argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args

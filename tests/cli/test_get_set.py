@@ -150,6 +150,7 @@ class TestSet(unittest.TestCase):
             f.write('''network:
   renderer: networkd
   bridges: {br54: {dhcp4: true}}''')
+        os.chmod(defaults, mode=0o600)
         self._set(['bridges.br54.dhcp4=false', '--origin-hint=90-snapd-config'])
         self.assertTrue(os.path.isfile(defaults))
         with open(defaults, 'r') as f:
@@ -730,6 +731,7 @@ class TestGet(unittest.TestCase):
     def test_get_network(self):
         with open(self.path, 'w') as f:
             f.write('network:\n  version: 2\n  renderer: NetworkManager')
+        os.chmod(self.path, mode=0o600)
         out = yaml.safe_load(self._get(['network']))
         self.assertDictEqual({'renderer': 'NetworkManager', 'version': 2}, out)
 
