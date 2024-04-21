@@ -403,6 +403,11 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > respond to Router Advertisements.  If unset use the host kernel default
   > setting.
 
+- **`ipv6-ra-overrides`** (mapping)
+
+  > (networkd back end only) Overrides default IPv6 Router Advertisement (RA)
+  > behaviour; see the `IPv6 Router Advertisement Overrides` section below.
+
 - **`addresses`** (sequence of scalars and mappings)
 
   > Add static addresses to the interface in addition to the ones received
@@ -697,6 +702,40 @@ client processes as specified in the Netplan YAML.
     >
     > **Requires feature: `dhcp-use-domains`**
 
+## IPv6 Router Advertisement Overrides
+Overrides for IPv6 Router Advertisement (RA) behaviour (only supported with
+networkd back end).
+
+- **`ipv6-ra-overrides`** (mapping)
+
+  > The `ipv6-ra-overrides` mappings override the default IPv6 Router
+  > Advertisement behaviour.
+
+  - **`use-dns`** (boolean)
+
+    > Default: `true`. When `true`, the DNS servers received from the
+    > Router Advertisement will be used and take precedence over any
+    > statically configured ones. Currently only has an effect on the
+    > networkd back end.
+
+  - **`use-domains`** (scalar)
+
+    > Takes a boolean, or the special value `route`. When true, the domain
+    > name received from the Router Advertisement will be used as DNS search
+    > domain over this link, similar to the effect of the `Domains=` setting.
+    > If set to `route`, the domain name received from the DHCP server will be
+    > used for routing DNS queries only, but not for searching, similar to
+    > the effect of the `Domains=` setting when the argument is prefixed with
+    > `~` (tilde).
+
+  - **`route-table`** (scalar)
+
+    > The table number to use for the route. In some scenarios, it may be
+    > useful to set routes in a separate routing table. It may also be used
+    > to refer to routing policy rules which also accept a `table`
+    > parameter. Allowed values are positive integers starting from 1.
+    > Some values are already in use to refer to specific routing tables:
+    > see `/etc/iproute2/rt_tables`.
 
 ## Routing
 

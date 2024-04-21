@@ -336,6 +336,18 @@ interval_has_suffix(const char* param) {
     return TRUE;
 }
 
+STATIC gboolean
+ipv6_ra_overrides_is_dirty(const NetplanIPv6RAOverrides* overrides) {
+    if(!overrides->use_dns)
+        return TRUE;
+    if(overrides->use_domains)
+        return TRUE;
+    if(overrides->route_table != NETPLAN_ROUTE_TABLE_UNSPEC)
+        return TRUE;
+
+    return FALSE;
+}
+
 
 STATIC void
 write_bond_parameters(const NetplanNetDefinition* def, GString* s)
@@ -982,6 +994,19 @@ _netplan_netdef_write_network_file(
     /* IP-over-InfiniBand, IPoIB */
     if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
         g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
+    }
+
+    /* ipv6-ra-overrides */
+    if (ipv6_ra_overrides_is_dirty(&def->ipv6_ra_overrides)) {
+        g_string_append(network, "\n[IPv6AcceptRA]\n");
+        
+        /* Only write RA options that differ from the networkd default. */
+        if (!def->ipv6_ra_overrides.use_dns)
+            g_string_append_printf(network, "UseDNS=false\n");
+        if (def->ipv6_ra_overrides.use_domains)
+            g_string_append_printf(network, "UseDomains=%s\n", def->ipv6_ra_overrides.use_domains);
+        if (def->ipv6_ra_overrides.route_table != NETPLAN_ROUTE_TABLE_UNSPEC)
+            g_string_append_printf(network, "RouteTable=%d\n", def->ipv6_ra_overrides.route_table);
     }
 
     if (network->len > 0 || link->len > 0) {

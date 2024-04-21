@@ -2876,6 +2876,13 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {NULL},
 };
 
+static const mapping_entry_handler ipv6_ra_overrides_handlers[] = {
+    {"use-dns", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ipv6_ra_overrides.use_dns)},
+    {"use-domains", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(ipv6_ra_overrides.use_domains)},
+    {"route-table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_ra_overrides.route_table)},
+    {NULL},
+};
+
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS \
     {"accept-ra", YAML_SCALAR_NODE, {.generic=handle_accept_ra}, netdef_offset(accept_ra)}, \
@@ -2888,6 +2895,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp-identifier", YAML_SCALAR_NODE, {.generic=handle_dhcp_identifier}, NULL}, \
     {"dhcp4-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp4_overrides_handlers}}, NULL}, \
     {"dhcp6-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp6_overrides_handlers}}, NULL}, \
+    {"ipv6-ra-overrides", YAML_MAPPING_NODE, {.map={.handlers=ipv6_ra_overrides_handlers}}, NULL}, \
     {"gateway4", YAML_SCALAR_NODE, {.generic=handle_gateway4}, NULL}, \
     {"gateway6", YAML_SCALAR_NODE, {.generic=handle_gateway6}, NULL}, \
     {"ipv6-address-generation", YAML_SCALAR_NODE, {.generic=handle_netdef_addrgen}, NULL}, \

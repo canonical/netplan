@@ -501,6 +501,24 @@ err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 STATIC gboolean
+write_ipv6_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanNetDefinition* def, const NetplanIPv6RAOverrides* data)
+{
+    if (DIRTY_COMPLEX(def, *data)
+        || !data->use_dns
+        || data->use_domains
+        || data->route_table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+        YAML_SCALAR_PLAIN(event, emitter, key);
+        YAML_MAPPING_OPEN(event, emitter);
+        YAML_BOOL_FALSE(def, event, emitter, "use-dns", data->use_dns);
+        YAML_STRING_PLAIN(def, event, emitter, "use-domains", data->use_domains);
+        YAML_UINT_DEFAULT(def, event, emitter, "route-table", data->route_table, NETPLAN_ROUTE_TABLE_UNSPEC);
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
+    return TRUE;
+err_path: return FALSE; // LCOV_EXCL_LINE
+}
+
+STATIC gboolean
 write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_NONNULL_STRING(event, emitter, "mode", netplan_tunnel_mode_name(def->tunnel.mode));
@@ -772,6 +790,7 @@ _serialize_yaml(
     } else if (def->accept_ra == NETPLAN_RA_MODE_DISABLED) {
         YAML_NONNULL_STRING_PLAIN(event, emitter, "accept-ra", "false");
     }
+    write_ipv6_ra_overrides(event, emitter, "ipv6-ra-overrides", def, &def->ipv6_ra_overrides);
 
     YAML_STRING(def, event, emitter, "macaddress", def->set_mac);
     YAML_STRING(def, event, emitter, "set-name", def->set_name);

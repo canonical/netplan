@@ -151,6 +151,14 @@ reset_dhcp_overrides(NetplanDHCPOverrides* overrides)
     overrides->metric = NETPLAN_METRIC_UNSPEC;
 }
 
+STATIC void
+reset_ipv6_ra_overrides(NetplanIPv6RAOverrides* overrides)
+{
+    overrides->use_dns = TRUE;
+    FREE_AND_NULLIFY(overrides->use_domains);
+    overrides->route_table = NETPLAN_ROUTE_TABLE_UNSPEC;
+}
+
 void
 reset_ip_rule(NetplanIPRule* ip_rule)
 {
@@ -236,6 +244,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     reset_dhcp_overrides(&netdef->dhcp4_overrides);
     reset_dhcp_overrides(&netdef->dhcp6_overrides);
     netdef->accept_ra = NETPLAN_RA_MODE_KERNEL;
+    reset_ipv6_ra_overrides(&netdef->ipv6_ra_overrides);
 
     free_garray_with_destructor(&netdef->ip4_addresses, g_free);
     free_garray_with_destructor(&netdef->ip6_addresses, g_free);

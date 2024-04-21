@@ -45,6 +45,12 @@ typedef struct dhcp_overrides {
     guint metric;
 } NetplanDHCPOverrides;
 
+typedef struct ipv6_ra_overrides {
+    gboolean use_dns;
+    char* use_domains;
+    guint route_table;
+} NetplanIPv6RAOverrides;
+
 typedef enum {
     NETPLAN_RA_MODE_KERNEL,
     NETPLAN_RA_MODE_ENABLED,
@@ -223,6 +229,7 @@ struct netplan_net_definition {
     char* dhcp_identifier;
     NetplanDHCPOverrides dhcp4_overrides;
     NetplanDHCPOverrides dhcp6_overrides;
+    NetplanIPv6RAOverrides ipv6_ra_overrides;
     NetplanRAMode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
