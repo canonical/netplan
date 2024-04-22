@@ -155,3 +155,4 @@ class InputAccepted(Exception):
 class InputRejected(Exception):
     """ Denotes that the user has rejected input"""
     pass
+ 
