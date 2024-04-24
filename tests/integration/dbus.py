@@ -154,6 +154,7 @@ class _CommonTests():
         # The path has the following format: /io/netplan/Netplan/config/WM6X01
         BUSCTL_CONFIG_GET[5] = config_path
         BUSCTL_CONFIG_SET[5] = config_path
+        BUSCTL_CONFIG_APPLY[5] = config_path
 
         # Changing the configuration
         out = subprocess.run(BUSCTL_CONFIG_SET, capture_output=True, text=True)
@@ -172,6 +173,10 @@ class _CommonTests():
         self.assertNotEqual(netplan_data, "", msg="Got an empty response from DBUS")
         self.assertEqual(NETPLAN_YAML_AFTER % {'nic': self.dev_e_client},
                          netplan_data, msg="The final YAML is different than expected")
+
+        # Applying the configuration
+        out = subprocess.run(BUSCTL_CONFIG_APPLY, capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, msg=f"Busctl Apply() failed with error: {out.stderr}")
 
     def test_dbus_config_apply(self):
         NETPLAN_YAML = '''network:
