@@ -415,7 +415,7 @@ After creating a new configuration as described in [Using netplan set to enable 
      3: enp6s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
          link/ether 00:16:3e:0c:97:8a brd ff:ff:ff:ff:ff:ff
          inet 10.33.59.157/24 metric 100 brd 10.33.59.255 scope global dynamic enp6s0
-           valid_lft 3589sec preferred_lft 3589sec
+            valid_lft 3589sec preferred_lft 3589sec
      ```
 
    * Using the `netplan status` command:
@@ -427,18 +427,18 @@ After creating a new configuration as described in [Using netplan set to enable 
      You should see an output similar to this:
 
      ```
-         Online state: online
+          Online state: online
          DNS Addresses: 127.0.0.53 (stub)
-           DNS Search: lxd
+            DNS Search: lxd
 
      ●  3: enp6s0 ethernet UP (networkd: enp6s0)
            MAC Address: 00:16:3e:0c:97:8a (Red Hat, Inc.)
              Addresses: 10.33.59.157/24 (dhcp)
          DNS Addresses: 10.33.59.1
-           DNS Search: lxd
-               Routes: default via 10.33.59.1 from 10.33.59.157 metric 100 (dhcp)
-                       10.33.59.0/24 from 10.33.59.157 metric 100 (link)
-                       10.33.59.1 from 10.33.59.157 metric 100 (dhcp, link)
+            DNS Search: lxd
+                Routes: default via 10.33.59.1 from 10.33.59.157 metric 100 (dhcp)
+                        10.33.59.0/24 from 10.33.59.157 metric 100 (link)
+                        10.33.59.1 from 10.33.59.157 metric 100 (dhcp, link)
 
      2 inactive interfaces hidden. Use "--all" to show all.
      ```
