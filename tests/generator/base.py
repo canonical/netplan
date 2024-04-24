@@ -317,7 +317,8 @@ class TestBase(unittest.TestCase):
                     print(line, flush=True)
                 self.fail('Re-generated YAML file does not match (adopt netplan.c YAML generator?)')
 
-    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None, skip_generated_yaml_validation=False):
+    def generate(self, yaml, expect_fail=False, extra_args=[], confs=None, skip_generated_yaml_validation=False,
+                 ignore_errors=False):
         '''Call generate with given YAML string as configuration
 
         Return stderr output.
@@ -343,6 +344,9 @@ class TestBase(unittest.TestCase):
             print('Test is about to run:\n%s' % ' '.join(argv))
             subprocess.call(['bash', '-i'], cwd=self.workdir.name)
 
+        if ignore_errors:
+            argv += ['--ignore-errors']
+
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         (out, err) = p.communicate()
@@ -364,6 +368,13 @@ class TestBase(unittest.TestCase):
         encode a made up name in the test.
         """
         return 'eth' + ''.join(random.sample(string.ascii_letters + string.digits, k=4))
+
+    def file_exists(self, filename, backend='systemd') -> bool:
+        if backend == 'systemd':
+            path = os.path.join(self.workdir.name, 'run', 'systemd', 'network', filename)
+        else:
+            path = os.path.join(self.workdir.name, 'run', 'NetworkManager', 'system-connections', filename)
+        return os.path.exists(path)
 
     def assert_networkd(self, file_contents_map):
         networkd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'network')
