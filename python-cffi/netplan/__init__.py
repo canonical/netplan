@@ -26,7 +26,7 @@ from ._utils import _checked_lib_call
 from ._utils import (NetplanException, NetplanBackendException,
                      NetplanEmitterException, NetplanFileException,
                      NetplanFormatException, NetplanParserException,
-                     NetplanValidationException)
+                     NetplanValidationException, NetplanParserFlagsException)
 
 
 def _dump_yaml_subtree(prefix: List[str], input_file: IO, output_file: IO):
@@ -70,4 +70,4 @@ __all__ = ['Parser', 'State', 'NetDefinition', 'NetDefinitionIterator',
            '_dump_yaml_subtree', '_create_yaml_patch',
            'NetplanException', 'NetplanBackendException', 'NetplanEmitterException',
            'NetplanFileException', 'NetplanFormatException', 'NetplanParserException',
-           'NetplanValidationException']
+           'NetplanValidationException', 'NetplanParserFlagsException']
