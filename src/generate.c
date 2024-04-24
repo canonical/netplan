@@ -44,10 +44,12 @@ static gchar** files;
 static gboolean any_networkd = FALSE;
 static gboolean any_nm = FALSE;
 static gchar* mapping_iface;
+static gboolean ignore_errors = FALSE;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /", NULL},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/netplan/*.yaml", "[config file ..]"},
+    {"ignore-errors", 'i', 0, G_OPTION_ARG_NONE, &ignore_errors, "Ignores files and/or network definitions that fail parsing.", NULL},
     {"mapping", 0, 0, G_OPTION_ARG_STRING, &mapping_iface, "Only show the device to backend mapping for the specified interface.", NULL},
     {NULL}
 };
@@ -195,11 +197,14 @@ exit_find:
     return ret;
 }
 
-#define CHECK_CALL(call) {\
-    if (!call) {\
+#define CHECK_CALL(call, ignore_errors) {\
+    if (!call && !ignore_errors) {\
         error_code = 1; \
         fprintf(stderr, "%s\n", error->message); \
         goto cleanup;\
+    } else if (error && ignore_errors) {\
+        fprintf(stderr, "Ignored: %s\n", error->message); \
+        g_clear_error(&error); \
     }\
 }
 
@@ -212,6 +217,7 @@ int main(int argc, char** argv)
     g_autofree char* generator_run_stamp = NULL;
     glob_t gl;
     int error_code = 0;
+    char* ignore_errors_env = NULL;
     NetplanParser* npp = NULL;
     NetplanState* np_state = NULL;
 
@@ -244,17 +250,30 @@ int main(int argc, char** argv)
         }
     }
 
+    if ((ignore_errors_env = getenv("NETPLAN_PARSER_IGNORE_ERRORS"))) {
+        // This is used mostly by autopkgtests
+        // LCOV_EXCL_START
+        if (!g_strcmp0(ignore_errors_env, "1")) {
+            g_debug("NETPLAN_PARSER_IGNORE_ERRORS=1 environment variable exists, setting ignore_errors flags");
+            ignore_errors = TRUE;
+        }
+        // LCOV_EXCL_STOP
+    }
+
     npp = netplan_parser_new();
+    if (ignore_errors || called_as_generator)
+        netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
+
     /* Read all input files */
     if (files && !called_as_generator) {
         for (gchar** f = files; f && *f; ++f) {
-            CHECK_CALL(netplan_parser_load_yaml(npp, *f, &error));
+            CHECK_CALL(netplan_parser_load_yaml(npp, *f, &error), ignore_errors);
         }
     } else
-        CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error));
+        CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error), ignore_errors);
 
     np_state = netplan_state_new();
-    CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error));
+    CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error), ignore_errors);
 
     if (mapping_iface) {
         if (np_state->netdefs)
@@ -272,22 +291,22 @@ int main(int argc, char** argv)
     _netplan_sriov_cleanup(rootdir);
 
     /* Generate backend specific configuration files from merged data. */
-    CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error)); // OVS cleanup unit is always written
+    CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error), ignore_errors); // OVS cleanup unit is always written
     if (np_state->netdefs) {
         g_debug("Generating output files..");
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             NetplanNetDefinition* def = (NetplanNetDefinition*) iterator->data;
             gboolean has_been_written = FALSE;
-            CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error));
+            CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
             any_networkd = any_networkd || has_been_written;
 
-            CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error));
-            CHECK_CALL(_netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error));
+            CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
             any_nm = any_nm || has_been_written;
         }
 
-        CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error));
-        CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error));
+        CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error), ignore_errors);
+        CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
         /* We may have written .rules & .link files, thus we must
          * invalidate udevd cache of its config as by default it only
          * invalidates cache at most every 3 seconds. Not sure if this

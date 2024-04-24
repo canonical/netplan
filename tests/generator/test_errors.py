@@ -999,3 +999,302 @@ class TestConfigErrors(TestBase):
       routing-policy:
         - to: 1.2.3.4/24''', expect_fail=True)
         self.assertIn("NetworkManager only supports unicast routes", err)
+
+    def test_ignore_errors(self):
+        ''' Test if a bad netdef (eth1 in this case) will be ignored '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+    eth1:
+      dhcp4: yesplease
+    eth2:
+      renderer: NetworkManager
+      dhcp4: false''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth0.network'))
+        self.assertTrue(self.file_exists('10-netplan-eth1.network'))
+        self.assertTrue(self.file_exists('netplan-eth2.nmconnection', backend='NetworkManager'))
+
+        self.assertIn('Skipping definition due to parsing errors. eth1:', out)
+
+    def test_ignore_errors_multiple_files(self):
+        ''' Test that a bad YAML file will be ignored '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''', confs={'b': '''network:
+  ethernets:
+    eth1: {}''',
+                             'c': ''':''',
+                             'd': '''network:
+  ethernets:
+    eth2: {}'''}, expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth0.network'))
+        self.assertTrue(self.file_exists('10-netplan-eth1.network'))
+        self.assertTrue(self.file_exists('10-netplan-eth2.network'))
+        self.assertIn('Skipping YAML file due to parsing errors.', out)
+        self.assertIn('/etc/netplan/c.yaml:1:1: Invalid YAML: did not find expected key', out)
+
+    def test_ignore_syntax_errors(self):
+        ''' Test that an error in the same netdef in the next file will not remove the netdef '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true''', confs={'b': '''network:
+  ethernets:
+    eth0:
+      abc: 123'''}, expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth0.network'))
+        self.assertIn('Skipping definition due to parsing errors. eth0:', out)
+
+    def test_ignore_errors_dependencies(self):
+        ''' Test that an interface that depends on a bad interface will still have configuration generated '''
+        out = self.generate('''network:
+  version: 2
+  ethernets:
+    eth123:
+      dhcp4: true
+    eth321:
+      dhcp4: 1''', confs={'b': '''network:
+  bridges:
+    br0:
+      interfaces: [ eth123 ]
+    br1:
+      interfaces: [ eth321 ]'''}, expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertTrue(self.file_exists('10-netplan-eth123.network'))
+        self.assertTrue(self.file_exists('10-netplan-br0.network'))
+        self.assertFalse(self.file_exists('10-netplan-321.network'))
+        self.assertTrue(self.file_exists('10-netplan-br1.network'))
+        self.assertIn('Skipping definition due to parsing errors. eth321:', out)
+
+    def test_ignore_errors_bad_bond(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0: {}
+  bonds:
+    bond0:
+      interfaces: [eth0]
+      badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=no
+Bond=bond0
+''',
+                              'bond0.network': '''[Match]
+Name=bond0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'bond0.netdev': '''[NetDev]
+Name=bond0
+Kind=bond
+'''})
+
+    def test_ignore_errors_bad_bridge(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0: {}
+  bridges:
+    br0:
+      interfaces: [eth0]
+      badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=no
+Bridge=br0
+''',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'br0.netdev': '''[NetDev]
+Name=br0
+Kind=bridge
+'''})
+
+    def test_ignore_errors_bad_vrf(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0: {}
+  vrfs:
+    vrf0:
+      interfaces: [eth0]
+      table: 1000
+      badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+VRF=vrf0
+''',
+                              'vrf0.network': '''[Match]
+Name=vrf0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'vrf0.netdev': '''[NetDev]
+Name=vrf0
+Kind=vrf
+
+[VRF]
+Table=1000
+'''})
+
+    def test_ignore_errors_bad_veth(self):
+        self.generate('''network:
+  version: 2
+  virtual-ethernets:
+    veth0:
+      peer: veth1
+    veth1:
+      peer: veth0
+      badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'veth0.network': '''[Match]
+Name=veth0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'veth1.network': '''[Match]
+Name=veth1
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'veth0.netdev': '''[NetDev]
+Name=veth0
+Kind=veth
+
+[Peer]
+Name=veth1
+'''})
+
+    def test_ignore_errors_bad_veth_peer(self):
+        self.generate('''network:
+  version: 2
+  virtual-ethernets:
+    veth0:
+      badkey: badvalue
+      peer: veth1
+    veth1:
+      badkey: badvalue
+      peer: veth0''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'veth0.network': '''[Match]
+Name=veth0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'veth1.network': '''[Match]
+Name=veth1
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'veth0.netdev': '''[NetDev]
+Name=veth0
+Kind=veth
+''',
+                              'veth1.netdev': '''[NetDev]
+Name=veth1
+Kind=veth
+'''})
+
+    def test_ignore_errors_bad_vlan(self):
+        self.generate('''network:
+  version: 2
+  vlans:
+    vlan100:
+      link: eth0
+      id: 100
+  ethernets:
+    eth0:
+      badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'vlan100.network': '''[Match]
+Name=vlan100
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+''',
+                              'vlan100.netdev': '''[NetDev]
+Name=vlan100
+Kind=vlan
+
+[VLAN]
+Id=100
+''',
+                             'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+VLAN=vlan100
+'''})
+
+    def test_ignore_errors_bad_sriov_pf(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    eth0:
+      embedded-switch-mode: switchdev
+      badkey: badvalue
+    ethvf0:
+      link: eth0''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'ethvf0.network': '''[Match]
+Name=ethvf0
+
+[Network]
+LinkLocalAddressing=ipv6
+''',
+                              'eth0.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+
+    def test_ignore_errors_missing_interface(self):
+        self.generate('''network:
+  version: 2
+  bonds:
+    bond0:
+      interfaces:
+        - eth0''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+        self.assert_networkd({'bond0.netdev': '''[NetDev]
+Name=bond0
+Kind=bond
+''',
+                              'bond0.network': '''[Match]
+Name=bond0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+'''})
