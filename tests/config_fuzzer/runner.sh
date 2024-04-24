@@ -119,4 +119,32 @@ done
 
 echo "$(date) - Done"
 
+echo "$(date) - Running netplan generate -i"
+
+for yaml in ${FAKEDATADIR}/*.yaml
+do
+    rm -rf fakeroot3
+    mkdir -p fakeroot3/etc/netplan
+    cp ${yaml} fakeroot3/etc/netplan/
+
+    OUTPUT=$(${NETPLAN_GENERATE_PATH} --root-dir fakeroot3 -i 2>&1)
+    code=$?
+    if [ $code -eq 139 ] || [ $code -eq 245 ] || [ $code -eq 133 ]
+    then
+        echo "GENERATE --ignore-errors CRASHED"
+        cat ${yaml}
+        error=1
+    fi
+
+    if grep 'detected memory leaks' <<< "$OUTPUT" > /dev/null
+    then
+        echo "GENERATE --ignore-errors MEMORY LEAK DETECTED"
+        cat ${yaml}
+        error=1
+    fi
+
+done
+
+echo "$(date) - Done"
+
 exit ${error}

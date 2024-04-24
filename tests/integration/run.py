@@ -78,10 +78,23 @@ else:
 
 os.environ["NETPLAN_TEST_BACKENDS"] = ",".join(backends)
 
+run_with_ignore_errors = os.environ.get("NETPLAN_PARSER_IGNORE_ERRORS", "1")
+
 returncode = 0
 for test in requested_tests:
+    os.environ["NETPLAN_PARSER_IGNORE_ERRORS"] = "0"
     ret = subprocess.call(['python3', os.path.join(tests_dir, "{}.py".format(test))])
     if returncode == 0 and ret != 0:
         returncode = ret
+
+    # Running tests again with NETPLAN_PARSER_IGNORE_ERRORS
+    # If NETPLAN_PARSER_IGNORE_ERRORS=0 is defined initially, this step will be skipped
+    # When this variable is set to 1, the netplan generator will set the IGNORE_ERRORS flag
+    if run_with_ignore_errors == "1":
+        print(f"Running '{test}' tests again with IGNORE_ERRORS flag set", flush=True)
+        os.environ["NETPLAN_PARSER_IGNORE_ERRORS"] = "1"
+        ret = subprocess.call(['python3', os.path.join(tests_dir, "{}.py".format(test))])
+        if returncode == 0 and ret != 0:
+            returncode = ret
 
 sys.exit(returncode)
