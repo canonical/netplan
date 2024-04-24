@@ -68,6 +68,9 @@ ffibuilder.cdef("""
     // Parser
     NetplanParser* netplan_parser_new();
     void netplan_parser_clear(NetplanParser **npp);
+    gboolean netplan_parser_set_flags(NetplanParser *npp, unsigned int flags, NetplanError** error);
+    unsigned int netplan_parser_get_flags(NetplanParser *npp);
+    unsigned int netplan_parser_get_error_count(NetplanParser *npp);
     gboolean netplan_parser_load_yaml(NetplanParser* npp, const char* filename, NetplanError** error);
     gboolean netplan_parser_load_yaml_from_fd(NetplanParser* npp, int input_fd, NetplanError** error);
     gboolean netplan_parser_load_yaml_hierarchy(NetplanParser* npp, const char* rootdir, NetplanError** error);

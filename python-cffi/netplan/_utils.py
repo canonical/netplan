@@ -36,6 +36,7 @@ class NETPLAN_ERROR_DOMAINS(IntEnum):
 class NETPLAN_PARSER_ERRORS(IntEnum):
     NETPLAN_ERROR_INVALID_YAML = 0
     NETPLAN_ERROR_INVALID_CONFIG = 1
+    NETPLAN_ERROR_INVALID_FLAG = 2
 
 
 class NETPLAN_VALIDATION_ERRORS(IntEnum):
@@ -134,6 +135,10 @@ class NetplanParserException(NetplanException):
         self.message = schema_error["message"]
 
 
+class NetplanParserFlagsException(NetplanException):
+    pass
+
+
 class NetplanBackendException(NetplanException):
     pass
 
@@ -155,6 +160,7 @@ NETPLAN_EXCEPTIONS = defaultdict(lambda: NETPLAN_EXCEPTIONS_FALLBACK, {
         NETPLAN_ERROR_DOMAINS.NETPLAN_PARSER_ERROR: {
             NETPLAN_PARSER_ERRORS.NETPLAN_ERROR_INVALID_YAML: NetplanParserException,
             NETPLAN_PARSER_ERRORS.NETPLAN_ERROR_INVALID_CONFIG: NetplanParserException,
+            NETPLAN_PARSER_ERRORS.NETPLAN_ERROR_INVALID_FLAG: NetplanParserFlagsException,
             },
 
         NETPLAN_ERROR_DOMAINS.NETPLAN_VALIDATION_ERROR: {
