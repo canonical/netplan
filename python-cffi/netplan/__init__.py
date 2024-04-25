@@ -66,8 +66,8 @@ def _create_yaml_patch(patch_object_path: List[str], patch_payload: Union[str, d
 
 
 # Re-export submodules
-__all__ = [Parser, State, NetDefinition, NetDefinitionIterator,
-           _dump_yaml_subtree, _create_yaml_patch,
-           NetplanException, NetplanBackendException, NetplanEmitterException,
-           NetplanFileException, NetplanFormatException, NetplanParserException,
-           NetplanValidationException]
+__all__ = ['Parser', 'State', 'NetDefinition', 'NetDefinitionIterator',
+           '_dump_yaml_subtree', '_create_yaml_patch',
+           'NetplanException', 'NetplanBackendException', 'NetplanEmitterException',
+           'NetplanFileException', 'NetplanFormatException', 'NetplanParserException',
+           'NetplanValidationException']
