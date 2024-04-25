@@ -17,4 +17,4 @@
 
 from .cli.core import Netplan
 
-__all__ = [Netplan]
+__all__ = ['Netplan']
