@@ -154,8 +154,8 @@ reset_dhcp_overrides(NetplanDHCPOverrides* overrides)
 STATIC void
 reset_ipv6_ra_overrides(NetplanIPv6RAOverrides* overrides)
 {
-    overrides->use_dns = TRUE;
-    FREE_AND_NULLIFY(overrides->use_domains);
+    overrides->use_dns = NETPLAN_TRISTATE_UNSET;
+    overrides->use_domains = NETPLAN_USE_DOMAIN_MODE_UNSET;
     overrides->route_table = NETPLAN_ROUTE_TABLE_UNSPEC;
 }
 

@@ -22,84 +22,57 @@ from .base import TestBase
 
 class TestNetworkd(TestBase):
 
-    def assert_ipv6_ra_overrides_bool(self, override_name, networkd_name):
-        self.generate('''network:
+    def assert_ipv6_ra_overrides_key_value(
+        self,
+        yaml_field_name,
+        yaml_field_value,
+        networkd_field_name,
+        networkd_field_value
+    ):
+        yaml_config = '''\
+network:
   version: 2
   ethernets:
     engreen:
       ipv6-ra-overrides:
-        %s: yes
-''' % override_name)
-        # silently ignored since yes is the default
-        self.assert_networkd({'engreen.network': '''\
+        %s: %s
+''' % (yaml_field_name, yaml_field_value)
+        networkd_config = '''\
 [Match]
 Name=engreen
 
 [Network]
 LinkLocalAddressing=ipv6
-'''})
-
-        self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      ipv6-ra-overrides:
-        %s: no
-''' % override_name)
-        self.assert_networkd({'engreen.network': '''\
-[Match]
-Name=engreen
-
-[Network]
-LinkLocalAddressing=ipv6
-
+'''
+        if networkd_field_value is not None:
+            networkd_config += '''
 [IPv6AcceptRA]
-%s=false
-''' % networkd_name})
-
-    def assert_ipv6_ra_overrides_string(self, override_name, networkd_name):
-        self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      ipv6-ra-overrides:
-        %s: foo
-''' % override_name)
-        self.assert_networkd({'engreen.network': '''\
-[Match]
-Name=engreen
-
-[Network]
-LinkLocalAddressing=ipv6
-
-[IPv6AcceptRA]
-%s=foo
-''' % networkd_name})
-
-    def assert_ipv6_ra_overrides_guint(self, override_name, networkd_name):
-        self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      ipv6-ra-overrides:
-        %s: 727
-''' % override_name)
-        self.assert_networkd({'engreen.network': '''\
-[Match]
-Name=engreen
-
-[Network]
-LinkLocalAddressing=ipv6
-
-[IPv6AcceptRA]
-%s=727
-''' % networkd_name})
+%s=%s
+''' % (networkd_field_name, networkd_field_value)
+        self.generate(yaml_config)
+        self.assert_networkd({'engreen.network': networkd_config})
 
     def test_ipv6_ra_overrides_use_dns(self):
-        self.assert_ipv6_ra_overrides_bool('use-dns', 'UseDNS')
+        self.assert_ipv6_ra_overrides_key_value('use-dns', 'no', 'UseDNS', 'false')
+        self.assert_ipv6_ra_overrides_key_value('use-dns', 'yes', 'UseDNS', 'true')
 
     def test_ipv6_ra_overrides_use_domains(self):
-        self.assert_ipv6_ra_overrides_string('use-domains', 'UseDomains')
+        self.assert_ipv6_ra_overrides_key_value('use-domains', 'n', 'UseDomains', 'false')
+        self.assert_ipv6_ra_overrides_key_value('use-domains', 'y', 'UseDomains', 'true')
+        self.assert_ipv6_ra_overrides_key_value('use-domains', 'route', 'UseDomains', 'route')
 
     def test_ipv6_ra_overrides_table(self):
-        self.assert_ipv6_ra_overrides_guint('route-table', 'RouteTable')
+        self.assert_ipv6_ra_overrides_key_value('route-table', '727', 'RouteTable', '727')
+
+
+class TestConfigErrors(TestBase):
+
+    def test_ipv6_ra_overrides_use_domains_invalid_options(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      ipv6-ra-overrides:
+        use-domains: invalid-options
+''', expect_fail=True)
+        self.assertIn("Invalid use-domains options 'invalid-options', must be a boolean, or the special value 'route'.", err)

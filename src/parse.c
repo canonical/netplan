@@ -538,6 +538,42 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
 }
 
 /**
+ * Handler for setting use-domains field from a scalar node, inside a given struct
+ * @entryptr: pointer to the begining of the to-be-modified data structure
+ * @data: offset into entryptr struct where the use-domains field to write is located
+ */
+STATIC gboolean
+handle_generic_use_domains(NetplanParser* npp, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr);
+    NetplanUseDomainMode v;
+    guint offset = GPOINTER_TO_UINT(data);
+    NetplanUseDomainMode* dest = ((void*) entryptr + offset);
+
+    if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "n") == 0)
+        v = NETPLAN_USE_DOMAIN_MODE_FALSE;
+    else if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
+        g_ascii_strcasecmp(scalar(node), "y") == 0)
+        v = NETPLAN_USE_DOMAIN_MODE_TRUE;
+    else if (g_ascii_strcasecmp(scalar(node), "route") == 0)
+        v = NETPLAN_USE_DOMAIN_MODE_ROUTE;
+    else
+        return yaml_error(npp, node, error,
+                          "Invalid use-domains options '%s', must be a boolean, or the special value 'route'.",
+                          scalar(node));
+
+    *dest = v;
+    mark_data_as_dirty(npp, dest);
+    return TRUE;
+}
+
+
+/**
  * Generic handler for setting a npp->current.netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
  *        located
@@ -682,7 +718,7 @@ handle_netdef_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
 }
 
 /**
- * Generic handler for tri-state settings that can bei "UNSET", "TRUE", or "FALSE".
+ * Generic handler for tri-state settings that can be "UNSET", "TRUE", or "FALSE".
  * @data: offset into NetplanNetDefinition where the guint field to write is located
  */
 STATIC gboolean
@@ -798,6 +834,16 @@ handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const 
 {
     npp->current.netdef->has_backend_settings_nm = TRUE;
     return handle_generic_str(npp, node, npp->current.netdef, data, error);
+}
+
+/**
+ * Generic handler for setting a npp->current.netdef use-domains field from a scalar node
+ * @data: offset into NetplanNetDefinition where the use-domains field to write is located
+ */
+STATIC gboolean
+handle_netdef_use_domains(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_use_domains(npp, node, npp->current.netdef, data, error);
 }
 
 /*
@@ -2877,8 +2923,8 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 };
 
 static const mapping_entry_handler ipv6_ra_overrides_handlers[] = {
-    {"use-dns", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ipv6_ra_overrides.use_dns)},
-    {"use-domains", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(ipv6_ra_overrides.use_domains)},
+    {"use-dns", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(ipv6_ra_overrides.use_dns)},
+    {"use-domains", YAML_SCALAR_NODE, {.generic=handle_netdef_use_domains}, netdef_offset(ipv6_ra_overrides.use_domains)},
     {"route-table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_ra_overrides.route_table)},
     {NULL},
 };

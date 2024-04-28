@@ -338,9 +338,9 @@ interval_has_suffix(const char* param) {
 
 STATIC gboolean
 ipv6_ra_overrides_is_dirty(const NetplanIPv6RAOverrides* overrides) {
-    if(!overrides->use_dns)
+    if(overrides->use_dns != NETPLAN_TRISTATE_UNSET)
         return TRUE;
-    if(overrides->use_domains)
+    if(overrides->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET)
         return TRUE;
     if(overrides->route_table != NETPLAN_ROUTE_TABLE_UNSPEC)
         return TRUE;
@@ -999,12 +999,15 @@ _netplan_netdef_write_network_file(
     /* ipv6-ra-overrides */
     if (ipv6_ra_overrides_is_dirty(&def->ipv6_ra_overrides)) {
         g_string_append(network, "\n[IPv6AcceptRA]\n");
-        
-        /* Only write RA options that differ from the networkd default. */
-        if (!def->ipv6_ra_overrides.use_dns)
-            g_string_append_printf(network, "UseDNS=false\n");
-        if (def->ipv6_ra_overrides.use_domains)
-            g_string_append_printf(network, "UseDomains=%s\n", def->ipv6_ra_overrides.use_domains);
+
+        if (def->ipv6_ra_overrides.use_dns != NETPLAN_TRISTATE_UNSET)
+            g_string_append_printf(network, "UseDNS=%s\n", def->ipv6_ra_overrides.use_dns ? "true" : "false");
+        if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE)
+            g_string_append_printf(network, "UseDomains=%s\n", "false");
+        else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE)
+            g_string_append_printf(network, "UseDomains=%s\n", "true");
+        else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE)
+            g_string_append_printf(network, "UseDomains=%s\n", "route");
         if (def->ipv6_ra_overrides.route_table != NETPLAN_ROUTE_TABLE_UNSPEC)
             g_string_append_printf(network, "RouteTable=%d\n", def->ipv6_ra_overrides.route_table);
     }

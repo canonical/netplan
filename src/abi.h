@@ -32,6 +32,35 @@ typedef enum {
     NETPLAN_OPTIONAL_STATIC  = 1<<4,
 } NetplanOptionalAddressFlag;
 
+typedef enum
+{
+    /**
+     * @brief Tristate enum type
+     *
+     * This type defines a boolean which can be unset, i.e.
+     * this type has three states. The enum is ordered so
+     * that
+     *
+     * UNSET -> -1
+     * FALSE -> 0
+     * TRUE  -> 1
+     *
+     * And the integer values can be used directly when
+     * converting to string.
+     */
+    NETPLAN_TRISTATE_UNSET = -1, /* -1 */
+    NETPLAN_TRISTATE_FALSE,      /*  0 */
+    NETPLAN_TRISTATE_TRUE,       /*  1 */
+} NetplanTristate;
+
+typedef enum
+{
+    NETPLAN_USE_DOMAIN_MODE_UNSET = -1,
+    NETPLAN_USE_DOMAIN_MODE_FALSE,
+    NETPLAN_USE_DOMAIN_MODE_TRUE,
+    NETPLAN_USE_DOMAIN_MODE_ROUTE,
+} NetplanUseDomainMode;
+
 /* Fields below are valid for dhcp4 and dhcp6 unless otherwise noted. */
 typedef struct dhcp_overrides {
     gboolean use_dns;
@@ -46,8 +75,8 @@ typedef struct dhcp_overrides {
 } NetplanDHCPOverrides;
 
 typedef struct ipv6_ra_overrides {
-    gboolean use_dns;
-    char* use_domains;
+    NetplanTristate use_dns;
+    NetplanUseDomainMode use_domains;
     guint route_table;
 } NetplanIPv6RAOverrides;
 
@@ -184,27 +213,6 @@ typedef struct netplan_backend_settings {
     char *device;
     GData* passthrough; /* See g_datalist* functions */
 } NetplanBackendSettings;
-
-typedef enum
-{
-    /**
-     * @brief Tristate enum type
-     *
-     * This type defines a boolean which can be unset, i.e.
-     * this type has three states. The enum is ordered so
-     * that
-     *
-     * UNSET -> -1
-     * FALSE -> 0
-     * TRUE  -> 1
-     *
-     * And the integer values can be used directly when
-     * converting to string.
-     */
-    NETPLAN_TRISTATE_UNSET = -1, /* -1 */
-    NETPLAN_TRISTATE_FALSE,      /*  0 */
-    NETPLAN_TRISTATE_TRUE,       /*  1 */
-} NetplanTristate;
 
 typedef struct netplan_vxlan NetplanVxlan;
 

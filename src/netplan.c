@@ -504,13 +504,19 @@ STATIC gboolean
 write_ipv6_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanNetDefinition* def, const NetplanIPv6RAOverrides* data)
 {
     if (DIRTY_COMPLEX(def, *data)
-        || !data->use_dns
-        || data->use_domains
+        || data->use_dns != NETPLAN_TRISTATE_UNSET
+        || data->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET
         || data->route_table != NETPLAN_ROUTE_TABLE_UNSPEC) {
         YAML_SCALAR_PLAIN(event, emitter, key);
         YAML_MAPPING_OPEN(event, emitter);
-        YAML_BOOL_FALSE(def, event, emitter, "use-dns", data->use_dns);
-        YAML_STRING_PLAIN(def, event, emitter, "use-domains", data->use_domains);
+        YAML_BOOL_TRISTATE(def, event, emitter, "use-dns", data->use_dns);
+        if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE) {
+            YAML_STRING_PLAIN(def, event, emitter, "use-domains", "false");
+        } else if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE) {
+            YAML_STRING_PLAIN(def, event, emitter, "use-domains", "true");
+        } else if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
+            YAML_STRING_PLAIN(def, event, emitter, "use-domains", "route");
+        }
         YAML_UINT_DEFAULT(def, event, emitter, "route-table", data->route_table, NETPLAN_ROUTE_TABLE_UNSPEC);
         YAML_MAPPING_CLOSE(event, emitter);
     }
