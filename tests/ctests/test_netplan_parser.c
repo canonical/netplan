@@ -255,6 +255,35 @@ test_nm_device_backend_is_nm_by_default(__unused void** state)
     netplan_state_clear(&np_state);
 }
 
+void
+test_parser_flags(__unused void** state)
+{
+    NetplanParser* npp = netplan_parser_new();
+    GError *error = NULL;
+    gboolean ret = netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
+
+    assert_true(ret);
+    assert_null(error);
+    assert_int_equal(netplan_parser_get_flags(npp), NETPLAN_PARSER_IGNORE_ERRORS);
+
+    netplan_parser_clear(&npp);
+}
+
+void
+test_parser_flags_bad_flags(__unused void** state)
+{
+    NetplanParser* npp = netplan_parser_new();
+    GError *error = NULL;
+    // Flag 1 << 29 doesn't exist (at least for now)
+    gboolean ret = netplan_parser_set_flags(npp, 1 << 29, &error);
+
+    assert_false(ret);
+    assert_string_equal(error->message, "Invalid flag set");
+    assert_int_equal(error->domain, NETPLAN_PARSER_ERROR);
+    assert_int_equal(error->code, NETPLAN_ERROR_INVALID_FLAG);
+    netplan_parser_clear(&npp);
+}
+
 int
 setup(__unused void** state)
 {
@@ -284,6 +313,8 @@ main()
            cmocka_unit_test(test_netplan_parser_process_document_proper_error),
            cmocka_unit_test(test_netplan_parser_process_document_missing_interface_error),
            cmocka_unit_test(test_nm_device_backend_is_nm_by_default),
+           cmocka_unit_test(test_parser_flags),
+           cmocka_unit_test(test_parser_flags_bad_flags),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);

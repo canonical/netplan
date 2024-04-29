@@ -54,6 +54,26 @@ NETPLAN_PUBLIC void
 netplan_parser_clear(NetplanParser **npp);
 
 /**
+ * @brief   Set @ref NetplanParser flags.
+ * @details Parser flags are used to change the default behavior of the parser.
+ * @param[in] npp       The @ref NetplanParser to set the flags.
+ * @param[in] flags     The value of the flags. The possible values are defined in @ref NETPLAN_PARSER_FLAGS
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
+ * @return              Indication of success or failure
+ */
+NETPLAN_PUBLIC gboolean
+netplan_parser_set_flags(NetplanParser* npp, unsigned int flags, NetplanError** error);
+
+/**
+ * @brief   Get @ref NetplanParser flags.
+ * @details Parser flags are used to change the default behavior of the parser.
+ * @param[in] npp   The @ref NetplanParser to get the flags from.
+ * @return          The current flags set in the parser.
+ */
+NETPLAN_PUBLIC unsigned int
+netplan_parser_get_flags(const NetplanParser* npp);
+
+/**
  * @brief Parse a given YAML file and create or update the list of @ref NetplanNetDefinition inside @p npp.
  * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
  * @param[in]  filename Full path to a Netplan YAML configuration file
