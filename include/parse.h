@@ -74,6 +74,15 @@ NETPLAN_PUBLIC unsigned int
 netplan_parser_get_flags(const NetplanParser* npp);
 
 /**
+ * @brief   Get @ref NetplanParser error count.
+ * @details The number of errors that were ignored when the IGNORE_ERRORS is used.
+ * @param[in] npp   The @ref NetplanParser to get the error count from.
+ * @return          The current error count.
+ */
+NETPLAN_PUBLIC unsigned int
+netplan_parser_get_error_count(const NetplanParser* npp);
+
+/**
  * @brief Parse a given YAML file and create or update the list of @ref NetplanNetDefinition inside @p npp.
  * @param[in]  npp      The @ref NetplanParser object that should contain the parsed data
  * @param[in]  filename Full path to a Netplan YAML configuration file

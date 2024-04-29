@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+#include <sys/stat.h>
 
 #include <cmocka.h>
 #include <yaml.h>
@@ -284,6 +285,103 @@ test_parser_flags_bad_flags(__unused void** state)
     netplan_parser_clear(&npp);
 }
 
+void
+test_parser_flags_ignore_errors(__unused void** state)
+{
+    const char* yaml1 =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth0: {}\n";
+
+    const char* yaml2 = ":";
+
+    const char* yaml3 =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth1:\n"
+        "      dhcp4: yesplease\n"
+        "    eth2: {}\n";
+
+    const char* yaml4 =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eth3: {}\n";
+
+    GError *error = NULL;
+    char template[] = "/tmp/netplan-XXXXXX";
+    char* tempdir = mkdtemp(template);
+    g_autofree gchar* etcpath = g_strdup_printf("%s/etc", tempdir);
+    g_autofree gchar* fullpath = g_strdup_printf("%s/etc/netplan/", tempdir);
+    g_autofree gchar* file1 = g_strdup_printf("%s/etc/netplan/file1.yaml", tempdir);
+    g_autofree gchar* file2 = g_strdup_printf("%s/etc/netplan/file2.yaml", tempdir);
+    g_autofree gchar* file3 = g_strdup_printf("%s/etc/netplan/file3.yaml", tempdir);
+    g_autofree gchar* file4 = g_strdup_printf("%s/etc/netplan/file4.yaml", tempdir);
+    g_mkdir_with_parents(fullpath, 0770);
+    mode_t old_umask = umask(0077);
+    FILE* f1 = fopen(file1, "w");
+    FILE* f2 = fopen(file2, "w");
+    FILE* f3 = fopen(file3, "w");
+    FILE* f4 = fopen(file4, "w");
+
+    fwrite(yaml1, strlen(yaml1), 1, f1);
+    fclose(f1);
+    fwrite(yaml2, strlen(yaml2), 1, f2);
+    fclose(f2);
+    fwrite(yaml3, strlen(yaml3), 1, f3);
+    fclose(f3);
+    fwrite(yaml4, strlen(yaml4), 1, f4);
+    fclose(f4);
+
+    umask(old_umask);
+
+    NetplanParser* npp = netplan_parser_new();
+    netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
+    gboolean ret = netplan_parser_load_yaml_hierarchy(npp, tempdir, &error);
+
+    // Despite the errors in the YAML it should report success
+    assert_true(ret);
+    assert_null(error);
+
+    assert_int_equal(netplan_parser_get_flags(npp), NETPLAN_PARSER_IGNORE_ERRORS);
+
+    // The number of errors should be two
+    assert_int_equal(netplan_parser_get_error_count(npp), 2);
+
+    NetplanState* np_state = netplan_state_new();
+    netplan_state_import_parser_results(np_state, npp, &error);
+    NetplanStateIterator iter;
+    NetplanNetDefinition* netdef = NULL;
+    netplan_state_iterator_init(np_state, &iter);
+
+    // Check if all the good netdefs are present in the state
+    netdef = netplan_state_iterator_next(&iter);
+    assert_string_equal(netdef->id, "eth0");
+
+    netdef = netplan_state_iterator_next(&iter);
+    assert_string_equal(netdef->id, "eth1");
+    assert_false(netplan_netdef_get_dhcp4(netdef));
+
+    netdef = netplan_state_iterator_next(&iter);
+    assert_string_equal(netdef->id, "eth2");
+
+    netdef = netplan_state_iterator_next(&iter);
+    assert_string_equal(netdef->id, "eth3");
+
+    netplan_parser_clear(&npp);
+    netplan_state_clear(&np_state);
+
+    unlink(file1);
+    unlink(file2);
+    unlink(file3);
+    unlink(file4);
+    rmdir(fullpath);
+    rmdir(etcpath);
+    rmdir(tempdir);
+}
+
 int
 setup(__unused void** state)
 {
@@ -315,6 +413,7 @@ main()
            cmocka_unit_test(test_nm_device_backend_is_nm_by_default),
            cmocka_unit_test(test_parser_flags),
            cmocka_unit_test(test_parser_flags_bad_flags),
+           cmocka_unit_test(test_parser_flags_ignore_errors),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
