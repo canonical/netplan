@@ -132,7 +132,8 @@ enum NETPLAN_ERROR_DOMAINS {
  */
 enum NETPLAN_PARSER_ERRORS {
     NETPLAN_ERROR_INVALID_YAML,
-    NETPLAN_ERROR_INVALID_CONFIG
+    NETPLAN_ERROR_INVALID_CONFIG,
+    NETPLAN_ERROR_INVALID_FLAG,
 };
 
 /**
@@ -163,4 +164,12 @@ enum NETPLAN_EMITTER_ERRORS {
  */
 enum NETPLAN_FORMAT_ERRORS {
     NETPLAN_ERROR_FORMAT_INVALID_YAML,
+};
+
+/**
+ * @brief   Flags used to change the parser behavior.
+ */
+enum NETPLAN_PARSER_FLAGS {
+    NETPLAN_PARSER_IGNORE_ERRORS = 1 << 0, ///< Ignore parsing errors such as bad YAML files and definitions.
+    NETPLAN_PARSER_FLAGS_MAX_,
 };

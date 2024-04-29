@@ -3718,6 +3718,8 @@ netplan_parser_reset(NetplanParser* npp)
         g_hash_table_destroy(npp->global_renderer);
         npp->global_renderer = NULL;
     }
+
+    npp->flags = 0;
 }
 
 void
@@ -3727,6 +3729,25 @@ netplan_parser_clear(NetplanParser** npp_p)
     *npp_p = NULL;
     netplan_parser_reset(npp);
     g_free(npp);
+}
+
+gboolean
+netplan_parser_set_flags(NetplanParser* npp, const unsigned int flags, GError** error)
+{
+    if (flags >= NETPLAN_PARSER_FLAGS_MAX_) {
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_FLAG,
+                    "Invalid flag set");
+        return FALSE;
+    }
+
+    npp->flags = flags;
+    return TRUE;
+}
+
+unsigned int
+netplan_parser_get_flags(const NetplanParser* npp)
+{
+    return npp->flags;
 }
 
 /* Check if this is a Netdef-ID or global keyword which can be nullified.
