@@ -715,7 +715,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
                 return FALSE;
         }
 
-        if (def->type == NETPLAN_DEF_TYPE_VETH) {
+        if (def->type == NETPLAN_DEF_TYPE_VETH && def->veth_peer_link) {
             g_key_file_set_string(kf, "veth", "peer", def->veth_peer_link->id);
         }
     }

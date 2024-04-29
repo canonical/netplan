@@ -346,7 +346,7 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
     /* Skip all validation if we're missing some definition IDs (devices).
      * The ones we have yet to see may be necessary for validation to succeed,
      * we can complete it on the next parser pass. */
-    if (missing_id_count > 0)
+    if (missing_id_count > 0 && (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) == 0)
         return TRUE;
 
     /* set-name: requires match: */

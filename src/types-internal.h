@@ -266,6 +266,12 @@ struct netplan_parser {
 
     /* Flags used to change the parser's behavior */
     unsigned int flags;
+
+    /* Number of parsing errors
+     * Records the number of parsing errors that happened
+     * when the flag IGNORE_ERRORS is set
+     * */
+    unsigned int error_count;
 };
 
 struct netplan_state_iterator {

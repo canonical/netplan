@@ -3310,8 +3310,17 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             npp->current.netdef->vxlan = vxlan;
         }
 
-        if (!process_mapping(npp, value, full_key, handlers, NULL, error))
-            return FALSE;
+        if (!process_mapping(npp, value, full_key, handlers, NULL, error)) {
+            if (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) {
+                if (error && *error) {
+                    g_warning("Skipping definition due to parsing errors. %s: %s", scalar(key), (*error)->message);
+                }
+                g_clear_error(error);
+                npp->error_count++;
+            } else {
+                return FALSE;
+            }
+        }
 
         /* Postprocessing */
         /* Implicit VXLAN settings, which can be deduced from parsed data. */
@@ -3324,8 +3333,15 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
         }
 
         /* validate definition-level conditions */
-        if (!validate_netdef_grammar(npp, npp->current.netdef, error))
+        int ret = validate_netdef_grammar(npp, npp->current.netdef, error);
+        if (!ret && (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) == 0)
             return FALSE;
+
+        if (!ret && npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) {
+            g_warning("Ignoring validation error. %s: %s", scalar(key), (*error)->message);
+            g_clear_error(error);
+            npp->error_count++;
+        }
 
         /* convenience shortcut: physical device without match: means match
          * name on ID */
@@ -3519,6 +3535,12 @@ _netplan_parser_load_single_file(NetplanParser* npp, const char *opt_filepath, y
     yaml_document_delete(doc);
     g_hash_table_destroy(npp->ids_in_file);
     npp->ids_in_file = NULL;
+
+    if (!ret && npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) {
+        g_clear_error(error);
+        npp->error_count++;
+        return TRUE;
+    }
     return ret;
 }
 
@@ -3562,6 +3584,9 @@ finish_iterator(const NetplanParser* npp, NetplanNetDefinition* nd, GError **err
         nd->backend = get_default_backend_for_type(npp->global_backend, nd->type);
         g_debug("%s: setting default backend to %i", nd->id, nd->backend);
     }
+
+    /* Skip validation if the IGNORE_ERRORS flag is set */
+    if (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) return TRUE;
 
     /* Do a final pass of validation for backend-specific conditions */
     return validate_backend_rules(npp, nd, error) && validate_sriov_rules(npp, nd, error);
@@ -3720,6 +3745,7 @@ netplan_parser_reset(NetplanParser* npp)
     }
 
     npp->flags = 0;
+    npp->error_count = 0;
 }
 
 void
@@ -3748,6 +3774,12 @@ unsigned int
 netplan_parser_get_flags(const NetplanParser* npp)
 {
     return npp->flags;
+}
+
+unsigned int
+netplan_parser_get_error_count(const NetplanParser* npp)
+{
+    return npp->error_count;
 }
 
 /* Check if this is a Netdef-ID or global keyword which can be nullified.

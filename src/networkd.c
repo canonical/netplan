@@ -620,12 +620,15 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
              * and, if the selected name is the name of the netdef being written, we generate
              * the .netdev file. Otherwise we skip the netdef.
              */
-            gchar* first = g_strcmp0(def->id, def->veth_peer_link->id) < 0 ? def->id : def->veth_peer_link->id;
-            if (first != def->id) {
-                g_string_free(s, TRUE);
-                return;
+            g_string_append_printf(s, "Kind=veth\n");
+            if (def->veth_peer_link) {
+                gchar* first = g_strcmp0(def->id, def->veth_peer_link->id) < 0 ? def->id : def->veth_peer_link->id;
+                if (first != def->id) {
+                    g_string_free(s, TRUE);
+                    return;
+                }
+                g_string_append_printf(s, "\n[Peer]\nName=%s\n", def->veth_peer_link->id);
             }
-            g_string_append_printf(s, "Kind=veth\n\n[Peer]\nName=%s\n", def->veth_peer_link->id);
             break;
 
         case NETPLAN_DEF_TYPE_TUNNEL:
