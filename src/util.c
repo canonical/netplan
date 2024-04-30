@@ -1028,6 +1028,18 @@ netplan_netdef_get_link_local_ipv6(const NetplanNetDefinition* netdef)
     return netdef->linklocal.ipv6;
 }
 
+ssize_t
+_netplan_netdef_get_gateway4(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
+{
+    return netplan_copy_string(netdef->gateway4, out_buffer, out_buf_size);
+}
+
+ssize_t
+_netplan_netdef_get_gateway6(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
+{
+    return netplan_copy_string(netdef->gateway6, out_buffer, out_buf_size);
+}
+
 gboolean
 is_multicast_address(const char* address)
 {

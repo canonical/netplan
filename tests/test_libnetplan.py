@@ -927,6 +927,24 @@ class TestNetDefinition(TestBase):
 
         self.assertEqual(state['eth0'].macaddress, 'aa:bb:cc:dd:ee:ff')
 
+    def test_get_gateway4(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      gateway4: 192.168.0.254
+      ''')
+
+        self.assertEqual(state['eth0']._gateway4, '192.168.0.254')
+
+    def test_get_gateway6(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      gateway6: abcd::1234
+      ''')
+
+        self.assertEqual(state['eth0']._gateway6, 'abcd::1234')
+
         state = state_from_yaml(self.confdir, '''network:
   ethernets:
     eth0: {}''')

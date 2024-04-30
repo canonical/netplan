@@ -185,3 +185,29 @@ _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it);
 
 NETPLAN_INTERNAL void
 _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it);
+
+/**
+ * @brief   Get the `gateway4` setting of a given @ref NetplanNetDefinition.
+ * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
+ *          buffer is too small, its content is not `NUL`-terminated.
+ * @param[in]  netdef          The @ref NetplanNetDefinition to query
+ * @param[out] out_buffer      A pre-allocated buffer to write the output string into, owned by the caller
+ * @param[in]  out_buffer_size The maximum size (in bytes) available for @p out_buffer
+ * @return                     The size of the copied string, including the final `NUL` character.
+ *                             If the buffer is too small, returns @ref NETPLAN_BUFFER_TOO_SMALL instead.
+ */
+NETPLAN_INTERNAL ssize_t
+_netplan_netdef_get_gateway4(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
+
+/**
+ * @brief   Get the `gateway6` setting of a given @ref NetplanNetDefinition.
+ * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
+ *          buffer is too small, its content is not `NUL`-terminated.
+ * @param[in]  netdef          The @ref NetplanNetDefinition to query
+ * @param[out] out_buffer      A pre-allocated buffer to write the output string into, owned by the caller
+ * @param[in]  out_buffer_size The maximum size (in bytes) available for @p out_buffer
+ * @return                     The size of the copied string, including the final `NUL` character.
+ *                             If the buffer is too small, returns @ref NETPLAN_BUFFER_TOO_SMALL instead.
+ */
+NETPLAN_INTERNAL ssize_t
+_netplan_netdef_get_gateway6(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
