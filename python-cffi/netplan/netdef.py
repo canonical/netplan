@@ -72,6 +72,14 @@ class NetDefinition():
         return _NetdefRouteIterator(self._ptr)
 
     @property
+    def _gateway4(self) -> str:
+        return _string_realloc_call_no_error(lambda b: lib._netplan_netdef_get_gateway4(self._ptr, b, len(b)))
+
+    @property
+    def _gateway6(self) -> str:
+        return _string_realloc_call_no_error(lambda b: lib._netplan_netdef_get_gateway6(self._ptr, b, len(b)))
+
+    @property
     def macaddress(self) -> str:
         return _string_realloc_call_no_error(lambda b: lib.netplan_netdef_get_macaddress(self._ptr, b, len(b)))
 
