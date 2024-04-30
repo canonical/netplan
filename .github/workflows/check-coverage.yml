@@ -13,7 +13,7 @@ jobs:
   # This workflow contains a single job called "test-and-coverage"
   test-and-coverage:
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -26,15 +26,11 @@ jobs:
       - name: Install build depends
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install curl expect ubuntu-dev-tools devscripts equivs gcovr
           pull-lp-source netplan.io
-          sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
           rm -rf netplan.io-*/
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/g/gcovr/gcovr_5.2-1_all.deb
-          sudo dpkg -i gcovr*.deb # we need newer gcovr to make the gcovr.cfg:exclude setting work
 
       # Runs the unit tests with coverage
       - name: Run unit tests
