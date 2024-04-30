@@ -6,6 +6,12 @@
 structure-id
 ```
 
+## Netplan Generator
+
+```{toctree}
+generator
+```
+
 ## NetworkManager
 
 ```{toctree}
