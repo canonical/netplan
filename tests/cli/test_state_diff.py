@@ -1336,6 +1336,132 @@ class TestNetplanDiff(unittest.TestCase):
         missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_routes', [])
         self.assertEqual(expected_route, missing[0])
 
+    def test_diff_missing_system_routes_with_gateway46(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    mynic:
+      match:
+        name: eth0
+      gateway4: 192.168.0.1
+      gateway6: abcd::1234
+      routes:
+        - to: 1.2.3.0/24
+          via: 192.168.0.123''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'mynic',
+                'index': 2,
+                'routes': [
+                    {
+                        'to': '1.2.3.0/24',
+                        'via': '192.168.0.123',
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'family': 2,
+                        'table': 'main'
+                    }
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
+        diff_data = diff.get_diff()
+
+        expected4 = {}
+        expected4['to'] = 'default'
+        expected4['via'] = '192.168.0.1'
+        expected4['family'] = 2
+        expected4['protocol'] = 'static'
+        expected_route4 = NetplanRoute(**expected4)
+
+        expected6 = {}
+        expected6['to'] = 'default'
+        expected6['via'] = 'abcd::1234'
+        expected6['family'] = 10
+        expected6['protocol'] = 'static'
+        expected_route6 = NetplanRoute(**expected6)
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_routes', [])
+        self.assertSetEqual({expected_route4, expected_route6}, set(missing))
+
+    def test_diff_routes_with_gateway46_no_diff(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    mynic:
+      match:
+        name: eth0
+      gateway4: 192.168.0.1
+      gateway6: abcd::1234
+      routes:
+        - to: 1.2.3.0/24
+          via: 192.168.0.123''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'mynic',
+                'index': 2,
+                'routes': [
+                    {
+                        'to': '1.2.3.0/24',
+                        'via': '192.168.0.123',
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'family': 2,
+                        'table': 'main'
+                    },
+                    {
+                        'to': 'default',
+                        'via': '192.168.0.1',
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'static',
+                        'family': 2,
+                        'table': 'main',
+                        'metric': 300
+                    },
+                    {
+                        'to': 'default',
+                        'via': 'abcd::1234',
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'static',
+                        'family': 10,
+                        'table': 'main',
+                        'metric': 300
+                    }
+                ]
+            }
+        }
+        system_state.interface_list = []
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff.route_lookup_table_names = {
+            0: 'unspec', 253: 'default', 254: 'main', 255: 'local',
+            'unspec': 0, 'default': 253, 'main': 254, 'local': 255}
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('system_state', {}).get('missing_routes', [])
+        self.assertListEqual(missing, [])
+
     def test_diff_slash_32_and_128_routes(self):
         ''' /32 and /128 route entries from "ip route show" will not have the prefix
             1.2.3.4 via 10.3.0.1 dev mainif proto static

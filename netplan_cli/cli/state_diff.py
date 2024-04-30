@@ -324,6 +324,10 @@ class NetplanDiffState():
         system_routes = set(config.get('system_state', {}).get('routes', []))
         netplan_routes = self._normalize_routes(netplan_routes)
 
+        # If gateway4 and/or gateway6 is present, merge them in the routes set
+        if netplan_gateways := self._normalize_gateways(config.get('netplan_state', {})):
+            netplan_routes.update(netplan_gateways)
+
         # Filter out some routes that are expected to be added automatically
         system_addresses = [ip for ip in config.get('system_state', {}).get('addresses', {})]
         system_routes = self._filter_system_routes(system_routes, system_addresses, config)
@@ -442,6 +446,62 @@ class NetplanDiffState():
 
         return new_routes_set
 
+    def _normalize_gateways(self, config: dict) -> AbstractSet[NetplanRoute]:
+        ''' Convert the gateway4 and gateway6 properties to NetplanRoutes.
+        The only information stored by these properties is the destination IP for
+        the default route. Networkd and Network Manager will set a default metric
+        for it when the route is installed. As we have no control over it, there
+        will always be a diff. The same is true for the route table number.
+        To avoid the noise in the diff report when these properties are used,
+        we use the following heuristic: if there is one and only one static default
+        route in the system and gateway4 and/or gateway6 are used, we set the same
+        metric and table as found in the system.
+        '''
+        routes_set = set()
+        system_interfaces = self.system_state.get_data()
+        interface = config.get('id')
+
+        ifaces = [iface for iface in system_interfaces.values()
+                  if iface.get('id') == interface]
+        routes = [route for iface in ifaces for route in iface.get('routes', [])]
+
+        if gateway4 := config.get('gateway4'):
+            default_routes = [route for route in routes
+                              if route.get('to') == 'default'
+                              and route.get('family') == 2
+                              and route.get('protocol') == 'static']
+
+            route = NetplanRoute(to='default', via=gateway4, family=2, protocol='static')
+
+            if len(default_routes) == 1:
+                if metric := default_routes[0].get('metric'):
+                    route.metric = metric
+                if table := default_routes[0].get('table'):
+                    route.table = self._default_route_tables_name_to_number(table)
+
+            routes_set.add(route)
+
+        if gateway6 := config.get('gateway6'):
+            default_routes = [route for route in routes
+                              if route.get('to') == 'default'
+                              and route.get('family') == 10
+                              and route.get('protocol') == 'static']
+
+            # Compress the address so it will match the system representation
+            gateway6 = self._compress_ipv6_address(gateway6)
+
+            route = NetplanRoute(to='default', via=gateway6, family=10, protocol='static')
+
+            if len(default_routes) == 1:
+                if metric := default_routes[0].get('metric'):
+                    route.metric = metric
+                if table := default_routes[0].get('table'):
+                    route.table = self._default_route_tables_name_to_number(table)
+
+            routes_set.add(route)
+
+        return routes_set
+
     def _filter_system_routes(self, system_routes: AbstractSet[NetplanRoute], system_addresses: list[str], config: dict) -> set:
         '''
         Some routes found in the system are installed automatically/dynamically without
@@ -527,6 +587,12 @@ class NetplanDiffState():
 
             if routes := list(config.routes):
                 iface_ref['routes'] = routes
+
+            if gateway4 := config._gateway4:
+                iface_ref['gateway4'] = gateway4
+
+            if gateway6 := config._gateway6:
+                iface_ref['gateway6'] = gateway6
 
             if mac := config.macaddress:
                 iface_ref['macaddress'] = mac
