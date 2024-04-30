@@ -30,6 +30,11 @@ Only if executed during the systemd `initializing` phase
 it attempt to start/apply the newly created service units.
 **Requires feature: `generate-just-in-time*`*
 
+When called as a systemd.generator(7), all the parsing and validation errors
+will be ignored by default. If network definitions are skipped due to
+parsing errors, they might be incomplete. That means that the
+back end configuration emitted might not be fully valid.
+
 For details of the configuration file format, see **`netplan`**(5).
 
 ## OPTIONS
