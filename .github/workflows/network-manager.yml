@@ -16,7 +16,7 @@ on:
 jobs:
   lxd-network-manager:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -40,9 +40,6 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          # usrmerge-fix
-          sed -i 's|rm debian/tmp/lib/netplan/generate|sh -c "mkdir -p debian/tmp/usr/lib/systemd/system-generators; rm -rf debian/tmp/lib; ln -sf /usr/libexec/netplan/generate debian/tmp/usr/lib/systemd/system-generators/netplan"|' debian/rules
-          # usrmerge-fix-end
           echo "3.0 (native)" > debian/source/format  # force native build
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision

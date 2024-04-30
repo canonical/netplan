@@ -12,7 +12,7 @@ on:
 
 jobs:
   spread:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: canonical/setup-lxd@v0.1.1
       - uses: actions/checkout@v3

@@ -17,7 +17,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -29,11 +29,9 @@ jobs:
       - name: Install build depends
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install abigail-tools ubuntu-dev-tools devscripts equivs
           pull-lp-source netplan.io
-          sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
 
       # Runs the build

@@ -16,7 +16,7 @@ on:
 jobs:
   lxd-ubuntu-jammy:
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -34,37 +34,24 @@ jobs:
       - name: Install dependencies
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
           sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
-          autopkgtest-build-lxd ubuntu-daily:jammy
+          autopkgtest-build-lxd ubuntu-daily:noble
       - name: Prepare test
         run: |
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          # usrmerge-fix
-          echo "" >> debian/rules
-          echo "execute_after_dh_auto_install:" >> debian/rules
-          echo "	sh -c \"mkdir -p debian/tmp/usr/lib/systemd/system-generators; rm -rf debian/tmp/lib; ln -sf /usr/libexec/netplan/generate debian/tmp/usr/lib/systemd/system-generators/netplan\"" >> debian/rules
-          # usrmerge-fix-end
-          sed -i 's| systemd-dev|# DELETED: systemd-dev|' debian/control
           sed -i 's|  python3-gi,|  python3-gi, python3-packaging,|' debian/tests/control  # needed for the 'routing' test (nm_version)
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
-          dch -v "$VER" "Autopkgtest CI testing (Jammy)"
+          dch -v "$VER" "Autopkgtest CI testing (Noble)"
       - name: Run autopkgtest (incl. build)
         run: |
-          # using --setup-commands temporarily to install:
-          # cmocka/pytest/rich/ethtool until they become proper test-deps
-          # The netplan-ci PPA is used here temporally to fix some quirks:
-          # - A bug with veths and network-manager 1.36. See LP: #2032824
-          # - A bug with gre6/vti6 and systemd-networkd 249.11. See LP: #2037667
           autopkgtest . \
-            --setup-commands='sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci' \
-            -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/jammy/amd64
+            -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/noble/amd64

@@ -27,7 +27,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -58,7 +58,7 @@ jobs:
     # Installs the build dependencies
     - name: Install build depends
       run: |
-        sudo sed -i '/deb-src/s/^# //' /etc/apt/sources.list
+        sudo sed -i 's/Types: deb/Types: deb deb-src/g' /etc/apt/sources.list.d/ubuntu.sources
         sudo apt update
         sudo apt install meson python3-coverage python3-pytest python3-pytest-cov libcmocka-dev python3-cffi libpython3-dev
         sudo apt build-dep netplan.io
