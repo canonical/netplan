@@ -147,6 +147,15 @@ class Interface():
 
         self.addresses: list = None
         if addr_info := ip.get('addr_info'):
+
+            ra_networks = set()
+            if self.routes:
+                for route in self.routes:
+                    if (route.get('protocol') == 'ra'
+                            and route.get('to') != 'default'
+                            and route.get('family') == 10):
+                        ra_networks.add(ipaddress.ip_interface(route['to']).network)
+
             self.addresses = []
             for addr in addr_info:
                 flags: list = []
@@ -154,6 +163,16 @@ class Interface():
                     flags.append('link')
                 if addr.get('dynamic', False):
                     flags.append('dynamic')
+
+                # Try to determine if the address was received via RA
+                # IPv6 RA addresses might not have a flag indicating it so we check
+                # for a route entry (received via RA) where the destination is the same network
+                # the address belongs to.
+                ip_addr = ipaddress.ip_interface(f'{addr["local"]}/{addr["prefixlen"]}')
+                if isinstance(ip_addr, ipaddress.IPv6Address):
+                    if ip_addr.network in ra_networks:
+                        flags.append('ra')
+
                 if self.routes:
                     for route in self.routes:
                         if ('from' in route and
