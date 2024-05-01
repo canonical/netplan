@@ -48,8 +48,8 @@ STATUS_OUTPUT = '''\
 
 ●  2: enp0s31f6 ethernet UP (networkd: enp0s31f6)
       MAC Address: 54:e1:ad:5f:24:b4 (Intel Corporation)
-        Addresses: 192.168.178.62/24 (dhcp)
-                   2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4/64
+        Addresses: 192.168.178.62/24 (dynamic, dhcp)
+                   2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4/64 (dynamic)
                    fe80::56e1:adff:fe5f:24b4/64 (link)
     DNS Addresses: 192.168.178.1
                    fd00::cece:1eff:fe3d:c737
@@ -63,9 +63,9 @@ STATUS_OUTPUT = '''\
 
 ●  5: wlan0 wifi/"MYCON" UP (NetworkManager: NM-b6b7a21d-186e-45e1-b3a6-636da1735563)
       MAC Address: 1c:4d:70:e4:e4:0e (Intel Corporation)
-        Addresses: 192.168.178.142/24
-                   2001:9e8:a19f:1c00:7011:2d1:951:ad03/64
-                   2001:9e8:a19f:1c00:f24f:f724:5dd1:d0ad/64
+        Addresses: 192.168.178.142/24 (dynamic)
+                   2001:9e8:a19f:1c00:7011:2d1:951:ad03/64 (dynamic)
+                   2001:9e8:a19f:1c00:f24f:f724:5dd1:d0ad/64 (dynamic)
                    fe80::fec1:6ced:5268:b46c/64 (link)
     DNS Addresses: 192.168.178.1
                    fd00::cece:1eff:fe3d:c737
@@ -337,8 +337,8 @@ class TestStatus(unittest.TestCase):
 
 ●  2: enp0s31f6 ethernet UP (networkd: enp0s31f6)
       MAC Address: 54:e1:ad:5f:24:b4 (Intel Corporation)
-        Addresses: 192.168.178.62/24 (dhcp)
-                   2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4/64
+        Addresses: 192.168.178.62/24 (dynamic, dhcp)
+                   2001:9e8:a19f:1c00:56e1:adff:fe5f:24b4/64 (dynamic)
                    fe80::56e1:adff:fe5f:24b4/64 (link)
     DNS Addresses: 192.168.178.1
                    fd00::cece:1eff:fe3d:c737

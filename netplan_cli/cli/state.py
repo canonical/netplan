@@ -152,6 +152,8 @@ class Interface():
                 flags: list = []
                 if ipaddress.ip_address(addr['local']).is_link_local:
                     flags.append('link')
+                if addr.get('dynamic', False):
+                    flags.append('dynamic')
                 if self.routes:
                     for route in self.routes:
                         if ('from' in route and
