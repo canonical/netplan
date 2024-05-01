@@ -145,7 +145,7 @@ class NetplanDiffState():
             flags = addr_data.get('flags', [])
 
             # Select only static IPs
-            if 'dhcp' not in flags and 'link' not in flags:
+            if not {'dhcp', 'dynamic', 'link'}.intersection(flags):
                 system_ips.add(addr)
 
             # Handle the link local address
@@ -157,12 +157,15 @@ class NetplanDiffState():
                 if isinstance(ip.ip, ipaddress.IPv6Address) and 'ipv6' not in link_local:
                     system_ips.add(addr)
 
-            # TODO: improve the detection of addresses assigned dynamically
-            # in the class Interface.
-            if 'dhcp' in flags:
-                if isinstance(ip.ip, ipaddress.IPv4Address):
+            # We assume the IPv4 was acquired via DHCP if any of the flags
+            # 'dhcp' or 'dynamic' is set
+            # For IPv6, DHCP is not the only way to acquire a dynamic address,
+            # so we only check for the 'dhcp' flag
+            if isinstance(ip.ip, ipaddress.IPv4Address):
+                if {'dhcp', 'dynamic'}.intersection(flags):
                     missing_dhcp4_address = False
-                if isinstance(ip.ip, ipaddress.IPv6Address):
+            if isinstance(ip.ip, ipaddress.IPv6Address):
+                if 'dhcp' in flags:
                     missing_dhcp6_address = False
 
         present_only_in_netplan = netplan_ips.difference(system_ips)
