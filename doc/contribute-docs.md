@@ -16,7 +16,7 @@ of our documentation and make your proposal based on that revision.
 
 ## Contributing on GitHub
 
-If you want to follow a Git development workflow, you can also check out the
+To follow a Git development workflow, checkout the
 [Netplan repository](https://github.com/canonical/netplan) and contribute your
 changes as [pull requests](https://github.com/canonical/netplan/pulls), putting
 the `documentation` label for better visibility.
