@@ -918,6 +918,20 @@ class TestNetDefinition(TestBase):
         self.assertNotIn('ipv4', state['eth0'].link_local)
         self.assertIn('ipv6', state['eth0'].link_local)
 
+    def test_get_accept_ra(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      accept-ra: false
+    eth1:
+      accept-ra: true
+    eth2: {}
+      ''')
+
+        self.assertFalse(state['eth0'].accept_ra)
+        self.assertTrue(state['eth1'].accept_ra)
+        self.assertIsNone(state['eth2'].accept_ra)
+
     def test_get_macaddress(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:

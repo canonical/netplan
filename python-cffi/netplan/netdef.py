@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
+from typing import Optional
 
 from ._netplan_cffi import ffi, lib
 from ._utils import _string_realloc_call_no_error, NetplanException
@@ -58,6 +59,19 @@ class NetDefinition():
         if bool(lib.netplan_netdef_get_link_local_ipv6(self._ptr)):
             linklocal.append('ipv6')
         return linklocal
+
+    @property
+    def accept_ra(self) -> Optional[bool]:
+        # Even though 'accept-ra' is defined as a boolean in Netplan, it's mapped
+        # to three different values inside libnetplan: kernel, enabled and disabled.
+        # 'kernel' is the default value when it's not set.
+        value = lib.netplan_netdef_get_accept_ra(self._ptr)
+        if value == 1:
+            return True
+        elif value == 2:
+            return False
+        else:
+            return None
 
     @property
     def nameserver_addresses(self) -> '_NetdefNameserverIterator':
