@@ -28,7 +28,7 @@ All the documentation files are located in the `doc/` directory. The `doc/` dire
 * `howto`
 * `reference`
 
-If you're adding a new article, include it in the appropriate Diátaxis directory. You can read about [how Ubuntu implements Diátaxis for documentation](https://ubuntu.com/blog/diataxis-a-new-foundation-for-canonical-documentation).
+Add new articles in the appropriate directory. You can read about [how Ubuntu implements Diátaxis for documentation](https://ubuntu.com/blog/diataxis-a-new-foundation-for-canonical-documentation).
 
 ## How to Build the Documentation
 Follow these steps to build the documentation on your local machine.
