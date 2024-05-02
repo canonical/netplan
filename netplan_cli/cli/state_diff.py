@@ -145,7 +145,7 @@ class NetplanDiffState():
             flags = addr_data.get('flags', [])
 
             # Select only static IPs
-            if not {'dhcp', 'dynamic', 'link'}.intersection(flags):
+            if not {'dhcp', 'dynamic', 'link', 'ra'}.intersection(flags):
                 system_ips.add(addr)
 
             # Handle the link local address
@@ -167,6 +167,14 @@ class NetplanDiffState():
             if isinstance(ip.ip, ipaddress.IPv6Address):
                 if 'dhcp' in flags:
                     missing_dhcp6_address = False
+
+            # Handle RA addresses
+            # We only consider the presence of addresses with the 'ra' flag to be a diff
+            # if 'accept_ra' is set to false.
+            # When it's unset, networkd will enable it by default.
+            accept_ra = config.get('netplan_state', {}).get('accept_ra')
+            if 'ra' in flags and accept_ra is False:
+                system_ips.add(addr)
 
         present_only_in_netplan = netplan_ips.difference(system_ips)
         present_only_in_system = system_ips.difference(netplan_ips)
@@ -246,13 +254,36 @@ class NetplanDiffState():
         # Filter out dynamically assigned DNS data
         # Here we implement some heuristics to try to filter out dynamic DNS configuration
         #
-        # If the nameserver address is the same as a RA route we assume it's dynamic
+        # If ipv6 link-local is enabled, filter out DNS IPs that are link local
+        dynamic_ns = set()
+        accept_ra_enabled = config.get('netplan_state', {}).get('accept_ra') is not False
+        link_local_enabled = 'ipv6' in config.get('netplan_state', {}).get('link_local', [])
+        link_local_ns = {ns for ns in system_nameservers if ipaddress.ip_interface(ns).is_link_local}
+        dynamic_ns.update(link_local_ns)
+
+        if link_local_enabled and accept_ra_enabled:
+            system_nameservers = system_nameservers - link_local_ns
+
+        # If RA is enabled, filter out DNS IPs that are part of the RA network
         system_routes = config.get('system_state', {}).get('routes', [])
-        ra_routes = [r.via for r in system_routes if r.protocol == 'ra' and r.via]
-        system_nameservers = {ns for ns in system_nameservers if ns not in ra_routes}
+        ra_routes = [ipaddress.ip_interface(r.to).network for r in system_routes
+                     if r.protocol == 'ra' and r.to != 'default']
+        filtered = set()
+        for ns in system_nameservers:
+            if isinstance(ipaddress.ip_interface(ns), ipaddress.IPv6Address):
+                network = ipaddress.ip_interface(f'{ns}/64').network
+                if network not in ra_routes:
+                    filtered.add(ns)
+                else:
+                    dynamic_ns.add(ns)
+            else:
+                filtered.add(ns)
+        if link_local_enabled and accept_ra_enabled:
+            system_nameservers = filtered
 
         # If the netplan configuration has DHCP enabled and an empty list of nameservers
-        # we assume it's dynamic.
+        # we assume it's dynamic. So we don't take these addresses into account when comparing
+        # them, except for the ones we already identified as RA/LL.
         # Note: Some useful information can be found in /var/run/systemd/netif/leases/
         # but the lease files have a comment saying they shouldn't be parsed.
         # There is a feature request to expose more DHCP information via the DBus API
@@ -262,8 +293,14 @@ class NetplanDiffState():
                 system_nameservers = {ns for ns in system_nameservers
                                       if not isinstance(ipaddress.ip_address(ns), ipaddress.IPv4Address)}
             if config.get('netplan_state', {}).get('dhcp6'):
-                system_nameservers = {ns for ns in system_nameservers
-                                      if not isinstance(ipaddress.ip_address(ns), ipaddress.IPv6Address)}
+                filtered = set()
+                for ns in system_nameservers:
+                    if isinstance(ipaddress.ip_address(ns), ipaddress.IPv6Address):
+                        # Keep addresses that were flagged as RA/LL
+                        if ns in dynamic_ns:
+                            filtered.add(ns)
+
+                system_nameservers = filtered
 
         present_only_in_netplan = netplan_nameservers.difference(system_nameservers)
         present_only_in_system = system_nameservers.difference(netplan_nameservers)
@@ -525,8 +562,13 @@ class NetplanDiffState():
             if route.scope == 'link' and route.to != 'default' and not ipaddress.ip_interface(route.to).is_link_local:
                 continue
 
-            # Filter out routes installed by DHCP or RA
-            if route.protocol == 'dhcp' or route.protocol == 'ra':
+            # Filter out routes installed by DHCP
+            if route.protocol == 'dhcp':
+                continue
+
+            # Filter out routes installed by RA if accept_ra is not false
+            accept_ra = config.get('netplan_state', {}).get('accept_ra')
+            if route.protocol == 'ra' and accept_ra is not False:
                 continue
 
             # Filter out Link Local routes
@@ -549,7 +591,7 @@ class NetplanDiffState():
                 continue
 
             # Filter IPv6 local routes
-            if route.family == 10 and (route.to in local_networks or route.to in addresses):
+            if route.family == 10 and route.protocol != 'ra' and (route.to in local_networks or route.to in addresses):
                 continue
 
             routes.add(route)
@@ -570,6 +612,9 @@ class NetplanDiffState():
             iface_ref['dhcp6'] = config.dhcp6
 
             iface_ref['link_local'] = config.link_local
+
+            if config.accept_ra is not None:
+                iface_ref['accept_ra'] = config.accept_ra
 
             addresses = [addr for addr in config.addresses]
             if addresses:
