@@ -57,7 +57,7 @@ Follow these steps to build the documentation on your local machine.
 
     You can find all the HTML files in the `.build/` directory.
 
-    We use the `autobuild` module so that any edits you make (and save) as you work are applied and the documentation refreshes immediately.
+    We use the Sphinx `autobuild` module, so that any edits you make (and save) as you work are applied, and the documentation refreshes immediately.
 
 ## Documentation Format
 The Netplan documentation is built with Sphinx using the reStructuredText and Markdown mark-up languages. If you're new to reStructuredText, read our [reStructuredText style guide](https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/).
