@@ -59,7 +59,7 @@ The Netplan documentation is built with Sphinx using the reStructuredText and Ma
 We also use our Sphinx documentation starter pack for our documentation. You can [read about it](https://github.com/canonical/sphinx-docs-starter-pack) to properly understand how it works.
 
 ## Testing the Documentation
-You should test the documentation before you make your pull request. These are some commands you should run `within` the `doc/` directory to test the documentation locally:
+Test the documentation before submitting a pull request. Run the following commands from within the `doc/` directory to test the documentation locally:
 
 |command  |use|
 |---------|-----|
