@@ -43,7 +43,7 @@ Follow these steps to build the documentation on your local machine.
     cd netplan/doc
     ```
 
-3. Install `make` on your machine if you don't have it.
+4. Install `make` on your machine if you don't have it:
     ```shell
     sudo apt-get install make
     ```
