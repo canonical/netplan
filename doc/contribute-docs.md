@@ -38,7 +38,10 @@ Follow these steps to build the documentation on your local machine.
     ```shell
     git clone git@github.com:your_user_name/netplan.git
     ```
-2. Navigate to the `doc/` directory and open it in your code editor.
+3. Navigate to the `doc/` directory within the cloned repository:
+    ```
+    cd netplan/doc
+    ```
 
 3. Install `make` on your machine if you don't have it.
     ```shell
