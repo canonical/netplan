@@ -55,7 +55,7 @@ Follow these steps to build the documentation on your local machine.
     ```
     After you run the command, visit `http://127.0.0.1:8000` in your browser to view the local copy of the documentation.
 
-    You can also find all the HTML files in the `.build/` directory.
+    You can find all the HTML files in the `.build/` directory.
 
     We use the `autobuild` module so that any edits you make (and save) as you work are applied and the documentation refreshes immediately.
 
