@@ -3,7 +3,7 @@ This guide provides all the information necessary to contribute to the Netplan d
 
 ## Reporting an issue
 
-If you find any issue in Netplan documentation please [file a bug report](https://bugs.launchpad.net/netplan/+filebug?field.tags=documentation) about it in our bug tracker on Launchpad. Remember to add a `documentation`` tag
+To report an issue in Netplan documentation, [file a bug](https://bugs.launchpad.net/netplan/+filebug?field.tags=documentation) about it in our bug tracker on Launchpad. Remember to add a `documentation`` tag.
 to it.
 
 ## Modifying documentation online
