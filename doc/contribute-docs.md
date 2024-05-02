@@ -49,7 +49,7 @@ Follow these steps to build the documentation on your local machine.
     ```
     **NOTE**: The `make` command is compatible with Unix systems. If you're on Windows, you can [install Ubuntu with WSL to follow along](https://github.com/canonical/open-documentation-academy/blob/main/getting-started/start_with_WSL.md).
 
-4. Within the `doc/` directory, run this command to build and serve the documentation:
+5. Within the `doc/` directory, run the `make` command to build and serve the documentation:
     ```shell
     make run
     ```
