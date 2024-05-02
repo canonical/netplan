@@ -66,7 +66,6 @@ Test the documentation before submitting a pull request. Run the following comma
 |`make spelling`| Checks for spelling errors. This commands checks the HTML files in the `_build` directory. You should fix any errors in the corresponding Markdown file.|
 | `make linkcheck`| Checks for broken links|
 
-**NOTE**: For the `make spelling` command to work, you must have `aspell` installed. You can install it with this command:
-```shell
-sudo apt-get install aspell
-```
+:::{note}
+For the `make spelling` command to work, you must have `aspell` installed. You can install it with `sudo apt-get install aspell`.
+:::
