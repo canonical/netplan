@@ -8,7 +8,7 @@ to it.
 
 ## Modifying documentation online
 
-Each documentation page rendered on the web contains an **Edit this **page** link at the top-right of every page. Clicking this button will lead you to the GitHub
+Each documentation page rendered on the web contains an **Edit this page** link in the top-right corner. Clicking this button leads you to the GitHub
 web editor where you can propose changes to the corresponding page.
 
 Please remember to first check the [latest version](https://netplan.readthedocs.io/en/latest/)
