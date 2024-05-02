@@ -30,7 +30,7 @@ All the documentation files are located in the `doc/` directory. The `doc/` dire
 
 Add new articles in the appropriate directory. You can read about [how Ubuntu implements Diátaxis for documentation](https://ubuntu.com/blog/diataxis-a-new-foundation-for-canonical-documentation).
 
-## How to Build the Documentation
+## Building the documentation
 Follow these steps to build the documentation on your local machine.
 1. To build this documentation, first create a fork of the [Netplan repository](https://github.com/canonical/netplan) and clone that into your machine. For example:
     ```shell
