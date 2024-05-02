@@ -61,7 +61,6 @@ Follow these steps to build the documentation on your local machine.
 
 ## Documentation format
 The Netplan documentation is built with Sphinx using the reStructuredText and Markdown mark-up languages. If you're new to reStructuredText, read our [reStructuredText style guide](https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/).
-We also use our Sphinx documentation starter pack for our documentation. You can [read about it](https://github.com/canonical/sphinx-docs-starter-pack) to properly understand how it works.
 
 ## Testing the Documentation
 Test the documentation before submitting a pull request. Run the following commands from within the `doc/` directory to test the documentation locally:
