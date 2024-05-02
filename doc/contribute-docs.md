@@ -16,7 +16,7 @@ of our documentation and make your proposal based on that revision.
 
 ## Contributing on GitHub
 
-To follow a Git development workflow, checkout the
+To follow a Git development workflow, `checkout` the
 [Netplan repository](https://github.com/canonical/netplan) and contribute your
 changes as [pull requests](https://github.com/canonical/netplan/pulls), putting
 the `documentation` label for better visibility.
@@ -47,7 +47,9 @@ Follow these steps to build the documentation on your local machine.
     ```shell
     sudo apt-get install make
     ```
-    **NOTE**: The `make` command is compatible with Unix systems. If you're on Windows, you can [install Ubuntu with WSL to follow along](https://github.com/canonical/open-documentation-academy/blob/main/getting-started/start_with_WSL.md).
+    :::{note}
+    The `make` command is compatible with Unix systems. If you're on Windows, you can [install Ubuntu with WSL to follow along](https://github.com/canonical/open-documentation-academy/blob/main/getting-started/start_with_WSL.md).
+    :::
 
 5. Within the `doc/` directory, run the `make` command to build and serve the documentation:
     ```shell
@@ -62,7 +64,7 @@ Follow these steps to build the documentation on your local machine.
 ## Documentation format
 The Netplan documentation is built with Sphinx using the reStructuredText and Markdown mark-up languages. If you're new to reStructuredText, read our [reStructuredText style guide](https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/).
 
-## Testing the Documentation
+## Testing the documentation
 Test the documentation before submitting a pull request. Run the following commands from within the `doc/` directory to test the documentation locally:
 
 |command  |use|
