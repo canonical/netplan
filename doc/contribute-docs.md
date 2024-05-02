@@ -32,7 +32,9 @@ Add new articles in the appropriate directory. You can read about [how Ubuntu im
 
 ## Building the documentation
 Follow these steps to build the documentation on your local machine.
-1. To build this documentation, first create a fork of the [Netplan repository](https://github.com/canonical/netplan) and clone that into your machine. For example:
+1. Fork the [Netplan repository](https://github.com/canonical/netplan). Visit [Fork a repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) for instructions.
+
+2. Clone the repository to your machine:
     ```shell
     git clone git@github.com:your_user_name/netplan.git
     ```
