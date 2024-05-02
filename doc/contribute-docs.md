@@ -53,7 +53,7 @@ Follow these steps to build the documentation on your local machine.
     ```shell
     make run
     ```
-    After you run the command, visit `http://127.0.0.1:8000` to view the documentation on your local machine.
+    After you run the command, visit `http://127.0.0.1:8000` in your browser to view the local copy of the documentation.
 
     You can also find all the HTML files in the `.build/` directory.
 
