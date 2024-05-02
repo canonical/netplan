@@ -1028,6 +1028,12 @@ netplan_netdef_get_link_local_ipv6(const NetplanNetDefinition* netdef)
     return netdef->linklocal.ipv6;
 }
 
+int
+netplan_netdef_get_accept_ra(const NetplanNetDefinition* netdef)
+{
+    return netdef->accept_ra;
+}
+
 ssize_t
 _netplan_netdef_get_gateway4(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buf_size)
 {

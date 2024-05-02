@@ -205,6 +205,16 @@ NETPLAN_PUBLIC gboolean
 netplan_netdef_get_link_local_ipv6(const NetplanNetDefinition* netdef);
 
 /**
+ * @brief   Query a @ref NetplanNetDefinition for the value of its `accept-ra` setting.
+ * @param[in] netdef The @ref NetplanNetDefinition to query
+ * @return           Indication if @p netdef is configured to accept Router Advertisements.
+ *                   Possible values are: 0) not set (will use kernel or back end defaults),
+ *                   1) enabled and 2) disabled.
+ */
+NETPLAN_PUBLIC int
+netplan_netdef_get_accept_ra(const NetplanNetDefinition* netdef);
+
+/**
  * @brief   Get the `macaddress` setting of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the
  *          buffer is too small, its content is not `NUL`-terminated.
