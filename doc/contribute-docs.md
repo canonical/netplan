@@ -22,7 +22,7 @@ changes as [pull requests](https://github.com/canonical/netplan/pulls), putting
 the `documentation` label for better visibility.
 
 ## Directory structure
-All the documentation files are located in the `doc/` directory. The `doc/` directory contains sub-directories corresponding to different Diátaxis sections. So you should find the following folders inside the `doc/` directory:
+All the documentation files are located in the `doc/` directory. The `doc/` directory contains sub-directories corresponding to different [Diátaxis](https://diataxis.fr/) sections:
 * `tutorial`
 * `explanation`
 * `howto`
