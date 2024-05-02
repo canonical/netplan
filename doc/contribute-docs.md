@@ -59,7 +59,7 @@ Follow these steps to build the documentation on your local machine.
 
     We use the Sphinx `autobuild` module, so that any edits you make (and save) as you work are applied, and the documentation refreshes immediately.
 
-## Documentation Format
+## Documentation format
 The Netplan documentation is built with Sphinx using the reStructuredText and Markdown mark-up languages. If you're new to reStructuredText, read our [reStructuredText style guide](https://canonical-documentation-with-sphinx-and-readthedocscom.readthedocs-hosted.com/style-guide/).
 We also use our Sphinx documentation starter pack for our documentation. You can [read about it](https://github.com/canonical/sphinx-docs-starter-pack) to properly understand how it works.
 
