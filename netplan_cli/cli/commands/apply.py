@@ -123,8 +123,11 @@ class NetplanApply(utils.NetplanCommand):
         restart_networkd = False
         with tempfile.TemporaryDirectory() as tmp_dir:
             # needs to be a subfolder as copytree wants to create it
+            run_systemd_network = '/run/systemd/network'
             old_files_dir = os.path.join(tmp_dir, 'cfg')
-            shutil.copytree('/run/systemd/network', old_files_dir)
+            has_old_networkd_config = os.path.isdir(run_systemd_network)
+            if has_old_networkd_config:
+                shutil.copytree(run_systemd_network, old_files_dir)
 
             generator_call = []
             generate_out = None
@@ -140,9 +143,13 @@ class NetplanApply(utils.NetplanCommand):
                     raise ConfigurationError("the configuration could not be generated")
 
             # Restart networkd if something in the configuration changed
-            comp = filecmp.dircmp('/run/systemd/network', old_files_dir)
-            if comp.left_only or comp.right_only or comp.diff_files:
+            has_new_networkd_config = os.path.isdir(run_systemd_network)
+            if has_old_networkd_config != has_new_networkd_config:
                 restart_networkd = True
+            elif has_old_networkd_config and has_new_networkd_config:
+                comp = filecmp.dircmp(run_systemd_network, old_files_dir)
+                if comp.left_only or comp.right_only or comp.diff_files:
+                    restart_networkd = True
 
         devices = netifaces.interfaces()
 
