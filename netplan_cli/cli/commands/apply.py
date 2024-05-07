@@ -272,20 +272,15 @@ class NetplanApply(utils.NetplanCommand):
             # exclude the special 'netplan-ovs-cleanup.service' unit
             netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')
                            if not f.endswith('/' + OVS_CLEANUP_SERVICE)]
-            # Run 'systemctl (re)start' command synchronously, to avoid race conditions
+            # Run 'systemctl start' command synchronously, to avoid race conditions
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
-            #
-            # In the past, calls to networkctl_reload/networkctl_reconfigure
-            # were tried, but due maybe to systemd-networkd bugs, they were not
-            # working as expected: the interface was getting initially the
-            # expected state, but after some minutes it ignored the state of
-            # /run/systemd/network/ and used the configuration read when the
-            # service was started. This happened in the case of removed
-            # .network files. Looking at files in
-            # /run/systemd/netif/links/<num>, the internal state seemed to keep
-            # removed files in NETWORK_FILE= (see LP#2058976).
-            logging.info('Restarting systemd-networkd.service')
-            utils.systemctl('restart', ['systemd-networkd.service'], sync=True)
+            try:
+                utils.networkctl_reload()
+                utils.networkctl_reconfigure(utils.networkd_interfaces())
+            except subprocess.CalledProcessError:
+                # (re-)start systemd-networkd if it is not running, yet
+                logging.warning('Falling back to a hard restart of systemd-networkd.service')
+                utils.systemctl('restart', ['systemd-networkd.service'], sync=True)
             # 1st: execute OVS cleanup, to avoid races while applying OVS config
             utils.systemctl('start', [OVS_CLEANUP_SERVICE], sync=True)
             # 2nd: start all other services
