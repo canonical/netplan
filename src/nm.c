@@ -1043,10 +1043,12 @@ _netplan_netdef_write_nm(
         GHashTableIter iter;
         gpointer key;
         const NetplanWifiAccessPoint* ap;
-        g_assert(netdef->access_points);
-        g_hash_table_iter_init(&iter, netdef->access_points);
-        while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap) && no_error)
-            no_error = write_nm_conf_access_point(netdef, rootdir, ap, error);
+        if (netdef->access_points) {
+            g_hash_table_iter_init(&iter, netdef->access_points);
+            while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap) && no_error) {
+                no_error = write_nm_conf_access_point(netdef, rootdir, ap, error);
+            }
+        }
     } else {
         g_assert(netdef->access_points == NULL);
         no_error = write_nm_conf_access_point(netdef, rootdir, NULL, error);

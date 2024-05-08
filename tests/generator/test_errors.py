@@ -1280,6 +1280,75 @@ Name=eth0
 LinkLocalAddressing=ipv6
 '''})
 
+    def test_ignore_errors_bad_wifi_nd(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wlan0:
+      badkey: badvalue
+      access-points:
+        ssid:
+          password: abcdefgh''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+    def test_ignore_errors_bad_wifi_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wlan0:
+      badkey: badvalue
+      access-points:
+        ssid:
+          password: abcdefgh''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+    def test_ignore_errors_bad_ap_nd(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wlan0:
+      access-points:
+        ssid:
+          badkey: badvalue
+          password: abcdefgh''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+    def test_ignore_errors_bad_ap_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wlan0:
+      access-points:
+        ssid:
+          badkey: badvalue
+          password: abcdefgh''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+    def test_ignore_errors_bad_wireguard_nd(self):
+        self.generate('''network:
+  version: 2
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [10.10.10.20/24]
+      key: 4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
+      mark: 42
+      port: 51820
+      peers:
+        badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
+    def test_ignore_errors_bad_wireguard_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  tunnels:
+    wg0:
+      mode: wireguard
+      addresses: [10.10.10.20/24]
+      key: 4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=
+      mark: 42
+      port: 51820
+      peers:
+        badkey: badvalue''', expect_fail=False, skip_generated_yaml_validation=True, ignore_errors=True)
+
     def test_ignore_errors_missing_interface(self):
         self.generate('''network:
   version: 2

@@ -263,36 +263,38 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     g_string_append_printf(s, "\n[WireGuard]\n%s", params->str);
     g_string_free(params, TRUE);
 
-    for (guint i = 0; i < def->wireguard_peers->len; i++) {
-        NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
-        GString *peer_s = g_string_sized_new(200);
+    if (def->wireguard_peers) {
+        for (guint i = 0; i < def->wireguard_peers->len; i++) {
+            NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
+            GString *peer_s = g_string_sized_new(200);
 
-        g_string_append_printf(peer_s, "PublicKey=%s\n", peer->public_key);
-        g_string_append(peer_s, "AllowedIPs=");
-        for (guint i = 0; i < peer->allowed_ips->len; ++i) {
-            if (i > 0 )
-                g_string_append_c(peer_s, ',');
-            g_string_append_printf(peer_s, "%s", g_array_index(peer->allowed_ips, char*, i));
+            g_string_append_printf(peer_s, "PublicKey=%s\n", peer->public_key);
+            g_string_append(peer_s, "AllowedIPs=");
+            for (guint i = 0; i < peer->allowed_ips->len; ++i) {
+                if (i > 0 )
+                    g_string_append_c(peer_s, ',');
+                g_string_append_printf(peer_s, "%s", g_array_index(peer->allowed_ips, char*, i));
+            }
+            g_string_append_c(peer_s, '\n');
+
+            if (peer->keepalive)
+                g_string_append_printf(peer_s, "PersistentKeepalive=%d\n", peer->keepalive);
+            if (peer->endpoint)
+                g_string_append_printf(peer_s, "Endpoint=%s\n", peer->endpoint);
+            /* The key was already validated via validate_tunnel_grammar(), but we need
+             * to differentiate between base64 key VS absolute path key-file. And a base64
+             * string could (theoretically) start with '/', so we use is_wireguard_key()
+             * as well to check for more specific characteristics (if needed). */
+            if (peer->preshared_key) {
+                if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key))
+                    g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", peer->preshared_key);
+                else
+                    g_string_append_printf(peer_s, "PresharedKey=%s\n", peer->preshared_key);
+            }
+
+            g_string_append_printf(s, "\n[WireGuardPeer]\n%s", peer_s->str);
+            g_string_free(peer_s, TRUE);
         }
-        g_string_append_c(peer_s, '\n');
-
-        if (peer->keepalive)
-            g_string_append_printf(peer_s, "PersistentKeepalive=%d\n", peer->keepalive);
-        if (peer->endpoint)
-            g_string_append_printf(peer_s, "Endpoint=%s\n", peer->endpoint);
-        /* The key was already validated via validate_tunnel_grammar(), but we need
-         * to differentiate between base64 key VS absolute path key-file. And a base64
-         * string could (theoretically) start with '/', so we use is_wireguard_key()
-         * as well to check for more specific characteristics (if needed). */
-        if (peer->preshared_key) {
-            if (peer->preshared_key[0] == '/' && !is_wireguard_key(peer->preshared_key))
-                g_string_append_printf(peer_s, "PresharedKeyFile=%s\n", peer->preshared_key);
-            else
-                g_string_append_printf(peer_s, "PresharedKey=%s\n", peer->preshared_key);
-        }
-
-        g_string_append_printf(s, "\n[WireGuardPeer]\n%s", peer_s->str);
-        g_string_free(peer_s, TRUE);
     }
 }
 
@@ -1301,6 +1303,10 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
 
     g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
+        if (!def->access_points) {
+            g_string_free(s, TRUE);
+            return FALSE;
+        }
         if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT) {
             g_string_append(s, "wowlan_triggers=");
             if (!append_wifi_wowlan_flags(def->wowlan, s, error)) {
