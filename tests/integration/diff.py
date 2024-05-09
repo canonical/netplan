@@ -109,8 +109,8 @@ class _CommonTests():
       dhcp6: false''' % {'r': self.backend})
 
         # Add an extra interface not present in any YAML
-        subprocess.check_call(['ip', 'link', 'add', 'type', 'dummy', 'dev', 'dummy1'])
-        subprocess.check_call(['ip', 'link', 'add', 'type', 'dummy', 'dev', 'dummy1'])
+        subprocess.check_call(['ip', 'link', 'add', 'name', 'dummy0', 'type', 'dummy'])
+        subprocess.check_call(['ip', 'link', 'add', 'name', 'dummy1', 'type', 'dummy'])
         diff = json.loads(subprocess.check_output(['netplan', 'status', '--diff', '-f', 'json']))
         missing_system = diff.get('missing_interfaces_system', {})
         missing_netplan = diff.get('missing_interfaces_netplan', {})
