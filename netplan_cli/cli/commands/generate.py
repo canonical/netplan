@@ -84,9 +84,11 @@ class NetplanGenerate(utils.NetplanCommand):
         res = subprocess.call(argv)
         # reload systemd, as we might have changed service units, such as
         # /run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf
-        try:
-            utils.systemctl_daemon_reload()
-        except subprocess.CalledProcessError as e:
-            logging.warning(e)
+        # Skip it if --mapping is used as nothing will be generated
+        if self.mapping is None:
+            try:
+                utils.systemctl_daemon_reload()
+            except subprocess.CalledProcessError as e:
+                logging.warning(e)
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
         sys.exit(res)
