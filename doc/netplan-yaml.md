@@ -723,7 +723,7 @@ networkd back end).
     > Takes a boolean, or the special value `route`. When true, the domain
     > name received from the Router Advertisement will be used as DNS search
     > domain over this link, similar to the effect of the `Domains=` setting.
-    > If set to `route`, the domain name received from the DHCP server will be
+    > If set to `route`, the domain name received from the IPv6 RA will be
     > used for routing DNS queries only, but not for searching, similar to
     > the effect of the `Domains=` setting when the argument is prefixed with
     > `~` (tilde).
