@@ -549,7 +549,7 @@ handle_generic_use_domains(NetplanParser* npp, yaml_node_t* node, void* entryptr
     guint offset = GPOINTER_TO_UINT(data);
     NetplanUseDomainMode* dest = ((void*) entryptr + offset);
 
-    gboolean ret = handle_generic_bool(npp, node, entryptr, data, error);
+    gboolean ret = handle_generic_bool(npp, node, entryptr, data, NULL);
 
     if (ret) {
         if (*dest) {

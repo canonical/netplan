@@ -52,6 +52,32 @@ LinkLocalAddressing=ipv6
         self.generate(yaml_config)
         self.assert_networkd({'engreen.network': networkd_config})
 
+    def assert_ipv6_ra_overrides_all_fields(self):
+        yaml_config = '''\
+network:
+  version: 2
+  ethernets:
+    engreen:
+      ipv6-ra-overrides:
+        use-dns: false
+        use-domains: route
+        table: 701
+'''
+        networkd_config = '''\
+[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+
+[IPv6AcceptRA]
+UseDNS=false
+UseDomains=route
+RouteTable=701
+'''
+        self.generate(yaml_config)
+        self.assert_networkd({'engreen.network': networkd_config})
+
     def test_ipv6_ra_overrides_use_dns(self):
         self.assert_ipv6_ra_overrides_key_value('use-dns', 'false', 'UseDNS', 'false')
         self.assert_ipv6_ra_overrides_key_value('use-dns', 'true', 'UseDNS', 'true')
@@ -64,11 +90,15 @@ LinkLocalAddressing=ipv6
     def test_ipv6_ra_overrides_table(self):
         self.assert_ipv6_ra_overrides_key_value('table', '727', 'RouteTable', '727')
 
+    def test_ipv6_ra_overrides_all_fields(self):
+        self.assert_ipv6_ra_overrides_all_fields()
+
 
 class TestConfigErrors(TestBase):
 
     def test_ipv6_ra_overrides_use_domains_invalid_options(self):
-        err = self.generate('''network:
+        err = self.generate('''\
+network:
   version: 2
   ethernets:
     engreen:
