@@ -714,19 +714,16 @@ networkd back end).
   - **`use-dns`** (boolean)
 
     > Default: `true`. When `true`, the DNS servers received from the
-    > Router Advertisement will be used and take precedence over any
-    > statically configured ones. Currently only has an effect on the
-    > networkd back end.
+    > Router Advertisement will be used. Currently only has an effect
+    > on the networkd back end.
 
   - **`use-domains`** (scalar)
 
     > Takes a boolean, or the special value `route`. When true, the domain
     > name received from the Router Advertisement will be used as DNS search
-    > domain over this link, similar to the effect of the `Domains=` setting.
-    > If set to `route`, the domain name received from the IPv6 RA will be
-    > used for routing DNS queries only, but not for searching, similar to
-    > the effect of the `Domains=` setting when the argument is prefixed with
-    > `~` (tilde).
+    > domain over this link. If set to `route`, the domain name received
+    > from the IPv6 RA will be used for routing DNS queries only, but not
+    > for searching.
 
   - **`table`** (scalar)
 
