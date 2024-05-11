@@ -1000,16 +1000,19 @@ _netplan_netdef_write_network_file(
     if (ipv6_ra_overrides_is_dirty(&def->ipv6_ra_overrides)) {
         g_string_append(network, "\n[IPv6AcceptRA]\n");
 
-        if (def->ipv6_ra_overrides.use_dns != NETPLAN_TRISTATE_UNSET)
+        if (def->ipv6_ra_overrides.use_dns != NETPLAN_TRISTATE_UNSET) {
             g_string_append_printf(network, "UseDNS=%s\n", def->ipv6_ra_overrides.use_dns ? "true" : "false");
-        if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE)
+        }
+        if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE) {
             g_string_append_printf(network, "UseDomains=%s\n", "false");
-        else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE)
+        } else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE) {
             g_string_append_printf(network, "UseDomains=%s\n", "true");
-        else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE)
+        } else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
             g_string_append_printf(network, "UseDomains=%s\n", "route");
-        if (def->ipv6_ra_overrides.route_table != NETPLAN_ROUTE_TABLE_UNSPEC)
+        }
+        if (def->ipv6_ra_overrides.route_table != NETPLAN_ROUTE_TABLE_UNSPEC) {
             g_string_append_printf(network, "RouteTable=%d\n", def->ipv6_ra_overrides.route_table);
+        }
     }
 
     if (network->len > 0 || link->len > 0) {
