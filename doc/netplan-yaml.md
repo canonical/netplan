@@ -730,10 +730,8 @@ networkd back end).
 
   - **`route-table`** (scalar)
 
-    > The table number to use for the route. In some scenarios, it may be
-    > useful to set routes in a separate routing table. It may also be used
-    > to refer to routing policy rules which also accept a `table`
-    > parameter. Allowed values are positive integers starting from 1.
+    > The routing table number for routes received in the IPv6 RA.
+    > Allowed values are positive integers starting from 1.
     > Some values are already in use to refer to specific routing tables:
     > see `{/etc,/usr/share}/iproute2/rt_tables`.
 
