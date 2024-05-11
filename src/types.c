@@ -156,7 +156,7 @@ reset_ipv6_ra_overrides(NetplanIPv6RAOverrides* overrides)
 {
     overrides->use_dns = NETPLAN_TRISTATE_UNSET;
     overrides->use_domains = NETPLAN_USE_DOMAIN_MODE_UNSET;
-    overrides->route_table = NETPLAN_ROUTE_TABLE_UNSPEC;
+    overrides->table = NETPLAN_ROUTE_TABLE_UNSPEC;
 }
 
 void

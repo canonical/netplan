@@ -77,7 +77,7 @@ typedef struct dhcp_overrides {
 typedef struct ipv6_ra_overrides {
     NetplanTristate use_dns;
     NetplanUseDomainMode use_domains;
-    guint route_table;
+    guint table;
 } NetplanIPv6RAOverrides;
 
 typedef enum {

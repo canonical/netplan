@@ -2925,7 +2925,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
 static const mapping_entry_handler ipv6_ra_overrides_handlers[] = {
     {"use-dns", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(ipv6_ra_overrides.use_dns)},
     {"use-domains", YAML_SCALAR_NODE, {.generic=handle_netdef_use_domains}, netdef_offset(ipv6_ra_overrides.use_domains)},
-    {"route-table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_ra_overrides.route_table)},
+    {"table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_ra_overrides.table)},
     {NULL},
 };
 

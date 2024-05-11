@@ -62,7 +62,7 @@ LinkLocalAddressing=ipv6
         self.assert_ipv6_ra_overrides_key_value('use-domains', 'route', 'UseDomains', 'route')
 
     def test_ipv6_ra_overrides_table(self):
-        self.assert_ipv6_ra_overrides_key_value('route-table', '727', 'RouteTable', '727')
+        self.assert_ipv6_ra_overrides_key_value('table', '727', 'RouteTable', '727')
 
 
 class TestConfigErrors(TestBase):

@@ -506,7 +506,7 @@ write_ipv6_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char
     if (DIRTY_COMPLEX(def, *data)
         || data->use_dns != NETPLAN_TRISTATE_UNSET
         || data->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET
-        || data->route_table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+        || data->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
         YAML_SCALAR_PLAIN(event, emitter, key);
         YAML_MAPPING_OPEN(event, emitter);
         YAML_BOOL_TRISTATE(def, event, emitter, "use-dns", data->use_dns);
@@ -517,7 +517,7 @@ write_ipv6_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char
         } else if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
             YAML_STRING_PLAIN(def, event, emitter, "use-domains", "route");
         }
-        YAML_UINT_DEFAULT(def, event, emitter, "route-table", data->route_table, NETPLAN_ROUTE_TABLE_UNSPEC);
+        YAML_UINT_DEFAULT(def, event, emitter, "table", data->table, NETPLAN_ROUTE_TABLE_UNSPEC);
         YAML_MAPPING_CLOSE(event, emitter);
     }
     return TRUE;

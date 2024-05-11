@@ -728,7 +728,7 @@ networkd back end).
     > the effect of the `Domains=` setting when the argument is prefixed with
     > `~` (tilde).
 
-  - **`route-table`** (scalar)
+  - **`table`** (scalar)
 
     > The routing table number for routes received in the IPv6 RA.
     > Allowed values are positive integers starting from 1.

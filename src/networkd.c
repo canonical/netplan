@@ -342,7 +342,7 @@ ipv6_ra_overrides_is_dirty(const NetplanIPv6RAOverrides* overrides) {
         return TRUE;
     if(overrides->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET)
         return TRUE;
-    if(overrides->route_table != NETPLAN_ROUTE_TABLE_UNSPEC)
+    if(overrides->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         return TRUE;
 
     return FALSE;
@@ -1010,8 +1010,8 @@ _netplan_netdef_write_network_file(
         } else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
             g_string_append_printf(network, "UseDomains=%s\n", "route");
         }
-        if (def->ipv6_ra_overrides.route_table != NETPLAN_ROUTE_TABLE_UNSPEC) {
-            g_string_append_printf(network, "RouteTable=%d\n", def->ipv6_ra_overrides.route_table);
+        if (def->ipv6_ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+            g_string_append_printf(network, "RouteTable=%d\n", def->ipv6_ra_overrides.table);
         }
     }
 
