@@ -735,7 +735,7 @@ networkd back end).
     > to refer to routing policy rules which also accept a `table`
     > parameter. Allowed values are positive integers starting from 1.
     > Some values are already in use to refer to specific routing tables:
-    > see `/etc/iproute2/rt_tables`.
+    > see `{/etc,/usr/share}/iproute2/rt_tables`.
 
 ## Routing
 
