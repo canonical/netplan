@@ -403,7 +403,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > respond to Router Advertisements.  If unset use the host kernel default
   > setting.
 
-- **`ipv6-ra-overrides`** (mapping)
+- **`ra-overrides`** (mapping)
 
   > (networkd back end only) Overrides default IPv6 Router Advertisement (RA)
   > behaviour; see the `IPv6 Router Advertisement Overrides` section below.
@@ -706,9 +706,9 @@ client processes as specified in the Netplan YAML.
 Overrides for IPv6 Router Advertisement (RA) behaviour (only supported with
 networkd back end).
 
-- **`ipv6-ra-overrides`** (mapping)
+- **`ra-overrides`** (mapping)
 
-  > The `ipv6-ra-overrides` mappings override the default IPv6 Router
+  > The `ra-overrides` mappings override the default IPv6 Router
   > Advertisement behaviour.
 
   - **`use-dns`** (boolean)

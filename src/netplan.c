@@ -501,7 +501,7 @@ err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 STATIC gboolean
-write_ipv6_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanNetDefinition* def, const NetplanIPv6RAOverrides* data)
+write_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanNetDefinition* def, const NetplanRAOverrides* data)
 {
     if (DIRTY_COMPLEX(def, *data)
         || data->use_dns != NETPLAN_TRISTATE_UNSET
@@ -796,7 +796,7 @@ _serialize_yaml(
     } else if (def->accept_ra == NETPLAN_RA_MODE_DISABLED) {
         YAML_NONNULL_STRING_PLAIN(event, emitter, "accept-ra", "false");
     }
-    write_ipv6_ra_overrides(event, emitter, "ipv6-ra-overrides", def, &def->ipv6_ra_overrides);
+    write_ra_overrides(event, emitter, "ra-overrides", def, &def->ra_overrides);
 
     YAML_STRING(def, event, emitter, "macaddress", def->set_mac);
     YAML_STRING(def, event, emitter, "set-name", def->set_name);

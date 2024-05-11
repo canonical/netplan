@@ -22,7 +22,7 @@ from .base import TestBase
 
 class TestNetworkd(TestBase):
 
-    def assert_ipv6_ra_overrides_key_value(
+    def assert_ra_overrides_key_value(
         self,
         yaml_field_name,
         yaml_field_value,
@@ -34,7 +34,7 @@ network:
   version: 2
   ethernets:
     engreen:
-      ipv6-ra-overrides:
+      ra-overrides:
         %s: %s
 ''' % (yaml_field_name, yaml_field_value)
         networkd_config = '''\
@@ -52,13 +52,13 @@ LinkLocalAddressing=ipv6
         self.generate(yaml_config)
         self.assert_networkd({'engreen.network': networkd_config})
 
-    def assert_ipv6_ra_overrides_all_fields(self):
+    def assert_ra_overrides_all_fields(self):
         yaml_config = '''\
 network:
   version: 2
   ethernets:
     engreen:
-      ipv6-ra-overrides:
+      ra-overrides:
         use-dns: false
         use-domains: route
         table: 701
@@ -78,31 +78,31 @@ RouteTable=701
         self.generate(yaml_config)
         self.assert_networkd({'engreen.network': networkd_config})
 
-    def test_ipv6_ra_overrides_use_dns(self):
-        self.assert_ipv6_ra_overrides_key_value('use-dns', 'false', 'UseDNS', 'false')
-        self.assert_ipv6_ra_overrides_key_value('use-dns', 'true', 'UseDNS', 'true')
+    def test_ra_overrides_use_dns(self):
+        self.assert_ra_overrides_key_value('use-dns', 'false', 'UseDNS', 'false')
+        self.assert_ra_overrides_key_value('use-dns', 'true', 'UseDNS', 'true')
 
-    def test_ipv6_ra_overrides_use_domains(self):
-        self.assert_ipv6_ra_overrides_key_value('use-domains', 'false', 'UseDomains', 'false')
-        self.assert_ipv6_ra_overrides_key_value('use-domains', 'true', 'UseDomains', 'true')
-        self.assert_ipv6_ra_overrides_key_value('use-domains', 'route', 'UseDomains', 'route')
+    def test_ra_overrides_use_domains(self):
+        self.assert_ra_overrides_key_value('use-domains', 'false', 'UseDomains', 'false')
+        self.assert_ra_overrides_key_value('use-domains', 'true', 'UseDomains', 'true')
+        self.assert_ra_overrides_key_value('use-domains', 'route', 'UseDomains', 'route')
 
-    def test_ipv6_ra_overrides_table(self):
-        self.assert_ipv6_ra_overrides_key_value('table', '727', 'RouteTable', '727')
+    def test_ra_overrides_table(self):
+        self.assert_ra_overrides_key_value('table', '727', 'RouteTable', '727')
 
-    def test_ipv6_ra_overrides_all_fields(self):
-        self.assert_ipv6_ra_overrides_all_fields()
+    def test_ra_overrides_all_fields(self):
+        self.assert_ra_overrides_all_fields()
 
 
 class TestConfigErrors(TestBase):
 
-    def test_ipv6_ra_overrides_use_domains_invalid_options(self):
+    def test_ra_overrides_use_domains_invalid_options(self):
         err = self.generate('''\
 network:
   version: 2
   ethernets:
     engreen:
-      ipv6-ra-overrides:
+      ra-overrides:
         use-domains: invalid-options
 ''', expect_fail=True)
         self.assertIn("Invalid use-domains options 'invalid-options', must be a boolean, or the special value 'route'.", err)

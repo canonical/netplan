@@ -337,7 +337,7 @@ interval_has_suffix(const char* param) {
 }
 
 STATIC gboolean
-ipv6_ra_overrides_is_dirty(const NetplanIPv6RAOverrides* overrides) {
+ra_overrides_is_dirty(const NetplanRAOverrides* overrides) {
     if(overrides->use_dns != NETPLAN_TRISTATE_UNSET)
         return TRUE;
     if(overrides->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET)
@@ -996,22 +996,22 @@ _netplan_netdef_write_network_file(
         g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
     }
 
-    /* ipv6-ra-overrides */
-    if (ipv6_ra_overrides_is_dirty(&def->ipv6_ra_overrides)) {
+    /* ra-overrides */
+    if (ra_overrides_is_dirty(&def->ra_overrides)) {
         g_string_append(network, "\n[IPv6AcceptRA]\n");
 
-        if (def->ipv6_ra_overrides.use_dns != NETPLAN_TRISTATE_UNSET) {
-            g_string_append_printf(network, "UseDNS=%s\n", def->ipv6_ra_overrides.use_dns ? "true" : "false");
+        if (def->ra_overrides.use_dns != NETPLAN_TRISTATE_UNSET) {
+            g_string_append_printf(network, "UseDNS=%s\n", def->ra_overrides.use_dns ? "true" : "false");
         }
-        if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE) {
+        if (def->ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE) {
             g_string_append_printf(network, "UseDomains=%s\n", "false");
-        } else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE) {
+        } else if (def->ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE) {
             g_string_append_printf(network, "UseDomains=%s\n", "true");
-        } else if (def->ipv6_ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
+        } else if (def->ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
             g_string_append_printf(network, "UseDomains=%s\n", "route");
         }
-        if (def->ipv6_ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
-            g_string_append_printf(network, "RouteTable=%d\n", def->ipv6_ra_overrides.table);
+        if (def->ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+            g_string_append_printf(network, "RouteTable=%d\n", def->ra_overrides.table);
         }
     }
 

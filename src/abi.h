@@ -74,11 +74,11 @@ typedef struct dhcp_overrides {
     guint metric;
 } NetplanDHCPOverrides;
 
-typedef struct ipv6_ra_overrides {
+typedef struct ipv6_overrides {
     NetplanTristate use_dns;
     NetplanUseDomainMode use_domains;
     guint table;
-} NetplanIPv6RAOverrides;
+} NetplanRAOverrides;
 
 typedef enum {
     NETPLAN_RA_MODE_KERNEL,
@@ -429,5 +429,5 @@ struct netplan_net_definition {
     NetplanTristate bridge_hairpin;
     NetplanTristate bridge_learning;
 
-    NetplanIPv6RAOverrides ipv6_ra_overrides;
+    NetplanRAOverrides ra_overrides;
 };
