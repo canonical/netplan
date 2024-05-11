@@ -118,7 +118,6 @@ class NetplanV2Normalizer():
         self.DEFAULT_STANZAS = [
             'dhcp4-overrides: {}',  # 2nd level default (containing defaults itself)
             'dhcp6-overrides: {}',  # 2nd level default (containing defaults itself)
-            'ipv6-ra-overrides: {}',  # 2nd level default (containing defaults itself)
             'hidden: false',  # access-point
             'on-link: false',  # route
             'stp: true',  # paramters
@@ -138,9 +137,6 @@ class NetplanV2Normalizer():
             'use-mtu': self.YAML_TRUE,
             'use-ntp': self.YAML_TRUE,
             'use-routes': self.YAML_TRUE,
-        }
-        self.DEFAULT_IPV6_RA = {
-            'use-dns': self.YAML_TRUE,
         }
 
     def _clear_mapping_defaults(self, keys, defaults, data):
@@ -234,9 +230,6 @@ class NetplanV2Normalizer():
             # remove default values from the dhcp4/6-overrides mappings
             if full_key.endswith(':dhcp4-overrides') or full_key.endswith(':dhcp6-overrides'):
                 self._clear_mapping_defaults(keys, self.DEFAULT_DHCP, data)
-            # remove default values from the ipv6-ra-overrides mappings
-            if full_key.endswith(':ipv6-ra-overrides'):
-                self._clear_mapping_defaults(keys, self.DEFAULT_IPV6_RA, data)
             # remove default values from netdef/interface mappings
             if len(full_key.split(':')) == 3:  # netdef level
                 self._clear_mapping_defaults(keys, self.DEFAULT_NETDEF, data)
