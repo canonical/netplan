@@ -537,39 +537,6 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
     return TRUE;
 }
 
-/**
- * Handler for setting use-domains field from a scalar node, inside a given struct
- * @entryptr: pointer to the begining of the to-be-modified data structure
- * @data: offset into entryptr struct where the use-domains field to write is located
- */
-STATIC gboolean
-handle_generic_use_domains(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
-{
-    NetplanUseDomainMode v;
-    guint offset = GPOINTER_TO_UINT(data);
-    NetplanUseDomainMode* dest = ((void*) entryptr + offset);
-
-    gboolean ret = handle_generic_bool(npp, node, entryptr, data, NULL);
-
-    if (ret) {
-        if (*dest) {
-            v = NETPLAN_USE_DOMAIN_MODE_TRUE;
-        } else {
-            v = NETPLAN_USE_DOMAIN_MODE_FALSE;
-        }
-    } else if (g_ascii_strcasecmp(scalar(node), "route") == 0) {
-        v = NETPLAN_USE_DOMAIN_MODE_ROUTE;
-    } else {
-        return yaml_error(npp, node, error,
-                          "Invalid use-domains options '%s', must be a boolean, or the special value 'route'.",
-                          scalar(node));
-    }
-
-    *dest = v;
-    mark_data_as_dirty(npp, dest);
-    return TRUE;
-}
-
 
 /**
  * Generic handler for setting a npp->current.netdef string field from a scalar node
@@ -841,7 +808,29 @@ handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const 
 STATIC gboolean
 handle_netdef_use_domains(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
-    return handle_generic_use_domains(npp, node, npp->current.netdef, data, error);
+    NetplanUseDomainMode v;
+    guint offset = GPOINTER_TO_UINT(data);
+    NetplanUseDomainMode* dest = ((void*) npp->current.netdef + offset);
+
+    gboolean ret = handle_generic_bool(npp, node, npp->current.netdef, data, NULL);
+
+    if (ret) {
+        if (*dest) {
+            v = NETPLAN_USE_DOMAIN_MODE_TRUE;
+        } else {
+            v = NETPLAN_USE_DOMAIN_MODE_FALSE;
+        }
+    } else if (g_ascii_strcasecmp(scalar(node), "route") == 0) {
+        v = NETPLAN_USE_DOMAIN_MODE_ROUTE;
+    } else {
+        return yaml_error(npp, node, error,
+                          "Invalid use-domains options '%s', must be a boolean, or the special value 'route'.",
+                          scalar(node));
+    }
+
+    *dest = v;
+    mark_data_as_dirty(npp, dest);
+    return TRUE;
 }
 
 /*
