@@ -543,29 +543,27 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
  * @data: offset into entryptr struct where the use-domains field to write is located
  */
 STATIC gboolean
-handle_generic_use_domains(NetplanParser* npp, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
+handle_generic_use_domains(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
-    g_assert(entryptr);
     NetplanUseDomainMode v;
     guint offset = GPOINTER_TO_UINT(data);
     NetplanUseDomainMode* dest = ((void*) entryptr + offset);
 
-    if (g_ascii_strcasecmp(scalar(node), "false") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "off") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "no") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "n") == 0)
-        v = NETPLAN_USE_DOMAIN_MODE_FALSE;
-    else if (g_ascii_strcasecmp(scalar(node), "true") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "on") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "yes") == 0 ||
-        g_ascii_strcasecmp(scalar(node), "y") == 0)
-        v = NETPLAN_USE_DOMAIN_MODE_TRUE;
-    else if (g_ascii_strcasecmp(scalar(node), "route") == 0)
+    gboolean ret = handle_generic_bool(npp, node, entryptr, data, error);
+
+    if (ret) {
+        if (*dest) {
+            v = NETPLAN_USE_DOMAIN_MODE_TRUE;
+        } else {
+            v = NETPLAN_USE_DOMAIN_MODE_FALSE;
+        }
+    } else if (g_ascii_strcasecmp(scalar(node), "route") == 0) {
         v = NETPLAN_USE_DOMAIN_MODE_ROUTE;
-    else
+    } else {
         return yaml_error(npp, node, error,
                           "Invalid use-domains options '%s', must be a boolean, or the special value 'route'.",
                           scalar(node));
+    }
 
     *dest = v;
     mark_data_as_dirty(npp, dest);

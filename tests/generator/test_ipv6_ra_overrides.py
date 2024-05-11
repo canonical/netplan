@@ -53,12 +53,12 @@ LinkLocalAddressing=ipv6
         self.assert_networkd({'engreen.network': networkd_config})
 
     def test_ipv6_ra_overrides_use_dns(self):
-        self.assert_ipv6_ra_overrides_key_value('use-dns', 'no', 'UseDNS', 'false')
-        self.assert_ipv6_ra_overrides_key_value('use-dns', 'yes', 'UseDNS', 'true')
+        self.assert_ipv6_ra_overrides_key_value('use-dns', 'false', 'UseDNS', 'false')
+        self.assert_ipv6_ra_overrides_key_value('use-dns', 'true', 'UseDNS', 'true')
 
     def test_ipv6_ra_overrides_use_domains(self):
-        self.assert_ipv6_ra_overrides_key_value('use-domains', 'n', 'UseDomains', 'false')
-        self.assert_ipv6_ra_overrides_key_value('use-domains', 'y', 'UseDomains', 'true')
+        self.assert_ipv6_ra_overrides_key_value('use-domains', 'false', 'UseDomains', 'false')
+        self.assert_ipv6_ra_overrides_key_value('use-domains', 'true', 'UseDomains', 'true')
         self.assert_ipv6_ra_overrides_key_value('use-domains', 'route', 'UseDomains', 'route')
 
     def test_ipv6_ra_overrides_table(self):
