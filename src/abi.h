@@ -237,7 +237,6 @@ struct netplan_net_definition {
     char* dhcp_identifier;
     NetplanDHCPOverrides dhcp4_overrides;
     NetplanDHCPOverrides dhcp6_overrides;
-    NetplanIPv6RAOverrides ipv6_ra_overrides;
     NetplanRAMode accept_ra;
     GArray* ip4_addresses;
     GArray* ip6_addresses;
@@ -429,4 +428,6 @@ struct netplan_net_definition {
 
     NetplanTristate bridge_hairpin;
     NetplanTristate bridge_learning;
+
+    NetplanIPv6RAOverrides ipv6_ra_overrides;
 };
