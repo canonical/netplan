@@ -59,5 +59,4 @@ jobs:
           # using --setup-commands='apt -y install ...' temporarily to install
           # (test-/build-) deps until they become part of the packaging
           sudo autopkgtest . \
-            --add-apt-release='unstable' --pin-packages=unstable=meson \
             -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxc autopkgtest-testing-amd64 || test $? -eq 2  # allow OVS test to be skipped (exit code = 2)
