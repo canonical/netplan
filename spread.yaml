@@ -22,6 +22,7 @@ prepare: |
   rm -f /lib/netplan/generate
   # FIXME: having the debian packging available would allow "apt
   # build-dep -y ./" would make this easier :)
+  add-apt-repository -y -u -s ppa:slyon/netplan-ci
   apt update -qq
   apt install -y ubuntu-dev-tools devscripts equivs
   pull-lp-source netplan.io
