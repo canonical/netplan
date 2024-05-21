@@ -1572,7 +1572,4 @@ _netplan_networkd_cleanup(const char* rootdir)
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan*.conf");
-    /* Historically (up to v0.98) we had netplan-wpa@*.service files, in case of an
-     * upgraded system, we need to make sure to clean those up. */
-    _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa@*.service");
 }
