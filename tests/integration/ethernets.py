@@ -392,7 +392,8 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                           ['inet6 fe80:', 'inet 169.254.'])
 
     def test_systemd_networkd_wait_online(self):
-        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'del', 'br0'])
+        self.setup_eth(None, False)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
