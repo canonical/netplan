@@ -32,6 +32,8 @@ import shutil
 import gi
 import glob
 import json
+import pwd
+import grp
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
@@ -366,6 +368,89 @@ class IntegrationTestsBase(unittest.TestCase):
             # wait for iproute2 state change
             if state:
                 self.wait_output(['ip', 'addr', 'show', iface], state, 30)
+
+        # Assert file permissions
+        self.assert_file_permissions()
+
+    def assert_file_permissions(self):
+        """ Check if the generated files have the expected permissions """
+
+        nd_expected_mode = 0o100640
+        nd_expected_owner = 'root'
+        nd_expected_group = 'systemd-network'
+
+        sd_expected_mode = 0o100640
+        sd_expected_owner = 'root'
+        sd_expected_group = 'root'
+
+        udev_expected_mode = 0o100640
+        udev_expected_owner = 'root'
+        udev_expected_group = 'root'
+
+        nm_expected_mode = 0o100600
+        nm_expected_owner = 'root'
+        nm_expected_group = 'root'
+
+        wpa_expected_mode = 0o100600
+        wpa_expected_owner = 'root'
+        wpa_expected_group = 'root'
+
+        # Check systemd-networkd files
+        base_path = '/run/systemd/network'
+        files = glob.glob(f'{base_path}/*.network') + glob.glob(f'{base_path}/*.netdev')
+        for file in files:
+            res = os.stat(file)
+            user = pwd.getpwuid(res.st_uid)
+            group = grp.getgrgid(res.st_gid)
+            self.assertEqual(res.st_mode, nd_expected_mode, f'file {file}')
+            self.assertEqual(user.pw_name, nd_expected_owner, f'file {file}')
+            self.assertEqual(group.gr_name, nd_expected_group, f'file {file}')
+
+        # Check Network Manager files
+        base_path = '/run/NetworkManager/system-connections'
+        files = glob.glob(f'{base_path}/*.nmconnection')
+        for file in files:
+            res = os.stat(file)
+            user = pwd.getpwuid(res.st_uid)
+            group = grp.getgrgid(res.st_gid)
+            self.assertEqual(res.st_mode, nm_expected_mode, f'file {file}')
+            self.assertEqual(user.pw_name, nm_expected_owner, f'file {file}')
+            self.assertEqual(group.gr_name, nm_expected_group, f'file {file}')
+
+        # Check wpa_supplicant configuration files
+        base_path = '/run/netplan'
+        files = glob.glob(f'{base_path}/wpa-*.conf')
+        for file in files:
+            res = os.stat(file)
+            user = pwd.getpwuid(res.st_uid)
+            group = grp.getgrgid(res.st_gid)
+            self.assertEqual(res.st_mode, wpa_expected_mode, f'file {file}')
+            self.assertEqual(user.pw_name, wpa_expected_owner, f'file {file}')
+            self.assertEqual(group.gr_name, wpa_expected_group, f'file {file}')
+
+        # Check systemd service unit files
+        base_path = '/run/systemd/system/'
+        files = glob.glob(f'{base_path}/netplan-*.service')
+        files += glob.glob(f'{base_path}/systemd-networkd-wait-online.service.d/*.conf')
+        for file in files:
+            res = os.stat(file)
+            user = pwd.getpwuid(res.st_uid)
+            group = grp.getgrgid(res.st_gid)
+            self.assertEqual(res.st_mode, sd_expected_mode, f'file {file}')
+            self.assertEqual(user.pw_name, sd_expected_owner, f'file {file}')
+            self.assertEqual(group.gr_name, sd_expected_group, f'file {file}')
+
+        # Check systemd-udevd files
+        udev_path = '/run/udev/rules.d'
+        link_path = '/run/systemd/network'
+        files = glob.glob(f'{udev_path}/*-netplan*.rules') + glob.glob(f'{link_path}/*.link')
+        for file in files:
+            res = os.stat(file)
+            user = pwd.getpwuid(res.st_uid)
+            group = grp.getgrgid(res.st_gid)
+            self.assertEqual(res.st_mode, udev_expected_mode, f'file {file}')
+            self.assertEqual(user.pw_name, udev_expected_owner, f'file {file}')
+            self.assertEqual(group.gr_name, udev_expected_group, f'file {file}')
 
     def state(self, iface, state):
         '''Tell generate_and_settle() to wait for a specific state'''

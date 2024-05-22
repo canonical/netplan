@@ -66,7 +66,7 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
         g_string_append(s, "StartLimitBurst=0\n");
     g_string_append(s, cmds->str);
 
-    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 
     _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
