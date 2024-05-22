@@ -1152,13 +1152,13 @@ netplan_state_finish_nm_write(
 
     /* write generated NetworkManager drop-in config */
     if (nm_conf->len > 0)
-        _netplan_g_string_free_to_file(nm_conf, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL);
+        _netplan_g_string_free_to_file_with_permissions(nm_conf, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL, "root", "root", 0640);
     else
         g_string_free(nm_conf, TRUE);
 
     /* write generated udev rules */
     if (udev_rules->len > 0)
-        _netplan_g_string_free_to_file(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL);
+        _netplan_g_string_free_to_file_with_permissions(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL, "root", "root", 0640);
     else
         g_string_free(udev_rules, TRUE);
 
