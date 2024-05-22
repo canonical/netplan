@@ -40,6 +40,9 @@ _netplan_safe_mkdir_p_dir(const char* file_path);
 NETPLAN_INTERNAL void
 _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
 
+void
+_netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, mode_t mode);
+
 NETPLAN_INTERNAL void
 _netplan_unlink_glob(const char* rootdir, const char* _glob);
 

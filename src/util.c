@@ -23,6 +23,9 @@
 #include <regex.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -84,6 +87,49 @@ void _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char*
         g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
         exit(1);
         // LCOV_EXCL_STOP
+    }
+}
+
+void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, mode_t mode)
+{
+    g_autofree char* full_path = NULL;
+    g_autofree char* path_suffix = NULL;
+    g_autofree char* contents = g_string_free(s, FALSE);
+    GError* error = NULL;
+    struct passwd* pw = NULL;
+    struct group* gr = NULL;
+    int ret = 0;
+
+    path_suffix = g_strjoin(NULL, path, suffix, NULL);
+    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, path_suffix, NULL);
+    _netplan_safe_mkdir_p_dir(full_path);
+    if (!g_file_set_contents_full(full_path, contents, -1, G_FILE_SET_CONTENTS_CONSISTENT | G_FILE_SET_CONTENTS_ONLY_EXISTING, mode, &error)) {
+        /* the mkdir() just succeeded, there is no sensible
+         * method to test this without root privileges, bind mounts, and
+         * simulating ENOSPC */
+        // LCOV_EXCL_START
+        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
+        exit(1);
+        // LCOV_EXCL_STOP
+    }
+
+    /* Here we take the owner and group names and look up for their IDs in the passwd and group files.
+     * It's OK to fail to set the owners and mode as this code will be called from unit tests.
+     * The autopkgtests will check if the owner/group and mode are correctly set.
+     */
+    pw = getpwnam(owner);
+    if (!pw) {
+        g_debug("Failed to determine the UID of user %s: %s", owner, strerror(errno)); // LCOV_EXCL_LINE
+    }
+    gr = getgrnam(group);
+    if (!gr) {
+        g_debug("Failed to determine the GID of group %s: %s", group, strerror(errno)); // LCOV_EXCL_LINE
+    }
+    if (pw && gr) {
+        ret = chown(full_path, pw->pw_uid, gr->gr_gid);
+        if (ret != 0) {
+            g_debug("Failed to set owner and group for file %s: %s", full_path, strerror(errno));
+        }
     }
 }
 

@@ -20,6 +20,8 @@
 #include "netplan.h"
 #include <glib.h>
 
+#define NETWORKD_GROUP "systemd-network"
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_write_networkd(
         const NetplanState* np_state,

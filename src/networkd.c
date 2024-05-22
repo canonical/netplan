@@ -302,7 +302,6 @@ STATIC void
 write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
-    mode_t orig_umask;
 
     /* Don't write .link files for virtual devices; they use .netdev instead.
      * Don't write .link files for MODEM devices, as they aren't supported by networkd.
@@ -374,9 +373,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
         g_string_append_printf(s, "LargeReceiveOffload=%s\n",
         (def->large_receive_offload ? "true" : "false"));
 
-    orig_umask = umask(022);
-    _netplan_g_string_free_to_file(s, rootdir, path, ".link");
-    umask(orig_umask);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".link", "root", "root", 0640);
 }
 
 STATIC gboolean
@@ -394,7 +391,7 @@ write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** erro
     g_string_append(s, "\n[Service]\nType=oneshot\n");
     g_string_append_printf(s, "ExecStart="SBINDIR"/iw reg set %s\n", def->regulatory_domain);
 
-    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
     _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
@@ -586,7 +583,6 @@ STATIC void
 write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
 {
     GString* s = NULL;
-    mode_t orig_umask;
 
     g_assert(def->type >= NETPLAN_DEF_TYPE_VIRTUAL);
 
@@ -685,11 +681,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
         default: g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 
-    /* these do not contain secrets and need to be readable by
-     * systemd-networkd - LP: #1736965 */
-    orig_umask = umask(022);
-    _netplan_g_string_free_to_file(s, rootdir, path, ".netdev");
-    umask(orig_umask);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".netdev", "root", NETWORKD_GROUP, 0640);
 }
 
 STATIC void
@@ -833,7 +825,6 @@ _netplan_netdef_write_network_file(
     g_autoptr(GString) network = NULL;
     g_autoptr(GString) link = NULL;
     GString* s = NULL;
-    mode_t orig_umask;
 
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
@@ -1099,11 +1090,7 @@ _netplan_netdef_write_network_file(
         if (network->len > 0)
             g_string_append_printf(s, "\n[Network]\n%s", network->str);
 
-        /* these do not contain secrets and need to be readable by
-         * systemd-networkd - LP: #1736965 */
-        orig_umask = umask(022);
-        _netplan_g_string_free_to_file(s, rootdir, path, ".network");
-        umask(orig_umask);
+        _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".network", "root", NETWORKD_GROUP, 0640);
     }
 
     SET_OPT_OUT_PTR(has_been_written, TRUE);
@@ -1115,7 +1102,6 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* s = NULL;
     g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
-    mode_t orig_umask;
 
     /* do we need to write a .rules file?
      * It's only required for reliably setting the name of a physical device
@@ -1149,9 +1135,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 
     g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
 
-    orig_umask = umask(022);
-    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
-    umask(orig_umask);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 }
 
 STATIC gboolean
@@ -1300,7 +1284,6 @@ STATIC void
 write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
 {
     g_autofree gchar *stdouth = NULL;
-    mode_t orig_umask;
 
     stdouth = systemd_escape(def->id);
 
@@ -1319,9 +1302,7 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
     } else {
         g_string_append(s, " -Dnl80211,wext\n");
     }
-    orig_umask = umask(022);
-    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
-    umask(orig_umask);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 }
 
 STATIC gboolean
@@ -1330,7 +1311,6 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
     GHashTableIter iter;
     GString* s = g_string_new("ctrl_interface=/run/wpa_supplicant\n\n");
     g_autofree char* path = g_strjoin(NULL, "run/netplan/wpa-", def->id, ".conf", NULL);
-    mode_t orig_umask;
 
     g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
@@ -1423,9 +1403,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
     }
 
     /* use tight permissions as this contains secrets */
-    orig_umask = umask(077);
-    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
-    umask(orig_umask);
+    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0600);
     return TRUE;
 }
 
@@ -1569,7 +1547,7 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     GString* content = g_string_new("[Unit]\n"
         "ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service\n");
     if (g_hash_table_size(non_optional_interfaces) == 0) {
-        _netplan_g_string_free_to_file(content, rootdir, override, NULL);
+        _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
         g_hash_table_destroy(non_optional_interfaces);
         return FALSE;
     }
@@ -1593,7 +1571,7 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     }
     g_string_append(content, "\n");
 
-    _netplan_g_string_free_to_file(content, rootdir, override, NULL);
+    _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
     g_hash_table_destroy(non_optional_interfaces);
     return TRUE;
 }
