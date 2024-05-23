@@ -31,9 +31,9 @@
 STATIC gboolean
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency, GError** error)
 {
-    g_autofree gchar* id_escaped = NULL;
-    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", id, ".service", NULL);
-    g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", id, ".service", NULL);
+    g_autofree char* escaped_netdef_id = g_uri_escape_string(id, NULL, TRUE);
+    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", escaped_netdef_id, ".service", NULL);
+    g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", escaped_netdef_id, ".service", NULL);
 
     GString* s = g_string_new("[Unit]\n");
     g_string_append_printf(s, "Description=OpenVSwitch configuration for %s\n", id);
@@ -42,9 +42,8 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     g_string_append_printf(s, "Wants=ovsdb-server.service\n");
     g_string_append_printf(s, "After=ovsdb-server.service\n");
     if (physical) {
-        id_escaped = systemd_escape((char*) id);
-        g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", id_escaped);
-        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", id_escaped);
+        g_string_append_printf(s, "Requires=sys-subsystem-net-devices-%s.device\n", escaped_netdef_id);
+        g_string_append_printf(s, "After=sys-subsystem-net-devices-%s.device\n", escaped_netdef_id);
     }
     if (!cleanup) {
         g_string_append_printf(s, "After=netplan-ovs-cleanup.service\n");
@@ -54,8 +53,9 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir,
     }
     g_string_append(s, "Before=network.target\nWants=network.target\n");
     if (dependency) {
-        g_string_append_printf(s, "Requires=netplan-ovs-%s.service\n", dependency);
-        g_string_append_printf(s, "After=netplan-ovs-%s.service\n", dependency);
+        g_autofree char* escaped_dependency = g_uri_escape_string(dependency, NULL, TRUE);
+        g_string_append_printf(s, "Requires=netplan-ovs-%s.service\n", escaped_dependency);
+        g_string_append_printf(s, "After=netplan-ovs-%s.service\n", escaped_dependency);
     }
 
     g_string_append(s, "\n[Service]\nType=oneshot\nTimeoutStartSec=10s\n");
@@ -325,6 +325,7 @@ _netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefiniti
     gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
     g_autofree char* base_config_path = NULL;
+    g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
     char* value = NULL;
     const NetplanOVSSettings* settings = &np_state->ovs_settings;
 
@@ -415,7 +416,7 @@ _netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefiniti
 
         /* Try writing out a base config */
         /* TODO: make use of netplan_netdef_get_output_filename() */
-        base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
+        base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", escaped_netdef_id, NULL);
         if (!_netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
             return FALSE;
     } else {
