@@ -150,6 +150,10 @@ To install it on Debian or Ubuntu-based system, run `apt install python3-yaml`""
                         c['dhcp6'] = True
 
                 elif config['method'] == 'static':
+                    # Handle interface aliases
+                    if (":" in iface):
+                        iface = iface.split(':')[0]
+
                     c = netplan_config.setdefault('network', {}).setdefault('ethernets', {}).setdefault(iface, {})
 
                     if 'addresses' not in c:
