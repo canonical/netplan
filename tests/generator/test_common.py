@@ -822,6 +822,47 @@ UseMTU=true
 
         self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('abc\\"xyz\\n0\\n\\n1', 'eth\\"\\n\\nxyz\\n0'))})
 
+    def test_nd_file_paths_escaped(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    "abc/../../xyz0":
+      match:
+        driver: "drv"
+      set-name: "eth123"''')
+
+        self.assert_networkd_udev({'abc%2F..%2F..%2Fxyz0.rules': (UDEV_NO_MAC_RULE % ('drv', 'eth123'))})
+        self.assert_networkd({'abc%2F..%2F..%2Fxyz0.network': '''[Match]\nDriver=drv
+Name=eth123
+
+[Network]
+LinkLocalAddressing=ipv6
+''',
+                              'abc%2F..%2F..%2Fxyz0.link': '''[Match]\nDriver=drv\n
+[Link]
+Name=eth123
+WakeOnLan=off
+'''})
+
+        self.generate('''network:
+  version: 2
+  wifis:
+    "abc/../../xyz0":
+      dhcp4: true
+      access-points:
+        "mywifi":
+          password: "aaaaaaaa"''')
+
+        self.assert_wpa_supplicant("abc%2F..%2F..%2Fxyz0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid=P"mywifi"
+  key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
+  ieee80211w=1
+  psk="aaaaaaaa"
+}
+""")
+
 
 class TestNetworkManager(TestBase):
 
@@ -1348,6 +1389,31 @@ method=ignore
       set-name: "eth\\n0"
       dhcp4: true''', skip_generated_yaml_validation=True)
         self.assert_nm_udev(NM_UNMANAGED % 'eth\\n0' + NM_UNMANAGED % 'eth0')
+
+    def test_nm_file_paths_escaped(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    "abc/../../xyz0":
+      match:
+        driver: "drv"
+      set-name: "eth123"''')
+
+        self.assert_nm({'abc%2F..%2F..%2Fxyz0': '''[connection]
+id=netplan-abc/../../xyz0
+type=ethernet
+interface-name=eth123
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''})
 
 
 class TestForwardDeclaration(TestBase):

@@ -1110,3 +1110,27 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br123 external-ids:netplan/global/set-co
         - [portname, portname]
 ''', expect_fail=True)
         self.assertIn('Open vSwitch patch ports must be of different name', err)
+
+    def test_file_paths_escaped(self):
+        self.generate('''network:
+  version: 2
+  bridges:
+    "abc/../../123":
+      openvswitch: {}
+  vlans:
+    "abc/../../123.100":
+      id: 100
+      link: "abc/../../123"
+''')
+        self.assert_ovs({'abc%2F..%2F..%2F123.service': OVS_BR_EMPTY % {'iface': 'abc/../../123'},
+                         'abc%2F..%2F..%2F123.100.service': OVS_VIRTUAL % {'iface': 'abc/../../123.100', 'extra':
+                                                                           '''Requires=netplan-ovs-abc%2F..%2F..%2F123.service
+After=netplan-ovs-abc%2F..%2F..%2F123.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10s
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br abc/../../123.100 abc/../../123 100
+ExecStart=/usr/bin/ovs-vsctl set Interface abc/../../123.100 external-ids:netplan=true
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
