@@ -1065,7 +1065,8 @@ STATIC void
 write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 {
     GString* s = NULL;
-    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", def->id, ".rules", NULL);
+    g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
+    g_autofree char* path = g_strjoin(NULL, "run/udev/rules.d/99-netplan-", escaped_netdef_id, ".rules", NULL);
 
     /* do we need to write a .rules file?
      * It's only required for reliably setting the name of a physical device
@@ -1282,7 +1283,8 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
 {
     GHashTableIter iter;
     GString* s = g_string_new("ctrl_interface=/run/wpa_supplicant\n\n");
-    g_autofree char* path = g_strjoin(NULL, "run/netplan/wpa-", def->id, ".conf", NULL);
+    g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
+    g_autofree char* path = g_strjoin(NULL, "run/netplan/wpa-", escaped_netdef_id, ".conf", NULL);
 
     g_debug("%s: Creating wpa_supplicant configuration file %s", def->id, path);
     if (def->type == NETPLAN_DEF_TYPE_WIFI) {
@@ -1394,7 +1396,8 @@ _netplan_netdef_write_networkd(
         GError** error)
 {
     /* TODO: make use of netplan_netdef_get_output_filename() */
-    g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", def->id, NULL);
+    g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
+    g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", escaped_netdef_id, NULL);
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
     /* We want this for all backends when renaming, as *.link and *.rules files are
@@ -1416,8 +1419,8 @@ _netplan_netdef_write_networkd(
     }
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI || def->has_auth) {
-        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", def->id, ".service", NULL);
-        g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", def->id, ".service", NULL);
+        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", escaped_netdef_id, ".service", NULL);
+        g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", escaped_netdef_id, ".service", NULL);
         if (def->type == NETPLAN_DEF_TYPE_WIFI && def->has_match) {
             g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
             return FALSE;

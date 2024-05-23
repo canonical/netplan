@@ -663,17 +663,18 @@ ssize_t
 netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const char* ssid, char* out_buffer, size_t out_buf_size)
 {
     g_autofree gchar* conf_path = NULL;
+    g_autofree char* escaped_netdef_id = g_uri_escape_string(netdef->id, NULL, TRUE);
 
     if (netdef->backend == NETPLAN_BACKEND_NM) {
         if (ssid) {
             g_autofree char* escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-            conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", netdef->id, "-", escaped_ssid, ".nmconnection", NULL);
+            conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
         } else {
-            conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", netdef->id, ".nmconnection", NULL);
+            conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", escaped_netdef_id, ".nmconnection", NULL);
         }
 
     } else if (netdef->backend == NETPLAN_BACKEND_NETWORKD || netdef->backend == NETPLAN_BACKEND_OVS) {
-        conf_path = g_strjoin(NULL, "/run/systemd/network/10-netplan-", netdef->id, ".network", NULL);
+        conf_path = g_strjoin(NULL, "/run/systemd/network/10-netplan-", escaped_netdef_id, ".network", NULL);
     }
 
     if (conf_path)
