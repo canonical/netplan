@@ -334,6 +334,13 @@ source-directory /etc/network/interfaces.d''')[0]
             'version': 2,
             'ethernets': {'en1': {'addresses': ["1.2.3.4/8"]}}}}, out.decode())
 
+    def test_static_ipv4_alias(self):
+        out = self.do_test('auto en1\niface en1 inet static\naddress 1.2.3.4/8\n'
+                           'auto en1:1\niface en1:1 inet static\naddress 1.2.3.5/8', dry_run=True)[0]
+        self.assertEqual(_load_yaml(out), {'network': {
+            'version': 2,
+            'ethernets': {'en1': {'addresses': ["1.2.3.4/8", "1.2.3.5/8"]}}}}, out.decode())
+
     def test_static_ipv4_no_address(self):
         out, err = self.do_test('auto en1\niface en1 inet static\nnetmask 1.2.3.4', expect_success=False)
         self.assertEqual(out, b'')
