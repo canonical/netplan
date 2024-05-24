@@ -282,6 +282,7 @@ test_parser_flags_bad_flags(__unused void** state)
     assert_string_equal(error->message, "Invalid flag set");
     assert_int_equal(error->domain, NETPLAN_PARSER_ERROR);
     assert_int_equal(error->code, NETPLAN_ERROR_INVALID_FLAG);
+    netplan_error_clear(&error);
     netplan_parser_clear(&npp);
 }
 
