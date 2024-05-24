@@ -54,6 +54,9 @@ write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* rootdir, GError** e
     g_string_truncate(interfaces, interfaces->len-1); /* cut trailing whitespace */
     g_string_append_printf(s, "ExecStart=" SBINDIR "/netplan rebind --debug %s\n", interfaces->str);
 
+    g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
+    g_string_free(s, TRUE);
+    s = g_string_new(new_s);
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
     g_string_free(interfaces, TRUE);
 
@@ -90,6 +93,9 @@ write_sriov_apply_systemd_unit(GHashTable* pfs, const char* rootdir, GError** er
     g_string_append(s, "\n[Service]\nType=oneshot\n");
     g_string_append_printf(s, "ExecStart=" SBINDIR "/netplan apply --sriov-only\n");
 
+    g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
+    g_string_free(s, TRUE);
+    s = g_string_new(new_s);
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 
     _netplan_safe_mkdir_p_dir(link);
