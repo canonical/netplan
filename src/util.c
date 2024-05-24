@@ -1289,3 +1289,37 @@ _netplan_scrub_string(const char* content)
 
     return g_string_free(s, FALSE);
 }
+
+STATIC gboolean
+_is_space_or_tab(char c)
+{
+    return c == ' ' || c == '\t';
+}
+
+char*
+_netplan_scrub_systemd_unit_contents(const char* content)
+{
+    size_t content_len = strlen(content);
+    // Assume a few replacements will happen to reduce reallocation
+    GString* s = g_string_sized_new(content_len + 8);
+
+    // Append the first character of "content" to the result string
+    g_string_append_len(s, content, 1);
+
+    // Walk from the second element to the one before the last looking for isolated semicolons
+    // A semicolon is isolated if it's surrounded by either tabs or spaces
+    const char* p = content + 1;
+    while (p < (content + content_len - 1)) {
+        if (*p == ';' && _is_space_or_tab(*(p - 1)) && _is_space_or_tab(*(p + 1))) {
+            g_string_append_len(s, "\\;", 2);
+        } else {
+            g_string_append_len(s, p, 1);
+        }
+        p++;
+    }
+
+    // Append the last character of "content" to the result string
+    g_string_append_len(s, p, 1);
+
+    return g_string_free(s, FALSE);
+}

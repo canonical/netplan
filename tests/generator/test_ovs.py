@@ -1134,3 +1134,61 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-br abc/../../123.100 abc/../../123 
 ExecStart=/usr/bin/ovs-vsctl set Interface abc/../../123.100 external-ids:netplan=true
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+
+    def test_control_characters_and_semicolons_escaping(self):
+        self.generate('''network:
+  version: 2
+  bridges: # bridges first, to trigger multi-pass processing
+    ovs0:
+      interfaces: [eth0, eth1]
+      openvswitch: {}
+  ethernets:
+    eth0:
+      openvswitch:
+        external-ids:
+          "a\\n1\\ra": " ; a ; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1"
+        other-config:
+          "a\\n1\\ra": " ; a ; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1"
+      dhcp6: true
+    eth1:
+      dhcp4: true
+      openvswitch:
+        other-config:
+          disable-in-band: false\n''', skip_generated_yaml_validation=True)
+        self.assert_ovs({'ovs0.service': OVS_VIRTUAL % {'iface': 'ovs0', 'extra': '''
+[Service]
+Type=oneshot
+TimeoutStartSec=10s
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs0
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth1
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth0
+''' + OVS_BR_DEFAULT % {'iface': 'ovs0'}},
+                         'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''\
+Requires=netplan-ovs-ovs0.service
+After=netplan-ovs-ovs0.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10s
+ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:a\\n1\\ra= \\; a \\; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1
+ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/external-ids/a\\n1\\ra=,;,a,;,1,;a;,;b\\t;\\t3,;\\ta\\t;,1
+ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:a\\n1\\ra= \\; a \\; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1
+ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/other-config/a\\n1\\ra=,;,a,;,1,;a;,;b\\t;\\t3,;\\ta\\t;,1
+'''},
+                         'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''\
+Requires=netplan-ovs-ovs0.service
+After=netplan-ovs-ovs0.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10s
+ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band=false
+ExecStart=/usr/bin/ovs-vsctl set Interface eth1 external-ids:netplan/other-config/disable-in-band=false
+'''},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+        # Confirm that the networkd config is still sane
+        self.assert_networkd({'ovs0.network': ND_EMPTY % ('ovs0', 'ipv6'),
+                              'eth0.network': (ND_DHCP6 % 'eth0')
+                              .replace('LinkLocalAddressing=ipv6', 'LinkLocalAddressing=no\nBridge=ovs0'),
+                              'eth1.network': (ND_DHCP4 % 'eth1')
+                              .replace('LinkLocalAddressing=ipv6', 'LinkLocalAddressing=no\nBridge=ovs0')})

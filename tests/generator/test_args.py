@@ -262,3 +262,57 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 1)
             self.assertIn(b'can not be called directly', e.output)
+
+    def test_systemd_generator_escaping(self):
+        conf = os.path.join(self.confdir, 'a.yaml')
+        os.makedirs(os.path.dirname(conf))
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    lo:
+      match:
+        name: lo
+      set-name: "a ; b\\t; c\\t; d \\n 123 ; echo "
+      addresses: ["127.0.0.1/8", "::1/128"]''')
+        os.chmod(conf, mode=0o600)
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-lo.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
+
+        # should auto-enable networkd and -wait-online
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        self.assertTrue(os.path.islink(os.path.join(
+            outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
+        self.assertTrue(os.path.islink(os.path.join(
+            outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
+        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            # eth99 does not exist on the system, so will not be listed
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i a \\; b\\t; c\\t; d \\n 123 \\; echo :degraded\n''')
+
+        # should be a no-op the second time while the stamp exists
+        out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
+                                      stderr=subprocess.STDOUT)
+        self.assertFalse(os.path.exists(n))
+        self.assertIn(b'netplan generate already ran', out)
+
+        # after removing the stamp it generates again, and not trip over the
+        # existing enablement symlink
+        os.unlink(os.path.join(outdir, 'netplan.stamp'))
+        subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        self.assertTrue(os.path.exists(n))
