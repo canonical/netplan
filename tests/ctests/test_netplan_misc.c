@@ -502,6 +502,50 @@ test_normalize_ip_address(__unused void** state)
     assert_string_equal(normalize_ip_address("0.0.0.0/0", AF_INET), "0.0.0.0/0");
 }
 
+void
+test_scrub_systemd_unit_content(__unused void** state)
+{
+    char* str = ";abc;";
+    char* res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, ";abc;");
+    g_free(res);
+
+    str = ";;;;";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, ";;;;");
+    g_free(res);
+
+    str = " ;;;; ";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, " ;;;; ");
+    g_free(res);
+
+    str = "; ; ; ; ;";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, "; \\; \\; \\; ;");
+    g_free(res);
+
+    str = " ; ; ; ; ; ";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, " \\; \\; \\; \\; \\; ");
+    g_free(res);
+
+    str = "a ; ; ; ; ; b";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, "a \\; \\; \\; \\; \\; b");
+    g_free(res);
+
+    str = "\t;\t; ;\t; \t ;\t ";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, "\t\\;\t\\; \\;\t\\; \t \\;\t ");
+    g_free(res);
+
+    str = "\t;\t;\t;\t;\t;\t";
+    res = _netplan_scrub_systemd_unit_contents(str);
+    assert_string_equal(res, "\t\\;\t\\;\t\\;\t\\;\t\\;\t");
+    g_free(res);
+}
+
 int
 setup(__unused void** state)
 {
@@ -539,6 +583,7 @@ main()
            cmocka_unit_test(test_normalize_ip_address),
            cmocka_unit_test(test_util_get_link_local_true),
            cmocka_unit_test(test_util_get_link_local_false),
+           cmocka_unit_test(test_scrub_systemd_unit_content),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);

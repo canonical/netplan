@@ -217,3 +217,6 @@ _netplan_netdef_get_gateway6(const NetplanNetDefinition* netdef, char* out_buffe
 
 gchar*
 _netplan_scrub_string(const char* content);
+
+gchar*
+_netplan_scrub_systemd_unit_contents(const char* content);

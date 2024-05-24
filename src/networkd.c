@@ -391,6 +391,9 @@ write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** erro
     g_string_append(s, "\n[Service]\nType=oneshot\n");
     g_string_append_printf(s, "ExecStart="SBINDIR"/iw reg set %s\n", def->regulatory_domain);
 
+    g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
+    g_string_free(s, TRUE);
+    s = g_string_new(new_s);
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
     _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
@@ -1311,6 +1314,10 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
     } else {
         g_string_append(s, " -Dnl80211,wext\n");
     }
+
+    g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
+    g_string_free(s, TRUE);
+    s = g_string_new(new_s);
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 }
 
@@ -1584,6 +1591,9 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     }
     g_string_append(content, "\n");
 
+    g_autofree char* new_content = _netplan_scrub_systemd_unit_contents(content->str);
+    g_string_free(content, TRUE);
+    content = g_string_new(new_content);
     _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
     g_hash_table_destroy(non_optional_interfaces);
     return TRUE;
