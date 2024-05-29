@@ -92,21 +92,21 @@ class TestNetworkd(TestBase):
             self.assertIn('ctrl_interface=/run/wpa_supplicant', new_config)
             self.assertIn('''
 network={
-  ssid="peer2peer"
+  ssid=P"peer2peer"
   mode=1
   key_mgmt=NONE
 }
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="Luke's Home"
+  ssid=P"Luke's Home"
   key_mgmt=WPA-PSK
   psk="4lsos3kr1t"
 }
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="BobsHome"
+  ssid=P"BobsHome"
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
   psk=e03ce667c87bc81ca968d9120ca37f89eb09aec3c55b80386e5d772efd6b926e
@@ -114,14 +114,14 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="BillsHome"
+  ssid=P"BillsHome"
   key_mgmt=WPA-PSK
   psk=db3b0acf5653aeaddd5fe034fb9f07175b2864f847b005aaa2f09182d9411b04
 }
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="workplace2"
+  ssid=P"workplace2"
   key_mgmt=WPA-EAP
   eap=PEAP
   identity="joe@internal.example.com"
@@ -131,7 +131,7 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="workplace"
+  ssid=P"workplace"
   key_mgmt=WPA-EAP
   eap=TTLS
   identity="joe@internal.example.com"
@@ -141,7 +141,7 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="workplacehashed"
+  ssid=P"workplacehashed"
   key_mgmt=WPA-EAP
   eap=TTLS
   identity="joe@internal.example.com"
@@ -151,7 +151,7 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="customernet"
+  ssid=P"customernet"
   key_mgmt=WPA-EAP
   eap=TLS
   identity="cert-joe@cust.example.com"
@@ -164,13 +164,13 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="opennet"
+  ssid=P"opennet"
   key_mgmt=NONE
 }
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="Joe's Home"
+  ssid=P"Joe's Home"
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
   psk="s0s3kr1t"

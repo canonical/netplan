@@ -188,3 +188,6 @@ _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it);
 
 NETPLAN_INTERNAL void
 _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it);
+
+gchar*
+_netplan_scrub_string(const char* content);

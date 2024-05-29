@@ -19,7 +19,7 @@
 import os
 import textwrap
 
-from .base import TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, ND_EMPTY, NM_MANAGED, NM_UNMANAGED
+from .base import UDEV_NO_MAC_RULE, TestBase, ND_DHCP4, ND_DHCP6, ND_DHCPYES, ND_EMPTY, NM_MANAGED, NM_UNMANAGED
 
 
 class TestNetworkd(TestBase):
@@ -810,6 +810,18 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_nd_udev_rules_escaped(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        driver: "abc\\"xyz\\n0\\n\\n1"
+      set-name: "eth\\"\\n\\nxyz\\n0"''', skip_generated_yaml_validation=True)
+
+        self.assert_networkd_udev({'def1.rules': (UDEV_NO_MAC_RULE % ('abc\\"xyz\\n0\\n\\n1', 'eth\\"\\n\\nxyz\\n0'))})
+
 
 class TestNetworkManager(TestBase):
 
@@ -1315,6 +1327,28 @@ dns=8.8.8.8;
 method=ignore
 '''})
 
+    def test_nm_udev_rules_escaped(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      match:
+        name: "eth\\"0"
+      dhcp4: true''')
+        self.assert_nm_udev(NM_UNMANAGED % 'eth\\"0')
+
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      match:
+        name: "eth0"
+      set-name: "eth\\n0"
+      dhcp4: true''', skip_generated_yaml_validation=True)
+        self.assert_nm_udev(NM_UNMANAGED % 'eth\\n0' + NM_UNMANAGED % 'eth0')
+
 
 class TestForwardDeclaration(TestBase):
 
@@ -1777,13 +1811,13 @@ LinkLocalAddressing=ipv6
         self.assert_wpa_supplicant("wlan0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="mynewwifi"
+  ssid=P"mynewwifi"
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
   psk="aaaaaaaa"
 }
 network={
-  ssid="mywifi"
+  ssid=P"mywifi"
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
   psk="aaaaaaaa"
@@ -1814,7 +1848,7 @@ network={
         self.assert_wpa_supplicant("wlan0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="mywifi"
+  ssid=P"mywifi"
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
   psk="bbbbbbbb"
