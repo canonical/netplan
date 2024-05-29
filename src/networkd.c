@@ -1125,7 +1125,8 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
     g_string_append(s, "SUBSYSTEM==\"net\", ACTION==\"add\", ");
 
     if (def->match.driver) {
-        g_string_append_printf(s,"DRIVERS==\"%s\", ", def->match.driver);
+        g_autofree char* driver = _netplan_scrub_string(def->match.driver);
+        g_string_append_printf(s,"DRIVERS==\"%s\", ", driver);
     } else {
         g_string_append(s, "DRIVERS==\"?*\", ");
     }
@@ -1133,7 +1134,8 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
     if (def->match.mac)
         g_string_append_printf(s, "ATTR{address}==\"%s\", ", def->match.mac);
 
-    g_string_append_printf(s, "NAME=\"%s\"\n", def->set_name);
+    g_autofree char* set_name = _netplan_scrub_string(def->set_name);
+    g_string_append_printf(s, "NAME=\"%s\"\n", set_name);
 
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 }
@@ -1221,10 +1223,12 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
     }
 
     if (auth->identity) {
-        g_string_append_printf(s, "  identity=\"%s\"\n", auth->identity);
+        g_autofree char* identity = _netplan_scrub_string(auth->identity);
+        g_string_append_printf(s, "  identity=\"%s\"\n", identity);
     }
     if (auth->anonymous_identity) {
-        g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", auth->anonymous_identity);
+        g_autofree char* anonymous_identity = _netplan_scrub_string(auth->anonymous_identity);
+        g_string_append_printf(s, "  anonymous_identity=\"%s\"\n", anonymous_identity);
     }
 
     char* psk = NULL;
@@ -1262,19 +1266,23 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
         }
     }
     if (auth->ca_certificate) {
-        g_string_append_printf(s, "  ca_cert=\"%s\"\n", auth->ca_certificate);
+        g_autofree char* ca_certificate = _netplan_scrub_string(auth->ca_certificate);
+        g_string_append_printf(s, "  ca_cert=\"%s\"\n", ca_certificate);
     }
     if (auth->client_certificate) {
-        g_string_append_printf(s, "  client_cert=\"%s\"\n", auth->client_certificate);
+        g_autofree char* client_certificate = _netplan_scrub_string(auth->client_certificate);
+        g_string_append_printf(s, "  client_cert=\"%s\"\n", client_certificate);
     }
     if (auth->client_key) {
-        g_string_append_printf(s, "  private_key=\"%s\"\n", auth->client_key);
+        g_autofree char* client_key = _netplan_scrub_string(auth->client_key);
+        g_string_append_printf(s, "  private_key=\"%s\"\n", client_key);
     }
     if (auth->client_key_password) {
         g_string_append_printf(s, "  private_key_passwd=\"%s\"\n", auth->client_key_password);
     }
     if (auth->phase2_auth) {
-        g_string_append_printf(s, "  phase2=\"auth=%s\"\n", auth->phase2_auth);
+        g_autofree char* phase2_auth = _netplan_scrub_string(auth->phase2_auth);
+        g_string_append_printf(s, "  phase2=\"auth=%s\"\n", phase2_auth);
     }
     return TRUE;
 }
@@ -1327,14 +1335,16 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
         }
         /* available as of wpa_supplicant version 0.6.7 */
         if (def->regulatory_domain) {
-            g_string_append_printf(s, "country=%s\n", def->regulatory_domain);
+            g_autofree char* regdom = _netplan_scrub_string(def->regulatory_domain);
+            g_string_append_printf(s, "country=%s\n", regdom);
         }
         NetplanWifiAccessPoint* ap;
         g_hash_table_iter_init(&iter, def->access_points);
         while (g_hash_table_iter_next(&iter, NULL, (gpointer) &ap)) {
             gchar* freq_config_str = ap->mode == NETPLAN_WIFI_MODE_ADHOC ? "frequency" : "freq_list";
+            g_autofree char* ssid = _netplan_scrub_string(ap->ssid);
 
-            g_string_append_printf(s, "network={\n  ssid=\"%s\"\n", ap->ssid);
+            g_string_append_printf(s, "network={\n  ssid=P\"%s\"\n", ssid);
             if (ap->bssid) {
                 g_string_append_printf(s, "  bssid=%s\n", ap->bssid);
             }
@@ -1381,7 +1391,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
 
             /* wifi auth trumps netdef auth */
             if (ap->has_auth) {
-                if (!append_wpa_auth_conf(s, &ap->auth, ap->ssid, error)) {
+                if (!append_wpa_auth_conf(s, &ap->auth, ssid, error)) {
                     g_string_free(s, TRUE);
                     return FALSE;
                 }

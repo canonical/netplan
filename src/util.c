@@ -1277,3 +1277,14 @@ _netplan_parser_find_bond_for_primary_member(const NetplanParser* npp, const cha
 
     return netdef;
 }
+
+gchar*
+_netplan_scrub_string(const char* content)
+{
+    GString* s = g_string_new(content);
+
+    // Escape double quotes
+    g_string_replace(s, "\"", "\\\"", 0);
+
+    return g_string_free(s, FALSE);
+}

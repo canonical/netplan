@@ -53,6 +53,15 @@
     dst = g_strdup(src); \
 } }
 
+/*
+ * We use g_strescape to escape control characters from the input.
+ * Besides control characters, g_strescape will also escape double quotes and backslashes.
+ * Quotes are escaped at configuration generation time as needed, as they might be part of passwords for example.
+ * Escaping backslashes in the parser affects "netplan set" as it will always escape \'s from
+ * the input and update YAMLs with all the \'s escaped again.
+*/
+static char* STRESCAPE_EXCEPTIONS = "\"\\";
+
 STATIC gboolean
 insert_kv_into_hash(void *key, void *value, void *hash);
 
@@ -359,7 +368,7 @@ handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
     guint offset = GPOINTER_TO_UINT(data);
     char** dest = (char**) ((void*) entryptr + offset);
     g_free(*dest);
-    *dest = g_strdup(scalar(node));
+    *dest = g_strescape(scalar(node), STRESCAPE_EXCEPTIONS);
     mark_data_as_dirty(npp, dest);
     return TRUE;
 }
@@ -479,22 +488,25 @@ handle_generic_map(NetplanParser *npp, yaml_node_t* node, const char* key_prefix
         assert_type(npp, key, YAML_SCALAR_NODE);
         assert_type(npp, value, YAML_SCALAR_NODE);
 
+        g_autofree char* escaped_key = g_strescape(scalar(key), STRESCAPE_EXCEPTIONS);
+        g_autofree char* escaped_value = g_strescape(scalar(value), STRESCAPE_EXCEPTIONS);
+
         if (key_prefix && npp->null_fields) {
             g_autofree char* full_key = NULL;
-            full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
+            full_key = g_strdup_printf("%s\t%s", key_prefix, escaped_key);
             if (g_hash_table_contains(npp->null_fields, full_key))
                 continue;
         }
 
         char* stored_value = NULL;
-        if (g_hash_table_lookup_extended(*map, scalar(key), NULL, (void**)&stored_value)) {
+        if (g_hash_table_lookup_extended(*map, escaped_key, NULL, (void**)&stored_value)) {
             /* We can safely skip this if it is the exact key/value match
              * (probably caused by multi-pass processing) */
-            if (g_strcmp0(stored_value, scalar(value)) == 0)
+            if (g_strcmp0(stored_value, escaped_value) == 0)
                 continue;
-            return yaml_error(npp, node, error, "duplicate map entry '%s'", scalar(key));
+            return yaml_error(npp, node, error, "duplicate map entry '%s'", escaped_key);
         } else
-            g_hash_table_insert(*map, g_strdup(scalar(key)), g_strdup(scalar(value)));
+            g_hash_table_insert(*map, g_strdup(escaped_key), g_strdup(escaped_value));
     }
     mark_data_as_dirty(npp, map);
 
@@ -517,20 +529,26 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         g_autofree char* full_key = NULL;
+        g_autofree char* escaped_key = NULL;
+        g_autofree char* escaped_value = NULL;
 
         key = yaml_document_get_node(&npp->doc, entry->key);
         value = yaml_document_get_node(&npp->doc, entry->value);
 
         assert_type(npp, key, YAML_SCALAR_NODE);
         assert_type(npp, value, YAML_SCALAR_NODE);
+
+        escaped_key = g_strescape(scalar(key), STRESCAPE_EXCEPTIONS);
+        escaped_value = g_strescape(scalar(value), STRESCAPE_EXCEPTIONS);
+
         if (npp->null_fields && key_prefix) {
-            full_key = g_strdup_printf("%s\t%s", key_prefix, scalar(key));
+            full_key = g_strdup_printf("%s\t%s", key_prefix, escaped_key);
             if (g_hash_table_contains(npp->null_fields, full_key))
                 continue;
         }
 
-        g_datalist_id_set_data_full(list, g_quark_from_string(scalar(key)),
-                                    g_strdup(scalar(value)), g_free);
+        g_datalist_id_set_data_full(list, g_quark_from_string(escaped_key),
+                                    g_strdup(escaped_value), g_free);
     }
     mark_data_as_dirty(npp, list);
 
@@ -931,13 +949,14 @@ handle_match_driver(NetplanParser* npp, yaml_node_t* node, __unused const char* 
         for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
             elem = yaml_document_get_node(&npp->doc, *iter);
             assert_type(npp, elem, YAML_SCALAR_NODE);
-            if (g_strrstr(scalar(elem), " "))
+            g_autofree char* escaped_elem = g_strescape(scalar(elem), STRESCAPE_EXCEPTIONS);
+            if (g_strrstr(escaped_elem, " "))
                 return yaml_error(npp, node, error, "A 'driver' glob cannot contain whitespace");
 
             if (!sequence)
-                sequence = g_string_new(scalar(elem));
+                sequence = g_string_new(escaped_elem);
             else
-                g_string_append_printf(sequence, "\t%s", scalar(elem)); /* tab separated */
+                g_string_append_printf(sequence, "\t%s", escaped_elem); /* tab separated */
         }
 
         if (!sequence)
@@ -969,7 +988,7 @@ handle_auth_str(NetplanParser* npp, yaml_node_t* node, const void* data, __unuse
     guint offset = GPOINTER_TO_UINT(data);
     char** dest = (char**) ((void*) npp->current.auth + offset);
     g_free(*dest);
-    *dest = g_strdup(scalar(node));
+    *dest = g_strescape(scalar(node), STRESCAPE_EXCEPTIONS);
     mark_data_as_dirty(npp, dest);
     return TRUE;
 }
@@ -1129,7 +1148,7 @@ handle_access_point_password(NetplanParser* npp, yaml_node_t* node, __unused con
 
     access_point->auth.pmf_mode = NETPLAN_AUTH_PMF_MODE_OPTIONAL;
     g_free(access_point->auth.psk);
-    access_point->auth.psk = g_strdup(scalar(node));
+    access_point->auth.psk = g_strescape(scalar(node), STRESCAPE_EXCEPTIONS);
     return TRUE;
 }
 
@@ -1521,6 +1540,7 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         NetplanWifiAccessPoint *access_point = NULL;
         g_autofree char* full_key = NULL;
+        g_autofree char* escaped_key = NULL;
         yaml_node_t* key, *value;
         const gchar* ssid;
 
@@ -1529,13 +1549,15 @@ handle_wifi_access_points(NetplanParser* npp, yaml_node_t* node, const char* key
         value = yaml_document_get_node(&npp->doc, entry->value);
         assert_type(npp, value, YAML_MAPPING_NODE);
 
+        escaped_key = g_strescape(scalar(key), STRESCAPE_EXCEPTIONS);
+
         if (key_prefix && npp->null_fields) {
-            full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
+            full_key = g_strdup_printf("%s\t%s", key_prefix, escaped_key);
             if (g_hash_table_contains(npp->null_fields, full_key))
                 continue;
         }
 
-        ssid = scalar(key);
+        ssid = escaped_key;
 
         /*
          * Delete the access-point if it already exists in the netdef and let the new
@@ -1693,15 +1715,16 @@ handle_nameservers_search(NetplanParser* npp, yaml_node_t* node, __unused const 
     for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
         yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
         assert_type(npp, entry, YAML_SCALAR_NODE);
+        g_autofree char* escaped_entry = g_strescape(scalar(entry), STRESCAPE_EXCEPTIONS);
 
         if (!npp->current.netdef->search_domains)
             npp->current.netdef->search_domains = g_array_new(FALSE, FALSE, sizeof(char*));
 
-        if (!is_string_in_array(npp->current.netdef->search_domains, scalar(entry))) {
-            char* s = g_strdup(scalar(entry));
+        if (!is_string_in_array(npp->current.netdef->search_domains, escaped_entry)) {
+            char* s = g_strdup(escaped_entry);
             g_array_append_val(npp->current.netdef->search_domains, s);
         } else {
-            g_debug("%s: Search domain '%s' has already been added", npp->current.netdef->id, scalar(entry));
+            g_debug("%s: Search domain '%s' has already been added", npp->current.netdef->id, escaped_entry);
         }
     }
     mark_data_as_dirty(npp, &npp->current.netdef->search_domains);
@@ -2812,19 +2835,19 @@ handle_ovs_bridge_controller_addresses(NetplanParser* npp, yaml_node_t* node, __
 
         /* Format: [p]unix:file */
         if (is_unix && vec[1] != NULL && vec[2] == NULL) {
-            char* s = g_strdup(scalar(entry));
+            char* s = g_strescape(scalar(entry), STRESCAPE_EXCEPTIONS);
             g_array_append_val(npp->current.netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
         /* Format tcp:host[:port] or ssl:host[:port] */
         } else if (is_host && validate_ovs_target(TRUE, vec[1])) {
-            char* s = g_strdup(scalar(entry));
+            char* s = g_strescape(scalar(entry), STRESCAPE_EXCEPTIONS);
             g_array_append_val(npp->current.netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
         /* Format ptcp:[port][:host] or pssl:[port][:host] */
         } else if (is_port && validate_ovs_target(FALSE, vec[1])) {
-            char* s = g_strdup(scalar(entry));
+            char* s = g_strescape(scalar(entry), STRESCAPE_EXCEPTIONS);
             g_array_append_val(npp->current.netdef->ovs_settings.controller.addresses, s);
             g_strfreev(vec);
             continue;
@@ -3146,6 +3169,8 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
     NetplanNetDefinition *component2 = NULL;
 
     for (yaml_node_item_t *iter = node->data.sequence.items.start; iter < node->data.sequence.items.top; iter++) {
+        g_autofree char* escaped_port = NULL;
+        g_autofree char* escaped_peer = NULL;
         pair = yaml_document_get_node(&npp->doc, *iter);
         assert_type(npp, pair, YAML_SEQUENCE_NODE);
 
@@ -3160,14 +3185,17 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
         peer = yaml_document_get_node(&npp->doc, *(item+1));
         assert_type(npp, peer, YAML_SCALAR_NODE);
 
-        if (!g_strcmp0(scalar(port), scalar(peer)))
+        escaped_port = g_strescape(scalar(port), STRESCAPE_EXCEPTIONS);
+        escaped_peer = g_strescape(scalar(peer), STRESCAPE_EXCEPTIONS);
+
+        if (!g_strcmp0(escaped_port, escaped_peer))
             return yaml_error(npp, peer, error, "Open vSwitch patch ports must be of different name");
 
         /* Create port 1 netdef */
-        component1 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(port)) : NULL;
+        component1 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, escaped_port) : NULL;
         if (!component1) {
-            component1 = netplan_netdef_new(npp, scalar(port), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
-            if (g_hash_table_remove(npp->missing_id, scalar(port)))
+            component1 = netplan_netdef_new(npp, escaped_port, NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if (g_hash_table_remove(npp->missing_id, escaped_port))
                 npp->missing_ids_found++;
         }
 
@@ -3178,15 +3206,15 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
             component1->filepath = g_strdup(npp->current.filepath);
         }
 
-        if (component1->peer && g_strcmp0(component1->peer, scalar(peer)))
+        if (component1->peer && g_strcmp0(component1->peer, escaped_peer))
             return yaml_error(npp, port, error, "Open vSwitch port '%s' is already assigned to peer '%s'",
                               component1->id, component1->peer);
 
         /* Create port 2 (peer) netdef */
-        component2 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, scalar(peer)) : NULL;
+        component2 = npp->parsed_defs ? g_hash_table_lookup(npp->parsed_defs, escaped_peer) : NULL;
         if (!component2) {
-            component2 = netplan_netdef_new(npp, scalar(peer), NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
-            if (g_hash_table_remove(npp->missing_id, scalar(peer)))
+            component2 = netplan_netdef_new(npp, escaped_peer, NETPLAN_DEF_TYPE_PORT, NETPLAN_BACKEND_OVS);
+            if (g_hash_table_remove(npp->missing_id, escaped_peer))
                 npp->missing_ids_found++;
         }
 
@@ -3197,16 +3225,16 @@ handle_network_ovs_settings_global_ports(NetplanParser* npp, yaml_node_t* node, 
             component2->filepath = g_strdup(npp->current.filepath);
         }
 
-        if (component2->peer && g_strcmp0(component2->peer, scalar(port)))
+        if (component2->peer && g_strcmp0(component2->peer, escaped_port))
             return yaml_error(npp, peer, error, "Open vSwitch port '%s' is already assigned to peer '%s'",
                               component2->id, component2->peer);
 
         if (!component1->peer) {
-            component1->peer = g_strdup(scalar(peer));
+            component1->peer = g_strdup(escaped_peer);
             component1->peer_link = component2;
         }
         if (!component2->peer) {
-            component2->peer = g_strdup(scalar(port));
+            component2->peer = g_strdup(escaped_port);
             component2->peer_link = component1;
         }
     }
