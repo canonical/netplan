@@ -214,3 +214,6 @@ _netplan_netdef_get_gateway4(const NetplanNetDefinition* netdef, char* out_buffe
  */
 NETPLAN_INTERNAL ssize_t
 _netplan_netdef_get_gateway6(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
+
+gchar*
+_netplan_scrub_string(const char* content);

@@ -65,7 +65,7 @@ class TestNetworkd(TestBase):
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl0.conf')) as f:
             new_config = f.read()
 
-            network = 'ssid="{}"\n  freq_list='.format('band-no-channel2')
+            network = 'ssid=P"{}"\n  freq_list='.format('band-no-channel2')
             freqs_5GHz = [5610, 5310, 5620, 5320, 5630, 5640, 5340, 5035, 5040, 5045, 5055, 5060, 5660, 5680, 5670, 5080, 5690,
                           5700, 5710, 5720, 5825, 5745, 5755, 5805, 5765, 5160, 5775, 5170, 5480, 5180, 5795, 5190, 5500, 5200,
                           5510, 5210, 5520, 5220, 5530, 5230, 5540, 5240, 5550, 5250, 5560, 5260, 5570, 5270, 5580, 5280, 5590,
@@ -76,7 +76,7 @@ class TestNetworkd(TestBase):
             for freq in freqs_5GHz:
                 self.assertRegex(new_config, '{}[ 0-9]*{}[ 0-9]*\n'.format(network, freq))
 
-            network = 'ssid="{}"\n  freq_list='.format('band-no-channel')
+            network = 'ssid=P"{}"\n  freq_list='.format('band-no-channel')
             freqs_24GHz = [2412, 2417, 2422, 2427, 2432, 2442, 2447, 2437, 2452, 2457, 2462, 2467, 2472, 2484]
             freqs = new_config.split(network)
             freqs = freqs[1].split('\n')[0]
@@ -86,20 +86,20 @@ class TestNetworkd(TestBase):
 
             self.assertIn('''
 network={
-  ssid="channel-no-band"
+  ssid=P"channel-no-band"
   key_mgmt=NONE
 }
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="peer2peer"
+  ssid=P"peer2peer"
   mode=1
   key_mgmt=NONE
 }
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="hidden-y"
+  ssid=P"hidden-y"
   scan_ssid=1
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
@@ -108,7 +108,7 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="hidden-n"
+  ssid=P"hidden-n"
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
   ieee80211w=1
   psk="5ecur1ty"
@@ -116,7 +116,7 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="workplace"
+  ssid=P"workplace"
   bssid=de:ad:be:ef:ca:fe
   freq_list=5500
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
@@ -126,7 +126,7 @@ network={
 ''', new_config)
             self.assertIn('''
 network={
-  ssid="Joe's Home"
+  ssid=P"Joe's Home"
   bssid=00:11:22:33:44:55
   freq_list=2462
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
@@ -232,7 +232,7 @@ LinkLocalAddressing=ipv6
             self.assertIn('''
 wowlan_triggers=any disconnect magic_pkt gtk_rekey_failure eap_identity_req four_way_handshake rfkill_release
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=NONE
 }
 ''', new_config)
@@ -265,7 +265,7 @@ LinkLocalAddressing=ipv6
             new_config = f.read()
             self.assertIn('''
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=NONE
 }
 ''', new_config)
@@ -289,7 +289,7 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=SAE
   ieee80211w=2
   psk="********"
@@ -316,7 +316,7 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=WPA-EAP WPA-EAP-SHA256
   eap=TLS
   ieee80211w=1
@@ -349,7 +349,7 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=WPA-EAP-SUITE-B-192
   eap=TLS
   ieee80211w=2
@@ -378,7 +378,7 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=IEEE8021X
   eap=LEAP
   identity="some-id"
@@ -402,7 +402,7 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=IEEE8021X
   eap=PWD
   identity="some-id"
@@ -427,13 +427,55 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   key_mgmt=WPA-EAP
   eap=LEAP
   ieee80211w=1
   identity="some-id"
   psk="psk_password"
   password="********"
+}
+""")
+
+    def test_escaping_special_characters(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      regulatory-domain: "abc\\n\\n321\\n\\"123"
+      access-points:
+        "abc\\n\\n123\\"x\\ry\\bz":
+          password:  "abc\\n\\n\\n\\"123"
+          auth:
+            key-management: eap
+            method: leap
+            anonymous-identity: "abc\\n\\n321\\n\\"123"
+            identity: "abc\\n\\n321\\n\\"123"
+            password: "abc\\n\\n\\n\\"123"
+            ca-certificate: "abc\\n\\n321\\n\\"123"
+            client-certificate: "abc\\n\\n321\\n\\"123"
+            client-key: "abc\\n\\n321\\n\\"123"
+            client-key-password: "abc\\n\\n321\\n\\"123"
+            phase2-auth: "abc\\n\\n321\\n\\"123"
+            ''', skip_generated_yaml_validation=True)
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+country=abc\\n\\n321\\n\\"123
+network={
+  ssid=P"abc\\n\\n123\\\"x\\ry\\bz"
+  key_mgmt=WPA-EAP
+  eap=LEAP
+  ieee80211w=1
+  identity="abc\\n\\n321\\n\\\"123"
+  anonymous_identity="abc\\n\\n321\\n\\\"123"
+  psk="abc\\n\\n\\n\"123"
+  password="abc\\n\\n\\n\"123"
+  ca_cert="abc\\n\\n321\\n\\\"123"
+  client_cert="abc\\n\\n321\\n\\\"123"
+  private_key="abc\\n\\n321\\n\\\"123"
+  private_key_passwd="abc\\n\\n321\\n\"123"
+  phase2="auth=abc\\n\\n321\\n\\\"123"
 }
 """)
 
@@ -719,7 +761,7 @@ mode=adhoc
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   frequency=2442
   mode=1
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE
@@ -743,7 +785,7 @@ network={
         self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
 
 network={
-  ssid="homenet"
+  ssid=P"homenet"
   frequency=5035
   mode=1
   key_mgmt=WPA-PSK WPA-PSK-SHA256 SAE

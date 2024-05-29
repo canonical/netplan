@@ -1084,28 +1084,30 @@ netplan_state_finish_nm_write(
         GString *tmp = NULL;
         guint unmanaged = nd->backend == NETPLAN_BACKEND_NM ? 0 : 1;
 
+        g_autofree char* netdef_id = _netplan_scrub_string(nd->id);
         /* Special case: manage or ignore any device of given type on empty "match: {}" stanza */
         if (nd->has_match && !nd->match.driver && !nd->match.mac && !nd->match.original_name) {
             nm_type = type_str(nd);
             g_assert(nm_type);
             g_string_append_printf(nm_conf, "[device-netplan.%s.%s]\nmatch-device=type:%s\n"
                                             "managed=%d\n\n", netplan_def_type_name(nd->type),
-                                            nd->id, nm_type, !unmanaged);
+                                            netdef_id, nm_type, !unmanaged);
         }
         /* Normal case: manage or ignore devices by specific udev rules */
         else {
             const gchar *prefix = "SUBSYSTEM==\"net\", ACTION==\"add|change|move\",";
             const gchar *suffix = nd->backend == NETPLAN_BACKEND_NM ? " ENV{NM_UNMANAGED}=\"0\"\n" : " ENV{NM_UNMANAGED}=\"1\"\n";
             g_string_append_printf(udev_rules, "# netplan: network.%s.%s (on NetworkManager %s)\n",
-                                   netplan_def_type_name(nd->type), nd->id,
+                                   netplan_def_type_name(nd->type), netdef_id,
                                    unmanaged ? "deny-list" : "allow-list");
             /* Match by explicit interface name, if possible */
             if (nd->set_name) {
                 // simple case: explicit new interface name
-                g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, nd->set_name, suffix);
+                g_autofree char* set_name = _netplan_scrub_string(nd->set_name);
+                g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, set_name, suffix);
             } else if (!nd->has_match) {
                 // simple case: explicit netplan ID is interface name
-                g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, nd->id, suffix);
+                g_string_append_printf(udev_rules, "%s ENV{ID_NET_NAME}==\"%s\",%s", prefix, netdef_id, suffix);
             }
             /* Also, match by explicit (new) MAC, if available */
             if (nd->set_mac && _is_valid_macaddress(nd->set_mac)) {
@@ -1121,9 +1123,10 @@ netplan_state_finish_nm_write(
                 // match on original name glob
                 // TODO: maybe support matching on multiple name globs in the future (like drivers)
                 g_string_append(udev_rules, prefix);
-                if (nd->match.original_name)
-                    g_string_append_printf(udev_rules, " ENV{ID_NET_NAME}==\"%s\",", nd->match.original_name);
-
+                if (nd->match.original_name) {
+                    g_autofree char* original_name = _netplan_scrub_string(nd->match.original_name);
+                    g_string_append_printf(udev_rules, " ENV{ID_NET_NAME}==\"%s\",", original_name);
+                }
                 // match on (explicit) MAC address. Yes this would be unique on its own, but we
                 // keep it within the "full match" to make the logic more comprehensible.
                 if (nd->match.mac) {
@@ -1141,7 +1144,9 @@ netplan_state_finish_nm_write(
                         g_strfreev(split);
                     } else
                         drivers = g_strdup(nd->match.driver);
-                    g_string_append_printf(udev_rules, " ENV{ID_NET_DRIVER}==\"%s\",", drivers);
+
+                    g_autofree char* escaped_drivers = _netplan_scrub_string(drivers);
+                    g_string_append_printf(udev_rules, " ENV{ID_NET_DRIVER}==\"%s\",", escaped_drivers);
                     g_free(drivers);
                 }
                 g_string_append(udev_rules, suffix);
