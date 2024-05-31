@@ -751,10 +751,14 @@ class NetplanStatus(utils.NetplanCommand):
     def plain_print(self, *args, **kwargs):
         if len(args):
             lst = list(args)
-            for tag in MATCH_TAGS.findall(lst[0]):
-                # remove matching opening and closing tag
-                lst[0] = lst[0].replace('[{}]'.format(tag), '')\
-                               .replace('[/{}]'.format(tag), '')
+            while True:
+                tags = MATCH_TAGS.findall(lst[0])
+                if not tags:
+                    break
+                for tag in tags:
+                    # remove matching opening and closing tag
+                    lst[0] = lst[0].replace('[{}]'.format(tag), '')\
+                                   .replace('[/{}]'.format(tag), '')
             return print(*lst, **kwargs)
         return print(*args, **kwargs)
 
