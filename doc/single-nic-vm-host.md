@@ -1,6 +1,6 @@
 # How to configure a virtual machine host with a single network interface
 
-In this How to, you will learn how to configure a virtual machine host using netplan and virsh. The host in this scenario has a single network interface. 
+In this How to, you will learn how to configure a virtual machine host using Netplan and virsh. The host in this scenario has a single network interface. 
 
 
 ## Prerequisites
@@ -59,9 +59,9 @@ Remember to edit, configure, or disable firewall according to your needs. You ca
 
 
 
-### Edit netplan configuration
+### Edit Netplan configuration
 
-Edit netplan configuration file:  ```/etc/netplan/00-installer-config.yaml```
+Edit Netplan's configuration file:  ```/etc/netplan/00-installer-config.yaml```
   - Disable dhcp on NIC
   - Create a bridge interface: br0
   - Assign IPv4 address to br0
