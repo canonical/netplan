@@ -1,6 +1,6 @@
 # How to configure a virtual machine host with a single network interface and three VLANs
 
-In this How to, you will learn how to configure a virtual machine host using netplan and virsh. The host in this scenario has a single network interface and three VLAN networks. 
+In this How to, you will learn how to configure a virtual machine host using Netplan and virsh. The host in this scenario has a single network interface and three VLAN networks. 
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ sysctl -p /etc/sysctl.conf
 
 
 
-### Edit or firewall rules
+### Adopt firewall rules
 
 
 Remember to edit, configure, or disable firewall according to your needs. You can refer to [ufw documentation](https://help.ubuntu.com/community/UFW) if you need help configuring it.
@@ -66,9 +66,9 @@ Remember to edit, configure, or disable firewall according to your needs. You ca
 
 
 
-### Edit netplan configuration
+### Edit Netplan configuration
 
-Edit netplan configuration file:  ```/etc/netplan/00-installer-config.yaml```
+Edit the Netplan configuration file:  ```/etc/netplan/00-installer-config.yaml```
   - Disable dhcp on NIC.
   - Create two VLANs (40 and 41).
   - Create three Bridges.
