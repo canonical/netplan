@@ -11,15 +11,14 @@ to it.
 Each documentation page rendered on the web contains an **Edit this page** link in the top-right corner. Clicking this button leads you to the GitHub
 web editor where you can propose changes to the corresponding page.
 
-Please remember to first check the [latest version](https://netplan.readthedocs.io/en/latest/)
+Remember to first check the [latest version](https://netplan.readthedocs.io/en/latest/)
 of our documentation and make your proposal based on that revision.
 
 ## Contributing on GitHub
 
 To follow a Git development workflow, `checkout` the
 [Netplan repository](https://github.com/canonical/netplan) and contribute your
-changes as [pull requests](https://github.com/canonical/netplan/pulls), putting
-the `documentation` label for better visibility.
+changes as [pull requests](https://github.com/canonical/netplan/pulls).
 
 ## Directory structure
 All the documentation files are located in the `doc/` directory. The `doc/` directory contains sub-directories corresponding to different [Diátaxis](https://diataxis.fr/) sections:
@@ -35,7 +34,7 @@ Follow these steps to build the documentation on your local machine.
 1. Fork the [Netplan repository](https://github.com/canonical/netplan). Visit [Fork a repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) for instructions.
 
 2. Clone the repository to your machine:
-    ```shell
+    ```
     git clone git@github.com:your_user_name/netplan.git
     ```
 3. Navigate to the `doc/` directory within the cloned repository:
@@ -44,7 +43,7 @@ Follow these steps to build the documentation on your local machine.
     ```
 
 4. Install `make` on your machine if you don't have it:
-    ```shell
+    ```
     sudo apt-get install make
     ```
     :::{note}
@@ -52,7 +51,7 @@ Follow these steps to build the documentation on your local machine.
     :::
 
 5. Within the `doc/` directory, run the `make` command to build and serve the documentation:
-    ```shell
+    ```
     make run
     ```
     After you run the command, visit `http://127.0.0.1:8000` in your browser to view the local copy of the documentation.

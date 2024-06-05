@@ -16,26 +16,26 @@ An overview of the architecture can be found at [netplan.io/design](https://netp
 Find the full [documentation for Netplan](https://netplan.readthedocs.io) on "Read the Docs".
 
 To contribute documentation, these steps should get you started:
-* Fork and clone the repo:
-    ```shell
+1. Fork and clone the repo:
+    ```
     git clone git@github.com:your_user_name/netplan.git
     ```
-* Create a new branch:
-    ```shell
+2. Create a new branch:
+    ```
     git checkout -b <your_branch_name>
     ```
-* Navigate to the `doc/` directory and make your contribution:
-    ```shell
+3. Navigate to the `doc/` directory and make your contribution:
+    ```
     cd doc
     ```
-* View your documentation in the browser by running the `make` command from within the `doc/` directory:
-    ```shell
+4. View your documentation in the browser by running the `make` command from within the `doc/` directory:
+    ```
     make run
     ```
 
-* Test your contribution to ensure good quality.
+5. Test your contribution to ensure good quality.
 
-* Push your contribution to GitHub and create a pull request.
+6. Push your contribution to GitHub and create a pull request.
 
 If you face issues, refer to our [comprehensive contribution guide](https://netplan.readthedocs.io/en/stable/contribute-docs/).
 
