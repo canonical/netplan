@@ -1,4 +1,4 @@
-# How to configure a virtual machine host with a single network interface
+# How to configure a VM host with a single network interface
 
 In this How to, you will learn how to configure a virtual machine host using Netplan and virsh. The host in this scenario has a single network interface. 
 
