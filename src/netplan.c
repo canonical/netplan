@@ -501,6 +501,30 @@ err_path: return FALSE; // LCOV_EXCL_LINE
 }
 
 STATIC gboolean
+write_ra_overrides(yaml_event_t* event, yaml_emitter_t* emitter, const char* key, const NetplanNetDefinition* def, const NetplanRAOverrides* data)
+{
+    if (DIRTY_COMPLEX(def, *data)
+        || data->use_dns != NETPLAN_TRISTATE_UNSET
+        || data->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET
+        || data->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+        YAML_SCALAR_PLAIN(event, emitter, key);
+        YAML_MAPPING_OPEN(event, emitter);
+        YAML_BOOL_TRISTATE(def, event, emitter, "use-dns", data->use_dns);
+        if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE) {
+            YAML_STRING_PLAIN(def, event, emitter, "use-domains", "false");
+        } else if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE) {
+            YAML_STRING_PLAIN(def, event, emitter, "use-domains", "true");
+        } else if (data->use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
+            YAML_STRING_PLAIN(def, event, emitter, "use-domains", "route");
+        }
+        YAML_UINT_DEFAULT(def, event, emitter, "table", data->table, NETPLAN_ROUTE_TABLE_UNSPEC);
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
+    return TRUE;
+err_path: return FALSE; // LCOV_EXCL_LINE
+}
+
+STATIC gboolean
 write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     YAML_NONNULL_STRING(event, emitter, "mode", netplan_tunnel_mode_name(def->tunnel.mode));
@@ -772,6 +796,7 @@ _serialize_yaml(
     } else if (def->accept_ra == NETPLAN_RA_MODE_DISABLED) {
         YAML_NONNULL_STRING_PLAIN(event, emitter, "accept-ra", "false");
     }
+    write_ra_overrides(event, emitter, "ra-overrides", def, &def->ra_overrides);
 
     YAML_STRING(def, event, emitter, "macaddress", def->set_mac);
     YAML_STRING(def, event, emitter, "set-name", def->set_name);

@@ -403,6 +403,11 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > respond to Router Advertisements.  If unset use the host kernel default
   > setting.
 
+- **`ra-overrides`** (mapping)
+
+  > (networkd back end only) Overrides default IPv6 Router Advertisement (RA)
+  > behaviour; see the `IPv6 Router Advertisement Overrides` section below.
+
 - **`addresses`** (sequence of scalars and mappings)
 
   > Add static addresses to the interface in addition to the ones received
@@ -697,6 +702,35 @@ client processes as specified in the Netplan YAML.
     >
     > **Requires feature: `dhcp-use-domains`**
 
+## IPv6 Router Advertisement Overrides
+Overrides for IPv6 Router Advertisement (RA) behaviour (only supported with
+networkd back end).
+
+- **`ra-overrides`** (mapping)
+
+  > The `ra-overrides` mappings override the default IPv6 Router
+  > Advertisement behaviour.
+
+  - **`use-dns`** (boolean)
+
+    > Default: `true`. When `true`, the DNS servers received from the
+    > Router Advertisement will be used. Currently only has an effect
+    > on the networkd back end.
+
+  - **`use-domains`** (scalar)
+
+    > Takes a boolean, or the special value `route`. When true, the domain
+    > name received from the Router Advertisement will be used as DNS search
+    > domain over this link. If set to `route`, the domain name received
+    > from the IPv6 RA will be used for routing DNS queries only, but not
+    > for searching. Defaults to `false`.
+
+  - **`table`** (scalar)
+
+    > The routing table number for routes received in the IPv6 RA.
+    > Allowed values are positive integers starting from 1.
+    > Some values are already in use to refer to specific routing tables:
+    > see `{/etc,/usr/share}/iproute2/rt_tables`.
 
 ## Routing
 

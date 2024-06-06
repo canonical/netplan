@@ -417,6 +417,18 @@ interval_has_suffix(const char* param) {
     return TRUE;
 }
 
+STATIC gboolean
+ra_overrides_is_dirty(const NetplanRAOverrides* overrides) {
+    if(overrides->use_dns != NETPLAN_TRISTATE_UNSET)
+        return TRUE;
+    if(overrides->use_domains != NETPLAN_USE_DOMAIN_MODE_UNSET)
+        return TRUE;
+    if(overrides->table != NETPLAN_ROUTE_TABLE_UNSPEC)
+        return TRUE;
+
+    return FALSE;
+}
+
 
 STATIC void
 write_bond_parameters(const NetplanNetDefinition* def, GString* s)
@@ -1057,6 +1069,25 @@ _netplan_netdef_write_network_file(
     /* IP-over-InfiniBand, IPoIB */
     if (def->ib_mode != NETPLAN_IB_MODE_KERNEL) {
         g_string_append_printf(network, "\n[IPoIB]\nMode=%s\n", netplan_infiniband_mode_name(def->ib_mode));
+    }
+
+    /* ra-overrides */
+    if (ra_overrides_is_dirty(&def->ra_overrides)) {
+        g_string_append(network, "\n[IPv6AcceptRA]\n");
+
+        if (def->ra_overrides.use_dns != NETPLAN_TRISTATE_UNSET) {
+            g_string_append_printf(network, "UseDNS=%s\n", def->ra_overrides.use_dns ? "true" : "false");
+        }
+        if (def->ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_FALSE) {
+            g_string_append_printf(network, "UseDomains=%s\n", "false");
+        } else if (def->ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_TRUE) {
+            g_string_append_printf(network, "UseDomains=%s\n", "true");
+        } else if (def->ra_overrides.use_domains == NETPLAN_USE_DOMAIN_MODE_ROUTE) {
+            g_string_append_printf(network, "UseDomains=%s\n", "route");
+        }
+        if (def->ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
+            g_string_append_printf(network, "RouteTable=%d\n", def->ra_overrides.table);
+        }
     }
 
     if (network->len > 0 || link->len > 0) {

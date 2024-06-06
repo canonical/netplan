@@ -537,6 +537,7 @@ handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_p
     return TRUE;
 }
 
+
 /**
  * Generic handler for setting a npp->current.netdef string field from a scalar node
  * @data: offset into NetplanNetDefinition where the const char* field to write is
@@ -682,7 +683,7 @@ handle_netdef_bool(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
 }
 
 /**
- * Generic handler for tri-state settings that can bei "UNSET", "TRUE", or "FALSE".
+ * Generic handler for tri-state settings that can be "UNSET", "TRUE", or "FALSE".
  * @data: offset into NetplanNetDefinition where the guint field to write is located
  */
 STATIC gboolean
@@ -798,6 +799,38 @@ handle_netdef_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const 
 {
     npp->current.netdef->has_backend_settings_nm = TRUE;
     return handle_generic_str(npp, node, npp->current.netdef, data, error);
+}
+
+/**
+ * Generic handler for setting a npp->current.netdef use-domains field from a scalar node
+ * @data: offset into NetplanNetDefinition where the use-domains field to write is located
+ */
+STATIC gboolean
+handle_netdef_use_domains(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    NetplanUseDomainMode v;
+    guint offset = GPOINTER_TO_UINT(data);
+    NetplanUseDomainMode* dest = ((void*) npp->current.netdef + offset);
+
+    gboolean ret = handle_generic_bool(npp, node, npp->current.netdef, data, NULL);
+
+    if (ret) {
+        if (*dest) {
+            v = NETPLAN_USE_DOMAIN_MODE_TRUE;
+        } else {
+            v = NETPLAN_USE_DOMAIN_MODE_FALSE;
+        }
+    } else if (g_ascii_strcasecmp(scalar(node), "route") == 0) {
+        v = NETPLAN_USE_DOMAIN_MODE_ROUTE;
+    } else {
+        return yaml_error(npp, node, error,
+                          "Invalid use-domains options '%s', must be a boolean, or the special value 'route'.",
+                          scalar(node));
+    }
+
+    *dest = v;
+    mark_data_as_dirty(npp, dest);
+    return TRUE;
 }
 
 /*
@@ -2876,6 +2909,13 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {NULL},
 };
 
+static const mapping_entry_handler ra_overrides_handlers[] = {
+    {"use-dns", YAML_SCALAR_NODE, {.generic=handle_netdef_tristate}, netdef_offset(ra_overrides.use_dns)},
+    {"use-domains", YAML_SCALAR_NODE, {.generic=handle_netdef_use_domains}, netdef_offset(ra_overrides.use_domains)},
+    {"table", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ra_overrides.table)},
+    {NULL},
+};
+
 /* Handlers shared by all link types */
 #define COMMON_LINK_HANDLERS \
     {"accept-ra", YAML_SCALAR_NODE, {.generic=handle_accept_ra}, netdef_offset(accept_ra)}, \
@@ -2888,6 +2928,7 @@ static const mapping_entry_handler dhcp6_overrides_handlers[] = {
     {"dhcp-identifier", YAML_SCALAR_NODE, {.generic=handle_dhcp_identifier}, NULL}, \
     {"dhcp4-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp4_overrides_handlers}}, NULL}, \
     {"dhcp6-overrides", YAML_MAPPING_NODE, {.map={.handlers=dhcp6_overrides_handlers}}, NULL}, \
+    {"ra-overrides", YAML_MAPPING_NODE, {.map={.handlers=ra_overrides_handlers}}, NULL}, \
     {"gateway4", YAML_SCALAR_NODE, {.generic=handle_gateway4}, NULL}, \
     {"gateway6", YAML_SCALAR_NODE, {.generic=handle_gateway6}, NULL}, \
     {"ipv6-address-generation", YAML_SCALAR_NODE, {.generic=handle_netdef_addrgen}, NULL}, \
