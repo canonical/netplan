@@ -74,7 +74,7 @@ typedef struct dhcp_overrides {
     guint metric;
 } NetplanDHCPOverrides;
 
-typedef struct ipv6_overrides {
+typedef struct ra_overrides {
     NetplanTristate use_dns;
     NetplanUseDomainMode use_domains;
     guint table;
