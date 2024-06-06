@@ -723,7 +723,7 @@ networkd back end).
     > name received from the Router Advertisement will be used as DNS search
     > domain over this link. If set to `route`, the domain name received
     > from the IPv6 RA will be used for routing DNS queries only, but not
-    > for searching.
+    > for searching. Defaults to `false`.
 
   - **`table`** (scalar)
 
