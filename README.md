@@ -15,9 +15,33 @@ An overview of the architecture can be found at [netplan.io/design](https://netp
 
 Find the full [documentation for Netplan](https://netplan.readthedocs.io) on "Read the Docs".
 
+To contribute documentation, these steps should get you started:
+1. Fork and clone the repo:
+    ```
+    git clone git@github.com:your_user_name/netplan.git
+    ```
+2. Create a new branch:
+    ```
+    git checkout -b <your_branch_name>
+    ```
+3. Navigate to the `doc/` directory and make your contribution:
+    ```
+    cd doc
+    ```
+4. View your documentation in the browser by running the `make` command from within the `doc/` directory:
+    ```
+    make run
+    ```
+
+5. Test your contribution to ensure good quality.
+
+6. Push your contribution to GitHub and create a pull request.
+
+If you face issues, refer to our [comprehensive contribution guide](https://netplan.readthedocs.io/en/stable/contribute-docs/).
+
 # Build using Meson
 
-Steps to build netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
+Steps to build Netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
 
 * meson setup build --prefix=/usr [-Db_coverage=true]
 * meson compile -C build
