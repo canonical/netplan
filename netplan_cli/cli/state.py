@@ -22,7 +22,7 @@ import ipaddress
 import json
 import logging
 import re
-import socket
+from socket import inet_ntop, AF_INET, AF_INET6
 import subprocess
 import sys
 from io import StringIO
@@ -107,7 +107,7 @@ class Interface():
                 if int(itr[0]) == int(self.idx):
                     ipfamily = itr[1]
                     dns = itr[2]
-                    self.dns_addresses.append(socket.inet_ntop(ipfamily, b''.join([v.to_bytes(1, 'big') for v in dns])))
+                    self.dns_addresses.append(inet_ntop(ipfamily, b''.join([v.to_bytes(1, 'big') for v in dns])))
         self.dns_search: list = None
         if resolved_data[1]:
             self.dns_search = []
@@ -153,7 +153,7 @@ class Interface():
                 for route in self.routes:
                     if (route.get('protocol') == 'ra'
                             and route.get('to') != 'default'
-                            and route.get('family') == 10):
+                            and route.get('family') == AF_INET6.value):
                         ra_networks.add(ipaddress.ip_interface(route['to']).network)
 
             self.addresses = []
@@ -519,10 +519,10 @@ class SystemConfigState():
         # IPv4: 2, IPv6: 10
         if data4:
             for route in data4:
-                route.update({'family': socket.AF_INET.value})
+                route.update({'family': AF_INET.value})
         if data6:
             for route in data6:
-                route.update({'family': socket.AF_INET6.value})
+                route.update({'family': AF_INET6.value})
         return (data4, data6)
 
     @classmethod
