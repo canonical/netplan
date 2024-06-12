@@ -18,6 +18,7 @@
 from collections import defaultdict
 import ipaddress
 import json
+from socket import AF_INET, AF_INET6
 from typing import AbstractSet
 
 from netplan.netdef import NetplanRoute
@@ -508,10 +509,10 @@ class NetplanDiffState():
         if gateway4 := config.get('gateway4'):
             default_routes = [route for route in routes
                               if route.get('to') == 'default'
-                              and route.get('family') == 2
+                              and route.get('family') == AF_INET.value
                               and route.get('protocol') == 'static']
 
-            route = NetplanRoute(to='default', via=gateway4, family=2, protocol='static')
+            route = NetplanRoute(to='default', via=gateway4, family=AF_INET.value, protocol='static')
 
             if len(default_routes) == 1:
                 if metric := default_routes[0].get('metric'):
@@ -524,13 +525,13 @@ class NetplanDiffState():
         if gateway6 := config.get('gateway6'):
             default_routes = [route for route in routes
                               if route.get('to') == 'default'
-                              and route.get('family') == 10
+                              and route.get('family') == AF_INET6.value
                               and route.get('protocol') == 'static']
 
             # Compress the address so it will match the system representation
             gateway6 = self._compress_ipv6_address(gateway6)
 
-            route = NetplanRoute(to='default', via=gateway6, family=10, protocol='static')
+            route = NetplanRoute(to='default', via=gateway6, family=AF_INET6.value, protocol='static')
 
             if len(default_routes) == 1:
                 if metric := default_routes[0].get('metric'):
@@ -576,9 +577,9 @@ class NetplanDiffState():
             if route.to != 'default':
                 route_to = ipaddress.ip_interface(route.to)
                 if route_to.is_link_local:
-                    if route.family == 10 and 'ipv6' in link_local:
+                    if route.family == AF_INET6.value and 'ipv6' in link_local:
                         continue
-                    if route.family == 2 and 'ipv4' in link_local:
+                    if route.family == AF_INET.value and 'ipv4' in link_local:
                         continue
 
             # Filter out host scoped routes
@@ -587,11 +588,12 @@ class NetplanDiffState():
                 continue
 
             # Filter out the default IPv6 multicast route
-            if route.family == 10 and route.type == 'multicast' and route.to == 'ff00::/8':
+            if route.family == AF_INET6.value and route.type == 'multicast' and route.to == 'ff00::/8':
                 continue
 
             # Filter IPv6 local routes
-            if route.family == 10 and route.protocol != 'ra' and (route.to in local_networks or route.to in addresses):
+            if (route.family == AF_INET6.value and route.protocol != 'ra'
+                    and (route.to in local_networks or route.to in addresses)):
                 continue
 
             routes.add(route)
