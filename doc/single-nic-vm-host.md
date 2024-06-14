@@ -1,194 +1,174 @@
 # How to configure a VM host with a single network interface
 
-This guide shows how to configure a virtual-machine host using Netplan and `virsh`. The host in this scenario has a single network interface. 
+This guide shows how to configure a virtual-machine host using Netplan and the `virsh` interface. The host in this scenario has a single network interface.
 
 
 ## Prerequisites
 
-Before we can get started, we need to establish our setup and make sure our prerequisite steps are completed and tested.
+Ensure the following prerequisites are satisfied.
 
-### Reference setup
+### System
 
-- A computer with a single NIC.
+- Computer with a single network interface card (NIC).
 - Ubuntu Server installed.
-- QEMU/KVM installed.
-- IPv4: 
-    - Network: 192.168.150.0/24
-    - DNS1: 1.1.1.1
-    - DNS2: 8.8.8.8
-- A switch
-- A router/firewall
-    - IPv4: 192.168.150.254/24
-    - Firewall policies, DNS, DHCP configured and tested.
+- KVM and QEMU installed; see [KVM installation](https://help.ubuntu.com/community/KVM/Installation).
+- Administrator privileges.
 
 
-### Elevated privileges
-All commands in this tutorial assume you are using elevated privileges.
+### Networking
 
-### QEMU/KVM installed
-QEMU/KVM should be installed. Installation instructions can be found on [this Ubuntu Wiki page](https://help.ubuntu.com/community/KVM/Installation).
-
-### Disable netfilter for bridged interfaces
-
-We need to disable netfilter for bridged interfaces, in order to allow communications between the homeserver, its virtual machines, and the devices in the local VLANs.
-
-- Edit this file: ```/etc/systemctl.conf```
-- Add the following lines to the file
-
-```
-net.bridge.bridge-nf-call-iptables = 0
-net.bridge.bridge-nf-call-ip6tables = 0
-net.bridge.bridge-nf-call-arptables = 0
-```
-
-- Apply the changes immediately, without rebooting the host.
-
-```
-sysctl -p /etc/sysctl.conf
-```
+- IPv4:
+  - Network: 192.168.150.0/24
+  - DNS1: 1.1.1.1
+  - DNS2: 8.8.8.8
+- Switch
+- Router
+  - IPv4: 192.168.150.254/24
+  - DNS and DHCP configured
+- Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
 
-### Edit or firewall rules
+#### Disable netfilter for bridged interfaces
 
+To allow communication between the host server, its virtual machines, and the devices in the local VLANs, disable netfilter for bridged interfaces:
 
-Remember to edit, configure, or disable firewall according to your needs. You can refer to [ufw documentation](https://help.ubuntu.com/community/UFW) if you need help configuring it.
+1. Add the following lines to the `/etc/systemctl.conf` configuration file:
 
+    ```
+    net.bridge.bridge-nf-call-iptables = 0
+    net.bridge.bridge-nf-call-ip6tables = 0
+    net.bridge.bridge-nf-call-arptables = 0
+    ```
+
+2. Apply the changes immediately, without rebooting the host.
+
+    ```none
+    sysctl -p /etc/sysctl.conf
+    ```
 
 
 ## Netplan configuration
 
+Configure Netplan:
+
+- Disable DHCP on the NIC.
+- Create a bridge interface: `br0`.
+- Assign IPv4 address to `br0`.
+- Configure routes.
+- Configure DNS.
+
+1. To achieve this, modify the Netplan configuration file, `/etc/netplan/00-installer-config.yaml`,  as follows:
+
+    ```yaml
+    # network configuration:
+    # eno1 - Single NIC on the host
+    # br0 - bridge for the eon1 interface
+
+    network:
+      version: 2
+      ethernets:
+        eno1:
+          dhcp4: false
+      bridges:
+        br0:
+          interfaces: [eno1]
+          dhcp4: false
+          addresses: [192.168.150.1/24]
+          routes:
+            - to: default
+              via: 192.168.150.254
+              metric: 100
+              on-link: true
+          nameservers:
+            addresses: [1.1.1.1, 8.8.8.8]
+            search: []
+    ```
+
+2. Test the new network settings:
+
+    ```none
+    netplan try
+    ```
+
+3. Apply the configuration:
+
+    ```
+    netplan apply
+    ```
 
 
-### Edit Netplan configuration
+## Configure virtual networks using `virsh`
 
-Edit Netplan's configuration file:  ```/etc/netplan/00-installer-config.yaml```
-  - Disable dhcp on NIC
-  - Create a bridge interface: br0
-  - Assign IPv4 address to br0
-  - Configure routes
-  - Configure DNS
-
-The configuration file should look like this:
-
-```
-# network configuration:
-# eno1 - Single NIC on the host
-# br0 - bridge for interface eno1
-
-network:
-  version: 2
-  ethernets:
-    eno1:
-      dhcp4: false
-  bridges:
-    br0:
-      interfaces: [eno1]
-      dhcp4: false
-      addresses: [192.168.150.1/24]
-      routes:
-        - to: default
-          via: 192.168.150.254
-          metric: 100
-          on-link: true
-      nameservers:
-        addresses: [1.1.1.1, 8.8.8.8]
-        search: []
-```
-
-### Test and apply network settings
-
-Before we apply settings, you can check without applying with this command.
-
-```
-netplan try
-```
-
-If no major issues are reported, you can apply the configuration with the following command.
-
-```
-netplan apply
-```
-
-
-## Configure virtual networks in virsh
-
-The next step is to configure virtual networks defined in virsh. While not strictly necessary, it will make VM deployment and management easier.
+The next step is to configure virtual networks defined for `virsh` domains. This is not necessary, but it makes VM deployment and management easier.
 
 
 ### Check networking and delete the default network
 
-Check virtual networks with this command. 
+1. Check existing virtual networks:
 
-```
-virsh net-list --all
-```
+    ```none
+    virsh net-list --all
+    ```
 
+   There should be one default network as in this example:
 
-There should be one default network, like in the example below.
+    ```
+    Name      State    Autostart   Persistent
+    --------------------------------------------
+    default   active   yes         yes
+    ```
 
-```
- Name      State    Autostart   Persistent
---------------------------------------------
- default   active   yes         yes
+   If needed, use the `net-info` command to gather more details about the default network:
 
-```
+    ```
+    virsh net-info default
+    ```
 
-If needed, we can use the command below to gather more details about the default network.
+2. Remove the default network:
 
-```
-virsh net-info default
-```
+    ```
+    virsh net-destroy default
+    virsh net-undefine default
+    ```
 
-We are now going to remove the default network.
+3. Check network list to confirm the changes have been applied. There should no networks defined now:
 
-```
-virsh net-destroy default
-virsh net-undefine default
-```
-
-Checking network list again to confirm our changes were applied. We expect to see no networks defined now.
-
-```
-virsh net-list --all
-```
+    ```none
+    virsh net-list --all
+    ```
 
 
 ### Create bridged networks
 
-Before we define virtual networks with virsh, we are going to create a folder and enter it.
+1. Create a directory for VM data. For example:
 
-```
-mkdir /mnt/vmstore/
-cd /mnt/vmstore/
-```
+    ```none
+    mkdir /mnt/vmstore/
+    cd /mnt/vmstore/
+    ```
 
+2. Define the bridge interface, `br0`, for libvirt by creating the `/mnt/vmstore/net-br0.xml` file with  the following contents:
 
-#### prepare br0 for libvirt
+    ```xml
+    <network>
+        <name>br0</name>
+        <forward mode="bridge" />
+        <bridge name="br0" />
+    </network>
+    ```
 
-Create and edit this file: ```/mnt/vmstore/net-br0.xml```
+3. Enable the virtual (bridged) network. This consists of three steps:
 
-```
-<network>
-    <name>br0</name>
-    <forward mode="bridge" />
-    <bridge name="br0" />
-</network>
-```
+   1. Define the network.
+   2. Start the network.
+   3. Set the network to autostart.
 
+    ```
+    virsh net-define net-br0.xml
+    virsh net-start br0
+    virsh net-autostart br0
+    ```
 
-#### Enable virtual network
+4. Test the bridged networks.
 
-Now that virtual network is ready, we need to define, start, and set for autostart it.
-
-
-```
-virsh net-define net-br0.xml
-virsh net-start br0
-virsh net-autostart br0
-```
-
-
-### Test bridged networks 
-
-Congratulations, the configuration is complete. We can now create a virtual machine, assign the desired network from our preferred VM configuration tool, and run some tests.
-
+Congratulations, the configuration is complete. You can now create a virtual machine, assign the desired network using your preferred VM configuration tool, and run some tests.
