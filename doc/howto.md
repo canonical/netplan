@@ -29,6 +29,7 @@ creating-link-aggregation
 dbus-config
 netplan-everywhere
 single-nic-vm-host
+single-nic-vm-host-with-vlans
 ```
 
 
