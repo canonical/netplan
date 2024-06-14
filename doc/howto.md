@@ -30,6 +30,7 @@ dbus-config
 netplan-everywhere
 single-nic-vm-host
 single-nic-vm-host-with-vlans
+multi-nic-vm-host-with-bonds-and-vlans
 ```
 
 
