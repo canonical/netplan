@@ -765,10 +765,23 @@ UseMTU=true
   version: 2
   renderer: networkd
   ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-generation: stable-privacy
     enblue:
       dhcp6: yes
       ipv6-address-generation: eui64''')
-        self.assert_networkd({'enblue.network': '''[Match]\nName=enblue\n
+        self.assert_networkd({'engreen.network': '''[Match]\nName=engreen\n
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+IPv6Token=prefixstable
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+''',
+                              'enblue.network': '''[Match]\nName=enblue\n
 [Network]
 DHCP=ipv6
 LinkLocalAddressing=ipv6

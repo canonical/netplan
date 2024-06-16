@@ -910,12 +910,20 @@ _netplan_netdef_write_network_file(
             g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
     if (def->ip6_addr_gen_token) {
         g_string_append_printf(network, "IPv6Token=static:%s\n", def->ip6_addr_gen_token);
-    } else if (def->ip6_addr_gen_mode > NETPLAN_ADDRGEN_EUI64) {
-        /* EUI-64 mode is enabled by default, if no IPv6Token= is specified */
-        /* TODO: Enable stable-privacy mode for networkd, once PR#16618 has been released:
-         *       https://github.com/systemd/systemd/pull/16618 */
-        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: ipv6-address-generation mode is not supported by networkd\n", def->id);
-        return FALSE;
+    } else {
+        switch (def->ip6_addr_gen_mode) {
+            /* EUI-64 mode is enabled by default, if no IPv6Token= is specified */
+            case NETPLAN_ADDRGEN_DEFAULT:
+            case NETPLAN_ADDRGEN_EUI64:
+                break;
+            case NETPLAN_ADDRGEN_STABLEPRIVACY:
+                g_string_append(network, "IPv6Token=prefixstable\n");
+                break;
+            // LCOV_EXCL_START
+            default:
+                g_assert_not_reached();
+            // LCOV_EXCL_STOP
+        }
     }
     if (def->accept_ra == NETPLAN_RA_MODE_ENABLED)
         g_string_append_printf(network, "IPv6AcceptRA=yes\n");

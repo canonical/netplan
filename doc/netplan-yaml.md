@@ -451,8 +451,8 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 - **`ipv6-address-generation`** (scalar) – since 0.99
 
   > Configure method for creating the address for use with RFC4862 IPv6
-  > Stateless Address Auto-configuration (only supported with `NetworkManager`
-  > back end). Possible values are `eui64` or `stable-privacy`.
+  > Stateless Address Auto-configuration.
+  > Possible values are `eui64` or `stable-privacy`.
 
 - **`ipv6-address-token`** (scalar) – since 0.100
 

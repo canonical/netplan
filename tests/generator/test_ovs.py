@@ -1061,10 +1061,15 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
   bridges:
     br0:
       openvswitch: {}
-      ipv6-address-generation: stable-privacy
+      dhcp4: true
+      dhcp4-overrides:
+        use-domains: true
+      dhcp6: true
+      dhcp6-overrides:
+        use-domains: false
 ''', expect_fail=True)
         self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
-        self.assertIn('br0: ipv6-address-generation mode is not supported by networkd', err)
+        self.assertIn('br0: networkd requires that use-domains has the same value', err)
 
     def test_ovs_duplicates_when_parser_needs_second_pass(self):
         ''' Test case for LP: #2007682
