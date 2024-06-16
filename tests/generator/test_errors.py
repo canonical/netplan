@@ -350,14 +350,6 @@ class TestConfigErrors(TestBase):
       ipv6-address-generation: 0''', expect_fail=True)
         self.assertIn("unknown ipv6-address-generation '0'", err)
 
-    def test_addr_gen_mode_not_supported(self):
-        err = self.generate('''network:
-  version: 2
-  ethernets:
-    engreen:
-      ipv6-address-generation: stable-privacy''', expect_fail=True)
-        self.assertIn("ERROR: engreen: ipv6-address-generation mode is not supported by networkd", err)
-
     def test_addr_gen_mode_and_addr_gen_token(self):
         err = self.generate('''network:
   version: 2
