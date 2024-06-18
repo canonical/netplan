@@ -71,6 +71,9 @@ class NetplanDiffState():
         for interface, config in netplan_interfaces.items():
             full_state['interfaces'][interface].update(config)
 
+        for interface in self.system_state.interface_list:
+            full_state['interfaces'][interface.name]['data_sources'] = interface.data_sources
+
         return full_state
 
     def get_diff(self, interface: str = '') -> dict:
@@ -246,62 +249,51 @@ class NetplanDiffState():
 
     def _analyze_nameservers(self, config: dict, iface: dict) -> None:
         name = list(iface.keys())[0]
+        data_sources = config.get('data_sources', {}).get('dns', {})
 
         # TODO: improve analysis of configuration received from DHCP
+        # when Network Manager is used
 
         netplan_nameservers = set(config.get('netplan_state', {}).get('nameservers_addresses', []))
         system_nameservers = set(config.get('system_state', {}).get('nameservers_addresses', []))
 
+        dhcp4_ns = {ns for ns in data_sources if data_sources[ns] == 'DHCPv4'}
+        dhcp6_ns = {ns for ns in data_sources if data_sources[ns] == 'DHCPv6'}
+        ndisc_ns = {ns for ns in data_sources if data_sources[ns] == 'NDisc'}
+
         # Filter out dynamically assigned DNS data
-        # Here we implement some heuristics to try to filter out dynamic DNS configuration
-        #
-        # If ipv6 link-local is enabled, filter out DNS IPs that are link local
-        dynamic_ns = set()
         accept_ra_enabled = config.get('netplan_state', {}).get('accept_ra') is not False
         link_local_enabled = 'ipv6' in config.get('netplan_state', {}).get('link_local', [])
-        link_local_ns = {ns for ns in system_nameservers if ipaddress.ip_interface(ns).is_link_local}
-        dynamic_ns.update(link_local_ns)
 
-        if link_local_enabled and accept_ra_enabled:
-            system_nameservers = system_nameservers - link_local_ns
-
-        # If RA is enabled, filter out DNS IPs that are part of the RA network
-        system_routes = config.get('system_state', {}).get('routes', [])
-        ra_routes = [ipaddress.ip_interface(r.to).network for r in system_routes
-                     if r.protocol == 'ra' and r.to != 'default']
-        filtered = set()
-        for ns in system_nameservers:
-            if isinstance(ipaddress.ip_interface(ns), ipaddress.IPv6Address):
-                network = ipaddress.ip_interface(f'{ns}/64').network
-                if network not in ra_routes:
-                    filtered.add(ns)
-                else:
-                    dynamic_ns.add(ns)
-            else:
-                filtered.add(ns)
-        if link_local_enabled and accept_ra_enabled:
-            system_nameservers = filtered
-
-        # If the netplan configuration has DHCP enabled and an empty list of nameservers
-        # we assume it's dynamic. So we don't take these addresses into account when comparing
-        # them, except for the ones we already identified as RA/LL.
-        # Note: Some useful information can be found in /var/run/systemd/netif/leases/
-        # but the lease files have a comment saying they shouldn't be parsed.
-        # There is a feature request to expose more DHCP information via the DBus API
-        # https://github.com/systemd/systemd/issues/27699
-        if not netplan_nameservers:
+        if dhcp4_ns or dhcp6_ns or ndisc_ns:
             if config.get('netplan_state', {}).get('dhcp4'):
-                system_nameservers = {ns for ns in system_nameservers
-                                      if not isinstance(ipaddress.ip_address(ns), ipaddress.IPv4Address)}
-            if config.get('netplan_state', {}).get('dhcp6'):
-                filtered = set()
-                for ns in system_nameservers:
-                    if isinstance(ipaddress.ip_address(ns), ipaddress.IPv6Address):
-                        # Keep addresses that were flagged as RA/LL
-                        if ns in dynamic_ns:
-                            filtered.add(ns)
+                system_nameservers = system_nameservers - dhcp4_ns
 
-                system_nameservers = filtered
+            # networkd will enable DHCPv6 if RA is enabled even if DHCPv6 is set to false
+            # see systemd.network(5)
+            if accept_ra_enabled:
+                system_nameservers = system_nameservers - dhcp6_ns
+
+            link_local_ns = {ns for ns in system_nameservers if ns in ndisc_ns}
+            if link_local_enabled and accept_ra_enabled:
+                system_nameservers = system_nameservers - link_local_ns
+        else:
+            # Heuristic used when we don't have data sources for DNS information (when
+            # Network Manager is used for example)
+            # If the netplan configuration has DHCP enabled and an empty list of nameservers
+            # we assume it's dynamic. So we don't take these addresses into account when comparing
+            # them, except for the ones we already identified as RA/LL.
+            # Note: Some useful information can be found in /var/run/systemd/netif/leases/
+            # but the lease files have a comment saying they shouldn't be parsed.
+            # There is a feature request to expose more DHCP information via the DBus API
+            # https://github.com/systemd/systemd/issues/27699
+            if not netplan_nameservers:
+                if config.get('netplan_state', {}).get('dhcp4'):
+                    system_nameservers = {ns for ns in system_nameservers
+                                          if not isinstance(ipaddress.ip_address(ns), ipaddress.IPv4Address)}
+                if config.get('netplan_state', {}).get('dhcp6'):
+                    system_nameservers = {ns for ns in system_nameservers
+                                          if not isinstance(ipaddress.ip_address(ns), ipaddress.IPv6Address)}
 
         present_only_in_netplan = netplan_nameservers.difference(system_nameservers)
         present_only_in_system = system_nameservers.difference(netplan_nameservers)
@@ -320,12 +312,27 @@ class NetplanDiffState():
         name = list(iface.keys())[0]
         netplan_search_domains = set(config.get('netplan_state', {}).get('nameservers_search', []))
         system_search_domains = set(config.get('system_state', {}).get('nameservers_search', []))
+        data_sources = config.get('data_sources', {}).get('search', {})
+        dhcp4_search = {s for s in data_sources if data_sources[s] == 'DHCPv4'}
+        dhcp6_search = {s for s in data_sources if data_sources[s] == 'DHCPv6'}
 
-        # If the netplan configuration has DHCP enabled and an empty list of search domains
-        # we assume it's dynamic
-        if not netplan_search_domains:
-            if config.get('netplan_state', {}).get('dhcp4') or config.get('netplan_state', {}).get('dhcp6'):
-                system_search_domains = set()
+        if dhcp4_search or dhcp6_search:
+            if config.get('netplan_state', {}).get('dhcp4'):
+                system_search_domains = system_search_domains - dhcp4_search
+
+            # networkd will enable DHCPv6 if RA is enabled even if DHCPv6 is set to false
+            # see systemd.network(5)
+            accept_ra_enabled = config.get('netplan_state', {}).get('accept_ra') is not False
+            if accept_ra_enabled:
+                system_search_domains = system_search_domains - dhcp6_search
+        else:
+            # Heuristic used when we don't have data sources for DNS information (when
+            # Network Manager is used for example)
+            # If the netplan configuration has DHCP enabled and an empty list of search domains
+            # we assume it's dynamic
+            if not netplan_search_domains:
+                if config.get('netplan_state', {}).get('dhcp4') or config.get('netplan_state', {}).get('dhcp6'):
+                    system_search_domains = set()
 
         present_only_in_netplan = netplan_search_domains.difference(system_search_domains)
         present_only_in_system = system_search_domains.difference(netplan_search_domains)

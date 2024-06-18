@@ -467,3 +467,70 @@ class TestInterface(unittest.TestCase):
         self.assertNotIn('type', json)
         self.assertNotIn('id', json)
         self.assertNotIn('backend', json)
+
+    def test_find_data_sources(self):
+        nd_data = [{
+            'Index': 42,
+            'DNS': [
+                {
+                    'Address': [192, 168, 0, 1],
+                    'ConfigSource': 'DHCPv4',
+                },
+                {
+                    'Address': [0xab, 0xcd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x12, 0x34],
+                    'ConfigSource': 'DHCPv6',
+                },
+            ],
+            'SearchDomains': [
+                {
+                    'Domain': 'mydomain.local',
+                    'ConfigSource': 'DHCPv6',
+                },
+            ],
+            'Addresses': [
+                {
+                    'Address': [192, 168, 0, 254],
+                    'PrefixLength': 24,
+                    'ConfigSource': 'DHCPv4',
+                },
+                {
+                    'Address': [0xab, 0xcd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x56, 0x78],
+                    'PrefixLength': 64,
+                    'ConfigSource': 'DHCPv6',
+                },
+            ],
+        }]
+
+        fake_dev = {
+            'ifindex': 42,
+            'ifname': 'fakedev0',
+            'flags': [],
+            'operstate': 'DOWN',
+            'addr_info': [
+                {
+                    'local': '192.168.0.254',
+                    'prefixlen': 24,
+                    'dynamic': True
+                },
+                {
+                    'local': 'abcd::5678',
+                    'prefixlen': 64,
+                    'dynamic': True
+                }
+            ]
+        }
+        itf = Interface(fake_dev, nd_data, [], (None, None), (None, None))
+
+        expected = {
+            'dns': {
+                '192.168.0.1': 'DHCPv4',
+                'abcd::1234': 'DHCPv6'
+            },
+            'search': {
+                'mydomain.local': 'DHCPv6'
+            },
+            'addresses': {
+                '192.168.0.254/24': 'DHCPv4',
+                'abcd::5678/64': 'DHCPv6'}
+        }
+        self.assertDictEqual(expected, itf.data_sources)

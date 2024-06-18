@@ -93,11 +93,19 @@ class Interface():
         self.bond: str = None
         self.vrf: str = None
         self.members: List[str] = []
+        self.data_sources = {}
 
         # Filter networkd/NetworkManager data
         nm_data = nm_data or []  # avoid 'None' value on systems without NM
         self.nd: JSON = next((x for x in nd_data if x['Index'] == self.idx), None)
         self.nm: JSON = next((x for x in nm_data if x['device'] == self.name), None)
+
+        # Map networkd data (such as IP addresses and nameservers)
+        # to their sources (such as dhcp4, dhcp6, etc)
+        # TODO: the same information seems to be available for Network Manager
+        # through its DBus API.
+        if self.nd:
+            self.data_sources = self._find_data_sources(self.nd)
 
         # Filter resolved's DNS data
         self.dns_addresses: list = None
@@ -164,7 +172,7 @@ class Interface():
                 if addr.get('dynamic', False):
                     flags.append('dynamic')
 
-                # Try to determine if the address was received via RA
+                # Try to determine if the address was received via RA/DHCPv6
                 # IPv6 RA addresses might not have a flag indicating it so we check
                 # for a route entry (received via RA) where the destination is the same network
                 # the address belongs to.
@@ -173,11 +181,15 @@ class Interface():
                     if ip_addr.network in ra_networks:
                         flags.append('ra')
 
+                    if ip_ds := self.data_sources.get('addresses', {}).get(str(ip_addr)):
+                        if ip_ds == 'DHCPv6':
+                            flags.append('dhcp')
+
                 if self.routes:
                     for route in self.routes:
                         if ('from' in route and
                                 ipaddress.ip_address(route['from']) == ipaddress.ip_address(addr['local'])):
-                            if route['protocol'] == 'dhcp':
+                            if route['protocol'] == 'dhcp' and 'dhcp' not in flags:
                                 flags.append('dhcp')
                                 break
                 ip_addr = addr['local'].lower()
@@ -341,6 +353,43 @@ class Interface():
         elif self.backend == 'NetworkManager':
             return 'manual' if self.nm['autoconnect'] == 'no' else None
         return None
+
+    def _find_data_sources(self, data: JSON) -> dict:
+
+        # The list of networkd data sources can be found here:
+        # https://github.com/systemd/systemd/blob/v256/src/network/networkd-util.c#L15
+
+        sources = {}
+
+        # DNS nameservers
+        if addresses := data.get('DNS', []):
+            sources['dns'] = {}
+            for dns in addresses:
+                addr = ipaddress.ip_interface(bytes(dns['Address']))
+                addr_str = str(addr.ip)
+                source = dns['ConfigSource']
+                sources['dns'][addr_str] = source
+
+        # DNS search domains
+        if domains := data.get('SearchDomains', []):
+            sources['search'] = {}
+            for search in domains:
+                domain = search['Domain']
+                source = search['ConfigSource']
+                sources['search'][domain] = source
+
+        # IP addresses
+        if addresses := data.get('Addresses', []):
+            sources['addresses'] = {}
+            for ip in addresses:
+                addr = ipaddress.ip_interface(bytes(ip['Address']))
+                prefix = ip['PrefixLength']
+                full_addr = ipaddress.ip_interface(str(addr.ip) + f'/{prefix}')
+                addr_str = str(full_addr)
+                source = ip['ConfigSource']
+                sources['addresses'][addr_str] = source
+
+        return sources
 
 
 class SystemConfigState():
