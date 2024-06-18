@@ -369,8 +369,10 @@ class TestNetplanDiff(unittest.TestCase):
         }
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'lo'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -402,6 +404,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface = Mock(spec=Interface)
         interface.name = 'eth0'
         interface.netdef_id = 'eth0'
+        interface.data_sources = {}
         system_state.interface_list = [interface]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -432,6 +435,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'enp0s1'
         interface1.netdef_id = 'enp0s1'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -467,9 +471,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynics'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'enp0s1'
         interface2.netdef_id = 'enp0s1'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -587,6 +593,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynic'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -904,14 +911,28 @@ class TestNetplanDiff(unittest.TestCase):
             }
         }
 
-        system_state.interface_list = []
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'eth0'
+        interface1.data_sources = {
+            'addresses': {
+                'fd42:bc43:e20e:8cf7:8840:4dff:fea6:655d': 'NDisc'
+            },
+            'dns': {
+                '10.86.126.1': 'DHCPv4',
+                'fd42:bc43:e20e:8cf7::1': 'DHCPv6',
+                'fe80::216:3eff:feab:beb9': 'NDisc',
+                'abcd::123': 'DHCPv6',
+            }
+        }
+        system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
         diff_data = diff.get_diff()
         expected = {
             'missing_addresses': ['fd42:bc43:e20e:8cf7:8840:4dff:fea6:655d/64'],
             'missing_nameservers_addresses':
-            ['fd42:bc43:e20e:8cf7::1', 'fe80::216:3eff:feab:beb9'],
+            ['abcd::123', 'fd42:bc43:e20e:8cf7::1', 'fe80::216:3eff:feab:beb9'],
             'missing_routes': [
                 NetplanRoute(to='default',
                              via='fe80::216:3eff:feab:beb9',
@@ -939,6 +960,175 @@ class TestNetplanDiff(unittest.TestCase):
                              congestion_window=0,
                              advertised_receive_window=0,
                              onlink=False)]}
+
+        netplan_state = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {})
+        missing_addresses = netplan_state.get('missing_addresses', [])
+        missing_ns = netplan_state.get('missing_nameservers_addresses', [])
+        missing_routes = netplan_state.get('missing_routes', [])
+        self.assertListEqual(missing_addresses, expected.get('missing_addresses', []))
+        self.assertListEqual(sorted(missing_ns), sorted(expected.get('missing_nameservers_addresses', [])))
+        self.assertListEqual(missing_routes, expected.get('missing_routes', []))
+
+    def test_diff_dhcpv6_addresses_are_not_filtered_out_with_accept_ra_true_and_dhcp6_false(self):
+
+        # DHCPv6 will be triggered in networkd by RA regardless if dhcp6 is false.
+        # See systemd.network(5)
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: false
+      accept-ra: true''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'index': 4,
+                'id': 'eth0',
+                'addresses': [
+                    {'10.86.126.253': {'prefix': 24, 'flags': ['dynamic', 'dhcp']}},
+                    {'fd42:bc43:e20e:8cf7:8840:4dff:fea6:655d': {'prefix': 64, 'flags': ['ra']}},
+                    {'fe80::8840:4dff:fea6:655d': {'prefix': 64, 'flags': ['link']}}
+                ],
+                'dns_addresses': [
+                    '10.86.126.1',
+                    'fd42:bc43:e20e:8cf7::1',
+                    'fe80::216:3eff:feab:beb9',
+                    'abcd::123',
+                ],
+                'routes': [
+                    {
+                        'to': 'default',
+                        'family': 2,
+                        'via': '10.86.126.1',
+                        'from': '10.86.126.253',
+                        'metric': 100,
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'dhcp',
+                        'table': 'main'
+                    },
+                    {
+                        'to': '10.86.126.0/24',
+                        'family': 2,
+                        'from': '10.86.126.253',
+                        'metric': 100,
+                        'type': 'unicast',
+                        'scope': 'link',
+                        'protocol': 'kernel',
+                        'table': 'main'
+                    },
+                    {
+                        'to': '10.86.126.1',
+                        'family': 2,
+                        'from': '10.86.126.253',
+                        'metric': 100,
+                        'type': 'unicast',
+                        'scope': 'link',
+                        'protocol': 'dhcp',
+                        'table': 'main'
+                    },
+                    {
+                        'to': '10.86.126.253',
+                        'family': 2,
+                        'from': '10.86.126.253',
+                        'type': 'local',
+                        'scope': 'host',
+                        'protocol': 'kernel',
+                        'table': 'local'
+                    },
+                    {
+                        'to': '10.86.126.255',
+                        'family': 2,
+                        'from': '10.86.126.253',
+                        'type': 'broadcast',
+                        'scope': 'link',
+                        'protocol': 'kernel',
+                        'table': 'local'
+                    },
+                    {
+                        'to': 'fd42:bc43:e20e:8cf7::/64',
+                        'family': 10,
+                        'metric': 100,
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'ra',
+                        'table': 'main'
+                    },
+                    {
+                        'to': 'fe80::/64',
+                        'family': 10,
+                        'metric': 256,
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'table': 'main'
+                    },
+                    {
+                        'to': 'default',
+                        'family': 10,
+                        'via': 'fe80::216:3eff:feab:beb9',
+                        'metric': 100,
+                        'type': 'unicast',
+                        'scope': 'global',
+                        'protocol': 'ra',
+                        'table': 'main'
+                    },
+                    {
+                        'to': 'fd42:bc43:e20e:8cf7:8840:4dff:fea6:655d',
+                        'family': 10,
+                        'type': 'local',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'table': 'local'
+                    },
+                    {
+                        'to': 'fe80::8840:4dff:fea6:655d',
+                        'family': 10,
+                        'type': 'local',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'table': 'local'
+                    },
+                    {
+                        'to': 'ff00::/8',
+                        'family': 10,
+                        'metric': 256,
+                        'type': 'multicast',
+                        'scope': 'global',
+                        'protocol': 'kernel',
+                        'table': 'local'
+                    }
+                ],
+            }
+        }
+
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'eth0'
+        interface1.data_sources = {
+            'addresses': {
+                'fd42:bc43:e20e:8cf7:8840:4dff:fea6:655d': 'NDisc'
+            },
+            'dns': {
+                '10.86.126.1': 'DHCPv4',
+                'fd42:bc43:e20e:8cf7::1': 'DHCPv6',
+                'fe80::216:3eff:feab:beb9': 'NDisc',
+                'abcd::123': 'DHCPv6',
+            }
+        }
+        system_state.interface_list = [interface1]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+        expected = {
+            'missing_addresses': [],
+            'missing_nameservers_addresses': [],
+            'missing_routes': []}
 
         netplan_state = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {})
         missing_addresses = netplan_state.get('missing_addresses', [])
@@ -1170,6 +1360,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynic'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -1238,6 +1429,44 @@ class TestNetplanDiff(unittest.TestCase):
         self.assertIn('mydomain.local', missing)
         self.assertIn('anotherdomain.local', missing)
 
+    def test_diff_nameservers_search_from_dhcp(self):
+        with open(self.path, "w") as f:
+            f.write('''network:
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: true''')
+
+        netplan_state = NetplanConfigState(rootdir=self.workdir.name)
+        system_state = Mock(spec=SystemConfigState)
+
+        system_state.get_data.return_value = {
+            'netplan-global-state': {},
+            'eth0': {
+                'name': 'eth0',
+                'id': 'eth0',
+                'index': 2,
+                'dns_search': ['mydomain.local', 'anotherdomain.local'],
+            }
+        }
+
+        interface1 = Mock(spec=Interface)
+        interface1.name = 'eth0'
+        interface1.netdef_id = 'eth0'
+        interface1.data_sources = {
+            'search': {
+                'mydomain.local': 'DHCPv4',
+                'anotherdomain.local': 'DHCPv6',
+            }
+        }
+        system_state.interface_list = [interface1]
+
+        diff = NetplanDiffState(system_state, netplan_state)
+        diff_data = diff.get_diff()
+
+        missing = diff_data.get('interfaces', {}).get('eth0', {}).get('netplan_state', {}).get('missing_nameservers_search', [])
+        self.assertEqual([], missing)
+
     def test_diff_missing_system_nameservers_search_with_match(self):
         with open(self.path, "w") as f:
             f.write('''network:
@@ -1263,6 +1492,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynic'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -1295,6 +1525,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynic'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -1328,6 +1559,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynic'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -1364,6 +1596,7 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'mynic'
+        interface1.data_sources = {}
         system_state.interface_list = [interface1]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -1952,9 +2185,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'bond0'
         interface2.netdef_id = 'bond0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -1994,9 +2229,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'bond0'
         interface2.netdef_id = 'bond0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2038,9 +2275,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'br0'
         interface2.netdef_id = 'br0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2080,9 +2319,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'br0'
         interface2.netdef_id = 'br0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2125,9 +2366,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'vrf0'
         interface2.netdef_id = 'vrf0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2168,9 +2411,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'vrf0'
         interface2.netdef_id = 'vrf0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2212,9 +2457,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'bond0'
         interface2.netdef_id = 'bond0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2263,12 +2510,15 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'eth1'
         interface2.netdef_id = 'eth1'
+        interface2.data_sources = {}
         interface3 = Mock(spec=Interface)
         interface3.name = 'bond0'
         interface3.netdef_id = 'bond0'
+        interface3.data_sources = {}
         system_state.interface_list = [interface1, interface2, interface3]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2310,9 +2560,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'br0'
         interface2.netdef_id = 'br0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2361,12 +2613,15 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'eth1'
         interface2.netdef_id = 'eth1'
+        interface2.data_sources = {}
         interface3 = Mock(spec=Interface)
         interface3.name = 'br0'
         interface3.netdef_id = 'br0'
+        interface3.data_sources = {}
         system_state.interface_list = [interface1, interface2, interface3]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2409,9 +2664,11 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'vrf0'
         interface2.netdef_id = 'vrf0'
+        interface2.data_sources = {}
         system_state.interface_list = [interface1, interface2]
 
         diff = NetplanDiffState(system_state, netplan_state)
@@ -2461,12 +2718,15 @@ class TestNetplanDiff(unittest.TestCase):
         interface1 = Mock(spec=Interface)
         interface1.name = 'eth0'
         interface1.netdef_id = 'eth0'
+        interface1.data_sources = {}
         interface2 = Mock(spec=Interface)
         interface2.name = 'eth1'
         interface2.netdef_id = 'eth1'
+        interface2.data_sources = {}
         interface3 = Mock(spec=Interface)
         interface3.name = 'vrf0'
         interface3.netdef_id = 'vrf0'
+        interface3.data_sources = {}
         system_state.interface_list = [interface1, interface2, interface3]
 
         diff = NetplanDiffState(system_state, netplan_state)
