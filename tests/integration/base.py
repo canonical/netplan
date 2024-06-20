@@ -416,6 +416,7 @@ class IntegrationTestsBase(unittest.TestCase):
             self.fail('timed out waiting for "{}" to appear in {}'.format(expected_output, cmd))
 
     def nm_wait_connected(self, iface, timeout=10):
+        subprocess.call(['nm-online', '-sq'])
         self.wait_output(['nmcli', 'dev', 'show', iface], '(connected', timeout)
 
     def networkd_wait_connected(self, iface, timeout=10):
