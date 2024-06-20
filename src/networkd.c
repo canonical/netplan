@@ -1551,10 +1551,15 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     }
     g_string_append(content, "\n");
 
-    g_autofree char* new_content = _netplan_scrub_systemd_unit_contents(content->str);
     g_string_free(content, TRUE);
+    #if 0
+    // Disabled for netplan 1.0 stable
+    // LCOV_EXCL_START
+    g_autofree char* new_content = _netplan_scrub_systemd_unit_contents(content->str);
     content = g_string_new(new_content);
     _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
+    // LCOV_EXCL_STOP
+    #endif
     g_hash_table_destroy(non_optional_interfaces);
     return TRUE;
 }

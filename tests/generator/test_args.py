@@ -172,21 +172,8 @@ class TestConfigArgs(TestBase):
         os.unlink(n)
 
         # should auto-enable networkd and -wait-online
-        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
-        self.assertTrue(os.path.islink(os.path.join(
-            outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
-        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
-        self.assertTrue(os.path.isfile(override))
-        with open(override, 'r') as f:
-            # eth99 does not exist on the system, so will not be listed
-            self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
-
-[Service]
-ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:degraded -i br0:degraded -i lo:carrier -i eth99.42:carrier\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
@@ -223,17 +210,10 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:degraded -i br0:
         os.unlink(n)
 
         # should auto-enable networkd but not -wait-online
-        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
         self.assertFalse(os.path.islink(os.path.join(
             outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
-        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
-        self.assertTrue(os.path.isfile(override))
-        with open(override, 'r') as f:
-            self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
-''')
 
     def test_systemd_generator_noconf(self):
         outdir = os.path.join(self.workdir.name, 'out')
@@ -289,21 +269,8 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
         os.unlink(n)
 
         # should auto-enable networkd and -wait-online
-        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
         self.assertTrue(os.path.islink(os.path.join(
             outdir, 'multi-user.target.wants', 'systemd-networkd.service')))
-        self.assertTrue(os.path.islink(os.path.join(
-            outdir, 'network-online.target.wants', 'systemd-networkd-wait-online.service')))
-        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
-        self.assertTrue(os.path.isfile(override))
-        with open(override, 'r') as f:
-            # eth99 does not exist on the system, so will not be listed
-            self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
-
-[Service]
-ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i a \\; b\\t; c\\t; d \\n 123 \\; echo :degraded\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],

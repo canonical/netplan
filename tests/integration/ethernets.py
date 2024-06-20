@@ -391,6 +391,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
                           ['inet6 9876:bbbb::11/70', 'inet 172.16.5.3/20'],
                           ['inet6 fe80:', 'inet 169.254.'])
 
+    @unittest.skip("networkd wait-online is disabled for netplan 1.0 stable")
     def test_systemd_networkd_wait_online(self):
         self.addCleanup(subprocess.call, ['ip', 'link', 'del', 'br0'])
         self.setup_eth(None, False)

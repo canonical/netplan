@@ -63,7 +63,7 @@ reload_udevd(void)
  * Create enablement symlink for systemd-networkd.service.
  */
 static void
-enable_networkd(const char* generator_dir, gboolean enable_wait_online)
+enable_networkd(const char* generator_dir, __unused gboolean enable_wait_online)
 {
     g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
@@ -75,6 +75,9 @@ enable_networkd(const char* generator_dir, gboolean enable_wait_online)
         // LCOV_EXCL_STOP
     }
 
+    #if 0
+    // Disabled for netplan 1.0 stable
+    // LCOV_EXCL_START
     if (enable_wait_online) {
         g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
         _netplan_safe_mkdir_p_dir(link2);
@@ -85,6 +88,8 @@ enable_networkd(const char* generator_dir, gboolean enable_wait_online)
             // LCOV_EXCL_STOP
         }
     }
+    // LCOV_EXCL_STOP
+    #endif
 }
 
 // LCOV_EXCL_START
@@ -330,8 +335,11 @@ int main(int argc, char** argv)
         /* covered via 'cloud-init' integration test */
         if (any_networkd) {
             start_unit_jit("systemd-networkd.socket");
+            #if 0
+            // Disabled for netplan 1.0 stable
             if (enable_wait_online)
                 start_unit_jit("systemd-networkd-wait-online.service");
+            #endif
             start_unit_jit("systemd-networkd.service");
         }
         g_autofree char* glob_run = g_build_path(G_DIR_SEPARATOR_S,
