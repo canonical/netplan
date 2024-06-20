@@ -160,11 +160,19 @@ class IntegrationTestsBase(unittest.TestCase):
 
         subprocess.check_call(['ip', 'link', 'del', 'dev', klass.dev_e_ap])
         subprocess.check_call(['ip', 'link', 'del', 'dev', klass.dev_e2_ap])
+        subprocess.call(['ip', 'link', 'del', 'dev', klass.dev_e_client],
+                        stderr=subprocess.PIPE)
+        subprocess.call(['ip', 'link', 'del', 'dev', klass.dev_e2_client],
+                        stderr=subprocess.PIPE)
         klass.dev_e_ap = None
         klass.dev_e_client = None
         klass.dev_e2_ap = None
         klass.dev_e2_client = None
 
+        subprocess.call(['ip', 'link', 'del', 'dev', 'iface1'],
+                        stderr=subprocess.PIPE)
+        subprocess.call(['ip', 'link', 'del', 'dev', 'iface2'],
+                        stderr=subprocess.PIPE)
         subprocess.call(['ip', 'link', 'del', 'dev', 'mybr'],
                         stderr=subprocess.PIPE)
         subprocess.call(['ip', 'link', 'del', 'dev', 'nptestsrv'],
