@@ -195,7 +195,7 @@ class _CommonTests():
                          subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e2_client]))
 
     def test_dhcp6(self):
-        self.setup_eth('slaac')
+        self.setup_eth('')  # empty string, as we want stateful DHCPv6 without SLAAC IP
         with open(self.config, 'w') as f:
             f.write('''network:
   version: 2
@@ -208,7 +208,7 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e_client, ['inet6 2600:'], ['inet 192.168'])
 
     def test_ip6_token(self):
-        self.setup_eth('slaac')
+        self.setup_eth('ra-only')
         with open(self.config, 'w') as f:
             f.write('''network:
   version: 2
