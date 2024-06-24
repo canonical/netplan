@@ -145,6 +145,10 @@ class TestConfigArgs(TestBase):
       id: 43
       link-local: []
       addresses: [10.0.0.2/24]
+    eth99.44:
+      link: eth99
+      id: 44
+      link-local: [ipv6]
   bridges:
     br0:
       dhcp4: true
@@ -186,7 +190,8 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:degraded -i br0:degraded -i lo:carrier -i eth99.42:carrier\n''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i lo:carrier -i eth99.42:carrier -i eth99.44:degraded
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i eth99.43 -i br0\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
@@ -233,6 +238,74 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:degraded -i br0:
         with open(override, 'r') as f:
             self.assertEqual(f.read(), '''[Unit]
 ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+''')
+
+    def test_systemd_wait_online_only_non_routable(self):
+        conf = os.path.join(self.confdir, 'a.yaml')
+        os.makedirs(os.path.dirname(conf))
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    nomatchfound: # non-optional, but cannot be matched to a physical interface on the test runner
+      dhcp4: true
+  vlans:
+    eth99.44:
+      link: nomatchfound
+      id: 44
+      link-local: [ipv6]''')
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.44:degraded
+''')
+
+    def test_systemd_wait_online_only_routable(self):
+        conf = os.path.join(self.confdir, 'a.yaml')
+        os.makedirs(os.path.dirname(conf))
+        with open(conf, 'w') as f:
+            f.write('''network:
+  version: 2
+  bridges:
+    br0:
+      dhcp4: true''')
+        outdir = os.path.join(self.workdir.name, 'out')
+        os.mkdir(outdir)
+
+        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
+
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-br0.network')
+        self.assertTrue(os.path.exists(n))
+        os.unlink(n)
+
+        service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        override = os.path.join(service_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i br0
 ''')
 
     def test_systemd_generator_noconf(self):

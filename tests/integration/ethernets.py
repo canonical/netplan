@@ -429,7 +429,8 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i %s:degraded -i br0:degraded -i findme:carrier
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i findme:carrier
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i %s -i br0
 ''' % self.dev_e2_client)
 
 
