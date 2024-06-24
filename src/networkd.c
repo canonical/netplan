@@ -92,23 +92,30 @@ _netplan_query_system_interfaces(GHashTable* tbl)
  * Enumerate all network interfaces (/sys/clas/net/...) and check
  * netplan_netdef_match_interface() to see if they match the current NetDef
  */
-STATIC void
-_netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* ifaces, GHashTable* tbl, const char* carrier, const char* set_name, const char* rootdir)
+STATIC gboolean
+_netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* ifaces, GHashTable* tbl, const char* min_oper_state, const char* set_name, const char* rootdir)
 {
     g_assert(ifaces);
     g_assert(tbl);
 
+    gboolean found_match = FALSE;
     GHashTableIter iter;
     gpointer key;
     g_hash_table_iter_init (&iter, ifaces);
     while (g_hash_table_iter_next (&iter, &key, NULL)) {
         const char* ifname = key;
-        if (g_hash_table_contains(tbl, ifname)|| (set_name && g_hash_table_contains(tbl, set_name))) continue;
+        if (g_hash_table_contains(tbl, ifname) || (set_name && g_hash_table_contains(tbl, set_name))) {
+            continue;
+        }
         g_autofree gchar* mac = _netplan_sysfs_get_mac_by_ifname(ifname, rootdir);
         g_autofree gchar* driver = _netplan_sysfs_get_driver_by_ifname(ifname, rootdir);
-        if (netplan_netdef_match_interface(def, ifname, mac, driver))
-            g_hash_table_replace(tbl, set_name ? g_strdup(set_name) : g_strdup(ifname), g_strdup(carrier));
+        if (netplan_netdef_match_interface(def, ifname, mac, driver)) {
+            g_hash_table_replace(tbl, set_name ? g_strdup(set_name) : g_strdup(ifname), g_strdup(min_oper_state));
+            found_match = TRUE;
+        }
     }
+
+    return found_match;
 }
 
 /**
@@ -1509,21 +1516,30 @@ _netplan_netdef_write_networkd(
     return TRUE;
 }
 
+/**
+ * Implementing Ubuntu's "Definition of an "online" system specification:
+ * https://discourse.ubuntu.com/t/spec-definition-of-an-online-system/27838
+ */
 gboolean
 _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* rootdir)
 {
-    // Set of all current network interfaces, potentially non yet renamed
-    GHashTable* system_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    gboolean wait_routable = FALSE;
+    gboolean wait_non_routable = FALSE;
+
+    // Set of all current network interfaces, potentially not yet renamed
+    g_autoptr (GHashTable) system_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
     _netplan_query_system_interfaces(system_interfaces);
 
     // Hash set of non-optional interfaces to wait for
-    GHashTable* non_optional_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+    g_autoptr (GHashTable) non_optional_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
     NetplanStateIterator iter;
     netplan_state_iterator_init(np_state, &iter);
     while (netplan_state_iterator_has_next(&iter)) {
         NetplanNetDefinition* def = netplan_state_iterator_next(&iter);
-        if (def->backend != NETPLAN_BACKEND_NETWORKD)
+        if (def->backend != NETPLAN_BACKEND_NETWORKD) {
             continue;
+        }
 
         /* When activation-mode is used we default to being optional.
          * Otherwise, systemd might wait indefinitely for the interface to
@@ -1533,69 +1549,111 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
             // Check if we have any IP configuration
             // bond and bridge members will never ask for link-local addresses (see above)
             struct address_iter* addr_iter = _netplan_netdef_new_address_iter(def);
-            gboolean routable =   _netplan_address_iter_next(addr_iter) != NULL
+            gboolean routable =   _netplan_address_iter_next(addr_iter) != NULL // Does it define a static IP?
                                || netplan_netdef_get_dhcp4(def)
-                               || netplan_netdef_get_dhcp6(def);
+                               || netplan_netdef_get_dhcp6(def)
+                               || def->accept_ra == NETPLAN_RA_MODE_ENABLED;
             gboolean degraded =   (   netplan_netdef_get_link_local_ipv4(def)
                                    && !(netplan_netdef_get_bond_link(def) || netplan_netdef_get_bridge_link(def)))
                                || (   netplan_netdef_get_link_local_ipv6(def)
                                    && !(netplan_netdef_get_bond_link(def) || netplan_netdef_get_bridge_link(def)));
-            gboolean any_ips = routable || degraded;
             _netplan_address_iter_free(addr_iter);
 
+            // Define minimum operational state, according to networkctl(1)
+            char* min_oper_state = "carrier";
+            if (routable) {
+                min_oper_state = "routable";
+            } else if (degraded) {
+                min_oper_state = "degraded";
+            }
+
+            // Do not wait for "carrier" in "ignore-carrier: true" cases
+            if (def->ignore_carrier && !g_strcmp0(min_oper_state, "carrier")) {
+                continue;
+            }
+
+            gboolean found_match = FALSE;
             // no matching => single physical interface, ignoring non-existing interfaces
             // OR: virtual interfaces, those will be created later on and cannot have a matching condition
             gboolean physical_no_match_or_virtual = FALSE
                 || (!netplan_netdef_has_match(def) && g_hash_table_contains(system_interfaces, def->id))
                 || (netplan_netdef_get_type(def) >= NETPLAN_DEF_TYPE_VIRTUAL);
             if (physical_no_match_or_virtual) {
-                g_hash_table_replace(non_optional_interfaces, g_strdup(def->id), any_ips ? g_strdup("degraded") : g_strdup("carrier"));
+                g_hash_table_replace(non_optional_interfaces, g_strdup(def->id), g_strdup(min_oper_state));
+                found_match = TRUE;
             } else if (def->set_name) { // matching on a single interface, to be renamed
-                 _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, any_ips ? "degraded" : "carrier", def->set_name, rootdir);
+                found_match = _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, min_oper_state, def->set_name, rootdir);
             } else { // matching on potentially multiple interfaces
                 // XXX: we shouldn't run this enumeration for every NetDef...
-                _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, any_ips ? "degraded" : "carrier", NULL, rootdir);
+                found_match = _netplan_enumerate_interfaces(def, system_interfaces, non_optional_interfaces, min_oper_state, NULL, rootdir);
+            }
+
+            if (found_match) {
+                // We need to wait for at least one routable interface
+                if (!wait_routable && routable) {
+                    wait_routable = TRUE;
+                }
+                // We need to wait for at least one non-routable interface
+                if (!wait_non_routable && !routable) {
+                    wait_non_routable = TRUE;
+                }
             }
         }
     }
-    g_hash_table_destroy(system_interfaces);
 
-    // create run/systemd/system/systemd-networkd-wait-online.service.d/
-    const char* override = "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf";
+    // Always create run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf override
     // The "ConditionPathIsSymbolicLink" is Netplan's s-n-wait-online enablement symlink,
-    // as we want to run -wait-online only if enabled by Netplan.
+    // as we want to run this waiting logic only if enabled by Netplan.
+    const char* override = "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf";
     GString* content = g_string_new("[Unit]\n"
         "ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service\n");
     if (g_hash_table_size(non_optional_interfaces) == 0) {
         _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
-        g_hash_table_destroy(non_optional_interfaces);
         return FALSE;
     }
 
-    // We have non-optional interface, so let's wait for those explicitly
-    GHashTableIter idx;
-    gpointer key, value;
-    g_string_append(content, "\n[Service]\nExecStart=\n"
-                                "ExecStart=/lib/systemd/systemd-networkd-wait-online");
-    g_hash_table_iter_init (&idx, non_optional_interfaces);
-    while (g_hash_table_iter_next (&idx, &key, &value)) {
-        const char* ifname = key;
-        const char* min_oper_state = value;
-        g_string_append_printf(content, " -i %s", ifname);
-        // XXX: We should be checking IFF_LOOPBACK instead of interface name.
-        //      But don't have access to the flags here.
-        if (!g_strcmp0(ifname, "lo"))
-            g_string_append(content, ":carrier"); // "carrier" as min-oper state for loopback
-        else if (min_oper_state)
-            g_string_append_printf(content, ":%s", min_oper_state);
+    // We have non-optional interfaces, so let's wait for those explicitly
+    if (wait_non_routable || wait_routable) {
+        GHashTableIter iter;
+        gpointer key, value;
+        g_string_append(content, "\n[Service]\nExecStart=\n"); // clear old s-n-wait-online command
+
+        // wait for non-optional interfaces to be ready on a link-local level
+        if (wait_non_routable) {
+            g_string_append(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online");
+            g_hash_table_iter_init (&iter, non_optional_interfaces);
+            while (g_hash_table_iter_next (&iter, &key, &value)) {
+                const char* ifname = key;
+                const char* min_oper_state = value;
+                // XXX: We should be checking IFF_LOOPBACK instead of interface name.
+                //      But don't have access to the flags here.
+                if (!g_strcmp0(ifname, "lo"))
+                    g_string_append_printf(content, " -i %s:carrier", ifname); // "carrier" as min-oper state for loopback
+                else if (min_oper_state && g_strcmp0(min_oper_state, "routable"))
+                    g_string_append_printf(content, " -i %s:%s", ifname, min_oper_state);
+            }
+            g_string_append(content, "\n");
+        }
+
+        // Wait for at least one globally routable interface
+        if (wait_routable) {
+            g_string_append(content,
+                "ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable");
+            g_hash_table_iter_init (&iter, non_optional_interfaces);
+            while (g_hash_table_iter_next (&iter, &key, &value)) {
+                const char* ifname = key;
+                const char* min_oper_state = value;
+                if (!g_strcmp0(min_oper_state, "routable") && g_strcmp0(ifname, "lo"))
+                    g_string_append_printf(content, " -i %s", ifname);
+            }
+            g_string_append(content, "\n");
+        }
     }
-    g_string_append(content, "\n");
 
     g_autofree char* new_content = _netplan_scrub_systemd_unit_contents(content->str);
     g_string_free(content, TRUE);
     content = g_string_new(new_content);
     _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
-    g_hash_table_destroy(non_optional_interfaces);
     return TRUE;
 }
 
