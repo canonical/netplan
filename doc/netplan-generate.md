@@ -63,7 +63,7 @@ There are 3 locations that **`netplan generate`** considers:
  * `/run/netplan/*.yaml`
 
 If there are multiple files with exactly the same name, then only one
-will be read. A file in `/run/netplan` will shadow - completely replace
+will be read. A file in `/run/netplan` will shadow (completely replace)
 a file with the same name in `/etc/netplan`. A file in `/etc/netplan`
 will itself shadow a file in `/lib/netplan`.
 
