@@ -227,5 +227,3 @@ netplan_netdef_get_accept_ra(const NetplanNetDefinition* netdef);
  */
 NETPLAN_PUBLIC ssize_t
 netplan_netdef_get_macaddress(const NetplanNetDefinition* netdef, char* out_buffer, size_t out_buffer_size);
-
-
