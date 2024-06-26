@@ -218,7 +218,7 @@ class _CommonTests():
       dhcp6: yes
       accept-ra: yes
       ipv6-address-token: ::42''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle([self.state_dhcp6(self.dev_e_client)])
+        self.generate_and_settle([self.state(self.dev_e_client, '::42')])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
 
     def test_link_local_all(self):
