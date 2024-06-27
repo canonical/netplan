@@ -136,19 +136,25 @@ class TestConfigArgs(TestBase):
     lo:
       addresses: ["127.0.0.1/8", "::1/128"]
   vlans:
-    eth99.42:
+    eth99.42:  # link-local is ignored for bridge-members
       link: eth99
       id: 42
-      link-local: [ipv4, ipv6] # this is ignored for bridge-members
-    eth99.43:
+      link-local: [ipv4, ipv6]
+    eth99.43: # no link-local, but routable IP
       link: eth99
       id: 43
       link-local: []
       addresses: [10.0.0.2/24]
-    eth99.44:
+    eth99.44: # link-loal, but no routable IP
       link: eth99
       id: 44
       link-local: [ipv6]
+    eth99.45: # ignore-carrier & no link-local, but routable IP
+      link: eth99
+      id: 45
+      link-local: []
+      ignore-carrier: true
+      addresses: [10.0.0.3/24]
   bridges:
     br0:
       dhcp4: true
@@ -190,8 +196,9 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i lo:carrier -i eth99.42:carrier -i eth99.44:degraded
-ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i eth99.43 -i br0\n''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:carrier -i br0:degraded \
+-i lo:carrier -i eth99.42:carrier -i eth99.44:degraded
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i eth99.43 -i eth99.45 -i br0\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
@@ -305,6 +312,7 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded
 ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i br0
 ''')
 
@@ -376,7 +384,8 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i a \\; b\\t; c\\t; d \\n 123 \\; echo :degraded\n''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i a \\; b\\t; c\\t; d \\n 123 \\; echo :degraded
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i a \\; b\\t; c\\t; d \\n 123 \\; echo \n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
