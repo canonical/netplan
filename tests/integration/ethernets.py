@@ -429,9 +429,9 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i findme:carrier
-ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i %s -i br0
-''' % self.dev_e2_client)
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i %(e2c)s:carrier -i br0:degraded -i findme:carrier
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i %(e2c)s -i br0
+''' % {'e2c': self.dev_e2_client})
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
