@@ -255,6 +255,70 @@ test_load_keyfile_route_options_without_route(__unused void** state)
     netplan_state_clear(&np_state);
 }
 
+void
+test_load_keyfile_utf8_password(__unused void** state)
+{
+    NetplanState *np_state = NULL;
+    int fd;
+    int size;
+    int res;
+    char* yaml;
+
+    const char* keyfile =
+        "[connection]\n"
+        "id=mywifi\n"
+        "uuid=03c8f2a7-268d-4765-b626-efcc02dd686c\n"
+        "type=wifi\n"
+        "interface-name=wlp2s0\n"
+        "[wifi]\n"
+        "mode=infrastructure\n"
+        "ssid=mywifi\n"
+        "[wifi-security]\n"
+        "key-mgmt=wpa-psk\n"
+        "psk=áÁéÉíÍóÓúÚ\n"
+        "[ipv4]\n"
+        "method=auto\n";
+
+    const char* expected =
+        "network:\n"
+        "  version: 2\n"
+        "  wifis:\n"
+        "    NM-03c8f2a7-268d-4765-b626-efcc02dd686c:\n"
+        "      renderer: NetworkManager\n"
+        "      match:\n"
+        "        name: \"wlp2s0\"\n"
+        "      dhcp4: true\n"
+        "      access-points:\n"
+        "        \"mywifi\":\n"
+        "          auth:\n"
+        "            key-management: \"psk\"\n"
+        "            password: \"áÁéÉíÍóÓúÚ\"\n"
+        "          networkmanager:\n"
+        "            uuid: \"03c8f2a7-268d-4765-b626-efcc02dd686c\"\n"
+        "            name: \"mywifi\"\n"
+        "      networkmanager:\n"
+        "        uuid: \"03c8f2a7-268d-4765-b626-efcc02dd686c\"\n"
+        "        name: \"mywifi\"\n";
+
+    np_state = load_keyfile_string_to_netplan_state(keyfile);
+
+    fd = memfd_create("netplan-tests", 0);
+
+    netplan_state_dump_yaml(np_state, fd, NULL);
+
+    size = lseek(fd, 0, SEEK_CUR) + 1;
+    yaml = malloc(size);
+    memset(yaml, 0, size);
+    lseek(fd, 0, SEEK_SET);
+    res = read(fd, yaml, size - 1);
+    assert_true(res > 0);
+
+    assert_string_equal(yaml, expected);
+
+    netplan_state_clear(&np_state);
+    close(fd);
+    free(yaml);
+}
 
 int
 setup(__unused void** state)
@@ -280,6 +344,7 @@ main()
         cmocka_unit_test(test_load_keyfile_vxlan),
         cmocka_unit_test(test_load_keyfile_multiple_addresses_and_routes),
         cmocka_unit_test(test_load_keyfile_route_options_without_route),
+        cmocka_unit_test(test_load_keyfile_utf8_password),
     };
 
     return cmocka_run_group_tests(tests, setup, tear_down);

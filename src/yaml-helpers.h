@@ -88,6 +88,7 @@
 #define YAML_OUT_START(event_ptr, emitter_ptr, file) \
 { \
     yaml_emitter_initialize(emitter_ptr); \
+    yaml_emitter_set_unicode(emitter_ptr, 1); \
     yaml_emitter_set_output_file(emitter_ptr, file); \
     yaml_stream_start_event_initialize(event_ptr, YAML_UTF8_ENCODING); \
     if (!yaml_emitter_emit(emitter_ptr, event_ptr)) goto err_path; \
