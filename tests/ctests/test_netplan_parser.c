@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
 #include <cmocka.h>
 #include <yaml.h>
@@ -383,6 +384,54 @@ test_parser_flags_ignore_errors(__unused void** state)
     rmdir(tempdir);
 }
 
+void
+test_parse_utf8_characters(__unused void** state)
+{
+    NetplanState *np_state = NULL;
+    int fd;
+    int size;
+    int res;
+
+    char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  wifis:\n"
+        "    wlan0:\n"
+        "      access-points:\n"
+        "        \"áéíóúÁÉÍÓÚ\":\n"
+        "           password: \"áéíóúÁÉÍÓÚ\"\n";
+
+    char* expected =
+        "network:\n"
+        "  version: 2\n"
+        "  wifis:\n"
+        "    wlan0:\n"
+        "      access-points:\n"
+        "        \"áéíóúÁÉÍÓÚ\":\n"
+        "          auth:\n"
+        "            key-management: \"psk\"\n"
+        "            password: \"áéíóúÁÉÍÓÚ\"\n";
+
+    np_state = load_string_to_netplan_state(yaml);
+
+    fd = memfd_create("netplan-tests", 0);
+
+    netplan_state_dump_yaml(np_state, fd, NULL);
+
+    size = lseek(fd, 0, SEEK_CUR) + 1;
+    yaml = malloc(size);
+    memset(yaml, 0, size);
+    lseek(fd, 0, SEEK_SET);
+    res = read(fd, yaml, size - 1);
+    assert_true(res > 0);
+
+    assert_string_equal(yaml, expected);
+
+    netplan_state_clear(&np_state);
+    close(fd);
+    free(yaml);
+}
+
 int
 setup(__unused void** state)
 {
@@ -415,6 +464,7 @@ main()
            cmocka_unit_test(test_parser_flags),
            cmocka_unit_test(test_parser_flags_bad_flags),
            cmocka_unit_test(test_parser_flags_ignore_errors),
+           cmocka_unit_test(test_parse_utf8_characters),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
