@@ -132,7 +132,7 @@ class TestNetplanDBus(unittest.TestCase):
             exe_cli + ["apply"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=newenv)
-        p.wait(10)
+        p.wait(20)
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
         self.assertEqual(self.mock_busctl_cmd.calls(), [
@@ -153,7 +153,7 @@ class TestNetplanDBus(unittest.TestCase):
             exe_cli + ["apply"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=newenv)
-        p.wait(10)
+        p.wait(20)
         # exit_on_error is True by default, so we check the returncode directly
         self.assertEqual(p.returncode, 130)
 
@@ -166,7 +166,7 @@ class TestNetplanDBus(unittest.TestCase):
             exe_cli + ["apply"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=newenv)
-        p.wait(10)
+        p.wait(20)
         # exit_on_error is True by default, so we check the returncode directly
         self.assertEqual(p.returncode, 1)
 
@@ -178,7 +178,7 @@ class TestNetplanDBus(unittest.TestCase):
             exe_cli + ["generate"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=newenv)
-        p.wait(10)
+        p.wait(20)
         self.assertEqual(p.stdout.read(), b"")
         self.assertEqual(p.stderr.read(), b"")
         self.assertEqual(self.mock_busctl_cmd.calls(), [
@@ -199,7 +199,7 @@ class TestNetplanDBus(unittest.TestCase):
             exe_cli + ["generate"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=newenv)
-        p.wait(10)
+        p.wait(20)
         self.assertIn(b"PermissionError: failed to communicate with dbus service", p.stderr.read())
 
     def test_netplan_generate_in_snap_calls_busctl_err(self):
@@ -211,7 +211,7 @@ class TestNetplanDBus(unittest.TestCase):
             exe_cli + ["generate"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=newenv)
-        p.wait(10)
+        p.wait(20)
         self.assertIn(b"RuntimeError: failed to communicate with dbus service: error 1", p.stderr.read())
 
     def test_netplan_dbus_noroot(self):

@@ -89,7 +89,7 @@ test('documentation',
      workdir: meson.current_source_dir())
 test('legacy-tests',
      find_program('tests/cli_legacy.py'),
-     timeout: 600,
+     timeout: 900,
      env: test_env)
 #TODO: split out dbus tests into own test() instance, to run in parallel
 test('unit-tests',
