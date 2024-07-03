@@ -205,10 +205,7 @@ class NetplanApply(utils.NetplanCommand):
         # Refresh devices now; restarting a backend might have made something appear.
         devices = netifaces.interfaces()
 
-        # evaluate config for extra steps we need to take (like renaming)
-        # for now, only applies to non-virtual (real) devices.
         config_manager.parse()
-        changes = NetplanApply.process_link_changes(devices, config_manager)
         # delete virtual interfaces that have been defined in a previous state
         # but are not configured anymore in the current YAML
         if self.state:
@@ -238,29 +235,6 @@ class NetplanApply(utils.NetplanCommand):
                                       stderr=subprocess.DEVNULL)
             except subprocess.CalledProcessError:
                 logging.debug('Ignoring device without syspath: %s', device)
-
-        devices_after_udev = netifaces.interfaces()
-        # apply some more changes manually
-        for iface, settings in changes.items():
-            # rename non-critical network interfaces
-            new_name = settings.get('name')
-            if new_name:
-                if len(new_name) >= IF_NAMESIZE:
-                    logging.warning('Interface name {} is too long. {} will not be renamed'.format(new_name, iface))
-                    continue
-                if iface in devices and new_name in devices_after_udev:
-                    logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
-                    continue  # re-name already happened via 'udevadm test'
-                # bring down the interface, using its current (matched) interface name
-                subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
-                # rename the interface to the name given via 'set-name'
-                subprocess.check_call(['ip', 'link', 'set',
-                                       'dev', iface,
-                                       'name', settings.get('name')],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
 
         # Reloading of udev rules happens during 'netplan generate' already
         # subprocess.check_call(['udevadm', 'control', '--reload-rules'])
@@ -374,50 +348,6 @@ class NetplanApply(utils.NetplanCommand):
                 logging.warning('Could not delete interface {}'.format(link))
 
         return dropped_interfaces
-
-    @staticmethod
-    def process_link_changes(interfaces, config_manager: ConfigManager):  # pragma: nocover (covered in autopkgtest)
-        """
-        Go through the pending changes and pick what needs special handling.
-        Only applies to non-critical interfaces which can be safely updated.
-        """
-
-        changes = {}
-        composite_interfaces = [config_manager.bridges, config_manager.bonds]
-
-        # Find physical interfaces which need a rename
-        # But do not rename virtual interfaces
-        for netdef in config_manager.physical_interfaces.values():
-            newname = netdef.set_name
-            if not newname:
-                continue  # Skip if no new name needs to be set
-            if not netdef._has_match:
-                continue  # Skip if no match for current name is given
-            if NetplanApply.is_composite_member(composite_interfaces, netdef.id):
-                logging.debug('Skipping composite member {}'.format(netdef.id))
-                # do not rename members of virtual devices. MAC addresses
-                # may be the same for all interface members.
-                continue
-            # Find current name of the interface, according to match conditions and globs (name, mac, driver)
-            current_iface_name = utils.find_matching_iface(interfaces, netdef)
-            if not current_iface_name:
-                logging.warning('Cannot find unique matching interface for {}'.format(netdef.id))
-                continue
-            if current_iface_name == newname:
-                # Skip interface if it already has the correct name
-                logging.debug('Skipping correctly named interface: {}'.format(newname))
-                continue
-            if netdef.critical:
-                # Skip interfaces defined as critical, as we should not take them down in order to rename
-                logging.warning('Cannot rename {} ({} -> {}) at runtime (needs reboot), due to being critical'
-                                .format(netdef.id, current_iface_name, newname))
-                continue
-
-            # record the interface rename change
-            changes[current_iface_name] = {'name': newname}
-
-        logging.debug('Link changes: {}'.format(changes))
-        return changes
 
     @staticmethod
     def process_sriov_config(config_manager, exit_on_error=True):  # pragma: nocover (covered in autopkgtest)

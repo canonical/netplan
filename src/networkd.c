@@ -1147,7 +1147,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
     /* build file contents */
     s = g_string_sized_new(200);
 
-    g_string_append(s, "SUBSYSTEM==\"net\", ACTION==\"add\", ");
+    g_string_append(s, "SUBSYSTEM==\"net\", ACTION==\"add|change|move\", ");
 
     if (def->match.driver) {
         g_autofree char* driver = _netplan_scrub_string(def->match.driver);
