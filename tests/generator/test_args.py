@@ -155,8 +155,8 @@ class TestConfigArgs(TestBase):
       link-local: []
       ignore-carrier: true
       addresses: [10.0.0.3/24]
-  bridges:
-    br0:
+  bonds:
+    bond0:
       dhcp4: true
       interfaces: [eth99.42, eth99.43]''')
         os.chmod(conf, mode=0o600)
@@ -167,7 +167,10 @@ class TestConfigArgs(TestBase):
         os.makedirs(os.path.dirname(generator))
         os.symlink(exe_generate, generator)
 
-        subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
+        local_env = os.environ.copy()
+        local_env['G_MESSAGES_DEBUG'] = 'all'
+        out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
+                                      stderr=subprocess.STDOUT, text=True, env=local_env)
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-eth99.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
@@ -177,9 +180,13 @@ class TestConfigArgs(TestBase):
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-lo.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
-        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-br0.network')
+        n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-bond0.network')
         self.assertTrue(os.path.exists(n))
         os.unlink(n)
+
+        # check log message about bonds wait-online
+        self.assertIn('Not all bond members need to be connected for bond0 to be ready. '
+                      'Consider marking them as "optional: true", to avoid blocking systemd-networkd-wait-online.', out)
 
         # should auto-enable networkd and -wait-online
         service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
@@ -196,9 +203,9 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
 
 [Service]
 ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:carrier -i br0:degraded \
--i lo:carrier -i eth99.42:carrier -i eth99.44:degraded
-ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i eth99.43 -i eth99.45 -i br0\n''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:carrier -i lo:carrier \
+-i eth99.42:carrier -i eth99.44:degraded -i bond0:degraded
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i eth99.43 -i eth99.45 -i bond0\n''')
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
