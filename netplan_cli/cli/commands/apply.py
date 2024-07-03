@@ -254,8 +254,7 @@ class NetplanApply(utils.NetplanCommand):
 
         # Reloading of udev rules happens during 'netplan generate' already
         # subprocess.check_call(['udevadm', 'control', '--reload-rules'])
-        subprocess.check_call(['udevadm', 'trigger', '--attr-match=subsystem=net'])
-        subprocess.check_call(['udevadm', 'settle'])
+        subprocess.check_call(['udevadm', 'trigger', '--action=move', '--subsystem-match=net', '--settle'])
 
         # apply any SR-IOV related changes, if applicable
         NetplanApply.process_sriov_config(config_manager, exit_on_error)
