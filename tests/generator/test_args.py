@@ -209,9 +209,9 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i eth99.4
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
-                                      stderr=subprocess.STDOUT)
+                                      stderr=subprocess.STDOUT, text=True)
         self.assertFalse(os.path.exists(n))
-        self.assertIn(b'netplan generate already ran', out)
+        self.assertIn('netplan generate already ran', out)
 
         # after removing the stamp it generates again, and not trip over the
         # existing enablement symlink
@@ -345,11 +345,11 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i br0
 
         try:
             subprocess.check_output([generator, '--root-dir', self.workdir.name],
-                                    stderr=subprocess.STDOUT)
+                                    stderr=subprocess.STDOUT, text=True)
             self.fail("direct systemd generator call is expected to fail, but succeeded.")  # pragma: nocover
         except subprocess.CalledProcessError as e:
             self.assertEqual(e.returncode, 1)
-            self.assertIn(b'can not be called directly', e.output)
+            self.assertIn('can not be called directly', e.output)
 
     def test_systemd_generator_escaping(self):
         conf = os.path.join(self.confdir, 'a.yaml')
@@ -396,9 +396,9 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i a \\; b
 
         # should be a no-op the second time while the stamp exists
         out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
-                                      stderr=subprocess.STDOUT)
+                                      stderr=subprocess.STDOUT, text=True)
         self.assertFalse(os.path.exists(n))
-        self.assertIn(b'netplan generate already ran', out)
+        self.assertIn('netplan generate already ran', out)
 
         # after removing the stamp it generates again, and not trip over the
         # existing enablement symlink
