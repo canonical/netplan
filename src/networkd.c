@@ -1570,7 +1570,8 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
             NetplanNetDefinition* bond_parent = netplan_netdef_get_bond_link(def);
             if (bond_parent && !d->routable && !d->degraded) {
                 g_info("Not all bond members need to be connected for %s to be ready. "
-                       "Consider marking them as \"optional: true\", to avoid blocking systemd-networkd-wait-online.", bond_parent->id);
+                       "Consider marking %s as \"optional: true\", to avoid blocking "
+                       "systemd-networkd-wait-online.", bond_parent->id, def->id);
             }
 
             // no matching => single physical interface, ignoring non-existing interfaces

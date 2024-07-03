@@ -155,10 +155,15 @@ class TestConfigArgs(TestBase):
       link-local: []
       ignore-carrier: true
       addresses: [10.0.0.3/24]
+    eth99.46: # routable, but optional. So no wait-online log message about this bond member
+      link: eth99
+      id: 46
+      dhcp4: true
+      optional: true
   bonds:
     bond0:
       dhcp4: true
-      interfaces: [eth99.42, eth99.43]''')
+      interfaces: [eth99.42, eth99.43, et99.46]''')
         os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
@@ -185,8 +190,10 @@ class TestConfigArgs(TestBase):
         os.unlink(n)
 
         # check log message about bonds wait-online
-        self.assertIn('Not all bond members need to be connected for bond0 to be ready. '
-                      'Consider marking them as "optional: true", to avoid blocking systemd-networkd-wait-online.', out)
+        self.assertIn('Not all bond members need to be connected for bond0 to be ready.', out)
+        self.assertIn('Consider marking eth99.42 as "optional: true", to avoid blocking systemd-networkd-wait-online.', out)
+        self.assertNotIn('making eth99.43 as "optional: true"', out)  # routable
+        self.assertNotIn('making eth99.46 as "optional: true"', out)  # optional
 
         # should auto-enable networkd and -wait-online
         service_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
