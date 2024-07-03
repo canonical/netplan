@@ -48,7 +48,7 @@ class TestNetplanDBus(unittest.TestCase):
   ethernets:
     eth0:
       dhcp4: true""")
-        self.addCleanup(shutil.rmtree, self.tmp)
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.mock_netplan_cmd = MockCmd("netplan")
         self._create_mock_system_bus()
         self._run_netplan_dbus_on_mock_bus()
@@ -284,7 +284,7 @@ class TestNetplanDBus(unittest.TestCase):
 
         cid = self._new_config_object()
         tmpdir = self.tmp + '/run/netplan/config-{}'.format(cid)
-        self.addClassCleanup(shutil.rmtree, tmpdir)
+        self.addClassCleanup(shutil.rmtree, tmpdir, ignore_errors=True)
 
         # Verify the object path has been created, by calling .Config.Get() on that object
         # it would throw an error if it does not exist
@@ -319,7 +319,7 @@ class TestNetplanDBus(unittest.TestCase):
     def test_netplan_dbus_config_set(self):
         cid = self._new_config_object()
         tmpdir = self.tmp + '/run/netplan/config-{}'.format(cid)
-        self.addCleanup(shutil.rmtree, tmpdir)
+        self.addCleanup(shutil.rmtree, tmpdir, ignore_errors=True)
 
         # Verify .Config.Set() on the config object
         # No actual YAML file will be created, as the netplan command is mocked
@@ -340,7 +340,7 @@ class TestNetplanDBus(unittest.TestCase):
     def test_netplan_dbus_config_get(self):
         cid = self._new_config_object()
         tmpdir = self.tmp + '/run/netplan/config-{}'.format(cid)
-        self.addCleanup(shutil.rmtree, tmpdir)
+        self.addCleanup(shutil.rmtree, tmpdir, ignore_errors=True)
 
         # Verify .Config.Get() on the config object
         self.mock_netplan_cmd.set_output("network:\n  eth42:\n    dhcp6: true")
