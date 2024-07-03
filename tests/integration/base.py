@@ -105,8 +105,8 @@ class IntegrationTestsBase(unittest.TestCase):
             os.remove(f)
         subprocess.call(['systemctl', 'daemon-reload'])
         subprocess.call(['udevadm', 'control', '--reload'])
-        subprocess.call(['udevadm', 'trigger', '--attr-match=subsystem=net'])
-        subprocess.call(['udevadm', 'settle'])
+        subprocess.call(['udevadm', 'trigger', '--action=change', '--subsystem-match=net', '--settle'])
+        subprocess.call(['udevadm', 'trigger', '--action=move', '--subsystem-match=net', '--settle'])
         try:
             os.remove('/run/systemd/generator/netplan.stamp')
         except FileNotFoundError:
