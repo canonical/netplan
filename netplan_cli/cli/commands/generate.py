@@ -82,6 +82,10 @@ class NetplanGenerate(utils.NetplanCommand):
             argv += ['--mapping', self.mapping]
         logging.debug('command generate: running %s', argv)
         res = subprocess.call(argv)
+        try:
+            subprocess.check_call(['udevadm', 'control', '--reload'])
+        except subprocess.CalledProcessError as e:
+            logging.debug(f'Could not call "udevadm control --reload": {str(e)}')
         # reload systemd, as we might have changed service units, such as
         # /run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf
         # Skip it if --mapping is used as nothing will be generated

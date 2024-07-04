@@ -54,13 +54,6 @@ static GOptionEntry options[] = {
     {NULL}
 };
 
-static void
-reload_udevd(void)
-{
-    const gchar *argv[] = { "/bin/udevadm", "control", "--reload", NULL };
-    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-};
-
 /**
  * Create enablement symlink for systemd-networkd.service.
  */
@@ -307,13 +300,6 @@ int main(int argc, char** argv)
 
         CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error), ignore_errors);
         CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
-        /* We may have written .rules & .link files, thus we must
-         * invalidate udevd cache of its config as by default it only
-         * invalidates cache at most every 3 seconds. Not sure if this
-         * should live in `generate' or `apply', but it is confusing
-         * when udevd ignores just-in-time created rules files.
-         */
-        reload_udevd();
     }
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
