@@ -2194,6 +2194,7 @@ static const mapping_entry_handler routes_handlers[] = {
     {"mtu", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(mtubytes)},
     {"congestion-window", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(congestion_window)},
     {"advertised-receive-window", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(advertised_receive_window)},
+    {"advertised-mss", YAML_SCALAR_NODE, {.generic=handle_routes_guint}, route_offset(advmss)},
     {NULL}
 };
 

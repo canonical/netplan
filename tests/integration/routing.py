@@ -328,6 +328,42 @@ class _CommonTests():
             out = subprocess.check_output(['ip', 'rule', 'show'], text=True)
             self.assertIn('from 10.10.10.42 lookup 1000', out)
 
+    def test_route_advmss_v6(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    renderer: %(r)s
+    ethernets:
+      ethbn:
+        match: {name: %(ec)s}
+        addresses: ["9876:BBBB::11/70"]
+        routes:
+          - to: 2001:f00f:f00f::1/64
+            via: 9876:BBBB::5
+            advertised-mss: 1400''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet6 9876:bbbb::11/70'])
+        out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client], text=True)
+        self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* advmss 1400')
+
+    def test_route_advmss_v4(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+    renderer: %(r)s
+    ethernets:
+      ethbn:
+        match: {name: %(ec)s}
+        addresses: ["192.168.1.1/24"]
+        routes:
+          - to: 172.29.29.0/24
+            via: 192.168.1.254
+            advertised-mss: 1350''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 192.168.1.1/24'])
+        out = subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client], text=True)
+        self.assertRegex(out, r'172.29.29.0/24 via 192.168.1.254 proto static[^\n]* advmss 1350')
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")

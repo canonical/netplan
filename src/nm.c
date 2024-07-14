@@ -226,7 +226,8 @@ write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GErr
                 || cur_route->congestion_window
                 || cur_route->mtubytes
                 || cur_route->table != NETPLAN_ROUTE_TABLE_UNSPEC
-                || cur_route->from) {
+                || cur_route->from
+                || cur_route->advmss) {
                 tmp_key = g_strdup_printf("route%d_options", j);
                 tmp_val = g_string_new(NULL);
                 if (cur_route->onlink) {
@@ -243,6 +244,8 @@ write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GErr
                     g_string_append_printf(tmp_val, "table=%u,", cur_route->table);
                 if (cur_route->from)
                     g_string_append_printf(tmp_val, "src=%s,", cur_route->from);
+                if (cur_route->advmss != NETPLAN_ADVMSS_UNSPEC)
+                    g_string_append_printf(tmp_val, "advmss=%u,", cur_route->advmss);
                 tmp_val->str[tmp_val->len - 1] = '\0'; //remove trailing comma
                 g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
                 g_free(tmp_key);

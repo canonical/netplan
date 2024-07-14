@@ -284,6 +284,8 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
                     route->table = strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "src") == 0)
                     route->from = g_strdup(kv[1]); //no need to free, will stay in netdef
+                else if (g_strcmp0(kv[0], "advmss") == 0)
+                    route->advmss = strtoul(kv[1], NULL, 10);
                 else
                     unhandled_data = TRUE;
                 g_strfreev(kv);

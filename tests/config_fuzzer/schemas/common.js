@@ -52,8 +52,11 @@ export const routes = {
                 "advertised-receive-window": {
                     type: "integer",
                     minimum: 0
+                },
+                "advertised-mss": {
+                    type: "integer",
+                    minimum: 0
                 }
-
             },
             required: ["to", "via"]
         }
