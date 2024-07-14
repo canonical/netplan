@@ -756,6 +756,7 @@ network:
           via: 10.0.0.1
           metric: 100
           on-link: true
+          advertised-mss: 1400
         - to: default # could be ::/0 optionally
           via: cf02:de:ad:be:ef::2
     eth1:
@@ -840,6 +841,12 @@ network:
 
     > The receive window to be advertised for the route, represented by
     > number of segments. Must be a positive integer value.
+
+  - **`advertised-mss`** (scalar)
+
+    > The Maximum MSS ('Maximal Segment Size') to advertise to these destinations when establishing TCP connections. 
+    > If it is not given, Linux uses a default value calculated from the first hop device MTU. 
+    > Must be a positive integer.
 
 - **`routing-policy`** (mapping)
 

@@ -631,3 +631,18 @@ network:
 Don't forget to allow the UDP port `51821` in your instance's security group.
 
 After applying your configuration you should be able to reach your remote instance through the IP address `172.17.0.2`.
+
+
+# How to change Advertised MSS ('Maximal Segment Size') in custom route
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens3:
+      addresses: [ "10.10.10.1/24" ]
+      routes:
+        - to: 192.168.0.0/24
+          via: 10.10.10.168
+          advertised-mss: 1400

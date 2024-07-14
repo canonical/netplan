@@ -621,6 +621,7 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
             YAML_STRING(def, event, emitter, "from", r->from);
             YAML_STRING(def, event, emitter, "to", r->to);
             YAML_STRING(def, event, emitter, "via", r->via);
+            YAML_UINT_0(def, event, emitter, "advertised-mss", r->advmss);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         YAML_SEQUENCE_CLOSE(event, emitter);

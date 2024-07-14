@@ -59,6 +59,7 @@ ffibuilder.cdef("""
         guint mtubytes;
         guint congestion_window;
         guint advertised_receive_window;
+        guint advmss;
     } NetplanIPRoute;
 
     // Error handling

@@ -733,6 +733,8 @@ write_route(NetplanIPRoute* r, GString* s)
         g_string_append_printf(s, "InitialCongestionWindow=%u\n", r->congestion_window);
     if (r->advertised_receive_window != NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC)
         g_string_append_printf(s, "InitialAdvertisedReceiveWindow=%u\n", r->advertised_receive_window);
+    if (r->advmss != NETPLAN_ADVMSS_UNSPEC)
+        g_string_append_printf(s, "TCPAdvertisedMaximumSegmentSize=%u\n", r->advmss);
 }
 
 STATIC void

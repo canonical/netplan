@@ -2356,6 +2356,40 @@ method=link-local\n'''.format(UUID), expect_fail=True)
 
         self.assertIn('missing \'table\' property', out)
 
+    def test_nm_parse_advmss_method_manual(self):
+        self.generate_from_keyfile('''[connection]
+id=netplan-engreen
+type=ethernet
+uuid={}
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+route1=10.10.10.0/24,192.168.1.20
+route1_options=advmss=1400
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match:
+        name: "engreen"
+      addresses:
+      - "192.168.14.2/24"
+      routes:
+      - to: "10.10.10.0/24"
+        via: "192.168.1.20"
+        advertised-mss: 1400
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-engreen"\n'''.format(UUID, UUID)})
+
     def test_nameserver_with_DoT_lp2055148(self):
         self.generate_from_keyfile('''[connection]
 id=ethernet-eth123

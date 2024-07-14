@@ -283,6 +283,7 @@ class _NetdefSearchDomainIterator:
 @dataclass
 class NetplanRoute:
     _METRIC_UNSPEC_ = lib.UINT_MAX
+    _ADVMSS_UNSPEC_ = 0
     _TABLE_UNSPEC_ = 0
 
     to: str = None
@@ -298,6 +299,7 @@ class NetplanRoute:
     congestion_window: int = 0
     advertised_receive_window: int = 0
     onlink: bool = False
+    advertised_mss: int = _ADVMSS_UNSPEC_
 
     def __str__(self):
         route = ""
@@ -388,7 +390,8 @@ class _NetdefRouteIterator:
             'mtubytes': next_value.mtubytes,
             'congestion_window': next_value.congestion_window,
             'advertised_receive_window': next_value.advertised_receive_window,
-            'onlink': next_value.onlink
+            'onlink': next_value.onlink,
+            'advertised_mss': next_value.advmss
         }
 
         return NetplanRoute(**route)

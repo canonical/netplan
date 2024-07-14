@@ -289,7 +289,11 @@ class TestNetdefRouteIterator(TestBase):
           mtu: 1500
           congestion-window: 123
           advertised-receive-window: 321
-          from: 192.168.0.0/24''')
+          from: 192.168.0.0/24
+        - to: 4.5.6.7/32
+          via: 1.2.3.4
+          on-link: true
+          advertised-mss: 1400''')
 
         netdef = next(netplan.netdef.NetDefinitionIterator(state, "ethernets"))
         routes = [route for route in netdef.routes]
@@ -300,6 +304,8 @@ class TestNetdefRouteIterator(TestBase):
                              routes[2].onlink, routes[2].type, routes[2].scope, routes[2].mtubytes, routes[2].congestion_window,
                              routes[2].advertised_receive_window},
                             {'3.2.1.0/24', '10.20.30.40', 1000, 1000, True, 'local', 'host', 1500, 123, 321, '192.168.0.0/24'})
+        self.assertSetEqual({routes[3].to, routes[3].via, routes[3].onlink, routes[3].advertised_mss},
+                            {'4.5.6.7/32', '1.2.3.4', True, 1400})
 
 
 class TestRoute(TestBase):

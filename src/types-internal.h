@@ -152,6 +152,7 @@ typedef struct {
     guint mtubytes;
     guint congestion_window;
     guint advertised_receive_window;
+    guint advmss;
 } NetplanIPRoute;
 
 typedef struct {
@@ -286,6 +287,7 @@ struct netplan_state_iterator {
 #define NETPLAN_IP_RULE_PRIO_UNSPEC G_MAXUINT
 #define NETPLAN_IP_RULE_FW_MARK_UNSPEC 0
 #define NETPLAN_IP_RULE_TOS_UNSPEC G_MAXUINT
+#define NETPLAN_ADVMSS_UNSPEC 0
 
 #if defined(UNITTESTS)
 #define STATIC
