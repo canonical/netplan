@@ -1,5 +1,5 @@
 ---
-title: "Introdution to Netplan"
+title: "Introduction to Netplan"
 ---
 
 Distribution installers, cloud instantiation, image builds for particular
