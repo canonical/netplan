@@ -205,13 +205,15 @@ DHCP can be used to receive one of the IP addresses for the interface. In this c
 
 # How to use NetworkManager as a renderer
 
-Netplan supports both `networkd` and NetworkManager as back ends. You can specify which network back end should be used to configure particular devices by using the `renderer` key. You can also delegate all configuration of the network to NetworkManager itself by specifying only the `renderer` key:
+Netplan supports both `networkd` and `NetworkManager` as back ends. You can specify which network back end should be used to configure particular devices by using the `renderer` key. You can also delegate all configuration of the network to NetworkManager itself by specifying only the `renderer` key:
 
 ```yaml
 network:
   version: 2
   renderer: NetworkManager
 ```
+
+See also: [NetworkManager default configuration](/nm-all)
 
 # How to configure interface bonding
 
