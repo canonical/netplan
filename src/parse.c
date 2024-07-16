@@ -3371,7 +3371,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
                 g_debug("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", npp->current.netdef->id);
                 handlers = ethernet_def_handlers;
                 if (npp->current.netdef->backend != NETPLAN_BACKEND_NM) {
-                    g_warning("nm-device: %s: the renderer for nm-devices must be NetworkManager, it will be used instead of the defined one.",
+                    g_debug("nm-device: %s: the renderer for nm-devices must be NetworkManager, it will be used instead of the defined one.",
                               npp->current.netdef->id);
                     npp->current.netdef->backend = NETPLAN_BACKEND_NM;
                 }
