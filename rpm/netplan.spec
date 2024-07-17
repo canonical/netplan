@@ -50,6 +50,7 @@ BuildRequires:  python3dist(pytest-cov)
 BuildRequires:  python3dist(pyyaml)
 BuildRequires:  python3dist(rich)
 BuildRequires:  %{_bindir}/ovs-vsctl
+BuildRequires:  systemd-udev
 
 # /usr/sbin/netplan is a Python 3 script that requires Python modules
 Requires:       python3dist(netifaces)
