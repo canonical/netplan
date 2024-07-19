@@ -7,18 +7,16 @@ on:
 jobs:
   coverity:
     if: github.repository == 'canonical/netplan'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo add-apt-repository -y -u -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt -y install curl ubuntu-dev-tools equivs
           pull-lp-source netplan.io
-          sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
       - name: Download Coverity
         run: |
