@@ -91,6 +91,11 @@ class _CommonTests():
         self.assert_iface('tun0', ['tun0@NONE', 'link.* 0.0.0.0 peer 99.99.99.99'])
 
     def test_tunnel_wireguard(self):
+        try:
+            subprocess.check_call(['modprobe', 'wireguard'])
+        except Exception:
+            raise unittest.SkipTest("wireguard module is unavailable, can't test")
+
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg1'], stderr=subprocess.DEVNULL)
         with open(self.config, 'w') as f:
