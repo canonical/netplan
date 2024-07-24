@@ -53,6 +53,7 @@ jobs:
           echo "	sh -c \"mkdir -p debian/tmp/usr/lib/systemd/system-generators; rm -rf debian/tmp/lib; ln -sf /usr/libexec/netplan/generate debian/tmp/usr/lib/systemd/system-generators/netplan\"" >> debian/rules
           # usrmerge-fix-end
           sed -i 's| systemd-dev|# DELETED: systemd-dev|' debian/control
+          sed -i 's|  python3-gi,|  python3-gi, python3-packaging,|' debian/tests/control  # needed for the 'routing' test (nm_version)
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
