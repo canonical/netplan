@@ -24,11 +24,19 @@
 import sys
 import subprocess
 import unittest
+import gi
 
 from base import IntegrationTestsBase, test_backends
+from packaging.version import Version
 
 
 class _CommonTests():
+
+    def _nm_version(self):
+        gi.require_version('NM', '1.0')
+        from gi.repository import NM
+        nm_client = NM.Client.new(None)
+        return Version(nm_client.get_version())
 
     # Supposed to fail if tested against NetworkManager < 1.12/1.18
     # The on-link option was introduced as of NM 1.12+ (for IPv4)
@@ -342,6 +350,13 @@ class _CommonTests():
             via: 9876:BBBB::5
             advertised-mss: 1400''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client])
+
+        # wait for NetworkManager to be started (by generate_and_settle()),
+        # before checking its version.
+        if self.backend == 'NetworkManager' and self._nm_version() < Version('1.39.8'):
+            # https://github.com/NetworkManager/NetworkManager/commit/90e7afc
+            raise unittest.SkipTest('advmss is not yet supported in this version of NetworkManager')
+
         self.assert_iface_up(self.dev_e_client, ['inet6 9876:bbbb::11/70'])
         out = subprocess.check_output(['ip', '-6', 'route', 'show', 'dev', self.dev_e_client], text=True)
         self.assertRegex(out, r'2001:f00f:f00f::/64 via 9876:bbbb::5 proto static[^\n]* advmss 1400')
@@ -360,6 +375,13 @@ class _CommonTests():
             via: 192.168.1.254
             advertised-mss: 1350''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client])
+
+        # wait for NetworkManager to be started (by generate_and_settle()),
+        # before checking its version.
+        if self.backend == 'NetworkManager' and self._nm_version() < Version('1.39.8'):
+            # https://github.com/NetworkManager/NetworkManager/commit/90e7afc
+            raise unittest.SkipTest('advmss is not yet supported in this version of NetworkManager')
+
         self.assert_iface_up(self.dev_e_client, ['inet 192.168.1.1/24'])
         out = subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_e_client], text=True)
         self.assertRegex(out, r'172.29.29.0/24 via 192.168.1.254 proto static[^\n]* advmss 1350')
