@@ -41,6 +41,8 @@ jobs:
           sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
           sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
           echo "lxc.apparmor.profile = unconfined" | sudo tee -a /etc/lxc/default.conf
+          wget https://launchpadlibrarian.net/707897502/debootstrap_1.0.134ubuntu1_all.deb
+          sudo dpkg -i debootstrap_*.deb
           sudo debci setup -s testing -a amd64 -b lxc
       - name: Prepare test
         run: |
