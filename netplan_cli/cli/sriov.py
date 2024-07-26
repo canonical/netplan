@@ -27,8 +27,6 @@ from . import utils
 from ..configmanager import ConfigurationError
 import netplan
 
-import netifaces
-
 
 # PCIDevice class originates from mlnx_switchdev_mode/sriovify.py
 # Copyright 2019 Canonical Ltd, Apache License, Version 2.0
@@ -223,7 +221,7 @@ def _get_interface_name_for_netdef(netdef: netplan.NetDefinition) -> Optional[st
     Try to match a netdef with the real system network interface.
     Throws ConfigurationError if there is more than one match.
     """
-    interfaces: List[str] = netifaces.interfaces()
+    interfaces: List[str] = utils.get_interfaces()
     if netdef._has_match:
         # now here it's a bit tricky
         set_name: str = netdef.set_name
@@ -455,7 +453,7 @@ def apply_sriov_config(config_manager, rootdir='/'):
     them and perform all other necessary setup.
     """
     config_manager.parse()
-    interfaces = netifaces.interfaces()
+    interfaces = utils.get_interfaces()
     np_state = config_manager.np_state
 
     # for sr-iov devices, we identify VFs by them having a link: field
@@ -487,7 +485,7 @@ def apply_sriov_config(config_manager, rootdir='/'):
 
         # also, since the VF number changed, the interfaces list also
         # changed, so we need to refresh it
-        interfaces = netifaces.interfaces()
+        interfaces = utils.get_interfaces()
 
     # now in theory we should have all the new VFs set up and existing;
     # this is needed because we will have to now match the defined VF

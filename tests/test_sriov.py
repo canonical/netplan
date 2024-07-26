@@ -135,7 +135,7 @@ class TestSRIOV(unittest.TestCase):
         for i in range(len(vfs)):
             os.symlink(os.path.join('../../..', vfs[i][1]), os.path.join(pf_dev_path, 'virtfn'+str(i)))
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_vfs_and_pfs(self, gim, gidn, ifaces):
@@ -207,7 +207,7 @@ class TestSRIOV(unittest.TestCase):
             {'enp1': 'enp1', 'enp2': 'enp2', 'enp3': 'enp3',
              'enpx': 'enp5', 'enp8': 'enp8', 'enp10': 'enp10'})
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_physical_functions(self, gim, gidn, ifaces):
@@ -268,7 +268,7 @@ class TestSRIOV(unittest.TestCase):
             {'enp1': 'enp1', 'enp2': 'enp2', 'enp3': 'enp3',
              'enpx': 'enp5', 'enp8': 'enp8', 'enp10': 'enp10'})
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_number_per_pf(self, gim, gidn, ifaces):
@@ -327,7 +327,7 @@ class TestSRIOV(unittest.TestCase):
             vf_counts,
             {'enp1': 2, 'enp2': 2, 'enp3': 1, 'enp5': 1, 'enp8': 7})
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_virtual_functions(self, gim, gidn, ifaces):
@@ -386,7 +386,7 @@ class TestSRIOV(unittest.TestCase):
             {'enp1s16f1', 'enp1s16f2', 'enp2s16f1',
              'enp2s16f2', 'enp3s16f1', 'enpxs16f1'})
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_vfs_and_pfs_set_name(self, gim, gidn, ifaces):
@@ -433,7 +433,7 @@ class TestSRIOV(unittest.TestCase):
             pfs,
             {'enp1': 'pf1', 'enp8': 'enp8'})
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_vfs_and_pfs_many_match(self, gim, gidn, ifaces):
@@ -464,7 +464,7 @@ class TestSRIOV(unittest.TestCase):
         self.assertIn('matched more than one interface for a PF device: enpx',
                       str(e.exception))
 
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
     def test_get_vf_count_vfs_and_pfs_not_enough_explicit(self, gim, gidn, ifaces):
@@ -646,7 +646,6 @@ class TestSRIOV(unittest.TestCase):
         self.assertIn('failed setting SR-IOV VLAN filter for vlan vlan10',
                       str(e.exception))
 
-    @patch('netifaces.interfaces')
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
@@ -655,8 +654,9 @@ class TestSRIOV(unittest.TestCase):
     @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
-    def test_apply_sriov_config(self, gim, gidn, apply_vlan, quirks,
-                                set_numvfs, get_phys, get_virt, get_num, netifs):
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_sriov_config(self, netifs, gim, gidn, apply_vlan, quirks,
+                                set_numvfs, get_phys, get_virt, get_num):
         # set up the environment
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
@@ -711,7 +711,6 @@ class TestSRIOV(unittest.TestCase):
         # only one had a hardware vlan
         apply_vlan.assert_called_once_with('enp2', 'enp2s16f1', 'vf1.15', 15)
 
-    @patch('netifaces.interfaces')
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
@@ -720,8 +719,9 @@ class TestSRIOV(unittest.TestCase):
     @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
-    def test_apply_sriov_config_invalid_vlan(self, gim, gidn, apply_vlan, quirks,
-                                             set_numvfs, get_phys, get_virt, get_num, netifs):
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_sriov_config_invalid_vlan(self, netifs, gim, gidn, apply_vlan, quirks,
+                                             set_numvfs, get_phys, get_virt, get_num):
         # set up the environment
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
@@ -783,7 +783,6 @@ class TestSRIOV(unittest.TestCase):
                           'either not a VF or has no matches',
                           logs.output[0])
 
-    @patch('netifaces.interfaces')
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
@@ -792,8 +791,9 @@ class TestSRIOV(unittest.TestCase):
     @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
-    def test_apply_sriov_config_too_many_vlans(self, gim, gidn, apply_vlan, quirks,
-                                               set_numvfs, get_phys, get_virt, get_num, netifs):
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_sriov_config_too_many_vlans(self, netifs, gim, gidn, apply_vlan, quirks,
+                                               set_numvfs, get_phys, get_virt, get_num):
         # set up the environment
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
@@ -842,7 +842,6 @@ class TestSRIOV(unittest.TestCase):
                       str(e.exception))
         self.assertEqual(apply_vlan.call_count, 1)
 
-    @patch('netifaces.interfaces')
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
@@ -851,8 +850,9 @@ class TestSRIOV(unittest.TestCase):
     @patch('netplan_cli.cli.sriov.apply_vlan_filter_for_vf')
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
-    def test_apply_sriov_config_many_match(self, gim, gidn, apply_vlan, quirks,
-                                           set_numvfs, get_phys, get_virt, get_num, netifs):
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_sriov_config_many_match(self, netifs, gim, gidn, apply_vlan, quirks,
+                                           set_numvfs, get_phys, get_virt, get_num):
         # set up the environment
         with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
             print('''network:
@@ -919,7 +919,7 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             self.assertTrue(pcidev.is_vf)
 
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
@@ -1022,7 +1022,7 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
 
     @patch('netplan_cli.cli.sriov.unbind_vfs')
     @patch('netplan_cli.cli.utils.get_interface_macaddress')
-    @patch('netifaces.interfaces')
+    @patch('netplan_cli.cli.utils.get_interfaces')
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
