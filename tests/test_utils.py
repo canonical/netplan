@@ -21,7 +21,6 @@ import sys
 import unittest
 import tempfile
 import glob
-import netifaces
 import netplan
 
 from contextlib import redirect_stdout
@@ -235,15 +234,57 @@ class TestUtils(unittest.TestCase):
         iface = utils.find_matching_iface(DEVICES, state['netplan-id'])
         self.assertEqual(iface, 'ens4')
 
-    @patch('netifaces.ifaddresses')
-    def test_interface_macaddress(self, ifaddr):
-        ifaddr.side_effect = lambda _: {netifaces.AF_LINK: [{'addr': '00:01:02:03:04:05'}]}
+    @patch('netplan_cli.cli.utils._get_macaddress')
+    @patch('netplan_cli.cli.utils._get_permanent_macaddress')
+    def test_interface_macaddress(self, getpm, getm):
+        getpm.return_value = None
+        getm.return_value = '00:01:02:03:04:05'
         self.assertEqual(utils.get_interface_macaddress('eth42'), '00:01:02:03:04:05')
 
-    @patch('netifaces.ifaddresses')
-    def test_interface_macaddress_empty(self, ifaddr):
-        ifaddr.side_effect = lambda _: {}
-        self.assertEqual(utils.get_interface_macaddress('eth42'), '')
+    @patch('builtins.open')
+    @patch('subprocess.check_output')
+    def test_interface_macaddress_empty(self, subp, o):
+        subp.side_effect = Exception
+        o.side_effect = Exception
+        self.assertEqual(utils.get_interface_macaddress('eth42'), None)
+
+    @patch('builtins.open')
+    @patch('subprocess.check_output')
+    def test_interface_macaddress_empty_not_set(self, subp, o):
+        subp.return_value = b'Permanent address: not set'
+        o.side_effect = Exception
+        self.assertEqual(utils.get_interface_macaddress('eth42'), None)
+
+    @patch('subprocess.check_output')
+    def test_interface_permanent_macaddress(self, subp):
+        subp.return_value = b'Permanent address: 00:01:02:03:04:05'
+        self.assertEqual(utils.get_interface_macaddress('eth42'), '00:01:02:03:04:05')
+
+    @patch('subprocess.check_output')
+    def test_interface_permanent_macaddress_not_set(self, subp):
+        subp.return_value = b'Permanent address: not set'
+        self.assertEqual(utils._get_permanent_macaddress('eth42'), None)
+
+    @patch('builtins.open')
+    @patch('subprocess.check_output')
+    def test_interface_nonpermanent_macaddress(self, subp, o):
+        file = io.StringIO('00:01:02:03:04:05')
+        subp.side_effect = Exception
+        o.return_value = file
+        self.assertEqual(utils.get_interface_macaddress('eth42'), '00:01:02:03:04:05')
+
+    @patch('builtins.open')
+    @patch('subprocess.check_output')
+    def test_interface_nonpermanent_macaddress_not_set(self, subp, o):
+        file = io.StringIO('00:01:02:03:04:05')
+        subp.return_value = b'Permanent address: not set'
+        o.return_value = file
+        self.assertEqual(utils.get_interface_macaddress('eth42'), '00:01:02:03:04:05')
+
+    @patch('subprocess.check_output')
+    def test_get_interfaces_empty(self, subp):
+        subp.side_effect = Exception
+        self.assertListEqual(utils.get_interfaces(), [])
 
     def test_systemctl(self):
         self.mock_systemctl = MockCmd('systemctl')

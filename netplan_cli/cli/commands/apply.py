@@ -27,7 +27,6 @@ import subprocess
 import shutil
 import tempfile
 import filecmp
-import netifaces
 import time
 
 from .. import utils
@@ -117,7 +116,7 @@ class NetplanApply(utils.NetplanCommand):
             old_ovs_glob.remove(ovs_cleanup_service)
         old_files_ovs = bool(old_ovs_glob)
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces = utils.nm_interfaces(old_nm_glob, netifaces.interfaces())
+        nm_ifaces = utils.nm_interfaces(old_nm_glob, utils.get_interfaces())
         old_files_nm = bool(old_nm_glob)
 
         restart_networkd = False
@@ -151,7 +150,7 @@ class NetplanApply(utils.NetplanCommand):
                 if comp.left_only or comp.right_only or comp.diff_files:
                     restart_networkd = True
 
-        devices = netifaces.interfaces()
+        devices = utils.get_interfaces()
 
         restart_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
@@ -203,7 +202,7 @@ class NetplanApply(utils.NetplanCommand):
             logging.debug('no netplan generated NM configuration exists')
 
         # Refresh devices now; restarting a backend might have made something appear.
-        devices = netifaces.interfaces()
+        devices = utils.get_interfaces()
 
         # evaluate config for extra steps we need to take (like renaming)
         # for now, only applies to non-virtual (real) devices.
@@ -223,7 +222,7 @@ class NetplanApply(utils.NetplanCommand):
         # the interface name, if it was already renamed once (e.g. during boot),
         # because of the NamePolicy=keep default:
         # https://www.freedesktop.org/software/systemd/man/systemd.net-naming-scheme.html
-        devices = netifaces.interfaces()
+        devices = utils.get_interfaces()
         for device in devices:
             logging.debug('netplan triggering .link rules for %s', device)
             try:
@@ -239,7 +238,7 @@ class NetplanApply(utils.NetplanCommand):
             except subprocess.CalledProcessError:
                 logging.debug('Ignoring device without syspath: %s', device)
 
-        devices_after_udev = netifaces.interfaces()
+        devices_after_udev = utils.get_interfaces()
         # apply some more changes manually
         for iface, settings in changes.items():
             # rename non-critical network interfaces

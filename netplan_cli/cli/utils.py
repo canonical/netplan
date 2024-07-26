@@ -20,9 +20,10 @@ import os
 import logging
 import argparse
 import subprocess
-import netifaces
 import fnmatch
 import re
+import json
+from typing import Optional
 
 from ..configmanager import ConfigurationError
 from netplan import NetDefinition, NetplanException
@@ -196,10 +197,43 @@ def get_interface_driver_name(interface, only_down=False):  # pragma: nocover (c
     return driver_name
 
 
-def get_interface_macaddress(interface):
-    # return an empty list (and string) if no LL data can be found
-    link = netifaces.ifaddresses(interface).get(netifaces.AF_LINK, [{}])[0]
-    return link.get('addr', '')
+def _get_permanent_macaddress(interface: str) -> Optional[str]:
+    mac = None
+    try:
+        out = subprocess.check_output(['ethtool', '-P', interface]).decode('utf-8')
+        split = out.split(': ')
+        if len(split) == 2 and is_valid_macaddress(split[1].strip()):
+            mac = split[1].strip()
+    except Exception:
+        return mac
+
+    return mac
+
+
+def _get_macaddress(interface: str) -> Optional[str]:
+    try:
+        with open(f'/sys/class/net/{interface}/address') as f:
+            return f.read().strip()
+    except Exception:
+        return None
+
+
+def get_interfaces() -> list[str]:
+    try:
+        out = subprocess.check_output(['ip', '--json', 'link']).decode('utf-8')
+        out_json = json.loads(out)
+        return [iface['ifname'] for iface in out_json]
+    except Exception:
+        return []
+
+
+def get_interface_macaddress(interface: str) -> Optional[str]:
+    mac = _get_permanent_macaddress(interface)
+
+    if not mac:
+        mac = _get_macaddress(interface)
+
+    return mac
 
 
 def find_matching_iface(interfaces: list, netdef):
