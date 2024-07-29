@@ -1,1 +1,2 @@
+option('testing', type: 'boolean', value: true)
 option('unit_testing', type: 'boolean', value: true)

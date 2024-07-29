@@ -21,15 +21,17 @@ libnetplan = library(
     soversion: 1,
     install: true)
 
-libnetplan_testing = library(
-    'netplan_testing',
-    sources,
-    gnu_symbol_visibility: 'default',
-    c_args: ['-DUNITTESTS'],
-    dependencies: [glib, gio, yaml, uuid],
-    include_directories: inc,
-    soversion: 1,
-    install: false)
+if get_option('testing')
+    libnetplan_testing = library(
+        'netplan_testing',
+        sources,
+        gnu_symbol_visibility: 'default',
+        c_args: ['-DUNITTESTS'],
+        dependencies: [glib, gio, yaml, uuid],
+        include_directories: inc,
+        soversion: 1,
+        install: false)
+endif
 
 libexec_netplan = join_paths(get_option('libexecdir'), 'netplan')
 executable(
