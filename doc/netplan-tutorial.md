@@ -400,7 +400,7 @@ After creating a new configuration as described in [Using netplan set to enable 
       ```
       netplan try
       ```
-      Applies the new configuration temporarily (120 seconds by default) and waits for confirmation (within the specified time) to make them permanent.
+      Applies the new configuration temporarily (120 seconds by default) and waits for confirmation (within the specified time) to make it permanent.
 
 
 3. Apply the new Netplan configuration:
@@ -409,7 +409,7 @@ After creating a new configuration as described in [Using netplan set to enable 
    netplan apply
    ```
    :::{note}
-   Skip this step if you confirmed the changes using `netplan try`.
+   Skip this step if you made the changes permanent using `netplan try`.
    :::
 
 4. Check the state of the `enp6s0` interface again using one of the following two methods:
