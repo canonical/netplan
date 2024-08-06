@@ -138,7 +138,7 @@ keyfile_handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, 
 {
     g_assert(dataptr != NULL);
     if (g_key_file_has_key(kf, group, key, NULL)) {
-        guint data = g_key_file_get_uint64(kf, group, key, NULL);
+        guint data = (guint)g_key_file_get_uint64(kf, group, key, NULL);
         if (data != default_value)
             *dataptr = data;
         _kf_clear_key(kf, group, key);
@@ -262,7 +262,7 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 
         /* Append metric */
         if (split[0] && split[1] && split[2] && strtoul(split[2], NULL, 10) != NETPLAN_METRIC_UNSPEC)
-            route->metric = strtoul(split[2], NULL, 10);
+            route->metric = (guint)strtoul(split[2], NULL, 10);
         g_strfreev(split);
 
         /* Parse route options */
@@ -275,17 +275,17 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
                 if (g_strcmp0(kv[0], "onlink") == 0)
                     route->onlink = (g_strcmp0(kv[1], "true") == 0);
                 else if (g_strcmp0(kv[0], "initrwnd") == 0)
-                    route->advertised_receive_window = strtoul(kv[1], NULL, 10);
+                    route->advertised_receive_window = (guint)strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "initcwnd") == 0)
-                    route->congestion_window = strtoul(kv[1], NULL, 10);
+                    route->congestion_window = (guint)strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "mtu") == 0)
-                    route->mtubytes = strtoul(kv[1], NULL, 10);
+                    route->mtubytes = (guint)strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "table") == 0)
-                    route->table = strtoul(kv[1], NULL, 10);
+                    route->table = (guint)strtoul(kv[1], NULL, 10);
                 else if (g_strcmp0(kv[0], "src") == 0)
                     route->from = g_strdup(kv[1]); //no need to free, will stay in netdef
                 else if (g_strcmp0(kv[0], "advmss") == 0)
-                    route->advmss = strtoul(kv[1], NULL, 10);
+                    route->advmss = (guint)strtoul(kv[1], NULL, 10);
                 else
                     unhandled_data = TRUE;
                 g_strfreev(kv);
@@ -505,10 +505,10 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
         _kf_clear_key(kf, "wireguard", "private-key");
 
         /* Reading the listen port */
-        nd->tunnel.port = g_key_file_get_uint64(kf, "wireguard", "listen-port", NULL);
+        nd->tunnel.port = (guint)g_key_file_get_uint64(kf, "wireguard", "listen-port", NULL);
         _kf_clear_key(kf, "wireguard", "listen-port");
 
-        nd->tunnel_private_key_flags = g_key_file_get_integer(kf, "wireguard", "private-key-flags", NULL);
+        nd->tunnel_private_key_flags = (guint)g_key_file_get_uint64(kf, "wireguard", "private-key-flags", NULL);
         _kf_clear_key(kf, "wireguard", "private-key-flags");
 
         gchar** keyfile_groups = g_key_file_get_groups(kf, NULL);
@@ -590,7 +590,7 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
         reset_vxlan(nd->vxlan);
 
         /* Reading the VXLAN ID*/
-        nd->vxlan->vni = g_key_file_get_integer(kf, "vxlan", "id", NULL);
+        nd->vxlan->vni = (guint)g_key_file_get_uint64(kf, "vxlan", "id", NULL);
         _kf_clear_key(kf, "vxlan", "id");
 
         nd->tunnel.local_ip = g_key_file_get_string(kf, "vxlan", "local", NULL);
@@ -600,7 +600,7 @@ parse_tunnels(GKeyFile* kf, NetplanNetDefinition* nd)
     } else {
         /* Handle all the other types of tunnel */
 
-        nd->tunnel.mode = g_key_file_get_integer(kf, "ip-tunnel", "mode", NULL);
+        nd->tunnel.mode = (guint)g_key_file_get_uint64(kf, "ip-tunnel", "mode", NULL);
 
         /* We don't want to automatically accept new types of tunnels introduced by Network Manager */
         if (nd->tunnel.mode >= NETPLAN_TUNNEL_MODE_NM_MAX) {
@@ -722,7 +722,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     /* Handle VRFs */
     if (nd_type == NETPLAN_DEF_TYPE_VRF) {
         if (g_key_file_has_key(kf, "vrf", "table", NULL)) {
-            nd->vrf_table = g_key_file_get_uint64(kf, "vrf", "table", NULL);
+            nd->vrf_table = (guint)g_key_file_get_uint64(kf, "vrf", "table", NULL);
             _kf_clear_key(kf, "vrf", "table");
         }
     }
@@ -841,7 +841,7 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
             if (nd_type == NETPLAN_DEF_TYPE_ETHERNET)
                 nd->wake_on_lan = TRUE; //NM's default is "1"
         } else {
-            guint value = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL);
+            guint64 value = g_key_file_get_uint64(kf, "ethernet", "wake-on-lan", NULL);
             //XXX: fix delta between options in NM (0x1, 0x2, 0x4, ...) and netplan (bool)
             nd->wake_on_lan = value > 0; // netplan only knows about "off" or "on"
             if (value == 0)
@@ -855,7 +855,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
     /* Wifis */
     if (g_key_file_has_group(kf, "wifi")) {
         if (g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL)) {
-            nd->wowlan = g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL);
+            guint64 wow = g_key_file_get_uint64(kf, "wifi", "wake-on-wlan", NULL);
+            g_assert(wow < G_MAXINT);
+            nd->wowlan = (gint)wow;
             _kf_clear_key(kf, "wifi", "wake-on-wlan");
         } else {
             nd->wowlan = NETPLAN_WIFI_WOWLAN_DEFAULT;
