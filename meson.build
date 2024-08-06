@@ -33,6 +33,7 @@ find = find_program('find')
 add_project_arguments(
     '-DSBINDIR="' + join_paths(get_option('prefix'), get_option('sbindir')) + '"',
     '-D_GNU_SOURCE',
+    '-Wconversion',
     language: 'c')
 
 inc = include_directories('include')
