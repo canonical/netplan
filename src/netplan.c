@@ -553,7 +553,7 @@ write_tunnel_settings(yaml_event_t* event, yaml_emitter_t* emitter, const Netpla
                 YAML_SCALAR_PLAIN(event, emitter, "private-key-flags");
                 YAML_SEQUENCE_OPEN(event, emitter);
 
-                for(int i = 1; i < NETPLAN_KEY_FLAG_MAX_; i <<= 1) {
+                for(guint i = 1; i < NETPLAN_KEY_FLAG_MAX_; i <<= 1) {
                     if (def->tunnel_private_key_flags & i)
                         YAML_SCALAR_PLAIN(event, emitter, netplan_key_flags_name(i));
                 }
