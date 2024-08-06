@@ -222,5 +222,12 @@ _netplan_state_get_vf_count_for_def(const NetplanState* np_state, const NetplanN
         g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "more VFs allocated than the explicit size declared: %d > %d", count, netdef->sriov_explicit_vf_count);
         return -1;
     }
-    return netdef->sriov_explicit_vf_count != G_MAXUINT ? netdef->sriov_explicit_vf_count : count;
+
+    if (netdef->sriov_explicit_vf_count != G_MAXUINT) {
+        g_assert(netdef->sriov_explicit_vf_count <= G_MAXINT);
+        count = netdef->sriov_explicit_vf_count;
+    }
+
+    g_assert(count <= G_MAXINT);
+    return (int)count;
 }
