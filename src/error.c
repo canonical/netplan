@@ -32,18 +32,16 @@
  ****************************************************/
 
 STATIC void
-write_error_marker(GString *message, int column)
+write_error_marker(GString *message, size_t column)
 {
-    int i;
-
-    for (i = 0; (column > 0 && i < column); i++)
+    for (size_t i = 0; (column > 0 && i < column); i++)
         g_string_append_printf(message, " ");
 
     g_string_append_printf(message, "^");
 }
 
 STATIC char *
-get_syntax_error_context(const NetplanParser* npp, const int line_num, const int column, GError **error)
+get_syntax_error_context(const NetplanParser* npp, const size_t line_num, const size_t column, GError **error)
 {
     GString *message = NULL;
     GFile *cur_file = g_file_new_for_path(npp->current.filepath);
@@ -57,7 +55,7 @@ get_syntax_error_context(const NetplanParser* npp, const int line_num, const int
     stream = g_data_input_stream_new (G_INPUT_STREAM(file_stream));
     g_object_unref(file_stream);
 
-    for (int i = 0; i < line_num + 1; i++) {
+    for (size_t i = 0; i < line_num + 1; i++) {
         g_free(line);
         line = g_data_input_stream_read_line(stream, &len, NULL, error);
     }
