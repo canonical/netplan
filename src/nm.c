@@ -268,7 +268,7 @@ write_nm_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
     if (def->bond_params.monitor_interval)
         g_key_file_set_string(kf, "bond", "miimon", def->bond_params.monitor_interval);
     if (def->bond_params.min_links)
-        g_key_file_set_integer(kf, "bond", "min_links", def->bond_params.min_links);
+        g_key_file_set_uint64(kf, "bond", "min_links", def->bond_params.min_links);
     if (def->bond_params.transmit_hash_policy)
         g_key_file_set_string(kf, "bond", "xmit_hash_policy", def->bond_params.transmit_hash_policy);
     if (def->bond_params.selection_logic)
@@ -298,17 +298,17 @@ write_nm_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
     if (def->bond_params.fail_over_mac_policy)
         g_key_file_set_string(kf, "bond", "fail_over_mac", def->bond_params.fail_over_mac_policy);
     if (def->bond_params.gratuitous_arp) {
-        g_key_file_set_integer(kf, "bond", "num_grat_arp", def->bond_params.gratuitous_arp);
+        g_key_file_set_uint64(kf, "bond", "num_grat_arp", def->bond_params.gratuitous_arp);
         /* Work around issue in NM where unset unsolicited_na will overwrite num_grat_arp:
          * https://github.com/NetworkManager/NetworkManager/commit/42b0bef33c77a0921590b2697f077e8ea7805166 */
-        g_key_file_set_integer(kf, "bond", "num_unsol_na", def->bond_params.gratuitous_arp);
+        g_key_file_set_uint64(kf, "bond", "num_unsol_na", def->bond_params.gratuitous_arp);
     }
     if (def->bond_params.packets_per_member)
-        g_key_file_set_integer(kf, "bond", "packets_per_slave", def->bond_params.packets_per_member); /* wokeignore:rule=slave */
+        g_key_file_set_uint64(kf, "bond", "packets_per_slave", def->bond_params.packets_per_member); /* wokeignore:rule=slave */
     if (def->bond_params.primary_reselect_policy)
         g_key_file_set_string(kf, "bond", "primary_reselect", def->bond_params.primary_reselect_policy);
     if (def->bond_params.resend_igmp)
-        g_key_file_set_integer(kf, "bond", "resend_igmp", def->bond_params.resend_igmp);
+        g_key_file_set_uint64(kf, "bond", "resend_igmp", def->bond_params.resend_igmp);
     if (def->bond_params.learn_interval)
         g_key_file_set_string(kf, "bond", "lp_interval", def->bond_params.learn_interval);
     if (def->bond_params.primary_member)
@@ -363,7 +363,7 @@ write_nm_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError*
             g_autofree gchar* tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
 
             if (peer->keepalive)
-                g_key_file_set_integer(kf, tmp_group, "persistent-keepalive", peer->keepalive);
+                g_key_file_set_uint64(kf, tmp_group, "persistent-keepalive", peer->keepalive);
             if (peer->endpoint)
                 g_key_file_set_string(kf, tmp_group, "endpoint", peer->endpoint);
 
@@ -791,7 +791,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             if (def->mtubytes)
                 g_key_file_set_uint64(kf, nm_type, "mtu", def->mtubytes);
             if (def->wowlan && def->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT)
-                g_key_file_set_uint64(kf, nm_type, "wake-on-wlan", def->wowlan);
+                g_key_file_set_integer(kf, nm_type, "wake-on-wlan", def->wowlan);
             if (def->ib_mode != NETPLAN_IB_MODE_KERNEL)
                 g_key_file_set_string(kf, nm_type, "transport-mode", netplan_infiniband_mode_name(def->ib_mode));
         }
