@@ -93,7 +93,7 @@ void _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char*
     }
 }
 
-void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, mode_t mode)
+void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, int mode)
 {
     g_autofree char* full_path = NULL;
     g_autofree char* path_suffix = NULL;
@@ -651,7 +651,8 @@ netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* ou
 
     /* Move pointer to start of netplan ID inside filename string */
     start = pos + strlen(nm_prefix);
-    id_len = end - start;
+    g_assert(end - start > 0);
+    id_len = (gsize)(end - start);
 
     if (out_buf_size < id_len + 1)
         return NETPLAN_BUFFER_TOO_SMALL;
@@ -659,7 +660,8 @@ netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* ou
     strncpy(out_buffer, start, id_len);
     out_buffer[id_len] = '\0';
 
-    return id_len + 1;
+    g_assert(id_len + 1 <= G_MAXLONG);
+    return (ssize_t)id_len + 1;
 }
 
 ssize_t
@@ -1001,7 +1003,8 @@ netplan_copy_string(const char* input, char* out_buffer, size_t out_size)
     char* end = stpncpy(out_buffer, input, out_size);
     // If it point to the first byte past the buffer, we don't have enough
     // space in the buffer.
-    size_t len = end - out_buffer;
+    g_assert(end - out_buffer >= 0);
+    size_t len = (size_t)(end - out_buffer);
     if (len == out_size)
         return NETPLAN_BUFFER_TOO_SMALL;
     return end - out_buffer + 1;
@@ -1181,8 +1184,8 @@ is_route_present(const NetplanNetDefinition* netdef, const NetplanIPRoute* route
                 entry->table == route->table &&
                 entry->metric == route->metric &&
                 g_strcmp0(entry->from, route->from) == 0 &&
-                g_strcmp0(normalize_ip_address(entry->to, entry->family),
-                    normalize_ip_address(route->to, route->family)) == 0 &&
+                g_strcmp0(normalize_ip_address(entry->to, (guint)entry->family),
+                    normalize_ip_address(route->to, (guint)route->family)) == 0 &&
                 g_strcmp0(entry->via, route->via) == 0
            )
             return TRUE;
