@@ -389,8 +389,8 @@ test_parse_utf8_characters(__unused void** state)
 {
     NetplanState *np_state = NULL;
     int fd;
-    int size;
-    int res;
+    size_t size;
+    ssize_t res;
 
     char* yaml =
         "network:\n"
@@ -418,7 +418,7 @@ test_parse_utf8_characters(__unused void** state)
 
     netplan_state_dump_yaml(np_state, fd, NULL);
 
-    size = lseek(fd, 0, SEEK_CUR) + 1;
+    size = (size_t)lseek(fd, 0, SEEK_CUR) + 1;
     yaml = malloc(size);
     memset(yaml, 0, size);
     lseek(fd, 0, SEEK_SET);
