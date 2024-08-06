@@ -56,10 +56,10 @@ const char*
 get_unspecified_address(int ip_family);
 
 int
-wifi_get_freq24(int channel);
+wifi_get_freq24(guint channel);
 
 int
-wifi_get_freq5(int channel);
+wifi_get_freq5(guint channel);
 
 gchar*
 systemd_escape(char* string);
