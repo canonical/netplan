@@ -307,7 +307,8 @@ write_ovs_bridge_controller_targets(const NetplanOVSSettings* settings, const Ne
             }
         g_string_append_printf(s, "%s ", target);
     }
-    g_string_erase(s, s->len-1, 1);
+    g_assert(s->len < G_MAXSSIZE);
+    g_string_erase(s, (gssize)s->len-1, 1);
 
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set-controller %s %s", bridge, s->str);
     write_ovs_tag_setting(bridge, "Bridge", "global", "set-controller", s->str, cmds);
