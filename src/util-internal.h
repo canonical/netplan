@@ -41,7 +41,7 @@ NETPLAN_INTERNAL void
 _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
 
 void
-_netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, mode_t mode);
+_netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, int mode);
 
 NETPLAN_INTERNAL void
 _netplan_unlink_glob(const char* rootdir, const char* _glob);
@@ -56,10 +56,10 @@ const char*
 get_unspecified_address(int ip_family);
 
 int
-wifi_get_freq24(int channel);
+wifi_get_freq24(guint channel);
 
 int
-wifi_get_freq5(int channel);
+wifi_get_freq5(guint channel);
 
 gchar*
 systemd_escape(char* string);

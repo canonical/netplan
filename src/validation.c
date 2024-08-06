@@ -337,7 +337,7 @@ validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd
 gboolean
 validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error)
 {
-    int missing_id_count = g_hash_table_size(npp->missing_id);
+    guint missing_id_count = g_hash_table_size(npp->missing_id);
     gboolean valid = FALSE;
     NetplanBackend backend = nd->backend;
 
