@@ -440,7 +440,7 @@ cleanup:
  * Get the frequency of a given 2.4GHz WiFi channel
  */
 int
-wifi_get_freq24(int channel)
+wifi_get_freq24(guint channel)
 {
     if (channel < 1 || channel > 14) {
         g_fprintf(stderr, "ERROR: invalid 2.4GHz WiFi channel: %d\n", channel);
@@ -466,9 +466,9 @@ wifi_get_freq24(int channel)
  * Get the frequency of a given 5GHz WiFi channel
  */
 int
-wifi_get_freq5(int channel)
+wifi_get_freq5(guint channel)
 {
-    int channels[] = { 7, 8, 9, 11, 12, 16, 32, 34, 36, 38, 40, 42, 44, 46, 48,
+    guint channels[] = { 7, 8, 9, 11, 12, 16, 32, 34, 36, 38, 40, 42, 44, 46, 48,
                        50, 52, 54, 56, 58, 60, 62, 64, 68, 96, 100, 102, 104,
                        106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126,
                        128, 132, 134, 136, 138, 140, 142, 144, 149, 151, 153,
