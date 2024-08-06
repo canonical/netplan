@@ -258,7 +258,7 @@ struct netplan_parser {
      * Appears to be unused?
      * */
     GHashTable* ids_in_file;
-    int missing_ids_found;
+    guint missing_ids_found;
 
     /* Which fields have been nullified by a subsequent patch? */
     GHashTable* null_fields;
