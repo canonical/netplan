@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <regex.h>
 #include <arpa/inet.h>
+#include <inttypes.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -1218,7 +1219,7 @@ handle_tunnel_key_flags(NetplanParser* npp, yaml_node_t* node, __unused const vo
         gboolean found = FALSE;
         assert_type(npp, entry, YAML_SCALAR_NODE);
 
-        for (int i = 1; i < NETPLAN_KEY_FLAG_MAX_; i <<= 1) {
+        for (guint i = 1; i < NETPLAN_KEY_FLAG_MAX_; i <<= 1) {
             if (!g_ascii_strcasecmp(scalar(entry), netplan_key_flags_name(i))) {
                 npp->current.netdef->tunnel_private_key_flags |= i;
                 found = TRUE;
@@ -1348,7 +1349,7 @@ handle_wowlan(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GEr
 
         for (unsigned i = 0; NETPLAN_WIFI_WOWLAN_TYPES[i].name != NULL; ++i) {
             if (g_ascii_strcasecmp(scalar(entry), NETPLAN_WIFI_WOWLAN_TYPES[i].name) == 0) {
-                npp->current.netdef->wowlan |= NETPLAN_WIFI_WOWLAN_TYPES[i].flag;
+                npp->current.netdef->wowlan |= (gint)NETPLAN_WIFI_WOWLAN_TYPES[i].flag;
                 found = TRUE;
                 break;
             }
@@ -1356,7 +1357,7 @@ handle_wowlan(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GEr
         if (!found)
             return yaml_error(npp, node, error, "invalid value for wakeonwlan: '%s'", scalar(entry));
     }
-    if (npp->current.netdef->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT && npp->current.netdef->wowlan & NETPLAN_WIFI_WOWLAN_TYPES[0].flag)
+    if (npp->current.netdef->wowlan > NETPLAN_WIFI_WOWLAN_DEFAULT && npp->current.netdef->wowlan & (gint)NETPLAN_WIFI_WOWLAN_TYPES[0].flag)
         return yaml_error(npp, node, error, "'default' is an exclusive flag for wakeonwlan");
     return TRUE;
 }
@@ -2073,7 +2074,7 @@ handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const char* key_p
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
-        guint v;
+        guint64 v;
         gchar* endptr;
         NetplanNetDefinition *component;
         guint* ref_ptr;
@@ -2103,9 +2104,10 @@ handle_bridge_path_cost(NetplanParser* npp, yaml_node_t* node, const char* key_p
             if (*endptr != '\0')
                 return yaml_error(npp, node, error, "invalid unsigned int value '%s'", scalar(value));
 
-            g_debug("%s: adding path '%s' of cost: %d", npp->current.netdef->id, scalar(key), v);
+            g_debug("%s: adding path '%s' of cost: %" PRIu64, npp->current.netdef->id, scalar(key), v);
 
-            *ref_ptr = v;
+            g_assert(v < G_MAXUINT);
+            *ref_ptr = (guint)v;
             mark_data_as_dirty(npp, ref_ptr);
         }
     }
@@ -2117,7 +2119,7 @@ handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const char* k
 {
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
-        guint v;
+        guint64 v;
         gchar* endptr;
         NetplanNetDefinition *component;
         guint* ref_ptr;
@@ -2148,9 +2150,10 @@ handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const char* k
                 return yaml_error(npp, node, error, "invalid port priority value (must be between 0 and 63): %s",
                                   scalar(value));
 
-            g_debug("%s: adding port '%s' of priority: %d", npp->current.netdef->id, scalar(key), v);
+            g_debug("%s: adding port '%s' of priority: %" PRIu64, npp->current.netdef->id, scalar(key), v);
 
-            *ref_ptr = v;
+            g_assert(v < G_MAXUINT);
+            *ref_ptr = (guint)v;
             mark_data_as_dirty(npp, ref_ptr);
         }
     }
@@ -2343,8 +2346,9 @@ handle_arp_ip_targets(NetplanParser* npp, yaml_node_t* node, __unused const void
 
     /* Avoid adding the same arp_ip_targets in a 2nd parsing pass by comparing
      * the array size to the YAML sequence size. Skip if they are equal. */
-    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
-    if (npp->current.netdef->bond_params.arp_ip_targets->len == item_count) {
+    ptrdiff_t item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    g_assert(item_count >= 0);
+    if (npp->current.netdef->bond_params.arp_ip_targets->len == (guint)item_count) {
         g_debug("%s: all arp ip targets have already been added", npp->current.netdef->id);
         return TRUE;
     }
@@ -2689,8 +2693,9 @@ handle_wireguard_peers(NetplanParser* npp, yaml_node_t* node, __unused const voi
 
     /* Avoid adding the same peers in a 2nd parsing pass by comparing
      * the array size to the YAML sequence size. Skip if they are equal. */
-    guint item_count = node->data.sequence.items.top - node->data.sequence.items.start;
-    if (npp->current.netdef->wireguard_peers->len == item_count) {
+    ptrdiff_t item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    g_assert(item_count >= 0);
+    if (npp->current.netdef->wireguard_peers->len == (guint)item_count) {
         g_debug("%s: all wireguard peers have already been added", npp->current.netdef->id);
         return TRUE;
     }
@@ -3538,8 +3543,8 @@ STATIC gboolean
 process_document(NetplanParser* npp, GError** error)
 {
     gboolean ret;
-    int previously_found;
-    int still_missing;
+    guint previously_found;
+    guint still_missing;
 
     g_assert(npp->missing_id == NULL);
     npp->missing_id = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
