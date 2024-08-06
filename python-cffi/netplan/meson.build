@@ -24,6 +24,7 @@ cffi_pyext = python.extension_module(
     link_with: [libnetplan],
     subdir: 'netplan',
     install: true,
+    limited_api: '3.10',
 )
 
 bindings_sources = [
