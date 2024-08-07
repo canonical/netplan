@@ -878,7 +878,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         g_key_file_set_boolean(kf, "ipv4", "never-default", TRUE);
     }
 
-    if (def->dhcp4 && def->dhcp4_overrides.metric != NETPLAN_METRIC_UNSPEC)
+    if ((def->dhcp4 || def->ip4_addresses || def->gateway4 || def->routes) && def->dhcp4_overrides.metric != NETPLAN_METRIC_UNSPEC)
         g_key_file_set_uint64(kf, "ipv4", "route-metric", def->dhcp4_overrides.metric);
 
     if (def->dhcp6 || def->ip6_addresses || def->gateway6 || def->ip6_nameservers || def->ip6_addr_gen_mode) {
