@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
 
@@ -54,11 +55,13 @@ void
 _netplan_safe_mkdir_p_dir(const char* file_path)
 {
     g_autofree char* dir = g_path_get_dirname(file_path);
+    mode_t orig_umask = umask(022);
 
     if (g_mkdir_with_parents(dir, 0755) < 0) {
         g_fprintf(stderr, "ERROR: cannot create directory %s: %m\n", dir);
         exit(1);
     }
+    umask(orig_umask);
 }
 
 /**
