@@ -138,6 +138,12 @@ if get_option('testing')
                     'meson-logs', 'coveragereport-py'), '--omit=/usr/*'],
              priority: -95, # run before 'coverage-py'
              is_parallel: false)
+        test('coverage-py-output-xml',
+             pycoverage,
+             args: ['xml', '-o', join_paths(meson.current_build_dir(),
+                    'meson-logs', 'coverage-py.xml'), '--omit=/usr/*'],
+             priority: -96, # run before 'coverage-py'
+             is_parallel: false)
         test('coverage-py',
              pycoverage,
              args: ['report', '--omit=/usr/*', '--show-missing', '--fail-under=100'],
