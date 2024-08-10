@@ -2,17 +2,9 @@
 
 This guide shows how to configure a virtual-machine host using Netplan and the `virsh` interface. The host in this scenario has a single network interface.
 
+```{include} reuse/configure-vm-prerequisites.txt
 
-## Prerequisites
-
-Ensure the following prerequisites are satisfied.
-
-### System
-
-- Computer with a single network interface card (NIC).
-- Ubuntu Server installed.
-- KVM and QEMU installed; see [KVM installation](https://help.ubuntu.com/community/KVM/Installation).
-- Administrator privileges.
+```
 
 
 ### Networking
@@ -27,7 +19,7 @@ Ensure the following prerequisites are satisfied.
   - DNS and DHCP configured
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
-
+TODO 123
 #### Disable netfilter for bridged interfaces
 
 To allow communication between the host server, its virtual machines, and the devices in the local VLANs, disable netfilter for bridged interfaces:
@@ -96,12 +88,12 @@ Configure Netplan:
     netplan apply
     ```
 
-
+TODO 123
 ## Configure virtual networks using `virsh`
 
 The next step is to configure virtual networks defined for `virsh` domains. This is not necessary, but it makes VM deployment and management easier.
 
-
+TODO 123
 ### Check networking and delete the default network
 
 1. Check existing virtual networks:

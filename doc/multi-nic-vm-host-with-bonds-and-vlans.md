@@ -34,7 +34,7 @@ Ensure the following prerequisites are satisfied.
   - InterVLAN routing, DNS, and DHCP configured
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
-
+TODO 123
 #### Disable netfilter for bridged interfaces
 
 To allow communication between the host server, its virtual machines, and the devices in the local VLANs, disable netfilter for bridged interfaces:
@@ -154,12 +154,12 @@ Configure Netplan:
     netplan apply
     ```
 
-
+TODO 123
 ## Configure virtual networks using `virsh`
 
 The next step is to configure virtual networks defined for `virsh` domains. This is not necessary, but it makes VM deployment and management easier.
 
-
+TODO 123
 ### Check networking and delete the default network
 
 1. Check existing virtual networks:
@@ -195,7 +195,7 @@ The next step is to configure virtual networks defined for `virsh` domains. This
     virsh net-list --all
     ```
 
-
+TODO 23
 ### Create bridged networks
 
 1. Create a directory for VM data. For example:
