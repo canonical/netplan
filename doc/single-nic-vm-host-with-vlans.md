@@ -23,24 +23,10 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
   - InterVLAN routing, DNS, and DHCP configured
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
-TODO 123
-#### Disable netfilter for bridged interfaces
 
-To allow communication between the host server, its virtual machines, and the devices in the local VLANs, disable netfilter for bridged interfaces:
+```{include} reuse/configure-vm-disable-netfilter.txt
 
-1. Add the following lines to the `/etc/systemctl.conf` configuration file:
-
-    ```
-    net.bridge.bridge-nf-call-iptables = 0
-    net.bridge.bridge-nf-call-ip6tables = 0
-    net.bridge.bridge-nf-call-arptables = 0
-    ```
-
-2. Apply the changes immediately, without rebooting the host.
-
-    ```none
-    sysctl -p /etc/sysctl.conf
-    ```
+```
 
 
 ## Netplan configuration
