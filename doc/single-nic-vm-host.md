@@ -2,7 +2,13 @@
 
 This guide shows how to configure a virtual-machine host using Netplan and the `virsh` interface. The host in this scenario has a single network interface.
 
+
 ```{include} reuse/configure-vm-prerequisites.txt
+
+```
+
+
+```{include} reuse/configure-vm-prerequisites-system.txt
 
 ```
 

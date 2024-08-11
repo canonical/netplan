@@ -3,9 +3,9 @@
 This guide shows how to configure a virtual machine (VM) host using Netplan and the `virsh` interface. The host in this scenario has four network interface (NICs). The host uses network bonding and three VLAN networks.
 
 
-## Prerequisites
+```{include} reuse/configure-vm-prerequisites.txt
 
-Ensure the following prerequisites are satisfied.
+```
 
 
 ### System
