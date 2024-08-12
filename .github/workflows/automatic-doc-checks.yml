@@ -5,6 +5,7 @@ on:
     paths:
       - 'doc/**'
   push:
+    branches: [ main ]
     paths:
       - 'doc/**'
   workflow_dispatch:
@@ -40,7 +41,7 @@ concurrency:
 jobs:
   docchecks:
     name: Run documentation checks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       result_spelling: ${{ steps.spellcheck-step.outcome }}
       result_woke: ${{ steps.woke-step.outcome }}
