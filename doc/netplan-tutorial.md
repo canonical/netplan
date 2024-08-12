@@ -395,13 +395,24 @@ After creating a new configuration as described in [Using netplan set to enable 
 
    This interface has no IP address and its state is `DOWN`.
 
-2. Apply the new Netplan configuration:
+2. Test the new configuration (optional):
+   
+      ```
+      netplan try
+      ```
+      Applies the new configuration temporarily (120 seconds by default) and waits for confirmation (within the specified time) to make it permanent.
+
+
+3. Apply the new Netplan configuration:
 
    ```
    netplan apply
    ```
+   :::{note}
+   Skip this step if you made the changes permanent using `netplan try`.
+   :::
 
-3. Check the state of the `enp6s0` interface again using one of the following two methods:
+4. Check the state of the `enp6s0` interface again using one of the following two methods:
 
    * Using the `ip` tool:
 
