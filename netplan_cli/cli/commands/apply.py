@@ -331,23 +331,6 @@ class NetplanApply(utils.NetplanCommand):
                 utils.nm_bring_interface_up(loopback_connection)
 
     @staticmethod
-    def is_composite_member(composites, phy):
-        """
-        Is this physical interface a member of a 'composite' virtual
-        interface? (bond, bridge)
-        """
-        for composite in composites:
-            for _, settings in composite.items():
-                if not type(settings) is dict:
-                    continue
-                members = settings.get('interfaces', [])
-                for iface in members:
-                    if iface == phy:
-                        return True
-
-        return False
-
-    @staticmethod
     def clear_virtual_links(prev_links, curr_links, devices=[]):
         """
         Calculate the delta of virtual links. And remove the links that were
@@ -381,7 +364,6 @@ class NetplanApply(utils.NetplanCommand):
         """
 
         changes = {}
-        composite_interfaces = [config_manager.bridges, config_manager.bonds]
 
         # Find physical interfaces which need a rename
         # But do not rename virtual interfaces
@@ -391,11 +373,6 @@ class NetplanApply(utils.NetplanCommand):
                 continue  # Skip if no new name needs to be set
             if not netdef._has_match:
                 continue  # Skip if no match for current name is given
-            if NetplanApply.is_composite_member(composite_interfaces, netdef.id):
-                logging.debug('Skipping composite member {}'.format(netdef.id))
-                # do not rename members of virtual devices. MAC addresses
-                # may be the same for all interface members.
-                continue
             # Find current name of the interface, according to match conditions and globs (name, mac, driver)
             current_iface_name = utils.find_matching_iface(interfaces, netdef)
             if not current_iface_name:

@@ -42,21 +42,6 @@ class TestCLI(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmproot)
 
-    def test_is_composite_member(self):
-        res = NetplanApply.is_composite_member([{'br0': {'interfaces': ['eth0']}}], 'eth0')
-        self.assertTrue(res)
-
-    def test_is_composite_member_false(self):
-        res = NetplanApply.is_composite_member([
-                  {'br0': {'interfaces': ['eth42']}},
-                  {'bond0': {'interfaces': ['eth1']}}
-              ], 'eth0')
-        self.assertFalse(res)
-
-    def test_is_composite_member_with_renderer(self):
-        res = NetplanApply.is_composite_member([{'renderer': 'networkd', 'br0': {'interfaces': ['eth0']}}], 'eth0')
-        self.assertTrue(res)
-
     @patch('subprocess.check_call')
     def test_clear_virtual_links(self, mock):
         # simulate as if 'tun3' would have already been delete another way,
