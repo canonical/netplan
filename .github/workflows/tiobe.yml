@@ -18,7 +18,7 @@ jobs:
           sudo sed -i 's/Types: deb/Types: deb deb-src/g' /etc/apt/sources.list.d/ubuntu.sources
           sudo apt update
           sudo apt build-dep -y netplan.io
-          sudo apt install -y gcovr python-is-python3 pylint flake8 python3-flake8
+          sudo apt install -y gcovr python-is-python3 pylint flake8 python3-flake8 expect
       - name: Build Netplan
         run: |
           # The build directory must be called _build. TIOBE will look for coverage data in it.
