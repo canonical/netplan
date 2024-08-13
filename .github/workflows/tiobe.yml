@@ -1,11 +1,12 @@
 name: "TIOBE/TiCS"
 
-on:
-  schedule:
-    - cron: '0 0 * * TUE'
+on: workflow_dispatch
+#on:
+#  schedule:
+#    - cron: '0 0 * * TUE'
 
 jobs:
-  coverity:
+  tics:
     if: github.repository == 'canonical/netplan'
     runs-on: ubuntu-24.04
 
@@ -23,7 +24,7 @@ jobs:
           # The build directory must be called _build. TIOBE will look for coverage data in it.
           meson setup _build --prefix=/usr -Db_coverage=true
           meson compile -C _build -v
-          meson test -C _build -v
+          unbuffer meson test -C _build -v
       - name: Download and Install TICS
         run: |
           curl --silent --show-error "https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/" > install_tics.sh
