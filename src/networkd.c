@@ -1644,13 +1644,13 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     // wait for all link-local (degraded/carrier) interface
     if (linklocal_str->len > 0) {
         g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online%s\n", linklocal_str->str);
-        g_string_free(linklocal_str, TRUE);
     }
+    g_string_free(linklocal_str, TRUE);
     // wait for any routable interface
     if (routable_str->len > 0) {
         g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable%s\n", routable_str->str);
-        g_string_free(routable_str, TRUE);
     }
+    g_string_free(routable_str, TRUE);
 
     g_autofree char* new_content = _netplan_scrub_systemd_unit_contents(content->str);
     g_string_free(content, TRUE);
