@@ -34,6 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
       # work around LP: #1878225 as fallback
@@ -47,6 +48,7 @@ jobs:
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
           sed -i 's|  python3-gi,|  python3-gi, python3-packaging,|' debian/tests/control  # needed for the 'routing' test (nm_version)
+          sed -i 's|bytecompile=-1|bytecompile=-1 -Dtesting=false|' debian/rules  # drop after v1.1
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
@@ -54,4 +56,4 @@ jobs:
       - name: Run autopkgtest (incl. build)
         run: |
           autopkgtest . \
-            -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 --env=DEB_BUILD_OPTIONS=nocheck -- lxd autopkgtest/ubuntu/noble/amd64
+            -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 -- lxd autopkgtest/ubuntu/noble/amd64
