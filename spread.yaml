@@ -2,10 +2,10 @@ project: netplan
 
 backends:
   lxd:
-    systems: [ubuntu-22.04]
+    systems: [ubuntu-24.04]
   qemu:
     systems:
-      - ubuntu-22.04-64:
+      - ubuntu-24.04-64:
           username: ubuntu
           password: ubuntu
 
@@ -16,10 +16,6 @@ suites:
 path: /home/tests
 
 prepare: |
-  # FIXME: remove after legacy symlink in 107 gets dropped (see meson.build)
-  # This is needed as the git netplan puts a symlink to /lib/netplan/generate
-  # but the package has the real generate there
-  rm -f /lib/netplan/generate
   # FIXME: having the debian packging available would allow "apt
   # build-dep -y ./" would make this easier :)
   add-apt-repository -y -u -s ppa:slyon/netplan-ci
@@ -27,7 +23,6 @@ prepare: |
   apt install -y ubuntu-dev-tools devscripts equivs
   pull-lp-source netplan.io
   sed -i 's| openvswitch-switch|# DELETED: openvswitch-switch|' netplan.io-*/debian/control
-  sed -i 's| systemd-dev|# DELETED: systemd-dev|' netplan.io-*/debian/control
   mk-build-deps -i -r -B -s sudo -t "apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends" netplan.io-*/debian/control
   # install, a bit ugly but this is a container (did I mention the packaging?)
   meson setup build --prefix=/usr
