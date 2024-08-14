@@ -403,7 +403,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > respond to Router Advertisements.  If unset use the host kernel default
   > setting.
 
-- **`ra-overrides`** (mapping)
+- **`ra-overrides`** (mapping) – since 1.1
 
   > (networkd back end only) Overrides default IPv6 Router Advertisement (RA)
   > behaviour; see the `IPv6 Router Advertisement Overrides` section below.
@@ -706,7 +706,7 @@ client processes as specified in the Netplan YAML.
 Overrides for IPv6 Router Advertisement (RA) behaviour (only supported with
 networkd back end).
 
-- **`ra-overrides`** (mapping)
+- **`ra-overrides`** (mapping) – since 1.1
 
   > The `ra-overrides` mappings override the default IPv6 Router
   > Advertisement behaviour.
@@ -842,10 +842,10 @@ network:
     > The receive window to be advertised for the route, represented by
     > number of segments. Must be a positive integer value.
 
-  - **`advertised-mss`** (scalar)
+  - **`advertised-mss`** (scalar) – since 1.1
 
-    > The Maximum MSS ('Maximal Segment Size') to advertise to these destinations when establishing TCP connections. 
-    > If it is not given, Linux uses a default value calculated from the first hop device MTU. 
+    > The Maximum MSS ('Maximal Segment Size') to advertise to these destinations when establishing TCP connections.
+    > If it is not given, Linux uses a default value calculated from the first hop device MTU.
     > Must be a positive integer.
 
 - **`routing-policy`** (mapping)
