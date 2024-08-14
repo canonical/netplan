@@ -6,12 +6,12 @@ The `abidw` tool can be used to generate an ABI XML like this:
 ```
 meson setup _build --prefix=/usr
 meson compile -C _build
-abidw _build/src/libnetplan.so.1 --headers-dir include/ --header-file src/abi.h > abi-compat/jammy_1.0.xml
+abidw _build/src/libnetplan.so.1 --headers-dir include/ --header-file src/abi.h > abi-compat/noble_1.1.xml
 ```
 
 ## HowTo compare a ABI
 The `abidiff` tool can be used to compare a new library ABI to an existing XML
 reference like this (also, see .github/workflows/build-abi.yml):
 ```
-abidiff abi-compat/jammy_1.0.xml _build/src/libnetplan.so.1 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
+abidiff abi-compat/noble_1.1.xml _build/src/libnetplan.so.1 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
 ```
