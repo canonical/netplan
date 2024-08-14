@@ -43,4 +43,4 @@ jobs:
       # Abigail ABI checker
       - name: Check ABI compatibility
         run: |
-          abidiff abi-compat/jammy_1.0.xml _build/src/libnetplan.so.1 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
+          abidiff abi-compat/noble_1.1.xml _build/src/libnetplan.so.1 --headers-dir2 include/ --header-file2 src/abi.h --suppressions abi-compat/suppressions.abignore --no-added-syms
