@@ -1,9 +1,9 @@
-@@ -70,6 +70,8 @@
+@@ -119,6 +119,8 @@
  
      sleep 5
-     if "$COMMAND" exec "$CONTAINER" -- systemctl mask serial-getty@getty.service; then
-+       "$COMMAND" exec "$CONTAINER" -- systemctl mask snapd.service
-+       "$COMMAND" exec "$CONTAINER" -- systemctl mask snapd.seeded.service
-        "$COMMAND" exec "$CONTAINER" -- reboot
+     if "$COMMAND" exec "${REMOTE:+$REMOTE:}$CONTAINER" -- systemctl mask serial-getty@getty.service; then
++        "$COMMAND" exec "${REMOTE:+$REMOTE:}$CONTAINER" -- systemctl mask snapd.service
++        "$COMMAND" exec "${REMOTE:+$REMOTE:}$CONTAINER" -- systemctl mask snapd.seeded.service
+         safe_reboot
      fi
  
