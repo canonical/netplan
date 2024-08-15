@@ -1,9 +1,8 @@
 name: "TIOBE/TiCS"
 
-on: workflow_dispatch
-#on:
-#  schedule:
-#    - cron: '0 0 * * TUE'
+on:
+  schedule:
+    - cron: '0 0 * * TUE'
 
 jobs:
   tics:
