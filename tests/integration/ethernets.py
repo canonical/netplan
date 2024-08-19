@@ -26,6 +26,7 @@ import os
 import sys
 import subprocess
 import unittest
+import ipaddress
 
 from base import IntegrationTestsBase, nm_uses_dnsmasq, resolved_in_use, test_backends
 
@@ -220,6 +221,48 @@ class _CommonTests():
       ipv6-address-token: ::42''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.state(self.dev_e_client, '::42')])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
+
+    def test_ip6_stable_privacy(self):
+        self.setup_eth('ra-only')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: yes
+      accept-ra: yes
+      ipv6-address-generation: stable-privacy''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.state_dhcp6(self.dev_e_client)])
+        mac_addr = [int(h, base=16) for h in self.dev_e_client_mac.split(':')]
+        mac_addr[0] ^= 2
+        mac_addr[3:3] = [0xff, 0xfe]
+        eui_addr_int = 0x26000000000000000000000000000000
+        for i, h in enumerate(reversed(mac_addr)):
+            eui_addr_int |= h << 8 * i
+        eui_addr = ipaddress.IPv6Address(eui_addr_int)
+        self.assert_iface_up(self.dev_e_client, ['inet6 2600::'], [f'inet6 {eui_addr.compressed}/64'])
+
+    def test_ip6_eui64(self):
+        self.setup_eth('ra-only')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: yes
+      accept-ra: yes
+      ipv6-address-generation: eui64''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.state_dhcp6(self.dev_e_client)])
+        mac_addr = [int(h, base=16) for h in self.dev_e_client_mac.split(':')]
+        mac_addr[0] ^= 2
+        mac_addr[3:3] = [0xff, 0xfe]
+        eui_addr_int = 0x26000000000000000000000000000000
+        for i, h in enumerate(reversed(mac_addr)):
+            eui_addr_int |= h << 8 * i
+        eui_addr = ipaddress.IPv6Address(eui_addr_int)
+        self.assert_iface_up(self.dev_e_client, [f'inet6 {eui_addr.compressed}/64'])
 
     def test_link_local_all(self):
         self.setup_eth(None)
