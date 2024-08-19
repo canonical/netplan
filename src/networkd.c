@@ -42,11 +42,11 @@ _netplan_sysfs_get_mac_by_ifname(const char* ifname, const char* rootdir)
 {
     g_autofree gchar* content = NULL;
     g_autofree gchar* sysfs_path = NULL;
-    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
                               "sys", "class", "net", ifname, "address", NULL);
 
     if (!g_file_get_contents (sysfs_path, &content, NULL, NULL)) {
-        g_debug("%s: Cannot read file contents.", __FUNCTION__);
+        g_debug("%s: Cannot read file contents.", __func__);
         return NULL;
     }
 
@@ -63,12 +63,12 @@ _netplan_sysfs_get_driver_by_ifname(const char* ifname, const char* rootdir)
 {
     g_autofree gchar* link = NULL;
     g_autofree gchar* sysfs_path = NULL;
-    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S,
+    sysfs_path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
                               "sys", "class", "net", ifname, "device", "driver", NULL);
 
     link = g_file_read_link(sysfs_path, NULL);
     if (!link) {
-        g_debug("%s: Cannot read symlink of %s.", __FUNCTION__, sysfs_path);
+        g_debug("%s: Cannot read symlink of %s.", __func__, sysfs_path);
         return NULL;
     }
 
@@ -78,7 +78,7 @@ _netplan_sysfs_get_driver_by_ifname(const char* ifname, const char* rootdir)
 STATIC void
 _netplan_query_system_interfaces(GHashTable* tbl)
 {
-    g_assert(tbl);
+    g_assert(tbl != NULL);
     struct if_nameindex *if_nidxs, *intf;
     if_nidxs = if_nameindex();
     if (if_nidxs != NULL) {
@@ -101,8 +101,8 @@ typedef struct wait_online_data {
 STATIC void
 _netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* ifaces, GHashTable* tbl, const char* set_name, WaitOnlineData* data, const char* rootdir)
 {
-    g_assert(ifaces);
-    g_assert(tbl);
+    g_assert(ifaces != NULL);
+    g_assert(tbl != NULL);
 
     GHashTableIter iter;
     gpointer key;
@@ -252,7 +252,7 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
     GString *params = NULL;
     params = g_string_sized_new(200);
 
-    g_assert(def->tunnel.private_key);
+    g_assert(def->tunnel.private_key != NULL);
     /* The "PrivateKeyFile=" setting is available as of systemd-netwokrd v242+
      * Base64 encoded PrivateKey= or absolute PrivateKeyFile= fields are mandatory.
      *
@@ -392,9 +392,10 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
 STATIC gboolean
 write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** error)
 {
-    g_assert(def->regulatory_domain);
+    g_assert(def->regulatory_domain != NULL);
     g_autofree gchar* id_escaped = NULL;
-    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/network.target.wants/netplan-regdom.service", NULL);
+    g_autofree char* link = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                      "/run/systemd/system/network.target.wants/netplan-regdom.service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-regdom.service", NULL);
 
     GString* s = g_string_new("[Unit]\n");
@@ -525,7 +526,7 @@ write_bond_parameters(const NetplanNetDefinition* def, GString* s)
 STATIC void
 write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
 {
-    g_assert(def->vxlan);
+    g_assert(def->vxlan != NULL);
     GString* params = NULL;
 
     params = g_string_sized_new(200);
@@ -761,7 +762,7 @@ STATIC void
 write_addr_option(NetplanAddressOptions* o, GString* s)
 {
     g_string_append_printf(s, "\n[Address]\n");
-    g_assert(o->address);
+    g_assert(o->address != NULL);
     g_string_append_printf(s, "Address=%s\n", o->address);
 
     if (o->lifetime)
@@ -1489,7 +1490,8 @@ _netplan_netdef_write_networkd(
     }
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI || def->has_auth) {
-        g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", escaped_netdef_id, ".service", NULL);
+        g_autofree char* link = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                          "/run/systemd/system/systemd-networkd.service.wants/netplan-wpa-", escaped_netdef_id, ".service", NULL);
         g_autofree char* slink = g_strjoin(NULL, "/run/systemd/system/netplan-wpa-", escaped_netdef_id, ".service", NULL);
         if (def->type == NETPLAN_DEF_TYPE_WIFI && def->has_match) {
             g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: networkd backend does not support wifi with match:, only by interface name\n", def->id);
