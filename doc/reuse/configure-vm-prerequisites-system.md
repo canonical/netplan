@@ -1,0 +1,6 @@
+### System
+
+- Computer with a single network interface card (NIC).
+- Ubuntu Server installed.
+- KVM and QEMU installed; see [KVM installation](https://help.ubuntu.com/community/KVM/Installation).
+- Administrator privileges.
