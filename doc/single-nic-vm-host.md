@@ -3,12 +3,12 @@
 This guide shows how to configure a virtual-machine host using Netplan and the `virsh` interface. The host in this scenario has a single network interface.
 
 
-```{include} reuse/configure-vm-prerequisites.txt
+```{include} reuse/configure-vm-prerequisites.md
 
 ```
 
 
-```{include} reuse/configure-vm-prerequisites-system.txt
+```{include} reuse/configure-vm-prerequisites-system.md
 
 ```
 
@@ -26,7 +26,7 @@ This guide shows how to configure a virtual-machine host using Netplan and the `
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
 
-```{include} reuse/configure-vm-disable-netfilter.txt
+```{include} reuse/configure-vm-disable-netfilter.md
 
 ```
 
@@ -81,12 +81,12 @@ Configure Netplan:
     ```
 
 
-```{include} reuse/configure-vm-using-virsh.txt
+```{include} reuse/configure-vm-using-virsh.md
 
 ```
 
 
-```{include} reuse/configure-vm-check-networking-delete-default.txt
+```{include} reuse/configure-vm-check-networking-delete-default.md
 
 ```
 
