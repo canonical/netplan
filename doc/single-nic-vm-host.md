@@ -3,16 +3,14 @@
 This guide shows how to configure a virtual-machine host using Netplan and the `virsh` interface. The host in this scenario has a single network interface.
 
 
-## Prerequisites
+```{include} reuse/configure-vm-prerequisites.md
 
-Ensure the following prerequisites are satisfied.
+```
 
-### System
 
-- Computer with a single network interface card (NIC).
-- Ubuntu Server installed.
-- KVM and QEMU installed; see [KVM installation](https://help.ubuntu.com/community/KVM/Installation).
-- Administrator privileges.
+```{include} reuse/configure-vm-prerequisites-system.md
+
+```
 
 
 ### Networking
@@ -28,23 +26,9 @@ Ensure the following prerequisites are satisfied.
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
 
-#### Disable netfilter for bridged interfaces
+```{include} reuse/configure-vm-disable-netfilter.md
 
-To allow communication between the host server, its virtual machines, and the devices in the local VLANs, disable netfilter for bridged interfaces:
-
-1. Add the following lines to the `/etc/systemctl.conf` configuration file:
-
-    ```
-    net.bridge.bridge-nf-call-iptables = 0
-    net.bridge.bridge-nf-call-ip6tables = 0
-    net.bridge.bridge-nf-call-arptables = 0
-    ```
-
-2. Apply the changes immediately, without rebooting the host.
-
-    ```none
-    sysctl -p /etc/sysctl.conf
-    ```
+```
 
 
 ## Netplan configuration
@@ -97,45 +81,14 @@ Configure Netplan:
     ```
 
 
-## Configure virtual networks using `virsh`
+```{include} reuse/configure-vm-using-virsh.md
 
-The next step is to configure virtual networks defined for `virsh` domains. This is not necessary, but it makes VM deployment and management easier.
+```
 
 
-### Check networking and delete the default network
+```{include} reuse/configure-vm-check-networking-delete-default.md
 
-1. Check existing virtual networks:
-
-    ```none
-    virsh net-list --all
-    ```
-
-   There should be one default network as in this example:
-
-    ```
-    Name      State    Autostart   Persistent
-    --------------------------------------------
-    default   active   yes         yes
-    ```
-
-   If needed, use the `net-info` command to gather more details about the default network:
-
-    ```
-    virsh net-info default
-    ```
-
-2. Remove the default network:
-
-    ```
-    virsh net-destroy default
-    virsh net-undefine default
-    ```
-
-3. Check network list to confirm the changes have been applied. There should no networks defined now:
-
-    ```none
-    virsh net-list --all
-    ```
+```
 
 
 ### Create bridged networks
