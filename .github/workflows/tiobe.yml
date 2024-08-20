@@ -26,6 +26,7 @@ jobs:
           unbuffer meson test -C _build -v
       - name: Download and Install TICS
         run: |
+          export TICSAUTHTOKEN=${{ secrets.TICSAUTHTOKEN }}
           curl --silent --show-error "https://canonical.tiobe.com/tiobeweb/TICS/api/public/v1/fapi/installtics/Script?cfg=default&platform=linux&url=https://canonical.tiobe.com/tiobeweb/TICS/" > install_tics.sh
           bash install_tics.sh
       - name: Run TICS
