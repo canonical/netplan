@@ -30,7 +30,8 @@ STATIC gboolean
 write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* rootdir, GError** error)
 {
     g_autofree gchar* id_escaped = NULL;
-    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/multi-user.target.wants/netplan-sriov-rebind.service", NULL);
+    g_autofree char* link = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                      "/run/systemd/system/multi-user.target.wants/netplan-sriov-rebind.service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-sriov-rebind.service", NULL);
 
     GHashTableIter iter;
@@ -75,7 +76,8 @@ STATIC gboolean
 write_sriov_apply_systemd_unit(GHashTable* pfs, const char* rootdir, GError** error)
 {
     g_autofree gchar* id_escaped = NULL;
-    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/multi-user.target.wants/netplan-sriov-apply.service", NULL);
+    g_autofree char* link = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                      "/run/systemd/system/multi-user.target.wants/netplan-sriov-apply.service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-sriov-apply.service", NULL);
     GHashTableIter iter;
     gpointer key;

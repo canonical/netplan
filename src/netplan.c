@@ -209,7 +209,7 @@ STATIC gboolean
 write_vxlan(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefinition* def)
 {
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL && def->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
-        g_assert(def->vxlan);
+        g_assert(def->vxlan != NULL);
         YAML_UINT_0(def, event, emitter, "id", def->vxlan->vni);
         if (def->vxlan->link)
             YAML_STRING(def, event, emitter, "link", def->vxlan->link->id);
@@ -987,7 +987,8 @@ netplan_netdef_write_yaml(
         filename = g_strconcat("90-NM-", netdef->backend_settings.uuid, ".yaml", NULL);
     else
         filename = g_strconcat("10-netplan-", netdef->id, ".yaml", NULL);
-    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
+                        "etc", "netplan", filename, NULL);
 
     /* Start rendering YAML output */
     yaml_emitter_t emitter_data;
@@ -1149,7 +1150,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     GList* to_write = NULL;
     int out_fd;
 
-    path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
+    path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S, "etc", "netplan", filename, NULL);
 
     while (iter) {
         NetplanNetDefinition* netdef = iter->data;
@@ -1160,7 +1161,7 @@ netplan_state_write_yaml_file(const NetplanState* np_state, const char* filename
     }
 
     /* Remove any existing file if there is no data to write */
-    gboolean write_globals = !!np_state->global_renderer;
+    gboolean write_globals = np_state->global_renderer != NULL;
     if (to_write == NULL && !write_globals) {
         if (unlink(path) && errno != ENOENT) {
             g_set_error(error, NETPLAN_FILE_ERROR, errno, "%m");
@@ -1218,7 +1219,7 @@ netplan_state_update_yaml_hierarchy(const NetplanState* np_state, const char* de
     g_assert(default_filename != NULL && *default_filename != '\0');
 
     perfile_netdefs = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, (GDestroyNotify)g_list_free);
-    default_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, "etc", "netplan", default_filename, NULL);
+    default_path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S, "etc", "netplan", default_filename, NULL);
     int out_fd = -1;
 
     /* Dump global conf to the default path */

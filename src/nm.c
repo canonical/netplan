@@ -97,7 +97,7 @@ type_str(const NetplanNetDefinition* def)
             return "ip-tunnel";
         case NETPLAN_DEF_TYPE_NM:
             /* needs to be overriden by passthrough "connection.type" setting */
-            g_assert(def->backend_settings.passthrough);
+            g_assert(def->backend_settings.passthrough != NULL);
             GData *passthrough = def->backend_settings.passthrough;
             return g_datalist_get_data(&passthrough, "connection.type");
         // LCOV_EXCL_START
@@ -359,7 +359,7 @@ write_nm_wireguard_params(const NetplanNetDefinition* def, GKeyFile *kf, GError*
     if (def->wireguard_peers) {
         for (guint i = 0; i < def->wireguard_peers->len; i++) {
             NetplanWireguardPeer *peer = g_array_index (def->wireguard_peers, NetplanWireguardPeer*, i);
-            g_assert(peer->public_key);
+            g_assert(peer->public_key != NULL);
             g_autofree gchar* tmp_group = g_strdup_printf("wireguard-peer.%s", peer->public_key);
 
             if (peer->keepalive)
@@ -510,7 +510,7 @@ maybe_generate_uuid(const NetplanNetDefinition* def)
 STATIC void
 write_nm_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
 {
-    g_assert(def->vxlan);
+    g_assert(def->vxlan != NULL);
     char uuidstr[37];
     if (def->vxlan->ageing)
         g_key_file_set_uint64(kf, "vxlan", "ageing", def->vxlan->ageing);
@@ -604,7 +604,7 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
     } else if (!has_key) {
         g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
         g_key_file_set_comment(kf, group, k, "Netplan: passthrough setting", NULL);
-    } else if (!!g_strcmp0(val, old_key)) {
+    } else if (g_strcmp0(val, old_key) != 0) {
         g_debug("NetworkManager: fallback override: %s.%s=%s", group, k, val);
         g_key_file_set_comment(kf, group, k, "Netplan: passthrough override", NULL);
     }
@@ -637,7 +637,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     const char *match_interface_name = NULL;
 
     if (def->type == NETPLAN_DEF_TYPE_WIFI)
-        g_assert(ap);
+        g_assert(ap != NULL);
     else
         g_assert(ap == NULL);
 
@@ -680,7 +680,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     if (def->activation_mode) {
         /* XXX: For now NetworkManager only supports the "manual" activation
          * mode */
-        if (!!g_strcmp0(def->activation_mode, "manual")) {
+        if (g_strcmp0(def->activation_mode, "manual") != 0) {
             g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager definitions do not support activation-mode %s\n", def->id, def->activation_mode);
             return FALSE;
         }
@@ -983,11 +983,12 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     /* Create /run/NetworkManager/ with 755 permissions if the folder is missing.
      * Letting the next invokation of _netplan_safe_mkdir_p_dir do it would
      * result in more restrictive access because of the call to umask. */
-    nm_run_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", "run/NetworkManager/", NULL);
+    nm_run_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : "",
+                            "run/NetworkManager/", NULL);
     if (!g_file_test(nm_run_path, G_FILE_TEST_EXISTS))
         _netplan_safe_mkdir_p_dir(nm_run_path);
 
-    full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir ?: "", conf_path, NULL);
+    full_path = g_strjoin(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : "", conf_path, NULL);
 
     /* NM connection files might contain secrets, and NM insists on tight permissions */
     orig_umask = umask(077);
@@ -1092,7 +1093,7 @@ netplan_state_finish_nm_write(
         /* Special case: manage or ignore any device of given type on empty "match: {}" stanza */
         if (nd->has_match && !nd->match.driver && !nd->match.mac && !nd->match.original_name) {
             nm_type = type_str(nd);
-            g_assert(nm_type);
+            g_assert(nm_type != NULL);
             g_string_append_printf(nm_conf, "[device-netplan.%s.%s]\nmatch-device=type:%s\n"
                                             "managed=%d\n\n", netplan_def_type_name(nd->type),
                                             netdef_id, nm_type, !unmanaged);
@@ -1180,8 +1181,10 @@ netplan_state_finish_nm_write(
 gboolean
 _netplan_nm_cleanup(const char* rootdir)
 {
-    g_autofree char* confpath = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/netplan.conf", NULL);
-    g_autofree char* global_manage_path = g_strjoin(NULL, rootdir ?: "", "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
+    g_autofree char* confpath = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                          "/run/NetworkManager/conf.d/netplan.conf", NULL);
+    g_autofree char* global_manage_path = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                                    "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
     unlink(confpath);
     unlink(global_manage_path);
     _netplan_unlink_glob(rootdir, "/run/NetworkManager/system-connections/netplan-*");
