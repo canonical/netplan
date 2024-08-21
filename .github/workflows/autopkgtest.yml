@@ -47,6 +47,7 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
+          sed -i 's|iproute2,|iproute2, ethtool,|' debian/control  # add ethtool as a dependency of netplan.io temporarily
           sed -i 's|  python3-gi,|  python3-gi, python3-packaging,|' debian/tests/control  # needed for the 'routing' test (nm_version)
           sed -i 's|bytecompile=-1|bytecompile=-1 -Dtesting=false|' debian/rules  # drop after v1.1
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
