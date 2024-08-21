@@ -80,7 +80,7 @@ void _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char*
     GError* error = NULL;
 
     path_suffix = g_strjoin(NULL, path, suffix, NULL);
-    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, path_suffix, NULL);
+    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S, path_suffix, NULL);
     _netplan_safe_mkdir_p_dir(full_path);
     if (!g_file_set_contents(full_path, contents, -1, &error)) {
         /* the mkdir() just succeeded, there is no sensible
@@ -104,7 +104,7 @@ void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* roo
     int ret = 0;
 
     path_suffix = g_strjoin(NULL, path, suffix, NULL);
-    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir ?: G_DIR_SEPARATOR_S, path_suffix, NULL);
+    full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S, path_suffix, NULL);
     _netplan_safe_mkdir_p_dir(full_path);
     if (!g_file_set_contents_full(full_path, contents, -1, G_FILE_SET_CONTENTS_CONSISTENT | G_FILE_SET_CONTENTS_ONLY_EXISTING, mode, &error)) {
         /* the mkdir() just succeeded, there is no sensible
@@ -144,7 +144,7 @@ _netplan_unlink_glob(const char* rootdir, const char* _glob)
 {
     glob_t gl;
     int rc;
-    g_autofree char* rglob = g_strjoin(NULL, rootdir ?: "", G_DIR_SEPARATOR_S, _glob, NULL);
+    g_autofree char* rglob = g_strjoin(NULL, rootdir != NULL ? rootdir : "", G_DIR_SEPARATOR_S, _glob, NULL);
 
     rc = glob(rglob, GLOB_BRACE, NULL, &gl);
     if (rc != 0 && rc != GLOB_NOMATCH) {
@@ -166,7 +166,7 @@ int _netplan_find_yaml_glob(const char* rootdir, glob_t* out_glob)
 {
     int rc;
     g_autofree char* rglob = g_build_path(G_DIR_SEPARATOR_S,
-                                          rootdir ?: G_DIR_SEPARATOR_S,
+                                          rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
                                           "{lib,etc,run}/netplan/*.yaml", NULL);
     rc = glob(rglob, GLOB_BRACE, NULL, out_glob);
     if (rc != 0 && rc != GLOB_NOMATCH) {
@@ -1014,20 +1014,23 @@ netplan_netdef_match_interface(const NetplanNetDefinition* netdef, const char* n
         return !g_strcmp0(name, netdef->id);
 
     if (netdef->match.mac) {
-        if (g_ascii_strcasecmp(netdef->match.mac ?: "", mac ?: ""))
+        if (g_ascii_strcasecmp(netdef->match.mac != NULL ? netdef->match.mac : "", mac != NULL ? mac : "")) {
             return FALSE;
+        }
     }
 
     if (netdef->match.original_name) {
-        if (!name || fnmatch(netdef->match.original_name, name, 0))
+        if (!name || fnmatch(netdef->match.original_name, name, 0)) {
             return FALSE;
+        }
     }
 
     if (netdef->match.driver) {
         gboolean matches_driver = FALSE;
         char** tokens;
-        if (!driver_name)
+        if (!driver_name) {
             return FALSE;
+        }
         tokens = g_strsplit(netdef->match.driver, "\t", -1);
         for (char** it = tokens; *it; it++) {
             if (fnmatch(*it, driver_name, 0) == 0) {
@@ -1116,7 +1119,7 @@ is_multicast_address(const char* address)
 void
 netplan_state_iterator_init(const NetplanState* np_state, NetplanStateIterator* iter)
 {
-    g_assert(iter);
+    g_assert(iter != NULL);
     RealStateIter* _iter = (RealStateIter*) iter;
     _iter->next = g_list_first(np_state->netdefs_ordered);
 }

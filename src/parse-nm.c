@@ -108,7 +108,7 @@ kf_matches(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* matc
 STATIC void
 set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match, const void* dataptr)
 {
-    g_assert(dataptr);
+    g_assert(dataptr != NULL);
     if (kf_matches(kf, group, key, match)) {
         *((gboolean*) dataptr) = TRUE;
         _kf_clear_key(kf, group, key);
@@ -118,7 +118,7 @@ set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gcha
 STATIC void
 keyfile_handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, gboolean* dataptr)
 {
-    g_assert(dataptr);
+    g_assert(dataptr != NULL);
     *dataptr = g_key_file_get_boolean(kf, group, key, NULL);
     _kf_clear_key(kf, group, key);
 }
@@ -126,8 +126,8 @@ keyfile_handle_generic_bool(GKeyFile* kf, const gchar* group, const gchar* key, 
 STATIC void
 keyfile_handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, char** dataptr)
 {
-    g_assert(dataptr);
-    g_assert(!*dataptr);
+    g_assert(dataptr != NULL);
+    g_assert(*dataptr == NULL);
     *dataptr = g_key_file_get_string(kf, group, key, NULL);
     if (*dataptr)
         _kf_clear_key(kf, group, key);
@@ -136,7 +136,7 @@ keyfile_handle_generic_str(GKeyFile* kf, const gchar* group, const gchar* key, c
 STATIC void
 keyfile_handle_generic_uint(GKeyFile* kf, const gchar* group, const gchar* key, guint* dataptr, guint default_value)
 {
-    g_assert(dataptr);
+    g_assert(dataptr != NULL);
     if (g_key_file_has_key(kf, group, key, NULL)) {
         guint data = g_key_file_get_uint64(kf, group, key, NULL);
         if (data != default_value)
@@ -176,7 +176,7 @@ keyfile_handle_cloned_mac_address(GKeyFile *kf, NetplanNetDefinition* nd, const 
 STATIC void
 parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 {
-    g_assert(ip_arr);
+    g_assert(ip_arr != NULL);
     if (kf_matches(kf, group, "method", "manual")) {
         gboolean unhandled_data = FALSE;
         gchar *key = NULL;
@@ -216,7 +216,7 @@ parse_addresses(GKeyFile* kf, const gchar* group, GArray** ip_arr)
 STATIC void
 parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 {
-    g_assert(routes_arr);
+    g_assert(routes_arr != NULL);
     NetplanIPRoute *route = NULL;
     gchar **split = NULL;
     for (unsigned i = 1;; ++i) {
@@ -306,7 +306,7 @@ parse_routes(GKeyFile* kf, const gchar* group, GArray** routes_arr)
 STATIC void
 parse_dhcp_overrides(GKeyFile* kf, const gchar* group, NetplanDHCPOverrides* dataptr)
 {
-    g_assert(dataptr);
+    g_assert(dataptr != NULL);
     if (   g_key_file_get_boolean(kf, group, "ignore-auto-routes", NULL)
         && g_key_file_get_boolean(kf, group, "never-default", NULL)) {
         (*dataptr).use_routes = FALSE;
@@ -322,7 +322,7 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
 {
     // Keep "dns-search" as fallback/passthrough, as netplan cannot
     // differentiate between ipv4.dns-search and ipv6.dns-search
-    g_assert(domains_arr);
+    g_assert(domains_arr != NULL);
     gsize len = 0;
     gchar **split = g_key_file_get_string_list(kf, group, "dns-search", &len, NULL);
     if (split) {
@@ -347,7 +347,7 @@ parse_search_domains(GKeyFile* kf, const gchar* group, GArray** domains_arr)
 STATIC void
 parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
 {
-    g_assert(nameserver_arr);
+    g_assert(nameserver_arr != NULL);
     gchar **split = g_key_file_get_string_list(kf, group, "dns", NULL, NULL);
     if (split) {
 
@@ -381,7 +381,7 @@ parse_nameservers(GKeyFile* kf, const gchar* group, GArray** nameserver_arr)
 STATIC void
 parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
 {
-    g_assert(auth);
+    g_assert(auth != NULL);
     g_autofree gchar* method = g_key_file_get_string(kf, "802-1x", "eap", NULL);
 
     if (method && g_strcmp0(method, "") != 0) {
@@ -431,7 +431,7 @@ parse_dot1x_auth(GKeyFile* kf, NetplanAuthenticationSettings* auth)
 STATIC void
 parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
 {
-    g_assert(targets_arr);
+    g_assert(targets_arr != NULL);
     g_autofree gchar *v = g_key_file_get_string(kf, "bond", "arp_ip_target", NULL);
     if (v) {
         gchar** split = g_strsplit(v, ",", -1);

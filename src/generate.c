@@ -340,7 +340,7 @@ int main(int argc, char** argv)
             start_unit_jit("systemd-networkd.service");
         }
         g_autofree char* glob_run = g_build_path(G_DIR_SEPARATOR_S,
-                                                 rootdir ?: G_DIR_SEPARATOR_S,
+                                                 rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
                                                  "run/systemd/system/netplan-*.service",
                                                  NULL);
         if (!glob(glob_run, 0, NULL, &gl)) {
