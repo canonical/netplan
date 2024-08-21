@@ -32,7 +32,8 @@ STATIC gboolean
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* rootdir, gboolean physical, gboolean cleanup, const char* dependency, GError** error)
 {
     g_autofree char* escaped_netdef_id = g_uri_escape_string(id, NULL, TRUE);
-    g_autofree char* link = g_strjoin(NULL, rootdir ?: "", "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", escaped_netdef_id, ".service", NULL);
+    g_autofree char* link = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                      "/run/systemd/system/systemd-networkd.service.wants/netplan-ovs-", escaped_netdef_id, ".service", NULL);
     g_autofree char* path = g_strjoin(NULL, "/run/systemd/system/netplan-ovs-", escaped_netdef_id, ".service", NULL);
 
     GString* s = g_string_new("[Unit]\n");
@@ -118,8 +119,8 @@ netplan_type_is_physical(const NetplanDefType type)
 STATIC void
 write_ovs_tag_setting(const gchar* id, const char* type, const char* col, const char* key, const char* value, GString* cmds)
 {
-    g_assert(col);
-    g_assert(value);
+    g_assert(col != NULL);
+    g_assert(value != NULL);
     g_autofree char *clean_value = g_strdup(value);
     /* Replace " " -> "," if value contains spaces */
     if (strchr(value, ' ')) {
@@ -260,7 +261,7 @@ write_ovs_bridge_interfaces(const NetplanState* np_state, const NetplanNetDefini
 STATIC void
 write_ovs_protocols(const NetplanOVSSettings* ovs_settings, const gchar* bridge, GString* cmds)
 {
-    g_assert(bridge);
+    g_assert(bridge != NULL);
     GString* s = g_string_new(g_array_index(ovs_settings->protocols, char*, 0));
 
     for (unsigned i = 1; i < ovs_settings->protocols->len; ++i)
@@ -389,7 +390,7 @@ _netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefiniti
                 break;
 
             case NETPLAN_DEF_TYPE_PORT:
-                g_assert(def->peer);
+                g_assert(def->peer != NULL);
                 dependency = def->bridge?: def->bond;
                 if (!dependency) {
                     g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, "%s: OpenVSwitch patch port needs to be assigned to a bridge/bond\n", def->id);
@@ -405,7 +406,7 @@ _netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefiniti
                 break;
 
             case NETPLAN_DEF_TYPE_VLAN:
-                g_assert(def->vlan_link);
+                g_assert(def->vlan_link != NULL);
                 dependency = def->vlan_link->id;
                 /* Create a fake VLAN bridge */
                 append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " --may-exist add-br %s %s %i", def->id, def->vlan_link->id, def->vlan_id)
