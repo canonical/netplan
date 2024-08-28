@@ -21,19 +21,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-import re
-import time
-import subprocess
-import tempfile
-import unittest
-import shutil
-import gi
 import glob
-import json
-import pwd
 import grp
+import ipaddress
+import json
+import os
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+
+import gi
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
