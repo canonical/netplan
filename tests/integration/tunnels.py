@@ -92,9 +92,10 @@ class _CommonTests():
 
     def test_tunnel_wireguard(self):
         try:
-            subprocess.check_call(['modprobe', 'wireguard'])
+            subprocess.check_call(['ip', 'link', 'add', 'dev', 'modprobe-check', 'type', 'wireguard'])
+            subprocess.check_call(['ip', 'link', 'del', 'modprobe-check'])
         except Exception:
-            raise unittest.SkipTest("wireguard module is unavailable, can't test")
+            raise unittest.SkipTest('wireguard module is unavailable, can\'t test')
 
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'wg1'], stderr=subprocess.DEVNULL)
