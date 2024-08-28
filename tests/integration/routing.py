@@ -287,9 +287,10 @@ class _CommonTests():
 
     def test_vrf_basic(self):
         try:
-            subprocess.check_call(['modprobe', 'vrf'])
+            subprocess.check_call(['ip', 'link', 'add', 'dev', 'modprobe-check', 'type', 'vrf', 'table', '666'])
+            subprocess.check_call(['ip', 'link', 'del', 'modprobe-check'])
         except Exception:
-            raise unittest.SkipTest("vrf module is unavailable, can't test")
+            raise unittest.SkipTest('vrf module is unavailable, can\'t test')
 
         self.setup_eth('slaac')
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'vrf0'], stderr=subprocess.DEVNULL)
