@@ -54,6 +54,23 @@ def resolved_in_use():
     return os.path.isfile('/run/systemd/resolve/resolv.conf')
 
 
+def mac_to_eui64(hwaddr: str) -> ipaddress.IPv6Address:
+    '''
+    Calculate a EUI-64 IPv6 address from a MAC, according to RFC-4291,
+    e.g.: https://www.geeksforgeeks.org/ipv6-eui-64-extended-unique-identifier
+    '''
+    # convert MAC address bytes to a list of base10 decimals
+    mac_addr = [int(h, base=16) for h in hwaddr.split(':')]
+    mac_addr[0] ^= 2  # flip 7th bit of the 1st byte, e.g. XOR 0b00000010 (=2)
+    # inject 0xFFFE in the middle, increasing 48bit MAC to 64bit IPv6 Interface ID
+    mac_addr[3:3] = [0xff, 0xfe]
+    # apply 64bit IPv6 Interface ID on generic IPv6 carrier address (2600::)
+    eui_addr_int = 0x26000000000000000000000000000000
+    for i, h in enumerate(reversed(mac_addr)):
+        eui_addr_int |= h << 8 * i
+    return ipaddress.IPv6Address(eui_addr_int)
+
+
 class IntegrationTestsBase(unittest.TestCase):
     '''Common functionality for network test cases
 
