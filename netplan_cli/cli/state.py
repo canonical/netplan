@@ -17,20 +17,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from collections import defaultdict, namedtuple
 import ipaddress
 import json
 import logging
 import re
-from socket import inet_ntop, AF_INET, AF_INET6
+import shutil
 import subprocess
 import sys
+from collections import defaultdict, namedtuple
 from io import StringIO
+from socket import AF_INET, AF_INET6, inet_ntop
 from typing import Dict, List, Type, Union
 
 import yaml
 
-import dbus
 import netplan
 
 from . import utils
@@ -579,14 +579,29 @@ class SystemConfigState():
         addresses = None
         search = None
         try:
-            ipc = dbus.SystemBus()
-            resolve1 = ipc.get_object('org.freedesktop.resolve1', '/org/freedesktop/resolve1')
-            resolve1_if = dbus.Interface(resolve1, 'org.freedesktop.DBus.Properties')
-            res = resolve1_if.GetAll('org.freedesktop.resolve1.Manager')
-            addresses = res['DNS']
-            search = res['Domains']
-        except Exception as e:
-            logging.debug('Cannot query resolved DNS data: {}'.format(str(e)))
+            busctl = shutil.which('busctl')
+            if busctl is None:
+                raise RuntimeError('missing busctl utility')
+            json_out = subprocess.check_output(
+                [busctl, '--json=short', 'call', '--system',
+                 'org.freedesktop.resolve1',  # the service
+                 '/org/freedesktop/resolve1',  # the object
+                 'org.freedesktop.DBus.Properties',  # the interface
+                 'GetAll', 's',  # the method and signature
+                 'org.freedesktop.resolve1.Manager',  # the parameter
+                 ], text=True)
+            res = json.loads(json_out)
+            data = res.get('data', [{}])[0]
+            # make sure the type doesn't change. We expect an array of two
+            # intergers and an array of bytes (IP address)
+            assert data.get('DNS', {}).get('type') == 'a(iiay)', 'DNS address type doesn\'t match'
+            addresses = data.get('DNS', {}).get('data')
+            # make sure the type dosn't change. We expect an array of an integer
+            # a string (DNS search domain) and a boolean
+            assert data.get('Domains', {}).get('type') == 'a(isb)', 'DNS search type doesn\'t match'
+            search = data.get('Domains', {}).get('data')
+        except Exception as err:
+            logging.debug('Cannot query resolved DNS data: %s', str(err))
         return (addresses, search)
 
     @classmethod
