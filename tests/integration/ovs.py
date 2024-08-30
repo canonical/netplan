@@ -526,6 +526,7 @@ class _CommonTests():
         mcast-snooping: true
         external-ids:
           iface-id: myhostname
+          ovn-cms-options: "card-serial-number=MT42424242N8,enable-chassis-as-gw"
         other-config:
           disable-in-band: true
           hwaddr: aa:bb:cc:dd:ee:ff
@@ -600,6 +601,8 @@ class _CommonTests():
         self.assertNotIn(b'somekey=55:44:33:22:11:00', after['external-ids-Open_vSwitch'])
         self.assertIn(b'iface-id=myhostname', before['external-ids-Bridge'])
         self.assertNotIn(b'iface-id=myhostname', after['external-ids-Bridge'])
+        self.assertIn(b'ovn-cms-options=card-serial-number=MT42424242N8,enable-chassis-as-gw', before['external-ids-Bridge'])
+        self.assertNotIn(b'ovn-cms-options=card-serial-number=MT42424242N8,enable-chassis-as-gw', after['external-ids-Bridge'])
         self.assertIn(b'iface-id=mylocaliface', before['external-ids-Interface'])
         self.assertNotIn(b'iface-id=mylocaliface', after['external-ids-Interface'])
         for tbl in ('Bridge', 'Port'):
