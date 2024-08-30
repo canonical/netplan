@@ -65,11 +65,11 @@ Wants=ovsdb-server.service\nAfter=ovsdb-server.service\n'
 OVS_PHYSICAL = _OVS_BASE + 'Requires=sys-subsystem-net-devices-%(iface)s.device\nAfter=sys-subsystem-net-devices-%(iface)s\
 .device\nAfter=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n%(extra)s'
 OVS_VIRTUAL = _OVS_BASE + 'After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n%(extra)s'
-OVS_BR_DEFAULT = 'ExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan=true\nExecStart=/usr/bin/ovs-vsctl \
+OVS_BR_DEFAULT = 'ExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan=\"true\"\nExecStart=/usr/bin/ovs-vsctl \
 set-fail-mode %(iface)s standalone\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan/global/set-fail-mode=\
-standalone\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set \
-Bridge %(iface)s external-ids:netplan/mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s \
-rstp_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan/rstp_enable=false\n'
+\"standalone\"\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s mcast_snooping_enable=false\nExecStart=/usr/bin/ovs-vsctl set \
+Bridge %(iface)s external-ids:netplan/mcast_snooping_enable="false"\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s \
+rstp_enable=false\nExecStart=/usr/bin/ovs-vsctl set Bridge %(iface)s external-ids:netplan/rstp_enable=\"false\"\n'
 OVS_BR_EMPTY = _OVS_BASE + 'After=netplan-ovs-cleanup.service\nBefore=network.target\nWants=network.target\n\n[Service]\n\
 Type=oneshot\nTimeoutStartSec=10s\nExecStart=/usr/bin/ovs-vsctl --may-exist add-br %(iface)s\n' + OVS_BR_DEFAULT
 OVS_CLEANUP = _OVS_BASE + 'ConditionFileIsExecutable=/usr/bin/ovs-vsctl\nBefore=network.target\nWants=network.target\n\n\

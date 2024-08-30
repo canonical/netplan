@@ -18,7 +18,6 @@
 import logging
 import os
 import subprocess
-import re
 
 from .utils import systemctl_is_active, systemctl_is_installed
 
@@ -52,21 +51,22 @@ def _del_col(type, iface, column, value):
     default = DEFAULTS.get(column)
     if default is None:
         # removes the exact value only if it was set by netplan
-        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, value])
+        cmd = [OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, value]
+        logging.debug('Running: %s' % ' '.join(cmd))
+        subprocess.check_call(cmd)
     elif default and default != value:
         # reset to default, if its not the default already
-        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'set', type, iface, '%s=%s' % (column, default)])
+        cmd = [OPENVSWITCH_OVS_VSCTL, 'set', type, iface, '%s=%s' % (column, default)]
+        logging.debug('Running: %s' % ' '.join(cmd))
+        subprocess.check_call(cmd)
 
 
 def _del_dict(type, iface, column, key, value):
     """Cleanup values from a dictionary (i.e. "column:key=value")"""
     # removes the exact value only if it was set by netplan
-    subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, key, _escape_colon(value)])
-
-
-# for ovsdb remove: column key's value can not contain bare ':', need to escape with '\'
-def _escape_colon(literal):
-    return re.sub(r'([^\\]):', r'\g<1>\:', literal)
+    cmd = [OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, '%s=\"%s\"' % (key, value)]
+    logging.debug('Running: %s' % ' '.join(cmd))
+    subprocess.check_call(cmd)
 
 
 def _del_global(type, iface, key, value):
