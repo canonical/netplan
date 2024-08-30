@@ -94,7 +94,7 @@ Bootstrap: false'''
     def test_clear_dict(self, mock):
         ovs.clear_setting('Bridge', 'ovs0', 'netplan/other-config/key', 'value')
         mock.assert_has_calls([
-            call([OVS, 'remove', 'Bridge', 'ovs0', 'other-config', 'key', 'value']),
+            call([OVS, 'remove', 'Bridge', 'ovs0', 'other-config', 'key=\"value\"']),
             call([OVS, 'remove', 'Bridge', 'ovs0', 'external-ids', 'netplan/other-config/key'])
         ])
 
@@ -118,7 +118,7 @@ Bootstrap: false'''
     def test_clear_dict_colon(self, mock):
         ovs.clear_setting('Bridge', 'ovs0', 'netplan/other-config/key', 'fa:16:3e:4b:19:3a')
         mock.assert_has_calls([
-            call([OVS, 'remove', 'Bridge', 'ovs0', 'other-config', 'key', r'fa\:16\:3e\:4b\:19\:3a']),
+            call([OVS, 'remove', 'Bridge', 'ovs0', 'other-config', 'key=\"fa:16:3e:4b:19:3a\"']),
             call([OVS, 'remove', 'Bridge', 'ovs0', 'external-ids', 'netplan/other-config/key'])
         ])
         mock.mock_calls

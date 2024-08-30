@@ -134,7 +134,7 @@ write_ovs_tag_setting(const gchar* id, const char* type, const char* col, const 
     g_string_append_printf(s, "%s", col);
     if (key)
         g_string_append_printf(s, "/%s", key);
-    g_string_append_printf(s, "=%s", clean_value);
+    g_string_append_printf(s, "=\"%s\"", clean_value);
     append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s %s", type, id, s->str);
     g_string_free(s, TRUE);
 }
@@ -150,7 +150,7 @@ write_ovs_additional_data(GHashTable *data, const char* type, const gchar* id, G
     while (g_hash_table_iter_next(&iter, (gpointer) &key, (gpointer) &value)) {
         /* XXX: we need to check what happens when an invalid key=value pair
             gets supplied here. We might want to handle this somehow. */
-        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s %s:%s=%s",
+        append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s %s:%s=\"%s\"",
                            type, id, setting, key, value);
         write_ovs_tag_setting(id, type, setting, key, value, cmds);
     }
@@ -210,7 +210,7 @@ STATIC void
 write_ovs_tag_netplan(const gchar* id, const char* type, GString* cmds)
 {
     /* Mark this bridge/port/interface as created by netplan */
-    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s external-ids:netplan=true",
+    append_systemd_cmd(cmds, OPENVSWITCH_OVS_VSCTL " set %s %s external-ids:netplan=\"true\"",
                        type, id);
 }
 
