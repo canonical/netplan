@@ -65,6 +65,7 @@ typedef enum {
      * requires links to another netdef (such as vlan_link)
      * but it's not strictly mandatory
      * It's intended to be used only when renderer is NetworkManager
+     * Keep the PLACEHOLDER_ and MAX_ elements at the end of the enum
      */
     NETPLAN_DEF_TYPE_NM_PLACEHOLDER_,
     NETPLAN_DEF_TYPE_MAX_

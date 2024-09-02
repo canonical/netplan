@@ -668,7 +668,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         nd_id = g_strdup(netdef_id);
         if (g_strcmp0(netdef_id, tmp_str) == 0)
             _kf_clear_key(kf, "connection", "interface-name");
-    } else if (tmp_str && nd_type >= NETPLAN_DEF_TYPE_VIRTUAL && nd_type < NETPLAN_DEF_TYPE_NM) {
+    } else if (tmp_str && nd_type != NETPLAN_DEF_TYPE_NM
+                && nd_type >= NETPLAN_DEF_TYPE_VIRTUAL
+                && nd_type < NETPLAN_DEF_TYPE_NM_PLACEHOLDER_) {
         /* netdef ID equals "interface-name" for virtual devices (bridge/bond/...) */
         nd_id = g_strdup(tmp_str);
         _kf_clear_key(kf, "connection", "interface-name");
