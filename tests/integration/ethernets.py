@@ -223,7 +223,7 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
 
     def test_ip6_stable_privacy(self):
-        self.setup_eth('ra-only')
+        self.setup_eth('ra-stateless')
         with open(self.config, 'w') as f:
             f.write('''network:
   version: 2
@@ -240,7 +240,7 @@ class _CommonTests():
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::'], [f'inet6 {eui_addr.compressed}/64'])
 
     def test_ip6_eui64(self):
-        self.setup_eth('ra-only')
+        self.setup_eth('ra-stateless')
         with open(self.config, 'w') as f:
             f.write('''network:
   version: 2
@@ -250,9 +250,9 @@ class _CommonTests():
       dhcp6: yes
       accept-ra: yes
       ipv6-address-generation: eui64''' % {'r': self.backend, 'ec': self.dev_e_client})
-        self.generate_and_settle([self.state_dhcp6(self.dev_e_client)])
         # Compare to EUI-64 address, to make sure it matches the one generated.
         eui_addr = mac_to_eui64(self.dev_e_client_mac)
+        self.generate_and_settle([self.state(self.dev_e_client, eui_addr.compressed)])
         self.assert_iface_up(self.dev_e_client, [f'inet6 {eui_addr.compressed}/64'])
 
     def test_link_local_all(self):
