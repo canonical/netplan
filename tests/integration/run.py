@@ -78,7 +78,7 @@ else:
 
 os.environ["NETPLAN_TEST_BACKENDS"] = ",".join(backends)
 
-run_with_ignore_errors = os.environ.get("NETPLAN_PARSER_IGNORE_ERRORS", "1")
+run_with_ignore_errors = os.environ.get("NETPLAN_PARSER_IGNORE_ERRORS", "0")
 
 returncode = 0
 for test in requested_tests:

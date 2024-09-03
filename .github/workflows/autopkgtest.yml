@@ -56,5 +56,7 @@ jobs:
           dch -v "$VER" "Autopkgtest CI testing (Noble)"
       - name: Run autopkgtest (incl. build)
         run: |
-          autopkgtest . \
-            -U --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 -- lxd autopkgtest/ubuntu/noble/amd64
+          autopkgtest . -U \
+            --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
+            --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
+            -- lxd autopkgtest/ubuntu/noble/amd64
