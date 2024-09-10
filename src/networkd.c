@@ -408,7 +408,9 @@ write_regdom(const NetplanNetDefinition* def, const char* rootdir, GError** erro
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
+    mode_t orig_umask = umask(022);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
     _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
@@ -1342,7 +1344,9 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
+    mode_t orig_umask = umask(022);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
 }
 
 STATIC gboolean
@@ -1613,7 +1617,9 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     GString* content = g_string_new("[Unit]\n"
         "ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service\n");
     if (g_hash_table_size(non_optional_interfaces) == 0) {
-        _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
+        mode_t orig_umask = umask(022);
+        _netplan_g_string_free_to_file(content, rootdir, override, NULL);
+        umask(orig_umask);
         return FALSE;
     }
     // ELSE:
@@ -1657,7 +1663,9 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     g_autofree char* new_content = _netplan_scrub_systemd_unit_contents(content->str);
     g_string_free(content, TRUE);
     content = g_string_new(new_content);
-    _netplan_g_string_free_to_file_with_permissions(content, rootdir, override, NULL, "root", "root", 0640);
+    mode_t orig_umask = umask(022);
+    _netplan_g_string_free_to_file(content, rootdir, override, NULL);
+    umask(orig_umask);
     return TRUE;
 }
 
