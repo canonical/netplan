@@ -406,7 +406,7 @@ class IntegrationTestsBase(unittest.TestCase):
         nd_expected_owner = 'root'
         nd_expected_group = 'systemd-network'
 
-        sd_expected_mode = 0o100640
+        sd_expected_mode = 0o100644
         sd_expected_owner = 'root'
         sd_expected_group = 'root'
 
