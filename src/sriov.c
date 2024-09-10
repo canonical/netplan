@@ -18,6 +18,7 @@
 
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -58,7 +59,9 @@ write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* rootdir, GError** e
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
+    mode_t orig_umask = umask(022);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
     g_string_free(interfaces, TRUE);
 
     _netplan_safe_mkdir_p_dir(link);
@@ -98,7 +101,9 @@ write_sriov_apply_systemd_unit(GHashTable* pfs, const char* rootdir, GError** er
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
+    mode_t orig_umask = umask(022);
+    _netplan_g_string_free_to_file(s, rootdir, path, NULL);
+    umask(orig_umask);
 
     _netplan_safe_mkdir_p_dir(link);
     if (symlink(path, link) < 0 && errno != EEXIST) {
