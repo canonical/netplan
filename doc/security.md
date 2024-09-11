@@ -36,6 +36,57 @@ will become world-readable.
 * `/run/systemd/system/netplan-wpa-*.service`
 * `/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan*.conf`
 
+## Cryptography
+
+Netplan does not directly utilise cryptography, but configures underlying tools
+to do so. Such tools include `wpa_supplicant`, `systemd-networkd`, `NetworkManager`
+or `Open vSwitch` and they can for example be configured to setup WPA2/WPA3
+[encypted WiFi](https://w1.fi/wpa_supplicant/devel/code_structure.html#crypto_func)
+connections, `802.1x` for wired and wireless authentication and authorisation,
+[encrypted WireGuard](https://www.wireguard.com/protocol/) VPN tunnels or SSL
+secured OVS endpoints.
+
+### Cryptographic technology used by Netplan
+
+Netplan does not use cryptographic technology directly itself at runtime.
+However, when testing the code base it makes use of the `node:crypto`
+[NodeJS module](https://nodejs.org/api/crypto.html) to generate random bytes for
+our YAML schema fuzzer. See `tests/config_fuzzer/index.js`.
+
+When shipping Netplan packages to the Debian/Ubuntu archive, OpenPGP keys are
+used to sign the artifacts. Those commonly utilise 4096 bit RSA cryptography,
+but [Launchpad](https://launchpad.net/people/+me/+editpgpkeys) also supports
+varying key lengths of RSA, DSA, ECDSA, ECDH and EdDSA.
+
+### Cryptographic technology exposed to the user
+
+Netplan allows to configure certain cryptographic technology that can be
+described in its {doc}`netplan-yaml`. Notable settings include the
+{ref}`yaml-auth` block, e.g. `auth.password` can be used configure `WPA-PSK` or
+`WPA-EAP` secrets, which can also be a special `hash:...` value for
+`wpa_supplicant`. The `auth.method` field controls the technology, such as
+`PSK`, `EAP`, `EAPSHA256`, `EAPSUITE_B_192`, `SAE` or `8021X`. The
+`ca-certificate`, `client-certificate`, `client-key`, `client-key-password` or
+`phase2-auth` can be used to control the CA certificates in an `EAP` context.
+
+For `openvswitch` configurations, the `ssl` setting can contain configuration
+for CA certificates and related private keys in `ssl.ca-cert`, `ssl.certificate`
+or `ssl.private-key`.
+
+{ref}`yaml-modems` include the `password` setting, which can be used to
+authenticate with the carrier network.
+
+{ref}`yaml-tunnels` can contain the `key` setting, describing `input`, `output`
+or `private` keys. The latter can be a 256 bit, base64 encoded WireGuard key.
+
+### Packages providing cryptographic functionality
+
+* WireGuard (Linux kernel) – `linux-image`
+* NetworkManager (GnuTLS) – `libgnutls30`
+* Open vSwitch (OpenSSL) – `libssl3`
+* systemd-networkd (OpenSSL) – `libssl3`
+* wpa_supplicant (OpenSSL) – `libssl3`
+
 ## Static analysis with Coverity
 
 To ensure that common issues do not sneak undetected in our code base,
