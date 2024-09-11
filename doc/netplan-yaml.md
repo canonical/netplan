@@ -891,6 +891,7 @@ network:
     > Match this policy rule based on the type of service number applied to
     > the traffic.
 
+(yaml-auth)=
 ## Authentication
 
 Netplan supports advanced authentication settings for Ethernet and Wi-Fi
@@ -1058,6 +1059,7 @@ some additional properties that can be used for SR-IOV devices.
   >
   > **Requires feature: `infiniband`**
 
+(yaml-modems)=
 ## Properties for device type `modems`
 
 **Status**: Optional.
@@ -1625,6 +1627,7 @@ The specific settings for bonds are defined below.
     > `active-backup`, `balance-alb` and `balance-tlb` modes.
 
 
+(yaml-tunnels)=
 ## Properties for device type `tunnels`
 
 **Status**: Optional.
