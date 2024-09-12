@@ -71,7 +71,7 @@ is_hostname(const char *hostname)
 gboolean
 is_wireguard_key(const char* key)
 {
-    /* Check if this is (most likely) a 265bit, base64 encoded wireguard key */
+    /* Check if this is (most likely) a 256 bit, base64 encoded wireguard key */
     if (strlen(key) == 44 && key[43] == '=' && key[42] != '=') {
         static const gchar *pattern = "^(?:[A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=)+$";
         return g_regex_match_simple(pattern, key, 0, G_REGEX_MATCH_NOTEMPTY);
