@@ -290,11 +290,7 @@ class NetplanApply(utils.NetplanCommand):
             # 2nd: start all other services
             utils.systemctl('start', netplan_wpa + netplan_ovs, sync=True)
         if restart_nm:
-            # Flush all IP addresses of NM managed interfaces, to avoid NM creating
-            # new, non netplan-* connection profiles, using the existing IPs.
             nm_interfaces = utils.nm_interfaces(restart_nm_glob, devices)
-            for iface in nm_interfaces:
-                utils.ip_addr_flush(iface)
             # clear NM state, especially the [device].managed=true config, as that might have been
             # re-set via an udev rule setting "NM_UNMANAGED=1"
             shutil.rmtree('/run/NetworkManager/devices', ignore_errors=True)
