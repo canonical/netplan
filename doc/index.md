@@ -1,14 +1,13 @@
 # Netplan documentation
 
 ```{toctree}
----
-maxdepth: 2
-hidden: true
----
-tutorial
-howto
-reference
-explanation
+:maxdepth: 2
+:hidden: true
+
+tutorial/tutorial
+howto/howto
+reference/reference
+explanation/explanation
 ```
 
 **Netplan** is a network configuration abstraction renderer.
@@ -27,14 +26,14 @@ systemd-networkd.
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} **[Tutorial](/netplan-tutorial)**
-:link: /netplan-tutorial
+:::{grid-item-card} **[Tutorial](tutorial/netplan-tutorial)**
+:link: tutorial/netplan-tutorial
 :link-type: doc
 
 **Get started** - hands-on introduction to Netplan for new users
 :::
-:::{grid-item-card} **[How-to guides](/examples)**
-:link: /examples
+:::{grid-item-card} **[How-to guides](howto/examples)**
+:link: howto/examples
 :link-type: doc
 
 **Step-by-step guides** covering key operations and common tasks
@@ -44,14 +43,14 @@ systemd-networkd.
 ::::{grid} 1 1 2 2
 :reverse:
 
-:::{grid-item-card} **[Reference](/reference)**
-:link: /reference
+:::{grid-item-card} **[Reference](reference/reference)**
+:link: reference/reference
 :link-type: doc
 
 **Technical information** - specifications, APIs, architecture
 :::
-:::{grid-item-card} **[Explanation](/explanation)**
-:link: /explanation
+:::{grid-item-card} **[Explanation](explanation/explanation)**
+:link: explanation/explanation
 :link-type: doc
 
 **Discussion and clarification** of key topics
