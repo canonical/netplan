@@ -59,6 +59,10 @@ DEVICE_TYPES = {
     'vrf': 'vrf',
     'vxlan': 'tunnel',
 
+    # Used for wifi testing.
+    # It's the type of the interface hwsim0 created by the mac80211_hwsim driver
+    'ieee80211_radiotap': 'wifi',
+
     # Netplan netdef types
     'wifis': 'wifi',
     'ethernets': 'ethernet',
@@ -332,9 +336,9 @@ class Interface():
             #      https://github.com/systemd/systemd/commit/da7c995
             for line in self._networkctl.splitlines():
                 line = line.strip()
-                key = 'WiFi access point: '
-                if line.startswith(key):
-                    ssid = line[len(key):-len(' (xB:SS:ID:xx:xx:xx)')].strip()
+                key = r'^Wi-?Fi access point: (.*) \(.*\)'
+                if match := re.match(key, line):
+                    ssid = match.group(1)
                     return ssid if ssid else None
         return None
 
