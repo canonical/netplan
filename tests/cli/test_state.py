@@ -417,6 +417,27 @@ class TestInterface(unittest.TestCase):
         self.assertEqual(len(json.get('dns_search')), 1)
         self.assertEqual(len(json.get('routes')), 6)
 
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    @patch('netplan_cli.cli.state.Interface.query_networkctl')
+    def test_json_nm_wlan0_2(self, networkctl_mock, nm_ssid_mock):
+        SSID = 'MYCON'
+        nm_ssid_mock.return_value = SSID
+        # networkctl mock output reduced to relevant lines
+        # Newer versions of systemd changed WiFi to Wi-Fi
+        # See systemd commit 8fff78a1dded105e1ee87bc66e29ef2fd61bf8c9
+        networkctl_mock.return_value = \
+            'Wi-Fi access point: {} (b4:fb:e4:75:c6:21)'.format(SSID)
+
+        data = next((itf for itf in yaml.safe_load(IPROUTE2) if itf['ifindex'] == 5), {})
+        nd = SystemConfigState.process_networkd(NETWORKD)
+        nm = SystemConfigState.process_nm(NMCLI)
+        dns = (DNS_ADDRESSES, DNS_SEARCH)
+        routes = (SystemConfigState.process_generic(ROUTE4), SystemConfigState.process_generic(ROUTE6))
+
+        itf = Interface(data, nd, nm, dns, routes)
+        _, json = itf.json()
+        self.assertEqual(json.get('ssid'), 'MYCON')
+
     @patch('netplan_cli.cli.state.Interface.query_networkctl')
     def test_json_nd_enp0s31f6(self, networkctl_mock):
         # networkctl mock output reduced to relevant lines
