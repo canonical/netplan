@@ -35,7 +35,7 @@ class Netplan(utils.NetplanCommand):
                          description='Network configuration in YAML',
                          leaf=False)
         os.environ.update({
-            'LC_ALL': 'C',
+            'LC_ALL': 'C.UTF-8',
             'PATH': os.getenv('PATH', FALLBACK_PATH)})
 
     def parse_args(self):
