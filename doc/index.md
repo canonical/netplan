@@ -4,10 +4,10 @@
 :maxdepth: 2
 :hidden: true
 
-tutorial/tutorial
-howto/howto
-reference/reference
-explanation/explanation
+tutorial/index
+howto/index
+reference/index
+explanation/index
 ```
 
 **Netplan** is a network configuration abstraction renderer.
