@@ -351,11 +351,18 @@ class Interface():
         if self.type == 'wifi':
             # XXX: available from networkctl's JSON output as of v250:
             #      https://github.com/systemd/systemd/commit/da7c995
+            # TODO: Retrieving the SSID from systemd seems to not be reliable.
+            #       Sometimes it will return "(null)".
             for line in self._networkctl.splitlines():
                 line = line.strip()
                 key = r'^Wi-?Fi access point: (.*) \(.*\)'
                 if match := re.match(key, line):
                     ssid = match.group(1)
+                    # TODO: Find a better way to retrieve the SSID
+                    # networkctl will return a non-ascii SSID using the octal notation below:
+                    # '\\303\\241\\303\\251\\303\\255\\303\\263\\303...
+                    # Here we handle the escaping, the encoding of individual bytes and the final decoding to utf-8
+                    ssid = ssid.encode('latin1').decode('unicode-escape').encode('latin1').decode('utf-8')
                     return ssid if ssid else None
         return None
 
