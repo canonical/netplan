@@ -28,6 +28,7 @@ from collections import defaultdict, namedtuple
 from io import StringIO
 from socket import AF_INET, AF_INET6, inet_ntop
 from typing import Dict, List, Type, Union
+from urllib import parse
 
 import yaml
 
@@ -318,7 +319,23 @@ class Interface():
                 'run/NetworkManager/system-connections/netplan-')[1].split('.nmconnection')[0]
             if self.nm.get('type', '') == '802-11-wireless':
                 ssid = self.query_nm_ssid(self.nm.get('name'))
-                if ssid:  # XXX: escaping needed?
+                if ssid not in netdef:
+                    # If the plain SSID in not found in the netdef here
+                    # it's probably because it contains non-ascii characters that
+                    # were escaped in the file name. We need to do the same here to
+                    # be able to extract it from the file name.
+                    # In this case, Network Manager will save the SSID using the format "b1;b2;b3...;"
+                    # instead of a non-ascii string.
+                    # In src/nm.c we use g_uri_escape_string() to create the file name.
+
+                    # Transform the SSID to the same format used by Network Manager
+                    ssid_encoded = ssid.encode('utf-8')
+                    ssid_bytes = [str(b) for b in ssid_encoded]
+                    ssid_nm_escaped = ';'.join(ssid_bytes) + ';'
+
+                    # Escape characters in the same way we do in src/nm.c.
+                    ssid = parse.quote(ssid_nm_escaped)
+                if ssid:
                     netdef = netdef.split('-' + ssid)[0]
             return netdef
         return None
