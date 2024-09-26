@@ -440,7 +440,7 @@ class TestInterface(unittest.TestCase):
 
     @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
     @patch('netplan_cli.cli.state.Interface.query_networkctl')
-    def test_json_nm_wlan1_non_ascii(self, networkctl_mock, nm_ssid_mock):
+    def test_json_nd_wlan1_non_ascii(self, networkctl_mock, nm_ssid_mock):
         ND_SSID = '\\303\\241\\303\\251\\303\\255\\303\\263\\303\\272\\302\\242\\302\\242\\302\\242\\302\\243\\302\\243\\302\\243'
         NM_SSID = 'áéíóú¢¢¢£££'
         nm_ssid_mock.return_value = NM_SSID
@@ -451,7 +451,21 @@ class TestInterface(unittest.TestCase):
             'Wi-Fi access point: {} (b4:fb:e4:75:c6:21)'.format(ND_SSID)
 
         data = {'ifname': 'wlan1', 'ifindex': 123}
-        nd = [{'Index': 123, 'Type': 'wlan', 'Name': 'wlan1'}]
+        nd = [{'Index': 123, 'Type': 'wlan', 'Name': 'wlan1', 'SetupState': 'managed',
+               'NetworkFile': '/run/systemd/network/10-netplan-wlan1.network'}]
+        nm = SystemConfigState.process_nm(NMCLI)
+
+        itf = Interface(data, nd, nm, (None, None), (None, None))
+        _, json = itf.json()
+        self.assertEqual(json.get('ssid'), NM_SSID)
+
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    def test_json_nm_wlan1_non_ascii(self, nm_ssid_mock):
+        NM_SSID = 'áéíóú¢¢¢£££'
+        nm_ssid_mock.return_value = NM_SSID
+
+        data = {'ifname': 'wlan1', 'ifindex': 123}
+        nd = [{'Index': 123, 'Type': 'wlan', 'Name': 'wlan1', 'SetupState': 'unmanaged'}]
         nm = SystemConfigState.process_nm(NMCLI)
 
         itf = Interface(data, nd, nm, (None, None), (None, None))
