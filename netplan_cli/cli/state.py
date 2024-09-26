@@ -349,6 +349,8 @@ class Interface():
     @property
     def ssid(self) -> str:
         if self.type == 'wifi':
+            if self.backend == "NetworkManager":
+                return self.query_nm_ssid(self.nm.get('name', ''))
             # XXX: available from networkctl's JSON output as of v250:
             #      https://github.com/systemd/systemd/commit/da7c995
             # TODO: Retrieving the SSID from systemd seems to not be reliable.
