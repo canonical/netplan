@@ -43,13 +43,13 @@ systemd-networkd.
 ::::{grid} 1 1 2 2
 :reverse:
 
-:::{grid-item-card} **[Reference](reference/reference)**
+:::{grid-item-card} **[Reference](reference/index)**
 :link: reference/index
 :link-type: doc
 
 **Technical information** - specifications, APIs, architecture
 :::
-:::{grid-item-card} **[Explanation](explanation/explanation)**
+:::{grid-item-card} **[Explanation](explanation/index)**
 :link: explanation/index
 :link-type: doc
 
