@@ -448,39 +448,44 @@ parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
 
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 STATIC void
-read_passthrough(GKeyFile* kf, GData** list)
+read_passthrough(GKeyFile* kf, GHashTable** list)
 {
     gchar **groups = NULL;
     gchar **keys = NULL;
-    gchar *group_key = NULL;
     gchar *value = NULL;
     gsize klen = 0;
     gsize glen = 0;
+    GHashTable* group;
 
-    if (!*list)
-        g_datalist_init(list);
+    if (*list == NULL) {
+        *list = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    }
     groups = g_key_file_get_groups(kf, &glen);
-    if (groups) {
+    if (groups != NULL) {
         for (unsigned i = 0; i < glen; ++i) {
             klen = 0;
+            group = g_hash_table_lookup(*list, groups[i]);
+            if (group == NULL) {
+                group = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+            }
             keys = g_key_file_get_keys(kf, groups[i], &klen, NULL);
             if (klen == 0) {
                 /* empty group */
-                g_datalist_set_data_full(list, g_strconcat(groups[i], ".", NETPLAN_NM_EMPTY_GROUP, NULL), g_strdup(""), g_free);
+                g_hash_table_insert(*list, g_strdup(groups[i]), group);
+                g_strfreev(keys);
                 continue;
             }
             for (unsigned j = 0; j < klen; ++j) {
                 value = g_key_file_get_string(kf, groups[i], keys[j], NULL);
-                if (!value) {
+                if (value == NULL) {
                     // LCOV_EXCL_START
                     g_warning("netplan: Keyfile: cannot read value of %s.%s", groups[i], keys[j]);
                     continue;
                     // LCOV_EXCL_STOP
                 }
-                group_key = g_strconcat(groups[i], ".", keys[j], NULL);
-                g_datalist_set_data_full(list, group_key, value, g_free);
-                g_free(group_key);
+                g_hash_table_insert(group, g_strdup(keys[j]), value);
             }
+            g_hash_table_insert(*list, g_strdup(groups[i]), group);
             g_strfreev(keys);
         }
         g_strfreev(groups);

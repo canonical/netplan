@@ -98,8 +98,9 @@ type_str(const NetplanNetDefinition* def)
         case NETPLAN_DEF_TYPE_NM:
             /* needs to be overriden by passthrough "connection.type" setting */
             g_assert(def->backend_settings.passthrough != NULL);
-            GData *passthrough = def->backend_settings.passthrough;
-            return g_datalist_get_data(&passthrough, "connection.type");
+            GHashTable *passthrough = def->backend_settings.passthrough;
+            GHashTable* connection = g_hash_table_lookup(passthrough, "connection");
+            return g_hash_table_lookup(connection, "type");
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -566,50 +567,42 @@ write_nm_vxlan_parameters(const NetplanNetDefinition* def, GKeyFile* kf)
  * "backend_settings.passthrough" and inject them into the keyfile as-is.
  */
 STATIC void
-write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
+write_fallback_key_value(gpointer group, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
-    gchar* val = value;
-    /* Group name may contain dots, but key name may not.
-     * The "tc" group is a special case, where it is the other way around, e.g.:
-     *   tc->qdisc.root
-     *   tc->tfilter.ffff: */
-    const gchar* key = g_quark_to_string(key_id);
-    gchar **group_key = g_strsplit(key, ".", -1);
-    guint len = g_strv_length(group_key);
-    g_autofree gchar* old_key = NULL;
-    gboolean has_key = FALSE;
-    g_autofree gchar* k = NULL;
-    g_autofree gchar* group = NULL;
-    if (!g_strcmp0(group_key[0], "tc") && len > 2) {
-        k = g_strconcat(group_key[1], ".", group_key[2], NULL);
-        group = g_strdup(group_key[0]);
-    } else {
-        k = group_key[len-1];
-        group_key[len-1] = NULL; //remove key from array
-        group = g_strjoinv(".", group_key); //re-combine group parts
+    GHashTableIter iter;
+    GHashTable* group_settings = value;
+    gpointer k, v;
+
+    /*
+     * An empty hash table means it's an empty group.
+     * Here we add and remove a bogus key so the group is created in the kf
+     */
+    if (g_hash_table_size(group_settings) == 0) {
+        g_key_file_set_string(kf, group, NETPLAN_NM_EMPTY_GROUP, "");
+        g_key_file_remove_key(kf, group, NETPLAN_NM_EMPTY_GROUP, NULL);
+        return;
     }
 
-    has_key = g_key_file_has_key(kf, group, k, NULL);
-    old_key = g_key_file_get_string(kf, group, k, NULL);
-    g_key_file_set_string(kf, group, k, val);
-    /* delete the placeholder key, if this was just an empty group */
-    if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP))
-        g_key_file_remove_key(kf, group, k, NULL);
-    /* handle differing defaults:
-     * ipv6.ip6-privacy is "-1 (unknown)" by default in NM, it is "0 (off)" in netplan */
-    else if (g_strcmp0(key, "ipv6.ip6-privacy") == 0 && g_strcmp0(val, "-1") == 0) {
-        g_debug("NetworkManager: default override: clearing %s.%s", group, k);
-        g_key_file_remove_key(kf, group, k, NULL);
-    } else if (!has_key) {
-        g_debug("NetworkManager: passing through fallback key: %s.%s=%s", group, k, val);
-        g_key_file_set_comment(kf, group, k, "Netplan: passthrough setting", NULL);
-    } else if (g_strcmp0(val, old_key) != 0) {
-        g_debug("NetworkManager: fallback override: %s.%s=%s", group, k, val);
-        g_key_file_set_comment(kf, group, k, "Netplan: passthrough override", NULL);
-    }
+    g_hash_table_iter_init(&iter, group_settings);
 
-    g_strfreev(group_key);
+    while (g_hash_table_iter_next(&iter, &k, &v)) {
+        gboolean has_key = g_key_file_has_key(kf, group, k, NULL);
+        g_autofree gchar* old_key = g_key_file_get_string(kf, group, k, NULL);
+        g_key_file_set_string(kf, group, k, v);
+        /* handle differing defaults:
+         * ipv6.ip6-privacy is "-1 (unknown)" by default in NM, it is "0 (off)" in netplan */
+        if (g_strcmp0(k, "ip6-privacy") == 0 && g_strcmp0(v, "-1") == 0) {
+            g_debug("NetworkManager: default override: clearing %s.%s", (gchar*)group, (gchar*)k);
+            g_key_file_remove_key(kf, group, k, NULL);
+        } else if (!has_key) {
+            g_debug("NetworkManager: passing through fallback key: %s.%s=%s", (gchar*)group, (gchar*)k, (gchar*)v);
+            g_key_file_set_comment(kf, group, k, "Netplan: passthrough setting", NULL);
+        } else if (g_strcmp0(v, old_key) != 0) {
+            g_debug("NetworkManager: fallback override: %s.%s=%s", (gchar*)group, (gchar*)k, (gchar*)v);
+            g_key_file_set_comment(kf, group, k, "Netplan: passthrough override", NULL);
+        }
+    }
 }
 
 /**
@@ -932,7 +925,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         g_debug("NetworkManager: using keyfile passthrough mode");
         /* Write all key-value pairs from the hashtable into the keyfile,
          * potentially overriding existing values, if not fully supported. */
-        g_datalist_foreach((GData**)&def->backend_settings.passthrough, write_fallback_key_value, kf);
+        g_hash_table_foreach(def->backend_settings.passthrough, write_fallback_key_value, kf);
     }
 
     g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
@@ -970,7 +963,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
              * AP passthrough values have higher priority than ND passthrough,
              * because they are more specific and bound to the current SSID's
              * NM connection profile. */
-            g_datalist_foreach((GData**)&ap->backend_settings.passthrough, write_fallback_key_value, kf);
+            g_hash_table_foreach(ap->backend_settings.passthrough, write_fallback_key_value, kf);
         }
     } else {
         /* TODO: make use of netplan_netdef_get_output_filename() */
