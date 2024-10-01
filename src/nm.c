@@ -100,7 +100,10 @@ type_str(const NetplanNetDefinition* def)
             g_assert(def->backend_settings.passthrough != NULL);
             GHashTable *passthrough = def->backend_settings.passthrough;
             GHashTable* connection = g_hash_table_lookup(passthrough, "connection");
-            return g_hash_table_lookup(connection, "type");
+            if (connection) {
+                return g_hash_table_lookup(connection, "type");
+            }
+            return NULL;
         // LCOV_EXCL_START
         default:
             g_assert_not_reached();
@@ -634,6 +637,12 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     else
         g_assert(ap == NULL);
 
+    nm_type = type_str(def);
+    if (def->type == NETPLAN_DEF_TYPE_NM && nm_type == NULL) {
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: NetworkManager connection type undefined\n", def->id);
+        return FALSE;
+    }
+
     if (def->type == NETPLAN_DEF_TYPE_VLAN && def->sriov_vlan_filter) {
         g_debug("%s is defined as a hardware SR-IOV filtered VLAN, postponing creation", def->id);
         return TRUE;
@@ -653,7 +662,6 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         g_key_file_set_string(kf, "connection", "id", nd_nm_id);
     }
 
-    nm_type = type_str(def);
     if (nm_type && def->type != NETPLAN_DEF_TYPE_NM)
         g_key_file_set_string(kf, "connection", "type", nm_type);
 
@@ -1082,11 +1090,21 @@ netplan_state_finish_nm_write(
         GString *tmp = NULL;
         guint unmanaged = nd->backend == NETPLAN_BACKEND_NM ? 0 : 1;
 
+        if (nd->type == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_ || nd->backend == NETPLAN_BACKEND_OVS) {
+            iter = iter->next;
+            continue;
+        }
+
+        nm_type = type_str(nd);
+        if (nd->type == NETPLAN_DEF_TYPE_NM && nm_type == NULL) {
+            /* Will happen when errors are ignored */
+            iter = iter->next;
+            continue;
+        }
+
         g_autofree char* netdef_id = _netplan_scrub_string(nd->id);
         /* Special case: manage or ignore any device of given type on empty "match: {}" stanza */
         if (nd->has_match && !nd->match.driver && !nd->match.mac && !nd->match.original_name) {
-            nm_type = type_str(nd);
-            g_assert(nm_type != NULL);
             g_string_append_printf(nm_conf, "[device-netplan.%s.%s]\nmatch-device=type:%s\n"
                                             "managed=%d\n\n", netplan_def_type_name(nd->type),
                                             netdef_id, nm_type, !unmanaged);
