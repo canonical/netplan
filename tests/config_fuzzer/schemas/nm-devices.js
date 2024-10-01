@@ -1,4 +1,4 @@
-import common_properties, { minMaxProperties } from "./common.js";
+import { minMaxProperties, networkmanager_settings } from "./common.js";
 
 const nmdevices_schema = {
     type: "object",
@@ -34,29 +34,7 @@ const nmdevices_schema = {
                                     type: "string",
                                     enum: ["NetworkManager"]
                                 },
-                                networkmanager: {
-                                    type: "object",
-                                    additionalProperties: false,
-                                    properties: {
-                                        uuid: {
-                                            type: "string"
-                                        },
-                                        name: {
-                                            type: "string"
-                                        },
-                                        passthrough: {
-                                            type: "object",
-                                            additionalProperties: true,
-                                            properties: {
-                                                "connection.type": {
-                                                    type: "string"
-                                                }
-                                            },
-                                            required: ["connection.type"]
-                                        }
-                                    },
-                                    required: ["passthrough"]
-                                },
+                                ...networkmanager_settings
                             },
                             required: ["networkmanager"]
                         }
