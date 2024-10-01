@@ -137,6 +137,39 @@ key=a
 match-device=type:ethernet
 managed=1\n\n''')
 
+    def test_passthrough_basic_mapping_no_type_ignore_error(self):
+        out = self.generate('''network:
+  version: 2
+  nm-devices:
+    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        name: some NM id
+        passthrough:
+          connection:
+            uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+            permissions: ""''', skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertIn('network type \'nm-devices:\' needs to provide a \'connection.type\'', out)
+
+    def test_passthrough_basic_mapping_no_connection_ignore_error(self):
+        out = self.generate('''network:
+  version: 2
+  nm-devices:
+    NM-87749f1d-334f-40b2-98d4-55db58965f5f:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        uuid: 87749f1d-334f-40b2-98d4-55db58965f5f
+        name: some NM id
+        passthrough:
+          a:
+            b: c''', skip_generated_yaml_validation=True, ignore_errors=True)
+
+        self.assertIn('network type \'nm-devices:\' needs to provide a \'connection.type\'', out)
+
     def test_passthrough_wifi(self):
         self.generate('''network:
   version: 2
