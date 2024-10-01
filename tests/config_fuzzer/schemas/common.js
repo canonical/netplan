@@ -210,6 +210,11 @@ export const networkmanager_settings = {
                         type: "string"
                     }
                 },
+                patternProperties: {
+                    "[azAZ09-]{1,10}": {
+                        type: "object",
+                    }
+                }
             }
         },
         required: ["passthrough"]
