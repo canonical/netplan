@@ -1341,6 +1341,8 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* rootdir)
         g_string_append(s, " -Dnl80211,wext\n");
     }
 
+    g_string_append_printf(s, "ExecReload=/sbin/wpa_cli -i %s reconfigure\n", stdouth);
+
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);

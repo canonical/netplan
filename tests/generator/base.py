@@ -99,6 +99,7 @@ Wants=network.target
 [Service]
 Type=simple
 ExecStart=/sbin/wpa_supplicant -c /run/netplan/wpa-%(iface)s.conf -i%(iface)s -D%(drivers)s
+ExecReload=/sbin/wpa_cli -i %(iface)s reconfigure
 '''
 NM_MANAGED = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_NAME}=="%s", ENV{NM_UNMANAGED}="0"\n'
 NM_UNMANAGED = 'SUBSYSTEM=="net", ACTION=="add|change|move", ENV{ID_NET_NAME}=="%s", ENV{NM_UNMANAGED}="1"\n'
