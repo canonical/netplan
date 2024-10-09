@@ -169,6 +169,31 @@ reset_ip_rule(NetplanIPRule* ip_rule)
     ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
 }
 
+STATIC void
+reset_passthrough(GHashTable* passthrough)
+{
+    GHashTableIter iter;
+    GHashTable* group;
+    gchar* group_name;
+
+    g_hash_table_iter_init(&iter, passthrough);
+
+    while (g_hash_table_iter_next(&iter, (gpointer) &group_name, (gpointer) &group)) {
+        GHashTableIter inner_iter;
+        gchar* group_key;
+        gchar* group_value;
+        g_hash_table_iter_init(&inner_iter, group);
+
+        while (g_hash_table_iter_next(&inner_iter, (gpointer) &group_key, (gpointer) &group_value)) {
+            g_free(group_key);
+            g_free(group_value);
+        }
+        g_free(group_name);
+        g_hash_table_destroy(group);
+    }
+    g_hash_table_destroy(passthrough);
+}
+
 /* Reset a backend settings object. */
 STATIC void
 reset_backend_settings(NetplanBackendSettings* settings)
@@ -177,7 +202,8 @@ reset_backend_settings(NetplanBackendSettings* settings)
     FREE_AND_NULLIFY(settings->uuid);
     FREE_AND_NULLIFY(settings->stable_id);
     FREE_AND_NULLIFY(settings->device);
-    g_datalist_clear(&settings->passthrough);
+    if (settings->passthrough)
+        reset_passthrough(settings->passthrough);
 }
 
 STATIC void

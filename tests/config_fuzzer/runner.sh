@@ -121,29 +121,26 @@ echo "$(date) - Done"
 
 echo "$(date) - Running netplan generate -i"
 
-for yaml in ${FAKEDATADIR}/*.yaml
-do
-    rm -rf fakeroot3
-    mkdir -p fakeroot3/etc/netplan
-    cp ${yaml} fakeroot3/etc/netplan/
+# Run the generator against the entire dataset
 
-    OUTPUT=$(${NETPLAN_GENERATE_PATH} --root-dir fakeroot3 -i 2>&1)
-    code=$?
-    if [ $code -eq 139 ] || [ $code -eq 245 ] || [ $code -eq 133 ]
-    then
-        echo "GENERATE --ignore-errors CRASHED"
-        cat ${yaml}
-        error=1
-    fi
+rm -rf fakeroot3
+mkdir -p fakeroot3/etc/
+mv ${FAKEDATADIR} fakeroot3/etc/netplan
 
-    if grep 'detected memory leaks' <<< "$OUTPUT" > /dev/null
-    then
-        echo "GENERATE --ignore-errors MEMORY LEAK DETECTED"
-        cat ${yaml}
-        error=1
-    fi
+OUTPUT=$(${NETPLAN_GENERATE_PATH} --root-dir fakeroot3 -i 2>&1)
+code=$?
+# code 134 happens when a g_assert() is triggered
+if [ $code -eq 139 ] || [ $code -eq 245 ] || [ $code -eq 133 ] || [ $code -eq 134 ]
+then
+    echo "GENERATE --ignore-errors CRASHED"
+    error=1
+fi
 
-done
+if grep 'detected memory leaks' <<< "$OUTPUT" > /dev/null
+then
+    echo "GENERATE --ignore-errors MEMORY LEAK DETECTED"
+    error=1
+fi
 
 echo "$(date) - Done"
 

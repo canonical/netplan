@@ -211,7 +211,7 @@ typedef struct netplan_backend_settings {
     char *uuid;
     char *stable_id;
     char *device;
-    GData* passthrough; /* See g_datalist* functions */
+    GHashTable* passthrough;
 } NetplanBackendSettings;
 
 typedef struct netplan_vxlan NetplanVxlan;
