@@ -121,7 +121,7 @@ slug = ""
 
 redirects = {
     'README.md': '/',
-    'netplan': '/netplan-yaml',
+    'netplan': '/reference/netplan-yaml',
 }
 
 ############################################################
