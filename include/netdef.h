@@ -54,7 +54,7 @@ netplan_netdef_get_filepath(const NetplanNetDefinition* netdef, char* out_buffer
 
 /**
  * @brief Get the specific @ref NetplanBackend defined for this @ref NetplanNetDefinition.
- * @param[in] np_state The @ref NetplanState to query
+ * @param[in] netdef   The @ref NetplanNetDefinition to query
  * @return             Enumeration value, specifiying the @ref NetplanBackend
  */
 NETPLAN_PUBLIC NetplanBackend
@@ -62,7 +62,7 @@ netplan_netdef_get_backend(const NetplanNetDefinition* netdef);
 
 /**
  * @brief Get the interface type for a given @ref NetplanNetDefinition.
- * @param[in] np_state The @ref NetplanState to query
+ * @param[in] netdef   The @ref NetplanNetDefinition to query
  * @return             Enumeration value of @ref NetplanDefType, specifiying the interface type
  */
 NETPLAN_PUBLIC NetplanDefType

@@ -124,10 +124,10 @@ netplan_state_update_yaml_hierarchy(
 /**
  * @brief   Dump the whole @ref NetplanState into a single YAML file.
  * @details Ignoring the origin of each @ref NetplanNetDefinition.
- * @param[in]  np_state The @ref NetplanState for which to generate the configuration
- * @param[in]  out_fd   File descriptor to an opened file into which to dump the content
- * @param[out] error    Filled with a @ref NetplanError in case of failure
- * @return              Indication of success or failure
+ * @param[in]  np_state  The @ref NetplanState for which to generate the configuration
+ * @param[in]  output_fd File descriptor to an opened file into which to dump the content
+ * @param[out] error     Filled with a @ref NetplanError in case of failure
+ * @return               Indication of success or failure
  */
 NETPLAN_PUBLIC gboolean
 netplan_state_dump_yaml(

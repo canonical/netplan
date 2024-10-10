@@ -106,7 +106,7 @@ typedef struct _NetplanStateIterator NetplanStateIterator;
  * @note    The idea is based on the GLib implementation of iterators.
  */
 struct _NetplanStateIterator {
-    void* placeholder;
+    void* placeholder; ///< Just a placeholder in memory
 };
 
 /*
