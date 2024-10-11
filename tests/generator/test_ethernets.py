@@ -504,7 +504,21 @@ method=ignore
 
         error = ("Invalid MAC address 'preservetypo', must be XX:XX:XX:XX:XX:XX, "
                  "XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX or "
-                 "one of 'permanent', 'random', 'stable', 'preserve'")
+                 "one of 'permanent', 'random', 'stable', 'preserve', 'stable-ssid' (Wi-Fi only)")
+        self.assertIn(error, res)
+
+    def test_eth_set_mac_special_values_ethernet_stable_ssid(self):
+        res = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      macaddress: stable-ssid
+      dhcp4: true''', expect_fail=True)
+
+        error = ("Invalid MAC address 'stable-ssid', must be XX:XX:XX:XX:XX:XX, "
+                 "XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX or "
+                 "one of 'permanent', 'random', 'stable', 'preserve', 'stable-ssid' (Wi-Fi only)")
         self.assertIn(error, res)
 
     def test_eth_match_by_driver(self):
