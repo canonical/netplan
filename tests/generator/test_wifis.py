@@ -1114,6 +1114,42 @@ mode=infrastructure
             new_config = f.read()
             self.assertIn('ExecStart=/usr/sbin/iw reg set DE\n', new_config)
 
+    def test_wlan_set_mac_special_values(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wlan0:
+      macaddress: stable-ssid
+      dhcp4: true
+      access-points:
+        "mynetwork":
+          password: mypassword''')
+
+        self.assert_networkd(None)
+
+        self.assert_nm({'wlan0-mynetwork': '''[connection]
+id=netplan-wlan0-mynetwork
+type=wifi
+interface-name=wlan0
+
+[wifi]
+cloned-mac-address=stable-ssid
+ssid=mynetwork
+mode=infrastructure
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+
+[wifi-security]
+key-mgmt=wpa-psk
+pmf=2
+psk=mypassword
+'''})
+
 
 class TestConfigErrors(TestBase):
 

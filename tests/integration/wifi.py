@@ -181,5 +181,45 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
         self.assertIn('ssid fake net', out)
         self.assert_iface_up(self.dev_w_ap, ['inet 10.'])
 
+    @unittest.skip("Test if flaky. NM might generate a different MAC address.")
+    def test_wifi_cloned_macaddress_stable_ssid(self):
+        self.setup_ap('''hw_mode=g
+channel=1
+ssid=fake net
+wpa=1
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+wpa_passphrase=12345678
+''', None)
+
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: NetworkManager
+  wifis:
+    %(wc)s:
+      addresses: ["192.168.1.42/24"]
+      dhcp4: false
+      dhcp6: false
+      macaddress: stable-ssid
+      access-points:
+        "fake net":
+          password: 12345678''' % {'wc': self.dev_w_client})
+
+        subprocess.check_call(['systemctl', 'start', 'NetworkManager'])
+
+        # Make the generated MAC address predictable
+        # See nm_utils_hw_addr_gen_stable_eth() in NM for details
+        # TODO: save and restore these files to avoid any impact on the
+        # entire test suite.
+        with open('/etc/machine-id', 'w') as f:
+            f.write('ee7ac3602b6306061bd984a41eb1c045\n')
+        with open('/var/lib/NetworkManager/secret_key', 'w') as f:
+            f.write('nm-v2:hnIHoHp4p9kaEWU5/+dO+gFREirN1AsMoO1MPaoYxCc=')
+
+        subprocess.check_call(['systemctl', 'restart', 'NetworkManager'])
+
+        self.generate_and_settle([self.state_up(self.dev_w_client)])
+        self.assert_iface_up(self.dev_w_client, ['ether 5e:ba:fe:fd:89:03'])
+
 
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
