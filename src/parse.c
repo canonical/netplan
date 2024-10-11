@@ -392,7 +392,7 @@ handle_special_macaddress_option(NetplanParser* npp, yaml_node_t* node, void* en
     g_assert(entryptr != NULL);
     g_assert(node->type == YAML_SCALAR_NODE);
 
-    if (!_is_macaddress_special_nm_option(scalar(node)) &&
+    if (!_is_macaddress_special_nm_option(npp->current.netdef, scalar(node)) &&
         !_is_macaddress_special_nd_option(scalar(node)))
         return FALSE;
 
@@ -695,7 +695,7 @@ handle_netdef_set_mac(NetplanParser* npp, yaml_node_t* node, const void* data, G
         if (!handle_special_macaddress_option(npp, node, npp->current.netdef, data, NULL)) {
             return yaml_error(npp, node, error,
                               "Invalid MAC address '%s', must be XX:XX:XX:XX:XX:XX, XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX"
-                              " or one of 'permanent', 'random', 'stable', 'preserve'.",
+                              " or one of 'permanent', 'random', 'stable', 'preserve', 'stable-ssid' (Wi-Fi only).",
                               scalar(node));
         }
     }
