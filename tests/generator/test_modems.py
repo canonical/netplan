@@ -380,17 +380,21 @@ method=ignore
         uuid: a08c5805-7cf5-43f7-afb9-12cb30f6eca3
         name: "T-Mobile Funkadelic 2"
         passthrough:
-          connection.type: "bluetooth"
-          gsm.apn: "internet2.voicestream.com"
-          gsm.device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
-          gsm.username: "george.clinton.again"
-          gsm.sim-operator-id: "310260"
-          gsm.pin: "123456"
-          gsm.sim-id: "89148000000060671234"
-          gsm.password: "parliament2"
-          gsm.network-id: "254098"
-          ipv4.method: "auto"
-          ipv6.method: "auto"''')
+          connection:
+            type: bluetooth
+          gsm:
+            apn: internet2.voicestream.com
+            device-id: da812de91eec16620b06cd0ca5cbc7ea25245222
+            username: george.clinton.again
+            sim-operator-id: 310260
+            pin: 123456
+            sim-id: 89148000000060671234
+            password: parliament2
+            network-id: 254098
+          ipv4:
+            method: auto
+          ipv6:
+            method: auto''')
         self.assert_nm({'NM-a08c5805-7cf5-43f7-afb9-12cb30f6eca3': '''[connection]
 id=T-Mobile Funkadelic 2
 #Netplan: passthrough override
@@ -400,19 +404,19 @@ uuid=a08c5805-7cf5-43f7-afb9-12cb30f6eca3
 [gsm]
 apn=internet2.voicestream.com
 #Netplan: passthrough setting
-device-id=da812de91eec16620b06cd0ca5cbc7ea25245222
+password=parliament2
+#Netplan: passthrough setting
+network-id=254098
+#Netplan: passthrough setting
+sim-id=89148000000060671234
+#Netplan: passthrough setting
+pin=123456
 #Netplan: passthrough setting
 username=george.clinton.again
 #Netplan: passthrough setting
 sim-operator-id=310260
 #Netplan: passthrough setting
-pin=123456
-#Netplan: passthrough setting
-sim-id=89148000000060671234
-#Netplan: passthrough setting
-password=parliament2
-#Netplan: passthrough setting
-network-id=254098
+device-id=da812de91eec16620b06cd0ca5cbc7ea25245222
 
 [ipv4]
 #Netplan: passthrough override

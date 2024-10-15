@@ -448,25 +448,29 @@ parse_bond_arp_ip_targets(GKeyFile* kf, GArray **targets_arr)
 
 /* Read the key-value pairs from the keyfile and pass them through to a map */
 STATIC void
-read_passthrough(GKeyFile* kf, GData** list)
+read_passthrough(GKeyFile* kf, GHashTable** list)
 {
     gchar **groups = NULL;
     gchar **keys = NULL;
-    gchar *group_key = NULL;
     gchar *value = NULL;
     gsize klen = 0;
     gsize glen = 0;
+    GHashTable* group;
 
     if (!*list)
-        g_datalist_init(list);
+        *list = g_hash_table_new(g_str_hash, g_str_equal);
     groups = g_key_file_get_groups(kf, &glen);
     if (groups) {
         for (unsigned i = 0; i < glen; ++i) {
             klen = 0;
+            group = g_hash_table_lookup(*list, groups[i]);
+            if (!group) {
+                group = g_hash_table_new(g_str_hash, g_str_equal);
+            }
             keys = g_key_file_get_keys(kf, groups[i], &klen, NULL);
             if (klen == 0) {
                 /* empty group */
-                g_datalist_set_data_full(list, g_strconcat(groups[i], ".", NETPLAN_NM_EMPTY_GROUP, NULL), g_strdup(""), g_free);
+                g_hash_table_insert(*list, g_strdup(groups[i]), group);
                 continue;
             }
             for (unsigned j = 0; j < klen; ++j) {
@@ -477,10 +481,9 @@ read_passthrough(GKeyFile* kf, GData** list)
                     continue;
                     // LCOV_EXCL_STOP
                 }
-                group_key = g_strconcat(groups[i], ".", keys[j], NULL);
-                g_datalist_set_data_full(list, group_key, value, g_free);
-                g_free(group_key);
+                g_hash_table_insert(group, g_strdup(keys[j]), value);
             }
+            g_hash_table_insert(*list, g_strdup(groups[i]), group);
             g_strfreev(keys);
         }
         g_strfreev(groups);

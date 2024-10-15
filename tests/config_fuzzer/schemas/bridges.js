@@ -124,12 +124,18 @@ const bridges_schema = {
                                             properties: {
                                                 eth0: {
                                                     type: "integer",
+                                                    minimum: 0,
+                                                    maximum: 4000000000
                                                 },
                                                 eth1: {
                                                     type: "integer",
+                                                    minimum: 0,
+                                                    maximum: 4000000000
                                                 },
                                                 eth2: {
                                                     type: "integer",
+                                                    minimum: 0,
+                                                    maximum: 4000000000
                                                 },
                                             }
                                         },

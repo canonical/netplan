@@ -479,15 +479,17 @@ class TestSet(unittest.TestCase):
           networkmanager:
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
-              ipv4.dns-search: ""''')
+              connection:
+                permissions: ""
+              ipv4:
+                dns-search: ""''')
         ap_key = 'network.wifis.wlan0.access-points.SOME-SSID'
-        self._set([ap_key+'.networkmanager.passthrough.connection\\.permissions=null'])
+        self._set([ap_key+'.networkmanager.passthrough.connection.permissions=null'])
         with open(self.path, 'r') as f:
             out = yaml.safe_load(f)
         ap = out['network']['wifis']['wlan0']['access-points']['SOME-SSID']
-        self.assertNotIn('connection.permissions', ap['networkmanager']['passthrough'])
-        self.assertEqual('', ap['networkmanager']['passthrough']['ipv4.dns-search'])
+        self.assertNotIn('permissions', ap['networkmanager']['passthrough']['connection'])
+        self.assertEqual('', ap['networkmanager']['passthrough']['ipv4']['dns-search'])
 
     def test_set_delete_bridge_subparams(self):
         with open(self.path, 'w') as f:
