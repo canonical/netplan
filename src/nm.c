@@ -1185,8 +1185,11 @@ _netplan_nm_cleanup(const char* rootdir)
                                           "/run/NetworkManager/conf.d/netplan.conf", NULL);
     g_autofree char* global_manage_path = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
                                                     "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
+    g_autofree char* keep_configuration_path = g_strjoin(NULL, rootdir != NULL ? rootdir : "",
+                                                    "/run/NetworkManager/conf.d/10-keep-configuration.conf", NULL);
     unlink(confpath);
     unlink(global_manage_path);
+    unlink(keep_configuration_path);
     _netplan_unlink_glob(rootdir, "/run/NetworkManager/system-connections/netplan-*");
     return TRUE;
 }
