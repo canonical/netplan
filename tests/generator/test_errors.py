@@ -408,6 +408,16 @@ class TestConfigErrors(TestBase):
           lifetime: 1''', expect_fail=True)
         self.assertIn("invalid lifetime value '1'", err)
 
+    def test_invalid_address_option_duplicate_address_detection(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 192.168.1.15/24:
+          duplicate-address-detection: a''', expect_fail=True)
+        self.assertIn("invalid duplicate-address-detection value 'a'", err)
+
     def test_invalid_nm_options(self):
         err = self.generate('''network:
   version: 2

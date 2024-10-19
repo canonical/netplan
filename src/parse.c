@@ -1393,9 +1393,22 @@ handle_address_option_label(NetplanParser* npp, yaml_node_t* node, const void* d
     return handle_generic_str(npp, node, npp->current.addr_options, data, error);
 }
 
+STATIC gboolean
+handle_address_option_duplicate_address_detection(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    if (g_ascii_strcasecmp(scalar(node), "ipv4") != 0 &&
+        g_ascii_strcasecmp(scalar(node), "ipv6") != 0 &&
+        g_ascii_strcasecmp(scalar(node), "both") != 0 &&
+        g_ascii_strcasecmp(scalar(node), "none") != 0) {
+        return yaml_error(npp, node, error, "invalid duplicate-address-detection value '%s'", scalar(node));
+    }
+    return handle_generic_str(npp, node, npp->current.addr_options, data, error);
+}
+
 const mapping_entry_handler address_option_handlers[] = {
     {"lifetime", YAML_SCALAR_NODE, {.generic=handle_address_option_lifetime}, addr_option_offset(lifetime)},
     {"label", YAML_SCALAR_NODE, {.generic=handle_address_option_label}, addr_option_offset(label)},
+    {"duplicate-address-detection", YAML_SCALAR_NODE, {.generic=handle_address_option_duplicate_address_detection}, addr_option_offset(duplicate_address_detection)},
     {NULL}
 };
 
