@@ -25,8 +25,6 @@ import sys
 import glob
 import subprocess
 import shutil
-import tempfile
-import filecmp
 import time
 
 from .. import utils
@@ -110,6 +108,7 @@ class NetplanApply(utils.NetplanCommand):
                 return
 
         ovs_cleanup_service = '/run/systemd/system/netplan-ovs-cleanup.service'
+        old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         old_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
         if ovs_cleanup_service in old_ovs_glob:
@@ -119,39 +118,30 @@ class NetplanApply(utils.NetplanCommand):
         nm_ifaces = utils.nm_interfaces(old_nm_glob, utils.get_interfaces())
         old_files_nm = bool(old_nm_glob)
 
-        restart_networkd = False
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # needs to be a subfolder as copytree wants to create it
-            run_systemd_network = '/run/systemd/network'
-            old_files_dir = os.path.join(tmp_dir, 'cfg')
-            has_old_networkd_config = os.path.isdir(run_systemd_network)
-            if has_old_networkd_config:
-                shutil.copytree(run_systemd_network, old_files_dir)
+        generator_call = []
+        generate_out = None
+        if 'NETPLAN_PROFILE' in os.environ:
+            generator_call.extend(['valgrind', '--leak-check=full'])
+            generate_out = subprocess.STDOUT
 
-            generator_call = []
-            generate_out = None
-            if 'NETPLAN_PROFILE' in os.environ:
-                generator_call.extend(['valgrind', '--leak-check=full'])
-                generate_out = subprocess.STDOUT
-
-            generator_call.append(utils.get_generator_path())
-            if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
-                if exit_on_error:
-                    sys.exit(os.EX_CONFIG)
-                else:
-                    raise ConfigurationError("the configuration could not be generated")
-
-            # Restart networkd if something in the configuration changed
-            has_new_networkd_config = os.path.isdir(run_systemd_network)
-            if has_old_networkd_config != has_new_networkd_config:
-                restart_networkd = True
-            elif has_old_networkd_config and has_new_networkd_config:
-                comp = filecmp.dircmp(run_systemd_network, old_files_dir)
-                if comp.left_only or comp.right_only or comp.diff_files:
-                    restart_networkd = True
+        generator_call.append(utils.get_generator_path())
+        if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
+            if exit_on_error:
+                sys.exit(os.EX_CONFIG)
+            else:
+                raise ConfigurationError("the configuration could not be generated")
 
         devices = utils.get_interfaces()
 
+        # Re-start service when
+        # 1. We have configuration files for it
+        # 2. Previously we had config files for it but not anymore
+        # Ideally we should compare the content of the *netplan-* files before and
+        # after generation to minimize the number of re-starts, but the conditions
+        # above works too.
+        restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
+        if not restart_networkd and old_files_networkd:
+            restart_networkd = True
         restart_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
         if ovs_cleanup_service in restart_ovs_glob:

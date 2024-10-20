@@ -28,6 +28,7 @@ from collections import defaultdict, namedtuple
 from io import StringIO
 from socket import AF_INET, AF_INET6, inet_ntop
 from typing import Dict, List, Type, Union
+from urllib import parse
 
 import yaml
 
@@ -58,6 +59,10 @@ DEVICE_TYPES = {
     'vlan': 'vlan',
     'vrf': 'vrf',
     'vxlan': 'tunnel',
+
+    # Used for wifi testing.
+    # It's the type of the interface hwsim0 created by the mac80211_hwsim driver
+    'ieee80211_radiotap': 'wifi',
 
     # Netplan netdef types
     'wifis': 'wifi',
@@ -314,7 +319,23 @@ class Interface():
                 'run/NetworkManager/system-connections/netplan-')[1].split('.nmconnection')[0]
             if self.nm.get('type', '') == '802-11-wireless':
                 ssid = self.query_nm_ssid(self.nm.get('name'))
-                if ssid:  # XXX: escaping needed?
+                if ssid not in netdef:
+                    # If the plain SSID in not found in the netdef here
+                    # it's probably because it contains non-ascii characters that
+                    # were escaped in the file name. We need to do the same here to
+                    # be able to extract it from the file name.
+                    # In this case, Network Manager will save the SSID using the format "b1;b2;b3...;"
+                    # instead of a non-ascii string.
+                    # In src/nm.c we use g_uri_escape_string() to create the file name.
+
+                    # Transform the SSID to the same format used by Network Manager
+                    ssid_encoded = ssid.encode('utf-8')
+                    ssid_bytes = [str(b) for b in ssid_encoded]
+                    ssid_nm_escaped = ';'.join(ssid_bytes) + ';'
+
+                    # Escape characters in the same way we do in src/nm.c.
+                    ssid = parse.quote(ssid_nm_escaped)
+                if ssid:
                     netdef = netdef.split('-' + ssid)[0]
             return netdef
         return None
@@ -328,13 +349,22 @@ class Interface():
     @property
     def ssid(self) -> str:
         if self.type == 'wifi':
+            if self.backend == "NetworkManager":
+                return self.query_nm_ssid(self.nm.get('name', ''))
             # XXX: available from networkctl's JSON output as of v250:
             #      https://github.com/systemd/systemd/commit/da7c995
+            # TODO: Retrieving the SSID from systemd seems to not be reliable.
+            #       Sometimes it will return "(null)".
             for line in self._networkctl.splitlines():
                 line = line.strip()
-                key = 'WiFi access point: '
-                if line.startswith(key):
-                    ssid = line[len(key):-len(' (xB:SS:ID:xx:xx:xx)')].strip()
+                key = r'^Wi-?Fi access point: (.*) \(.*\)'
+                if match := re.match(key, line):
+                    ssid = match.group(1)
+                    # TODO: Find a better way to retrieve the SSID
+                    # networkctl will return a non-ascii SSID using the octal notation below:
+                    # '\\303\\241\\303\\251\\303\\255\\303\\263\\303...
+                    # Here we handle the escaping, the encoding of individual bytes and the final decoding to utf-8
+                    ssid = ssid.encode('latin1').decode('unicode-escape').encode('latin1').decode('utf-8')
                     return ssid if ssid else None
         return None
 

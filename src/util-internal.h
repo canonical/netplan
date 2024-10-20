@@ -136,7 +136,7 @@ gboolean
 _is_auth_key_management_psk(const NetplanAuthenticationSettings* auth);
 
 gboolean
-_is_macaddress_special_nm_option(const char* value);
+_is_macaddress_special_nm_option(const NetplanNetDefinition* netdef, const char* value);
 
 gboolean
 _is_macaddress_special_nd_option(const char* value);

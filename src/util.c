@@ -1239,12 +1239,13 @@ _is_auth_key_management_psk(const NetplanAuthenticationSettings* auth)
 }
 
 gboolean
-_is_macaddress_special_nm_option(const char* value)
+_is_macaddress_special_nm_option(const NetplanNetDefinition* netdef, const char* value)
 {
     return (   !g_strcmp0(value, "preserve")
             || !g_strcmp0(value, "permanent")
             || !g_strcmp0(value, "random")
-            || !g_strcmp0(value, "stable"));
+            || !g_strcmp0(value, "stable")
+            || (!g_strcmp0(value, "stable-ssid") && netdef->type == NETPLAN_DEF_TYPE_WIFI));
 }
 
 gboolean
