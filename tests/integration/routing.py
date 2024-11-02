@@ -317,6 +317,7 @@ class _CommonTests():
         via: 10.10.10.1
       routing-policy:
       - from: 10.10.10.42
+        priority: 99
 ''' % {'r': self.backend, 'ec': self.dev_e_client})
         self.generate_and_settle([self.dev_e_client])
         self.assert_iface_up(self.dev_e_client, ['inet 10.10.10.22', 'master vrf0'])  # wokeignore:rule=master
@@ -332,10 +333,8 @@ class _CommonTests():
         self.assertIn('11.11.11.0/24 via 10.10.10.2 dev {}'.format(self.dev_e_client), out)
 
         # verify routing policy was setup correctly to the VRF's table
-        # 'routing-policy' is not supported on NetworkManager
-        if self.backend == 'networkd':
-            out = subprocess.check_output(['ip', 'rule', 'show'], text=True)
-            self.assertIn('from 10.10.10.42 lookup 1000', out)
+        out = subprocess.check_output(['ip', 'rule', 'show'], text=True)
+        self.assertIn('from 10.10.10.42 lookup 1000', out)
 
     def test_route_advmss_v6(self):
         self.setup_eth(None)
