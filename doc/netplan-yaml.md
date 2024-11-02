@@ -879,6 +879,9 @@ network:
     > Specify a priority for the routing policy rule, to influence the order
     > in which routing rules are processed. A higher number means lower
     > priority: rules are processed in order by increasing priority number.
+    > Specifying an explicit, unique, priority for each routing policy rule
+    > is strongly recommended and is mandatory on the `NetworkManager`
+    > back-end.
 
   - **`mark`** (scalar)
 
