@@ -1909,7 +1909,7 @@ handle_vxlan_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, G
 STATIC int
 get_ip_family(const char* address)
 {
-    g_autofree char *ip_str;
+    g_autofree char *ip_str = NULL;
     char *prefix_len;
 
     ip_str = g_strdup(address);
