@@ -101,12 +101,14 @@ network:
         uuid: "0f7a33ac-512e-4c03-b088-4db00fe3292e"
         name: "Ethernet connection 1"
         passthrough:
-          ethernet._: ""
-          ipv4.ignore-auto-dns: "true"
-          ipv6.addr-gen-mode: "default"
-          ipv6.method: "disabled"
-          ipv6.ip6-privacy: "-1"
-          proxy._: ""
+          ethernet: {}
+          ipv4:
+            ignore-auto-dns: "true"
+          ipv6:
+            addr-gen-mode: "default"
+            method: "disabled"
+            ip6-privacy: "-1"
+          proxy: {}
 ```
 
 All the configuration under the `passthrough` mapping is added to
@@ -126,17 +128,21 @@ network:
         uuid: "db5f0f67-1f4c-4d59-8ab8-3d278389cf87"
         name: "myvpnconnection"
         passthrough:
-          connection.type: "vpn"
-          vpn.ca: "path to ca.crt"
-          vpn.cert: "path to client.crt"
-          vpn.cipher: "AES-256-GCM"
-          vpn.connection-type: "tls"
-          vpn.dev: "tun"
-          vpn.key: "path to client.key"
-          vpn.remote: "1.2.3.4:1194"
-          vpn.service-type: "org.freedesktop.NetworkManager.openvpn"
-          ipv4.method: "auto"
-          ipv6.addr-gen-mode: "default"
-          ipv6.method: "auto"
-          proxy._: ""
+          connection:
+            type: "vpn"
+          vpn:
+            ca: "path to ca.crt"
+            cert: "path to client.crt"
+            cipher: "AES-256-GCM"
+            connection-type: "tls"
+            dev: "tun"
+            key: "path to client.key"
+            remote: "1.2.3.4:1194"
+            service-type: "org.freedesktop.NetworkManager.openvpn"
+          ipv4:
+            method: "auto"
+          ipv6:
+            addr-gen-mode: "default"
+            method: "auto"
+          proxy: {}
 ```
