@@ -31,6 +31,7 @@ jobs:
           dnf -y install epel-release || true
           dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL9
           dnf -y install centos-release-nfv-openvswitch || true  # OVS on EL9
+          dnf -y install gdb
           dnf -y builddep rpm/netplan.spec
           adduser test
           chown -R test:test .
