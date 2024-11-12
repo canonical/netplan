@@ -2146,15 +2146,17 @@ network:
         uuid: "db5f0f67-1f4c-4d59-8ab8-3d278389cf87"
         name: "myvpnconnection"
         passthrough:
-          connection.type: "vpn"
-          vpn.ca: "path to ca.crt"
-          vpn.cert: "path to client.crt"
-          vpn.cipher: "AES-256-GCM"
-          vpn.connection-type: "tls"
-          vpn.dev: "tun"
-          vpn.key: "path to client.key"
-          vpn.remote: "1.2.3.4:1194"
-          vpn.service-type: "org.freedesktop.NetworkManager.openvpn"
+          connection:
+            type: "vpn"
+          vpn:
+            ca: "path to ca.crt"
+            cert: "path to client.crt"
+            cipher: "AES-256-GCM"
+            connection-type: "tls"
+            dev: "tun"
+            key: "path to client.key"
+            remote: "1.2.3.4:1194"
+            service-type: "org.freedesktop.NetworkManager.openvpn"
 ```
 
 ## Back end-specific configuration parameters

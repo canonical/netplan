@@ -527,43 +527,116 @@ handle_generic_map(NetplanParser *npp, yaml_node_t* node, const char* key_prefix
 }
 
 /*
- * Handler for setting a DataList field from a mapping node, inside a given struct
+ * Handle legacy networkmanager.passthrough format:
+ * group_name.key: value
+ *
+ * See https://github.com/canonical/netplan/pull/522
+*/
+STATIC void
+handle_passthrough_legacy_scalar_settings(gchar* key, yaml_node_t* settings, GHashTable* groups)
+{
+    g_autofree char* escaped_value = g_strescape(scalar(settings), STRESCAPE_EXCEPTIONS);
+
+    /* Group name may contain dots, but key name may not.
+     * The "tc" group is a special case, where it is the other way around, e.g.:
+     *   tc->qdisc.root
+     *   tc->tfilter.ffff:
+     */
+
+    gchar **group_key = g_strsplit(key, ".", -1);
+    guint len = g_strv_length(group_key);
+    g_autofree gchar* old_key = NULL;
+    g_autofree gchar* k = NULL;
+    g_autofree gchar* group = NULL;
+
+    if (len < 2) {
+        g_warning("NetworkManager: passthrough key '%s' format is invalid, should be 'group.key'.", key);
+        g_strfreev(group_key);
+        return;
+    }
+    if (!g_strcmp0(group_key[0], "tc") && len > 2) {
+        k = g_strconcat(group_key[1], ".", group_key[2], NULL);
+        group = g_strdup(group_key[0]);
+    } else {
+        k = group_key[len-1];
+        group_key[len-1] = NULL; //remove key from array
+        group = g_strjoinv(".", group_key); //re-combine group parts
+    }
+
+    if (!g_hash_table_contains(groups, group)) {
+        GHashTable *keys = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+        /* Only add to the hash map if it's not the empty group */
+        if (g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP)) {
+            g_hash_table_insert(keys, g_strdup(k), g_strdup(escaped_value));
+        }
+        g_hash_table_insert(groups, g_strdup(group), keys);
+    } else {
+        GHashTable *keys = g_hash_table_lookup(groups, group);
+
+        /* If we find the group again and it's empty, drop all the items from the group */
+        if (!g_strcmp0(k, NETPLAN_NM_EMPTY_GROUP)) {
+            g_hash_table_remove_all(keys);
+        } else {
+            g_hash_table_insert(keys, g_strdup(k), g_strdup(escaped_value));
+        }
+    }
+    g_strfreev(group_key);
+}
+
+/*
+ * Handler for setting a Hashmap field from a mapping node, inside a given struct
  * @entryptr: pointer to the beginning of the to-be-modified data structure
  * @data: offset into entryptr struct where the boolean field to write is located
 */
 STATIC gboolean
-handle_generic_datalist(NetplanParser *npp, yaml_node_t* node, const char* key_prefix, void* entryptr, const void* data, GError** error)
+handle_passthrough(NetplanParser *npp, yaml_node_t* node, const char* key_prefix, void* entryptr, const void* data, GError** error)
 {
     guint offset = GPOINTER_TO_UINT(data);
-    GData** list = (GData**) ((void*) entryptr + offset);
-    if (!*list)
-        g_datalist_init(list);
+    GHashTable** groups = (GHashTable**) ((void*) entryptr + offset);
+    if (*groups == NULL) {
+        *groups = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    }
 
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         g_autofree char* full_key = NULL;
         g_autofree char* escaped_key = NULL;
-        g_autofree char* escaped_value = NULL;
 
         key = yaml_document_get_node(&npp->doc, entry->key);
         value = yaml_document_get_node(&npp->doc, entry->value);
 
-        assert_type(npp, key, YAML_SCALAR_NODE);
-        assert_type(npp, value, YAML_SCALAR_NODE);
-
         escaped_key = g_strescape(scalar(key), STRESCAPE_EXCEPTIONS);
-        escaped_value = g_strescape(scalar(value), STRESCAPE_EXCEPTIONS);
 
-        if (npp->null_fields && key_prefix) {
+        if (npp->null_fields != NULL && key_prefix != NULL) {
             full_key = g_strdup_printf("%s\t%s", key_prefix, escaped_key);
-            if (g_hash_table_contains(npp->null_fields, full_key))
+            if (g_hash_table_contains(npp->null_fields, full_key)) {
                 continue;
+            }
         }
 
-        g_datalist_id_set_data_full(list, g_quark_from_string(escaped_key),
-                                    g_strdup(escaped_value), g_free);
+        if (value->type == YAML_SCALAR_NODE) {
+            handle_passthrough_legacy_scalar_settings(escaped_key, value, *groups);
+        } else if (value->type == YAML_MAPPING_NODE) {
+            /*
+             * Handle new networkmanager.passthrough format:
+             * group_name:
+             *   key: value
+             *
+             * See https://github.com/canonical/netplan/pull/522
+             */
+            GHashTable* group = g_hash_table_lookup(*groups, escaped_key);
+            if (group == NULL) {
+                group = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+                g_hash_table_insert(*groups, g_strdup(escaped_key), group);
+            }
+            handle_generic_map(npp, value, full_key, &group, NULL, error);
+            if (*error != NULL) {
+                g_debug("Passthrough handling error, ignoring...: %s", (*error)->message);
+                netplan_error_clear(error);
+            }
+        }
     }
-    mark_data_as_dirty(npp, list);
+    mark_data_as_dirty(npp, groups);
 
     return TRUE;
 }
@@ -864,47 +937,11 @@ handle_netdef_use_domains(NetplanParser* npp, yaml_node_t* node, const void* dat
     return TRUE;
 }
 
-/*
- * Check if the passthrough key format is incorrect and remove it from the list.
- * user_data is expected to contain a pointer to the GData list.
- */
-STATIC void
-validate_kf_group_key(GQuark key_id, __unused gpointer value, gpointer user_data)
-{
-    GArray* bad_keys = user_data;
-    const gchar* key = g_quark_to_string(key_id);
-    gchar** group_key = g_strsplit(key, ".", -1);
-    if (g_strv_length(group_key) < 2) {
-        g_warning("NetworkManager: passthrough key '%s' format is invalid, should be 'group.key'.", key);
-        g_array_append_val(bad_keys, key_id);
-    }
-    g_strfreev(group_key);
-}
-
 STATIC gboolean
-handle_netdef_passthrough_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
+handle_netdef_passthrough_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.netdef);
-    gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.netdef, data, error);
-
-    GData** list = &npp->current.netdef->backend_settings.passthrough;
-    GArray* bad_keys = g_array_new(FALSE, FALSE, sizeof(GQuark));
-
-    /* Validate and remove passthrough keys that are not in the
-     * expected format (group.key)
-     */
-    g_datalist_foreach(list, validate_kf_group_key, bad_keys);
-
-    for (unsigned int i = 0; i < bad_keys->len; i++) {
-        GQuark bad_quark = g_array_index(bad_keys, GQuark, i);
-        g_datalist_id_remove_data(list, bad_quark);
-    }
-
-    g_array_free(bad_keys, TRUE);
-
-    if (*list == NULL) {
-        g_datalist_clear(list);
-    }
+    gboolean ret = handle_passthrough(npp, node, key_prefix, npp->current.netdef, data, error);
 
     npp->current.netdef->has_backend_settings_nm = TRUE;
 
@@ -1102,29 +1139,10 @@ handle_ap_backend_settings_str(NetplanParser* npp, yaml_node_t* node, const void
 }
 
 STATIC gboolean
-handle_access_point_datalist(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
+handle_access_point_passthrough_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
     g_assert(npp->current.access_point != NULL);
-    gboolean ret = handle_generic_datalist(npp, node, key_prefix, npp->current.access_point, data, error);
-
-    GData** list = &npp->current.access_point->backend_settings.passthrough;
-    GArray* bad_keys = g_array_new(FALSE, FALSE, sizeof(GQuark));
-
-    /* Validate and remove passthrough keys that are not in the
-     * expected format (group.key)
-     */
-    g_datalist_foreach(list, validate_kf_group_key, bad_keys);
-
-    for (unsigned int i = 0; i < bad_keys->len; i++) {
-        GQuark bad_quark = g_array_index(bad_keys, GQuark, i);
-        g_datalist_id_remove_data(list, bad_quark);
-    }
-
-    g_array_free(bad_keys, TRUE);
-
-    if (*list == NULL) {
-        g_datalist_clear(list);
-    }
+    gboolean ret = handle_passthrough(npp, node, key_prefix, npp->current.access_point, data, error);
 
     npp->current.netdef->has_backend_settings_nm = TRUE;
 
@@ -1241,7 +1259,7 @@ static const mapping_entry_handler nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.stable_id)},
     {"device", YAML_SCALAR_NODE, {.generic=handle_netdef_backend_settings_str}, netdef_offset(backend_settings.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_passthrough_datalist}}, netdef_offset(backend_settings.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_passthrough_mapping}}, netdef_offset(backend_settings.passthrough)},
     {NULL}
 };
 
@@ -1252,7 +1270,7 @@ static const mapping_entry_handler ap_nm_backend_settings_handlers[] = {
     {"stable-id", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.stable_id)},
     {"device", YAML_SCALAR_NODE, {.generic=handle_ap_backend_settings_str}, access_point_offset(backend_settings.device)},
     /* Fallback mode, to support all NM settings of the NetworkManager netplan backend */
-    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_datalist}}, access_point_offset(backend_settings.passthrough)},
+    {"passthrough", YAML_MAPPING_NODE, {.map={.custom=handle_access_point_passthrough_mapping}}, access_point_offset(backend_settings.passthrough)},
     {NULL}
 };
 

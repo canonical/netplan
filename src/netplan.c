@@ -340,11 +340,21 @@ typedef struct {
 } _passthrough_handler_data;
 
 STATIC void
-_passthrough_handler(GQuark key_id, gpointer value, gpointer user_data)
+_passthrough_handler_key_value(gpointer key, gpointer value, gpointer user_data)
 {
     _passthrough_handler_data *d = user_data;
-    const gchar* key = g_quark_to_string(key_id);
     YAML_NONNULL_STRING(d->event, d->emitter, key, value);
+err_path: return; // LCOV_EXCL_LINE
+}
+
+STATIC void
+_passthrough_handler(gpointer key, gpointer value, gpointer user_data)
+{
+    _passthrough_handler_data *d = user_data;
+    YAML_SCALAR_PLAIN(d->event, d->emitter, key);
+    YAML_MAPPING_OPEN(d->event, d->emitter);
+    g_hash_table_foreach(value, _passthrough_handler_key_value, user_data);
+    YAML_MAPPING_CLOSE(d->event, d->emitter);
 err_path: return; // LCOV_EXCL_LINE
 }
 
@@ -356,13 +366,13 @@ write_backend_settings(yaml_event_t* event, yaml_emitter_t* emitter, NetplanBack
         YAML_NONNULL_STRING(event, emitter, "uuid", s.uuid);
         YAML_NONNULL_STRING(event, emitter, "name", s.name);
 
-        if (s.passthrough) {
+        if (s.passthrough != NULL && g_hash_table_size(s.passthrough) > 0) {
             YAML_SCALAR_PLAIN(event, emitter, "passthrough");
             YAML_MAPPING_OPEN(event, emitter);
             _passthrough_handler_data d;
             d.event = event;
             d.emitter = emitter;
-            g_datalist_foreach(&s.passthrough, _passthrough_handler, &d);
+            g_hash_table_foreach(s.passthrough, _passthrough_handler, &d);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         YAML_MAPPING_CLOSE(event, emitter);

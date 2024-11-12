@@ -464,7 +464,7 @@ class TestSet(unittest.TestCase):
             out = yaml.safe_load(f)
         self.assertNotIn('Joe\'s Home', out['network']['wifis']['wl0']['access-points'])
 
-    def test_set_delete_nm_passthrough(self):
+    def test_set_delete_nm_ap_passthrough(self):
         with open(self.path, 'w') as f:
             f.write('''network:
   version: 2
@@ -479,15 +479,40 @@ class TestSet(unittest.TestCase):
           networkmanager:
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
-              ipv4.dns-search: ""''')
+              connection:
+                permissions: ""
+              ipv4:
+                dns-search: ""''')
         ap_key = 'network.wifis.wlan0.access-points.SOME-SSID'
-        self._set([ap_key+'.networkmanager.passthrough.connection\\.permissions=null'])
+        self._set([ap_key+'.networkmanager.passthrough.connection.permissions=null'])
         with open(self.path, 'r') as f:
             out = yaml.safe_load(f)
         ap = out['network']['wifis']['wlan0']['access-points']['SOME-SSID']
-        self.assertNotIn('connection.permissions', ap['networkmanager']['passthrough'])
-        self.assertEqual('', ap['networkmanager']['passthrough']['ipv4.dns-search'])
+        self.assertNotIn('permissions', ap['networkmanager']['passthrough']['connection'])
+        self.assertEqual('', ap['networkmanager']['passthrough']['ipv4']['dns-search'])
+
+    def test_set_delete_nm_passthrough(self):
+        with open(self.path, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    eth0:
+      renderer: NetworkManager
+      networkmanager:
+        name: "myid with spaces"
+        passthrough:
+          connection:
+            permissions: ""
+          ipv4:
+            dns-search: ""''')
+        ap_key = 'network.ethernets.eth0'
+        self._set([ap_key+'.networkmanager.passthrough.connection.permissions=null'])
+        self._set([ap_key+'.networkmanager.passthrough.ipv4=null'])
+        with open(self.path, 'r') as f:
+            out = yaml.safe_load(f)
+        eth0 = out['network']['ethernets']['eth0']
+        self.assertNotIn('permissions', eth0['networkmanager']['passthrough']['connection'])
+        self.assertNotIn('ipv4', eth0['networkmanager']['passthrough'])
 
     def test_set_delete_bridge_subparams(self):
         with open(self.path, 'w') as f:
@@ -756,3 +781,68 @@ class TestGet(unittest.TestCase):
         # this shall not throw any (YAML DOCUMENT-END) exception
         out = yaml.safe_load(self._get(['ethernets.eth0']))
         self.assertListEqual(['match', 'dhcp4', 'set-name', 'mtu', 'virtual-function-count'], list(out))
+
+    def test_get_passthrough_old_format_merging(self):
+
+        # Test if the YAML we are emitting is in the expected new passthrough format
+        # when the same groups (especially empty groups) are found more than once.
+        # Also test if merging is working.
+        with open(os.path.join(self.workdir.name, 'etc', 'netplan', 'a.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  vlans:
+    NM-afe79ef7-67e0-48ad-9f2a-686c85b4f538:
+      renderer: NetworkManager
+      id: 123
+      link: "enx00e04c680007"
+      networkmanager:
+        uuid: "afe79ef7-67e0-48ad-9f2a-686c85b4f538"
+        name: "vlan-test"
+        passthrough:
+          ipv6.addr-gen-mode: "default"
+          ipv6.ip6-privacy: "-1"
+          ethernet._: ""
+          vlan.flags: "2"
+          proxy._: ""''')
+
+        with open(os.path.join(self.workdir.name, 'etc', 'netplan', 'b.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  vlans:
+    NM-afe79ef7-67e0-48ad-9f2a-686c85b4f538:
+      renderer: NetworkManager
+      id: 123
+      link: "enx00e04c680007"
+      networkmanager:
+        uuid: "afe79ef7-67e0-48ad-9f2a-686c85b4f538"
+        name: "vlan-test"
+        passthrough:
+          ipv6.addr-gen-mode: "default"
+          ipv6.ip6-privacy: "-1"
+          ethernet._: ""
+          vlan.flags: "1"
+          proxy._: ""''')
+
+        with open(os.path.join(self.workdir.name, 'etc', 'netplan', 'c.yaml'), 'w') as f:
+            f.write('''network:
+  version: 2
+  vlans:
+    NM-afe79ef7-67e0-48ad-9f2a-686c85b4f538:
+      renderer: NetworkManager
+      id: 123
+      link: "enx00e04c680007"
+      networkmanager:
+        uuid: "afe79ef7-67e0-48ad-9f2a-686c85b4f538"
+        name: "vlan-test"
+        passthrough:
+          ipv6._: ""
+          ethernet._: ""
+          vlan.flags: "1"
+          proxy._: ""''')
+
+        out = yaml.safe_load(self._get(['vlans.NM-afe79ef7-67e0-48ad-9f2a-686c85b4f538.networkmanager.passthrough']))
+        self.assertDictEqual({'ethernet': {},
+                              'ipv6': {},
+                              'proxy': {},
+                              'vlan': {'flags': '1'}
+                              }, out)

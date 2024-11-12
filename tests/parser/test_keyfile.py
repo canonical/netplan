@@ -91,9 +91,12 @@ ip6-privacy=0
         uuid: "{}"
         name: "T-Mobile Funkadelic 2"
         passthrough:
-          gsm.home-only: "true"
-          ipv4.dns-search: ""
-          ipv6.dns-search: ""
+          gsm:
+            home-only: "true"
+          ipv4:
+            dns-search: ""
+          ipv6:
+            dns-search: ""
 '''.format(UUID, UUID)})
 
     def test_keyfile_cdma(self):
@@ -165,21 +168,25 @@ method=auto
         uuid: "{}"
         name: "T-Mobile Funkadelic 2"
         passthrough:
-          connection.type: "bluetooth"
-          gsm.apn: "internet2.voicestream.com"
-          gsm.device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
-          gsm.home-only: "true"
-          gsm.network-id: "254098"
-          gsm.password: "parliament2"
-          gsm.pin: "123456"
-          gsm.sim-id: "89148000000060671234"
-          gsm.sim-operator-id: "310260"
-          gsm.username: "george.clinton.again"
-          ipv4.dns-search: ""
-          ipv4.method: "auto"
-          ipv6.dns-search: ""
-          ipv6.method: "auto"
-          proxy._: ""
+          connection:
+            type: "bluetooth"
+          proxy: {{}}
+          gsm:
+            password: "parliament2"
+            apn: "internet2.voicestream.com"
+            home-only: "true"
+            network-id: "254098"
+            sim-id: "89148000000060671234"
+            pin: "123456"
+            device-id: "da812de91eec16620b06cd0ca5cbc7ea25245222"
+            sim-operator-id: "310260"
+            username: "george.clinton.again"
+          ipv4:
+            method: "auto"
+            dns-search: ""
+          ipv6:
+            method: "auto"
+            dns-search: ""
 '''.format(UUID, UUID)})
 
     def test_keyfile_method_auto(self):
@@ -232,9 +239,11 @@ route-metric=4242
         uuid: "{}"
         name: "Test"
         passthrough:
-          ipv4.dns-search: ""
-          ipv6.dns-search: ""
-          proxy._: ""
+          proxy: {{}}
+          ipv4:
+            dns-search: ""
+          ipv6:
+            dns-search: ""
 '''.format(UUID, UUID)})
 
     def test_keyfile_fail_validation(self):
@@ -332,13 +341,15 @@ route2=4:5:6:7:8:9:0:1/63,,5
         uuid: "{}"
         name: "Test"
         passthrough:
-          ipv4.dns-search: "foo.local;bar.remote;"
-          ipv4.method: "manual"
-          ipv4.address1: "1.2.3.4/24,8.8.8.8"
-          ipv6.dns-search: "bar.local"
-          ipv6.route1: "dead:beef::1/128,2001:1234::2"
-          ipv6.route1_options: "unknown=invalid,"
-          proxy._: ""
+          proxy: {{}}
+          ipv4:
+            method: "manual"
+            dns-search: "foo.local;bar.remote;"
+            address1: "1.2.3.4/24,8.8.8.8"
+          ipv6:
+            route1_options: "unknown=invalid,"
+            dns-search: "bar.local"
+            route1: "dead:beef::1/128,2001:1234::2"
 '''.format(UUID, UUID)})
 
     def test_keyfile_dummy(self):       # wokeignore:rule=dummy
@@ -456,8 +467,10 @@ dns-search='''.format(UUID))
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
-              ipv4.dns-search: ""
+              connection:
+                permissions: ""
+              ipv4:
+                dns-search: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -517,8 +530,10 @@ dns-search='''.format(UUID, method))
             uuid: "{}"
             name: "testnet"
             passthrough:
-              connection.permissions: ""
-              ipv4.dns-search: ""
+              connection:
+                permissions: ""
+              ipv4:
+                dns-search: ""
       networkmanager:
         uuid: "{}"
         name: "testnet"
@@ -580,7 +595,8 @@ method=auto'''.format(UUID))
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
+              connection:
+                permissions: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -627,7 +643,8 @@ method=auto'''.format(UUID))
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
+              connection:
+                permissions: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -673,8 +690,10 @@ method=auto'''.format(UUID))
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
-              802-1x.eap: "md5"
+              connection:
+                permissions: ""
+              802-1x:
+                eap: "md5"
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -729,7 +748,8 @@ method=auto'''.format(UUID), regenerate=False)
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              connection.permissions: ""
+              connection:
+                permissions: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -754,7 +774,8 @@ mode={}'''.format(UUID, nm_mode))
         if nm_mode != nd_mode:
             wifi_mode = '''
             passthrough:
-              wifi.mode: "{}"'''.format(nm_mode)
+              wifi:
+                mode: "{}"'''.format(nm_mode)
         if nd_mode != 'infrastructure':
             ap_mode = '\n          mode: "%s"' % nd_mode
         self.assert_netplan({UUID: '''network:
@@ -848,7 +869,8 @@ method=auto'''.format(UUID))
         uuid: "{}"
         name: "myid with spaces"
         passthrough:
-          ethernet.wake-on-lan: "2"
+          ethernet:
+            wake-on-lan: "2"
 '''.format(UUID, UUID)})
 
     def test_keyfile_wake_on_lan_nm_default(self):
@@ -967,16 +989,21 @@ psk=test1234
             uuid: "{}"
             name: "Hotspot-1"
             passthrough:
-              connection.autoconnect: "false"
-              connection.permissions: ""
-              ipv4.dns-search: ""
-              ipv6.addr-gen-mode: "1"
-              ipv6.dns-search: ""
-              wifi.mac-address-blacklist: "" # wokeignore:rule=blacklist
-              wifi-security.group: "ccmp;"
-              wifi-security.pairwise: "ccmp;"
-              wifi-security.proto: "rsn;"
-              proxy._: ""
+              connection:
+                permissions: ""
+                autoconnect: "false"
+              wifi:
+                mac-address-blacklist: "" # wokeignore:rule=blacklist
+              wifi-security:
+                proto: "rsn;"
+                group: "ccmp;"
+                pairwise: "ccmp;"
+              ipv4:
+                dns-search: ""
+              ipv6:
+                addr-gen-mode: "1"
+                dns-search: ""
+              proxy: {{}}
       networkmanager:
         uuid: "{}"
         name: "Hotspot-1"
@@ -1041,7 +1068,8 @@ method=ignore
         uuid: "{}"
         name: "netplan-enblue"
         passthrough:
-          connection.interface-name: "enblue"
+          connection:
+            interface-name: "enblue"
 '''.format(UUID, UUID)})
 
     def test_keyfile_bridge(self):
@@ -1262,10 +1290,12 @@ ip6-privacy=0
         uuid: "{}"
         name: "gsm"
         passthrough:
-          ipv4.address1: "10.10.28.159/24"
-          ipv4.address2: "10.10.164.254/24"
-          ipv4.address3: "10.10.246.132/24"
-          ipv6.addr-gen-mode: "1"
+          ipv4:
+            address2: "10.10.164.254/24"
+            address1: "10.10.28.159/24"
+            address3: "10.10.246.132/24"
+          ipv6:
+            addr-gen-mode: "1"
 '''.format(UUID, UUID)})
 
     def test_keyfile_netplan0103_compat(self):
@@ -1359,18 +1389,22 @@ route4=5:6:7:8:9:0:1:2/62
         uuid: "{}"
         name: "Work Wired"
         passthrough:
-          connection.autoconnect: "false"
-          connection.permissions: ""
-          connection.timestamp: "305419896"
-          ethernet.mac-address-blacklist: "" # wokeignore:rule=blacklist
-          ipv4.address1: "192.168.0.5/24,192.168.0.1"
-          ipv4.dns-search: ""
-          ipv4.method: "manual"
-          ipv4.route4: "3.3.3.3/6,0.0.0.0,4"
-          ipv4.route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
-          ipv6.dns-search: "wallaceandgromit.com;"
-          ipv6.ip6-privacy: "1"
-          proxy._: ""
+          connection:
+            permissions: ""
+            autoconnect: "false"
+            timestamp: "305419896"
+          proxy: {{}}
+          ipv4:
+            route4_options: "cwnd=10,mtu=1492,src=1.2.3.4"
+            method: "manual"
+            dns-search: ""
+            address1: "192.168.0.5/24,192.168.0.1"
+            route4: "3.3.3.3/6,0.0.0.0,4"
+          ethernet:
+            mac-address-blacklist: "" # wokeignore:rule=blacklist
+          ipv6:
+            dns-search: "wallaceandgromit.com;"
+            ip6-privacy: "1"
 '''.format(UUID, UUID)})
 
     def test_keyfile_tunnel_regression_lp1952967(self):
@@ -1413,13 +1447,16 @@ method=auto
         uuid: "{}"
         name: "IP tunnel connection 1"
         passthrough:
-          connection.autoconnect: "false"
-          connection.interface-name: "gre10"
-          connection.permissions: ""
-          ipv4.dns-search: ""
-          ipv6.dns-search: ""
-          ipv6.ip6-privacy: "-1"
-          proxy._: ""
+          connection:
+            permissions: ""
+            autoconnect: "false"
+            interface-name: "gre10"
+          proxy: {{}}
+          ipv4:
+            dns-search: ""
+          ipv6:
+            dns-search: ""
+            ip6-privacy: "-1"
 '''.format(UUID, UUID)})
 
     def test_keyfile_ip6_privacy_default_netplan_0104_compat(self):
@@ -1451,7 +1488,8 @@ method=auto
         uuid: "{}"
         name: "Test"
         passthrough:
-          ipv6.ip6-privacy: "-1"
+          ipv6:
+            ip6-privacy: "-1"
 '''.format(UUID, UUID)})
 
     def test_keyfile_wpa3_sae(self):
@@ -1498,8 +1536,9 @@ method=auto
             uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
             name: "test2"
             passthrough:
-              ipv6.ip6-privacy: "-1"
-              proxy._: ""
+              proxy: {{}}
+              ipv6:
+                ip6-privacy: "-1"
       networkmanager:
         uuid: "{}"
         name: "test2"
@@ -1563,8 +1602,9 @@ method=auto
             uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
             name: "test2"
             passthrough:
-              ipv6.ip6-privacy: "-1"
-              proxy._: ""
+              proxy: {{}}
+              ipv6:
+                ip6-privacy: "-1"
       networkmanager:
         uuid: "{}"
         name: "test2"
@@ -1628,8 +1668,9 @@ method=auto
             uuid: "ff9d6ebc-226d-4f82-a485-b7ff83b9607f"
             name: "test2"
             passthrough:
-              ipv6.ip6-privacy: "-1"
-              proxy._: ""
+              proxy: {{}}
+              ipv6:
+                ip6-privacy: "-1"
       networkmanager:
         uuid: "{}"
         name: "test2"
@@ -1687,15 +1728,19 @@ dns-search=wallaceandgromit.com;
         uuid: "{}"
         name: "Work Wired"
         passthrough:
-          connection.autoconnect: "false"
-          connection.timestamp: "305419896"
-          ethernet.wake-on-lan: "1"
-          ipv4.method: "manual"
-          ipv4.address1: "192.168.0.5/24,192.168.0.1"
-          ipv6.addr-gen-mode: "1"
-          ipv6.dns-search: "wallaceandgromit.com;"
-          ipv6.ip6-privacy: "-1"
-          proxy._: ""
+          connection:
+            autoconnect: "false"
+            timestamp: "305419896"
+          proxy: {{}}
+          ipv4:
+            method: "manual"
+            address1: "192.168.0.5/24,192.168.0.1"
+          ethernet:
+            wake-on-lan: "1"
+          ipv6:
+            addr-gen-mode: "1"
+            dns-search: "wallaceandgromit.com;"
+            ip6-privacy: "-1"
 '''.format(UUID, UUID)})
 
     def test_keyfile_nm_140_default_ethernet_group(self):
@@ -1730,13 +1775,15 @@ method=auto
         uuid: "{}"
         name: "Test Write Bridge Main"
         passthrough:
-          ethernet._: ""
-          bridge._: ""
-          ipv4.address1: "1.2.3.4/24,1.1.1.1"
-          ipv4.method: "manual"
-          ipv6.addr-gen-mode: "default"
-          ipv6.ip6-privacy: "-1"
-          proxy._: ""
+          proxy: {{}}
+          ipv4:
+            method: "manual"
+            address1: "1.2.3.4/24,1.1.1.1"
+          ethernet: {{}}
+          bridge: {{}}
+          ipv6:
+            addr-gen-mode: "default"
+            ip6-privacy: "-1"
 '''.format(UUID)})
 
     def test_multiple_eap_methods(self):
@@ -1784,8 +1831,10 @@ method=auto\n'''.format(UUID))
             uuid: "{}"
             name: "MyWifi"
             passthrough:
-              wifi-security.auth-alg: "open"
-              802-1x.eap: "peap;tls"
+              wifi-security:
+                auth-alg: "open"
+              802-1x:
+                eap: "peap;tls"
       networkmanager:
         uuid: "{}"
         name: "MyWifi"
@@ -1836,7 +1885,8 @@ method=auto\n'''.format(UUID))
             uuid: "{}"
             name: "MyWifi"
             passthrough:
-              wifi-security.auth-alg: "open"
+              wifi-security:
+                auth-alg: "open"
       networkmanager:
         uuid: "{}"
         name: "MyWifi"
@@ -1862,7 +1912,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_with_key(self):
@@ -1890,7 +1941,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_with_key_and_peer(self):
@@ -1928,7 +1980,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_with_empty_endpoint(self):
@@ -1965,7 +2018,8 @@ method=auto\n'''.format(UUID), regenerate=False)
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_allowed_ips_without_prefix(self):
@@ -2008,7 +2062,8 @@ method=auto\n'''.format(UUID), regenerate=False)
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_with_key_flags(self):
@@ -2049,7 +2104,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_with_key_all_flags_enabled(self):
@@ -2092,7 +2148,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_wireguard_with_key_and_peer_without_allowed_ips(self):
@@ -2127,7 +2184,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "wg0"
         passthrough:
-          connection.interface-name: "wg0"
+          connection:
+            interface-name: "wg0"
 '''.format(UUID, UUID)})
 
     def test_vxlan_with_local_and_remote(self):
@@ -2158,7 +2216,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "vxlan10"
         passthrough:
-          connection.interface-name: "vxlan10"
+          connection:
+            interface-name: "vxlan10"
 '''.format(UUID, UUID)})
 
     def test_simple_vxlan(self):
@@ -2185,7 +2244,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "vxlan10"
         passthrough:
-          connection.interface-name: "vxlan10"
+          connection:
+            interface-name: "vxlan10"
 '''.format(UUID, UUID)})
 
     def test_invalid_tunnel_mode(self):
@@ -2238,7 +2298,8 @@ dns-search='''.format(UUID))
             uuid: "{}"
             name: "myid with spaces"
             passthrough:
-              ipv4.dns-search: ""
+              ipv4:
+                dns-search: ""
       networkmanager:
         uuid: "{}"
         name: "myid with spaces"
@@ -2271,7 +2332,8 @@ dns-search='''.format(UUID))
         uuid: "{}"
         name: "myid with spaces"
         passthrough:
-          ipv4.dns-search: ""
+          ipv4:
+            dns-search: ""
 '''.format(UUID, UUID)})
 
     def test_veth_pair(self):
@@ -2297,7 +2359,8 @@ method=auto\n'''.format(UUID))
         uuid: "{}"
         name: "veth-peer1"
         passthrough:
-          connection.interface-name: "veth-peer1"
+          connection:
+            interface-name: "veth-peer1"
 '''.format(UUID, UUID)})
 
     def test_veth_without_peer(self):
@@ -2337,7 +2400,8 @@ method=link-local\n'''.format(UUID))
         uuid: "{}"
         name: "vrf0"
         passthrough:
-          connection.interface-name: "vrf0"
+          connection:
+            interface-name: "vrf0"
 '''.format(UUID, UUID)})
 
     def test_vrf_without_table_should_fail(self):
@@ -2422,11 +2486,13 @@ method=auto
         uuid: "{}"
         name: "ethernet-eth123"
         passthrough:
-          ethernet._: ""
-          ipv4.dns: "8.8.8.8;1.1.1.1#lxd;192.168.0.1#domain.local;"
-          ipv6.addr-gen-mode: "default"
-          ipv6.ip6-privacy: "-1"
-          proxy._: ""
+          proxy: {{}}
+          ipv4:
+            dns: "8.8.8.8;1.1.1.1#lxd;192.168.0.1#domain.local;"
+          ethernet: {{}}
+          ipv6:
+            addr-gen-mode: "default"
+            ip6-privacy: "-1"
 '''.format(UUID, UUID)})
 
     def test_ipv4_route_metric_is_overriden_when_dhcp4_is_disabled(self):
@@ -2461,12 +2527,15 @@ addr-gen-mode=default
         uuid: "{}"
         name: "dummy-123"
         passthrough:
-          connection.interface-name: "dummy123"
-          ipv4.method: "manual"
-          ipv4.address1: "100.85.0.1/24,100.85.0.1"
-          ipv6.addr-gen-mode: "default"
-          dummy._: ""
-          proxy._: ""
+          connection:
+            interface-name: "dummy123"
+          proxy: {{}}
+          ipv4:
+            method: "manual"
+            address1: "100.85.0.1/24,100.85.0.1"
+          ipv6:
+            addr-gen-mode: "default"
+          dummy: {{}}
 '''.format(UUID, UUID)})
 
     def test_ipv6_route_metric_is_overriden_when_dhcp6_is_disabled(self):
@@ -2501,12 +2570,15 @@ addr-gen-mode=default
         uuid: "{}"
         name: "dummy-123"
         passthrough:
-          connection.interface-name: "dummy123"
-          ipv4.method: "disabled"
-          ipv6.method: "manual"
-          ipv6.address1: "fdeb:446c:912d:8da::/64,fdeb:446c:912d:8da::1"
-          ipv6.addr-gen-mode: "default"
-          ipv6.ip6-privacy: "-1"
-          dummy._: ""
-          proxy._: ""
+          connection:
+            interface-name: "dummy123"
+          proxy: {{}}
+          ipv4:
+            method: "disabled"
+          ipv6:
+            addr-gen-mode: "default"
+            method: "manual"
+            address1: "fdeb:446c:912d:8da::/64,fdeb:446c:912d:8da::1"
+            ip6-privacy: "-1"
+          dummy: {{}}
 '''.format(UUID, UUID)})
