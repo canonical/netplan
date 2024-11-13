@@ -20,6 +20,13 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      #- uses: lkiesow/setup-lxc-container@v1
+      #  id: lxc
+      #  with:
+      #    dist: debian
+      #    release: trixie
+      #    python: false
+
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - run: |
@@ -30,18 +37,32 @@ jobs:
       - name: Install dependencies
         run: |
           sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
+          cat /etc/apt/sources.list.d/ubuntu.sources
+          sudo sed -i 's/ noble / noble noble-proposed /g' /etc/apt/sources.list.d/ubuntu.sources
           sudo apt update
+          # sudo apt purge docker-ce docker-ce-cli
           sudo apt install debci lxc lxc-templates debian-archive-keyring autopkgtest ubuntu-dev-tools devscripts linux-modules-extra-$(uname -r) #openvswitch-switch
+          sudo apt install -t noble-proposed autopkgtest
       # See: https://discourse.ubuntu.com/t/containers-lxc/11526 (Apparmor section)
       #      (LP: #1950787, LP: #1998943)
       - name: Preparing autopkgtest-build-lxc
         run: |
           # Fix Docker blocking LXC networking:
           # https://discuss.linuxcontainers.org/t/9953/4
-          sudo iptables -I DOCKER-USER  -j ACCEPT
-          sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
-          sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
-          echo "lxc.apparmor.profile = unconfined" | sudo tee -a /etc/lxc/default.conf
+          # https://documentation.ubuntu.com/lxd/en/latest/howto/network_bridge_firewalld/#prevent-connectivity-issues-with-lxd-and-docker
+          sudo iptables -L
+          sudo iptables -I DOCKER-USER -i lxcbr0 -j ACCEPT
+          sudo iptables -I DOCKER-USER -o lxcbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          # sudo systemctl stop docker.socket
+          # sudo systemctl stop docker.service
+          # sudo iptables  -I DOCKER-USER  -j ACCEPT
+          # sudo ip6tables -I DOCKER-USER  -j ACCEPT
+          # sudo iptables  -I DOCKER-USER  -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          # sudo ip6tables -I DOCKER-USER  -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          # sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
+          # sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
+          # echo "lxc.apparmor.profile = unconfined" | sudo tee -a /etc/lxc/default.conf
+          sudo ip addr
           sudo debci setup -s testing -a amd64 -b lxc
       - name: Prepare test
         run: |
