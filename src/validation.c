@@ -526,7 +526,7 @@ adopt_and_validate_vrf_routes(__unused const NetplanParser *npp, GHashTable *net
                 if (r->table == nd->vrf_table) {
                     g_debug("%s: Ignoring redundant routing-policy table %d (matches VRF table)", nd->id, r->table);
                     continue;
-                } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC && r->table != nd->vrf_table) {
+                } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
                     g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
                             "%s: VRF routing-policy table mismatch (%d != %d)", nd->id, nd->vrf_table, r->table);
                     return FALSE;
