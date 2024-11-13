@@ -523,6 +523,9 @@ adopt_and_validate_vrf_routes(__unused const NetplanParser *npp, GHashTable *net
         if (nd->ip_rules) {
             for (size_t i = 0; i < nd->ip_rules->len; i++) {
                 NetplanIPRule* r = g_array_index(nd->ip_rules, NetplanIPRule*, i);
+                if (r->priority == NETPLAN_IP_RULE_PRIO_UNSPEC) {
+                    g_warning("%s: No priority specified for routing-policy %zu", nd->id, i);
+                }
                 if (r->table == nd->vrf_table) {
                     g_debug("%s: Ignoring redundant routing-policy table %d (matches VRF table)", nd->id, r->table);
                     continue;
