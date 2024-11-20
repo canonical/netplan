@@ -19,7 +19,7 @@ jobs:
         container:
           - fedora:latest
           # - fedora:rawhide
-          - rockylinux:9
+          # - rockylinux:9  # lacking meson >= 1.3.0
     container:
       image: ${{ matrix.container }}
     steps:
