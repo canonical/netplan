@@ -127,7 +127,7 @@ class IntegrationTestsBase(unittest.TestCase):
         subprocess.call(['udevadm', 'trigger', '--attr-match=subsystem=net'])
         subprocess.call(['udevadm', 'settle'])
         try:
-            os.remove('/run/systemd/generator/netplan.stamp')
+            os.remove('/run/netplan/generator.stamp')
         except FileNotFoundError:
             pass
         # Keep the management network (eth0/ens3 from 20-wired.network) up

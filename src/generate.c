@@ -236,7 +236,9 @@ int main(int argc, char** argv)
             g_fprintf(stderr, "%s can not be called directly, use 'netplan generate'.", argv[0]);
             return 1;
         }
-        generator_run_stamp = g_build_path(G_DIR_SEPARATOR_S, files[0], "netplan.stamp", NULL);
+        /* Write generator.stamp in /run/netplan/generator.stamp, this is due to
+         * /run/systemd/generator/... being cleaned on every daemon-reload. */
+        generator_run_stamp = g_build_path(G_DIR_SEPARATOR_S, rootdir, "run", "netplan", "generator.stamp", NULL);
         if (g_access(generator_run_stamp, F_OK) == 0) {
             g_fprintf(stderr, "netplan generate already ran, remove %s to force re-run\n", generator_run_stamp);
             return 0;
@@ -318,6 +320,7 @@ int main(int argc, char** argv)
 
         /* Leave a stamp file so that we don't regenerate the configuration
          * multiple times and userspace can wait for it to finish */
+        _netplan_safe_mkdir_p_dir(generator_run_stamp);
         FILE* f = fopen(generator_run_stamp, "w");
         g_assert(f != NULL);
         fclose(f);
