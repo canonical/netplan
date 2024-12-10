@@ -462,7 +462,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 - **`gateway4`**, **`gateway6`** (scalar)
 
-  > Deprecated, see `Default routes`.
+  > Deprecated, see [Default routes](#default-routes).
   > Set default gateway for IPv4/6, for manual address configuration. This
   > requires setting `addresses` too. Gateway IP addresses must be in a form
   > recognised by **`inet_pton`**(3). There should only be a single gateway
