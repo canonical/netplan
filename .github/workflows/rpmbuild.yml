@@ -19,7 +19,8 @@ jobs:
         container:
           - fedora:latest
           # - fedora:rawhide
-          # - rockylinux:9  # lacking meson >= 1.3.0
+          - almalinux:10-kitten
+          # - rockylinux:10
     container:
       image: ${{ matrix.container }}
     steps:
@@ -30,7 +31,7 @@ jobs:
           dnf -y install dnf-plugins-core rpmdevtools  # for 'dnf builddep'
           dnf -y install epel-release || true
           dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL9
-          dnf -y install centos-release-nfv-openvswitch || true  # OVS on EL9
+          dnf config-manager --set-enabled nfv || true  # OVS on EL10
           dnf -y builddep rpm/netplan.spec
           adduser test
           chown -R test:test .
