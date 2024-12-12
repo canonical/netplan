@@ -27,9 +27,11 @@ jobs:
       - name: Install Build-Dependencies
         run: |
           dnf -y install git
-          dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL9
+          dnf config-manager --set-enabled powertools || true
+          dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL10
           dnf config-manager --set-enabled nfv || true  # OVS on EL10
           dnf -y install epel-release || true
+          dnf -y install centos-release-nfv-openvswitch || true  # OVS on EL9
           dnf -y install dnf-plugins-core rpmdevtools  # for 'dnf builddep'
       - uses: actions/checkout@v2
       - name: Build & Test
