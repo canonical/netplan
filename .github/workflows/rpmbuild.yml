@@ -27,6 +27,7 @@ jobs:
       - name: Install Build-Dependencies
         run: |
           dnf -y install git
+          dnf -y install 'dnf-command(config-manager)'
           dnf config-manager --set-enabled powertools || true
           dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL10
           dnf config-manager --set-enabled nfv || true  # OVS on EL10
