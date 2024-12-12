@@ -24,6 +24,8 @@ jobs:
     container:
       image: ${{ matrix.container }}
     steps:
+      - name: Install git
+        run: dnf -y install git
       - uses: actions/checkout@v2
       - name: Build & Test
         run: |
