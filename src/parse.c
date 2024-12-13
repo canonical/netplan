@@ -1015,6 +1015,13 @@ handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, __unused const
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_NONE;
     else if (strcmp(scalar(node), "psk") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+    else if (strcmp(scalar(node), "psk-sha256") == 0) {
+        /* WPA-PSK-SHA256 is commonly used with Protected Management Frames
+         * so let's set it as optional
+         */
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256;
+        auth->pmf_mode = NETPLAN_AUTH_PMF_MODE_OPTIONAL;
+    }
     else if (strcmp(scalar(node), "eap") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
     else if (strcmp(scalar(node), "eap-sha256") == 0) {

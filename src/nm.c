@@ -514,6 +514,7 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
         case NETPLAN_AUTH_KEY_MANAGEMENT_NONE:
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-psk");
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
