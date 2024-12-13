@@ -910,7 +910,8 @@ interfaces, as well as individual Wi-Fi networks, by means of the `auth` block.
   - **`key-management`** (scalar)
 
     > The supported key management modes are `none` (no key management);
-    > `psk` (WPA with pre-shared key, common for home Wi-Fi); `eap` (WPA
+    > `psk` (WPA with pre-shared key, common for home Wi-Fi); `psk-sha256`
+    > (WPA2 with pre-shared key, common for home Wi-Fi); `eap` (WPA
     > with EAP, common for enterprise Wi-Fi); `eap-sha256` (used with WPA3-Enterprise);
     > `eap-suite-b-192` (used with WPA3-Enterprise); `sae` (used by WPA3);
     > and `802.1x` (used primarily for wired Ethernet connections).
