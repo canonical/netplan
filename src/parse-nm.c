@@ -1019,6 +1019,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
                  */
                 if (ap->auth.key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP)
                     ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAPSHA256;
+                /*The same logic is used for WPA-PSK*/
+                else if (ap->auth.key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK)
+                    ap->auth.key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256;
                 break;
 
             case 3:

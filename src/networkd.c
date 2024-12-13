@@ -1188,6 +1188,10 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
                 g_string_append(s, "  key_mgmt=WPA-PSK\n");
             break;
 
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256:
+            g_string_append(s, "  key_mgmt=WPA-PSK WPA-PSK-SHA256\n");
+            break;
+
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
             g_string_append(s, "  key_mgmt=WPA-EAP\n");
             break;
