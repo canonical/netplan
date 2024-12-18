@@ -111,6 +111,43 @@ wpa_passphrase=12345678
                                           text=True)
             self.assertRegex(out, 'DNS.*192.168.5.1')
 
+    def test_wifi_ipv4_wpa2_psk_sha256_only(self):
+        self.setup_ap('''hw_mode=g
+channel=1
+ssid=fake net
+wpa=2
+wpa_key_mgmt=WPA-PSK-SHA256
+wpa_pairwise=CCMP
+ieee80211w=2
+wpa_passphrase=12345678
+''', None)
+
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  wifis:
+    %(wc)s:
+      dhcp4: yes
+      access-points:
+        "fake net":
+          auth:
+            key-management: psk-sha256
+            password: 12345678
+        decoy: {}''' % {'r': self.backend, 'wc': self.dev_w_client})
+        self.generate_and_settle([self.state_dhcp4(self.dev_w_client)])
+        self.assert_iface_up(self.dev_w_client, ['inet 192.168.5.[0-9]+/24'])
+        self.assertIn(b'default via 192.168.5.1',  # from DHCP
+                      subprocess.check_output(['ip', 'route', 'show', 'dev', self.dev_w_client]))
+        if self.backend == 'NetworkManager':
+            out = subprocess.check_output(['nmcli', 'dev', 'show', self.dev_w_client],
+                                          text=True)
+            self.assertRegex(out, 'GENERAL.CONNECTION.*netplan-%s-fake net' % self.dev_w_client)
+            self.assertRegex(out, 'IP4.DNS.*192.168.5.1')
+        else:
+            out = subprocess.check_output(['networkctl', 'status', self.dev_w_client],
+                                          text=True)
+            self.assertRegex(out, 'DNS.*192.168.5.1')
+
     def test_wifi_regdom(self):
         self.setup_ap('''hw_mode=g
 channel=1
