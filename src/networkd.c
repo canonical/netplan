@@ -1631,7 +1631,6 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     // ELSE:
     GString* linklocal_str = g_string_new("");
     GString* routable_str  = g_string_new("");
-    g_string_append(content, "\n[Service]\nExecStart=\n"); // clear old s-n-wait-online command
 
     GHashTableIter giter;
     gpointer key, value;
@@ -1655,6 +1654,13 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
         }
     }
 
+    // allow waiting for "--dns"
+    if (routable_str->len > 0) {
+        g_string_append(content, "After=systemd-resolved.service\n");
+    }
+    // clear old s-n-wait-online command
+    g_string_append(content, "\n[Service]\nExecStart=\n");
+
     // wait for all link-local (degraded/carrier) interface
     if (linklocal_str->len > 0) {
         g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online%s\n", linklocal_str->str);
@@ -1662,7 +1668,7 @@ _netplan_networkd_write_wait_online(const NetplanState* np_state, const char* ro
     g_string_free(linklocal_str, TRUE);
     // wait for any routable interface
     if (routable_str->len > 0) {
-        g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable%s\n", routable_str->str);
+        g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable%s\n", routable_str->str);
     }
     g_string_free(routable_str, TRUE);
 
