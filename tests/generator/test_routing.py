@@ -1083,8 +1083,8 @@ route1=::/0,2001:beef:beef::1
       routing-policy:
         - to: 10.10.10.0/24
           table: 100
-          ''', expect_fail=True)
-        self.assertIn("ERROR: engreen: The priority setting is mandatory for NetworkManager routing-policy", err)
+          ''', expect_fail=False)
+        self.assertIn("WARNING: engreen: The priority setting is mandatory for NetworkManager routing-policy, ignoring...", err)
 
     def test_ip_rule_missing_priority_fails_ipv6(self):
         err = self.generate('''network:
@@ -1096,8 +1096,8 @@ route1=::/0,2001:beef:beef::1
       routing-policy:
         - to: 2001:FFfe::1/64
           table: 100
-          ''', expect_fail=True)
-        self.assertIn("ERROR: engreen: The priority setting is mandatory for NetworkManager routing-policy", err)
+          ''', expect_fail=False)
+        self.assertIn("WARNING: engreen: The priority setting is mandatory for NetworkManager routing-policy, ignoring...", err)
 
     def test_ip_rule_table(self):
         self.generate('''network:

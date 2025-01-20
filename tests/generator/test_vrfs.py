@@ -235,5 +235,5 @@ Table=1005
     vrf1005:
       table: 1005
       routing-policy:
-      - from: 2.3.4.5''', expect_fail=True)
-        self.assertIn("ERROR: vrf1005: The priority setting is mandatory for NetworkManager routing-policy", err)
+      - from: 2.3.4.5''', expect_fail=False)
+        self.assertIn("WARNING: vrf1005: The priority setting is mandatory for NetworkManager routing-policy, ignoring...", err)

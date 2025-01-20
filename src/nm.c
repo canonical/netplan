@@ -259,7 +259,7 @@ write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GErr
 }
 
 STATIC gboolean
-write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GError** error)
+write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, __unused GError** error)
 {
     const gchar* group = NULL;
     gchar* tmp_key = NULL;
@@ -283,9 +283,8 @@ write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GE
              * have an explicitly set unique priority value"[1].
              * [1]http://www.policyrouting.org/iproute2.doc.html#ss9.6.1 */
             if (cur_rule->priority == NETPLAN_IP_RULE_PRIO_UNSPEC) {
-                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED,
-                            "ERROR: %s: The priority setting is mandatory for NetworkManager routing-policy\n", def->id);
-                return FALSE;
+                g_warning("WARNING: %s: The priority setting is mandatory for NetworkManager routing-policy, ignoring...\n", def->id);
+                continue;
             }
 
             tmp_key = g_strdup_printf("routing-rule%u", j);
@@ -774,8 +773,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "vrf", "table", def->vrf_table);
             if (!write_routes_nm(def, kf, AF_INET, error) || !write_routes_nm(def, kf, AF_INET6, error))
                 return FALSE;
-            if (!write_ip_rules_nm(def, kf, AF_INET, error) || !write_ip_rules_nm(def, kf, AF_INET6, error))
-                return FALSE;
+            write_ip_rules_nm(def, kf, AF_INET, error);
+            write_ip_rules_nm(def, kf, AF_INET6, error);
         }
 
         if (def->type == NETPLAN_DEF_TYPE_VETH && def->veth_peer_link) {
@@ -931,8 +930,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         write_search_domains(def, "ipv4", kf);
         if (!write_routes_nm(def, kf, AF_INET, error))
             return FALSE;
-        if (!write_ip_rules_nm(def, kf, AF_INET, error))
-            return FALSE;
+        write_ip_rules_nm(def, kf, AF_INET, error);
     }
 
     if (!def->dhcp4_overrides.use_routes) {
@@ -979,8 +977,7 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         if (!write_routes_nm(def, kf, AF_INET6, error))
             return FALSE;
 
-        if (!write_ip_rules_nm(def, kf, AF_INET6, error))
-            return FALSE;
+        write_ip_rules_nm(def, kf, AF_INET6, error);
 
         if (!def->dhcp6_overrides.use_routes) {
             g_key_file_set_boolean(kf, "ipv6", "ignore-auto-routes", TRUE);
