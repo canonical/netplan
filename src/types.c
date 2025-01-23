@@ -339,6 +339,9 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     FREE_AND_NULLIFY(netdef->bridge_params.forward_delay);
     FREE_AND_NULLIFY(netdef->bridge_params.hello_time);
     FREE_AND_NULLIFY(netdef->bridge_params.max_age);
+    free_garray_with_destructor(&netdef->bridge_params.vlans, g_free);
+    free_garray_with_destructor(&netdef->bridge_params.port_vlans, g_free);
+    netdef->bridge_params.vlan_filtering = FALSE;
     memset(&netdef->bridge_params, 0, sizeof(netdef->bridge_params));
     netdef->custom_bridging = FALSE;
 

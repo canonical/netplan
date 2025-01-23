@@ -342,6 +342,9 @@ struct netplan_net_definition {
         char* max_age;
         guint path_cost;
         gboolean stp;
+        GArray* vlans;
+        GArray* port_vlans;
+        gboolean vlan_filtering;
     } bridge_params;
     gboolean custom_bridging;
 
@@ -432,3 +435,10 @@ struct netplan_net_definition {
 
     NetplanRAOverrides ra_overrides;
 };
+
+typedef struct {
+    guint vid; //[1..4094]
+    guint vid_to; //set iff vid range defined
+    gboolean pvid;
+    gboolean untagged;
+} NetplanBridgeVlan;

@@ -621,6 +621,7 @@ class TestNetplanYAMLv2(TestBase):
     br0:
       interfaces: [eno1, switchport]
       parameters:
+        vlan-filtering: true
         vlans: [1-100 pvid untagged, 42 untagged, 13, 1 pvid, 2-100 pvid untagged]
         port-vlans:
           eno1: [99-999 pvid untagged, 1 untagged, 42 pvid]
@@ -646,8 +647,8 @@ method=ignore
 id=netplan-eno1
 type=ethernet
 interface-name=eno1
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [bridge-port]
 vlans=99-999 pvid untagged, 1 untagged, 42 pvid
@@ -665,8 +666,8 @@ method=ignore
 id=netplan-switchport
 type=ethernet
 interface-name=switchport
-slave-type=bridge
-master=br0
+slave-type=bridge # wokeignore:rule=slave
+master=br0 # wokeignore:rule=master
 
 [bridge-port]
 vlans=4000-4094, 1 pvid, 13 untagged

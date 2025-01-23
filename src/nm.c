@@ -148,11 +148,11 @@ wifi_band_str(const NetplanWifiBand band)
 /**
  * Return NM bridge vlan string.
  */
-static const char*
+GString*
 bridge_vlan_str(const NetplanBridgeVlan* vlan)
 {
     GString* s = NULL;
-    s = g_string_sized_new(20);
+    s = g_string_sized_new(24);
 
     g_string_append_printf(s, "%u", vlan->vid);
     if (vlan->vid_to)
@@ -161,7 +161,7 @@ bridge_vlan_str(const NetplanBridgeVlan* vlan)
         g_string_append(s, " pvid");
     if (vlan->untagged)
         g_string_append(s, " untagged");
-    return s->str;
+    return s;
 }
 
 /**
@@ -395,7 +395,10 @@ write_nm_bond_parameters(const NetplanNetDefinition* def, GKeyFile *kf)
 STATIC void
 write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
 {
+    g_autoptr(GString) vlans = NULL;
+
     if (def->custom_bridging) {
+        vlans = g_string_sized_new(200);
         if (def->bridge_params.ageing_time)
             g_key_file_set_string(kf, "bridge", "ageing-time", def->bridge_params.ageing_time);
         if (def->bridge_params.priority)
@@ -407,17 +410,17 @@ write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
         if (def->bridge_params.max_age)
             g_key_file_set_string(kf, "bridge", "max-age", def->bridge_params.max_age);
         g_key_file_set_boolean(kf, "bridge", "stp", def->bridge_params.stp);
+        if(def->bridge_params.vlan_filtering || def->bridge_params.vlans)
+            g_key_file_set_string(kf, "bridge", "vlan-filtering", "true");
         if (def->bridge_params.vlans) {
-            g_string_append(params, "vlan-filtering=true\n");
-            g_string_append(params, "vlans=");
             for (unsigned i = 0; i < def->bridge_params.vlans->len; ++i) {
                 if (i > 0)
-                    g_string_append(params, ", ");
-                g_string_append_printf(params, "%s", bridge_vlan_str(
-                                       g_array_index(def->bridge_params.vlans,
-                                       NetplanBridgeVlan*, i)));
+                    g_string_append(vlans, ", ");
+                GString* v = bridge_vlan_str(g_array_index(def->bridge_params.vlans,NetplanBridgeVlan*, i));
+                g_string_append_printf(vlans, "%s", v->str);
+                g_string_free(v, TRUE);
             }
-            g_string_append(params, "\n");
+            g_key_file_set_string(kf, "bridge", "vlans", vlans->str);
         }
     }
 }
@@ -855,16 +858,16 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "bridge-port", "priority", def->bridge_params.port_priority);
         if (def->bridge_hairpin != NETPLAN_TRISTATE_UNSET)
             g_key_file_set_boolean(kf, "bridge-port", "hairpin-mode", def->bridge_hairpin);
-	if (def->bridge_params.port_vlans) {
-            g_string_append(s, "vlans=");
+        if (def->bridge_params.port_vlans) {
+            g_autoptr(GString) vlans = g_string_sized_new(200);
             for (unsigned i = 0; i < def->bridge_params.port_vlans->len; ++i) {
                 if (i > 0)
-                    g_string_append(s, ", ");
-                g_string_append_printf(s, "%s", bridge_vlan_str(
-                                       g_array_index(def->bridge_params.port_vlans,
-                                       NetplanBridgeVlan*, i)));
+                    g_string_append(vlans, ", ");
+                GString* v = bridge_vlan_str(g_array_index(def->bridge_params.port_vlans,NetplanBridgeVlan*, i));
+                g_string_append_printf(vlans, "%s", v->str);
+                g_string_free(v, TRUE);
             }
-            g_string_append(s, "\n");
+            g_key_file_set_string(kf, "bridge-port", "vlans", vlans->str);
         }
     }
     if (def->bond) {

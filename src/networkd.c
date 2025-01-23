@@ -987,12 +987,11 @@ _netplan_netdef_write_network_file(
             g_string_append_printf(network, "Learning=%s\n", def->bridge_learning ? "true" : "false");
         if (def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET)
             g_string_append_printf(network, "NeighborSuppression=%s\n", def->bridge_neigh_suppress ? "true" : "false");
-	if (def->bridge_params.port_vlans) {
+        if (def->bridge_params.port_vlans) {
             // TODO: research and implement bridge port-vlans for networkd
             g_fprintf(stderr, "ERROR: %s: networkd does not support bridge port-vlans\n", def->id);
             exit(1);
         }
-
     }
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
