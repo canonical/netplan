@@ -1361,6 +1361,11 @@ The specific settings for bridges are defined below.
   - **`vlan-filtering`** (boolean)
 
     > Enables VLAN filtering. Will be enabled by default if *vlans* are defined.
+  
+  - **`vlan-default-pvid`** (scalar)
+
+    > Specifies the default port VLAN ID. Can be set to values between 1 and 4094,
+    > or to value `none` if `networkd` is used as a renderer. Defaults to `1`.
 
   - **`hello-time`** (scalar)
 

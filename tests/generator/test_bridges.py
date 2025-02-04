@@ -610,7 +610,7 @@ class TestNetplanYAMLv2(TestBase):
         stp: no
       dhcp4: true''')
 
-    def test_bridge_vlans(self):
+    def test_bridge_vlans_nm(self):
         self.generate('''network:
   version: 2
   renderer: NetworkManager
@@ -622,9 +622,10 @@ class TestNetplanYAMLv2(TestBase):
       interfaces: [eno1, switchport]
       parameters:
         vlan-filtering: true
-        vlans: [1-100 pvid untagged, 42 untagged, 13, 1 pvid, 2-100 pvid untagged]
+        vlan-default-pvid: 123
+        vlans: [100 pvid untagged, 42 untagged, 13]
         port-vlans:
-          eno1: [99-999 pvid untagged, 1 untagged, 42 pvid]
+          eno1: [99 pvid untagged, 1 untagged]
           switchport: [4000-4094, 1 pvid, 13 untagged]''')
 
         self.assert_nm({'br0': '''[connection]
@@ -635,7 +636,8 @@ interface-name=br0
 [bridge]
 stp=true
 vlan-filtering=true
-vlans=1-100 pvid untagged, 42 untagged, 13, 1 pvid, 2-100 pvid untagged
+vlan-default-pvid=123
+vlans=100 pvid untagged, 42 untagged, 13
 
 [ipv4]
 method=link-local
@@ -651,7 +653,7 @@ slave-type=bridge # wokeignore:rule=slave
 master=br0 # wokeignore:rule=master
 
 [bridge-port]
-vlans=99-999 pvid untagged, 1 untagged, 42 pvid
+vlans=99 pvid untagged, 1 untagged
 
 [ethernet]
 wake-on-lan=0
@@ -680,6 +682,70 @@ method=link-local
 
 [ipv6]
 method=ignore
+'''})
+
+    def test_bridge_vlans_networkd(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eno1: {}
+    switchport: {}
+  bridges:
+    br0:
+      interfaces: [eno1, switchport]
+      parameters:
+        vlan-filtering: true
+        vlan-default-pvid: 123
+        vlans: [100 pvid untagged, 42 untagged, 13]
+        port-vlans:
+          eno1: [99 pvid untagged, 1 untagged]
+          switchport: [4000-4094, 0 pvid, 13 untagged]''')
+
+        self.assert_networkd({'br0.netdev': '[NetDev]\nName=br0\nKind=bridge\n\n'
+                                            '[Bridge]\n'
+                                            'STP=true\n'
+                                            'DefaultPVID=123\n'
+                                            'VLANFiltering=true\n',
+                              'br0.network': '''[Match]
+Name=br0
+
+[Network]
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[BridgeVLAN]
+PVID=100
+EgressUntagged=100
+VLAN=42
+EgressUntagged=42
+VLAN=13
+''',
+                              'eno1.network': '''[Match]
+Name=eno1
+
+[Network]
+LinkLocalAddressing=no
+Bridge=br0
+
+[BridgeVLAN]
+PVID=99
+EgressUntagged=99
+VLAN=1
+EgressUntagged=1
+''',
+                              'switchport.network': '''[Match]
+Name=switchport
+
+[Network]
+LinkLocalAddressing=no
+Bridge=br0
+
+[BridgeVLAN]
+VLAN=4000-4094
+PVID=0
+VLAN=13
+EgressUntagged=13
 '''})
 
 
@@ -797,28 +863,6 @@ class TestConfigErrors(TestBase):
           eno1: 257
       dhcp4: true''', expect_fail=True)
 
-    def test_bridge_no_vlan(self):
-        err = self.generate('''network:
-  version: 2
-  bridges:
-    br0:
-      parameters:
-        vlans: [99-999 pvid untagged, 1 untagged, 42 pvid]''', expect_fail=True)
-        self.assertIn("ERROR: br0: networkd does not support bridge vlans", err)
-
-    def test_bridge_no_port_vlan(self):
-        err = self.generate('''network:
-  version: 2
-  ethernets:
-    eno1: {}
-  bridges:
-    br0:
-      interfaces: [eno1]
-      parameters:
-        port-vlans:
-          eno1: [99-999 pvid untagged, 1 untagged, 42 pvid]''', expect_fail=True)
-        self.assertIn("ERROR: eno1: networkd does not support bridge port-vlans", err)
-
     def test_bridge_invalid_vlan(self):
         err = self.generate('''network:
   version: 2
@@ -832,11 +876,22 @@ class TestConfigErrors(TestBase):
     def test_bridge_invalid_vlan_vid(self):
         err = self.generate('''network:
   version: 2
+  renderer: NetworkManager
   bridges:
     br0:
       parameters:
         vlans: [0]''', expect_fail=True)
         self.assertIn("Error in network definition: malformed vlan vid '0', must be in range [1..4094]", err)
+
+    def test_bridge_invalid_vlan_vid_networkd(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  bridges:
+    br0:
+      parameters:
+        vlans: [0]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan '0': value cannot be defined as 0 for non-pvid", err)
 
     def test_bridge_invalid_port_vlan_vid_to(self):
         err = self.generate('''network:
@@ -874,6 +929,34 @@ class TestConfigErrors(TestBase):
         vlans: [100-1]''', expect_fail=True)
         self.assertIn("Error in network definition: malformed vlan vid range '100-1': 100 > 1!", err)
 
+    def test_bridge_invalid_vlan_default_pvid(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlan-default-pvid: 200-300''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed value of vlan-default-pvid '200-300': \
+vlan-default-pvid can only be defined as a single port ID", err)
+
+    def test_bridge_invalid_pvid_multiple(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlans: [99 pvid untagged, 1 untagged, 100 pvid]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan pvid '100 pvid': only single pvid can be defined", err)
+
+    def test_bridge_invalid_pvid_range(self):
+        err = self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      parameters:
+        vlans: [10-42 pvid untagged, 1 untagged]''', expect_fail=True)
+        self.assertIn("Error in network definition: malformed vlan '10-42 pvid untagged': pvid cannot be defined as a range", err)
+
     def test_bridge_port_vlan_add_missing_node(self):
         err = self.generate('''network:
   version: 2
@@ -888,3 +971,18 @@ class TestConfigErrors(TestBase):
         port-vlans:
           eth0: [1]''', expect_fail=True)
         self.assertIn("Error in network definition: br0: interface 'eth0' is not defined", err)
+
+    def test_bridge_port_invalid_vlan_default_pvid_none(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eno1: {}
+    switchport: {}
+  bridges:
+    br0:
+      interfaces: [eno1, switchport]
+      parameters:
+        vlan-filtering: true
+        vlan-default-pvid: none''', expect_fail=True)
+        self.assertIn("ERROR: vlan-default-pvid cannot be set to 'none' if NetworkManager is used", err)

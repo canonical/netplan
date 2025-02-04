@@ -345,6 +345,7 @@ struct netplan_net_definition {
         GArray* vlans;
         GArray* port_vlans;
         gboolean vlan_filtering;
+        char* vlan_default_pvid;
     } bridge_params;
     gboolean custom_bridging;
 
@@ -438,7 +439,7 @@ struct netplan_net_definition {
 
 typedef struct {
     guint vid; //[1..4094]
-    guint vid_to; //set iff vid range defined
+    guint vid_to; //set if vid range is defined
     gboolean pvid;
     gboolean untagged;
 } NetplanBridgeVlan;

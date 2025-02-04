@@ -356,7 +356,9 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
             }
         }
 
-        
+        if (def->bridge_params.vlan_default_pvid) {
+            YAML_STRING(def, event, emitter, "vlan-default-pvid", def->bridge_params.vlan_default_pvid);
+        }
 
         YAML_MAPPING_CLOSE(event, emitter);
     }

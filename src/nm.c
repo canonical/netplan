@@ -412,6 +412,13 @@ write_bridge_params_nm(const NetplanNetDefinition* def, GKeyFile *kf)
         g_key_file_set_boolean(kf, "bridge", "stp", def->bridge_params.stp);
         if(def->bridge_params.vlan_filtering || def->bridge_params.vlans)
             g_key_file_set_string(kf, "bridge", "vlan-filtering", "true");
+        if (def->bridge_params.vlan_default_pvid) {
+            if (g_str_equal(def->bridge_params.vlan_default_pvid, "none")) {
+                g_fprintf(stderr, "ERROR: vlan-default-pvid cannot be set to 'none' if NetworkManager is used\n");
+                exit(1);
+            }
+            g_key_file_set_string(kf, "bridge", "vlan-default-pvid", def->bridge_params.vlan_default_pvid);
+        }
         if (def->bridge_params.vlans) {
             for (unsigned i = 0; i < def->bridge_params.vlans->len; ++i) {
                 if (i > 0)
