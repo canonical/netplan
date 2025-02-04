@@ -209,9 +209,9 @@ class TestNetworkManager(IntegrationTestsWifi, _CommonTests):
         # connect the other end
         subprocess.check_call(['ip', 'link', 'set', self.dev_w_ap, 'up'])
         subprocess.check_call(['iw', 'dev', self.dev_w_ap, 'connect', 'fake net'])
-        out = subprocess.check_output(['dhclient', '-1', '-v', self.dev_w_ap],
+        out = subprocess.check_output(['dhcpcd', '-w', '-d', self.dev_w_ap],
                                       stderr=subprocess.STDOUT, text=True)
-        self.assertIn('DHCPACK', out)
+        self.assertIn('acknowledged 10.', out)
         out = subprocess.check_output(['iw', 'dev', self.dev_w_ap, 'info'],
                                       text=True)
         self.assertIn('type managed', out)
