@@ -256,7 +256,7 @@ class NetplanApply(utils.NetplanCommand):
         try:
             subprocess.check_call(['udevadm', 'trigger', '--action=move', '--subsystem-match=net', '--settle'])
         except subprocess.CalledProcessError as e:
-            logging.warning("Ignoring device trigger error: {}".format(e))
+            logging.warning('Ignoring device trigger error: {}'.format(e))
 
         # apply any SR-IOV related changes, if applicable
         NetplanApply.process_sriov_config(config_manager, exit_on_error)
