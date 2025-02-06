@@ -58,4 +58,5 @@ jobs:
           autopkgtest . -U \
             --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
             --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
-            -- lxd autopkgtest/ubuntu/noble/amd64
+            -- lxd autopkgtest/ubuntu/noble/amd64 \
+            || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)
