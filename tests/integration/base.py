@@ -34,6 +34,7 @@ import sys
 import tempfile
 import time
 import unittest
+import pathlib
 
 import gi
 
@@ -209,6 +210,9 @@ class IntegrationTestsBase(unittest.TestCase):
         self.workdir = self.workdir_obj.name
         self.config = '/etc/netplan/01-main.yaml'
         os.makedirs('/etc/netplan', exist_ok=True)
+        # prepare common config file with proper permissions
+        pathlib.Path(self.config).touch()
+        os.chmod(self.config, 0o600)
 
         # create static entropy file to avoid draining/blocking on /dev/random
         self.entropy_file = os.path.join(self.workdir, 'entropy')
