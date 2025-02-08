@@ -427,7 +427,9 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
 
     def test_systemd_networkd_wait_online(self):
         self.addCleanup(subprocess.call, ['ip', 'link', 'del', 'br0'])
-        self.setup_eth(None, False)
+        # Start dnsmasq DNS server to validate s-d-wait-online --dns option,
+        # which needs to reach the DNS server at UDP/53 on self.dev_e2_ap
+        self.setup_eth(None, True)
         with open(self.config, 'w') as f:
             f.write('''network:
   renderer: %(r)s
@@ -446,9 +448,17 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
       addresses: ["10.0.0.1/24"]
   bridges:
     br0:
-      addresses: ["10.0.0.2/24"]
-      interfaces: [%(e2c)s]
-''' % {'r': self.backend, 'ec_mac': self.dev_e_client_mac, 'e2c': self.dev_e2_client})
+      addresses: ["192.168.6.7/24"]  # from self.dev_e2_ap range
+      nameservers:
+        addresses: [%(dnsip)s]
+      interfaces: [%(e2c)s]''' % {'r': self.backend,
+                                  'ec_mac': self.dev_e_client_mac,
+                                  'e2c': self.dev_e2_client,
+                                  'dnsip': self.dev_e2_ap_ip4.split('/')[0]})
+        # make sure 'findme' still gets found after the rename (we cannot match
+        # PermanentMacAddress on veth), so it does not get into unmanaged and
+        # 'no-carrier' state.
+        self.match_veth_by_non_permanent_mac_quirk('findme', self.dev_e_client_mac)
         self.generate_and_settle([self.dev_e2_client, 'br0'])
         override = os.path.join('/run', 'systemd', 'system', 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
         self.assertTrue(os.path.isfile(override))
@@ -460,12 +470,16 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
             # <dev_e2_client> should be listed normally
             self.assertEqual(f.read(), '''[Unit]
 ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+After=systemd-resolved.service
 
 [Service]
 ExecStart=
 ExecStart=/lib/systemd/systemd-networkd-wait-online -i %(e2c)s:carrier -i br0:degraded -i findme:carrier
-ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i %(e2c)s -i br0
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i %(e2c)s -i br0
 ''' % {'e2c': self.dev_e2_client})
+        # Restart sd-nd-wait-online.service and check that it was launched correctly.
+        # XXX: Enable extra testing once systemd#34640 is available on the SUT (i.e. systemd v258+).
+        # subprocess.check_call(['systemctl', 'restart', 'systemd-networkd-wait-online.service'])
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
