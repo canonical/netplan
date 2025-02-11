@@ -15,7 +15,7 @@
 %endif
 
 Name:           netplan
-Version:        0.106
+Version:        1.1
 Release:        0%{?dist}
 Summary:        Network configuration tool using YAML
 Group:          System Environment/Base
@@ -24,7 +24,7 @@ URL:            http://netplan.io/
 Source0:        https://github.com/canonical/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  gcc
-BuildRequires:  meson >= 0.61
+BuildRequires:  meson >= 1.3
 BuildRequires:  pkgconfig(bash-completion)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gio-2.0)
@@ -42,7 +42,6 @@ BuildRequires:  %{_sbindir}/ip
 BuildRequires:  pkgconfig(cmocka)
 BuildRequires:  python3dist(coverage)
 BuildRequires:  dbus-x11
-BuildRequires:  python3dist(netifaces)
 BuildRequires:  python3dist(pycodestyle)
 BuildRequires:  python3dist(pyflakes)
 BuildRequires:  python3dist(pytest)
