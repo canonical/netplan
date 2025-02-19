@@ -63,8 +63,9 @@ jobs:
       - name: Run autopkgtest
         run: |
           pull-lp-source network-manager noble
+          sed -i 's|CAP_SYS_CHROOT|CAP_SYS_CHROOT CAP_CHOWN|' network-manager-*/data/NetworkManager.service.in  # https://github.com/canonical/netplan/pull/529
           sudo autopkgtest -U \
             --copy=debian/artifacts:/root/ --setup-commands='dpkg -i /root/*.deb' \
             --env=DEB_BUILD_OPTIONS=nocheck \
             --apt-pocket=proposed=src:network-manager \
-            network-manager_*.dsc -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+            network-manager-*/ -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
