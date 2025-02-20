@@ -297,6 +297,8 @@ write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GE
                 g_string_append_printf(tmp_val, " from %s", cur_rule->from);
             if (cur_rule->to)
                 g_string_append_printf(tmp_val, " to %s", cur_rule->to);
+            if (cur_rule->iif)
+                g_string_append_printf(tmp_val, " iif %s", cur_rule->iif);
             if (cur_rule->tos != NETPLAN_IP_RULE_TOS_UNSPEC)
                 g_string_append_printf(tmp_val, " tos %u", cur_rule->tos);
             if (cur_rule->fwmark != NETPLAN_IP_RULE_FW_MARK_UNSPEC)
