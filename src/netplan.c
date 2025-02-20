@@ -633,9 +633,13 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
         for (unsigned i = 0; i < def->ip_rules->len; ++i) {
             NetplanIPRule *r = g_array_index(def->ip_rules, NetplanIPRule*, i);
             YAML_MAPPING_OPEN(event, emitter);
-            /* VRF devices use the VRF routing table implicitly */
-            if (def->type != NETPLAN_DEF_TYPE_VRF)
+
+            if (def->type != NETPLAN_DEF_TYPE_VRF) {
+                /* VRF devices use the VRF routing table implicitly */
                 YAML_UINT_DEFAULT(def, event, emitter, "table", r->table, NETPLAN_ROUTE_TABLE_UNSPEC);
+                /* VRF devices are always the incoming interfaces of the relative ip rules */
+                YAML_STRING(def, event, emitter, "iif", r->iif);
+            }
             YAML_UINT_DEFAULT(def, event, emitter, "priority", r->priority, NETPLAN_IP_RULE_PRIO_UNSPEC);
             YAML_UINT_DEFAULT(def, event, emitter, "type-of-service", r->tos, NETPLAN_IP_RULE_TOS_UNSPEC);
             YAML_UINT_DEFAULT(def, event, emitter, "mark", r->fwmark, NETPLAN_IP_RULE_FW_MARK_UNSPEC);
