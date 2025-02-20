@@ -386,6 +386,21 @@ handle_generic_str(NetplanParser* npp, yaml_node_t* node, void* entryptr, const 
     return TRUE;
 }
 
+/**
+ * Handler for setting a string ID field from a scalar node, inside a given struct
+ * @entryptr: pointer to the beginning of the to-be-modified data structure
+ * @data: offset into entryptr struct where the const char* field to write is
+ *        located
+ */
+STATIC gboolean
+handle_generic_id(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
+{
+    if (!assert_valid_id(npp, node, error))
+        return FALSE;
+
+    return handle_generic_str(npp, node, entryptr, data, error);
+}
+
 STATIC gboolean
 handle_special_macaddress_option(NetplanParser* npp, yaml_node_t* node, void* entryptr, const void* data, GError** error)
 {
@@ -2049,6 +2064,12 @@ handle_ip_rule_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
 }
 
 STATIC gboolean
+handle_ip_rule_iif(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_id(npp, node, npp->current.ip_rule, (void *) data, error);
+}
+
+STATIC gboolean
 handle_ip_rule_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     g_assert(npp->current.ip_rule != NULL);
@@ -2295,6 +2316,7 @@ static const mapping_entry_handler ip_rules_handlers[] = {
     {"table", YAML_SCALAR_NODE, {.generic=handle_ip_rule_guint}, ip_rule_offset(table)},
     {"to", YAML_SCALAR_NODE, {.generic=handle_ip_rule_ip}, ip_rule_offset(to)},
     {"type-of-service", YAML_SCALAR_NODE, {.generic=handle_ip_rule_tos}, ip_rule_offset(tos)},
+    {"iif", YAML_SCALAR_NODE, {.generic=handle_ip_rule_iif}, ip_rule_offset(iif)},
     {NULL}
 };
 
@@ -2309,11 +2331,12 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
         reset_ip_rule(ip_rule);
 
         npp->current.ip_rule = ip_rule;
+
         ret = process_mapping(npp, entry, NULL, ip_rules_handlers, NULL, error);
         npp->current.ip_rule = NULL;
 
-        if (ret && !ip_rule->from && !ip_rule->to)
-            ret = yaml_error(npp, node, error, "IP routing policy must include either a 'from' or 'to' IP");
+        if (ret && !ip_rule->from && !ip_rule->to && !ip_rule->iif)
+            ret = yaml_error(npp, node, error, "IP routing policy must include at least one of the following fields: 'from', 'to', 'iif'");
 
         if (!ret) {
             ip_rule_clear(&ip_rule);

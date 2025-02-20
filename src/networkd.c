@@ -749,6 +749,9 @@ write_ip_rule(NetplanIPRule* r, GString* s)
         g_string_append_printf(s, "From=%s\n", r->from);
     if (r->to)
         g_string_append_printf(s, "To=%s\n", r->to);
+    if (r->iif)
+        g_string_append_printf(s, "IncomingInterface=%s\n", r->iif);
+
 
     if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         g_string_append_printf(s, "Table=%d\n", r->table);
