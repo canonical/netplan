@@ -236,6 +236,14 @@ def get_interface_macaddress(interface: str) -> Optional[str]:
     return mac
 
 
+def get_kernel_cmdline() -> str:
+    try:
+        with open('/proc/cmdline') as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
 def find_matching_iface(interfaces: list, netdef):
     assert isinstance(netdef, NetDefinition)
     assert netdef._has_match

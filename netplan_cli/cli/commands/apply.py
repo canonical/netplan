@@ -212,44 +212,52 @@ class NetplanApply(utils.NetplanCommand):
         # the interface name, if it was already renamed once (e.g. during boot),
         # because of the NamePolicy=keep default:
         # https://www.freedesktop.org/software/systemd/man/systemd.net-naming-scheme.html
+        # skip apply the interface rename via udev when predictable interface names disabled
+        kernel_cmdline = utils.get_kernel_cmdline()
         devices = utils.get_interfaces()
-        for device in devices:
-            logging.debug('netplan triggering .link rules for %s', device)
-            try:
-                subprocess.check_call(['udevadm', 'test-builtin',
-                                       'net_setup_link',
-                                       '/sys/class/net/' + device],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
-                subprocess.check_call(['udevadm', 'test',
-                                       '/sys/class/net/' + device],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
-            except subprocess.CalledProcessError:
-                logging.debug('Ignoring device without syspath: %s', device)
+        if "net.ifnames=0" not in kernel_cmdline:
+            for device in devices:
+                logging.debug('netplan triggering .link rules for %s', device)
+                try:
+                    subprocess.check_call(['udevadm', 'test-builtin',
+                                           'net_setup_link',
+                                           '/sys/class/net/' + device],
+                                          stdout=subprocess.DEVNULL,
+                                          stderr=subprocess.DEVNULL)
+                    subprocess.check_call(['udevadm', 'test',
+                                           '/sys/class/net/' + device],
+                                          stdout=subprocess.DEVNULL,
+                                          stderr=subprocess.DEVNULL)
+                except subprocess.CalledProcessError:
+                    logging.debug('Ignoring device without syspath: %s', device)
 
-        devices_after_udev = utils.get_interfaces()
-        # apply some more changes manually
-        for iface, settings in changes.items():
-            # rename non-critical network interfaces
-            new_name = settings.get('name')
-            if new_name:
-                if len(new_name) >= IF_NAMESIZE:
-                    logging.warning('Interface name {} is too long. {} will not be renamed'.format(new_name, iface))
-                    continue
-                if iface in devices and new_name in devices_after_udev:
-                    logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
-                    continue  # re-name already happened via 'udevadm test'
-                # bring down the interface, using its current (matched) interface name
-                subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
-                # rename the interface to the name given via 'set-name'
-                subprocess.check_call(['ip', 'link', 'set',
-                                       'dev', iface,
-                                       'name', settings.get('name')],
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
+        if len(changes) > 0:
+            devices_after_udev = utils.get_interfaces()
+            # apply some more changes manually
+            for iface, settings in changes.items():
+                # rename non-critical network interfaces
+                new_name = settings.get('name')
+                if new_name:
+                    if len(new_name) >= IF_NAMESIZE:
+                        logging.warning(
+                            'Interface name {} is too long. {} will not be renamed'.format(new_name, iface)
+                        )
+                        continue
+                    # if predictable interface names disabled, this will not happend
+                    # keep this when not disabled
+                    if iface in devices and new_name in devices_after_udev:
+                        logging.debug('Interface rename {} -> {} already happened.'.format(iface, new_name))
+                        continue  # re-name already happened via 'udevadm test'
+                    # bring down the interface, using its current (matched) interface name
+                    subprocess.check_call(['ip', 'link', 'set', 'dev', iface, 'down'],
+                                          stdout=subprocess.DEVNULL,
+                                          stderr=subprocess.DEVNULL)
+                    # rename the interface to the name given via 'set-name'
+                    subprocess.check_call(['ip', 'link', 'set',
+                                           'dev', iface,
+                                           'name', settings.get('name')],
+                                          stdout=subprocess.DEVNULL,
+                                          stderr=subprocess.DEVNULL)
 
         subprocess.check_call(['udevadm', 'control', '--reload'])
 
