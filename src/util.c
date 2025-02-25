@@ -1211,7 +1211,8 @@ is_route_rule_present(const NetplanNetDefinition* netdef, const NetplanIPRule* r
                 entry->priority == rule->priority &&
                 entry->fwmark == rule->fwmark &&
                 entry->tos == rule->tos &&
-                g_strcmp0(entry->iif, rule->iif) == 0
+                g_strcmp0(entry->iif, rule->iif) == 0 &&
+                g_strcmp0(entry->oif, rule->oif) == 0
            )
             return TRUE;
     }

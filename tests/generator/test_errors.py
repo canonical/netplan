@@ -928,6 +928,18 @@ class TestConfigErrors(TestBase):
         - 192.168.14.2/24
         - 2001:FFfe::1/64''', expect_fail=True)
 
+    def test_device_ip_rule_invalid_oif(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      routing-policy:
+        - from: 10.10.10.0/24
+          oif: not valid iface name
+      addresses:
+        - 192.168.14.2/24
+        - 2001:FFfe::1/64''', expect_fail=True)
+
     def test_invalid_dhcp_identifier(self):
         self.generate('''network:
   version: 2

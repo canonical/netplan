@@ -2064,7 +2064,7 @@ handle_ip_rule_ip(NetplanParser* npp, yaml_node_t* node, const void* data, GErro
 }
 
 STATIC gboolean
-handle_ip_rule_iif(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_ip_rule_if(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_id(npp, node, npp->current.ip_rule, (void *) data, error);
 }
@@ -2316,7 +2316,8 @@ static const mapping_entry_handler ip_rules_handlers[] = {
     {"table", YAML_SCALAR_NODE, {.generic=handle_ip_rule_guint}, ip_rule_offset(table)},
     {"to", YAML_SCALAR_NODE, {.generic=handle_ip_rule_ip}, ip_rule_offset(to)},
     {"type-of-service", YAML_SCALAR_NODE, {.generic=handle_ip_rule_tos}, ip_rule_offset(tos)},
-    {"iif", YAML_SCALAR_NODE, {.generic=handle_ip_rule_iif}, ip_rule_offset(iif)},
+    {"iif", YAML_SCALAR_NODE, {.generic=handle_ip_rule_if}, ip_rule_offset(iif)},
+    {"oif", YAML_SCALAR_NODE, {.generic=handle_ip_rule_if}, ip_rule_offset(oif)},
     {NULL}
 };
 
@@ -2335,8 +2336,8 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
         ret = process_mapping(npp, entry, NULL, ip_rules_handlers, NULL, error);
         npp->current.ip_rule = NULL;
 
-        if (ret && !ip_rule->from && !ip_rule->to && !ip_rule->iif)
-            ret = yaml_error(npp, node, error, "IP routing policy must include at least one of the following fields: 'from', 'to', 'iif'");
+        if (ret && !ip_rule->from && !ip_rule->to && !ip_rule->iif && !ip_rule->oif)
+            ret = yaml_error(npp, node, error, "IP routing policy must include at least one of the following fields: 'from', 'to', 'iif', 'oif'");
 
         if (!ret) {
             ip_rule_clear(&ip_rule);

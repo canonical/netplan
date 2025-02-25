@@ -171,6 +171,8 @@ typedef struct {
 
     /* incoming interface */
     char* iif;
+    /* outgoing interface */
+    char* oif;
 } NetplanIPRule;
 
 struct netplan_vxlan {
