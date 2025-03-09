@@ -10,7 +10,7 @@ SOURCEDIR     = .
 BUILDDIR      = _build
 VENVDIR       = $(SPHINXDIR)/venv
 VENV          = $(VENVDIR)/bin/activate
-SHELL         = /usr/bin/bash
+SHELL         = /bin/bash
 
 .PHONY: help woke-install install run html epub serve clean clean-doc \
         spelling linkcheck woke Makefile
@@ -47,9 +47,9 @@ $(VENVDIR): $(SPHINXDIR)/requirements.txt
         "--------------------------------------------------------------- \n"
 	@touch $(VENVDIR)
 
-woke-install:
-	@type woke >/dev/null 2>&1 || \
-            { echo "Installing \"woke\" snap... \n"; sudo snap install woke; }
+# woke-install:
+# 	@type woke >/dev/null 2>&1 || \
+#             { echo "Installing \"woke\" snap... \n"; sudo snap install woke; }
 
 install: $(VENVDIR) woke-install
 
@@ -58,7 +58,7 @@ run: install
 
 # Doesn't depend on $(BUILDDIR) to rebuild properly at every run.
 html: install
-	. $(VENV); $(SPHINXBUILD) -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" -w .sphinx/warnings.txt $(SPHINXOPTS)
+	. $(VENV); $(SPHINXBUILD) -v -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" -w .sphinx/warnings.txt $(SPHINXOPTS)
 
 epub: install
 	. $(VENV); $(SPHINXBUILD) -b epub "$(SOURCEDIR)" "$(BUILDDIR)" -w .sphinx/warnings.txt $(SPHINXOPTS)

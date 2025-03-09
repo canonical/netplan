@@ -126,6 +126,9 @@ redirects = {
     'netplan-yaml': '../reference/netplan-yaml',
 }
 
+redirect_html_template_file = "redirect_template.html"
+
+
 ############################################################
 # Link checker exceptions
 ############################################################
