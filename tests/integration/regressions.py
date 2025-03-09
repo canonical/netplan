@@ -88,7 +88,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
             f.write('''network:
   renderer: %(r)s
   version: 2''' % {'r': self.backend})
-            os.chmod(self.config, mode=0o600)
         p = subprocess.Popen(['netplan', 'try'], bufsize=1, text=True,
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
@@ -103,7 +102,6 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
             f.write('''network:
   renderer: %(r)s
   version: 2''' % {'r': self.backend})
-            os.chmod(self.config, mode=0o600)
         p = subprocess.Popen(['netplan', 'try'], bufsize=1, text=True,
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
@@ -151,7 +149,6 @@ class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     br54:
       addresses:
       - "10.0.0.20/24"''' % {'r': self.backend})
-            os.chmod(self.config, mode=0o600)
         del os.environ['PATH']  # clear PATH, to test for LP: #1959570
         p = subprocess.Popen(['/usr/sbin/netplan', 'try'], bufsize=1, text=True,
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -1015,6 +1015,13 @@ handle_auth_key_management(NetplanParser* npp, yaml_node_t* node, __unused const
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_NONE;
     else if (strcmp(scalar(node), "psk") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK;
+    else if (strcmp(scalar(node), "psk-sha256") == 0) {
+        /* WPA-PSK-SHA256 is commonly used with Protected Management Frames
+         * so let's set it as optional
+         */
+        auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256;
+        auth->pmf_mode = NETPLAN_AUTH_PMF_MODE_OPTIONAL;
+    }
     else if (strcmp(scalar(node), "eap") == 0)
         auth->key_management = NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP;
     else if (strcmp(scalar(node), "eap-sha256") == 0) {
@@ -1909,7 +1916,7 @@ handle_vxlan_tristate(NetplanParser* npp, yaml_node_t* node, const void* data, G
 STATIC int
 get_ip_family(const char* address)
 {
-    g_autofree char *ip_str;
+    g_autofree char *ip_str = NULL;
     char *prefix_len;
 
     ip_str = g_strdup(address);
@@ -3376,11 +3383,6 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             case NETPLAN_DEF_TYPE_NM:
                 g_debug("netplan: %s: handling NetworkManager passthrough device, settings are not fully supported.", npp->current.netdef->id);
                 handlers = ethernet_def_handlers;
-                if (npp->current.netdef->backend != NETPLAN_BACKEND_NM) {
-                    g_debug("nm-device: %s: the renderer for nm-devices must be NetworkManager, it will be used instead of the defined one.",
-                              npp->current.netdef->id);
-                    npp->current.netdef->backend = NETPLAN_BACKEND_NM;
-                }
                 break;
             default: g_assert_not_reached(); // LCOV_EXCL_LINE
         }
@@ -3407,6 +3409,12 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             } else {
                 return FALSE;
             }
+        }
+
+        if (npp->current.netdef->type == NETPLAN_DEF_TYPE_NM && npp->current.netdef->backend != NETPLAN_BACKEND_NM) {
+            g_debug("nm-device: %s: the renderer for nm-devices must be NetworkManager, it will be used instead of the defined one.",
+                    npp->current.netdef->id);
+            npp->current.netdef->backend = NETPLAN_BACKEND_NM;
         }
 
         /* Postprocessing */

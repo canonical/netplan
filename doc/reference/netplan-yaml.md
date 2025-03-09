@@ -462,7 +462,7 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 - **`gateway4`**, **`gateway6`** (scalar)
 
-  > Deprecated, see `Default routes`.
+  > Deprecated, see [Default routes](#default-routes).
   > Set default gateway for IPv4/6, for manual address configuration. This
   > requires setting `addresses` too. Gateway IP addresses must be in a form
   > recognised by **`inet_pton`**(3). There should only be a single gateway
@@ -879,6 +879,9 @@ network:
     > Specify a priority for the routing policy rule, to influence the order
     > in which routing rules are processed. A higher number means lower
     > priority: rules are processed in order by increasing priority number.
+    > Specifying an explicit, unique, priority for each routing policy rule
+    > is strongly recommended and is mandatory on the `NetworkManager`
+    > back-end.
 
   - **`mark`** (scalar)
 
@@ -907,7 +910,8 @@ interfaces, as well as individual Wi-Fi networks, by means of the `auth` block.
   - **`key-management`** (scalar)
 
     > The supported key management modes are `none` (no key management);
-    > `psk` (WPA with pre-shared key, common for home Wi-Fi); `eap` (WPA
+    > `psk` (WPA with pre-shared key, common for home Wi-Fi); `psk-sha256`
+    > (WPA2 with pre-shared key, common for home Wi-Fi); `eap` (WPA
     > with EAP, common for enterprise Wi-Fi); `eap-sha256` (used with WPA3-Enterprise);
     > `eap-suite-b-192` (used with WPA3-Enterprise); `sae` (used by WPA3);
     > and `802.1x` (used primarily for wired Ethernet connections).

@@ -34,6 +34,7 @@ import sys
 import tempfile
 import time
 import unittest
+import pathlib
 
 import gi
 
@@ -209,6 +210,9 @@ class IntegrationTestsBase(unittest.TestCase):
         self.workdir = self.workdir_obj.name
         self.config = '/etc/netplan/01-main.yaml'
         os.makedirs('/etc/netplan', exist_ok=True)
+        # prepare common config file with proper permissions
+        pathlib.Path(self.config).touch()
+        os.chmod(self.config, 0o600)
 
         # create static entropy file to avoid draining/blocking on /dev/random
         self.entropy_file = os.path.join(self.workdir, 'entropy')
@@ -558,7 +562,8 @@ class IntegrationTestsWifi(IntegrationTestsBase):
     @classmethod
     def setUpClass(klass):
         super().setUpClass()
-        # ensure we have this so that iw works
+        klass.orig_country = None
+        # ensure we have cfg80211 so that iw works
         try:
             subprocess.check_call(['modprobe', 'cfg80211'])
             # set regulatory domain "EU", so that we can use 80211.a 5 GHz channels
@@ -567,20 +572,34 @@ class IntegrationTestsWifi(IntegrationTestsBase):
             assert m
             klass.orig_country = m.group(1)
             subprocess.check_call(['iw', 'reg', 'set', 'EU'])
-        except Exception:
-            raise unittest.SkipTest("cfg80211 (wireless) is unavailable, can't test")
+        except subprocess.CalledProcessError:
+            print('cfg80211 (wireless) is unavailable, can\'t test', file=sys.stderr)
+            raise
 
     @classmethod
     def tearDownClass(klass):
-        subprocess.check_call(['iw', 'reg', 'set', klass.orig_country])
+        if klass.orig_country is not None:
+            subprocess.check_call(['iw', 'reg', 'set', klass.orig_country])
         super().tearDownClass()
 
     @classmethod
     def create_devices(klass):
         '''Create Access Point and Client devices with mac80211_hwsim and veth'''
+        # TODO: Consider using some trickery, to allow loading modules on the
+        # host by name/alias from within a container.
+        # https://github.com/weaveworks/weave/issues/3115
+        # https://x.com/lucabruno/status/902934379835662336
+        # https://github.com/docker-library/docker/blob/master/modprobe.sh  # wokeignore:rule=master
+        # https://github.com/torvalds/linux/blob/master/net/core/dev_ioctl.c:dev_load()  # wokeignore:rule=master
+        # e.g. via netdev ioctl SIOCGIFINDEX:
+        # https://github.com/weaveworks/go-odp/blob/master/odp/dpif.go#L67  # wokeignore:rule=master
+        #
+        # Or alternatively, port the WiFi testing to virt_wifi, which can be
+        # auto-loaded via "ip link add link eth0 name wlan42 type virt_wifi"
+        # inside a (privileged) LXC container, as used by autopkgtest.
+
         if os.path.exists('/sys/module/mac80211_hwsim'):
             raise SystemError('mac80211_hwsim module already loaded')
-        super().create_devices()
         # create virtual wlan devs
         before_wlan = set([c for c in os.listdir('/sys/class/net') if c.startswith('wlan')])
         subprocess.check_call(['modprobe', 'mac80211_hwsim'])
@@ -602,6 +621,7 @@ class IntegrationTestsWifi(IntegrationTestsBase):
         # don't let NM trample over our fake AP
         with open('/etc/NetworkManager/conf.d/99-test-denylist-wifi.conf', 'w') as f:
             f.write('[keyfile]\nunmanaged-devices+=%s\n' % klass.dev_w_ap)
+        super().create_devices()
 
     @classmethod
     def shutdown_devices(klass):

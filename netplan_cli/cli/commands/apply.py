@@ -252,7 +252,13 @@ class NetplanApply(utils.NetplanCommand):
                                       stderr=subprocess.DEVNULL)
 
         subprocess.check_call(['udevadm', 'control', '--reload'])
-        subprocess.check_call(['udevadm', 'trigger', '--action=move', '--subsystem-match=net', '--settle'])
+
+        try:
+            subprocess.check_call(['udevadm', 'trigger', '--action=move', '--subsystem-match=net', '--settle'])
+        except subprocess.CalledProcessError as e:
+            # udevadm trigger returns 1 if it cannot trigger devices since
+            # systemd v248, e.g. in containers (LP: #2095203)
+            logging.warning('Ignoring device trigger error: {}'.format(e))
 
         # apply any SR-IOV related changes, if applicable
         NetplanApply.process_sriov_config(config_manager, exit_on_error)

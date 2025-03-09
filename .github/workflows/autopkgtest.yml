@@ -48,6 +48,7 @@ jobs:
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
           sed -i 's|iproute2,|iproute2, ethtool,|' debian/control  # add ethtool as a dependency of netplan.io temporarily
+          sed -i 's|systemd (>= 257.2-3ubuntu1~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
@@ -57,4 +58,5 @@ jobs:
           autopkgtest . -U \
             --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
             --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
-            -- lxd autopkgtest/ubuntu/noble/amd64
+            -- lxd autopkgtest/ubuntu/noble/amd64 \
+            || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)

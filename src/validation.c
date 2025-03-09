@@ -41,8 +41,9 @@ is_ip4_address(const char* address)
 
     ret = inet_pton(AF_INET, address, &a4);
     g_assert(ret >= 0);
-    if (ret > 0)
+    if (ret > 0) {
         return TRUE;
+    }
 
     return FALSE;
 }
@@ -55,8 +56,9 @@ is_ip6_address(const char* address)
 
     ret = inet_pton(AF_INET6, address, &a6);
     g_assert(ret >= 0);
-    if (ret > 0)
+    if (ret > 0) {
         return TRUE;
+    }
 
     return FALSE;
 }
@@ -100,8 +102,9 @@ validate_ovs_target(gboolean host_first, gchar* s) {
                 vec = g_strsplit(host_port, "]:", 2);
                 g_free(host_port);
             }
-            else
+            else {
                 vec = g_strsplit(tmp, "]:", 2);
+            }
         // IP4 host
         } else {
             // append default port to unify parsing
@@ -110,8 +113,9 @@ validate_ovs_target(gboolean host_first, gchar* s) {
                 vec = g_strsplit(host_port, ":", 2);
                 g_free(host_port);
             }
-            else
+            else {
                 vec = g_strsplit(s, ":", 2);
+            }
         }
         // host and port are always set
         host = g_strdup(vec[0]); //set host alias
@@ -121,9 +125,9 @@ validate_ovs_target(gboolean host_first, gchar* s) {
     /* Format ptcp:[port][:host] or pssl:[port][:host] */
     } else {
         // special case: "ptcp:" (no port, no host)
-        if (!g_strcmp0(s, ""))
+        if (!g_strcmp0(s, "")) {
             port = g_strdup_printf("%u", dport);
-        else {
+        } else {
             vec = g_strsplit(s, ":", 2);
             port = g_strdup(vec[0]);
             host = g_strdup(vec[1]);
@@ -149,10 +153,11 @@ validate_ovs_target(gboolean host_first, gchar* s) {
     }
 
     if (atoi(port) > 0 && atoi(port) <= 65535) {
-        if (!host)
+        if (!host) {
             return TRUE;
-        else if (host && (is_ip4_address(host) || is_ip6_address(host)))
+        } else if (host && (is_ip4_address(host) || is_ip6_address(host))) {
             return TRUE;
+        }
     }
     return FALSE;
 }
@@ -177,8 +182,9 @@ validate_interface_name_length(const NetplanNetDefinition* netdef)
 
     /* TODO: make this a hard failure in the future, but keep it as a warning
      *       for now, to not break netplan generate at boot. */
-    if (iface)
+    if (iface) {
         g_warning("Interface name '%s' is too long. It will be ignored by the backend.", iface);
+    }
 
     return validation;
 }
@@ -194,8 +200,9 @@ validate_tunnel_key(const NetplanParser* npp, yaml_node_t* node, gchar* key, GEr
     guint64 v = g_ascii_strtoull(key, &endptr, 10);
     if (*endptr != '\0' || v > G_MAXUINT) {
         /* Not a simple uint, try for a dotted quad */
-        if (!is_ip4_address(key))
+        if (!is_ip4_address(key)) {
             return yaml_error(npp, node, error, "invalid tunnel key '%s'", key);
+        }
     }
     return TRUE;
 }
@@ -203,48 +210,60 @@ validate_tunnel_key(const NetplanParser* npp, yaml_node_t* node, gchar* key, GEr
 STATIC gboolean
 validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml_node_t* node, GError** error)
 {
-    if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN)
+    if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_UNKNOWN) {
         return yaml_error(npp, node, error, "%s: missing or invalid 'mode' property for tunnel", nd->id);
+    }
 
     if (nd->tunnel.mode == NETPLAN_TUNNEL_MODE_WIREGUARD) {
-        if (!nd->tunnel.private_key && nd->tunnel_private_key_flags == NETPLAN_KEY_FLAG_NONE)
+        if (!nd->tunnel.private_key && nd->tunnel_private_key_flags == NETPLAN_KEY_FLAG_NONE) {
             g_warning("%s: missing 'key' property (private key) for wireguard", nd->id);
-        if (nd->tunnel.private_key && nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key))
+        }
+        if (nd->tunnel.private_key && nd->tunnel.private_key[0] != '/' && !is_wireguard_key(nd->tunnel.private_key)) {
             return yaml_error(npp, node, error, "%s: invalid wireguard private key", nd->id);
+        }
         if (!nd->wireguard_peers || nd->wireguard_peers->len == 0) {
             g_warning("%s: at least one peer is required.", nd->id);
         } else {
             for (guint i = 0; i < nd->wireguard_peers->len; i++) {
                 NetplanWireguardPeer *peer = g_array_index (nd->wireguard_peers, NetplanWireguardPeer*, i);
 
-                if (!peer->allowed_ips || peer->allowed_ips->len == 0)
+                if (!peer->allowed_ips || peer->allowed_ips->len == 0) {
                     g_warning("%s: 'allowed-ips' is required for wireguard peers.", nd->id);
-                if (peer->keepalive > 65535)
+                }
+                if (peer->keepalive > 65535) {
                     return yaml_error(npp, node, error, "%s: keepalive must be 0-65535 inclusive.", nd->id);
+                }
 
-                if (!peer->public_key)
+                if (!peer->public_key) {
                     return yaml_error(npp, node, error, "%s: a public key is required.", nd->id);
-                if (!is_wireguard_key(peer->public_key))
+                }
+                if (!is_wireguard_key(peer->public_key)) {
                     return yaml_error(npp, node, error, "%s: invalid wireguard public key", nd->id);
-                if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key))
+                }
+                if (peer->preshared_key && peer->preshared_key[0] != '/' && !is_wireguard_key(peer->preshared_key)) {
                     return yaml_error(npp, node, error, "%s: invalid wireguard shared key", nd->id);
+                }
             }
         }
         return TRUE;
     } else {
-        if (nd->tunnel.input_key && !validate_tunnel_key(npp, node, nd->tunnel.input_key, error))
+        if (nd->tunnel.input_key && !validate_tunnel_key(npp, node, nd->tunnel.input_key, error)) {
             return FALSE;
-        if (nd->tunnel.output_key && !validate_tunnel_key(npp, node, nd->tunnel.output_key, error))
+        }
+        if (nd->tunnel.output_key && !validate_tunnel_key(npp, node, nd->tunnel.output_key, error)) {
             return FALSE;
+        }
     }
 
     /* Validate local/remote IPs */
     if (nd->tunnel.mode != NETPLAN_TUNNEL_MODE_VXLAN) {
-        if (!nd->tunnel.remote_ip)
+        if (!nd->tunnel.remote_ip) {
             return yaml_error(npp, node, error, "%s: missing 'remote' property for tunnel", nd->id);
+        }
     }
-    if (nd->tunnel_ttl && nd->tunnel_ttl > 255)
+    if (nd->tunnel_ttl && nd->tunnel_ttl > 255) {
         return yaml_error(npp, node, error, "%s: 'ttl' property for tunnel must be in range [1...255]", nd->id);
+    }
 
     switch(nd->tunnel.mode) {
         case NETPLAN_TUNNEL_MODE_IPIP6:
@@ -252,23 +271,28 @@ validate_tunnel_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, yaml
         case NETPLAN_TUNNEL_MODE_IP6GRE:
         case NETPLAN_TUNNEL_MODE_IP6GRETAP:
         case NETPLAN_TUNNEL_MODE_VTI6:
-            if (nd->tunnel.local_ip && !is_ip6_address(nd->tunnel.local_ip))
+            if (nd->tunnel.local_ip && !is_ip6_address(nd->tunnel.local_ip)) {
                 return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv6 address for this tunnel type", nd->id);
-            if (!is_ip6_address(nd->tunnel.remote_ip))
+            }
+            if (!is_ip6_address(nd->tunnel.remote_ip)) {
                 return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv6 address for this tunnel type", nd->id);
+            }
             break;
 
         case NETPLAN_TUNNEL_MODE_VXLAN:
             if ((nd->tunnel.local_ip && nd->tunnel.remote_ip) &&
-                (is_ip6_address(nd->tunnel.local_ip) != is_ip6_address(nd->tunnel.remote_ip)))
+                (is_ip6_address(nd->tunnel.local_ip) != is_ip6_address(nd->tunnel.remote_ip))) {
                 return yaml_error(npp, node, error, "%s: 'local' and 'remote' must be of same IP family type", nd->id);
+            }
             break;
 
         default:
-            if (nd->tunnel.local_ip && !is_ip4_address(nd->tunnel.local_ip))
+            if (nd->tunnel.local_ip && !is_ip4_address(nd->tunnel.local_ip)) {
                 return yaml_error(npp, node, error, "%s: 'local' must be a valid IPv4 address for this tunnel type", nd->id);
-            if (!is_ip4_address(nd->tunnel.remote_ip))
+            }
+            if (!is_ip4_address(nd->tunnel.remote_ip)) {
                 return yaml_error(npp, node, error, "%s: 'remote' must be a valid IPv4 address for this tunnel type", nd->id);
+            }
             break;
     }
 
@@ -303,10 +327,12 @@ validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd
                     break;
 
                 default:
-                    if (nd->tunnel.input_key)
+                    if (nd->tunnel.input_key) {
                         return yaml_error(npp, node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
-                    if (nd->tunnel.output_key)
+                    }
+                    if (nd->tunnel.output_key) {
                         return yaml_error(npp, node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+                    }
                     break;
             }
             break;
@@ -320,10 +346,12 @@ validate_tunnel_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd
                 case NETPLAN_TUNNEL_MODE_IP6GRETAP:
                     break;
                 default:
-                    if (nd->tunnel.input_key)
+                    if (nd->tunnel.input_key) {
                         return yaml_error(npp, node, error, "%s: 'input-key' is not required for this tunnel type", nd->id);
-                    if (nd->tunnel.output_key)
+                    }
+                    if (nd->tunnel.output_key) {
                         return yaml_error(npp, node, error, "%s: 'output-key' is not required for this tunnel type", nd->id);
+                    }
                     break;
             }
             break;
@@ -346,57 +374,70 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
     /* Skip all validation if we're missing some definition IDs (devices).
      * The ones we have yet to see may be necessary for validation to succeed,
      * we can complete it on the next parser pass. */
-    if (missing_id_count > 0 && (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) == 0)
+    if (missing_id_count > 0 && (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) == 0) {
         return TRUE;
+    }
 
     /* set-name: requires match: */
-    if (nd->set_name && !nd->has_match)
+    if (nd->set_name && !nd->has_match) {
         return yaml_error(npp, NULL, error, "%s: 'set-name:' requires 'match:' properties", nd->id);
+    }
 
-    if (nd->type == NETPLAN_DEF_TYPE_WIFI && nd->access_points == NULL)
+    if (nd->type == NETPLAN_DEF_TYPE_WIFI && nd->access_points == NULL) {
         return yaml_error(npp, NULL, error, "%s: No access points defined", nd->id);
+    }
 
     if (nd->type == NETPLAN_DEF_TYPE_VLAN) {
-        if (!nd->vlan_link)
+        if (!nd->vlan_link) {
             return yaml_error(npp, NULL, error, "%s: missing 'link' property", nd->id);
+        }
         nd->vlan_link->has_vlans = TRUE;
-        if (nd->vlan_id == G_MAXUINT)
+        if (nd->vlan_id == G_MAXUINT) {
             return yaml_error(npp, NULL, error, "%s: missing 'id' property", nd->id);
-        if (nd->vlan_id > 4094)
+        }
+        if (nd->vlan_id > 4094) {
             return yaml_error(npp, NULL, error, "%s: invalid id '%u' (allowed values are 0 to 4094)", nd->id, nd->vlan_id);
+        }
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL &&
         nd->tunnel.mode == NETPLAN_TUNNEL_MODE_VXLAN) {
-        if (nd->vxlan->vni == 0)
+        if (nd->vxlan->vni == 0) {
             return yaml_error(npp, NULL, error,
                               "%s: missing 'id' property (VXLAN VNI)", nd->id);
-        if (nd->vxlan->vni < 1 || nd->vxlan->vni > 16777215)
+        }
+        if (nd->vxlan->vni < 1 || nd->vxlan->vni > 16777215) {
             return yaml_error(npp, NULL, error, "%s: VXLAN 'id' (VNI) "
                               "must be in range [1..16777215]", nd->id);
-        if (nd->vxlan->flow_label != G_MAXUINT && nd->vxlan->flow_label > 1048575)
+        }
+        if (nd->vxlan->flow_label != G_MAXUINT && nd->vxlan->flow_label > 1048575) {
             return yaml_error(npp, NULL, error, "%s: VXLAN 'flow-label' "
                               "must be in range [0..1048575]", nd->id);
+        }
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_VRF) {
-        if (nd->vrf_table == G_MAXUINT)
+        if (nd->vrf_table == G_MAXUINT) {
             return yaml_error(npp, NULL, error, "%s: missing 'table' property", nd->id);
+        }
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
         valid = validate_tunnel_grammar(npp, nd, NULL, error);
-        if (!valid)
+        if (!valid) {
             goto netdef_grammar_error;
+        }
     }
 
     if (nd->type == NETPLAN_DEF_TYPE_VETH) {
-        if (!nd->veth_peer_link)
+        if (!nd->veth_peer_link) {
             return yaml_error(npp, NULL, error, "%s: virtual-ethernet missing 'peer' property", nd->id);
+        }
     }
 
-    if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && nd->ip6_addr_gen_token)
+    if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && nd->ip6_addr_gen_token) {
         return yaml_error(npp, NULL, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
+    }
 
     if (nd->backend == NETPLAN_BACKEND_OVS) {
         // LCOV_EXCL_START
@@ -407,14 +448,17 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
         // LCOV_EXCL_STOP
     }
 
-    if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.passthrough || !g_datalist_get_data(&nd->backend_settings.passthrough, "connection.type")))
+    if (nd->type == NETPLAN_DEF_TYPE_NM && (!nd->backend_settings.passthrough || !g_datalist_get_data(&nd->backend_settings.passthrough, "connection.type"))) {
         return yaml_error(npp, NULL, error, "%s: network type 'nm-devices:' needs to provide a 'connection.type' via passthrough", nd->id);
+    }
 
-    if (npp->current.netdef)
+    if (npp->current.netdef) {
         validate_interface_name_length(npp->current.netdef);
+    }
 
-    if (backend == NETPLAN_BACKEND_NONE)
+    if (backend == NETPLAN_BACKEND_NONE) {
         backend = npp->global_backend;
+    }
 
     if (nd->has_backend_settings_nm && backend != NETPLAN_BACKEND_NM) {
             return yaml_error(npp, NULL, error, "%s: networkmanager backend settings found but renderer is not NetworkManager.", nd->id);
@@ -437,8 +481,9 @@ validate_backend_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GErro
 
     if (nd->type == NETPLAN_DEF_TYPE_TUNNEL) {
         valid = validate_tunnel_backend_rules(npp, nd, node, error);
-        if (!valid)
+        if (!valid) {
             goto backend_rules_error;
+        }
     }
 
     valid = TRUE;
@@ -475,8 +520,9 @@ validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError*
             }
         }
         /* Does it set the eswitch mode? It can be set regardless if the interface has VFs */
-        if (nd->embedded_switch_mode)
+        if (nd->embedded_switch_mode) {
             is_sriov_pf = TRUE;
+        }
         if (nd->sriov_delay_virtual_functions_rebind && !is_sriov_pf) {
             valid = yaml_error(npp, node, error, "%s: This is not a SR-IOV PF", nd->id);
             goto sriov_rules_error;
@@ -498,8 +544,9 @@ adopt_and_validate_vrf_routes(__unused const NetplanParser *npp, GHashTable *net
     while (g_hash_table_iter_next (&iter, &key, &value))
     {
         NetplanNetDefinition *nd = value;
-        if (nd->type != NETPLAN_DEF_TYPE_VRF)
+        if (nd->type != NETPLAN_DEF_TYPE_VRF) {
             continue;
+        }
 
         /* Routes */
         if (nd->routes) {
@@ -523,10 +570,13 @@ adopt_and_validate_vrf_routes(__unused const NetplanParser *npp, GHashTable *net
         if (nd->ip_rules) {
             for (size_t i = 0; i < nd->ip_rules->len; i++) {
                 NetplanIPRule* r = g_array_index(nd->ip_rules, NetplanIPRule*, i);
+                if (r->priority == NETPLAN_IP_RULE_PRIO_UNSPEC) {
+                    g_warning("%s: No priority specified for routing-policy %zu", nd->id, i);
+                }
                 if (r->table == nd->vrf_table) {
                     g_debug("%s: Ignoring redundant routing-policy table %d (matches VRF table)", nd->id, r->table);
                     continue;
-                } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC && r->table != nd->vrf_table) {
+                } else if (r->table != NETPLAN_ROUTE_TABLE_UNSPEC) {
                     g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
                             "%s: VRF routing-policy table mismatch (%d != %d)", nd->id, nd->vrf_table, r->table);
                     return FALSE;
@@ -556,15 +606,17 @@ defroute_err(struct _defroute_entry *entry, const char *new_netdef_id, GError **
     g_assert(entry->family == AF_INET || entry->family == AF_INET6);
 
     // XXX: handle 254 as an alias for main ?
-    if (entry->table == NETPLAN_ROUTE_TABLE_UNSPEC)
+    if (entry->table == NETPLAN_ROUTE_TABLE_UNSPEC) {
         strncpy(table_name, "table: main", sizeof(table_name) - 1);
-    else
+    } else {
         snprintf(table_name, sizeof(table_name) - 1, "table: %d", entry->table);
+    }
 
-    if (entry->metric == NETPLAN_METRIC_UNSPEC)
+    if (entry->metric == NETPLAN_METRIC_UNSPEC) {
         strncpy(metric_name, "metric: default", sizeof(metric_name) - 1);
-    else
+    } else {
         snprintf(metric_name, sizeof(metric_name) - 1, "metric: %u", entry->metric);
+    }
 
     g_set_error(error, NETPLAN_VALIDATION_ERROR, NETPLAN_ERROR_CONFIG_GENERIC,
             "Conflicting default route declarations for %s (%s, %s), first declared in %s but also in %s",
@@ -633,8 +685,9 @@ validate_default_route_consistency(__unused const NetplanParser* npp, GHashTable
             }
         }
 
-        if (!nd->routes)
+        if (!nd->routes) {
             continue;
+        }
 
         for (size_t i = 0; i < nd->routes->len; i++) {
             NetplanIPRoute* r = g_array_index(nd->routes, NetplanIPRoute*, i);

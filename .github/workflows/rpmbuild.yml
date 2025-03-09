@@ -34,4 +34,4 @@ jobs:
           dnf -y builddep rpm/netplan.spec
           adduser test
           chown -R test:test .
-          su test -c 'rpmbuild -bi --build-in-place rpm/netplan.spec'
+          su test -c 'rpmbuild -bi -D "debug_package %{nil}" --build-in-place rpm/netplan.spec'

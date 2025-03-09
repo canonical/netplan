@@ -1073,6 +1073,122 @@ ip6-privacy=0
 route1=::/0,2001:beef:beef::1
 '''})
 
+    def test_ip_rule_missing_priority_fails_ipv4(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          table: 100
+          ''', expect_fail=True)
+        self.assertIn("ERROR: engreen: The priority setting is mandatory for NetworkManager routing-policy", err)
+
+    def test_ip_rule_missing_priority_fails_ipv6(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["2001:FFfe::1/64"]
+      routing-policy:
+        - to: 2001:FFfe::1/64
+          table: 100
+          ''', expect_fail=True)
+        self.assertIn("ERROR: engreen: The priority setting is mandatory for NetworkManager routing-policy", err)
+
+    def test_ip_rule_table(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          table: 100
+          priority: 99
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 table 100
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_ip_rule_fwmark(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - from: 10.10.10.0/24
+          mark: 50
+          priority: 99
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 from 10.10.10.0/24 fwmark 50
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_ip_rule_tos(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          type-of-service: 250
+          priority: 99
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 tos 250
+
+[ipv6]
+method=ignore
+'''})
+
     def test_routes_mixed(self):
         self.generate('''network:
   version: 2

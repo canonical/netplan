@@ -254,6 +254,64 @@ write_routes_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GErr
             j++;
         }
     }
+
+    return TRUE;
+}
+
+STATIC gboolean
+write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GError** error)
+{
+    const gchar* group = NULL;
+    gchar* tmp_key = NULL;
+    GString* tmp_val = NULL;
+
+    if (family == AF_INET)
+        group = "ipv4";
+    else if (family == AF_INET6)
+        group = "ipv6";
+    g_assert(group != NULL);
+
+    if (def->ip_rules != NULL) {
+        for (unsigned i = 0, j = 1; i < def->ip_rules->len; ++i) {
+            const NetplanIPRule *cur_rule = g_array_index(def->ip_rules, NetplanIPRule*, i);
+
+            if (cur_rule->family != family)
+                continue;
+
+            /* NetworkManager requires that priority be specified.  This is
+             * also in-line with the iproute2 guidance that "Each rule should
+             * have an explicitly set unique priority value"[1].
+             * [1]http://www.policyrouting.org/iproute2.doc.html#ss9.6.1 */
+            if (cur_rule->priority == NETPLAN_IP_RULE_PRIO_UNSPEC) {
+                g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED,
+                            "ERROR: %s: The priority setting is mandatory for NetworkManager routing-policy\n", def->id);
+                return FALSE;
+            }
+
+            tmp_key = g_strdup_printf("routing-rule%u", j);
+            tmp_val = g_string_sized_new(200);
+
+            g_string_printf(tmp_val, "priority %u", cur_rule->priority);
+
+            if (cur_rule->from)
+                g_string_append_printf(tmp_val, " from %s", cur_rule->from);
+            if (cur_rule->to)
+                g_string_append_printf(tmp_val, " to %s", cur_rule->to);
+            if (cur_rule->tos != NETPLAN_IP_RULE_TOS_UNSPEC)
+                g_string_append_printf(tmp_val, " tos %u", cur_rule->tos);
+            if (cur_rule->fwmark != NETPLAN_IP_RULE_FW_MARK_UNSPEC)
+                g_string_append_printf(tmp_val, " fwmark %u", cur_rule->fwmark);
+            if (cur_rule->table != NETPLAN_ROUTE_TABLE_UNSPEC)
+                g_string_append_printf(tmp_val, " table %u", cur_rule->table);
+
+            g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
+            g_free(tmp_key);
+            g_string_free(tmp_val, TRUE);
+
+            j++;
+        }
+    }
+
     return TRUE;
 }
 
@@ -457,6 +515,7 @@ write_wifi_auth_parameters(const NetplanAuthenticationSettings* auth, GKeyFile *
         case NETPLAN_AUTH_KEY_MANAGEMENT_NONE:
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK:
+        case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256:
             g_key_file_set_string(kf, "wifi-security", "key-mgmt", "wpa-psk");
             break;
         case NETPLAN_AUTH_KEY_MANAGEMENT_WPA_EAP:
@@ -716,6 +775,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_key_file_set_uint64(kf, "vrf", "table", def->vrf_table);
             if (!write_routes_nm(def, kf, AF_INET, error) || !write_routes_nm(def, kf, AF_INET6, error))
                 return FALSE;
+            if (!write_ip_rules_nm(def, kf, AF_INET, error) || !write_ip_rules_nm(def, kf, AF_INET6, error))
+                return FALSE;
         }
 
         if (def->type == NETPLAN_DEF_TYPE_VETH && def->veth_peer_link) {
@@ -871,6 +932,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         write_search_domains(def, "ipv4", kf);
         if (!write_routes_nm(def, kf, AF_INET, error))
             return FALSE;
+        if (!write_ip_rules_nm(def, kf, AF_INET, error))
+            return FALSE;
     }
 
     if (!def->dhcp4_overrides.use_routes) {
@@ -915,6 +978,9 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
 
         /* We can only write valid routes if there is a DHCPv6 or static IPv6 address */
         if (!write_routes_nm(def, kf, AF_INET6, error))
+            return FALSE;
+
+        if (!write_ip_rules_nm(def, kf, AF_INET6, error))
             return FALSE;
 
         if (!def->dhcp6_overrides.use_routes) {

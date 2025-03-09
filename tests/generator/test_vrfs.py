@@ -37,7 +37,8 @@ class NetworkManager(TestBase):
       - to: default
         via: 1.2.3.4
       routing-policy:
-      - from: 2.3.4.5''')
+      - from: 2.3.4.5
+        priority: 99''')
 
         self.assert_nm({'eth0': '''[connection]
 id=netplan-eth0
@@ -66,6 +67,7 @@ table=1005
 [ipv4]
 route1=0.0.0.0/0,1.2.3.4
 route1_options=table=1005
+routing-rule1=priority 99 from 2.3.4.5 table 1005
 method=link-local
 
 [ipv6]
@@ -224,3 +226,14 @@ From=2.3.4.5
 Table=1005
 ''',
                               'vrf1005.netdev': ND_VRF % ('vrf1005', 1005)})
+
+    def test_vrf_routing_policy_missing_priority_nm(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  vrfs:
+    vrf1005:
+      table: 1005
+      routing-policy:
+      - from: 2.3.4.5''', expect_fail=True)
+        self.assertIn("ERROR: vrf1005: The priority setting is mandatory for NetworkManager routing-policy", err)

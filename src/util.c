@@ -1235,6 +1235,7 @@ gboolean
 _is_auth_key_management_psk(const NetplanAuthenticationSettings* auth)
 {
     return (   auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSK
+            || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_PSKSHA256
             || auth->key_management == NETPLAN_AUTH_KEY_MANAGEMENT_WPA_SAE);
 }
 

@@ -275,6 +275,27 @@ network={
         self.assertTrue(os.path.islink(os.path.join(
             self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
+    def test_wifi_wpa_sha256(self):
+        self.generate('''network:
+  version: 2
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: psk-sha256
+            password: "********"''')
+
+        self.assert_wpa_supplicant("wl0", """ctrl_interface=/run/wpa_supplicant
+
+network={
+  ssid=P"homenet"
+  key_mgmt=WPA-PSK WPA-PSK-SHA256
+  ieee80211w=1
+  psk="********"
+}
+""")
+
     def test_wifi_wpa3_personal(self):
         self.generate('''network:
   version: 2
@@ -793,6 +814,39 @@ network={
   psk="********"
 }
 """)
+
+    def test_wifi_wpa_sha256(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wl0:
+      access-points:
+        homenet:
+          auth:
+            key-management: psk-sha256
+            password: "********"''')
+
+        self.assert_nm({'wl0-homenet': '''[connection]
+id=netplan-wl0-homenet
+type=wifi
+interface-name=wl0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[wifi]
+ssid=homenet
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+pmf=2
+psk=********
+'''})
 
     def test_wifi_wpa3_personal(self):
         self.generate('''network:
