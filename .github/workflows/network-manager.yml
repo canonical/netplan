@@ -41,7 +41,6 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          sed -i 's|systemd (>= 258~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
           echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
           echo 'usr/lib/systemd/system/netplan-configure.service' >> debian/netplan-generator.install
           sed -i 's|libexec/netplan/generate|libexec/netplan/configure|g' debian/netplan-generator.postinst
