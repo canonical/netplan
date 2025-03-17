@@ -30,6 +30,7 @@
 #include "error.h"
 #include "util-internal.h"
 #include "validation.h"
+#include "openvswitch.h"
 
 /* Check coherence for address types */
 
@@ -441,7 +442,7 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
 
     if (nd->backend == NETPLAN_BACKEND_OVS) {
         // LCOV_EXCL_START
-        if (!g_file_test(OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
+        if (!g_file_test(_get_netplan_openvswitch_ovs_vsctl_path(), G_FILE_TEST_EXISTS)) {
             /* Tested via integration test */
             return yaml_error(npp, NULL, error, "%s: The 'ovs-vsctl' tool is required to setup OpenVSwitch interfaces.", nd->id);
         }

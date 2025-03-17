@@ -29,3 +29,6 @@ _netplan_netdef_write_ovs(
 
 NETPLAN_INTERNAL gboolean
 _netplan_ovs_cleanup(const char* rootdir);
+
+const char *
+_get_netplan_openvswitch_ovs_vsctl_path(void);
