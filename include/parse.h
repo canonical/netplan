@@ -35,7 +35,7 @@
  * @return  An empty @ref NetplanParser
  */
 NETPLAN_PUBLIC NetplanParser*
-netplan_parser_new();
+netplan_parser_new(void);
 
 /**
  * @brief   Reset a @ref NetplanParser to its initial default values.
