@@ -31,7 +31,7 @@
  * @return  An empty @ref NetplanState
  */
 NETPLAN_PUBLIC NetplanState*
-netplan_state_new();
+netplan_state_new(void);
 
 /**
  * @brief   Reset a @ref NetplanState to its initial default values.
