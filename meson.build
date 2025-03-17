@@ -32,6 +32,8 @@ find = find_program('find')
 
 add_project_arguments(
     '-DSBINDIR="' + join_paths(get_option('prefix'), get_option('sbindir')) + '"',
+    '-DPREFIX="' + get_option('prefix') + '"',
+    '-DBINDIR="' + get_option('bindir') + '"',
     '-D_GNU_SOURCE',
     '-Wconversion',
     language: 'c')

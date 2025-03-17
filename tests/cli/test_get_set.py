@@ -26,7 +26,7 @@ import glob
 import yaml
 
 from netplan_cli.cli.commands.set import FALLBACK_FILENAME
-from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL
+from netplan_cli.cli.ovs import OVS_VSCTL_PATH
 
 from netplan import NetplanException
 from tests.test_utils import call_cli
@@ -520,7 +520,7 @@ class TestSet(unittest.TestCase):
         self.assertNotIn('eno2', out['network']['bridges']['br0']['parameters']['port-priority'])
         self.assertEqual(14, out['network']['bridges']['br0']['parameters']['port-priority']['eno1'])
 
-    @unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+    @unittest.skipIf(not os.path.exists(OVS_VSCTL_PATH),
                      'OpenVSwitch not installed')
     def test_set_delete_ovs_other_config(self):
         with open(self.path, 'w') as f:
