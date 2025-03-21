@@ -61,7 +61,7 @@ class NetplanApply(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
-    def command_apply(self, run_generate=True, sync=False, exit_on_error=True, state_dir=None):  # pragma: nocover
+    def command_apply(self, check_generate=True, sync=False, exit_on_error=True, state_dir=None):  # pragma: nocover
         config_manager = ConfigManager()
         if state_dir:
             self.state = state_dir
@@ -125,7 +125,7 @@ class NetplanApply(utils.NetplanCommand):
             generate_out = subprocess.STDOUT
 
         generator_call.append(utils.get_generator_path())
-        if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
+        if check_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
             if exit_on_error:
                 sys.exit(os.EX_CONFIG)
             else:
@@ -157,10 +157,11 @@ class NetplanApply(utils.NetplanCommand):
         if not restart_nm and old_files_nm:
             restart_nm = True
 
-        # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
-        # so let's make sure we only run it iff we're willing to run 'netplan generate'
-        if run_generate:
-            utils.systemctl_daemon_reload()
+        # Running 'systemctl daemon-reload' will re-run the netplan systemd generator.
+        # However, daemon-reload is also required to ensure that systemd-networkd
+        # loads the new configuration.
+        utils.systemctl_daemon_reload()
+
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration changed, reloading networkd')

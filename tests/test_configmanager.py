@@ -30,7 +30,6 @@ class TestConfigManager(unittest.TestCase):
         self.workdir = tempfile.TemporaryDirectory()
         self.configmanager = ConfigManager(prefix=self.workdir.name, extra_files={})
         os.makedirs(os.path.join(self.workdir.name, "etc/netplan"))
-        os.makedirs(os.path.join(self.workdir.name, "run/systemd/network"))
         os.makedirs(os.path.join(self.workdir.name, "run/NetworkManager/system-connections"))
         with open(os.path.join(self.workdir.name, "newfile.yaml"), 'w') as fd:
             print('''network:
@@ -185,8 +184,6 @@ class TestConfigManager(unittest.TestCase):
     veth0-peer2:
       peer: veth0-peer1
 ''', file=fd)
-        with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'w') as fd:
-            print("pretend .network", file=fd)
         with open(os.path.join(self.workdir.name, "run/NetworkManager/system-connections/pretend"), 'w') as fd:
             print("pretend NM config", file=fd)
 
@@ -266,36 +263,33 @@ class TestConfigManager(unittest.TestCase):
 
     def test_backup_missing_dirs(self):
         backup_dir = self.configmanager.tempdir
-        shutil.rmtree(os.path.join(self.workdir.name, "run/systemd/network"))
+        shutil.rmtree(os.path.join(self.workdir.name, "run/NetworkManager/system-connections"))
         self.configmanager.backup(backup_config_dir=False)
-        self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
         # no source dir means no backup as well
-        self.assertFalse(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
+        self.assertFalse(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
         self.assertFalse(os.path.exists(os.path.join(backup_dir, "etc/netplan/test.yaml")))
 
     def test_backup_without_config_file(self):
         backup_dir = self.configmanager.tempdir
         self.configmanager.backup(backup_config_dir=False)
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
-        self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
         self.assertFalse(os.path.exists(os.path.join(backup_dir, "etc/netplan/test.yaml")))
 
     def test_backup_with_config_file(self):
         backup_dir = self.configmanager.tempdir
         self.configmanager.backup(backup_config_dir=True)
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/NetworkManager/system-connections/pretend")))
-        self.assertTrue(os.path.exists(os.path.join(backup_dir, "run/systemd/network/01-pretend.network")))
         self.assertTrue(os.path.exists(os.path.join(backup_dir, "etc/netplan/test.yaml")))
 
     def test_revert(self):
         self.configmanager.backup()
-        with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'a+') as fd:
+        with open(os.path.join(self.workdir.name, "run/NetworkManager/system-connections/pretend"), 'a+') as fd:
             print("CHANGED", file=fd)
-        with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'r') as fd:
+        with open(os.path.join(self.workdir.name, "run/NetworkManager/system-connections/pretend"), 'r') as fd:
             lines = fd.readlines()
             self.assertIn("CHANGED\n", lines)
         self.configmanager.revert()
-        with open(os.path.join(self.workdir.name, "run/systemd/network/01-pretend.network"), 'r') as fd:
+        with open(os.path.join(self.workdir.name, "run/NetworkManager/system-connections/pretend"), 'r') as fd:
             lines = fd.readlines()
             self.assertNotIn("CHANGED\n", lines)
 

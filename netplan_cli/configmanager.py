@@ -108,9 +108,6 @@ class ConfigManager(object):
         self._copy_tree(os.path.join(self.prefix, "run/NetworkManager/system-connections"),
                         os.path.join(self.temp_run, "NetworkManager", "system-connections"),
                         missing_ok=True)
-        self._copy_tree(os.path.join(self.prefix, "run/systemd/network"),
-                        os.path.join(self.temp_run, "systemd", "network"),
-                        missing_ok=True)
 
     def revert(self):
         try:
@@ -118,15 +115,10 @@ class ConfigManager(object):
                 os.unlink(self.extra_files[extra_file])
                 del self.extra_files[extra_file]
             temp_nm_path = "{}/NetworkManager/system-connections".format(self.temp_run)
-            temp_networkd_path = "{}/systemd/network".format(self.temp_run)
             if os.path.exists(temp_nm_path):
                 shutil.rmtree(os.path.join(self.prefix, "run/NetworkManager/system-connections"))
                 self._copy_tree(temp_nm_path,
                                 os.path.join(self.prefix, "run/NetworkManager/system-connections"))
-            if os.path.exists(temp_networkd_path):
-                shutil.rmtree(os.path.join(self.prefix, "run/systemd/network"))
-                self._copy_tree(temp_networkd_path,
-                                os.path.join(self.prefix, "run/systemd/network"))
         except Exception as e:  # pragma: nocover (only relevant to filesystem failures)
             # If we reach here, we're in big trouble. We may have wiped out
             # file NM or networkd are using, and we most likely removed the
