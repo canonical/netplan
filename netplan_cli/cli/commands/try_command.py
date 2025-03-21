@@ -98,7 +98,7 @@ class NetplanTry(utils.NetplanCommand):
             self.backup()
             self.setup()
 
-            NetplanApply().command_apply(run_generate=True, sync=True, exit_on_error=False, state_dir=self.state)
+            NetplanApply().command_apply(check_generate=True, sync=True, exit_on_error=False, state_dir=self.state)
 
             # Touch stamp file, it is the signal (for netplan-dbus) that we're
             # ready to accept any Accept/Reject input (like SIGUSR1 or SIGTERM)
@@ -142,7 +142,7 @@ class NetplanTry(utils.NetplanCommand):
         shutil.copytree('/etc/netplan', confdir, dirs_exist_ok=True)
         # restore previous state
         self.config_manager.revert()
-        NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False, state_dir=tempdir)
+        NetplanApply().command_apply(check_generate=False, sync=True, exit_on_error=False, state_dir=tempdir)
         # clear the backup
         shutil.rmtree(tempdir)
 
