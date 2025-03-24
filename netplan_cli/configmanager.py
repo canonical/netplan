@@ -153,12 +153,18 @@ class ConfigManager(object):
 
     def _copy_tree(self, src, dst, missing_ok=False):
         try:
-            shutil.copytree(src, dst)
+            shutil.copytree(src, dst, copy_function=copy_with_ownership)
         except FileNotFoundError:
             if missing_ok:
                 pass
             else:
                 raise
+
+
+def copy_with_ownership(src, dst, follow_symlinks=True):
+    shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+    stat = os.stat(src, follow_symlinks=follow_symlinks)
+    os.chown(dst, stat.st_uid, stat.st_gid, follow_symlinks=follow_symlinks)
 
 
 class ConfigurationError(Exception):
