@@ -134,6 +134,46 @@ class _CommonTests():
         res = subprocess.run(['ip', 'link', 'show', 'dev', 'br54'], capture_output=True, text=True)
         self.assertIn('not exist', res.stderr)
 
+    # https://bugs.launchpad.net/netplan/+bug/2083029
+    def test_netplan_try_lp2083029(self):
+        self.setup_eth(None)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(e2c)s:
+      dhcp4: yes''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+        self.generate_and_settle([self.state_dhcp4(self.dev_e2_client)])
+        self.assert_iface_up(self.dev_e2_client,
+                             ['inet 192.168.6.[0-9]+/24'])
+
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    %(e2c)s:
+      dhcp4: false
+      addresses: [192.168.6.201/24]''' % {'r': self.backend, 'e2c': self.dev_e2_client})
+
+        def assert_static_ip():
+            self.assert_iface_up(self.dev_e2_client,
+                                 ['inet 192.168.6.201/24'])
+
+        self.try_and_settle(assert_static_ip,
+                            wait_interfaces_try=[
+                                self.state(self.dev_e2_client, "inet 192.168.6.201"),
+                            ],
+                            wait_interfaces_after=[
+                                # Use "dynamic" instead of state_dhcp4 since
+                                # state_dhcp4 will match our static address.
+                                self.state(self.dev_e2_client, "dynamic"),
+                            ])
+
+        self.assert_file_permissions()
+        self.assert_iface_up(self.dev_e2_client,
+                             expected_ip_a=['inet 192.168.6.[0-9]+/24'],
+                             unexpected_ip_a=['inet 192.168.6.201/24'])
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")
