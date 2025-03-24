@@ -27,6 +27,7 @@ import ipaddress
 import json
 import os
 import pwd
+import random
 import re
 import shutil
 import subprocess
@@ -373,6 +374,38 @@ class IntegrationTestsBase(unittest.TestCase):
 
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             print('\nWARNING: systemd units changed without reload:', out)
+
+        self.settle(wait_interfaces, state_dir)
+
+    def try_and_settle(self, try_func, wait_interfaces_try=None, wait_interfaces_after=None):
+        '''Run `netplan try`, wait for the configuration to apply, run `try_func` and allow try to time out'''
+
+        # Because `netplan try` uses select(2) to implement the timeout, stdin
+        # needs to be a stream that is never ready to read.
+        fifo_path = f"/tmp/netplan-try-test.{random.randint(10000, 99999)}"
+        os.mkfifo(fifo_path)
+        fifo = os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK)
+
+        proc = subprocess.Popen(["netplan", "try", "--timeout=5"], stdin=fifo)
+
+        # wait for apply to finish
+        while not pathlib.Path("/run/netplan/netplan-try.ready").exists():
+            time.sleep(0.1)
+
+        try:
+            self.settle(wait_interfaces=wait_interfaces_try)
+
+            try_func()
+
+            proc.wait()
+            self.settle(wait_interfaces=wait_interfaces_after)
+        finally:
+            # don't step on other tests
+            proc.wait()
+            os.close(fifo)
+            os.unlink(fifo_path)
+
+    def settle(self, wait_interfaces=None, state_dir=None):
         # start NM so that we can verify that it does not manage anything
         subprocess.call(['nm-online', '-sxq'])  # Wait for NM startup, from 'netplan apply'
         if not self.is_active('NetworkManager.service'):
