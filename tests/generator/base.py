@@ -263,6 +263,7 @@ class TestBase(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
         self.confdir = os.path.join(self.workdir.name, 'etc', 'netplan')
+        self.rundir = os.path.join(self.workdir.name, 'run', 'netplan')
         self.nm_enable_all_conf = os.path.join(
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
         self.maxDiff = None

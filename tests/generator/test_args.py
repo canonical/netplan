@@ -54,6 +54,12 @@ class TestConfigArgs(TestBase):
         self.assert_nm_udev(None)
         self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
 
+    def test_generate_fails_during_try(self):
+        os.makedirs(self.rundir, mode=0o700, exist_ok=True)
+        open(os.path.join(self.rundir, "netplan-try.ready"), "w").close()
+
+        self.generate('network:\n  version: 2', expect_fail=True)
+
     def test_file_args(self):
         conf = os.path.join(self.workdir.name, 'config')
         with open(conf, 'w') as f:
