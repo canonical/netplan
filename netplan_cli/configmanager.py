@@ -89,6 +89,7 @@ class ConfigManager(object):
         # Convoluted way to dump the parsed config to the logs...
         with tempfile.TemporaryFile() as tmp:
             self.np_state._dump_yaml(output_file=tmp)
+            tmp.seek(0)
             logging.debug("Merged config:\n{}".format(tmp.read()))
 
         return self.np_state
