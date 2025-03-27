@@ -373,6 +373,30 @@ class IntegrationTestsBase(unittest.TestCase):
 
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             print('\nWARNING: systemd units changed without reload:', out)
+
+        self.settle(wait_interfaces, state_dir)
+
+    def try_and_settle(self, try_func, wait_interfaces=None):
+        '''Run `netplan try`, wait for the configuration to apply, run `try_func` and allow try to time out'''
+
+        proc = subprocess.Popen(["netplan", "try", "--timeout=1"])
+
+        # wait for apply to finish
+        while not pathlib.Path("/run/netplan/netplan-try.ready").exists():
+            time.sleep(0.1)
+
+        try:
+            self.settle(wait_interfaces=wait_interfaces)
+
+            try_func()
+
+            proc.wait()
+            self.settle(wait_interfaces=wait_interfaces)
+        finally:
+            # don't step on other tests
+            proc.wait()
+
+    def settle(self, wait_interfaces=None, state_dir=None):
         # start NM so that we can verify that it does not manage anything
         subprocess.call(['nm-online', '-sxq'])  # Wait for NM startup, from 'netplan apply'
         if not self.is_active('NetworkManager.service'):
