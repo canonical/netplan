@@ -24,6 +24,18 @@
 #include <glib.h>
 #include "netplan.h"
 
+#ifndef PREFIX
+#define PREFIX "/usr"
+#endif
+
+#ifndef BINDIR
+#define BINDIR "bin"
+#endif
+
+#ifndef SNAPBINDIR
+#define SNAPBINDIR "/snap/bin"
+#endif
+
 #define SET_OPT_OUT_PTR(ptr,val) { if (ptr) *ptr = val; }
 
 #define __unused __attribute__((unused))
@@ -63,8 +75,6 @@ wifi_get_freq5(guint channel);
 
 gchar*
 systemd_escape(char* string);
-
-#define OPENVSWITCH_OVS_VSCTL "/usr/bin/ovs-vsctl"
 
 void
 mark_data_as_dirty(NetplanParser* npp, const void* data_ptr);

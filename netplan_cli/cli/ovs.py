@@ -19,10 +19,7 @@ import logging
 import os
 import subprocess
 
-from .utils import systemctl_is_active, systemctl_is_installed
-
-OPENVSWITCH_OVS_VSCTL = '/usr/bin/ovs-vsctl'
-OPENVSWITCH_OVSDB_SERVER_UNIT = 'ovsdb-server.service'
+OPENVSWITCH_OVS_VSCTL = 'ovs-vsctl'
 # Defaults for non-optional settings, as defined here:
 # http://www.openvswitch.org/ovs-vswitchd.conf.db.5.pdf
 DEFAULTS = {
@@ -46,17 +43,35 @@ class OvsDbServerNotInstalled(Exception):
     pass
 
 
+def _ovs_vsctl_path():  # pragma: nocover
+    if os.path.exists('/snap/bin/'+OPENVSWITCH_OVS_VSCTL):
+        return '/snap/bin/'+OPENVSWITCH_OVS_VSCTL
+    else:
+        return '/usr/bin/'+OPENVSWITCH_OVS_VSCTL
+
+
+OVS_VSCTL_PATH = _ovs_vsctl_path()
+
+
+def _ovs_installed():  # pragma: nocover
+    return os.path.exists(OVS_VSCTL_PATH)
+
+
+def _ovs_active():  # pragma: nocover
+    return subprocess.call([OVS_VSCTL_PATH, 'show'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+
 def _del_col(type, iface, column, value):
     """Cleanup values from a column (i.e. "column=value")"""
     default = DEFAULTS.get(column)
     if default is None:
         # removes the exact value only if it was set by netplan
-        cmd = [OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, value]
+        cmd = [OVS_VSCTL_PATH, 'remove', type, iface, column, value]
         logging.debug('Running: %s' % ' '.join(cmd))
         subprocess.check_call(cmd)
     elif default and default != value:
         # reset to default, if its not the default already
-        cmd = [OPENVSWITCH_OVS_VSCTL, 'set', type, iface, '%s=%s' % (column, default)]
+        cmd = [OVS_VSCTL_PATH, 'set', type, iface, '%s=%s' % (column, default)]
         logging.debug('Running: %s' % ' '.join(cmd))
         subprocess.check_call(cmd)
 
@@ -64,7 +79,7 @@ def _del_col(type, iface, column, value):
 def _del_dict(type, iface, column, key, value):
     """Cleanup values from a dictionary (i.e. "column:key=value")"""
     # removes the exact value only if it was set by netplan
-    cmd = [OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, column, '%s=\"%s\"' % (key, value)]
+    cmd = [OVS_VSCTL_PATH, 'remove', type, iface, column, '%s=\"%s\"' % (key, value)]
     logging.debug('Running: %s' % ' '.join(cmd))
     subprocess.check_call(cmd)
 
@@ -76,8 +91,8 @@ def _del_global(type, iface, key, value):
         iface = None
 
     if del_cmd:
-        args_get = [OPENVSWITCH_OVS_VSCTL, get_cmd]
-        args_del = [OPENVSWITCH_OVS_VSCTL, del_cmd]
+        args_get = [OVS_VSCTL_PATH, get_cmd]
+        args_del = [OVS_VSCTL_PATH, del_cmd]
         if iface:
             args_get.append(iface)
             args_del.append(iface)
@@ -112,7 +127,7 @@ def clear_setting(type, iface, setting, value):
     else:
         _del_col(type, iface, split[1], value)
     # Cleanup the tag itself (i.e. "netplan/column[/key]")
-    subprocess.check_call([OPENVSWITCH_OVS_VSCTL, 'remove', type, iface, 'external-ids', setting])
+    subprocess.check_call([OVS_VSCTL_PATH, 'remove', type, iface, 'external-ids', setting])
 
 
 def is_ovs_interface(iface, np_interface_dict):
@@ -129,11 +144,11 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     Also filter for individual settings tagged netplan/<column>[/<key]=value
     in external-ids and clear them if they have been set by netplan.
     """
-    if not systemctl_is_installed(OPENVSWITCH_OVSDB_SERVER_UNIT):
-        raise OvsDbServerNotInstalled("Cannot apply OVS cleanup: %s is 'not-found'" %
-                                      OPENVSWITCH_OVSDB_SERVER_UNIT)
-    if not systemctl_is_active(OPENVSWITCH_OVSDB_SERVER_UNIT):
-        raise OvsDbServerNotRunning('{} is not running'.format(OPENVSWITCH_OVSDB_SERVER_UNIT))
+    if not _ovs_installed():
+        raise OvsDbServerNotInstalled("Cannot apply OpenvSwitch cleanup: ovs-vsctl is 'not-found'")
+
+    if not _ovs_active():
+        raise OvsDbServerNotRunning('OpenvSwitch database is not running')
 
     config_manager.parse()
     ovs_ifaces = set()
@@ -144,47 +159,42 @@ def apply_ovs_cleanup(config_manager, ovs_old, ovs_current):  # pragma: nocover 
     # Tear down old OVS interfaces, not defined in the current config.
     # Use 'del-br' on the Interface table, to delete any netplan created VLAN fake bridges.
     # Use 'del-bond-iface' on the Interface table, to delete netplan created patch port interfaces
-    if os.path.isfile(OPENVSWITCH_OVS_VSCTL):
-        # Step 1: Delete all interfaces, which are not part of the current OVS config
-        for t in (('Port', 'del-port'), ('Bridge', 'del-br'), ('Interface', 'del-br')):
-            out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=name,external-ids',
-                                           '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t[0]],
-                                          text=True)
-            for line in out.splitlines():
-                if 'netplan=true' in line:
-                    iface = line.split(',')[0]
-                    # Skip cleanup if this OVS interface is part of the current netplan OVS config
-                    if iface in ovs_ifaces:
-                        continue
-                    if t[0] == 'Interface' and subprocess.run([OPENVSWITCH_OVS_VSCTL, 'br-exists', iface]).returncode > 0:
-                        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', 'del-bond-iface', iface])
-                    else:
-                        subprocess.check_call([OPENVSWITCH_OVS_VSCTL, '--if-exists', t[1], iface])
+    # Step 1: Delete all interfaces, which are not part of the current OVS config
+    for t in (('Port', 'del-port'), ('Bridge', 'del-br'), ('Interface', 'del-br')):
+        out = subprocess.check_output([OVS_VSCTL_PATH, '--columns=name,external-ids',
+                                       '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t[0]],
+                                      text=True)
+        for line in out.splitlines():
+            if 'netplan=true' in line:
+                iface = line.split(',')[0]
+                # Skip cleanup if this OVS interface is part of the current netplan OVS config
+                if iface in ovs_ifaces:
+                    continue
+                if t[0] == 'Interface' and subprocess.run([OVS_VSCTL_PATH, 'br-exists', iface]).returncode > 0:
+                    subprocess.check_call([OVS_VSCTL_PATH, '--if-exists', 'del-bond-iface', iface])
+                else:
+                    subprocess.check_call([OVS_VSCTL_PATH, '--if-exists', t[1], iface])
 
-        # Step 2: Clean up the settings of the remaining interfaces
-        for t in ('Port', 'Bridge', 'Interface', 'Open_vSwitch', 'Controller'):
-            cols = 'name,external-ids'
-            if t == 'Open_vSwitch':
-                cols = 'external-ids'
-            elif t == 'Controller':
-                cols = '_uuid,external-ids'  # handle _uuid as if it would be the iface 'name'
-            out = subprocess.check_output([OPENVSWITCH_OVS_VSCTL, '--columns=%s' % cols,
-                                           '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t],
-                                          text=True)
-            for line in out.splitlines():
-                if 'netplan/' in line:
-                    iface = '.'
-                    extids = line
-                    if t != 'Open_vSwitch':
-                        iface, extids = line.split(',', 1)
-                    # Check each line (interface) if it contains any netplan tagged settings, e.g.:
-                    # ovs0,"iface-id=myhostname netplan=true netplan/external-ids/iface-id=myhostname"
-                    # ovs1,"netplan=true netplan/global/set-fail-mode=standalone netplan/mcast_snooping_enable=false"
-                    for entry in extids.strip('"').split(' '):
-                        if entry.startswith('netplan/') and '=' in entry:
-                            setting, val = entry.split('=', 1)
-                            clear_setting(t, iface, setting, val)
-
-    # Show the warning only if we are or have been working with OVS definitions
-    elif ovs_old or ovs_current:
-        logging.warning('ovs-vsctl is missing, cannot tear down old OpenVSwitch interfaces')
+    # Step 2: Clean up the settings of the remaining interfaces
+    for t in ('Port', 'Bridge', 'Interface', 'Open_vSwitch', 'Controller'):
+        cols = 'name,external-ids'
+        if t == 'Open_vSwitch':
+            cols = 'external-ids'
+        elif t == 'Controller':
+            cols = '_uuid,external-ids'  # handle _uuid as if it would be the iface 'name'
+        out = subprocess.check_output([OVS_VSCTL_PATH, '--columns=%s' % cols,
+                                       '-f', 'csv', '-d', 'bare', '--no-headings', 'list', t],
+                                      text=True)
+        for line in out.splitlines():
+            if 'netplan/' in line:
+                iface = '.'
+                extids = line
+                if t != 'Open_vSwitch':
+                    iface, extids = line.split(',', 1)
+                # Check each line (interface) if it contains any netplan tagged settings, e.g.:
+                # ovs0,"iface-id=myhostname netplan=true netplan/external-ids/iface-id=myhostname"
+                # ovs1,"netplan=true netplan/global/set-fail-mode=standalone netplan/mcast_snooping_enable=false"
+                for entry in extids.strip('"').split(' '):
+                    if entry.startswith('netplan/') and '=' in entry:
+                        setting, val = entry.split('=', 1)
+                        clear_setting(t, iface, setting, val)

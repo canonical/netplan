@@ -30,7 +30,7 @@ from parser.base import capture_stderr
 
 from utils import state_from_yaml
 from netplan_cli.cli.commands.set import FALLBACK_FILENAME
-from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL
+from netplan_cli.cli.ovs import OVS_VSCTL_PATH
 
 import netplan
 from netplan.netdef import NetplanRoute
@@ -642,7 +642,7 @@ class TestNetDefinition(TestBase):
         netdef = state['eth0']
         self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef.filepath)
 
-    @unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+    @unittest.skipIf(not os.path.exists(OVS_VSCTL_PATH),
                      'OpenVSwitch not installed')
     def test_filepath_for_ovs_ports(self):
         state = state_from_yaml(self.confdir, '''network:
@@ -663,7 +663,7 @@ class TestNetDefinition(TestBase):
         self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef_port1.filepath)
         self.assertEqual(os.path.join(self.confdir, "a.yaml"), netdef_port2.filepath)
 
-    @unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+    @unittest.skipIf(not os.path.exists(OVS_VSCTL_PATH),
                      'OpenVSwitch not installed')
     def test_filepath_for_ovs_ports_when_conf_is_redefined(self):
         state = netplan.State()
@@ -847,7 +847,7 @@ class TestNetDefinition(TestBase):
 
         self.assertIsNone(state['eth0'].links.get('vrf'))
 
-    @unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+    @unittest.skipIf(not os.path.exists(OVS_VSCTL_PATH),
                      'OpenVSwitch not installed')
     def test_interface_has_pointer_to_peer(self):
         state = state_from_yaml(self.confdir, '''network:

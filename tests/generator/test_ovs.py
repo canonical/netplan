@@ -20,14 +20,14 @@
 import os
 import unittest
 
-from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL
+from netplan_cli.cli.ovs import OVS_VSCTL_PATH
 from .base import TestBase, ND_EMPTY, ND_WITHIP, ND_DHCP4, ND_DHCP6, \
                             OVS_PHYSICAL, OVS_VIRTUAL, \
                             OVS_BR_EMPTY, OVS_BR_DEFAULT, \
                             OVS_CLEANUP
 
 
-@unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+@unittest.skipIf(not os.path.exists(OVS_VSCTL_PATH),
                  'OpenVSwitch not installed')
 class TestOpenVSwitch(TestBase):
     '''OVS output'''
@@ -56,9 +56,9 @@ class TestOpenVSwitch(TestBase):
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs0
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth1
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br ovs0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs0 eth1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs0 eth0
 ''' + OVS_BR_DEFAULT % {'iface': 'ovs0'}},
                          'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''\
 Requires=netplan-ovs-ovs0.service
@@ -67,10 +67,10 @@ After=netplan-ovs-ovs0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/external-ids/iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:disable-in-band="true"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/other-config/disable-in-band="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 external-ids:iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 external-ids:netplan/external-ids/iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 other-config:disable-in-band="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 external-ids:netplan/other-config/disable-in-band="true"
 '''},
                          'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''\
 Requires=netplan-ovs-ovs0.service
@@ -79,8 +79,8 @@ After=netplan-ovs-ovs0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band="false"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth1 external-ids:netplan/other-config/disable-in-band="false"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth1 other-config:disable-in-band="false"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth1 external-ids:netplan/other-config/disable-in-band="false"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -118,10 +118,10 @@ ExecStart=/usr/bin/ovs-vsctl set Interface eth1 external-ids:netplan/other-confi
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/external-ids/iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . other-config:disable-in-band="true"
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/other-config/disable-in-band="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set open_vswitch . external-ids:iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set open_vswitch . external-ids:netplan/external-ids/iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set open_vswitch . other-config:disable-in-band="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set open_vswitch . external-ids:netplan/other-config/disable-in-band="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -140,10 +140,10 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/other-confi
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br ovs0
 ''' + OVS_BR_DEFAULT % {'iface': 'ovs0'} + '''\
-ExecStart=/usr/bin/ovs-vsctl set Bridge ovs0 protocols=OpenFlow10,OpenFlow11,OpenFlow12
-ExecStart=/usr/bin/ovs-vsctl set Bridge ovs0 external-ids:netplan/protocols="OpenFlow10,OpenFlow11,OpenFlow12"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge ovs0 protocols=OpenFlow10,OpenFlow11,OpenFlow12
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge ovs0 external-ids:netplan/protocols="OpenFlow10,OpenFlow11,OpenFlow12"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -197,12 +197,12 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp="off"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/external-ids/iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-bond br0 bond0 eth1 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 lacp=off
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/lacp="off"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/external-ids/iface-id="myhostname"
 '''},
                          'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
@@ -266,10 +266,10 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=active
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp="active"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-bond br0 bond0 eth1 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 lacp=active
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/lacp="active"
 '''},
                          'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
@@ -332,12 +332,12 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp="off"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=balance-tcp
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/bond_mode="balance-tcp"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-bond br0 bond0 eth1 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 lacp=off
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/lacp="off"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 bond_mode=balance-tcp
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/bond_mode="balance-tcp"
 '''},
                          'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
@@ -372,12 +372,12 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp="off"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 bond_mode=active-backup
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/bond_mode="active-backup"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-bond br0 bond0 eth1 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 lacp=off
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/lacp="off"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 bond_mode=active-backup
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/bond_mode="active-backup"
 '''},
                          'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
@@ -424,9 +424,9 @@ ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/bond_mode="acti
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth1
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br0 eth1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br0 eth2
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'}},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -449,12 +449,12 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'} + '''\
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/external-ids/iface-id="myhostname"
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 other-config:disable-in-band="true"
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/other-config/disable-in-band="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/external-ids/iface-id="myhostname"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 other-config:disable-in-band="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/other-config/disable-in-band="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the bridge has been only configured for OVS
@@ -480,16 +480,16 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/other-config/di
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth1
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 eth2
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set-fail-mode br0 secure
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/global/set-fail-mode="secure"
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 mcast_snooping_enable=true
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/mcast_snooping_enable="true"
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 rstp_enable=true
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/rstp_enable="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br0 eth1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br0 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set-fail-mode br0 secure
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/global/set-fail-mode="secure"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 mcast_snooping_enable=true
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/mcast_snooping_enable="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 rstp_enable=true
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/rstp_enable="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -540,10 +540,10 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/rstp_enable="tr
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'} + '''\
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 protocols=OpenFlow10,OpenFlow11,OpenFlow15
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/protocols="OpenFlow10,OpenFlow11,OpenFlow15"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 protocols=OpenFlow10,OpenFlow11,OpenFlow15
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/protocols="OpenFlow10,OpenFlow11,OpenFlow15"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -590,22 +590,22 @@ ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/protocols="Open
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'} + '''\
-ExecStart=/usr/bin/ovs-vsctl set-controller br0 ptcp: ptcp:1337 ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] ssl:10.10.10.1 \
-tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] tcp:[fe80::1]:1337 unix:/some/path punix:other/path
-ExecStart=/usr/bin/ovs-vsctl set Bridge br0 external-ids:netplan/global/set-controller="ptcp:,ptcp:1337,\
+ExecStart=''' + OVS_VSCTL_PATH + ''' set-controller br0 ptcp: ptcp:1337 ptcp:1337:[fe80::1234%eth0] pssl:1337:[fe80::1] \
+ssl:10.10.10.1 tcp:127.0.0.1:1337 tcp:[fe80::1234%eth0] tcp:[fe80::1]:1337 unix:/some/path punix:other/path
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Bridge br0 external-ids:netplan/global/set-controller="ptcp:,ptcp:1337,\
 ptcp:1337:[fe80::1234%eth0],pssl:1337:[fe80::1],ssl:10.10.10.1,tcp:127.0.0.1:1337,tcp:[fe80::1234%eth0],tcp:[fe80::1]:1337,\
 unix:/some/path,punix:other/path"
-ExecStart=/usr/bin/ovs-vsctl set Controller br0 connection-mode=out-of-band
-ExecStart=/usr/bin/ovs-vsctl set Controller br0 external-ids:netplan/connection-mode="out-of-band"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Controller br0 connection-mode=out-of-band
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Controller br0 external-ids:netplan/connection-mode="out-of-band"
 '''},
                          'global.service': OVS_VIRTUAL % {'iface': 'global', 'extra': '''
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl="/key/path,/some/path,/another/path"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set-ssl /key/path /some/path /another/path
+ExecStart=''' + OVS_VSCTL_PATH + ''' set open_vswitch . external-ids:netplan/global/set-ssl="/key/path,/some/path,/another/path"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -702,8 +702,8 @@ ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set-ssl /key/path /some/path /another/path
-ExecStart=/usr/bin/ovs-vsctl set open_vswitch . external-ids:netplan/global/set-ssl="/key/path,/some/path,/another/path"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set-ssl /key/path /some/path /another/path
+ExecStart=''' + OVS_VSCTL_PATH + ''' set open_vswitch . external-ids:netplan/global/set-ssl="/key/path,/some/path,/another/path"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -807,10 +807,10 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 eth1 eth2
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp="off"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-bond br0 bond0 eth1 eth2
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 lacp=off
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/lacp="off"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
@@ -856,8 +856,8 @@ Bond=bond0
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br1
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br1 patchx -- set Interface patchx type=patch options:peer=patchy
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br1 patchx -- set Interface patchx type=patch options:peer=patchy
 ''' + OVS_BR_DEFAULT % {'iface': 'br1'}},
                          'bond0.service': OVS_VIRTUAL % {'iface': 'bond0', 'extra':
                                                          '''Requires=netplan-ovs-br0.service
@@ -866,10 +866,11 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-bond br0 bond0 patchy eth0 -- set Interface patchy type=patch options:peer=patchx
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan="true"
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 lacp=off
-ExecStart=/usr/bin/ovs-vsctl set Port bond0 external-ids:netplan/lacp="off"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-bond br0 bond0 patchy eth0 -- set Interface patchy type=patch \
+options:peer=patchx
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 lacp=off
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port bond0 external-ids:netplan/lacp="off"
 '''},
                          'patchx.service': OVS_VIRTUAL % {'iface': 'patchx', 'extra':
                                                           '''Requires=netplan-ovs-br1.service
@@ -878,7 +879,7 @@ After=netplan-ovs-br1.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Port patchx external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port patchx external-ids:netplan="true"
 '''},
                          'patchy.service': OVS_VIRTUAL % {'iface': 'patchy', 'extra':
                                                           '''Requires=netplan-ovs-bond0.service
@@ -887,7 +888,7 @@ After=netplan-ovs-bond0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface patchy external-ids:netplan="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.170.1.1/24'),
@@ -915,15 +916,15 @@ ExecStart=/usr/bin/ovs-vsctl set Interface patchy external-ids:netplan="true"
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br0 patch0-1 -- set Interface patch0-1 type=patch options:peer=patch1-0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br0 patch0-1 -- set Interface patch0-1 type=patch options:peer=patch1-0
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'}},
                          'br1.service': OVS_VIRTUAL % {'iface': 'br1', 'extra': '''
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br1
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br1 patch1-0 -- set Interface patch1-0 type=patch options:peer=patch0-1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br1 patch1-0 -- set Interface patch1-0 type=patch options:peer=patch0-1
 ''' + OVS_BR_DEFAULT % {'iface': 'br1'}},
                          'patch0-1.service': OVS_VIRTUAL % {'iface': 'patch0-1', 'extra':
                                                             '''Requires=netplan-ovs-br0.service
@@ -932,7 +933,7 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Port patch0-1 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port patch0-1 external-ids:netplan="true"
 '''},
                          'patch1-0.service': OVS_VIRTUAL % {'iface': 'patch1-0', 'extra':
                                                             '''Requires=netplan-ovs-br1.service
@@ -941,7 +942,7 @@ After=netplan-ovs-br1.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Port patch1-0 external-ids:netplan="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         self.assert_networkd({'br0.network': ND_WITHIP % ('br0', '192.168.1.1/24'),
@@ -966,7 +967,7 @@ ExecStart=/usr/bin/ovs-vsctl set Port patch1-0 external-ids:netplan="true"
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0
 ''' + OVS_BR_DEFAULT % {'iface': 'br0'}},
                          'br0.100.service': OVS_VIRTUAL % {'iface': 'br0.100', 'extra':
                                                            '''Requires=netplan-ovs-br0.service
@@ -975,8 +976,8 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
-ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0.100 br0 100
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface br0.100 external-ids:netplan="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -1005,8 +1006,8 @@ After=netplan-ovs-br0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br0.100 br0 100
-ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br0.100 br0 100
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface br0.100 external-ids:netplan="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -1042,8 +1043,8 @@ ExecStart=/usr/bin/ovs-vsctl set Interface br0.100 external-ids:netplan="true"
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs-br
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br ovs-br
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs-br non-ovs-bond
 ''' + OVS_BR_DEFAULT % {'iface': 'ovs-br'}},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane
@@ -1097,13 +1098,13 @@ ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs-br non-ovs-bond
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br br123
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port br123 nic1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br br123
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port br123 nic1
 ''' + OVS_BR_DEFAULT % {'iface': 'br123'} + ('\
-ExecStart=/usr/bin/ovs-vsctl set Bridge br123 protocols=OpenFlow10,OpenFlow11,OpenFlow12\n\
-ExecStart=/usr/bin/ovs-vsctl set Bridge br123 external-ids:netplan/protocols="OpenFlow10,OpenFlow11,OpenFlow12"\n\
-ExecStart=/usr/bin/ovs-vsctl set-controller br123 tcp:127.0.0.1:6653\n\
-ExecStart=/usr/bin/ovs-vsctl set Bridge br123 external-ids:netplan/global/set-controller="tcp:127.0.0.1:6653"\n\
+ExecStart=' + OVS_VSCTL_PATH + ' set Bridge br123 protocols=OpenFlow10,OpenFlow11,OpenFlow12\n\
+ExecStart=' + OVS_VSCTL_PATH + ' set Bridge br123 external-ids:netplan/protocols="OpenFlow10,OpenFlow11,OpenFlow12"\n\
+ExecStart=' + OVS_VSCTL_PATH + ' set-controller br123 tcp:127.0.0.1:6653\n\
+ExecStart=' + OVS_VSCTL_PATH + ' set Bridge br123 external-ids:netplan/global/set-controller="tcp:127.0.0.1:6653"\n\
 ')},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
 
@@ -1135,8 +1136,8 @@ After=netplan-ovs-abc%2F..%2F..%2F123.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br abc/../../123.100 abc/../../123 100
-ExecStart=/usr/bin/ovs-vsctl set Interface abc/../../123.100 external-ids:netplan="true"
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br abc/../../123.100 abc/../../123 100
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface abc/../../123.100 external-ids:netplan="true"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
 
@@ -1164,9 +1165,9 @@ ExecStart=/usr/bin/ovs-vsctl set Interface abc/../../123.100 external-ids:netpla
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br ovs0
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth1
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-port ovs0 eth0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-br ovs0
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs0 eth1
+ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs0 eth0
 ''' + OVS_BR_DEFAULT % {'iface': 'ovs0'}},
                          'eth0.service': OVS_PHYSICAL % {'iface': 'eth0', 'extra': '''\
 Requires=netplan-ovs-ovs0.service
@@ -1175,10 +1176,12 @@ After=netplan-ovs-ovs0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:a\\n1\\ra=" \\; a \\; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/external-ids/a\\n1\\ra=",;,a,;,1,;a;,;b\\t;\\t3,;\\ta\\t;,1"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 other-config:a\\n1\\ra=" \\; a \\; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth0 external-ids:netplan/other-config/a\\n1\\ra=",;,a,;,1,;a;,;b\\t;\\t3,;\\ta\\t;,1"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 external-ids:a\\n1\\ra=" \\; a \\; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 \
+external-ids:netplan/external-ids/a\\n1\\ra=",;,a,;,1,;a;,;b\\t;\\t3,;\\ta\\t;,1"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 other-config:a\\n1\\ra=" \\; a \\; 1 ;a; ;b\\t;\\t3 ;\\ta\\t; 1"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth0 \
+external-ids:netplan/other-config/a\\n1\\ra=",;,a,;,1,;a;,;b\\t;\\t3,;\\ta\\t;,1"
 '''},
                          'eth1.service': OVS_PHYSICAL % {'iface': 'eth1', 'extra': '''\
 Requires=netplan-ovs-ovs0.service
@@ -1187,8 +1190,8 @@ After=netplan-ovs-ovs0.service
 [Service]
 Type=oneshot
 TimeoutStartSec=10s
-ExecStart=/usr/bin/ovs-vsctl set Interface eth1 other-config:disable-in-band="false"
-ExecStart=/usr/bin/ovs-vsctl set Interface eth1 external-ids:netplan/other-config/disable-in-band="false"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth1 other-config:disable-in-band="false"
+ExecStart=''' + OVS_VSCTL_PATH + ''' set Interface eth1 external-ids:netplan/other-config/disable-in-band="false"
 '''},
                          'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
         # Confirm that the networkd config is still sane

@@ -22,7 +22,7 @@ import tempfile
 import unittest
 
 from netplan_cli.configmanager import ConfigManager, ConfigurationError
-from netplan_cli.cli.ovs import OPENVSWITCH_OVS_VSCTL
+from netplan_cli.cli.ovs import OVS_VSCTL_PATH
 
 
 class TestConfigManager(unittest.TestCase):
@@ -230,7 +230,7 @@ class TestConfigManager(unittest.TestCase):
         self.assertIn('eth0',    state.ethernets)
         self.assertIn('eth42',   state.ethernets)
 
-    @unittest.skipIf(not os.path.exists(OPENVSWITCH_OVS_VSCTL),
+    @unittest.skipIf(not os.path.exists(OVS_VSCTL_PATH),
                      'OpenVSwitch not installed')
     def test_parse_merging_ovs(self):
         state = self.configmanager.parse(extra_config=[os.path.join(self.workdir.name, "ovs_merging.yaml")])
