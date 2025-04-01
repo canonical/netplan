@@ -3,7 +3,7 @@
 This guide shows how to configure a virtual machine (VM) host using Netplan and the `virsh` interface. The host in this scenario has four network interface (NICs). The host uses network bonding and three VLAN networks.
 
 
-```{include} reuse/configure-vm-prerequisites.md
+```{include} ../reuse/configure-vm-prerequisites.md
 
 ```
 
@@ -35,7 +35,7 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
 
-```{include} reuse/configure-vm-disable-netfilter.md
+```{include} ../reuse/configure-vm-disable-netfilter.md
 
 ```
 
@@ -141,16 +141,16 @@ Configure Netplan:
     ```
 
 
-```{include} reuse/configure-vm-using-virsh.md
+```{include} ../reuse/configure-vm-using-virsh.md
 
 ```
 
 
-```{include} reuse/configure-vm-check-networking-delete-default.md
+```{include} ../reuse/configure-vm-check-networking-delete-default.md
 
 ```
 
 
-```{include} reuse/configure-vm-create-bridged-networks.md
+```{include} ../reuse/configure-vm-create-bridged-networks.md
 
 ```

@@ -120,9 +120,14 @@ slug = ""
 # For example: 'explanation/old-name.html': '../how-to/prettify.html',
 
 redirects = {
-    'README.md': '/',
-    'netplan': '/netplan-yaml',
+    'README.md': '../',
+    'netplan': '../reference/netplan-yaml',
+    'netplan-everywhere': '../howto/netplan-everywhere',
+    'netplan-yaml': '../reference/netplan-yaml',
 }
+
+redirect_html_template_file = "redirect_template.html"
+
 
 ############################################################
 # Link checker exceptions
