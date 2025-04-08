@@ -164,11 +164,18 @@ class IntegrationTestsBase(unittest.TestCase):
         subprocess.check_call(['ip', 'link', 'add', 'name', 'eth43', 'type',
                                'veth', 'peer', 'name', 'veth43'])
 
-        # Creation of the veths introduces a race with newer versions of
-        # systemd, as it  will change the initial MAC address after the device
-        # was created and networkd took control. Give it some time, so we read
-        # the correct MAC address
-        time.sleep(0.1)
+        # systemd-udevd uses "MACAddressPolicy=permanent" by default in
+        # /usr/lib/systemd/network/99-default.link
+        # When a new veth device is created via iproute2 ("ip link add ..."),
+        # the kernel assigns a MAC address. Once udev picks up the interface, it
+        # will apply this default policy. But as veths cannot (by nature) have
+        # a permanent MAC, udev will create a random (but persistent) MAC,
+        # changing the kernel MAC.
+        # Let's trigger out test interfaces and wait for settlement of those
+        # uevents to avoid race conditions between the MAC assigned by the
+        # kernel on veth creation and the pseudo "permanent" MAC from udev.
+        subprocess.check_call(['udevadm', 'trigger', '--settle', '/sys/class/net/eth42'])
+        subprocess.check_call(['udevadm', 'trigger', '--settle', '/sys/class/net/eth43'])
         out = subprocess.check_output(['ip', '-br', 'link', 'show', 'dev', 'eth42'],
                                       text=True)
         klass.dev_e_client_mac = out.split()[2]
