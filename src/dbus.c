@@ -489,7 +489,7 @@ method_try(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
        argv[0] = getenv("DBUS_TEST_NETPLAN_CMD");
 
     /* Delete any left-over netplan-try.ready stamp file, if it exists */
-    netplan_try_stamp = g_build_path("/", NETPLAN_ROOT, "run", "netplan", "netplan-try.ready", NULL);
+    netplan_try_stamp = g_build_path(G_DIR_SEPARATOR_S, NETPLAN_ROOT, "run", "netplan", "netplan-try.ready", NULL);
     unlink(netplan_try_stamp);
     /* Launch 'netplan try' child process, lock 'try_pid' to real PID */
     g_spawn_async_with_pipes("/", argv, NULL,
@@ -716,7 +716,7 @@ method_config(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     int r = 0;
 
     /* Create state directory, according to "run/netplan/config-XXXXXX" template */
-    tmpl = g_build_path("/", NETPLAN_ROOT, "run", "netplan", "config-XXXXXX", NULL);
+    tmpl = g_build_path(G_DIR_SEPARATOR_S, NETPLAN_ROOT, "run", "netplan", "config-XXXXXX", NULL);
     dir = g_path_get_dirname(tmpl);
     r = g_mkdir_with_parents(dir, 0700);
     path = g_mkdtemp(tmpl); // returns pointer to tmpl (with modified string)

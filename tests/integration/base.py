@@ -380,6 +380,49 @@ class IntegrationTestsBase(unittest.TestCase):
 
         if 'Run \'systemctl daemon-reload\' to reload units.' in out:
             print('\nWARNING: systemd units changed without reload:', out)
+
+        self.settle(wait_interfaces, state_dir)
+
+    def try_and_settle(self, try_func, wait_interfaces_try=None, wait_interfaces_after=None):
+        '''Run `netplan try`, wait for the configuration to apply, run `try_func` and allow try to time out'''
+
+        # Because `netplan try` uses select(2) to implement the timeout, stdin
+        # needs to be a stream that is never ready to read.
+        # Use mkstemp to avoid prior failures' leftovers.
+        (fifo_tmp, fifo_path) = tempfile.mkstemp(prefix="netplan-try-test")
+        os.close(fifo_tmp)
+        os.unlink(fifo_path)
+
+        os.mkfifo(fifo_path)
+        fifo = os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK)
+
+        try:
+            timeout = 10
+
+            proc = subprocess.Popen(["netplan", "try", f"--timeout={timeout}"], stdin=fifo)
+
+            # wait for apply to finish
+            wait_duration = 0
+            while not pathlib.Path("/run/netplan/netplan-try.ready").exists():
+                wait_duration += 0.1
+                time.sleep(0.1)
+
+                if wait_duration > timeout:
+                    break
+
+            self.settle(wait_interfaces=wait_interfaces_try)
+
+            try_func()
+
+            proc.wait()
+            self.settle(wait_interfaces=wait_interfaces_after)
+        finally:
+            # don't step on other tests
+            proc.wait()
+            os.close(fifo)
+            os.unlink(fifo_path)
+
+    def settle(self, wait_interfaces=None, state_dir=None):
         # start NM so that we can verify that it does not manage anything
         subprocess.call(['nm-online', '-sxq'])  # Wait for NM startup, from 'netplan apply'
         if not self.is_active('NetworkManager.service'):
