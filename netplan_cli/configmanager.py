@@ -151,9 +151,9 @@ class ConfigManager(object):
     def _copy_file(self, src, dst):
         shutil.copy(src, dst)
 
-    def _copy_tree(self, src, dst, missing_ok=False):
+    def _copy_tree(self, src, dst, missing_ok=False, **kwargs):
         try:
-            shutil.copytree(src, dst, copy_function=copy_with_ownership)
+            shutil.copytree(src, dst, copy_function=copy_with_ownership, **kwargs)
         except FileNotFoundError:
             if missing_ok:
                 pass
