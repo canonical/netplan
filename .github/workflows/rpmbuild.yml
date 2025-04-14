@@ -19,19 +19,23 @@ jobs:
         container:
           - fedora:latest
           # - fedora:rawhide
-          - rockylinux:9
+          - almalinux:10-kitten
+          # - rockylinux:10
     container:
       image: ${{ matrix.container }}
     steps:
+      - name: Install Build-Dependencies
+        run: |
+          # for 'dnf builddep' and 'dnf config-manager'
+          dnf -y install git rpmdevtools 'dnf-command(config-manager)'
+          dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL10
+          dnf config-manager --set-enabled nfv || true  # OVS on EL10
+          dnf -y install epel-release || true  # Pandoc, python-rich, ...
       - uses: actions/checkout@v2
       - name: Build & Test
         run: |
           cat /etc/os-release
-          dnf -y install dnf-plugins-core rpmdevtools  # for 'dnf builddep'
-          dnf -y install epel-release || true
-          dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL9
-          dnf -y install centos-release-nfv-openvswitch || true  # OVS on EL9
-          dnf -y builddep rpm/netplan.spec
           adduser test
           chown -R test:test .
+          dnf -y builddep rpm/netplan.spec
           su test -c 'rpmbuild -bi -D "debug_package %{nil}" --build-in-place rpm/netplan.spec'
