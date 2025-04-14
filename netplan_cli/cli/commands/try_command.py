@@ -139,7 +139,7 @@ class NetplanTry(utils.NetplanCommand):
         tempdir = tempfile.mkdtemp()
         confdir = os.path.join(tempdir, 'etc', 'netplan')
         os.makedirs(confdir)
-        self.config_manager._copy_tree('/etc/netplan', confdir, dirs_exist_ok=True)
+        self.config_manager.copy_tree('/etc/netplan', confdir, dirs_exist_ok=True)
         # restore previous state
         self.config_manager.revert()
         NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False, state_dir=tempdir)

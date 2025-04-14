@@ -332,12 +332,12 @@ class TestConfigManager(unittest.TestCase):
         del self.configmanager
         self.assertFalse(os.path.exists(backup_dir))
 
-    def test__copy_tree(self):
-        self.configmanager._copy_tree(os.path.join(self.workdir.name, "etc"),
-                                      os.path.join(self.workdir.name, "etc2"))
+    def test_copy_tree(self):
+        self.configmanager.copy_tree(os.path.join(self.workdir.name, "etc"),
+                                     os.path.join(self.workdir.name, "etc2"))
         self.assertTrue(os.path.exists(os.path.join(self.workdir.name, "etc2/netplan/test.yaml")))
 
-    def test__copy_tree_missing_source(self):
+    def test_copy_tree_missing_source(self):
         with self.assertRaises(FileNotFoundError):
-            self.configmanager._copy_tree(os.path.join(self.workdir.name, "nonexistent"),
-                                          os.path.join(self.workdir.name, "nonexistent2"), missing_ok=False)
+            self.configmanager.copy_tree(os.path.join(self.workdir.name, "nonexistent"),
+                                         os.path.join(self.workdir.name, "nonexistent2"), missing_ok=False)
