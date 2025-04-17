@@ -10,3 +10,4 @@ __pycache__
 src/_features.h
 netplan_cli/_features.py
 dbus/io.netplan.Netplan.service
+.DS_Store
