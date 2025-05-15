@@ -23,10 +23,10 @@ systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratord
 bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu
-pyflakes = find_program('pyflakes-3', 'pyflakes3', required: get_option('testing'))
+pyflakes = find_program('pyflakes-3', 'pyflakes3', 'pyflakes', required: get_option('testing'))
 pycodestyle = find_program('pycodestyle-3', 'pycodestyle', 'pep8', required: get_option('testing'))
 pytest = find_program('pytest-3', 'pytest3', required: get_option('testing'))  # also requires the pytest-cov plugin
-pycoverage = find_program('coverage-3', 'python3-coverage', required: get_option('testing'))
+pycoverage = find_program('coverage-3', 'python3-coverage', 'coverage', required: get_option('testing'))
 pandoc = find_program('pandoc', required: false)
 find = find_program('find')
 
@@ -78,15 +78,24 @@ if get_option('testing')
       subdir('tests/ctests')
     endif
 
-    #FIXME: exclude doc/env/
+    # Note: Pyflakes doesn't support excluding files.
+    #       Alternative could be flake8.
     test('linting',
          pyflakes,
          timeout: 100,
-         args: [meson.current_source_dir()])
+         args: [
+           join_paths(meson.current_source_dir(), 'doc'),
+           join_paths(meson.current_source_dir(), 'sitecustomize.py'),
+           join_paths(meson.current_source_dir(), 'netplan_cli'),
+           join_paths(meson.current_source_dir(), 'examples'),
+           join_paths(meson.current_source_dir(), 'tests'),
+           join_paths(meson.current_source_dir(), 'tools'),
+           join_paths(meson.current_source_dir(), 'python-cffi'),
+         ])
     test('codestyle',
          pycodestyle,
          timeout: 100,
-         args: ['--max-line-length=130', '--exclude=doc/env,*meson-private/pycompile.py', meson.current_source_dir()])
+         args: ['--max-line-length=130', '--exclude=doc/env,*meson-private/pycompile.py,.venv,build', meson.current_source_dir()])
     test('documentation',
          find_program('tests/validate_docs.sh'),
          timeout: 100,
