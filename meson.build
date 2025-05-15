@@ -22,7 +22,7 @@ completions = dependency('bash-completion')
 systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')
 bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
 
-# Order: Fedora/Mageia/openSUSE || Debian/Ubuntu
+# Order: Fedora/Mageia/openSUSE || Debian/Ubuntu || Virtualenv
 pyflakes = find_program('pyflakes-3', 'pyflakes3', 'pyflakes', required: get_option('testing'))
 pycodestyle = find_program('pycodestyle-3', 'pycodestyle', 'pep8', required: get_option('testing'))
 pytest = find_program('pytest-3', 'pytest3', required: get_option('testing'))  # also requires the pytest-cov plugin
