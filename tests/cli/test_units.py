@@ -140,15 +140,15 @@ class TestCLI(unittest.TestCase):
         # my attempts to mock sys.stderr didn't work with pytest
         # This will get the error message passed to logging.warning
         # as a parameter
-        with patch('logging.warning') as log, self.assertRaises(SystemExit):
+        with patch('logging.warning') as log, self.assertRaises(SystemExit) as e:
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
             Netplan().main()
-            sys.argv = old_argv
-
-            args = log.call_args.args
-            self.assertIn('Error in network definition: invalid boolean value', args[0])
+        self.assertEqual(1, e.exception.code)
+        sys.argv = old_argv
+        args = log.call_args.args
+        self.assertIn('Error in network definition: invalid boolean value', args[0])
 
     @unittest.skipIf(os.getuid() == 0, 'Root can always read the file')
     def test_raises_exception_main_function_permission_denied(self):
@@ -160,15 +160,15 @@ class TestCLI(unittest.TestCase):
 
         os.chmod(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 0)
 
-        with patch('logging.warning') as log, self.assertRaises(SystemExit):
+        with patch('logging.warning') as log, self.assertRaises(SystemExit) as e:
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
             Netplan().main()
-            sys.argv = old_argv
-
-            args = log.call_args.args
-            self.assertIn('Permission denied', args[0])
+        self.assertEqual(1, e.exception.code)
+        sys.argv = old_argv
+        args = log.call_args.args
+        self.assertIn('Permission denied', args[0])
 
     def test_get_validation_error_exception(self):
         with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
@@ -177,14 +177,15 @@ class TestCLI(unittest.TestCase):
     eth0:
       set-name: abc''')
 
-        with patch('logging.warning') as log, self.assertRaises(SystemExit):
+        with patch('logging.warning') as log, self.assertRaises(SystemExit) as e:
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
             Netplan().main()
-            sys.argv = old_argv
-            args = log.call_args.args
-            self.assertIn('etc/netplan/test.yaml: Error in network definition', args[0])
+        self.assertEqual(1, e.exception.code)
+        sys.argv = old_argv
+        args = log.call_args.args
+        self.assertIn('etc/netplan/test.yaml: Error in network definition', args[0])
 
     def test_set_generic_validation_error_exception(self):
         with open(os.path.join(self.tmproot, 'etc/netplan/test.yaml'), 'w') as f:
@@ -196,11 +197,12 @@ class TestCLI(unittest.TestCase):
         - table: 200
           to: 1.2.3.4''')
 
-        with patch('logging.warning') as log, self.assertRaises(SystemExit):
+        with patch('logging.warning') as log, self.assertRaises(SystemExit) as e:
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
             Netplan().main()
-            sys.argv = old_argv
-            args = log.call_args.args
-            self.assertIn("VRF routes table mismatch", args[0])
+        self.assertEqual(1, e.exception.code)
+        sys.argv = old_argv
+        args = log.call_args.args
+        self.assertIn("VRF routes table mismatch", args[0])
