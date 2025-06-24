@@ -33,7 +33,14 @@ class TestSystemdGenerator(TestBase):
   version: 2
   ethernets:
     eth0:
-      dhcp4: true''')
+      dhcp4: true
+  wifis:
+    wl0:
+      regulatory-domain: GB
+      access-points:
+        home:
+          password: "s0s3kr1t"
+''')
         os.chmod(conf, 0o600)
 
         generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
@@ -85,12 +92,20 @@ class TestSystemdGenerator(TestBase):
                          ['systemd-networkd.service'])
         # late generator output directory
         self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late'))),
-                         ['netplan-ovs-cleanup.service', 'systemd-networkd-wait-online.service.d', 'systemd-networkd.service.wants'])
-        # wait-online
+                         ['netplan-ovs-cleanup.service',
+                          'netplan-regdom.service',
+                          'netplan-wpa-wl0.service',
+                          'network.target.wants',
+                          'systemd-networkd-wait-online.service.d',
+                          'systemd-networkd.service.wants'])
+        # systemd-networkd-wait-online.service.d
         self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'systemd-networkd-wait-online.service.d'))),
                          ['10-netplan.conf'])
-        # Open vSwitch
+        # systemd-networkd.service.wants
         self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'systemd-networkd.service.wants'))),
-                         ['netplan-ovs-cleanup.service'])
+                         ['netplan-ovs-cleanup.service', 'netplan-wpa-wl0.service'])
+        # network.target.wants
+        self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'network.target.wants'))),
+                         ['netplan-regdom.service'])
 
         self.assert_nm_udev(None)  # TODO: drop this?
