@@ -78,5 +78,19 @@ class TestSystemdGenerator(TestBase):
         # XXX: debug, clean up later
         out = subprocess.check_output(['tree', self.workdir.name], text=True)
         print("\n\n"+out, flush=True)
-        self.assertEqual(os.listdir(self.workdir.name), ['run'])
-        self.assert_nm_udev(None)
+        self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd'))),
+                         ['generator', 'generator.early', 'generator.late'])
+        # default generator output directory
+        self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator', 'multi-user.target.wants')),
+                         ['systemd-networkd.service'])
+        # late generator output directory
+        self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late'))),
+                         ['netplan-ovs-cleanup.service', 'systemd-networkd-wait-online.service.d', 'systemd-networkd.service.wants'])
+        # wait-online
+        self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'systemd-networkd-wait-online.service.d'))),
+                         ['10-netplan.conf'])
+        # Open vSwitch
+        self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'systemd-networkd.service.wants'))),
+                         ['netplan-ovs-cleanup.service'])
+
+        self.assert_nm_udev(None)  # TODO: drop this?
