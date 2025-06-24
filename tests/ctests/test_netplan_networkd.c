@@ -8,6 +8,7 @@
 #include "netplan.h"
 #include "util-internal.h"
 #include "networkd.c"
+#include "gen-networkd.c"
 
 #include "test_utils.h"
 
@@ -29,11 +30,13 @@ test_wait_online_utils(__unused void** state)
 
     // assert MAC address file
     assert_true(g_file_set_contents(mac, "  aa:bb:cc:dd:ee:ff \r\n\n", -1, NULL));
+    //FIXME: rootdir vs generator_dir
     g_autofree gchar* mac_value = _netplan_sysfs_get_mac_by_ifname("eth99", rootdir);
     assert_string_equal(mac_value, "aa:bb:cc:dd:ee:ff");
 
     // assert driver link
     assert_int_equal(symlink("../somewhere/drivers/mock_drv", driver), 0);
+    //FIXME: rootdir vs generator_dir
     g_autofree gchar* driver_value = _netplan_sysfs_get_driver_by_ifname("eth99", rootdir);
     assert_string_equal(driver_value, "mock_drv");
 
