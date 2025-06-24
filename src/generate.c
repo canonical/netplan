@@ -256,7 +256,7 @@ int main(int argc, char** argv)
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             NetplanNetDefinition* def = (NetplanNetDefinition*) iterator->data;
             gboolean has_been_written = FALSE;
-            CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_generate_networkd(np_state, def, generator_late_dir, &has_been_written, &error), ignore_errors);
             any_networkd = any_networkd || has_been_written;
 
             CHECK_CALL(_netplan_netdef_write_sd_ovs(np_state, def, generator_late_dir, &has_been_written, &error), ignore_errors);
@@ -270,7 +270,7 @@ int main(int argc, char** argv)
 
     gboolean enable_wait_online = FALSE;
     if (any_networkd)
-        enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
+        enable_wait_online = _netplan_networkd_generate_wait_online(np_state, rootdir, generator_late_dir);
 
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */

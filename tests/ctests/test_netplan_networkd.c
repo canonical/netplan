@@ -8,6 +8,7 @@
 #include "netplan.h"
 #include "util-internal.h"
 #include "networkd.c"
+#include "gen-networkd.c"
 
 #include "test_utils.h"
 
