@@ -132,6 +132,11 @@ class NetplanIpLeases(utils.NetplanCommand):
                       file=sys.stderr)
                 sys.exit(1)
 
+        # XXX: This code path is only still supported for legacy reasons and
+        # not supposed to be called in the scope of a systemd generator. The
+        # 'netplan status' command should be used instead. Should it be moved to
+        # the 'configure' binary to keep legacy functionality around?
+        # See also the comment in main() in src/generate.c.
         argv = [utils.get_generator_path()]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]

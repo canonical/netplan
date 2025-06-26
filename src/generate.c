@@ -63,7 +63,7 @@ enable_networkd(const char* generator_dir, gboolean enable_wait_online)
     g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
     _netplan_safe_mkdir_p_dir(link);
-    if (symlink("../systemd-networkd.service", link) < 0 && errno != EEXIST) {
+    if (symlink("/usr/lib/systemd/system/systemd-networkd.service", link) < 0 && errno != EEXIST) {
         // LCOV_EXCL_START
         g_fprintf(stderr, "failed to create enablement symlink: %m\n");
         exit(1);
@@ -73,7 +73,7 @@ enable_networkd(const char* generator_dir, gboolean enable_wait_online)
     if (enable_wait_online) {
         g_autofree char* link2 = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "network-online.target.wants", "systemd-networkd-wait-online.service", NULL);
         _netplan_safe_mkdir_p_dir(link2);
-        if (symlink("/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
+        if (symlink("/usr/lib/systemd/system/systemd-networkd-wait-online.service", link2) < 0 && errno != EEXIST) {
             // LCOV_EXCL_START
             g_fprintf(stderr, "failed to create enablement symlink: %m\n");
             exit(1);
@@ -82,38 +82,12 @@ enable_networkd(const char* generator_dir, gboolean enable_wait_online)
     }
 }
 
-// LCOV_EXCL_START
-/* covered via 'cloud-init' integration test */
-static gboolean
-check_called_just_in_time()
-{
-    const gchar *argv[] = { "/bin/systemctl", "is-system-running", NULL };
-    gchar *output = NULL;
-    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &output, NULL, NULL, NULL);
-    if (output != NULL && strstr(output, "initializing") != NULL) {
-        g_free(output);
-        const gchar *argv2[] = { "/bin/systemctl", "is-active", "network.target", NULL };
-        gint exit_code = 0;
-        g_spawn_sync(NULL, (gchar**)argv2, NULL, G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL, &exit_code, NULL);
-        /* return TRUE, if network.target is not yet active */
-        #if GLIB_CHECK_VERSION (2, 70, 0)
-        return !g_spawn_check_wait_status(exit_code, NULL);
-        #else
-        return !g_spawn_check_exit_status(exit_code, NULL);
-        #endif
-    }
-    g_free(output);
-    return FALSE;
-};
-
-static void
-start_unit_jit(gchar *unit)
-{
-    const gchar *argv[] = { "/bin/systemctl", "start", "--no-block", "--no-ask-password", unit, NULL };
-    g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
-};
-// LCOV_EXCL_STOP
-
+/**
+ * XXX: consider moving this to configure.c (outside of the sd-generator), or
+ * drop it with the next major release. It's only used for legacy reasons. The
+ * 'netplan status' command should be used instead. See also the comment in
+ * main() below.
+ */
 static int
 find_interface(gchar* interface, GHashTable* netdefs)
 {
@@ -209,22 +183,24 @@ int main(int argc, char** argv)
     gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
     g_autofree char* generator_run_stamp = NULL;
     g_autofree char* netplan_try_stamp = NULL;
-    glob_t gl;
     int error_code = 0;
     char* ignore_errors_env = NULL;
     NetplanParser* npp = NULL;
     NetplanState* np_state = NULL;
+    const char* generator_normal_dir = NULL;
+    const char* generator_late_dir = NULL;
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
-    if (called_as_generator)
+    if (called_as_generator) {
         g_option_context_set_help_enabled(opt_context, FALSE);
+    }
     g_option_context_set_summary(opt_context, "Generate backend network configuration from netplan YAML definition.");
     g_option_context_set_description(opt_context,
-                                     "This program reads the specified netplan YAML definition file(s)\n"
-                                     "or, if none are given, /etc/netplan/*.yaml.\n"
-                                     "It then generates the corresponding systemd-networkd, NetworkManager,\n"
-                                     "and udev configuration files in /run.");
+                                     "This program reads netplan YAML definition file(s)\n"
+                                     "from /etc/netplan/*.yaml.\n"
+                                     "It then generates the corresponding systemd service-units\n"
+                                     "in /run/systemd/generator[.late].");
     g_option_context_add_main_entries(opt_context, options, NULL);
 
     if (!g_option_context_parse(opt_context, &argc, &argv, &error)) {
@@ -237,27 +213,8 @@ int main(int argc, char** argv)
             g_fprintf(stderr, "%s can not be called directly, use 'netplan generate'.", argv[0]);
             return 1;
         }
-        generator_run_stamp = g_build_path(G_DIR_SEPARATOR_S, files[0], "netplan.stamp", NULL);
-        if (g_access(generator_run_stamp, F_OK) == 0) {
-            g_fprintf(stderr, "netplan generate already ran, remove %s to force re-run\n", generator_run_stamp);
-            return 0;
-        }
-    }
-
-    // The file at netplan_try_stamp is created while `netplan try` is waiting
-    // for user confirmation. If generate is triggered while netplan try is
-    // running, we shouldn't regenerate the configuration.
-    // We can be called by either systemd (as a generator during daemon-reload)
-    // or by NetworkManager when it is reloading configuration (Ubuntu >23.10),
-    // see https://netplan.readthedocs.io/en/stable/netplan-everywhere/.
-    // LP #2083029
-    netplan_try_stamp = g_build_path(G_DIR_SEPARATOR_S,
-                                     rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
-                                     "run", "netplan", "netplan-try.ready",
-                                     NULL);
-    if (g_access(netplan_try_stamp, F_OK) == 0) {
-        g_fprintf(stderr, "'netplan try' is restoring configuration, remove %s to force re-run.\n", netplan_try_stamp);
-        return 1;
+        generator_normal_dir = files[0];
+        generator_late_dir = files[2];
     }
 
     if ((ignore_errors_env = getenv("NETPLAN_PARSER_IGNORE_ERRORS"))) {
@@ -274,17 +231,15 @@ int main(int argc, char** argv)
     if (ignore_errors || called_as_generator)
         netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
 
-    /* Read all input files */
-    if (files && !called_as_generator) {
-        for (gchar** f = files; f && *f; ++f) {
-            CHECK_CALL(netplan_parser_load_yaml(npp, *f, &error), ignore_errors);
-        }
-    } else
-        CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error), ignore_errors);
+    CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error), ignore_errors);
 
     np_state = netplan_state_new();
     CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error), ignore_errors);
 
+    // XXX: Remove this code path, it's only still supported for legacy reasons
+    // and not supposed to be called in the scope of a systemd generator. The
+    // 'netplan status' command should be used instead. Should it be moved to
+    // the 'configure' binary to keep legacy functionality around?
     if (mapping_iface) {
         if (np_state->netdefs)
             error_code = find_interface(mapping_iface, np_state->netdefs);
@@ -293,12 +248,6 @@ int main(int argc, char** argv)
 
         goto cleanup;
     }
-
-    /* Clean up generated config from previous runs */
-    _netplan_networkd_cleanup(rootdir);
-    _netplan_nm_cleanup(rootdir);
-    _netplan_ovs_cleanup(rootdir);
-    _netplan_sriov_cleanup(rootdir);
 
     /* Generate backend specific configuration files from merged data. */
     CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error), ignore_errors); // OVS cleanup unit is always written
@@ -319,55 +268,22 @@ int main(int argc, char** argv)
         CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
     }
 
-    /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
-     * (which restricts NM to wifi and wwan) if "renderer: NetworkManager" is used anywhere */
-    if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm)
-        _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
-
     gboolean enable_wait_online = FALSE;
     if (any_networkd)
         enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
 
     if (called_as_generator) {
         /* Ensure networkd starts if we have any configuration for it */
-        if (any_networkd)
-            enable_networkd(files[0], enable_wait_online);
-
-        /* Leave a stamp file so that we don't regenerate the configuration
-         * multiple times and userspace can wait for it to finish */
-        FILE* f = fopen(generator_run_stamp, "w");
-        g_assert(f != NULL);
-        fclose(f);
-    } else if (check_called_just_in_time()) {
-        /* netplan-feature: generate-just-in-time */
-        /* When booting with cloud-init, network configuration
-         * might be provided just-in-time. Specifically after
-         * system-generators were executed, but before
-         * network.target is started. In such case, auxiliary
-         * units that netplan enables have not been included in
-         * the initial boot transaction. Detect such scenario and
-         * add all netplan units to the initial boot transaction.
-         */
-        // LCOV_EXCL_START
-        /* covered via 'cloud-init' integration test */
         if (any_networkd) {
-            start_unit_jit("systemd-networkd.socket");
-            if (enable_wait_online)
-                start_unit_jit("systemd-networkd-wait-online.service");
-            start_unit_jit("systemd-networkd.service");
+            enable_networkd(generator_normal_dir, enable_wait_online);
         }
-        g_autofree char* glob_run = g_build_path(G_DIR_SEPARATOR_S,
-                                                 rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
-                                                 "run", "systemd", "system", "netplan-*.service",
-                                                 NULL);
-        if (!glob(glob_run, 0, NULL, &gl)) {
-            for (size_t i = 0; i < gl.gl_pathc; ++i) {
-                gchar *unit_name = g_path_get_basename(gl.gl_pathv[i]);
-                start_unit_jit(unit_name);
-                g_free(unit_name);
-            }
-        }
-        // LCOV_EXCL_STOP
+    } else {
+        // This generator should not be called directly, use 'netplan generate'
+        // The only exception is the deprecated "--mapping" option, which will
+        // jump into "cleanup" directly. Once we drop support for "--mapping",
+        // the "called_as_generator" check and related code can be removed,
+        // making this binary run as a pure systemd generator.
+        g_assert(FALSE); // LCOV_EXCL_LINE
     }
 
 cleanup:
