@@ -1,5 +1,6 @@
 sources = files(
     'error.c',
+    'gen-openvswitch.c',
     'names.c',
     'netplan.c',
     'networkd.c',
