@@ -263,7 +263,7 @@ int main(int argc, char** argv)
             any_nm = any_nm || has_been_written;
         }
 
-        CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
+        CHECK_CALL(_netplan_state_finish_sd_sriov_write(np_state, generator_late_dir, &error), ignore_errors);
     }
 
     gboolean enable_wait_online = FALSE;
