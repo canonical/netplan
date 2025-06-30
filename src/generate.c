@@ -249,7 +249,7 @@ int main(int argc, char** argv)
         goto cleanup;
     }
 
-    /* Generate backend specific configuration files from merged data. */
+    /* Generate specific systemd units from merged data. */
     CHECK_CALL(_netplan_state_finish_sd_ovs_write(np_state, generator_late_dir, &error), ignore_errors); // OVS cleanup unit is always written
     if (np_state->netdefs) {
         g_debug("Generating output files..");
@@ -260,11 +260,9 @@ int main(int argc, char** argv)
             any_networkd = any_networkd || has_been_written;
 
             CHECK_CALL(_netplan_netdef_write_sd_ovs(np_state, def, generator_late_dir, &has_been_written, &error), ignore_errors);
-            CHECK_CALL(_netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
             any_nm = any_nm || has_been_written;
         }
 
-        CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error), ignore_errors);
         CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
     }
 
