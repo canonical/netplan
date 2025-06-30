@@ -2,6 +2,7 @@ sources = files(
     'error.c',
     'gen-networkd.c',
     'gen-openvswitch.c',
+    'gen-sriov.c',
     'names.c',
     'netplan.c',
     'networkd.c',
