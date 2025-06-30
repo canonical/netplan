@@ -40,6 +40,9 @@ from netplan_cli.cli.ovs import OVS_VSCTL_PATH
 exe_generate = os.environ.get('NETPLAN_GENERATE_PATH',
                               os.path.join(os.path.dirname(os.path.dirname(
                                            os.path.dirname(os.path.abspath(__file__)))), 'generate'))
+exe_configure = os.environ.get('NETPLAN_CONFIGURE_PATH',
+                               os.path.join(os.path.dirname(os.path.dirname(
+                                            os.path.dirname(os.path.abspath(__file__)))), 'configure'))
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
@@ -268,6 +271,14 @@ class TestBase(unittest.TestCase):
             self.workdir.name, 'run', 'NetworkManager', 'conf.d', '10-globally-managed-devices.conf')
         self.maxDiff = None
 
+        # Set up a systemd generator for Netplan
+        self.sd_generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(self.sd_generator))
+        os.symlink(exe_generate, self.sd_generator)
+        self.generator_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'generator')
+        self.generator_early_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'generator.early')
+        self.generator_late_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late')
+
     def validate_generated_yaml(self, yaml_input):
         '''Validate a list of YAML input files one by one.
 
@@ -343,27 +354,60 @@ class TestBase(unittest.TestCase):
                 os.chmod(path, mode=0o600)
                 yaml_input.append(path)
 
-        argv = [exe_generate, '--root-dir', self.workdir.name] + extra_args
+        # Generators executed by the system manager are invoked in a sandbox
+        # where most of the file system is read-only except for the generator
+        # output directories. We considered restricting PrivateTmp=disconnected,
+        # too, but it conflicts with self.workdir in public /tmp.
+        # https://www.freedesktop.org/software/systemd/man/latest/systemd.generator.html#Description
+        os.makedirs(self.generator_dir, mode=0o755, exist_ok=True)
+        os.makedirs(self.generator_early_dir, mode=0o755, exist_ok=True)
+        os.makedirs(self.generator_late_dir, mode=0o755, exist_ok=True)
+        sandbox = ['systemd-run', '--user', '--pipe', '--collect', '--quiet',
+                   '--setenv=NETPLAN_PARSER_IGNORE_ERRORS=0',  # for testing only
+                   '--setenv=LD_LIBRARY_PATH=.:{}'.format(os.environ.get('LD_LIBRARY_PATH')),
+                   '--setenv=G_DEBUG=fatal-criticals',
+                   '--property=ProtectSystem=strict',
+                   '--property=ReadWritePaths=' + self.generator_dir,
+                   '--property=ReadWritePaths=' + self.generator_early_dir,
+                   '--property=ReadWritePaths=' + self.generator_late_dir,
+                   # Allow writing of test coverage data inside the project root (meson's _build-cov/ dir)
+                   '--property=ReadWritePaths=' + os.path.dirname(os.environ.get('COVERAGE_PROCESS_START', '/home/'))]
+
+        argv_gen = sandbox + [self.sd_generator, '--root-dir', self.workdir.name,
+                              self.generator_dir, self.generator_early_dir, self.generator_late_dir]
+        argv = [exe_configure, '--root-dir', self.workdir.name] + extra_args
         if 'TEST_SHELL' in os.environ:  # pragma nocover
             print('Test is about to run:\n%s' % ' '.join(argv))
             subprocess.call(['bash', '-i'], cwd=self.workdir.name)
 
         if ignore_errors:
+            argv_gen += ['--ignore-errors']
             argv += ['--ignore-errors']
 
+        g = subprocess.Popen(argv_gen, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True)
+        (out_gen, err_gen) = g.communicate()
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         (out, err) = p.communicate()
         if expect_fail:
-            self.assertGreater(p.returncode, 0)
+            # Either the sd-generator or the ./configure command should fail
+            self.assertGreater(g.returncode + p.returncode, 0)
         else:
+            self.assertEqual(g.returncode, 0, err_gen)
             self.assertEqual(p.returncode, 0, err)
+        self.assertEqual(out_gen, '')
         self.assertEqual(out, '')
         if not expect_fail and not skip_generated_yaml_validation:
             yaml_input = list(set(yaml_input + extra_args))
             yaml_input.sort()
             self.validate_generated_yaml(yaml_input)
-        return err
+
+        ret_output = err_gen if err_gen else err
+        if err_gen and err:
+            ret_output = err_gen + '#*#' + err
+
+        return ret_output
 
     def eth_name(self):
         """Return a link name.
@@ -386,7 +430,7 @@ class TestBase(unittest.TestCase):
             self.assertFalse(os.path.exists(networkd_dir))
             return
 
-        self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
+        self.assertEqual(set(os.listdir(self.workdir.name)) - {'usr', 'lib'}, {'etc', 'run'})
         self.assertEqual(set(os.listdir(networkd_dir)),
                          {'10-netplan-' + f for f in file_contents_map})
         for fname, contents in file_contents_map.items():
@@ -472,13 +516,13 @@ class TestBase(unittest.TestCase):
             self.assertEqual(''.join(lines), contents)
 
     def assert_ovs(self, file_contents_map):
-        systemd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        systemd_dir = self.generator_late_dir
         if not file_contents_map:
             # in this case we assume no OVS configuration should be present
             self.assertFalse(glob.glob(os.path.join(systemd_dir, '*netplan-ovs-*.service')))
             return
 
-        self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
+        self.assertIn('run', os.listdir(self.workdir.name))
         ovs_systemd_dir = set(os.listdir(systemd_dir))
         ovs_systemd_dir.remove('systemd-networkd.service.wants')
         if 'systemd-networkd-wait-online.service.d' in ovs_systemd_dir:
@@ -495,14 +539,14 @@ class TestBase(unittest.TestCase):
                 link_target = os.readlink(link_path)
                 self.assertEqual(link_target,
                                  os.path.join(
-                                    '/', 'run', 'systemd', 'system', fname))
+                                    self.generator_late_dir, fname))
 
     def assert_sriov(self, file_contents_map):
-        systemd_dir = os.path.join(self.workdir.name, 'run', 'systemd', 'system')
+        systemd_dir = self.generator_late_dir
         sriov_systemd_dir = glob.glob(os.path.join(systemd_dir, '*netplan-sriov-*.service'))
         self.assertEqual(set(os.path.basename(file) for file in sriov_systemd_dir),
                          {'netplan-sriov-' + f for f in file_contents_map})
-        self.assertEqual(set(os.listdir(self.workdir.name)) - {'lib'}, {'etc', 'run'})
+        self.assertEqual(set(os.listdir(self.workdir.name)) - {'usr', 'lib'}, {'etc', 'run'})
 
         for file in sriov_systemd_dir:
             basename = os.path.basename(file)
