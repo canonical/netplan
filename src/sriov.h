@@ -20,3 +20,9 @@
 
 NETPLAN_INTERNAL gboolean
 _netplan_sriov_cleanup(const char* rootdir);
+
+NETPLAN_INTERNAL gboolean
+_netplan_state_finish_sriov_generate(
+        const NetplanState* np_state,
+        const char* generator_dir,
+        NetplanError** error);
