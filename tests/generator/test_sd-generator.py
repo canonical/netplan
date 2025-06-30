@@ -34,6 +34,17 @@ class TestSystemdGenerator(TestBase):
   ethernets:
     eth0:
       dhcp4: true
+    engreen:
+      embedded-switch-mode: switchdev
+      delay-virtual-functions-rebind: true
+    enblue:
+      match: {driver: fake_driver}
+      set-name: enblue
+      embedded-switch-mode: legacy
+      delay-virtual-functions-rebind: true
+      virtual-function-count: 4
+    sriov_vf0:
+      link: engreen
   wifis:
     wl0:
       regulatory-domain: GB
@@ -92,8 +103,11 @@ class TestSystemdGenerator(TestBase):
                          ['systemd-networkd.service'])
         # late generator output directory
         self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late'))),
-                         ['netplan-ovs-cleanup.service',
+                         ['multi-user.target.wants',
+                          'netplan-ovs-cleanup.service',
                           'netplan-regdom.service',
+                          'netplan-sriov-apply.service',
+                          'netplan-sriov-rebind.service',
                           'netplan-wpa-wl0.service',
                           'network.target.wants',
                           'systemd-networkd-wait-online.service.d',
@@ -107,5 +121,8 @@ class TestSystemdGenerator(TestBase):
         # network.target.wants
         self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'network.target.wants'))),
                          ['netplan-regdom.service'])
+        # multi-user.target.wants
+        self.assertEqual(sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'generator.late', 'multi-user.target.wants'))),
+                         ['netplan-sriov-apply.service', 'netplan-sriov-rebind.service'])
 
         self.assert_nm_udev(None)  # TODO: drop this?
