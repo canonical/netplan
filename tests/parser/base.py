@@ -29,9 +29,9 @@ import unittest
 import contextlib
 import subprocess
 
-exe_generate = os.environ.get('NETPLAN_GENERATE_PATH',
-                              os.path.join(os.path.dirname(os.path.dirname(
-                                           os.path.dirname(os.path.abspath(__file__)))), 'generate'))
+exe_configure = os.environ.get('NETPLAN_CONFIGURE_PATH',
+                               os.path.join(os.path.dirname(os.path.dirname(
+                                            os.path.dirname(os.path.abspath(__file__)))), 'configure'))
 
 # make sure we point to libnetplan properly.
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
@@ -173,7 +173,7 @@ class TestKeyfileBase(unittest.TestCase):
         return '\n'.join(res).strip()+'\n'
 
     def assert_nm_regenerate(self, file_contents_map):
-        argv = [exe_generate, '--root-dir', self.workdir.name]
+        argv = [exe_configure, '--root-dir', self.workdir.name]
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         returncode = p.wait(5)
