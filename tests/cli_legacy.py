@@ -26,6 +26,7 @@ import shutil
 import yaml
 
 from tests.test_utils import MockCmd
+from generator.base import exe_generate
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = [os.path.join(rootdir, 'src', 'netplan.script')]
@@ -77,13 +78,23 @@ class TestArgs(unittest.TestCase):
 class TestGenerate(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
+        generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd',
+                                 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
 
     def test_no_config(self):
         p = subprocess.Popen(exe_cli + ['generate', '--root-dir', self.workdir.name], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
-        self.assertEqual(os.listdir(self.workdir.name), ['run'])
+        self.assertEqual(os.listdir(self.workdir.name), ['usr', 'run'])
+        self.assertEqual(
+            os.listdir(os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators')),
+            ['netplan'])
+        self.assertEqual(
+            os.listdir(os.path.join(self.workdir.name, 'run', 'systemd')),
+            ['generator.late'])
 
     def test_with_empty_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
