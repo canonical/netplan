@@ -68,6 +68,7 @@ test_env = [
     'PYTHONPATH=' + join_paths(meson.current_build_dir(), 'python-cffi') + ':' + meson.current_source_dir(),
     'LD_LIBRARY_PATH=' + join_paths(meson.current_build_dir(), 'src'),
     'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
+    'NETPLAN_CONFIGURE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'configure'),
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
     'COVERAGE_PROCESS_START=' + join_paths(meson.current_source_dir(), '.coveragerc'),
     'G_DEBUG=fatal_criticals',
