@@ -44,6 +44,10 @@ def get_generator_path():
     return os.environ.get('NETPLAN_GENERATE_PATH', '/usr/libexec/netplan/generate')
 
 
+def get_configure_path():
+    return os.environ.get('NETPLAN_CONFIGURE_PATH', '/usr/libexec/netplan/configure')
+
+
 def is_nm_snap_enabled():
     return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
 
