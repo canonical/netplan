@@ -392,6 +392,7 @@ class TestBase(unittest.TestCase):
                              stderr=subprocess.PIPE, text=True)
         (out, err) = p.communicate()
         if expect_fail:
+            # FIXME: make sure both are failing at the same time, even for late stage validations
             # Either the sd-generator or the ./configure command should fail
             self.assertGreater(g.returncode + p.returncode, 0)
         else:

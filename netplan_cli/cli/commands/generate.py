@@ -96,7 +96,7 @@ class NetplanGenerate(utils.NetplanCommand):
             else:  # pragma: nocover (covered by autopkgtests)
                 # automatically reloads systemd, as we might have changed
                 # service units, such as
-                # /run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf
+                # /run/systemd/generator.late/systemd-networkd-wait-online.service.d/10-netplan.conf
                 utils.systemctl_daemon_reload()
 
             logging.debug('command configure: running %s', argv)

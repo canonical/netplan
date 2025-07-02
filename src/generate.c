@@ -227,7 +227,8 @@ int main(int argc, char** argv)
     }
 
     npp = netplan_parser_new();
-    if (ignore_errors || called_as_generator)
+    // FIXME: ignore errors on boot (during generator stage), but make it fail during tests
+    if (ignore_errors && called_as_generator)
         netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
 
     CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error), ignore_errors);
@@ -248,6 +249,10 @@ int main(int argc, char** argv)
         goto cleanup;
     }
 
+    // FIXME: Do we want to generate stuff when we don't have any netdefs?
+    // We might still have OVS globals defined.
+    //gboolean any_netdefs = (netplan_state_get_netdefs_size(np_state) > 0);
+    //if (any_netdefs) {
     /* Generate specific systemd units from merged data. */
     CHECK_CALL(_netplan_state_finish_sd_ovs_write(np_state, generator_late_dir, &error), ignore_errors); // OVS cleanup unit is always written
     if (np_state->netdefs) {

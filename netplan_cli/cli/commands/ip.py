@@ -132,7 +132,7 @@ class NetplanIpLeases(utils.NetplanCommand):
                       file=sys.stderr)
                 sys.exit(1)
 
-        argv = [utils.get_generator_path()]
+        argv = [utils.get_generator_path()]  # FIXME: should this be moved to the 'configure' binary?
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
         argv += ['--mapping', self.interface]

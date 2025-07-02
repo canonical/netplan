@@ -122,6 +122,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // FIXME: try- & generator-stamp handling
     // The file at netplan_try_stamp is created while `netplan try` is waiting
     // for user confirmation. If generate is triggered while netplan try is
     // running, we shouldn't regenerate the configuration.
