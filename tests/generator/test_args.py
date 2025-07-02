@@ -169,7 +169,7 @@ class TestConfigArgs(TestBase):
   bonds:
     bond0:
       dhcp4: true
-      interfaces: [eth99.42, eth99.43, et99.46]''')
+      interfaces: [eth99.42, eth99.43, eth99.46]''')
         os.chmod(conf, mode=0o600)
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
