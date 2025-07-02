@@ -137,12 +137,12 @@ network={
             self.assertIn('country=DE\n', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.isfile(os.path.join(
-            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
-        with open(os.path.join(self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')) as f:
+            self.generator_late_dir, 'netplan-wpa-wl0.service')))
+        with open(os.path.join(self.generator_late_dir, 'netplan-wpa-wl0.service')) as f:
             self.assertEqual(f.read(), SD_WPA % {'iface': 'wl0', 'drivers': 'nl80211,wext'})
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o644)
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+            self.generator_late_dir, 'systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_route(self):
         self.generate('''network:
@@ -238,9 +238,9 @@ network={
 ''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.isfile(os.path.join(
-            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+            self.generator_late_dir, 'netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+            self.generator_late_dir, 'systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_wowlan_default(self):
         self.generate('''network:
@@ -271,9 +271,9 @@ network={
 ''', new_config)
             self.assertEqual(stat.S_IMODE(os.fstat(f.fileno()).st_mode), 0o600)
         self.assertTrue(os.path.isfile(os.path.join(
-            self.workdir.name, 'run/systemd/system/netplan-wpa-wl0.service')))
+            self.generator_late_dir, 'netplan-wpa-wl0.service')))
         self.assertTrue(os.path.islink(os.path.join(
-            self.workdir.name, 'run/systemd/system/systemd-networkd.service.wants/netplan-wpa-wl0.service')))
+            self.generator_late_dir, 'systemd-networkd.service.wants/netplan-wpa-wl0.service')))
 
     def test_wifi_wpa_sha256(self):
         self.generate('''network:
@@ -1164,7 +1164,7 @@ mode=infrastructure
         with open(os.path.join(self.workdir.name, 'run/netplan/wpa-wl1.conf')) as f:
             new_config = f.read()
             self.assertIn('country=DE\n', new_config)
-        with open(os.path.join(self.workdir.name, 'run/systemd/system/netplan-regdom.service')) as f:
+        with open(os.path.join(self.generator_late_dir, 'netplan-regdom.service')) as f:
             new_config = f.read()
             self.assertIn('ExecStart=/usr/sbin/iw reg set DE\n', new_config)
 
