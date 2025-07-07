@@ -35,7 +35,7 @@ jobs:
         run: |
           sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
-          sudo apt install autopkgtest ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
+          sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
       - name: Prepare test
         run: |
           pull-lp-source netplan.io
@@ -59,7 +59,7 @@ jobs:
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
-          sudo patch /usr/bin/autopkgtest-build-lxd .github/workflows/snapd.patch
+          sudo patch /usr/share/autopkgtest/lib/build-lxd.sh .github/workflows/snapd.patch
           MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:noble # LP: #2052639
       - name: Run autopkgtest
         run: |
