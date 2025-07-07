@@ -47,8 +47,8 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          sed -i 's|iproute2,|iproute2, ethtool,|' debian/control  # add ethtool as a dependency of netplan.io temporarily
           sed -i 's|systemd (>= 257.2-3ubuntu1~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
+          echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
