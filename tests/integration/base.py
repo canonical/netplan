@@ -510,9 +510,10 @@ class IntegrationTestsBase(unittest.TestCase):
             self.assertEqual(group.gr_name, wpa_expected_group, f'file {file}')
 
         # Check systemd service unit files
-        base_path = '/run/systemd/system/'
+        base_path = '/run/systemd/generator.late/'
         files = glob.glob(f'{base_path}/netplan-*.service')
         files += glob.glob(f'{base_path}/systemd-networkd-wait-online.service.d/*.conf')
+        self.assertTrue(files, 'No Netplan service files found in %s' % base_path)
         for file in files:
             res = os.stat(file)
             user = pwd.getpwuid(res.st_uid)
