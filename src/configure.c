@@ -177,8 +177,6 @@ int main(int argc, char** argv)
 {
     NetplanError* error = NULL;
     GOptionContext* opt_context;
-    /* are we being called as systemd generator? */
-    gboolean called_as_generator = (strstr(argv[0], "systemd/system-generators/") != NULL);
     g_autofree char* generator_run_stamp = NULL;
     g_autofree char* netplan_try_stamp = NULL;
     glob_t gl;
@@ -189,8 +187,6 @@ int main(int argc, char** argv)
 
     /* Parse CLI options */
     opt_context = g_option_context_new(NULL);
-    if (called_as_generator)
-        g_option_context_set_help_enabled(opt_context, FALSE);
     g_option_context_set_summary(opt_context, "Generate backend network configuration from netplan YAML definition.");
     g_option_context_set_description(opt_context,
                                      "This program reads the specified netplan YAML definition file(s)\n"
@@ -202,18 +198,6 @@ int main(int argc, char** argv)
     if (!g_option_context_parse(opt_context, &argc, &argv, &error)) {
         fprintf(stderr, "failed to parse options: %s\n", error->message);
         return 1;
-    }
-
-    if (called_as_generator) {
-        if (files == NULL || g_strv_length(files) != 3 || files[0] == NULL) {
-            g_fprintf(stderr, "%s can not be called directly, use 'netplan generate'.", argv[0]);
-            return 1;
-        }
-        generator_run_stamp = g_build_path(G_DIR_SEPARATOR_S, files[0], "netplan.stamp", NULL);
-        if (g_access(generator_run_stamp, F_OK) == 0) {
-            g_fprintf(stderr, "netplan generate already ran, remove %s to force re-run\n", generator_run_stamp);
-            return 0;
-        }
     }
 
     // The file at netplan_try_stamp is created while `netplan try` is waiting
@@ -243,11 +227,12 @@ int main(int argc, char** argv)
     }
 
     npp = netplan_parser_new();
-    if (ignore_errors || called_as_generator)
+    // TODO: NETPLAN_PARSER_IGNORE_ERRORS=1 needs to be set from the netplan-configure.service
+    if (ignore_errors)
         netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
 
     /* Read all input files */
-    if (files && !called_as_generator) {
+    if (files) {
         for (gchar** f = files; f && *f; ++f) {
             CHECK_CALL(netplan_parser_load_yaml(npp, *f, &error), ignore_errors);
         }
@@ -301,13 +286,7 @@ int main(int argc, char** argv)
     if (any_networkd)
         enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
 
-    if (called_as_generator) {
-        /* Leave a stamp file so that we don't regenerate the configuration
-         * multiple times and userspace can wait for it to finish */
-        FILE* f = fopen(generator_run_stamp, "w");
-        g_assert(f != NULL);
-        fclose(f);
-    } else if (check_called_just_in_time()) {
+    if (check_called_just_in_time()) {
         /* netplan-feature: generate-just-in-time */
         /* When booting with cloud-init, network configuration
          * might be provided just-in-time. Specifically after
