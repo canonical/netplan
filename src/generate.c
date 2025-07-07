@@ -60,6 +60,7 @@ static GOptionEntry options[] = {
 static void
 enable_networkd(const char* generator_dir, gboolean enable_wait_online)
 {
+    g_assert(generator_dir != NULL);
     g_autofree char* link = g_build_path(G_DIR_SEPARATOR_S, generator_dir, "multi-user.target.wants", "systemd-networkd.service", NULL);
     g_debug("We created networkd configuration, adding %s enablement symlink", link);
     _netplan_safe_mkdir_p_dir(link);

@@ -61,6 +61,7 @@ const char *_get_netplan_openvswitch_ovs_vsctl_path()
 STATIC gboolean
 write_ovs_systemd_unit(const char* id, const GString* cmds, const char* generator_dir, gboolean physical, gboolean cleanup, const char* dependency, GError** error)
 {
+    g_assert(generator_dir != NULL);
     g_autofree char* escaped_netdef_id = g_uri_escape_string(id, NULL, TRUE);
     g_autofree char* link = g_strjoin(NULL, generator_dir,
                                       "/systemd-networkd.service.wants/netplan-ovs-", escaped_netdef_id, ".service", NULL);
@@ -368,6 +369,7 @@ cleanup:
 gboolean
 _netplan_netdef_generate_ovs(const NetplanState* np_state, const NetplanNetDefinition* def, const char* generator_dir, gboolean* has_been_written, GError** error)
 {
+    g_assert(generator_dir != NULL);
     g_autoptr(GString) cmds = g_string_new(NULL);
     gchar* dependency = NULL;
     const char* type = netplan_type_to_table_name(def->type);
@@ -524,6 +526,7 @@ _netplan_netdef_generate_ovs(const NetplanState* np_state, const NetplanNetDefin
 gboolean
 _netplan_state_finish_ovs_generate(const NetplanState* np_state, const char* generator_dir, GError** error)
 {
+    g_assert(generator_dir != NULL);
     const NetplanOVSSettings* settings = &np_state->ovs_settings;
     GString* cmds = g_string_new(NULL);
 
