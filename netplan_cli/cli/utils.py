@@ -297,6 +297,9 @@ class NetplanCommand(argparse.Namespace):
         self.subcommands = {}
         self.subcommand = None
         self.func = None
+        self.generator_dir = '/run/systemd/generator/'
+        self.generator_early_dir = '/run/systemd/generator.early/'
+        self.generator_late_dir = '/run/systemd/generator.late/'
 
         self.parser = argparse.ArgumentParser(prog="%s %s" % (sys.argv[0], command_id),
                                               description=description,
