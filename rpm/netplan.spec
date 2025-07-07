@@ -84,7 +84,7 @@ Currently supported backends are NetworkManager and systemd-networkd.
 %files
 %license COPYING
 %doc %{_docdir}/%{name}/
-%{_sbindir}/%{name}
+/usr/sbin/%{name}
 %{_datadir}/%{name}/
 %{_datadir}/dbus-1/system-services/io.netplan.Netplan.service
 %{_datadir}/dbus-1/system.d/io.netplan.Netplan.conf
@@ -211,7 +211,7 @@ sed -e "s/werror=true/werror=false/g" -i meson.build
 
 
 %build
-%meson
+%meson --sbindir=sbin
 %meson_build
 
 
