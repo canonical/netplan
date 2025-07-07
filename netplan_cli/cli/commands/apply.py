@@ -107,9 +107,9 @@ class NetplanApply(utils.NetplanCommand):
             else:
                 return
 
-        ovs_cleanup_service = '/run/systemd/system/netplan-ovs-cleanup.service'
+        ovs_cleanup_service = self.generator_late_dir + 'netplan-ovs-cleanup.service'
         old_files_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
-        old_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
+        old_ovs_glob = glob.glob(self.generator_late_dir + 'netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
         if ovs_cleanup_service in old_ovs_glob:
             old_ovs_glob.remove(ovs_cleanup_service)
@@ -118,18 +118,23 @@ class NetplanApply(utils.NetplanCommand):
         nm_ifaces = utils.nm_interfaces(old_nm_glob, utils.get_interfaces())
         old_files_nm = bool(old_nm_glob)
 
-        generator_call = []
-        generate_out = None
+        configure = []
+        configure_out = None
         if 'NETPLAN_PROFILE' in os.environ:
-            generator_call.extend(['valgrind', '--leak-check=full'])
-            generate_out = subprocess.STDOUT
+            configure.extend(['valgrind', '--leak-check=full'])
+            configure_out = subprocess.STDOUT
 
-        generator_call.append(utils.get_generator_path())
-        if run_generate and subprocess.call(generator_call, stderr=generate_out) != 0:
-            if exit_on_error:
-                sys.exit(os.EX_CONFIG)
-            else:
-                raise ConfigurationError("the configuration could not be generated")
+        configure.append(utils.get_configure_path())
+        if run_generate:
+            logging.debug('command configure: running %s', configure)
+            if subprocess.call(configure, stderr=configure_out) != 0:
+                if exit_on_error:
+                    sys.exit(os.EX_CONFIG)
+                else:
+                    raise ConfigurationError("the configuration could not be generated")
+            # Running 'systemctl daemon-reload' will re-run the netplan systemd generator.
+            logging.debug('executing Netplan systemd-generator via daemon-reload')
+            utils.systemctl_daemon_reload()
 
         devices = utils.get_interfaces()
 
@@ -142,7 +147,7 @@ class NetplanApply(utils.NetplanCommand):
         restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         if not restart_networkd and old_files_networkd:
             restart_networkd = True
-        restart_ovs_glob = glob.glob('/run/systemd/system/netplan-ovs-*')
+        restart_ovs_glob = glob.glob(self.generator_late_dir + 'netplan-ovs-*')
         # Ignore netplan-ovs-cleanup.service, as it can always be there
         if ovs_cleanup_service in restart_ovs_glob:
             restart_ovs_glob.remove(ovs_cleanup_service)
@@ -157,10 +162,6 @@ class NetplanApply(utils.NetplanCommand):
         if not restart_nm and old_files_nm:
             restart_nm = True
 
-        # Running 'systemctl daemon-reload' will re-run the netplan systemd generator,
-        # so let's make sure we only run it iff we're willing to run 'netplan generate'
-        if run_generate:
-            utils.systemctl_daemon_reload()
         # stop backends
         if restart_networkd:
             logging.debug('netplan generated networkd configuration changed, reloading networkd')
@@ -264,13 +265,13 @@ class NetplanApply(utils.NetplanCommand):
         NetplanApply.process_sriov_config(config_manager, exit_on_error)
 
         # (re)set global regulatory domain
-        if os.path.exists('/run/systemd/system/netplan-regdom.service'):
+        if os.path.exists(self.generator_late_dir + 'netplan-regdom.service'):
             utils.systemctl('start', ['netplan-regdom.service'])
         # (re)start backends
         if restart_networkd:
-            netplan_wpa = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-wpa-*.service')]
+            netplan_wpa = [os.path.basename(f) for f in glob.glob(self.generator_late_dir + '*.wants/netplan-wpa-*.service')]
             # exclude the special 'netplan-ovs-cleanup.service' unit
-            netplan_ovs = [os.path.basename(f) for f in glob.glob('/run/systemd/system/*.wants/netplan-ovs-*.service')
+            netplan_ovs = [os.path.basename(f) for f in glob.glob(self.generator_late_dir + '*.wants/netplan-ovs-*.service')
                            if not f.endswith('/' + OVS_CLEANUP_SERVICE)]
             # Run 'systemctl start' command synchronously, to avoid race conditions
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
