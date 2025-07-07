@@ -426,6 +426,9 @@ class IntegrationTestsBase(unittest.TestCase):
         # start NM so that we can verify that it does not manage anything
         subprocess.call(['nm-online', '-sxq'])  # Wait for NM startup, from 'netplan apply'
         if not self.is_active('NetworkManager.service'):
+            # FIXME: This changes ownership of /run/systemd/network/10-netplan-lo.network to root:root (LP: #2090848)
+            # Use:
+            # printf "[Unit]\CapabilityBoundingSet=CAP_CHOWN\n" | systemctl edit --stdin NetworkManager.service 2>/dev/null
             subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
             subprocess.call(['nm-online', '-sq'])
 
