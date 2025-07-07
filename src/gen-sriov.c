@@ -30,6 +30,7 @@
 STATIC gboolean
 write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, GError** error)
 {
+    g_assert(generator_dir != NULL);
     g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, generator_dir,
                                       "/multi-user.target.wants/netplan-sriov-rebind.service", NULL);
@@ -79,6 +80,7 @@ write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, GErr
 STATIC gboolean
 write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, GError** error)
 {
+    g_assert(generator_dir != NULL);
     g_autofree gchar* id_escaped = NULL;
     g_autofree char* link = g_strjoin(NULL, generator_dir,
                                       "/multi-user.target.wants/netplan-sriov-apply.service", NULL);
@@ -124,6 +126,7 @@ write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, GErro
 gboolean
 _netplan_state_finish_sriov_generate(const NetplanState* np_state, const char* generator_dir, __unused GError** error)
 {
+    g_assert(generator_dir != NULL);
     NetplanNetDefinition* def = NULL;
     NetplanNetDefinition* pf = NULL;
     gboolean any_sriov = FALSE;
