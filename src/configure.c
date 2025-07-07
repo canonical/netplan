@@ -43,14 +43,12 @@ static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd = FALSE;
 static gboolean any_nm = FALSE;
-static gchar* mapping_iface;
 static gboolean ignore_errors = FALSE;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /", NULL},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/netplan/*.yaml", "[config file ..]"},
     {"ignore-errors", 'i', 0, G_OPTION_ARG_NONE, &ignore_errors, "Ignores files and/or network definitions that fail parsing.", NULL},
-    {"mapping", 0, 0, G_OPTION_ARG_STRING, &mapping_iface, "Only show the device to backend mapping for the specified interface.", NULL},
     {NULL}
 };
 
@@ -85,82 +83,6 @@ start_unit_jit(gchar *unit)
     g_spawn_sync(NULL, (gchar**)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
 };
 // LCOV_EXCL_STOP
-
-static int
-find_interface(gchar* interface, GHashTable* netdefs)
-{
-    GPtrArray *found;
-    GFileInfo *info;
-    GFile *driver_file;
-    gchar *driver_path;
-    gchar *driver = NULL;
-    gpointer key, value;
-    GHashTableIter iter;
-    int ret = EXIT_FAILURE;
-
-    found = g_ptr_array_new ();
-
-    /* Try to get the driver name for the interface... */
-    driver_path = g_strdup_printf("/sys/class/net/%s/device/driver", interface);
-    driver_file = g_file_new_for_path (driver_path);
-    info = g_file_query_info (driver_file,
-                              G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET,
-                              0, NULL, NULL);
-    if (info != NULL) {
-        /* testing for driver matching is done via autopkgtest */
-        // LCOV_EXCL_START
-        driver = g_path_get_basename (g_file_info_get_symlink_target (info));
-        g_object_unref (info);
-        // LCOV_EXCL_STOP
-    }
-    g_object_unref (driver_file);
-    g_free (driver_path);
-
-    g_hash_table_iter_init (&iter, netdefs);
-    while (g_hash_table_iter_next (&iter, &key, &value)) {
-        NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
-        if (!g_strcmp0(nd->set_name, interface))
-            g_ptr_array_add (found, (gpointer) nd);
-        else if (!g_strcmp0(nd->id, interface))
-            g_ptr_array_add (found, (gpointer) nd);
-        else if (!g_strcmp0(nd->match.original_name, interface))
-            g_ptr_array_add (found, (gpointer) nd);
-    }
-    if (found->len == 0 && driver != NULL) {
-        /* testing for driver matching is done via autopkgtest */
-        // LCOV_EXCL_START
-        g_hash_table_iter_init (&iter, netdefs);
-        while (g_hash_table_iter_next (&iter, &key, &value)) {
-            NetplanNetDefinition *nd = (NetplanNetDefinition *) value;
-            if (!g_strcmp0(nd->match.driver, driver))
-                g_ptr_array_add (found, (gpointer) nd);
-        }
-        // LCOV_EXCL_STOP
-    }
-
-    if (driver)
-        g_free (driver); // LCOV_EXCL_LINE
-
-    if (found->len != 1) {
-        goto exit_find;
-    }
-    else {
-         const NetplanNetDefinition *nd = (NetplanNetDefinition *)g_ptr_array_index (found, 0);
-         g_printf("id=%s, backend=%s, set_name=%s, match_name=%s, match_mac=%s, match_driver=%s\n",
-             nd->id,
-             netplan_backend_name(nd->backend),
-             nd->set_name,
-             nd->match.original_name,
-             nd->match.mac,
-             nd->match.driver);
-    }
-
-    ret = EXIT_SUCCESS;
-
-exit_find:
-    g_ptr_array_free (found, TRUE);
-    return ret;
-}
 
 #define CHECK_CALL(call, ignore_errors) {\
     if (!call && !ignore_errors) {\
@@ -241,15 +163,6 @@ int main(int argc, char** argv)
 
     np_state = netplan_state_new();
     CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error), ignore_errors);
-
-    if (mapping_iface) {
-        if (np_state->netdefs)
-            error_code = find_interface(mapping_iface, np_state->netdefs);
-        else
-            error_code = 1;
-
-        goto cleanup;
-    }
 
     /* Clean up generated config from previous runs */
     _netplan_networkd_cleanup(rootdir);
