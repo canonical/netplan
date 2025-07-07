@@ -58,5 +58,6 @@ jobs:
           autopkgtest . -U \
             --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
             --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
+            --setup-commands='mkdir -p /etc/systemd/system/NetworkManager.service.d && echo "[Service]\nCapabilityBoundingSet=CAP_CHOWN\n" > /etc/systemd/system/NetworkManager.service.d/override.conf && systemctl daemon-reload' \
             -- lxd autopkgtest/ubuntu/noble/amd64 \
             || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)
