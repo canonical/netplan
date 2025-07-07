@@ -14,6 +14,8 @@ FAKEDATADIR=fakedata
 CC=gcc
 BUILDDIR=${NETPLANPATH}/_fuzzer_build
 NETPLAN_GENERATE_PATH=${BUILDDIR}/src/generate
+# TODO: fuzz generator & configure stage, using systemd-run sandbox
+# NETPLAN_CONFIGURE_PATH=${BUILDDIR}/src/configure
 
 export G_DEBUG=fatal_criticals
 export LD_LIBRARY_PATH=${BUILDDIR}/src
