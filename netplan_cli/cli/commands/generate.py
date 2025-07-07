@@ -80,29 +80,31 @@ class NetplanGenerate(utils.NetplanCommand):
             argv += ['--root-dir', self.root_dir]
         if self.mapping:
             argv += ['--mapping', self.mapping]
-        logging.debug('executing Netplan systemd-generator via daemon-reload')
-        if self.root_dir:  # for testing purposes
-            sd_generator = os.path.join(self.root_dir, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
-            generator_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator')
-            generator_early_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.early')
-            generator_late_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.late')
-            subprocess.check_call([sd_generator, '--root-dir', self.root_dir,
-                                   generator_dir, generator_early_dir, generator_late_dir])
-        else:  # pragma: nocover (covered by autopkgtests)
-            utils.systemctl_daemon_reload()
-        logging.debug('command configure: running %s', argv)
-        res = subprocess.call(argv)
-        try:
-            subprocess.check_call(['udevadm', 'control', '--reload'])
-        except subprocess.CalledProcessError as e:
-            logging.debug(f'Could not call "udevadm control --reload": {str(e)}')
-        # reload systemd, as we might have changed service units, such as
-        # /run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf
-        # Skip it if --mapping is used as nothing will be generated
-        if self.mapping is None:
-            try:
+
+        if self.mapping:  # XXX: get rid of the legacy "--mapping" option
+            argv[0] = utils.get_generator_path()
+            res = subprocess.call(argv)
+        else:
+            logging.debug('executing Netplan systemd-generator via daemon-reload')
+            if self.root_dir:  # for testing purposes
+                sd_generator = os.path.join(self.root_dir, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
+                generator_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator')
+                generator_early_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.early')
+                generator_late_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.late')
+                subprocess.check_call([sd_generator, '--root-dir', self.root_dir,
+                                       generator_dir, generator_early_dir, generator_late_dir])
+            else:  # pragma: nocover (covered by autopkgtests)
+                # automatically reloads systemd, as we might have changed
+                # service units, such as
+                # /run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf
                 utils.systemctl_daemon_reload()
+
+            logging.debug('command configure: running %s', argv)
+            res = subprocess.call(argv)
+            try:
+                subprocess.check_call(['udevadm', 'control', '--reload'])
             except subprocess.CalledProcessError as e:
-                logging.warning(e)
+                logging.debug(f'Could not call "udevadm control --reload": {str(e)}')
+
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
         sys.exit(res)
