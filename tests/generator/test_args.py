@@ -25,11 +25,29 @@ from .base import TestBase, exe_configure, exe_generate, OVS_CLEANUP
 class TestConfigArgs(TestBase):
     '''Config file argument handling'''
 
+    def test_invalid_args(self):
+        # Systemd generator stage
+        generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
+        try:
+            subprocess.check_output([generator, '--root-dir', self.workdir.name,
+                                     self.generator_dir, self.generator_early_dir, self.generator_late_dir,
+                                     '--invalid-arg'],
+                                    stderr=subprocess.STDOUT, text=True)
+        except subprocess.CalledProcessError as e:
+            self.assertIn('failed to parse options: Unknown option --invalid-arg', e.output)
+            self.assertEqual(e.returncode, 1)
+
+        # Netplan configure stage
+        try:
+            subprocess.check_output([exe_configure, '--root-dir', self.workdir.name, '--invalid-arg'],
+                                    stderr=subprocess.STDOUT, text=True)
+        except subprocess.CalledProcessError as e:
+            self.assertIn('failed to parse options: Unknown option --invalid-arg', e.output)
+            self.assertEqual(e.returncode, 1)
+
     def test_no_files(self):
         # Systemd generator stage
         generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
-        os.makedirs(os.path.dirname(generator))
-        os.symlink(exe_generate, generator)
         try:
             subprocess.check_output([generator, '--root-dir', self.workdir.name,
                                      self.generator_dir, self.generator_early_dir, self.generator_late_dir],
@@ -195,9 +213,6 @@ class TestConfigArgs(TestBase):
         os.chmod(conf, mode=0o600)
 
         generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
-        os.makedirs(os.path.dirname(generator))
-        os.symlink(exe_generate, generator)
-
         local_env = os.environ.copy()
         local_env['G_MESSAGES_DEBUG'] = 'all'
         out = ''
@@ -326,10 +341,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i b
         outdir = os.path.join(self.workdir.name, 'out')
         os.mkdir(outdir)
 
-        generator = os.path.join(self.workdir.name, 'systemd', 'system-generators', 'netplan')
-        os.makedirs(os.path.dirname(generator))
-        os.symlink(exe_generate, generator)
-
+        generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
         try:
             subprocess.check_output([generator, '--root-dir', self.workdir.name],
                                     stderr=subprocess.STDOUT, text=True)
