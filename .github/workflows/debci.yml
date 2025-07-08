@@ -51,6 +51,7 @@ jobs:
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
           echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
+          echo 'usr/lib/systemd/system/netplan-configure.service' >> debian/netplan-generator.install
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
