@@ -1,0 +1,16 @@
+[Unit]
+Description=Netplan Backend Configuration
+Documentation=man:netplan(8)
+Documentation=https://netplan.readthedocs.io/en/stable/netplan-yaml/
+
+DefaultDependencies=no
+After=systemd-userdbd.service sysinit.target
+Before=network-pre.target network.target network-online.target nss-lookup.target shutdown.target systemd-networkd.service NetworkManager.service systemd-udevd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/libexec/netplan/configure
+
+[Install]
+WantedBy=sysinit.target

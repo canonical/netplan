@@ -61,6 +61,12 @@ install_data(
     rename: 'netplan',
     install_dir: bash_completions_dir)
 
+service_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir')
+# XXX: should we use configure_file() instead?
+install_data(
+    'netplan-configure.service',
+    install_dir: service_dir)
+
 ###########
 # Testing #
 ###########
