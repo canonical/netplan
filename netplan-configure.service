@@ -1,0 +1,26 @@
+[Unit]
+Description=Netplan Backend Configuration
+Documentation=man:netplan(8)
+Documentation=https://netplan.readthedocs.io/en/stable/netplan-yaml/
+
+DefaultDependencies=no
+Wants=systemd-udevd.service
+Conflicts=shutdown.target
+Before=shutdown.target network-pre.target
+Before=systemd-networkd.service NetworkManager.service
+# Run After=nss-user-lookup.target, to allow lookup of the "systemd-network" GID
+# (LP: #2071747)
+After=local-fs.target nss-user-lookup.target systemd-udevd-control.socket
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+Environment=NETPLAN_PARSER_IGNORE_ERRORS=1
+ExecStart=/usr/libexec/netplan/configure
+# 'udevadm trigger' is needed to rename interfaces at boot time:
+# https://github.com/canonical/netplan/pull/479
+ExecStartPost=udevadm control --reload
+ExecStartPost=udevadm trigger --action=add --subsystem-match=net
+
+[Install]
+WantedBy=sysinit.target

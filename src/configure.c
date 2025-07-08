@@ -149,7 +149,6 @@ int main(int argc, char** argv)
     }
 
     npp = netplan_parser_new();
-    // TODO: NETPLAN_PARSER_IGNORE_ERRORS=1 needs to be set from the netplan-configure.service
     if (ignore_errors)
         netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
 
