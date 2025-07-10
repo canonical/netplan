@@ -156,7 +156,7 @@ def systemctl_is_masked(unit_pattern):
 
 def systemctl_is_installed(unit_pattern):
     '''Return True if returncode is other than "not-found" (4)'''
-    res = subprocess.run(['systemctl', 'is-enabled', unit_pattern],
+    res = subprocess.run(['systemctl', 'status', unit_pattern],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          text=True)
     if res.returncode != 4:
