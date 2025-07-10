@@ -17,21 +17,25 @@ jobs:
       fail-fast: false
       matrix:
         container:
+          - fedora:rawhide
           - fedora:latest
-          # - fedora:rawhide
-          - rockylinux:9
+          - almalinux:10-kitten
+          - almalinux:10
+          - almalinux:9
     container:
       image: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Build & Test
+      - name: Runner setup
         run: |
           cat /etc/os-release
-          dnf -y install dnf-plugins-core rpmdevtools  # for 'dnf builddep'
+          dnf -y install gzip sudo rpmdevtools
+
+      - uses: actions/checkout@v4
+      - name: Build & Test
+        run: |
           dnf -y install epel-release || true
-          dnf config-manager --set-enabled crb || true  # Meson/CMocka on EL9
-          dnf -y install centos-release-nfv-openvswitch || true  # OVS on EL9
+          crb enable || true                            # Meson/CMocka on EL10
           dnf -y builddep rpm/netplan.spec
           adduser test
           chown -R test:test .
-          su test -c 'rpmbuild -bi -D "debug_package %{nil}" --build-in-place rpm/netplan.spec'
+          sudo -u test rpmbuild -bi -D "debug_package %{nil}" --build-in-place rpm/netplan.spec
