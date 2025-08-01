@@ -486,8 +486,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i %(e2c)s:carrier -i br0:de
 ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i %(e2c)s -i br0
 ''' % {'e2c': self.dev_e2_client})
         # Restart sd-nd-wait-online.service and check that it was launched correctly.
-        # XXX: Enable extra testing once systemd#34640 is available on the SUT (i.e. systemd v258+).
-        # subprocess.check_call(['systemctl', 'restart', 'systemd-networkd-wait-online.service'])
+        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd-wait-online.service'])
 
 
 @unittest.skipIf("NetworkManager" not in test_backends,
