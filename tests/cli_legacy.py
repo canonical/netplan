@@ -26,6 +26,7 @@ import shutil
 import yaml
 
 from tests.test_utils import MockCmd
+from generator.base import exe_generate
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 exe_cli = [os.path.join(rootdir, 'src', 'netplan.script')]
@@ -77,13 +78,23 @@ class TestArgs(unittest.TestCase):
 class TestGenerate(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
+        generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd',
+                                 'system-generators', 'netplan')
+        os.makedirs(os.path.dirname(generator))
+        os.symlink(exe_generate, generator)
 
     def test_no_config(self):
         p = subprocess.Popen(exe_cli + ['generate', '--root-dir', self.workdir.name], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
-        self.assertEqual(os.listdir(self.workdir.name), ['run'])
+        self.assertEqual(os.listdir(self.workdir.name), ['usr', 'run'])
+        self.assertEqual(
+            os.listdir(os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators')),
+            ['netplan'])
+        self.assertEqual(
+            os.listdir(os.path.join(self.workdir.name, 'run', 'systemd')),
+            ['generator.late'])
 
     def test_with_empty_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
@@ -105,11 +116,13 @@ class TestGenerate(unittest.TestCase):
     def test_with_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   ethernets:
     enlol: {dhcp4: yes}''')
+        os.chmod(path_a, mode=0o600)
         out = subprocess.check_output(exe_cli + ['generate', '--root-dir', self.workdir.name])
         self.assertEqual(out, b'')
         self.assertEqual(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd', 'network')),
@@ -119,11 +132,13 @@ class TestGenerate(unittest.TestCase):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   ethernets:
     enlol: {dhcp4: yes}''')
+        os.chmod(path_a, mode=0o600)
         p = subprocess.Popen(exe_cli +
                              ['generate', '--root-dir', self.workdir.name, '--mapping', 'nonexistent'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -135,11 +150,13 @@ class TestGenerate(unittest.TestCase):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   ethernets:
     enlol: {dhcp4: yes}''')
+        os.chmod(path_a, mode=0o600)
         out = subprocess.check_output(exe_cli +
                                       ['generate', '--root-dir', self.workdir.name, '--mapping', 'enlol'])
         self.assertNotEqual(b'', out)
@@ -149,7 +166,8 @@ class TestGenerate(unittest.TestCase):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   ethernets:
@@ -159,6 +177,7 @@ class TestGenerate(unittest.TestCase):
       set-name: renamediface
       dhcp4: yes
 ''')
+        os.chmod(path_a, mode=0o600)
         out = subprocess.check_output(exe_cli +
                                       ['generate', '--root-dir', self.workdir.name, '--mapping', 'renamediface'])
         self.assertNotEqual(b'', out)
@@ -633,7 +652,8 @@ class TestIp(unittest.TestCase):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
@@ -645,6 +665,7 @@ class TestIp(unittest.TestCase):
         name: lo
       dhcp4: yes
 ''')
+        os.chmod(path_a, mode=0o600)
         fake_netif_lease_dir = os.path.join(self.workdir.name,
                                             'run', 'systemd', 'netif', 'leases')
         os.makedirs(fake_netif_lease_dir)
@@ -667,12 +688,14 @@ class TestIp(unittest.TestCase):
 
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   renderer: NetworkManager
   ethernets: {lo: {dhcp4: yes}}
 ''')
+        os.chmod(path_a, mode=0o600)
         fake_lease_dir = os.path.join(self.workdir.name,
                                       'var', 'lib', 'NetworkManager')
         os.makedirs(fake_lease_dir)
@@ -697,12 +720,14 @@ class TestIp(unittest.TestCase):
 
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   renderer: NetworkManager
   ethernets: {lo: {dhcp4: yes}}
 ''')
+        os.chmod(path_a, mode=0o600)
         fake_lease_dir = os.path.join(self.workdir.name,
                                       'var', 'lib', 'NetworkManager')
         os.makedirs(fake_lease_dir)
@@ -728,12 +753,14 @@ class TestIp(unittest.TestCase):
 
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   renderer: NetworkManager
   ethernets: {lo: {dhcp4: yes}}
 ''')
+        os.chmod(path_a, mode=0o600)
         # the nmcli Mock's return value is 10, indicating an error
         with self.assertRaises(Exception):
             subprocess.check_output(exe_cli +
@@ -745,7 +772,8 @@ class TestIp(unittest.TestCase):
         os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             # match against loopback so as to successfully get a predictable
             # ifindex
             f.write('''network:
@@ -756,6 +784,7 @@ class TestIp(unittest.TestCase):
         name: lo
       dhcp4: yes
 ''')
+        os.chmod(path_a, mode=0o600)
         p = subprocess.Popen(exe_cli +
                              ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],
                              stdout=subprocess.PIPE,
@@ -775,7 +804,8 @@ class TestIp(unittest.TestCase):
 
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
         os.makedirs(c)
-        with open(os.path.join(c, 'a.yaml'), 'w') as f:
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
             f.write('''network:
   version: 2
   renderer: NetworkManager
@@ -785,6 +815,7 @@ class TestIp(unittest.TestCase):
         name: lo
       dhcp4: yes
 ''')
+        os.chmod(path_a, mode=0o600)
         # we didn't create a (mock) lease file, therefore expect stderr output
         p = subprocess.Popen(exe_cli +
                              ['ip', 'leases', '--root-dir', self.workdir.name, 'enlol'],

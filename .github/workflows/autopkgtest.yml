@@ -47,8 +47,9 @@ jobs:
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          sed -i 's|iproute2,|iproute2, ethtool,|' debian/control  # add ethtool as a dependency of netplan.io temporarily
           sed -i 's|systemd (>= 257.2-3ubuntu1~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
+          echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
+          echo 'usr/lib/systemd/system/netplan-configure.service' >> debian/netplan-generator.install
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
@@ -58,5 +59,6 @@ jobs:
           autopkgtest . -U \
             --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
             --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
+            --setup-commands='mkdir -p /etc/systemd/system/NetworkManager.service.d && echo "[Service]\nCapabilityBoundingSet=CAP_CHOWN\n" > /etc/systemd/system/NetworkManager.service.d/override.conf && systemctl daemon-reload' \
             -- lxd autopkgtest/ubuntu/noble/amd64 \
             || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)

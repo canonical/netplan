@@ -44,6 +44,10 @@ def get_generator_path():
     return os.environ.get('NETPLAN_GENERATE_PATH', '/usr/libexec/netplan/generate')
 
 
+def get_configure_path():
+    return os.environ.get('NETPLAN_CONFIGURE_PATH', '/usr/libexec/netplan/configure')
+
+
 def is_nm_snap_enabled():
     return subprocess.call(['systemctl', '--quiet', 'is-enabled', NM_SNAP_SERVICE_NAME], stderr=subprocess.DEVNULL) == 0
 
@@ -293,6 +297,9 @@ class NetplanCommand(argparse.Namespace):
         self.subcommands = {}
         self.subcommand = None
         self.func = None
+        self.generator_dir = '/run/systemd/generator/'
+        self.generator_early_dir = '/run/systemd/generator.early/'
+        self.generator_late_dir = '/run/systemd/generator.late/'
 
         self.parser = argparse.ArgumentParser(prog="%s %s" % (sys.argv[0], command_id),
                                               description=description,

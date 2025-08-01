@@ -426,6 +426,9 @@ class IntegrationTestsBase(unittest.TestCase):
         # start NM so that we can verify that it does not manage anything
         subprocess.call(['nm-online', '-sxq'])  # Wait for NM startup, from 'netplan apply'
         if not self.is_active('NetworkManager.service'):
+            # FIXME: This changes ownership of /run/systemd/network/10-netplan-lo.network to root:root (LP: #2090848)
+            # Use:
+            # printf "[Unit]\CapabilityBoundingSet=CAP_CHOWN\n" | systemctl edit --stdin NetworkManager.service 2>/dev/null
             subprocess.check_call(['systemctl', 'start', 'NetworkManager.service'])
             subprocess.call(['nm-online', '-sq'])
 
@@ -510,9 +513,10 @@ class IntegrationTestsBase(unittest.TestCase):
             self.assertEqual(group.gr_name, wpa_expected_group, f'file {file}')
 
         # Check systemd service unit files
-        base_path = '/run/systemd/system/'
+        base_path = '/run/systemd/generator.late/'
         files = glob.glob(f'{base_path}/netplan-*.service')
         files += glob.glob(f'{base_path}/systemd-networkd-wait-online.service.d/*.conf')
+        self.assertTrue(files, 'No Netplan service files found in %s' % base_path)
         for file in files:
             res = os.stat(file)
             user = pwd.getpwuid(res.st_uid)
