@@ -912,9 +912,12 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     else if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         /* sit tunnels will not start in link-local apparently */
         g_key_file_set_string(kf, "ipv4", "method", "disabled");
-    else
-        /* Without any address, this is the only available mode */
+    else if (def->linklocal.ipv4)
+        /* Without any address, set link-local addresses if configured */
         g_key_file_set_string(kf, "ipv4", "method", "link-local");
+    else
+        /* Without any address nor link-local we fall back to disabled mode */
+        g_key_file_set_string(kf, "ipv4", "method", "disabled");
 
     if (def->ip4_addresses) {
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i) {
