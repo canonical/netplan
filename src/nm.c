@@ -303,7 +303,8 @@ write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GE
                 g_string_append_printf(tmp_val, " fwmark %u", cur_rule->fwmark);
             if (cur_rule->table != NETPLAN_ROUTE_TABLE_UNSPEC)
                 g_string_append_printf(tmp_val, " table %u", cur_rule->table);
-
+            if (cur_rule->type)
+                g_string_append_printf(tmp_val, " type %s", cur_rule->type);
             g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
             g_free(tmp_key);
             g_string_free(tmp_val, TRUE);
