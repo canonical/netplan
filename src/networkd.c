@@ -758,6 +758,12 @@ write_ip_rule(NetplanIPRule* r, GString* s)
         g_string_append_printf(s, "FirewallMark=%d\n", r->fwmark);
     if (r->tos != NETPLAN_IP_RULE_TOS_UNSPEC)
         g_string_append_printf(s, "TypeOfService=%d\n", r->tos);
+    if (r->type)
+        g_string_append_printf(s, "Type=%s\n", r->type);
+    if (r->iif)
+        g_string_append_printf(s, "IncomingInterface=%s\n", r->iif);
+    if (r->oif)
+        g_string_append_printf(s, "OutgoingInterface=%s\n", r->oif);
 }
 
 STATIC void
