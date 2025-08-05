@@ -305,6 +305,10 @@ write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GE
                 g_string_append_printf(tmp_val, " table %u", cur_rule->table);
             if (cur_rule->type)
                 g_string_append_printf(tmp_val, " type %s", cur_rule->type);
+            if (cur_rule->iif)
+                g_string_append_printf(tmp_val, " iif %s", cur_rule->iif);
+            if (cur_rule->oif)
+                g_string_append_printf(tmp_val, " oif %s", cur_rule->oif);
             g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
             g_free(tmp_key);
             g_string_free(tmp_val, TRUE);

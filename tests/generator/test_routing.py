@@ -1159,6 +1159,66 @@ routing-rule1=priority 99 to 10.10.10.0/24 type blackhole
 method=ignore
 '''})
 
+    def test_ip_rule_iif(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          iif: engreen
+          priority: 99
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 iif engreen
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_ip_rule_oif(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          priority: 99
+          oif: engreen
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 oif engreen
+
+[ipv6]
+method=ignore
+'''})
+
     def test_ip_rule_fwmark(self):
         self.generate('''network:
   version: 2
