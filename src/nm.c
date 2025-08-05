@@ -933,10 +933,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         write_search_domains(def, "ipv4", kf);
         if (!write_routes_nm(def, kf, AF_INET, error))
             return FALSE;
-        if (!write_ip_rules_nm(def, kf, AF_INET, error))
-            return FALSE;
     }
-
+    write_ip_rules_nm(def, kf, AF_INET, error);
     if (!def->dhcp4_overrides.use_routes) {
         g_key_file_set_boolean(kf, "ipv4", "ignore-auto-routes", TRUE);
         g_key_file_set_boolean(kf, "ipv4", "never-default", TRUE);
