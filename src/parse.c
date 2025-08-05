@@ -2090,6 +2090,31 @@ handle_ip_rule_type(NetplanParser* npp, yaml_node_t* node, __unused const void* 
     return yaml_error(npp, node, error, "invalid rule type '%s'", ip_rule->type);
 }
 
+STATIC gboolean
+handle_ip_rule_iif(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
+    if (ip_rule->iif)
+        g_free(ip_rule->iif);
+    ip_rule->iif = g_strdup(scalar(node));
+    if (strpbrk(ip_rule->iif, "*[]?"))
+            return yaml_error(npp, node, error, "Rule input interface '%s' must not use globbing", ip_rule->iif);
+    return TRUE;
+}
+
+STATIC gboolean
+handle_ip_rule_oif(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
+    if (ip_rule->oif) {
+        g_free(ip_rule->oif);
+    }
+    ip_rule->oif = g_strdup(scalar(node));
+    if (strpbrk(ip_rule->oif, "*[]?"))
+            return yaml_error(npp, node, error, "Rule output interface '%s' must not use globbing", ip_rule->oif);
+    return TRUE;
+}
+
 /****************************************************
  * Grammar and handlers for network config "bridge_params" entry
  ****************************************************/
