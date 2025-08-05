@@ -167,6 +167,7 @@ reset_ip_rule(NetplanIPRule* ip_rule)
     ip_rule->table = NETPLAN_ROUTE_TABLE_UNSPEC;
     ip_rule->tos = NETPLAN_IP_RULE_TOS_UNSPEC;
     ip_rule->fwmark = NETPLAN_IP_RULE_FW_MARK_UNSPEC;
+    ip_rule->type = NETPLAN_IP_RULE_TYPE_UNSPEC;
 }
 
 /* Reset a backend settings object. */

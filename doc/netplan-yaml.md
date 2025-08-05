@@ -894,6 +894,11 @@ network:
     > Match this policy rule based on the type of service number applied to
     > the traffic.
 
+  - **`type`** (scalar)
+
+    > The type of the rule. Valid options are `unicast` (default),
+    > `blackhole`, `unreachable`, `prohibit` and `nat`.
+
 (yaml-auth)=
 ## Authentication
 
