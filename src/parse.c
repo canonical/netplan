@@ -2072,6 +2072,49 @@ handle_ip_rule_tos(NetplanParser* npp, yaml_node_t* node, const void* data, GErr
     return ret;
 }
 
+STATIC gboolean
+handle_ip_rule_type(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
+    if (ip_rule->type)
+        g_free(ip_rule->type);
+    ip_rule->type = g_strdup(scalar(node));
+
+    if (   g_ascii_strcasecmp(ip_rule->type, "unicast") == 0
+        || g_ascii_strcasecmp(ip_rule->type, "blackhole") == 0
+        || g_ascii_strcasecmp(ip_rule->type, "unreachable") == 0
+        || g_ascii_strcasecmp(ip_rule->type, "nat") == 0
+        || g_ascii_strcasecmp(ip_rule->type, "prohibit") == 0)
+        return TRUE;
+
+    return yaml_error(npp, node, error, "invalid rule type '%s'", ip_rule->type);
+}
+
+STATIC gboolean
+handle_ip_rule_iif(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
+    if (ip_rule->iif)
+        g_free(ip_rule->iif);
+    ip_rule->iif = g_strdup(scalar(node));
+    if (strpbrk(ip_rule->iif, "*[]?"))
+            return yaml_error(npp, node, error, "Rule input interface '%s' must not use globbing", ip_rule->iif);
+    return TRUE;
+}
+
+STATIC gboolean
+handle_ip_rule_oif(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    NetplanIPRule* ip_rule = npp->current.ip_rule;
+    if (ip_rule->oif) {
+        g_free(ip_rule->oif);
+    }
+    ip_rule->oif = g_strdup(scalar(node));
+    if (strpbrk(ip_rule->oif, "*[]?"))
+            return yaml_error(npp, node, error, "Rule output interface '%s' must not use globbing", ip_rule->oif);
+    return TRUE;
+}
+
 /****************************************************
  * Grammar and handlers for network config "bridge_params" entry
  ****************************************************/
@@ -2295,6 +2338,9 @@ static const mapping_entry_handler ip_rules_handlers[] = {
     {"table", YAML_SCALAR_NODE, {.generic=handle_ip_rule_guint}, ip_rule_offset(table)},
     {"to", YAML_SCALAR_NODE, {.generic=handle_ip_rule_ip}, ip_rule_offset(to)},
     {"type-of-service", YAML_SCALAR_NODE, {.generic=handle_ip_rule_tos}, ip_rule_offset(tos)},
+    {"type", YAML_SCALAR_NODE, {.generic=handle_ip_rule_type}, ip_rule_offset(type)},
+    {"iif", YAML_SCALAR_NODE, {.generic=handle_ip_rule_iif}, ip_rule_offset(iif)},
+    {"oif", YAML_SCALAR_NODE, {.generic=handle_ip_rule_oif}, ip_rule_offset(oif)},
     {NULL}
 };
 
@@ -2324,11 +2370,12 @@ handle_ip_rules(NetplanParser* npp, yaml_node_t* node, __unused const void* _, G
             npp->current.netdef->ip_rules = g_array_new(FALSE, FALSE, sizeof(NetplanIPRule*));
 
         if (is_route_rule_present(npp->current.netdef, ip_rule)) {
-            g_debug("%s: rule (from: %s, to: %s, table: %d) has already been added",
+            g_debug("%s: rule (from: %s, to: %s, table: %d, type: %s) has already been added",
                     npp->current.netdef->id,
                     ip_rule->from,
                     ip_rule->to,
-                    ip_rule->table);
+                    ip_rule->table,
+                    ip_rule->type);
             ip_rule_clear(&ip_rule);
             npp->current.ip_rule = NULL;
             continue;
