@@ -49,6 +49,7 @@ netplan_def_type_to_str[NETPLAN_DEF_TYPE_MAX_] = {
     [NETPLAN_DEF_TYPE_VLAN] = "vlans",
     [NETPLAN_DEF_TYPE_VRF] = "vrfs",
     [NETPLAN_DEF_TYPE_TUNNEL] = "tunnels",
+    [NETPLAN_DEF_TYPE_XFRM] = "xfrm-interfaces",
     [NETPLAN_DEF_TYPE_DUMMY] = "dummy-devices",       /* wokeignore:rule=dummy */
     [NETPLAN_DEF_TYPE_VETH] = "virtual-ethernets",
     [NETPLAN_DEF_TYPE_PORT] = "_ovs-ports",

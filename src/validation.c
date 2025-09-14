@@ -417,6 +417,27 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
         }
     }
 
+    /* Validate XFRM interface configuration */
+        if (nd->type == NETPLAN_DEF_TYPE_XFRM) {
+        if (nd->xfrm.interface_id == 0) {
+            return yaml_error(npp, NULL, error, "%s: missing 'if_id'", nd->id);
+        }
+        if (nd->xfrm.interface_id < 1 || nd->xfrm.interface_id > 0xffffffff) {
+            return yaml_error(npp, NULL, error, "%s: XFRM 'if_id' must be in range [1..0xffffffff]", nd->id);
+        }
+        if (!nd->xfrm.independent && nd->xfrm.link == NULL) {
+            return yaml_error(npp, NULL, error, "%s: Non-independent XFRM interfaces require property 'link'", nd->id);
+        }
+
+        /* Ensure no xfrm if_id is used more than once */
+        NetplanNetDefinition* existing_def = g_hash_table_lookup(npp->xfrm_if_ids, GINT_TO_POINTER(nd->xfrm.interface_id));
+        if (existing_def != NULL && existing_def != nd) {
+            return yaml_error(npp, NULL, error, "%s: duplicate if_id '%u' (already used by %s)",
+                              nd->id, nd->xfrm.interface_id, existing_def->id);
+        }
+        g_hash_table_insert(npp->xfrm_if_ids, GINT_TO_POINTER(nd->xfrm.interface_id), nd);
+    }
+
     if (nd->type == NETPLAN_DEF_TYPE_VRF) {
         if (nd->vrf_table == G_MAXUINT) {
             return yaml_error(npp, NULL, error, "%s: missing 'table' property", nd->id);

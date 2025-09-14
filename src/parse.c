@@ -348,6 +348,36 @@ process_mapping(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, c
 
 /**
  * Handler for setting a guint field from a scalar node, inside a given struct
+ * Supports hex (0x prefix) and decimal values
+ * @entryptr: pointer to the begining of the to-be-modified data structure
+ * @data: offset into entryptr struct where the guint field to write is located
+ */
+STATIC gboolean
+handle_generic_guint_hex_dec(NetplanParser* npp, yaml_node_t* node, const void* entryptr, const void* data, GError** error)
+{
+    g_assert(entryptr != NULL);
+    guint offset = GPOINTER_TO_UINT(data);
+    guint64 v;
+    gchar* endptr;
+
+    const char* s_node = scalar(node);
+
+    if (g_str_has_prefix(s_node, "0x") || g_str_has_prefix(s_node, "0X")) {
+        v = g_ascii_strtoull(s_node, &endptr, 16);
+    } else {
+        v = g_ascii_strtoull(s_node, &endptr, 10);
+    }
+
+    if (*endptr != '\0' || v > G_MAXUINT)
+        return yaml_error(npp, node, error, "invalid unsigned int value '%s'", s_node);
+
+    mark_data_as_dirty(npp, entryptr + offset);
+    *((guint*) ((void*) entryptr + offset)) = (guint) v;
+    return TRUE;
+}
+
+/**
+ * Handler for setting a guint field from a scalar node, inside a given struct
  * @entryptr: pointer to the begining of the to-be-modified data structure
  * @data: offset into entryptr struct where the guint field to write is located
  */
@@ -731,6 +761,12 @@ STATIC gboolean
 handle_netdef_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     return handle_generic_guint(npp, node, npp->current.netdef, data, error);
+}
+
+STATIC gboolean
+handle_netdef_guint_hex_dec(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_guint_hex_dec(npp, node, npp->current.netdef, data, error);
 }
 
 STATIC gboolean
@@ -3141,6 +3177,15 @@ static const mapping_entry_handler tunnel_def_handlers[] = {
     {NULL}
 };
 
+static const mapping_entry_handler xfrm_def_handlers[] = {
+    COMMON_LINK_HANDLERS,
+    COMMON_BACKEND_HANDLERS,
+    {"if_id", YAML_SCALAR_NODE, {.generic=handle_netdef_guint_hex_dec}, netdef_offset(xfrm.interface_id)}, /* hex/dec like iproute2 */
+    {"independent", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(xfrm.independent)},
+    {"link", YAML_SCALAR_NODE, {.generic=handle_netdef_id_ref}, netdef_offset(xfrm.link)},
+    {NULL}
+};
+
 /****************************************************
  * Grammar and handlers for network node
  ****************************************************/
@@ -3375,6 +3420,7 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
             case NETPLAN_DEF_TYPE_ETHERNET: handlers = ethernet_def_handlers; break;
             case NETPLAN_DEF_TYPE_MODEM: handlers = modem_def_handlers; break;
             case NETPLAN_DEF_TYPE_TUNNEL: handlers = tunnel_def_handlers; break;
+            case NETPLAN_DEF_TYPE_XFRM: handlers = xfrm_def_handlers; break;
             case NETPLAN_DEF_TYPE_VLAN: handlers = vlan_def_handlers; break;
             case NETPLAN_DEF_TYPE_VRF: handlers = vrf_def_handlers; break;
             case NETPLAN_DEF_TYPE_WIFI: handlers = wifi_def_handlers; break;
@@ -3425,6 +3471,10 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
                 npp->current.netdef->vxlan->link->has_vxlans = TRUE;
             else
                 npp->current.netdef->vxlan->independent = TRUE;
+        }
+
+        if (!npp->xfrm_if_ids) {
+            npp->xfrm_if_ids = g_hash_table_new(g_direct_hash, g_direct_equal);
         }
 
         /* validate definition-level conditions */
@@ -3485,6 +3535,7 @@ static const mapping_entry_handler network_handlers[] = {
     {"vlans", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VLAN)},
     {"vrfs", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VRF)},
     {"wifis", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_WIFI)},
+    {"xfrm-interfaces", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_XFRM)},
     {"modems", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_MODEM)},
     {"dummy-devices", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_DUMMY)},    /* wokeignore:rule=dummy */
     {"virtual-ethernets", YAML_MAPPING_NODE, {.map={.custom=handle_network_type}}, GUINT_TO_POINTER(NETPLAN_DEF_TYPE_VETH)},
@@ -3811,6 +3862,11 @@ netplan_parser_reset(NetplanParser* npp)
     }
     // LCOV_EXCL_STOP
 
+    if (npp->xfrm_if_ids) {
+        g_hash_table_destroy(npp->xfrm_if_ids);
+        npp->xfrm_if_ids = NULL;
+    }
+
     if (npp->missing_id) {
         g_hash_table_destroy(npp->missing_id);
         npp->missing_id = NULL;
@@ -3839,7 +3895,17 @@ netplan_parser_reset(NetplanParser* npp)
         npp->global_renderer = NULL;
     }
 
+    if (npp->xfrm_if_ids) {
+        g_hash_table_destroy(npp->xfrm_if_ids);
+        npp->xfrm_if_ids = NULL;
+    }
+
     npp->flags = 0;
+
+    if (npp->xfrm_if_ids) {
+        g_hash_table_destroy(npp->xfrm_if_ids);
+        npp->xfrm_if_ids = NULL;
+    }
     npp->error_count = 0;
 }
 

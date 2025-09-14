@@ -1359,3 +1359,53 @@ Name=bond0
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 '''})
+
+    def test_xfrm_missing_if_id(self):
+        err = self.generate('''network:
+  version: 2
+  xfrm-interfaces:
+    xfrm0:
+      independent: true''', expect_fail=True)
+        self.assertIn("missing 'if_id' property", err)
+
+    def test_xfrm_invalid_if_id_range(self):
+        err = self.generate('''network:
+  version: 2
+  xfrm-interfaces:
+    xfrm0:
+      if_id: 0
+      link: eth0''', expect_fail=True)
+        self.assertIn("XFRM 'if_id' must be in range [1..0xffffffff]", err)
+
+    def test_xfrm_missing_link_non_independent(self):
+        err = self.generate('''network:
+  version: 2
+  xfrm-interfaces:
+    xfrm0:
+      if_id: 42
+      independent: false''', expect_fail=True)
+        self.assertIn("non-independent XFRM interface requires 'link' property", err)
+
+    def test_xfrm_duplicate_if_id(self):
+        err = self.generate('''network:
+  version: 2
+  xfrm-interfaces:
+    xfrm0:
+      if_id: 42
+      independent: true
+    xfrm1:
+      if_id: 42
+      independent: true''', expect_fail=True)
+        self.assertIn("duplicate if_id '42' (already used by xfrm0)", err)
+
+    def test_xfrm_duplicate_if_id_hex_dec(self):
+        err = self.generate('''network:
+  version: 2
+  xfrm-interfaces:
+    xfrm0:
+      if_id: 42
+      independent: true
+    xfrm1:
+      if_id: 0x2A
+      independent: true''', expect_fail=True)
+        self.assertIn("duplicate if_id '42' (already used by xfrm0)", err)

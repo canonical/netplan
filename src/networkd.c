@@ -697,6 +697,15 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                 write_tunnel_params(s, def);
             break;
 
+        /* Generate XFRM interface netdev file */
+                case NETPLAN_DEF_TYPE_XFRM:
+            g_string_append_printf(s, "Kind=xfrm\n\n[Xfrm]\nInterfaceId=%u\n", def->xfrm.interface_id);
+                /* Independent interfaces operate without link device, in reality it will show up as @lo. */
+            if (def->xfrm.independent) {
+                g_string_append(s, "Independent=true\n");
+            }
+            break;
+
         default: g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 
