@@ -95,6 +95,8 @@ Currently supported backends are NetworkManager and systemd-networkd.
 %dir %{_sysconfdir}/%{name}
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/generate
+%{_libexecdir}/%{name}/configure
+%{_prefix}/lib/systemd/system/netplan-configure.service
 %{_libexecdir}/%{name}/%{name}-dbus
 %{_datadir}/bash-completion/completions/%{name}
 
