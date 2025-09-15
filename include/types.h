@@ -57,11 +57,11 @@ typedef enum {
     NETPLAN_DEF_TYPE_TUNNEL,
     NETPLAN_DEF_TYPE_PORT,
     NETPLAN_DEF_TYPE_VRF,
-    NETPLAN_DEF_TYPE_XFRM,
     /* Type fallback/passthrough */
     NETPLAN_DEF_TYPE_NM,
     NETPLAN_DEF_TYPE_DUMMY,     /* wokeignore:rule=dummy */
     NETPLAN_DEF_TYPE_VETH,
+    NETPLAN_DEF_TYPE_XFRM,
     /* Place holder type used to fill gaps when a netdef
      * requires links to another netdef (such as vlan_link)
      * but it's not strictly mandatory
