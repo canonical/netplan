@@ -420,13 +420,13 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
     /* Validate XFRM interface configuration */
         if (nd->type == NETPLAN_DEF_TYPE_XFRM) {
         if (nd->xfrm.interface_id == 0) {
-            return yaml_error(npp, NULL, error, "%s: missing 'if_id'", nd->id);
+            return yaml_error(npp, NULL, error, "%s: missing 'if_id' property", nd->id);
         }
         if (nd->xfrm.interface_id < 1 || nd->xfrm.interface_id > 0xffffffff) {
             return yaml_error(npp, NULL, error, "%s: XFRM 'if_id' must be in range [1..0xffffffff]", nd->id);
         }
         if (!nd->xfrm.independent && nd->xfrm.link == NULL) {
-            return yaml_error(npp, NULL, error, "%s: Non-independent XFRM interfaces require property 'link'", nd->id);
+            return yaml_error(npp, NULL, error, "%s: non-independent XFRM interface requires 'link' property", nd->id);
         }
 
         /* Ensure no xfrm if_id is used more than once */
