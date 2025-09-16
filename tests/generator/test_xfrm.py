@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .base import TestBase
+from .base import ND_DHCP4, TestBase
 
 
 class TestNetworkdXfrm(TestBase):
@@ -33,7 +33,8 @@ class TestNetworkdXfrm(TestBase):
       link: eth0
       addresses: [192.168.1.10/24]''')
 
-        self.assert_networkd({'xfrm0.netdev': '''[NetDev]
+        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0',
+                              'xfrm0.netdev': '''[NetDev]
 Name=xfrm0
 Kind=xfrm
 
