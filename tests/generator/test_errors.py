@@ -1366,7 +1366,7 @@ ConfigureWithoutCarrier=yes
   xfrm-interfaces:
     xfrm0:
       independent: true''', expect_fail=True)
-        self.assertIn("missing 'if_id' property", err)
+        self.assertIn("'if_id' property must be in range [1..4294967295] or [0x1..0xffffffff]", err)
 
     def test_xfrm_invalid_if_id_range(self):
         err = self.generate('''network:
@@ -1375,7 +1375,7 @@ ConfigureWithoutCarrier=yes
     xfrm0:
       if_id: 0
       link: eth0''', expect_fail=True)
-        self.assertIn("XFRM 'if_id' must be in range [1..0xffffffff]", err)
+        self.assertIn("'if_id' property must be in range [1..4294967295] or [0x1..0xffffffff]", err)
 
     def test_xfrm_missing_link_non_independent(self):
         err = self.generate('''network:

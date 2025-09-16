@@ -905,15 +905,17 @@ _netplan_netdef_write_network_file(
     /* Set link local addressing -- this does not apply to bond and bridge
      * member interfaces, which always get it disabled.
      */
-    if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
-        if (def->linklocal.ipv4 && def->linklocal.ipv6)
-            g_string_append(network, "LinkLocalAddressing=yes\n");
-        else if (def->linklocal.ipv4)
-            g_string_append(network, "LinkLocalAddressing=ipv4\n");
-        else if (def->linklocal.ipv6)
-            g_string_append(network, "LinkLocalAddressing=ipv6\n");
-    } else {
-        g_string_append(network, "LinkLocalAddressing=no\n");
+    if (def->type != NETPLAN_DEF_TYPE_XFRM) {
+        if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
+            if (def->linklocal.ipv4 && def->linklocal.ipv6)
+                g_string_append(network, "LinkLocalAddressing=yes\n");
+            else if (def->linklocal.ipv4)
+                g_string_append(network, "LinkLocalAddressing=ipv4\n");
+            else if (def->linklocal.ipv6)
+                g_string_append(network, "LinkLocalAddressing=ipv6\n");
+        } else {
+            g_string_append(network, "LinkLocalAddressing=no\n");
+        }
     }
 
     if (def->ip4_addresses)
@@ -966,7 +968,7 @@ _netplan_netdef_write_network_file(
         g_string_append_printf(network, "IPv6MTUBytes=%d\n", def->ipv6_mtubytes);
     }
 
-    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL || def->ignore_carrier)
+    if ((def->type >= NETPLAN_DEF_TYPE_VIRTUAL && def->type != NETPLAN_DEF_TYPE_XFRM) || def->ignore_carrier)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->critical)
@@ -1117,6 +1119,11 @@ _netplan_netdef_write_network_file(
         if (def->ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
             g_string_append_printf(network, "RouteTable=%d\n", def->ra_overrides.table);
         }
+    }
+
+    if (def->type == NETPLAN_DEF_TYPE_XFRM && !def->xfrm.independent) {
+        if (network->len > 0 && !g_str_has_prefix(network->str, "LinkLocalAddressing="))
+            g_string_prepend(network, "LinkLocalAddressing=no\n");
     }
 
     if (network->len > 0 || link->len > 0) {
