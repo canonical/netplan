@@ -45,6 +45,7 @@ static gboolean any_networkd = FALSE;
 static gboolean any_nm = FALSE;
 static gchar* mapping_iface;
 static gboolean ignore_errors = FALSE;
+static gboolean no_ignore_errors = FALSE;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /", NULL},
@@ -224,12 +225,16 @@ int main(int argc, char** argv)
         if (!g_strcmp0(ignore_errors_env, "1")) {
             g_debug("NETPLAN_PARSER_IGNORE_ERRORS=1 environment variable exists, setting ignore_errors flags");
             ignore_errors = TRUE;
+        } else if (!g_strcmp0(ignore_errors_env, "0")) {
+            g_debug("NETPLAN_PARSER_IGNORE_ERRORS=0 environment variable exists, unsetting ignore_errors flags");
+            ignore_errors = FALSE;
+            no_ignore_errors = TRUE;
         }
         // LCOV_EXCL_STOP
     }
 
     npp = netplan_parser_new();
-    if (ignore_errors || called_as_generator)
+    if ((ignore_errors || called_as_generator) && !no_ignore_errors)
         netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
 
     CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error), ignore_errors);
