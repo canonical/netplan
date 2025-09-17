@@ -144,6 +144,9 @@ int main(int argc, char** argv)
         if (!g_strcmp0(ignore_errors_env, "1")) {
             g_debug("NETPLAN_PARSER_IGNORE_ERRORS=1 environment variable exists, setting ignore_errors flags");
             ignore_errors = TRUE;
+        } else if (!g_strcmp0(ignore_errors_env, "0")) {
+            g_debug("NETPLAN_PARSER_IGNORE_ERRORS=0 environment variable exists, unsetting ignore_errors flags");
+            ignore_errors = FALSE;
         }
         // LCOV_EXCL_STOP
     }
