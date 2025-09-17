@@ -219,6 +219,22 @@ int main(int argc, char** argv)
         generator_late_dir = files[2];
     }
 
+    // The file at netplan_try_stamp is created while `netplan try` is waiting
+    // for user confirmation. If generate is triggered while netplan try is
+    // running, we shouldn't regenerate the configuration.
+    // We can be called by either systemd (as a generator during daemon-reload)
+    // or by NetworkManager when it is reloading configuration (Ubuntu >23.10),
+    // see https://netplan.readthedocs.io/en/stable/netplan-everywhere/.
+    // LP #2083029
+    netplan_try_stamp = g_build_path(G_DIR_SEPARATOR_S,
+                                     rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
+                                     "run", "netplan", "netplan-try.ready",
+                                     NULL);
+    if (g_access(netplan_try_stamp, F_OK) == 0) {
+        g_fprintf(stderr, "'netplan try' is restoring configuration, remove %s to force re-run.\n", netplan_try_stamp);
+        return 1;
+    }
+
     if ((ignore_errors_env = getenv("NETPLAN_PARSER_IGNORE_ERRORS"))) {
         // This is used mostly by autopkgtests
         // LCOV_EXCL_START
