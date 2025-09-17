@@ -240,7 +240,7 @@ class TestConfigArgs(TestBase):
         with open(override, 'r') as f:
             # eth99 does not exist on the system, so will not be listed
             self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+ConditionPathIsSymbolicLink=/run/systemd/generator.late/network-online.target.wants/systemd-networkd-wait-online.service
 After=systemd-resolved.service
 
 [Service]
@@ -283,7 +283,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i e
         self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
             self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+ConditionPathIsSymbolicLink=/run/systemd/generator.late/network-online.target.wants/systemd-networkd-wait-online.service
 ''')
 
     def test_systemd_wait_online_only_non_routable(self):
@@ -301,7 +301,7 @@ ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/s
         self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
             self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+ConditionPathIsSymbolicLink=/run/systemd/generator.late/network-online.target.wants/systemd-networkd-wait-online.service
 
 [Service]
 ExecStart=
@@ -322,7 +322,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.44:degraded
         self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
             self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+ConditionPathIsSymbolicLink=/run/systemd/generator.late/network-online.target.wants/systemd-networkd-wait-online.service
 After=systemd-resolved.service
 
 [Service]
@@ -375,7 +375,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i b
         with open(override, 'r') as f:
             # eth99 does not exist on the system, so will not be listed
             self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+ConditionPathIsSymbolicLink=/run/systemd/generator.late/network-online.target.wants/systemd-networkd-wait-online.service
 After=systemd-resolved.service
 
 [Service]
