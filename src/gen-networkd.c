@@ -336,7 +336,7 @@ _netplan_networkd_generate_wait_online(const NetplanState* np_state, const char*
         }
     }
 
-    // Always create run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf override
+    // Always create run/systemd/generator.late/systemd-networkd-wait-online.service.d/10-netplan.conf override
     // The "ConditionPathIsSymbolicLink" is Netplan's s-n-wait-online enablement symlink,
     // as we want to run this waiting logic only if enabled by Netplan.
     g_autofree gchar* override = g_strdup_printf("%s/systemd-networkd-wait-online.service.d/10-netplan.conf", generator_dir);
