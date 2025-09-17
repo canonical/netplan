@@ -363,7 +363,6 @@ class TestBase(unittest.TestCase):
         os.makedirs(self.generator_early_dir, mode=0o755, exist_ok=True)
         os.makedirs(self.generator_late_dir, mode=0o755, exist_ok=True)
         sandbox = ['systemd-run', '--user', '--pipe', '--collect', '--quiet',
-                   '--setenv=NETPLAN_PARSER_IGNORE_ERRORS=0',  # for testing only
                    '--setenv=LD_LIBRARY_PATH=.:{}'.format(os.environ.get('LD_LIBRARY_PATH')),
                    '--setenv=G_DEBUG=fatal-criticals',
                    '--property=ProtectSystem=strict',
@@ -373,6 +372,9 @@ class TestBase(unittest.TestCase):
                    # Allow writing of test coverage data inside the project root (meson's _build-cov/ dir)
                    '--property=ReadWritePaths=' + os.path.dirname(os.environ.get('COVERAGE_PROCESS_START', '/home/'))]
 
+        if not ignore_errors:
+            sandbox += ['--setenv=NETPLAN_PARSER_IGNORE_ERRORS=0']  # for testing only
+
         argv_gen = sandbox + [self.sd_generator, '--root-dir', self.workdir.name,
                               self.generator_dir, self.generator_early_dir, self.generator_late_dir]
         argv = [exe_configure, '--root-dir', self.workdir.name] + extra_args
@@ -380,6 +382,8 @@ class TestBase(unittest.TestCase):
             print('Test is about to run:\n%s' % ' '.join(argv))
             subprocess.call(['bash', '-i'], cwd=self.workdir.name)
 
+        # if called as generator (passing generator{early,late} dirs) it will
+        # ignore errors by default. Errors are forced via NETPLAN_PARSER_IGNORE_ERRORS=0.
         if ignore_errors:
             argv_gen += ['--ignore-errors']
             argv += ['--ignore-errors']
