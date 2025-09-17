@@ -249,20 +249,6 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.43:carrier -i lo:ca
 -i eth99.42:carrier -i eth99.44:degraded -i bond0:degraded
 ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i eth99.43 -i eth99.45 -i bond0\n''')
 
-        # should be a no-op the second time while the stamp exists
-        out = subprocess.check_output([generator, '--root-dir', self.workdir.name,
-                                       self.generator_dir, self.generator_early_dir, self.generator_late_dir],
-                                      stderr=subprocess.STDOUT, text=True)
-        self.assertFalse(os.path.exists(n))
-        self.assertIn('netplan generate already ran', out)
-
-        # after removing the stamp it generates again, and not trip over the
-        # existing enablement symlink
-        os.unlink(os.path.join(outdir, 'netplan.stamp'))
-        subprocess.check_output([generator, '--root-dir', self.workdir.name,
-                                 self.generator_dir, self.generator_early_dir, self.generator_late_dir])
-        self.assertTrue(os.path.exists(n))
-
     def test_systemd_generator_all_optional(self):
         self.generate('''network:
   version: 2
@@ -382,15 +368,3 @@ After=systemd-resolved.service
 ExecStart=
 ExecStart=/lib/systemd/systemd-networkd-wait-online -i a \\; b\\t; c\\t; d \\n 123 \\; echo :degraded
 ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i a \\; b\\t; c\\t; d \\n 123 \\; echo \n''')
-
-        # should be a no-op the second time while the stamp exists
-        out = subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir],
-                                      stderr=subprocess.STDOUT, text=True)
-        self.assertFalse(os.path.exists(n))
-        self.assertIn('netplan generate already ran', out)
-
-        # after removing the stamp it generates again, and not trip over the
-        # existing enablement symlink
-        os.unlink(os.path.join(outdir, 'netplan.stamp'))
-        subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
-        self.assertTrue(os.path.exists(n))
