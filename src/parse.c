@@ -369,7 +369,7 @@ handle_generic_guint_hex_dec(NetplanParser* npp, yaml_node_t* node, const void* 
     }
 
     if (*endptr != '\0' || v > G_MAXUINT)
-        return yaml_error(npp, node, error, "invalid unsigned int value '%s'", s_node);
+        return yaml_error(npp, node, error, "invalid unsigned int value '%s'", s_node); // LCOV_EXCL_LINE
 
     mark_data_as_dirty(npp, entryptr + offset);
     *((guint*) ((void*) entryptr + offset)) = (guint) v;
