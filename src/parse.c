@@ -3895,17 +3895,7 @@ netplan_parser_reset(NetplanParser* npp)
         npp->global_renderer = NULL;
     }
 
-    if (npp->xfrm_if_ids) {
-        g_hash_table_destroy(npp->xfrm_if_ids);
-        npp->xfrm_if_ids = NULL;
-    }
-
     npp->flags = 0;
-
-    if (npp->xfrm_if_ids) {
-        g_hash_table_destroy(npp->xfrm_if_ids);
-        npp->xfrm_if_ids = NULL;
-    }
     npp->error_count = 0;
 }
 
