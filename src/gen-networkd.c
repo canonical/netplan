@@ -125,7 +125,7 @@ _netplan_enumerate_interfaces(const NetplanNetDefinition* def, GHashTable* iface
 }
 
 STATIC gboolean
-write_regdom(const NetplanNetDefinition* def, const char* generator_dir, GError** error)
+write_regdom(const NetplanNetDefinition* def, const char* generator_dir, gboolean validation_only, GError** error)
 {
     g_assert(generator_dir != NULL);
     g_assert(def->regulatory_domain != NULL);
@@ -144,6 +144,12 @@ write_regdom(const NetplanNetDefinition* def, const char* generator_dir, GError*
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return TRUE;
+    }
+
     mode_t orig_umask = umask(022);
     _netplan_g_string_free_to_file(s, NULL, path, NULL);
     umask(orig_umask);
@@ -159,7 +165,7 @@ write_regdom(const NetplanNetDefinition* def, const char* generator_dir, GError*
 
 /* netplan-feature: generated-supplicant */
 STATIC void
-write_wpa_unit(const NetplanNetDefinition* def, const char* generator_dir)
+write_wpa_unit(const NetplanNetDefinition* def, const char* generator_dir, gboolean validation_only)
 {
     g_assert(generator_dir != NULL);
     g_autofree gchar *stdouth = NULL;
@@ -186,10 +192,12 @@ write_wpa_unit(const NetplanNetDefinition* def, const char* generator_dir)
 
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
-    s = g_string_new(new_s);
-    mode_t orig_umask = umask(022);
-    _netplan_g_string_free_to_file(s, NULL, path, NULL);
-    umask(orig_umask);
+    if (!validation_only) {
+        s = g_string_new(new_s);
+        mode_t orig_umask = umask(022);
+        _netplan_g_string_free_to_file(s, NULL, path, NULL);
+        umask(orig_umask);
+    }
 }
 
 /**
@@ -212,9 +220,10 @@ _netplan_netdef_generate_networkd(
     g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
     g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", escaped_netdef_id, NULL);
     SET_OPT_OUT_PTR(has_been_written, FALSE);
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     if (def->regulatory_domain)
-        write_regdom(def, generator_dir, NULL); /* overwrites global regdom */
+        write_regdom(def, generator_dir, validation_only, NULL); /* overwrites global regdom */
 
     if (def->backend != NETPLAN_BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
@@ -236,18 +245,18 @@ _netplan_netdef_generate_networkd(
         }
 
         g_debug("Creating wpa_supplicant unit %s", slink);
-        write_wpa_unit(def, generator_dir);
+        write_wpa_unit(def, generator_dir, validation_only);
 
-        g_debug("Creating wpa_supplicant service enablement link %s", link);
-        _netplan_safe_mkdir_p_dir(link);
-
-        if (symlink(slink, link) < 0 && errno != EEXIST) {
-            // LCOV_EXCL_START
-            g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
-            return FALSE;
-            // LCOV_EXCL_STOP
+        if (!validation_only) {
+            g_debug("Creating wpa_supplicant service enablement link %s", link);
+            _netplan_safe_mkdir_p_dir(link);
+            if (symlink(slink, link) < 0 && errno != EEXIST) {
+                // LCOV_EXCL_START
+                g_set_error(error, NETPLAN_FILE_ERROR, errno, "failed to create enablement symlink: %m\n");
+                return FALSE;
+                // LCOV_EXCL_STOP
+            }
         }
-
     }
 
     if (def->set_mac &&

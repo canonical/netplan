@@ -253,6 +253,7 @@ int main(int argc, char** argv)
     if ((ignore_errors || called_as_generator) && !no_ignore_errors)
         netplan_parser_set_flags(npp, NETPLAN_PARSER_IGNORE_ERRORS, &error);
 
+    /* Read all input files */
     CHECK_CALL(netplan_parser_load_yaml_hierarchy(npp, rootdir, &error), ignore_errors);
 
     np_state = netplan_state_new();
@@ -272,20 +273,54 @@ int main(int argc, char** argv)
     }
 
     /* Generate specific systemd units from merged data. */
-    CHECK_CALL(_netplan_state_finish_sd_ovs_write(np_state, generator_late_dir, &error), ignore_errors); // OVS cleanup unit is always written
+    // network-configurator late-stage validation
+    CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+    CHECK_CALL(netplan_state_finish_ovs_write(np_state, NULL, &error), ignore_errors);
+    CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+
+    CHECK_CALL(_netplan_state_finish_ovs_generate(np_state, generator_late_dir, &error), ignore_errors); // OVS cleanup unit is always written
     if (np_state->netdefs) {
         g_debug("Generating output files..");
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             NetplanNetDefinition* def = (NetplanNetDefinition*) iterator->data;
             gboolean has_been_written = FALSE;
+
+            // network-configurator late-stage validation
+            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, NULL, &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+            any_networkd = any_networkd || has_been_written;
+
             CHECK_CALL(_netplan_netdef_generate_networkd(np_state, def, generator_late_dir, &has_been_written, &error), ignore_errors);
             any_networkd = any_networkd || has_been_written;
 
-            CHECK_CALL(_netplan_netdef_write_sd_ovs(np_state, def, generator_late_dir, &has_been_written, &error), ignore_errors);
+            // network-configurator late-stage validation
+            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, NULL, &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+
+            CHECK_CALL(_netplan_netdef_generate_ovs(np_state, def, generator_late_dir, &has_been_written, &error), ignore_errors);
             any_nm = any_nm || has_been_written;
+
+            // network-configurator late-stage validation
+            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_write_nm(np_state, def, NULL, &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+            //We don't have any _netplan_netdef_generate_nm() function for sd-generator late-stage validation
         }
 
-        CHECK_CALL(_netplan_state_finish_sd_sriov_write(np_state, generator_late_dir, &error), ignore_errors);
+        // network-configurator late-stage validation
+        CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+        CHECK_CALL(netplan_state_finish_nm_write(np_state, NULL, &error), ignore_errors);
+        CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+        //We don't have any _netplan_state_finish_nm_generate() function for sd-generator late-stage validation
+
+        // network-configurator late-stage validation
+        CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+        CHECK_CALL(netplan_state_finish_sriov_write(np_state, NULL, &error), ignore_errors);
+        CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+
+        CHECK_CALL(_netplan_state_finish_sriov_generate(np_state, generator_late_dir, &error), ignore_errors);
     }
 
     gboolean enable_wait_online = FALSE;
