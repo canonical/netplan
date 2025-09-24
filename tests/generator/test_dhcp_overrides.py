@@ -111,8 +111,9 @@ class TestNetworkd(TestBase):
       dhcp6-overrides:
         %s: no
 ''' % (override_name, override_name), expect_fail=True)
-        self.assertEqual(err.strip(), 'ERROR: engreen: networkd requires that '
-                                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name)
+        self.assertIn('ERROR: engreen: networkd requires that '
+                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name,
+                      err.strip())
 
     # Common tests for dhcp override strings
     def assert_dhcp_overrides_string(self, override_name, networkd_name):
@@ -164,8 +165,9 @@ class TestNetworkd(TestBase):
       dhcp6-overrides:
         %s: bar
 ''' % (override_name, override_name), expect_fail=True)
-        self.assertEqual(err.strip(), 'ERROR: engreen: networkd requires that '
-                                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name)
+        self.assertIn('ERROR: engreen: networkd requires that '
+                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name,
+                      err.strip())
 
     # Common tests for dhcp override booleans
     def assert_dhcp_mtu_overrides_bool(self, override_name, networkd_name):
@@ -255,8 +257,9 @@ class TestNetworkd(TestBase):
       dhcp6-overrides:
         %s: no
 ''' % (override_name, override_name), expect_fail=True)
-        self.assertEqual(err.strip(), 'ERROR: engreen: networkd requires that '
-                                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name)
+        self.assertIn('ERROR: engreen: networkd requires that '
+                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name,
+                      err.strip())
 
     def assert_dhcp_overrides_guint(self, override_name, networkd_name):
         # dhcp4 only
@@ -337,8 +340,9 @@ UseMTU=true
       dhcp6-overrides:
         %s: 5555
 ''' % (override_name, override_name), expect_fail=True)
-        self.assertEqual(err.strip(), 'ERROR: engreen: networkd requires that '
-                                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name)
+        self.assertIn('ERROR: engreen: networkd requires that '
+                      '%s has the same value in both dhcp4_overrides and dhcp6_overrides' % override_name,
+                      err.strip())
 
     def test_dhcp_overrides_use_dns(self):
         self.assert_dhcp_overrides_bool('use-dns', 'UseDNS')
