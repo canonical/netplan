@@ -204,6 +204,9 @@ struct netplan_state {
      * char*) and is initialized with g_hash_table_new_full to avoid leaks. */
     GHashTable* sources;
     GHashTable* global_renderer;
+
+    /* Flags used to change the state's behavior */
+    unsigned int flags;
 };
 
 struct netplan_parser {
@@ -279,6 +282,14 @@ struct netplan_state_iterator {
     GList* next;
 };
 
+/**
+ * @brief   Flags used to change the state behavior.
+ */
+typedef enum {
+    NETPLAN_STATE_VALIDATION_ONLY = 1 << 0, ///< Only validate the configuration without applying changes.
+    NETPLAN_STATE_FLAGS_MAX_,
+} NetplanStateFlags;
+
 #define NETPLAN_ADVERTISED_RECEIVE_WINDOW_UNSPEC 0
 #define NETPLAN_CONGESTION_WINDOW_UNSPEC 0
 #define NETPLAN_MTU_UNSPEC 0
@@ -333,3 +344,23 @@ free_address_options(void* ptr);
 
 void
 free_access_point(void* key, void* value, void* data);
+
+/**
+ * @brief   Set @ref NetplanState flags.
+ * @details State flags are used to change the default behavior of the state.
+ * @param[in] np_state  The @ref NetplanState to set the flags.
+ * @param[in] flags     The value of the flags. The possible values are defined in @ref NetplanStateFlags
+ * @param[out] error    Filled with a @ref NetplanError in case of failure
+ * @return              Indication of success or failure
+ */
+NETPLAN_INTERNAL gboolean
+_netplan_state_set_flags(NetplanState* np_state, unsigned int flags, NetplanError** error);
+
+/**
+ * @brief   Get @ref NetplanState flags.
+ * @details State flags are used to change the default behavior of the state.
+ * @param[in] np_state  The @ref NetplanState to get the flags from.
+ * @return   The current flags set in the state.
+ */
+NETPLAN_INTERNAL unsigned int
+_netplan_state_get_flags(const NetplanState* np_state);

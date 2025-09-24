@@ -59,7 +59,7 @@ const char *_get_netplan_openvswitch_ovs_vsctl_path()
 // LCOV_EXCL_STOP
 
 STATIC gboolean
-write_ovs_systemd_unit(const char* id, const GString* cmds, const char* generator_dir, gboolean physical, gboolean cleanup, const char* dependency, GError** error)
+write_ovs_systemd_unit(const char* id, const GString* cmds, const char* generator_dir, gboolean physical, gboolean cleanup, const char* dependency, gboolean validation_only, GError** error)
 {
     g_assert(generator_dir != NULL);
     g_autofree char* escaped_netdef_id = g_uri_escape_string(id, NULL, TRUE);
@@ -102,6 +102,12 @@ write_ovs_systemd_unit(const char* id, const GString* cmds, const char* generato
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return TRUE;
+    }
+
     mode_t orig_umask = umask(022);
     _netplan_g_string_free_to_file(s, NULL, path, NULL);
     umask(orig_umask);
@@ -377,6 +383,7 @@ _netplan_netdef_generate_ovs(const NetplanState* np_state, const NetplanNetDefin
     g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
     char* value = NULL;
     const NetplanOVSSettings* settings = &np_state->ovs_settings;
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
@@ -515,7 +522,7 @@ _netplan_netdef_generate_ovs(const NetplanState* np_state, const NetplanNetDefin
     /* If we need to configure anything for this netdef, write the required systemd unit */
     gboolean ret = TRUE;
     if (cmds->len > 0)
-        ret = write_ovs_systemd_unit(def->id, cmds, generator_dir, netplan_type_is_physical(def->type), FALSE, dependency, error);
+        ret = write_ovs_systemd_unit(def->id, cmds, generator_dir, netplan_type_is_physical(def->type), FALSE, dependency, validation_only, error);
     SET_OPT_OUT_PTR(has_been_written, TRUE);
     return ret;
 }
@@ -529,6 +536,7 @@ _netplan_state_finish_ovs_generate(const NetplanState* np_state, const char* gen
     g_assert(generator_dir != NULL);
     const NetplanOVSSettings* settings = &np_state->ovs_settings;
     GString* cmds = g_string_new(NULL);
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     /* Global external-ids and other-config settings */
     if (settings->external_ids && g_hash_table_size(settings->external_ids) > 0)
@@ -554,7 +562,7 @@ _netplan_state_finish_ovs_generate(const NetplanState* np_state, const char* gen
 
     gboolean ret = TRUE;
     if (cmds->len > 0)
-        ret = write_ovs_systemd_unit("global", cmds, generator_dir, FALSE, FALSE, NULL, error);
+        ret = write_ovs_systemd_unit("global", cmds, generator_dir, FALSE, FALSE, NULL, validation_only, error);
     g_string_free(cmds, TRUE);
     if (!ret)
         return FALSE; // LCOV_EXCL_LINE
@@ -562,7 +570,7 @@ _netplan_state_finish_ovs_generate(const NetplanState* np_state, const char* gen
     /* Clear all netplan=true tagged ports/bonds and bridges, via 'netplan apply --only-ovs-cleanup' */
     cmds = g_string_new(NULL);
     append_systemd_cmd(cmds, SBINDIR "/netplan apply %s", "--only-ovs-cleanup");
-    ret = write_ovs_systemd_unit("cleanup", cmds, generator_dir, FALSE, TRUE, NULL, error);
+    ret = write_ovs_systemd_unit("cleanup", cmds, generator_dir, FALSE, TRUE, NULL, validation_only, error);
     g_string_free(cmds, TRUE);
     return ret;
 }

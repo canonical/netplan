@@ -68,6 +68,35 @@ test_netplan_state_iterator_null_has_next(__unused void** state)
     assert_false(netplan_state_iterator_has_next(NULL));
 }
 
+void
+test_netplan_state_flags(__unused void** state)
+{
+    NetplanState* np_state = netplan_state_new();
+    GError *error = NULL;
+    gboolean ret = _netplan_state_set_flags(
+        np_state, NETPLAN_STATE_VALIDATION_ONLY, &error);
+
+    assert_true(ret);
+    assert_null(error);
+    netplan_state_clear(&np_state);
+}
+
+void
+test_netplan_state_flags_bad_flags(__unused void** state)
+{
+    NetplanState* np_state = netplan_state_new();
+    GError *error = NULL;
+    // Flag 1 << 29 doesn't exist (at least for now)
+    gboolean ret = _netplan_state_set_flags(np_state, 1 << 29, &error);
+
+    assert_false(ret);
+    assert_string_equal(error->message, "Invalid flag set");
+    assert_int_equal(error->domain, NETPLAN_PARSER_ERROR);
+    assert_int_equal(error->code, NETPLAN_ERROR_INVALID_FLAG);
+    netplan_error_clear(&error);
+    netplan_state_clear(&np_state);
+}
+
 
 int
 setup(__unused void** state)
@@ -91,6 +120,8 @@ main()
         cmocka_unit_test(test_netplan_state_iterator_empty),
         cmocka_unit_test(test_netplan_state_iterator_null),
         cmocka_unit_test(test_netplan_state_iterator_null_has_next),
+        cmocka_unit_test(test_netplan_state_flags),
+        cmocka_unit_test(test_netplan_state_flags_bad_flags),
     };
 
     return cmocka_run_group_tests(tests, setup, tear_down);
