@@ -400,6 +400,25 @@ netplan_state_new()
     return np_state;
 }
 
+gboolean
+_netplan_state_set_flags(NetplanState* np_state, const unsigned int flags, GError** error)
+{
+    if (flags >= NETPLAN_STATE_FLAGS_MAX_) {
+        g_set_error(error, NETPLAN_PARSER_ERROR, NETPLAN_ERROR_INVALID_FLAG,
+                    "Invalid flag set");
+        return FALSE;
+    }
+
+    np_state->flags = flags;
+    return TRUE;
+}
+
+unsigned int
+_netplan_state_get_flags(const NetplanState* np_state)
+{
+    return np_state->flags;
+}
+
 void
 netplan_state_clear(NetplanState** np_state_p)
 {
@@ -443,6 +462,8 @@ netplan_state_reset(NetplanState* np_state)
         g_hash_table_destroy(np_state->global_renderer);
         np_state->global_renderer = NULL;
     }
+
+    np_state->flags = 0;
 }
 
 NetplanBackend

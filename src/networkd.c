@@ -221,7 +221,7 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
 }
 
 STATIC void
-write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
+write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char* path, gboolean validation_only)
 {
     GString* s = NULL;
 
@@ -294,6 +294,11 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
     if (def->large_receive_offload != NETPLAN_TRISTATE_UNSET)
         g_string_append_printf(s, "LargeReceiveOffload=%s\n",
         (def->large_receive_offload ? "true" : "false"));
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return;
+    }
 
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".link", "root", "root", 0640);
 }
@@ -474,7 +479,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
 }
 
 STATIC void
-write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path)
+write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path, gboolean validation_only)
 {
     GString* s = NULL;
 
@@ -573,6 +578,11 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
             break;
 
         default: g_assert_not_reached(); // LCOV_EXCL_LINE
+    }
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return;
     }
 
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".netdev", "root", NETWORKD_GROUP, 0640);
@@ -721,6 +731,7 @@ _netplan_netdef_write_network_file(
     g_autoptr(GString) network = NULL;
     g_autoptr(GString) link = NULL;
     GString* s = NULL;
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     SET_OPT_OUT_PTR(has_been_written, FALSE);
 
@@ -994,6 +1005,12 @@ _netplan_netdef_write_network_file(
         if (network->len > 0)
             g_string_append_printf(s, "\n[Network]\n%s", network->str);
 
+        if (validation_only) {
+            g_string_free(s, TRUE);
+            SET_OPT_OUT_PTR(has_been_written, TRUE);
+            return TRUE;
+        }
+
         _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".network", "root", NETWORKD_GROUP, 0640);
     }
 
@@ -1002,7 +1019,7 @@ _netplan_netdef_write_network_file(
 }
 
 STATIC void
-write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
+write_rules_file(const NetplanNetDefinition* def, const char* rootdir, gboolean validation_only)
 {
     GString* s = NULL;
     g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
@@ -1041,6 +1058,11 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir)
 
     g_autofree char* set_name = _netplan_scrub_string(def->set_name);
     g_string_append_printf(s, "NAME=\"%s\"\n", set_name);
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return;
+    }
 
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
 }
@@ -1197,7 +1219,7 @@ append_wpa_auth_conf(GString* s, const NetplanAuthenticationSettings* auth, cons
 }
 
 STATIC gboolean
-write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** error)
+write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, gboolean validation_only, GError** error)
 {
     GHashTableIter iter;
     GString* s = g_string_new("ctrl_interface=/run/wpa_supplicant\n\n");
@@ -1297,6 +1319,11 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, GError** er
     }
 
     /* use tight permissions as this contains secrets */
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return TRUE;
+    }
+
     _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0600);
     return TRUE;
 }
@@ -1321,12 +1348,13 @@ _netplan_netdef_write_networkd(
     g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
     g_autofree char* path_base = g_strjoin(NULL, "run/systemd/network/10-netplan-", escaped_netdef_id, NULL);
     SET_OPT_OUT_PTR(has_been_written, FALSE);
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     /* We want this for all backends when renaming, as *.link and *.rules files are
      * evaluated by udev, not networkd itself or NetworkManager. The regulatory
      * domain applies to all backends, too. */
-    write_link_file(def, rootdir, path_base);
-    write_rules_file(def, rootdir);
+    write_link_file(def, rootdir, path_base, validation_only);
+    write_rules_file(def, rootdir, validation_only);
 
     if (def->backend != NETPLAN_BACKEND_NETWORKD) {
         g_debug("networkd: definition %s is not for us (backend %i)", def->id, def->backend);
@@ -1345,7 +1373,7 @@ _netplan_netdef_write_networkd(
         }
 
         g_debug("Creating wpa_supplicant config");
-        if (!write_wpa_conf(def, rootdir, error)) {
+        if (!write_wpa_conf(def, rootdir, validation_only, error)) {
             return FALSE;
         }
     }
@@ -1360,7 +1388,7 @@ _netplan_netdef_write_networkd(
     }
 
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
-        write_netdev_file(def, rootdir, path_base);
+        write_netdev_file(def, rootdir, path_base, validation_only);
     if (!_netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
         return FALSE;
     SET_OPT_OUT_PTR(has_been_written, TRUE);
@@ -1371,11 +1399,13 @@ _netplan_netdef_write_networkd(
  * Implementing Ubuntu's "Definition of an "online" system specification:
  * https://discourse.ubuntu.com/t/spec-definition-of-an-online-system/27838
  */
+// LCOV_EXCL_START
 NETPLAN_DEPRECATED gboolean
 _netplan_networkd_write_wait_online(__unused const NetplanState* np_state, __unused const char* rootdir)
 {
     return TRUE; // no-op
 }
+// LCOV_EXCL_STOP
 
 /**
  * Clean up all generated configurations in @rootdir from previous runs.
