@@ -173,21 +173,47 @@ int main(int argc, char** argv)
     _netplan_sriov_cleanup(rootdir);
 
     /* Generate backend specific configuration files from merged data. */
+    // sd-generator late-stage validation
+    CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+    CHECK_CALL(_netplan_state_finish_ovs_generate(np_state, "", &error), ignore_errors);
+    CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+
     CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error), ignore_errors); // OVS cleanup unit is always written
     if (np_state->netdefs) {
         g_debug("Generating output files..");
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             NetplanNetDefinition* def = (NetplanNetDefinition*) iterator->data;
             gboolean has_been_written = FALSE;
+
+            // sd-generator late-stage validation
+            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_generate_networkd(np_state, def, "", &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+            any_networkd = any_networkd || has_been_written;
+
             CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
             any_networkd = any_networkd || has_been_written;
 
+            // sd-generator late-stage validation
+            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+            CHECK_CALL(_netplan_netdef_generate_ovs(np_state, def, "", &has_been_written, &error), ignore_errors);
+            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+
             CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
+
+            // We don't have any _netplan_netdef_generate_nm() function for sd-generator late-stage validation
             CHECK_CALL(_netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
             any_nm = any_nm || has_been_written;
         }
 
+        // We don't have any _netplan_state_finish_nm_generate() function for sd-generator late-stage validation
         CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error), ignore_errors);
+
+        // sd-generator late-stage validation
+        CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+        CHECK_CALL(_netplan_state_finish_sriov_generate(np_state, "", &error), ignore_errors);
+        CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+
         CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
     }
 
@@ -197,9 +223,11 @@ int main(int argc, char** argv)
         _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
 
     gboolean enable_wait_online = FALSE;
-    // FIXME: how to transfer state from the generator?
-    if (any_networkd)
-        enable_wait_online = _netplan_networkd_write_wait_online(np_state, rootdir);
+    if (any_networkd) {
+        // _netplan_networkd_write_wait_online() is currently a no-op in the ./configure binary
+        // _netplan_networkd_generate_wait_online() is for sd-generator late-stage validation, but not writing any files
+        enable_wait_online = _netplan_networkd_generate_wait_online(np_state, NULL, _VALIDATION_ONLY);
+    }
 
     if (check_called_just_in_time()) {
         /* netplan-feature: generate-just-in-time */

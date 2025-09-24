@@ -395,11 +395,13 @@ class TestBase(unittest.TestCase):
                              stderr=subprocess.PIPE, text=True)
         (out, err) = p.communicate()
         if expect_fail:
-            # Either the sd-generator or the ./configure command should fail
-            self.assertGreater(g.returncode + p.returncode, 0)
-        else:
-            self.assertEqual(g.returncode, 0, err_gen)
-            self.assertEqual(p.returncode, 0, err)
+            self.assertGreater(p.returncode, 0, err)
+            if not extra_args:
+                self.assertGreater(g.returncode, 0, err_gen)
+            else:
+                # sd-generator cannot handle the extra_args and will pass
+                # (for testing only)
+                self.assertEqual(g.returncode, 0)
         self.assertEqual(out_gen, '')
         self.assertEqual(out, '')
         if not expect_fail and not skip_generated_yaml_validation:

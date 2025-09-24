@@ -28,7 +28,7 @@
 #include "sriov.h"
 
 STATIC gboolean
-write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, GError** error)
+write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, gboolean validation_only, GError** error)
 {
     g_assert(generator_dir != NULL);
     g_autofree gchar* id_escaped = NULL;
@@ -61,6 +61,12 @@ write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, GErr
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return TRUE;
+    }
+
     mode_t orig_umask = umask(022);
     _netplan_g_string_free_to_file(s, NULL, path, NULL);
     umask(orig_umask);
@@ -78,7 +84,7 @@ write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, GErr
 }
 
 STATIC gboolean
-write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, GError** error)
+write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, gboolean validation_only, GError** error)
 {
     g_assert(generator_dir != NULL);
     g_autofree gchar* id_escaped = NULL;
@@ -105,6 +111,12 @@ write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, GErro
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
     g_string_free(s, TRUE);
     s = g_string_new(new_s);
+
+    if (validation_only) {
+        g_string_free(s, TRUE);
+        return TRUE;
+    }
+
     mode_t orig_umask = umask(022);
     _netplan_g_string_free_to_file(s, NULL, path, NULL);
     umask(orig_umask);
@@ -131,6 +143,7 @@ _netplan_state_finish_sriov_generate(const NetplanState* np_state, const char* g
     NetplanNetDefinition* pf = NULL;
     gboolean any_sriov = FALSE;
     gboolean ret = TRUE;
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     if (np_state) {
         GHashTable* rebind_pfs = g_hash_table_new(g_str_hash, g_str_equal);
@@ -175,7 +188,7 @@ _netplan_state_finish_sriov_generate(const NetplanState* np_state, const char* g
         }
 
         if (any_sriov) {
-            ret = write_sriov_apply_systemd_unit(apply_pfs, generator_dir, NULL);
+            ret = write_sriov_apply_systemd_unit(apply_pfs, generator_dir, validation_only, NULL);
             if (!ret) {
                 // LCOV_EXCL_START
                 g_warning("netplan-sriov-apply.service cannot be created.");
@@ -189,7 +202,7 @@ _netplan_state_finish_sriov_generate(const NetplanState* np_state, const char* g
              * is present, using the After= dependency statement is enough (Requires= is not necessary).
             */
             if (g_hash_table_size(rebind_pfs) > 0) {
-                ret = write_sriov_rebind_systemd_unit(rebind_pfs, generator_dir, NULL);
+                ret = write_sriov_rebind_systemd_unit(rebind_pfs, generator_dir, validation_only, NULL);
                 if (!ret)
                 // LCOV_EXCL_START
                     g_warning("netplan-sriov-rebind.service cannot be created.");

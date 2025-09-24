@@ -682,7 +682,7 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
  *      non-wifi types.
  */
 STATIC gboolean
-write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir, const NetplanWifiAccessPoint* ap, GError** error)
+write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir, const NetplanWifiAccessPoint* ap, gboolean validation_only, GError** error)
 {
     g_autoptr(GKeyFile) kf = NULL;
     g_autofree gchar* conf_path = NULL;
@@ -1046,6 +1046,9 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         }
     }
 
+    if (validation_only)
+        return TRUE;
+
     /* Create /run/NetworkManager/ with 755 permissions if the folder is missing.
      * Letting the next invokation of _netplan_safe_mkdir_p_dir do it would
      * result in more restrictive access because of the call to umask. */
@@ -1080,6 +1083,7 @@ _netplan_netdef_write_nm(
         GError** error)
 {
     gboolean no_error = TRUE;
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     /* Placeholder interfaces are not supposed to be rendered */
     if (netdef->type == NETPLAN_DEF_TYPE_NM_PLACEHOLDER_)
@@ -1117,12 +1121,12 @@ _netplan_netdef_write_nm(
         if (netdef->access_points) {
             g_hash_table_iter_init(&iter, netdef->access_points);
             while (g_hash_table_iter_next(&iter, &key, (gpointer) &ap) && no_error) {
-                no_error = write_nm_conf_access_point(netdef, rootdir, ap, error);
+                no_error = write_nm_conf_access_point(netdef, rootdir, ap, validation_only, error);
             }
         }
     } else {
         g_assert(netdef->access_points == NULL);
-        no_error = write_nm_conf_access_point(netdef, rootdir, NULL, error);
+        no_error = write_nm_conf_access_point(netdef, rootdir, NULL, validation_only, error);
     }
     SET_OPT_OUT_PTR(has_been_written, TRUE);
     return no_error;
@@ -1136,6 +1140,7 @@ netplan_state_finish_nm_write(
 {
     GString* udev_rules = g_string_new(NULL);
     GString* nm_conf = g_string_new(NULL);
+    gboolean validation_only = _netplan_state_get_flags(np_state) & NETPLAN_STATE_VALIDATION_ONLY;
 
     if (netplan_state_get_netdefs_size(np_state) == 0) {
         g_string_free(udev_rules, TRUE);
@@ -1227,13 +1232,13 @@ netplan_state_finish_nm_write(
     }
 
     /* write generated NetworkManager drop-in config */
-    if (nm_conf->len > 0)
+    if (nm_conf->len > 0 && !validation_only)
         _netplan_g_string_free_to_file_with_permissions(nm_conf, rootdir, "run/NetworkManager/conf.d/netplan.conf", NULL, "root", "root", 0640);
     else
         g_string_free(nm_conf, TRUE);
 
     /* write generated udev rules */
-    if (udev_rules->len > 0)
+    if (udev_rules->len > 0 && !validation_only)
         _netplan_g_string_free_to_file_with_permissions(udev_rules, rootdir, "run/udev/rules.d/90-netplan.rules", NULL, "root", "root", 0640);
     else
         g_string_free(udev_rules, TRUE);
