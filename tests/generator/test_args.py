@@ -59,7 +59,7 @@ class TestConfigArgs(TestBase):
         subprocess.check_call([exe_configure, '--root-dir', self.workdir.name])
         # nothing is generated in /run besides the netplan-ovs-cleanup.service.
         # We only have the sd-generator in usr/lib/systemd/system-generators
-        self.assertEqual(os.listdir(self.workdir.name), ['usr', 'run'])
+        self.assertEqual(set(os.listdir(self.workdir.name)), {'usr', 'run'})
         self.assert_networkd(None)
         self.assert_networkd_udev(None)
         self.assert_nm(None)

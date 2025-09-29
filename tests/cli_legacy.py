@@ -88,7 +88,7 @@ class TestGenerate(unittest.TestCase):
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         self.assertEqual(out, b'')
-        self.assertEqual(os.listdir(self.workdir.name), ['usr', 'run'])
+        self.assertEqual(set(os.listdir(self.workdir.name)), {'usr', 'run'})
         self.assertEqual(
             os.listdir(os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators')),
             ['netplan'])
