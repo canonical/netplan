@@ -20,7 +20,7 @@ from .base import ND_DHCP4, TestBase
 
 class TestNetworkdXfrm(TestBase):
 
-    def test_xfrm_basic(self):
+    def test_xfrm(self):
         self.generate('''network:
   version: 2
   renderer: networkd
@@ -33,13 +33,16 @@ class TestNetworkdXfrm(TestBase):
       link: eth0
       addresses: [192.168.1.10/24]''')
 
-        self.assert_networkd({'eth0.network': ND_DHCP4 % 'eth0',
+        expected_eth0 = (ND_DHCP4 % 'eth0').replace('LinkLocalAddressing=ipv6\n', 'LinkLocalAddressing=ipv6\nXfrm=xfrm0\n')
+
+        self.assert_networkd({'eth0.network': expected_eth0,
                               'xfrm0.netdev': '''[NetDev]
 Name=xfrm0
 Kind=xfrm
 
 [Xfrm]
 InterfaceId=42
+Parent=eth0
 ''',
                               'xfrm0.network': '''[Match]
 Name=xfrm0
@@ -65,6 +68,71 @@ Kind=xfrm
 [Xfrm]
 InterfaceId=100
 Independent=true
+'''})
+
+    def test_xfrm_parent_with_set_name(self):
+        """Test XFRM interface with parent that has set-name, Parent= should use actual interface name"""
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    myeth:
+      match: {macaddress: "00:11:22:33:44:55"}
+      set-name: eth0
+  xfrm-interfaces:
+    xfrm0: {if_id: 42, link: myeth}''')
+
+        # Parent= should use set-name (eth0), not netplan ID (myeth)
+        self.assert_networkd({'myeth.link': '''[Match]
+PermanentMACAddress=00:11:22:33:44:55
+
+[Link]
+Name=eth0
+WakeOnLan=off
+''',
+                              'myeth.network': '''[Match]
+PermanentMACAddress=00:11:22:33:44:55
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+Xfrm=xfrm0
+''',
+                              'xfrm0.netdev': '''[NetDev]
+Name=xfrm0
+Kind=xfrm
+
+[Xfrm]
+InterfaceId=42
+Parent=eth0
+'''})
+
+    def test_xfrm_parent_with_match_no_set_name(self):
+        """Test XFRM interface with parent using match but no set-name, Parent= should use matched name"""
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    myeth:
+      match: {name: eth0}
+  xfrm-interfaces:
+    xfrm0: {if_id: 42, link: myeth}''')
+
+        # Parent= should use match.original_name (eth0), not netplan ID (myeth)
+        self.assert_networkd({'myeth.network': '''[Match]
+Name=eth0
+
+[Network]
+LinkLocalAddressing=ipv6
+Xfrm=xfrm0
+''',
+                              'xfrm0.netdev': '''[NetDev]
+Name=xfrm0
+Kind=xfrm
+
+[Xfrm]
+InterfaceId=42
+Parent=eth0
 '''})
 
 

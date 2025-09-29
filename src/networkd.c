@@ -698,9 +698,20 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
             break;
 
         /* Generate XFRM interface netdev file */
-                case NETPLAN_DEF_TYPE_XFRM:
+        case NETPLAN_DEF_TYPE_XFRM:
             g_string_append_printf(s, "Kind=xfrm\n\n[Xfrm]\nInterfaceId=%u\n", def->xfrm.interface_id);
-                /* Independent interfaces operate without link device, in reality it will show up as @lo. */
+            if (!def->xfrm.independent && def->xfrm.link) {
+                const NetplanNetDefinition* parent = def->xfrm.link;
+                /* Determine the actual kernel interface name for the parent.
+                 * This must match the name used in the parent's .network file [Match] section.
+                 * Priority: set-name (if renamed) > match.original_name (if matched) > id (netplan ID)
+                 */
+                const char* parent_name = parent->set_name ? parent->set_name :
+                                         (parent->match.original_name ? parent->match.original_name : parent->id);
+
+                g_string_append_printf(s, "Parent=%s\n", parent_name);
+            }
+            /* Independent interfaces operate without link device, in reality it will show up as @lo. */
             if (def->xfrm.independent) {
                 g_string_append(s, "Independent=true\n");
             }
@@ -1016,6 +1027,22 @@ _netplan_netdef_write_network_file(
     /* VRF linkage */
     if (def->vrf_link)
         g_string_append_printf(network, "VRF=%s\n", def->vrf_link->id);
+
+    {
+        GList* l = np_state->netdefs_ordered;
+        for (; l != NULL; l = l->next) {
+            const NetplanNetDefinition* nd = l->data;
+
+            if (nd->type != NETPLAN_DEF_TYPE_XFRM)
+                continue;
+
+            if (nd->xfrm.independent)
+                continue;
+
+            if (nd->xfrm.link == def)
+                g_string_append_printf(network, "Xfrm=%s\n", nd->id);
+        }
+    }
 
     /* VXLAN options */
     if (def->has_vxlans) {
