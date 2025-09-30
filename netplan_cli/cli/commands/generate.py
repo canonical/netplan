@@ -41,6 +41,7 @@ class NetplanGenerate(utils.NetplanCommand):
                                  help='Display the netplan device ID/backend/interface name mapping and exit.')
 
         self.func = self.command_generate
+        self._rootdir = '/'
 
         self.parse_args()
         self.run_command()
@@ -78,12 +79,25 @@ class NetplanGenerate(utils.NetplanCommand):
         argv = [utils.get_configure_path()]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
+            self._rootdir = self.root_dir
         if self.mapping:
             argv += ['--mapping', self.mapping]
 
+        self._netplan_try_stamp = os.path.join(self._rootdir, self.try_ready_stamp)
         if self.mapping:  # XXX: get rid of the legacy "--mapping" option
             argv[0] = utils.get_generator_path()
             res = subprocess.call(argv)
+        elif os.path.isfile(self._netplan_try_stamp):
+            # Avoid calling the Netplan generator if 'netplan try' is restoring
+            # a previous configuration. See https://github.com/canonical/netplan/pull/548
+            # This is especially relevant when NetworkManager is calling 'netplan generate'
+            # before loading connection profiles, as this would trigger a 'systemctl daemon-reload'
+            # and remove the /run/systemd/generator[.late]/ directories while the sd-generator
+            # itself would be blocked from re-generating the files due to the
+            # /run/netplan/netplan-try.ready stamp.
+            logging.debug('Skipping daemon-reload... \'netplan try\' is restoring configuration, '
+                          'remove %s to force re-run.', self._netplan_try_stamp)
+            res = 1
         else:
             logging.debug('executing Netplan systemd-generator via daemon-reload')
             if self.root_dir:  # for testing purposes
