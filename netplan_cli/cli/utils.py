@@ -297,6 +297,7 @@ class NetplanCommand(argparse.Namespace):
         self.subcommands = {}
         self.subcommand = None
         self.func = None
+        self.try_ready_stamp = 'run/netplan/netplan-try.ready'
         self.generator_dir = '/run/systemd/generator/'
         self.generator_early_dir = '/run/systemd/generator.early/'
         self.generator_late_dir = '/run/systemd/generator.late/'
