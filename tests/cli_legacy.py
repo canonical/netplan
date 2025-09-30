@@ -183,6 +183,29 @@ class TestGenerate(unittest.TestCase):
         self.assertNotEqual(b'', out)
         self.assertIn('renamediface', out.decode('utf-8'))
 
+    def test_netplan_try_ready_stamp_skip(self):
+        os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))
+        os.environ.setdefault('NETPLAN_CONFIGURE_PATH', os.path.join(rootdir, 'configure'))
+        c = os.path.join(self.workdir.name, 'etc', 'netplan')
+        os.makedirs(c)
+        path_a = os.path.join(c, 'a.yaml')
+        with open(path_a, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    myif:
+      dhcp4: yes
+''')
+        os.chmod(path_a, mode=0o600)
+
+        stamp_file = os.path.join(self.workdir.name, 'run', 'netplan', 'netplan-try.ready')
+        os.makedirs(self.workdir.name + '/run/netplan', mode=0o700, exist_ok=True)
+        open(stamp_file, 'w').close()  # create stamp file
+        res = subprocess.run(exe_cli + ['--debug', 'generate', '--root-dir', self.workdir.name],
+                             text=True, stderr=subprocess.PIPE)
+        self.assertEqual(res.returncode, 1)
+        self.assertIn('DEBUG:Skipping daemon-reload... \'netplan try\' is restoring configuration', res.stderr)
+
 
 class TestIfupdownMigrate(unittest.TestCase):
 
