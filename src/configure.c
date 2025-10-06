@@ -249,6 +249,7 @@ int main(int argc, char** argv)
          */
         // LCOV_EXCL_START
         /* covered via 'cloud-init' integration test */
+        start_unit_jit("netplan-configure.service");
         if (any_networkd) {
             start_unit_jit("systemd-networkd.socket");
             if (enable_wait_online)
@@ -257,7 +258,7 @@ int main(int argc, char** argv)
         }
         g_autofree char* glob_run = g_build_path(G_DIR_SEPARATOR_S,
                                                  rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
-                                                 "run", "systemd", "system", "netplan-*.service",
+                                                 "run", "systemd", "generator.late", "netplan-*.service",
                                                  NULL);
         if (!glob(glob_run, 0, NULL, &gl)) {
             for (size_t i = 0; i < gl.gl_pathc; ++i) {
