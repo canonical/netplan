@@ -60,15 +60,12 @@ class TestNetplanDBus(unittest.TestCase):
 
     def _create_mock_system_bus(self):
         env = {}
-        output = subprocess.check_output(["dbus-launch"], env={})
-        for s in output.decode("utf-8").split("\n"):
-            if s == "":
-                continue
-            k, v = s.split("=", 1)
-            env[k] = v
+        p = subprocess.Popen(["dbus-daemon", "--print-address=1", "--session"],
+                             env={}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        env['DBUS_SESSION_BUS_ADDRESS'] = p.stdout.readline().strip().decode("ascii")
         # override system bus with the fake one
         os.environ["DBUS_SYSTEM_BUS_ADDRESS"] = env["DBUS_SESSION_BUS_ADDRESS"]
-        self.addCleanup(os.kill, int(env["DBUS_SESSION_BUS_PID"]), 15)
+        self.addCleanup(p.kill)
 
     def _run_netplan_dbus_on_mock_bus(self):
         # run netplan-dbus in a fake system bus
