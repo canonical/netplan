@@ -66,9 +66,9 @@ jobs:
           MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:noble # LP: #2052639
       - name: Run autopkgtest
         run: |
-          pull-lp-source network-manager noble
+          # When we introduce ABI breaking changes, we need to rebuild NM in DEP-8
+          #pull-lp-source network-manager noble
           sudo autopkgtest -U \
-            --copy=debian/artifacts:/root/ --setup-commands='dpkg -i /root/*.deb' \
             --env=DEB_BUILD_OPTIONS=nocheck \
             --apt-pocket=proposed=src:network-manager \
-            network-manager_*.dsc -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+            debian/artifacts/*.deb network-manager -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
