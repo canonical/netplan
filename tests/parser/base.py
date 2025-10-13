@@ -173,7 +173,7 @@ class TestKeyfileBase(unittest.TestCase):
         return '\n'.join(res).strip()+'\n'
 
     def assert_nm_regenerate(self, file_contents_map):
-        argv = [exe_configure, '--root-dir', self.workdir.name]
+        argv = [exe_configure, '--root-dir', self.workdir.name, '--networkmanager-only']
         p = subprocess.Popen(argv, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, text=True)
         returncode = p.wait(5)
