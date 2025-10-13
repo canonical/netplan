@@ -43,12 +43,14 @@ static gchar* rootdir;
 static gchar** files;
 static gboolean any_networkd = FALSE;
 static gboolean any_nm = FALSE;
+static gboolean nm_only = FALSE;
 static gboolean ignore_errors = FALSE;
 
 static GOptionEntry options[] = {
     {"root-dir", 'r', 0, G_OPTION_ARG_FILENAME, &rootdir, "Search for and generate configuration files in this root directory instead of /", NULL},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, "Read configuration from this/these file(s) instead of /etc/netplan/*.yaml", "[config file ..]"},
     {"ignore-errors", 'i', 0, G_OPTION_ARG_NONE, &ignore_errors, "Ignores files and/or network definitions that fail parsing.", NULL},
+    {"networkmanager-only", 'N', 0, G_OPTION_ARG_NONE, &nm_only, "Write only NetworkManager configuration.", NULL},
     {NULL}
 };
 
@@ -167,18 +169,19 @@ int main(int argc, char** argv)
     CHECK_CALL(netplan_state_import_parser_results(np_state, npp, &error), ignore_errors);
 
     /* Clean up generated config from previous runs */
-    _netplan_networkd_cleanup(rootdir);
+    if (!nm_only) _netplan_networkd_cleanup(rootdir);
     _netplan_nm_cleanup(rootdir);
-    _netplan_ovs_cleanup(rootdir);
-    _netplan_sriov_cleanup(rootdir);
+    if (!nm_only) _netplan_ovs_cleanup(rootdir);
+    if (!nm_only) _netplan_sriov_cleanup(rootdir);
 
     /* Generate backend specific configuration files from merged data. */
     // sd-generator late-stage validation
-    CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
-    CHECK_CALL(_netplan_state_finish_ovs_generate(np_state, "", &error), ignore_errors);
-    CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
-
-    CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error), ignore_errors); // OVS cleanup unit is always written
+    if (!nm_only) {
+        CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+        CHECK_CALL(_netplan_state_finish_ovs_generate(np_state, "", &error), ignore_errors);
+        CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+    }
+    if (!nm_only) CHECK_CALL(netplan_state_finish_ovs_write(np_state, rootdir, &error), ignore_errors); // OVS cleanup unit is always written
     if (np_state->netdefs) {
         g_debug("Generating output files..");
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
@@ -186,20 +189,22 @@ int main(int argc, char** argv)
             gboolean has_been_written = FALSE;
 
             // sd-generator late-stage validation
-            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
-            CHECK_CALL(_netplan_netdef_generate_networkd(np_state, def, "", &has_been_written, &error), ignore_errors);
-            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
-            any_networkd = any_networkd || has_been_written;
-
-            CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
+            if (!nm_only) {
+                CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+                CHECK_CALL(_netplan_netdef_generate_networkd(np_state, def, "", &has_been_written, &error), ignore_errors);
+                CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+                any_networkd = any_networkd || has_been_written;
+            }
+            if (!nm_only) CHECK_CALL(_netplan_netdef_write_networkd(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
             any_networkd = any_networkd || has_been_written;
 
             // sd-generator late-stage validation
-            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
-            CHECK_CALL(_netplan_netdef_generate_ovs(np_state, def, "", &has_been_written, &error), ignore_errors);
-            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
-
-            CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
+            if (!nm_only) {
+                CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+                CHECK_CALL(_netplan_netdef_generate_ovs(np_state, def, "", &has_been_written, &error), ignore_errors);
+                CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+            }
+            if (!nm_only) CHECK_CALL(_netplan_netdef_write_ovs(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
 
             // We don't have any _netplan_netdef_generate_nm() function for sd-generator late-stage validation
             CHECK_CALL(_netplan_netdef_write_nm(np_state, def, rootdir, &has_been_written, &error), ignore_errors);
@@ -210,17 +215,20 @@ int main(int argc, char** argv)
         CHECK_CALL(netplan_state_finish_nm_write(np_state, rootdir, &error), ignore_errors);
 
         // sd-generator late-stage validation
-        CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
-        CHECK_CALL(_netplan_state_finish_sriov_generate(np_state, "", &error), ignore_errors);
-        CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
-
-        CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
+        if (!nm_only) {
+            CHECK_CALL(_netplan_state_set_flags(np_state, NETPLAN_STATE_VALIDATION_ONLY, &error), ignore_errors);
+            CHECK_CALL(_netplan_state_finish_sriov_generate(np_state, "", &error), ignore_errors);
+            CHECK_CALL(_netplan_state_set_flags(np_state, 0, &error), ignore_errors);
+        }
+        if (!nm_only) CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
     }
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if "renderer: NetworkManager" is used anywhere */
     if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm)
         _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
+
+    if (nm_only) goto cleanup;
 
     gboolean enable_wait_online = FALSE;
     if (any_networkd) {
