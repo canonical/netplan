@@ -38,7 +38,7 @@ class TestSet(unittest.TestCase):
         self.workdir = tempfile.TemporaryDirectory(prefix='netplan_')
         self.file = '70-netplan-set.yaml'
         self.path = os.path.join(self.workdir.name, 'etc', 'netplan', self.file)
-        os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'))
+        os.makedirs(os.path.join(self.workdir.name, 'etc', 'netplan'), exist_ok=True)
 
     def tearDown(self):
         shutil.rmtree(self.workdir.name)
