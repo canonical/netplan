@@ -44,10 +44,11 @@ class OvsDbServerNotInstalled(Exception):
 
 
 def _ovs_vsctl_path():  # pragma: nocover
-    if os.path.exists('/snap/bin/'+OPENVSWITCH_OVS_VSCTL):
-        return '/snap/bin/'+OPENVSWITCH_OVS_VSCTL
-    else:
+    if os.path.exists('/usr/bin/'+OPENVSWITCH_OVS_VSCTL) or \
+            not os.path.exists('/snap/bin/'+OPENVSWITCH_OVS_VSCTL):
         return '/usr/bin/'+OPENVSWITCH_OVS_VSCTL
+    else:
+        return '/snap/bin/'+OPENVSWITCH_OVS_VSCTL
 
 
 OVS_VSCTL_PATH = _ovs_vsctl_path()
