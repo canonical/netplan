@@ -39,12 +39,13 @@ void _prepare_netplan_openvswitch_ovs_vsctl_path__(void)
     g_assert(netplan_openvswitch_ovs_vsctl_path == NULL);
     netplan_openvswitch_ovs_vsctl_path = g_string_new(NULL);
 
-    if (g_file_test(SNAPBINDIR "/" OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
-        g_debug("using ovs-vsctl at %s/%s", SNAPBINDIR, OPENVSWITCH_OVS_VSCTL);
-        g_string_printf(netplan_openvswitch_ovs_vsctl_path, "%s/%s", SNAPBINDIR, OPENVSWITCH_OVS_VSCTL);
-    } else {
+    if (g_file_test(PREFIX BINDIR "/" OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS) ||
+	!g_file_test(SNAPBINDIR "/" OPENVSWITCH_OVS_VSCTL, G_FILE_TEST_EXISTS)) {
         g_debug("using ovs-vsctl at %s/%s/%s", PREFIX, BINDIR, OPENVSWITCH_OVS_VSCTL);
         g_string_printf(netplan_openvswitch_ovs_vsctl_path, "%s/%s/%s", PREFIX, BINDIR, OPENVSWITCH_OVS_VSCTL);
+    } else {
+        g_debug("using ovs-vsctl at %s/%s", SNAPBINDIR, OPENVSWITCH_OVS_VSCTL);
+        g_string_printf(netplan_openvswitch_ovs_vsctl_path, "%s/%s", SNAPBINDIR, OPENVSWITCH_OVS_VSCTL);
     }
 }
 
