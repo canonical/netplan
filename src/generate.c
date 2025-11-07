@@ -321,8 +321,19 @@ int main(int argc, char** argv)
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if "renderer: NetworkManager" is used anywhere */
-    if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm)
+    if (netplan_state_get_backend(np_state) == NETPLAN_BACKEND_NM || any_nm) {
         _netplan_g_string_free_to_file(g_string_new(NULL), rootdir, "/run/NetworkManager/conf.d/10-globally-managed-devices.conf", NULL);
+
+        /*
+         * Always try to match existing interfaces with connections.
+         * Because "netplan apply" is too aggressive with Network Manager connections it might
+         * create in-memory profiles for existing virtual interfaces.
+         * keep-configuration forces NM to use existing connection profiles for these interfaces avoiding
+         * this problem.
+         */
+        _netplan_g_string_free_to_file(g_string_new("[device]\nkeep-configuration=no\n"), rootdir,
+                                       "/run/NetworkManager/conf.d/10-keep-configuration.conf", NULL);
+    }
 
     gboolean enable_wait_online = FALSE;
     if (any_networkd)
