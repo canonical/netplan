@@ -229,7 +229,8 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i e
 
         # after removing the stamp it generates again, and not trip over the
         # existing enablement symlink
-        os.unlink(os.path.join(outdir, 'netplan.stamp'))
+        run_netplan = os.path.join(self.workdir.name, 'run', 'netplan')
+        os.unlink(os.path.join(run_netplan, 'generator.stamp'))
         subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
         self.assertTrue(os.path.exists(n))
 
@@ -348,7 +349,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i b
 
         subprocess.check_call([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
         # no enablement symlink here
-        self.assertEqual(os.listdir(outdir), ['netplan.stamp'])
+        self.assertEqual(os.listdir(outdir), [])
 
     def test_systemd_generator_badcall(self):
         outdir = os.path.join(self.workdir.name, 'out')
@@ -418,6 +419,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i a
 
         # after removing the stamp it generates again, and not trip over the
         # existing enablement symlink
-        os.unlink(os.path.join(outdir, 'netplan.stamp'))
+        run_netplan = os.path.join(self.workdir.name, 'run', 'netplan')
+        os.unlink(os.path.join(run_netplan, 'generator.stamp'))
         subprocess.check_output([generator, '--root-dir', self.workdir.name, outdir, outdir, outdir])
         self.assertTrue(os.path.exists(n))
