@@ -61,6 +61,12 @@ install_data(
     rename: 'netplan',
     install_dir: bash_completions_dir)
 
+service_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir')
+# XXX: should we use configure_file() instead?
+install_data(
+    'netplan-configure.service',
+    install_dir: service_dir)
+
 ###########
 # Testing #
 ###########
@@ -68,6 +74,7 @@ test_env = [
     'PYTHONPATH=' + join_paths(meson.current_build_dir(), 'python-cffi') + ':' + meson.current_source_dir(),
     'LD_LIBRARY_PATH=' + join_paths(meson.current_build_dir(), 'src'),
     'NETPLAN_GENERATE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'generate'),
+    'NETPLAN_CONFIGURE_PATH=' + join_paths(meson.current_build_dir(), 'src', 'configure'),
     'NETPLAN_DBUS_CMD=' + join_paths(meson.current_build_dir(), 'dbus', 'netplan-dbus'),
     'COVERAGE_PROCESS_START=' + join_paths(meson.current_source_dir(), '.coveragerc'),
     'G_DEBUG=fatal_criticals',

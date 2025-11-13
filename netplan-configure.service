@@ -1,0 +1,22 @@
+[Unit]
+Description=Netplan Backend Configuration
+Documentation=man:netplan(8)
+Documentation=https://netplan.readthedocs.io/en/stable/netplan-yaml/
+
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Before=network-pre.target
+Before=systemd-networkd.service NetworkManager.service systemd-udevd.service
+# Run After=nss-user-lookup.target, to allow lookup of the "systemd-network" GID
+# (LP: #2071747)
+After=local-fs.target nss-user-lookup.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+Environment=NETPLAN_PARSER_IGNORE_ERRORS=1
+ExecStart=/usr/libexec/netplan/configure
+
+[Install]
+WantedBy=sysinit.target

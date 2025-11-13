@@ -28,6 +28,20 @@ _netplan_netdef_write_ovs(
         GError** error);
 
 NETPLAN_INTERNAL gboolean
+_netplan_netdef_generate_ovs(
+        const NetplanState* np_state,
+        const NetplanNetDefinition* netdef,
+        const char* generator_dir,
+        gboolean* has_been_written,
+        GError** error);
+
+NETPLAN_INTERNAL gboolean
+_netplan_state_finish_ovs_generate(
+        const NetplanState* np_state,
+        const char* rootdir,
+        NetplanError** error);
+
+NETPLAN_INTERNAL gboolean
 _netplan_ovs_cleanup(const char* rootdir);
 
 const char *

@@ -468,7 +468,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
         # 'no-carrier' state.
         self.match_veth_by_non_permanent_mac_quirk('findme', self.dev_e_client_mac)
         self.generate_and_settle([self.dev_e2_client, 'br0'])
-        override = os.path.join('/run', 'systemd', 'system', 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        override = os.path.join('/run', 'systemd', 'generator.late', 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
         self.assertTrue(os.path.isfile(override))
 
         with open(override, 'r') as f:
@@ -477,7 +477,7 @@ class TestNetworkd(IntegrationTestsBase, _CommonTests):
             # <dev_e_client> should be listed as "findme", using reduced operational state
             # <dev_e2_client> should be listed normally
             self.assertEqual(f.read(), '''[Unit]
-ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+ConditionPathIsSymbolicLink=/run/systemd/generator.late/network-online.target.wants/systemd-networkd-wait-online.service
 After=systemd-resolved.service
 
 [Service]
