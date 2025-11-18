@@ -372,8 +372,20 @@ class TestBase(unittest.TestCase):
                    # Allow writing of test coverage data inside the project root (meson's _build-cov/ dir)
                    '--property=ReadWritePaths=' + os.path.dirname(os.environ.get('COVERAGE_PROCESS_START', '/home/'))]
 
+        if os.environ.get('NETPLAN_PARSER_IGNORE_ERRORS'):
+            del os.environ['NETPLAN_PARSER_IGNORE_ERRORS']
         if not ignore_errors:
-            sandbox += ['--setenv=NETPLAN_PARSER_IGNORE_ERRORS=0']  # for testing only
+            # for testing only
+            os.environ.setdefault('NETPLAN_PARSER_IGNORE_ERRORS', '0')
+            sandbox += ['--setenv=NETPLAN_PARSER_IGNORE_ERRORS={}'
+                        .format(os.environ.get('NETPLAN_PARSER_IGNORE_ERRORS'))]
+
+        # Avoid the systemd-run sandbox when run in chroot (e.g. during sbuild),
+        # as it does not provide a functional systemd environment. The
+        # ReadWritePaths restriction will still be tested inside the upstream CI
+        # and locally, using 'make check'.
+        if not os.path.isdir('/run/systemd/system'):
+            sandbox = []  # pragma: nocover (runs during sbuild)
 
         argv_gen = sandbox + [self.sd_generator, '--root-dir', self.workdir.name,
                               self.generator_dir, self.generator_early_dir, self.generator_late_dir]
