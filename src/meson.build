@@ -1,5 +1,8 @@
 sources = files(
     'error.c',
+    'gen-networkd.c',
+    'gen-openvswitch.c',
+    'gen-sriov.c',
     'names.c',
     'netplan.c',
     'networkd.c',
@@ -45,3 +48,11 @@ executable(
 meson.add_install_script(meson_make_symlink,
     join_paths(get_option('prefix'), libexec_netplan, 'generate'),
     join_paths(systemd_generator_dir, 'netplan'))
+executable(
+    'configure',
+    'configure.c',
+    include_directories: inc,
+    link_with: libnetplan,
+    dependencies: [glib, gio, yaml, uuid],
+    install_dir: libexec_netplan,
+    install: true)
