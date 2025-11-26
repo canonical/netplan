@@ -42,6 +42,9 @@ jobs:
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
           sed -i 's|systemd (>= 257.2-3ubuntu1~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
+          echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
+          echo 'usr/lib/systemd/system/netplan-configure.service' >> debian/netplan-generator.install
+          sed -i 's|libexec/netplan/generate|libexec/netplan/configure|g' debian/netplan-generator.postinst
           echo "3.0 (native)" > debian/source/format  # force native build
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
@@ -63,9 +66,9 @@ jobs:
           MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:noble # LP: #2052639
       - name: Run autopkgtest
         run: |
-          pull-lp-source network-manager noble
+          # When we introduce ABI breaking changes, we need to rebuild NM in DEP-8
+          #pull-lp-source network-manager noble
           sudo autopkgtest -U \
-            --copy=debian/artifacts:/root/ --setup-commands='dpkg -i /root/*.deb' \
             --env=DEB_BUILD_OPTIONS=nocheck \
             --apt-pocket=proposed=src:network-manager \
-            network-manager_*.dsc -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+            debian/artifacts/*.deb network-manager -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)

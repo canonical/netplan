@@ -41,6 +41,7 @@ class NetplanGenerate(utils.NetplanCommand):
                                  help='Display the netplan device ID/backend/interface name mapping and exit.')
 
         self.func = self.command_generate
+        self._rootdir = '/'
 
         self.parse_args()
         self.run_command()
@@ -75,24 +76,49 @@ class NetplanGenerate(utils.NetplanCommand):
             else:
                 return
 
-        argv = [utils.get_generator_path()]
+        argv = [utils.get_configure_path()]
         if self.root_dir:
             argv += ['--root-dir', self.root_dir]
+            self._rootdir = self.root_dir
         if self.mapping:
             argv += ['--mapping', self.mapping]
-        logging.debug('command generate: running %s', argv)
-        res = subprocess.call(argv)
-        try:
-            subprocess.check_call(['udevadm', 'control', '--reload'])
-        except subprocess.CalledProcessError as e:
-            logging.debug(f'Could not call "udevadm control --reload": {str(e)}')
-        # reload systemd, as we might have changed service units, such as
-        # /run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan.conf
-        # Skip it if --mapping is used as nothing will be generated
-        if self.mapping is None:
-            try:
+
+        self._netplan_try_stamp = os.path.join(self._rootdir, self.try_ready_stamp)
+        if self.mapping:  # XXX: get rid of the legacy "--mapping" option
+            argv[0] = utils.get_generator_path()
+            res = subprocess.call(argv)
+        elif os.path.isfile(self._netplan_try_stamp):
+            # Avoid calling the Netplan generator if 'netplan try' is restoring
+            # a previous configuration. See https://github.com/canonical/netplan/pull/548
+            # This is especially relevant when NetworkManager is calling 'netplan generate'
+            # before loading connection profiles, as this would trigger a 'systemctl daemon-reload'
+            # and remove the /run/systemd/generator[.late]/ directories while the sd-generator
+            # itself would be blocked from re-generating the files due to the
+            # /run/netplan/netplan-try.ready stamp.
+            logging.debug('Skipping daemon-reload... \'netplan try\' is restoring configuration, '
+                          'remove %s to force re-run.', self._netplan_try_stamp)
+            res = 1
+        else:
+            logging.debug('executing Netplan systemd-generator via daemon-reload')
+            if self.root_dir:  # for testing purposes
+                sd_generator = os.path.join(self.root_dir, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
+                generator_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator')
+                generator_early_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.early')
+                generator_late_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.late')
+                subprocess.check_call([sd_generator, '--root-dir', self.root_dir,
+                                       generator_dir, generator_early_dir, generator_late_dir])
+            else:  # pragma: nocover (covered by autopkgtests)
+                # automatically reloads systemd, as we might have changed
+                # service units, such as
+                # /run/systemd/generator.late/systemd-networkd-wait-online.service.d/10-netplan.conf
                 utils.systemctl_daemon_reload()
+
+            logging.debug('command configure: running %s', argv)
+            res = subprocess.call(argv)
+            try:
+                subprocess.check_call(['udevadm', 'control', '--reload'])
             except subprocess.CalledProcessError as e:
-                logging.warning(e)
+                logging.debug(f'Could not call "udevadm control --reload": {str(e)}')
+
         # FIXME: os.execv(argv[0], argv) would be better but fails coverage
         sys.exit(res)
