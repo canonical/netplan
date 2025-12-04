@@ -30,11 +30,11 @@ units that might contain arbitrary content, for example using the `other-config`
 or `external-ids`. Make sure not to put any secrets into those fields, as those
 will become world-readable.
 
-* `/run/systemd/system/netplan-ovs-*.service`
-* `/run/systemd/system/netplan-sriov-*.service`
-* `/run/systemd/system/netplan-regdom.service`
-* `/run/systemd/system/netplan-wpa-*.service`
-* `/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan*.conf`
+* `/run/systemd/generator.late/netplan-ovs-*.service`
+* `/run/systemd/generator.late/netplan-sriov-*.service`
+* `/run/systemd/generator.late/netplan-regdom.service`
+* `/run/systemd/generator.late/netplan-wpa-*.service`
+* `/run/systemd/generator.late/systemd-networkd-wait-online.service.d/10-netplan*.conf`
 
 ## Cryptography
 

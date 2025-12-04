@@ -50,7 +50,7 @@ class NetplanTry(utils.NetplanCommand):
         self.t_settings = None
         self.t = None
         self._rootdir = os.environ.get('DBUS_TEST_NETPLAN_ROOT', '/')
-        self._netplan_try_stamp = os.path.join(self._rootdir, 'run', 'netplan', 'netplan-try.ready')
+        self._netplan_try_stamp = os.path.join(self._rootdir, self.try_ready_stamp)
 
     @property
     def config_manager(self):  # pragma: nocover (called by later commands)
