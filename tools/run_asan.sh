@@ -28,6 +28,12 @@ mkdir -p ${BUILDDIR}/fakeroot/{etc/netplan,run}
 
 for yaml in examples/*.yaml
 do
+    ## Ignore OpenVSwitch-related files for this test
+    ## As ovs is an optional dependency, it may not be available
+    if [[ "${yaml}" == *"openvswitch"* ]]; then
+        echo "Skipping OpenVSwitch file ${yaml}"
+        continue
+    fi
     filepath=${BUILDDIR}/fakeroot/etc/netplan/${yaml##*/}
     filename=$(basename ${filepath})
     cp ${yaml} ${BUILDDIR}/fakeroot/etc/netplan/

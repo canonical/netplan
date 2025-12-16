@@ -144,7 +144,9 @@ class TestCLI(unittest.TestCase):
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
-            Netplan().main()
+            with self.assertRaises(SystemExit) as e:
+                Netplan().main()
+            self.assertEqual(1, e.exception.code)
             sys.argv = old_argv
 
             args = log.call_args.args
@@ -164,7 +166,9 @@ class TestCLI(unittest.TestCase):
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
-            Netplan().main()
+            with self.assertRaises(SystemExit) as e:
+                Netplan().main()
+            self.assertEqual(1, e.exception.code)
             sys.argv = old_argv
 
             args = log.call_args.args
@@ -181,8 +185,11 @@ class TestCLI(unittest.TestCase):
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
-            Netplan().main()
+            with self.assertRaises(SystemExit) as e:
+                Netplan().main()
+            self.assertEqual(1, e.exception.code)
             sys.argv = old_argv
+
             args = log.call_args.args
             self.assertIn('etc/netplan/test.yaml: Error in network definition', args[0])
 
@@ -200,7 +207,10 @@ class TestCLI(unittest.TestCase):
             old_argv = sys.argv
             args = ['get', '--root-dir', self.tmproot]
             sys.argv = [old_argv[0]] + args
-            Netplan().main()
+            with self.assertRaises(SystemExit) as e:
+                Netplan().main()
+            self.assertEqual(1, e.exception.code)
             sys.argv = old_argv
+
             args = log.call_args.args
             self.assertIn("VRF routes table mismatch", args[0])

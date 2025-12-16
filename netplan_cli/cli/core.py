@@ -20,6 +20,7 @@
 
 import logging
 import os
+import sys
 
 from . import utils
 from netplan import NetplanException, NetplanValidationException, NetplanParserException
@@ -59,7 +60,10 @@ class Netplan(utils.NetplanCommand):
         except NetplanParserException as e:
             message = f'{e.filename}:{e.line}:{e.column}: {e}'
             logging.warning(f'Command failed: {message}')
+            sys.exit(1)
         except NetplanValidationException as e:
             logging.warning(f'Command failed: {e.filename}: {e}')
+            sys.exit(1)
         except NetplanException as e:
             logging.warning(f'Command failed: {e}')
+            sys.exit(1)
