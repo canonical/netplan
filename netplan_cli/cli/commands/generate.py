@@ -105,6 +105,19 @@ class NetplanGenerate(utils.NetplanCommand):
                 generator_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator')
                 generator_early_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.early')
                 generator_late_dir = os.path.join(self.root_dir, 'run', 'systemd', 'generator.late')
+                # Ensure necessary directories exist
+                for d in (os.path.dirname(sd_generator), generator_dir, generator_early_dir, generator_late_dir):
+                    try:
+                        os.makedirs(d, exist_ok=True)
+                    except OSError as e:  # pragma: nocover (testing only)
+                        logging.debug(f'Could not create directory {d}: {e}')
+                # Ensure sd_generator exists and points to the real generator
+                real_generator = utils.get_generator_path()
+                try:  # pragma: nocover (testing only)
+                    if not os.path.exists(sd_generator):
+                        os.symlink(real_generator, sd_generator)
+                except OSError as e:  # pragma: nocover (testing only)
+                    logging.debug(f'Could not create symlink {sd_generator} -> {real_generator}: {e}')
                 subprocess.check_call([sd_generator, '--root-dir', self.root_dir,
                                        generator_dir, generator_early_dir, generator_late_dir])
             else:  # pragma: nocover (covered by autopkgtests)
