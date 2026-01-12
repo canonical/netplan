@@ -93,8 +93,8 @@ class TestGenerate(unittest.TestCase):
             os.listdir(os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators')),
             ['netplan'])
         self.assertEqual(
-            os.listdir(os.path.join(self.workdir.name, 'run', 'systemd')),
-            ['generator.late'])
+            sorted(os.listdir(os.path.join(self.workdir.name, 'run', 'systemd'))),
+            ['generator', 'generator.early', 'generator.late'])
 
     def test_with_empty_config(self):
         c = os.path.join(self.workdir.name, 'etc', 'netplan')
