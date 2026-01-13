@@ -577,6 +577,26 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
                 write_tunnel_params(s, def);
             break;
 
+        /* Generate XFRM interface netdev file */
+        case NETPLAN_DEF_TYPE_XFRM:
+            g_string_append_printf(s, "Kind=xfrm\n\n[Xfrm]\nInterfaceId=%u\n", def->xfrm.interface_id);
+            if (!def->xfrm.independent && def->xfrm.link) {
+                const NetplanNetDefinition* parent = def->xfrm.link;
+                /* Determine the actual kernel interface name for the parent.
+                 * This must match the name used in the parent's .network file [Match] section.
+                 * Priority: set-name (if renamed) > match.original_name (if matched) > id (netplan ID)
+                 */
+                const char* parent_name = parent->set_name ? parent->set_name :
+                                         (parent->match.original_name ? parent->match.original_name : parent->id);
+
+                g_string_append_printf(s, "Parent=%s\n", parent_name);
+            }
+            /* Independent interfaces operate without link device, in reality it will show up as @lo. */
+            if (def->xfrm.independent) {
+                g_string_append(s, "Independent=true\n");
+            }
+            break;
+
         default: g_assert_not_reached(); // LCOV_EXCL_LINE
     }
 
@@ -782,15 +802,17 @@ _netplan_netdef_write_network_file(
     /* Set link local addressing -- this does not apply to bond and bridge
      * member interfaces, which always get it disabled.
      */
-    if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
-        if (def->linklocal.ipv4 && def->linklocal.ipv6)
-            g_string_append(network, "LinkLocalAddressing=yes\n");
-        else if (def->linklocal.ipv4)
-            g_string_append(network, "LinkLocalAddressing=ipv4\n");
-        else if (def->linklocal.ipv6)
-            g_string_append(network, "LinkLocalAddressing=ipv6\n");
-    } else {
-        g_string_append(network, "LinkLocalAddressing=no\n");
+    if (def->type != NETPLAN_DEF_TYPE_XFRM) {
+        if (!def->bond && !def->bridge && (def->linklocal.ipv4 || def->linklocal.ipv6)) {
+            if (def->linklocal.ipv4 && def->linklocal.ipv6)
+                g_string_append(network, "LinkLocalAddressing=yes\n");
+            else if (def->linklocal.ipv4)
+                g_string_append(network, "LinkLocalAddressing=ipv4\n");
+            else if (def->linklocal.ipv6)
+                g_string_append(network, "LinkLocalAddressing=ipv6\n");
+        } else {
+            g_string_append(network, "LinkLocalAddressing=no\n");
+        }
     }
 
     if (def->ip4_addresses)
@@ -843,7 +865,7 @@ _netplan_netdef_write_network_file(
         g_string_append_printf(network, "IPv6MTUBytes=%d\n", def->ipv6_mtubytes);
     }
 
-    if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL || def->ignore_carrier)
+    if ((def->type >= NETPLAN_DEF_TYPE_VIRTUAL && def->type != NETPLAN_DEF_TYPE_XFRM) || def->ignore_carrier)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
     if (def->critical)
@@ -891,6 +913,22 @@ _netplan_netdef_write_network_file(
     /* VRF linkage */
     if (def->vrf_link)
         g_string_append_printf(network, "VRF=%s\n", def->vrf_link->id);
+
+    {
+        GList* l = np_state->netdefs_ordered;
+        for (; l != NULL; l = l->next) {
+            const NetplanNetDefinition* nd = l->data;
+
+            if (nd->type != NETPLAN_DEF_TYPE_XFRM)
+                continue;
+
+            if (nd->xfrm.independent)
+                continue;
+
+            if (nd->xfrm.link == def)
+                g_string_append_printf(network, "Xfrm=%s\n", nd->id);
+        }
+    }
 
     /* VXLAN options */
     if (def->has_vxlans) {
@@ -994,6 +1032,11 @@ _netplan_netdef_write_network_file(
         if (def->ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
             g_string_append_printf(network, "RouteTable=%d\n", def->ra_overrides.table);
         }
+    }
+
+    if (def->type == NETPLAN_DEF_TYPE_XFRM && !def->xfrm.independent) {
+        if (network->len > 0 && !g_str_has_prefix(network->str, "LinkLocalAddressing="))
+            g_string_prepend(network, "LinkLocalAddressing=no\n");
     }
 
     if (network->len > 0 || link->len > 0) {
