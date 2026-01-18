@@ -1,12 +1,12 @@
 if pandoc.found()
     custom_target(
-        input: ['manpage-header.md', 'structure-id.md', 'netplan-yaml.md', 'manpage-footer.md'],
+        input: ['manpage-header.md', 'explanation/structure-id.md', 'reference/netplan-yaml.md', 'manpage-footer.md'],
         output: 'netplan.5',
         command: [pandoc, '-s', '-o', '@OUTPUT@', '--from=markdown-smart', '@INPUT@'],
         install: true,
         install_dir: join_paths(get_option('mandir'), 'man5'))
     custom_target(
-        input: 'netplan-yaml.md',
+        input: 'reference/netplan-yaml.md',
         output: 'netplan.html',
         command: [pandoc, '-s', '--metadata', 'title="Netplan reference"', '--toc', '-o', '@OUTPUT@', '@INPUT@'],
         install: true,
@@ -15,7 +15,7 @@ if pandoc.found()
       'netplan-apply', 'netplan-dbus', 'netplan-generate', 'netplan-get', 'netplan-set',
       'netplan-try', 'netplan-info', 'netplan-ip', 'netplan-status', 'netplan-rebind',
       ]
-        markdown = files(doc + '.md')
+        markdown = files('reference/' + doc + '.md')
         manpage = doc + '.8'
         custom_target(
             input: markdown,
