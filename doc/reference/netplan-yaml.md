@@ -1,3 +1,4 @@
+(yaml-configuration)=
 # YAML configuration
 
 ## Top-level configuration structure
