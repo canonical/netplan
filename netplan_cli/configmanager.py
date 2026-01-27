@@ -17,6 +17,7 @@
 
 '''netplan configuration manager'''
 
+import io
 import logging
 import netplan
 import os
@@ -86,7 +87,7 @@ class ConfigManager(object):
             raise ConfigurationError(str(e))
 
         # Convoluted way to dump the parsed config to the logs...
-        with tempfile.TemporaryFile() as tmp:
+        with io.StringIO() as tmp:
             self.np_state._dump_yaml(output_file=tmp)
             tmp.seek(0)
             logging.debug("Merged config:\n{}".format(tmp.read()))
