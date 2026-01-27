@@ -1,16 +1,22 @@
-# How to configure a VM host with a single network interface and three VLANs
+# How to configure a VM host with bonded network interfaces and three VLANs
 
-This guide shows how to configure a virtual machine (VM) host using Netplan and the `virsh` interface. The host in this scenario has a single network interface (NIC) and three VLAN networks.
-
-
-```{include} reuse/configure-vm-prerequisites.md
-
-```
+This guide shows how to configure a virtual machine (VM) host using Netplan and the `virsh` interface. The host in this scenario has four network interface (NICs). The host uses network bonding and three VLAN networks.
 
 
-```{include} reuse/configure-vm-prerequisites-system.md
+```{include} /reuse/configure-vm-prerequisites.md
 
 ```
+
+
+### System
+
+- Computer with 4 NICs:
+  - 1 NIC dedicated to be used in passthrough mode (out of scope of this how to)
+  - 3 NICs bonded using 802.3ad for the host, VMs, and containers
+- Ubuntu Server installed.
+- KVM and QEMU installed; see [KVM installation](https://help.ubuntu.com/community/KVM/Installation).
+- Administrator privileges.
+
 
 ### Networking
 
@@ -20,7 +26,7 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
   - VLAN41 tagged (dmz), IPv4: 192.168.152.0/24
   - DNS1: 1.1.1.1
   - DNS2: 8.8.8.8
-- Switch with [VLAN](https://en.wikipedia.org/wiki/VLAN) support
+- Switch with [VLAN](https://en.wikipedia.org/wiki/VLAN) and [LACP](https://en.wikipedia.org/wiki/Link_aggregation#Link_Aggregation_Control_Protocol) support
 - Router with [VLAN](https://en.wikipedia.org/wiki/VLAN) support
   - VLAN1 IPv4: 192.168.150.254/24
   - VLAN40 IPv4: 192.168.151.254/24
@@ -29,7 +35,7 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
 - Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
 
 
-```{include} reuse/configure-vm-disable-netfilter.md
+```{include} /reuse/configure-vm-disable-netfilter.md
 
 ```
 
@@ -38,8 +44,10 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
 
 Configure Netplan:
 
-- Disable DHCP on the NIC.
-- Create two VLANs (40 and 41).
+- Leave the first NIC unconfigured.
+- Disable DHCP on all interfaces.
+- Create a 802.3ad bond with three NICs.
+- Create two VLANs (40 and 41) under the bond.
 - Create three bridge interfaces, and assign IPv4 addresses to them:
   - `br0`: bridge on the untagged VLAN1 and the management interface of the server
   - `br0-vlan40`: bridge on `vlan40`
@@ -51,10 +59,12 @@ Configure Netplan:
 
     ```yaml
     # network configuration:
-    # eno1 - untagged vlan1
-    # eno1-vlan40 - VLAN interface to connect to tagged vlan40
-    # eno1-vlan41 - VLAN interface to connect to tagged vlan41
-    # br0 - bridge for interface eno1 on untagged vlan1
+    # eno1 - dedicated to virtual firewall WAN
+    # eno2, eno3, eno4 - bonded interfaces
+    # bond0 - primary bond for untagged vlan1
+    # bond0-vlan40 - vlan interface to connect to tagged vlan40
+    # bond0-vlan41 - vlan interface to connect to tagged vlan41
+    # br0 - bridge for interface bond0 on untagged vlan1
     # br0-vlan40 - bridge on tagged vlan40
     # br0-vlan41 - bridge on tagged vlan41
 
@@ -63,16 +73,29 @@ Configure Netplan:
       ethernets:
         eno1:
           dhcp4: false
+        eno2:
+          dhcp4: false
+        eno3:
+          dhcp4: false
+        eno4:
+          dhcp4: false
+      bonds:
+        bond0:
+          dhcp4: no
+          interfaces: [eno2, eno3, eno4]
+          parameters:
+            mode: 802.3ad
+            mii-monitor-interval: 1000
       vlans:
-        eno1-vlan40:
+        bond0-vlan40:
           id: 40
-          link: eno1
-        eno1-vlan41:
+          link: bond0
+        bond0-vlan41:
           id: 41
-          link: eno1
+          link: bond0
       bridges:
         br0:
-          interfaces: [eno1]
+          interfaces: [bond0]
           dhcp4: false
           addresses: [192.168.150.1/24]
           routes:
@@ -84,7 +107,7 @@ Configure Netplan:
             addresses: [1.1.1.1, 8.8.8.8]
             search: []
         br0-vlan40:
-          interfaces: [eno1-vlan40]
+          interfaces: [bond0-vlan40]
           dhcp4: false
           routes:
             - to: 0.0.0.0
@@ -94,7 +117,7 @@ Configure Netplan:
           nameservers:
             addresses: [1.1.1.1, 8.8.8.8]
         br0-vlan41:
-          interfaces: [eno1-vlan41]
+          interfaces: [bond0-vlan41]
           dhcp4: false
           routes:
             - to: 0.0.0.0
@@ -118,16 +141,16 @@ Configure Netplan:
     ```
 
 
-```{include} reuse/configure-vm-using-virsh.md
+```{include} /reuse/configure-vm-using-virsh.md
 
 ```
 
 
-```{include} reuse/configure-vm-check-networking-delete-default.md
+```{include} /reuse/configure-vm-check-networking-delete-default.md
 
 ```
 
 
-```{include} reuse/configure-vm-create-bridged-networks.md
+```{include} /reuse/configure-vm-create-bridged-networks.md
 
 ```

@@ -5,10 +5,10 @@
 maxdepth: 2
 hidden: true
 ---
-tutorial
-howto
-reference
-explanation
+tutorial/index
+howto/index
+reference/index
+explanation/index
 ```
 
 **Netplan** is a network configuration abstraction renderer.
@@ -28,14 +28,14 @@ systemd-networkd.
 ::::{grid} 1 1 2 2
 
 :::{grid-item-card} **[Tutorial](/netplan-tutorial)**
-:link: /netplan-tutorial
-:link-type: doc
+:link: netplan-tutorial
+:link-type: ref
 
 **Get started** - hands-on introduction to Netplan for new users
 :::
 :::{grid-item-card} **[How-to guides](/howto)**
-:link: /howto
-:link-type: doc
+:link: how-to-guides
+:link-type: ref
 
 **Step-by-step guides** covering key operations and common tasks
 :::
@@ -45,14 +45,14 @@ systemd-networkd.
 :reverse:
 
 :::{grid-item-card} **[Reference](/reference)**
-:link: /reference
-:link-type: doc
+:link: reference
+:link-type: ref
 
 **Technical information** - specifications, APIs, architecture
 :::
 :::{grid-item-card} **[Explanation](/explanation)**
-:link: /explanation
-:link-type: doc
+:link: explanation
+:link-type: ref
 
 **Discussion and clarification** of key topics
 :::
