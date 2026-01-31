@@ -420,6 +420,7 @@ write_addresses(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDe
             YAML_MAPPING_OPEN(event, emitter);
             YAML_NONNULL_STRING(event, emitter, "label", opts->label);
             YAML_NONNULL_STRING(event, emitter, "lifetime", opts->lifetime);
+            YAML_NONNULL_STRING(event, emitter, "duplicate-address-detection", opts->duplicate_address_detection);
             YAML_MAPPING_CLOSE(event, emitter);
             YAML_MAPPING_CLOSE(event, emitter);
         }
