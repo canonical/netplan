@@ -865,6 +865,14 @@ network:
 
     > Match on traffic going to the specified destination.
 
+  - **`iif`** (scalar)
+
+    > Set an incoming interface to match traffic for this policy rule.
+
+  - **`oif`** (scalar)
+
+    > Set an outgoing interface to match traffic for this policy rule.
+
   - **`table`** (scalar)
 
     > The table number to match for the route. In some scenarios, it may be
