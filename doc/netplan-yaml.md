@@ -1,5 +1,9 @@
 # YAML configuration
 
+```{note}
+Netplan configuration files must use the `.yaml` extension; `.yml` files will not be read.
+```
+
 ## Top-level configuration structure
 
 The general structure of a Netplan YAML file is shown below.
