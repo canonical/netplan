@@ -641,6 +641,9 @@ write_routes(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanNetDefin
             YAML_UINT_DEFAULT(def, event, emitter, "mark", r->fwmark, NETPLAN_IP_RULE_FW_MARK_UNSPEC);
             YAML_STRING(def, event, emitter, "from", r->from);
             YAML_STRING(def, event, emitter, "to", r->to);
+            YAML_STRING(def, event, emitter, "type", r->type);
+            YAML_STRING(def, event, emitter, "iif", r->iif);
+            YAML_STRING(def, event, emitter, "oif", r->oif);
             YAML_MAPPING_CLOSE(event, emitter);
         }
         YAML_SEQUENCE_CLOSE(event, emitter);

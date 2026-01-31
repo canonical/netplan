@@ -303,7 +303,12 @@ write_ip_rules_nm(const NetplanNetDefinition* def, GKeyFile *kf, gint family, GE
                 g_string_append_printf(tmp_val, " fwmark %u", cur_rule->fwmark);
             if (cur_rule->table != NETPLAN_ROUTE_TABLE_UNSPEC)
                 g_string_append_printf(tmp_val, " table %u", cur_rule->table);
-
+            if (cur_rule->type)
+                g_string_append_printf(tmp_val, " type %s", cur_rule->type);
+            if (cur_rule->iif)
+                g_string_append_printf(tmp_val, " iif %s", cur_rule->iif);
+            if (cur_rule->oif)
+                g_string_append_printf(tmp_val, " oif %s", cur_rule->oif);
             g_key_file_set_string(kf, group, tmp_key, tmp_val->str);
             g_free(tmp_key);
             g_string_free(tmp_val, TRUE);
@@ -907,9 +912,12 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     else if (def->type == NETPLAN_DEF_TYPE_TUNNEL)
         /* sit tunnels will not start in link-local apparently */
         g_key_file_set_string(kf, "ipv4", "method", "disabled");
-    else
-        /* Without any address, this is the only available mode */
+    else if (def->linklocal.ipv4)
+        /* Without any address, set link-local addresses if configured */
         g_key_file_set_string(kf, "ipv4", "method", "link-local");
+    else
+        /* Without any address nor link-local we fall back to disabled mode */
+        g_key_file_set_string(kf, "ipv4", "method", "disabled");
 
     if (def->ip4_addresses) {
         for (unsigned i = 0; i < def->ip4_addresses->len; ++i) {
@@ -932,10 +940,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         write_search_domains(def, "ipv4", kf);
         if (!write_routes_nm(def, kf, AF_INET, error))
             return FALSE;
-        if (!write_ip_rules_nm(def, kf, AF_INET, error))
-            return FALSE;
     }
-
+    write_ip_rules_nm(def, kf, AF_INET, error);
     if (!def->dhcp4_overrides.use_routes) {
         g_key_file_set_boolean(kf, "ipv4", "ignore-auto-routes", TRUE);
         g_key_file_set_boolean(kf, "ipv4", "never-default", TRUE);
