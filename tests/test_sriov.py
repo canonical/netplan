@@ -1397,6 +1397,9 @@ After=sys-subsystem-net-devices-enblue.device
 
 [Service]
 Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
 ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
@@ -1424,6 +1427,9 @@ After=sys-subsystem-net-devices-engreen.device
 
 [Service]
 Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
 ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
@@ -1471,6 +1477,9 @@ After=sys-subsystem-net-devices-enblue.device
 
 [Service]
 Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
 ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
@@ -1511,6 +1520,9 @@ After=sys-subsystem-net-devices-;en \\; a\\t;\\tb ;\\tc\\t; d; \\n;\\nabc.device
 
 [Service]
 Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
 ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
@@ -1531,6 +1543,9 @@ After=sys-subsystem-net-devices-engreen.device
 
 [Service]
 Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
 ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
 
@@ -1551,6 +1566,9 @@ Before=network-pre.target
 
 [Service]
 Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
 ExecStart=/usr/sbin/netplan apply --sriov-only
 '''})
         self.assertIn('engreen: Cannot rebind SR-IOV virtual functions, unknown interface name.', out)

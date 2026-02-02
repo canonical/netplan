@@ -106,6 +106,9 @@ write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, gbool
     }
 
     g_string_append(s, "\n[Service]\nType=oneshot\n");
+    g_string_append(s, "ExecStartPre=udevadm control --reload\n");
+    g_string_append(s, "ExecStartPre=udevadm trigger --action=add --subsystem-match=net\n");
+    g_string_append(s, "ExecStartPre=udevadm settle\n");
     g_string_append_printf(s, "ExecStart=" SBINDIR "/netplan apply --sriov-only\n");
 
     g_autofree char* new_s = _netplan_scrub_systemd_unit_contents(s->str);
