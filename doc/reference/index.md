@@ -1,3 +1,4 @@
+(reference)=
 # Reference
 
 ## YAML configuration

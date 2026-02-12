@@ -1,3 +1,4 @@
+(how-to-guides)=
 # How-to guides
 
 This is a collection of how-to guides for common scenarios. If you see a scenario missing or have one to contribute, [file an issue](https://bugs.launchpad.net/netplan/+filebug) against this documentation with the example.

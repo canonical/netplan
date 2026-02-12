@@ -61,7 +61,7 @@ varying key lengths of RSA, DSA, ECDSA, ECDH and EdDSA.
 ### Cryptographic technology exposed to the user
 
 Netplan allows to configure certain cryptographic technology that can be
-described in its {doc}`netplan-yaml`. Notable settings include the
+described in its {ref}`yaml-configuration`. Notable settings include the
 {ref}`yaml-auth` block, e.g. `auth.password` can be used configure `WPA-PSK` or
 `WPA-EAP` secrets, which can also be a special `hash:...` value for
 `wpa_supplicant`. The `auth.method` field controls the technology, such as

@@ -121,8 +121,15 @@ slug = ""
 
 redirects = {
     'README.md': '/',
-    'netplan': '/netplan-yaml',
 }
+
+
+# Rediraffe (internal) redirects
+# ------------------------------
+
+rediraffe_branch = "main"
+rediraffe_redirects = "redirects.txt"
+
 
 ############################################################
 # Link checker exceptions
@@ -131,7 +138,8 @@ redirects = {
 # Links to ignore when checking links
 
 linkcheck_ignore = [
-    'http://127.0.0.1:8000'
+    'http://127.0.0.1:8000',
+    "https://www.freedesktop.org/software/systemd/man/",
 ]
 
 # Pages on which to ignore anchors
@@ -149,6 +157,7 @@ custom_linkcheck_anchors_ignore_for_url = []
 # Add extensions
 custom_extensions = [
     'breathe',
+    "sphinxext.rediraffe",
 ]
 
 # Add MyST extensions

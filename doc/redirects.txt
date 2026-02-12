@@ -1,0 +1,57 @@
+# The redirects.txt file stores all the *internal* redirects for the published
+# docs. External redirects should be in conf.py
+#
+# If you change a filename, move or delete a file, you need a redirect here.
+# - Comment lines start with a hash (#) and are ignored
+# - Each redirect should appear on its own line
+
+# We are using the dirhtml builder, so files are treated as directories:
+# - A file is built like `filename/index.html`, not `filename.html`
+# - *Do* include a trailing slash at the end of the path
+# - *Do not* include a file extension or you'll get errors
+# - Paths don't need a slash in front of them
+
+# Example:
+# redirect/from/file/ redirect/to/file/
+
+# Functional redirects
+netplan reference/netplan-yaml/
+
+# Redirects handling move from flat to Diataxis directory structure
+generator/ explanation/generator/
+nm-all/ explanation/nm-all/
+security/ explanation/security/
+structure-id/ explanation/structure-id/
+
+contribute-docs/ howto/contribute-docs/
+creating-link-aggregation/ howto/creating-link-aggregation/
+dbus-config/ howto/dbus-config/
+examples/ howto/examples/
+matching-interface-by-mac-address/ howto/matching-interface-by-mac-address/
+multi-nic-vm-host-with-bonds-and-vlans/ howto/multi-nic-vm-host-with-bonds-and-vlans/
+netplan-everywhere/ howto/netplan-everywhere/
+single-nic-vm-host-with-vlans/ howto/single-nic-vm-host-with-vlans/
+single-nic-vm-host/ howto/single-nic-vm-host/
+using-static-ip-addresses/ howto/using-static-ip-addresses/
+
+apidoc/inc-netdef/ reference/apidoc/inc-netdef/
+apidoc/inc-parse-nm/ reference/apidoc/inc-parse-nm/
+apidoc/inc-parse/ reference/apidoc/inc-parse/
+apidoc/inc-state/ reference/apidoc/inc-state/
+apidoc/inc-types/ reference/apidoc/inc-types/
+apidoc/inc-util/ reference/apidoc/inc-util/
+apidoc/index/ reference/apidoc/index/
+cli/ reference/cli/
+netplan-apply/ reference/netplan-apply/
+netplan-dbus/ reference/netplan-dbus/
+netplan-generate/ reference/netplan-generate/
+netplan-get/ reference/netplan-get/
+netplan-info/ reference/netplan-info/
+netplan-ip/ reference/netplan-ip/
+netplan-rebind/ reference/netplan-rebind/
+netplan-set/ reference/netplan-set/
+netplan-status/ reference/netplan-status/
+netplan-try/ reference/netplan-try/
+netplan-yaml/ reference/netplan-yaml/
+
+netplan-tutorial/ tutorial/netplan-tutorial/
