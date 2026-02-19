@@ -954,10 +954,20 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
                 g_free(tmp_key);
             }
         }
-        if (def->ip6_addr_gen_token) {
+        /* NetworkManager only supports a single IPv6 token, use first from array */
+        if (def->ip6_addr_gen_tokens && def->ip6_addr_gen_tokens->len > 0) {
             /* Token implies EUI-64, i.e mode=0 */
             g_key_file_set_integer(kf, "ipv6", "addr-gen-mode", 0);
+            g_key_file_set_string(kf, "ipv6", "token", g_array_index(def->ip6_addr_gen_tokens, char*, 0));
+        } else if (def->ip6_addr_gen_token) {
+            /* Fallback to old single token field for backward compatibility.
+             * This path is only hit when code directly sets ip6_addr_gen_token via C API
+             * without going through the YAML parser (which always sets both fields).
+             * Excluded from coverage as it's defensive code for ABI compatibility. */
+            /* LCOV_EXCL_START */
+            g_key_file_set_integer(kf, "ipv6", "addr-gen-mode", 0);
             g_key_file_set_string(kf, "ipv6", "token", def->ip6_addr_gen_token);
+            /* LCOV_EXCL_STOP */
         } else if (def->ip6_addr_gen_mode)
             g_key_file_set_string(kf, "ipv6", "addr-gen-mode", addr_gen_mode_str(def->ip6_addr_gen_mode));
         if (def->ip6_privacy)
