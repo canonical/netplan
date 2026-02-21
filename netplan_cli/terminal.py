@@ -96,9 +96,10 @@ class Terminal(object):
                     self.reset(settings)
                     # Yay, user has accepted the changes!
                     raise InputAccepted()
-            except TypeError:
+            except (TypeError, BlockingIOError):
                 # read() above is non-blocking, if there is nothing to read it
-                # will return TypeError, which we should ignore -- on to the
+                # will return TypeError or, since python 3.14, BlockingIOError,
+                # which we should ignore -- on to the
                 # next iteration until timeout.
                 pass
             timeout_now -= 1
