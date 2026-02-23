@@ -2561,3 +2561,37 @@ addr-gen-mode=default
           dummy._: ""
           proxy._: ""
 '''.format(UUID, UUID)})
+
+    def test_keyfile_parse_ipv6_token(self):
+        self.generate_from_keyfile('''[connection]
+id=Test
+uuid={}
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=0
+token=::42
+method=auto
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      dhcp4: true
+      dhcp6: true
+      ipv6-address-token: "::42"
+      networkmanager:
+        uuid: "{}"
+        name: "Test"
+        passthrough:
+          ipv6.addr-gen-mode: "0"
+          ipv6.ip6-privacy: "-1"
+'''.format(UUID, UUID)})
