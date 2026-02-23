@@ -1,3 +1,4 @@
+(netplan-tutorial)=
 # Netplan tutorial
 
 Use this tutorial to learn about basic use of the Netplan utility: how to set up an environment to try it, run it for the first time, check its configuration, and modify its settings.
