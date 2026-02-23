@@ -179,6 +179,7 @@ exit_find:
 
 int main(int argc, char** argv)
 {
+    g_log_set_handler(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG,  g_log_default_handler, NULL);
     NetplanError* error = NULL;
     GOptionContext* opt_context;
     /* are we being called as systemd generator? */
