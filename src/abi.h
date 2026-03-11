@@ -356,6 +356,13 @@ struct netplan_net_definition {
         guint port;
     } tunnel;
 
+    /* XFRM interface properties */
+    struct {
+        guint interface_id;
+        gboolean independent;
+        NetplanNetDefinition* link;
+    } xfrm;
+
     NetplanAuthenticationSettings auth;
     gboolean has_auth;
 
