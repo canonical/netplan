@@ -956,6 +956,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         }
         /* NetworkManager only supports a single IPv6 token, use first from array */
         if (def->ip6_addr_gen_tokens && def->ip6_addr_gen_tokens->len > 0) {
+            if (def->ip6_addr_gen_tokens->len > 1)
+                g_warning("%s: NetworkManager does not support multiple IPv6 address tokens, only the first one will be used\n", def->id);
             /* Token implies EUI-64, i.e mode=0 */
             g_key_file_set_integer(kf, "ipv6", "addr-gen-mode", 0);
             g_key_file_set_string(kf, "ipv6", "token", g_array_index(def->ip6_addr_gen_tokens, char*, 0));

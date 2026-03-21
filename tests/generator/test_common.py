@@ -1477,7 +1477,7 @@ method=ignore
 '''})
 
     def test_dhcp6_token_multiple_nm_uses_first(self):
-        self.generate('''network:
+        out = self.generate('''network:
   version: 2
   renderer: NetworkManager
   ethernets:
@@ -1487,6 +1487,7 @@ method=ignore
         - ::31
         - ::32
         - ::33''')
+        self.assertIn('engreen: NetworkManager does not support multiple IPv6 address tokens', out)
         self.assert_nm({'engreen': '''[connection]
 id=netplan-engreen
 type=ethernet
