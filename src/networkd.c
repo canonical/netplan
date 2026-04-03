@@ -322,6 +322,8 @@ ra_overrides_is_dirty(const NetplanRAOverrides* overrides) {
         return TRUE;
     if(overrides->table != NETPLAN_ROUTE_TABLE_UNSPEC)
         return TRUE;
+    if(overrides->use_mtu != NETPLAN_TRISTATE_UNSET)
+        return TRUE;
 
     return FALSE;
 }
@@ -993,6 +995,9 @@ _netplan_netdef_write_network_file(
         }
         if (def->ra_overrides.table != NETPLAN_ROUTE_TABLE_UNSPEC) {
             g_string_append_printf(network, "RouteTable=%d\n", def->ra_overrides.table);
+        }
+        if (def->ra_overrides.use_mtu != NETPLAN_TRISTATE_UNSET) {
+            g_string_append_printf(network, "UseMTU=%s\n", def->ra_overrides.use_mtu ? "true" : "false");
         }
     }
 
