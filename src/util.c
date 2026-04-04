@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
+#include <linux/limits.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -629,7 +630,6 @@ ssize_t
 netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* out_buffer, size_t out_buf_size)
 {
     g_autofree gchar* escaped_ssid = NULL;
-    g_autofree gchar* suffix = NULL;
     const char* nm_prefix = "/run/NetworkManager/system-connections/netplan-";
     const char* pos = g_strrstr(filename, nm_prefix);
     const char* start = NULL;
@@ -641,8 +641,15 @@ netplan_get_id_from_nm_filepath(const char* filename, const char* ssid, char* ou
 
     if (ssid) {
         escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-        suffix = g_strdup_printf("-%s.nmconnection", escaped_ssid);
-        end = g_strrstr(filename, suffix);
+        g_autofree char* escaped_suffix = g_strdup_printf("-%s.nmconnection", escaped_ssid);
+        end = g_strrstr(filename, escaped_suffix);
+
+        if (!end) {
+            /* Escaped SSID not found; try SHA-256 hash (used when escaped form exceeded NAME_MAX) */
+            g_autofree char* hashed_ssid = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ssid, -1);
+            g_autofree char* hashed_suffix = g_strdup_printf("-%s.nmconnection", hashed_ssid);
+            end = g_strrstr(filename, hashed_suffix);
+        }
     } else
         end = g_strrstr(filename, ".nmconnection");
 
@@ -673,7 +680,17 @@ netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const cha
     if (netdef->backend == NETPLAN_BACKEND_NM) {
         if (ssid) {
             g_autofree char* escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-            conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
+            /* Check if the basename would exceed NAME_MAX (255 bytes) */
+            g_autofree char* candidate_basename = g_strjoin(NULL, "netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
+            const char* ssid_part = escaped_ssid;
+            g_autofree char* hashed_ssid = NULL;
+            if (strlen(candidate_basename) > NAME_MAX) {
+                /* SSID contains multi-byte chars (e.g. emojis) that percent-encode to too many bytes.
+                 * Use SHA-256 of the raw SSID bytes to guarantee a valid-length unique filename. */
+                hashed_ssid = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ssid, -1);
+                ssid_part = hashed_ssid;
+            }
+            conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", escaped_netdef_id, "-", ssid_part, ".nmconnection", NULL);
         } else {
             conf_path = g_strjoin(NULL, "/run/NetworkManager/system-connections/netplan-", escaped_netdef_id, ".nmconnection", NULL);
         }
