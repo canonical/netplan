@@ -1002,21 +1002,23 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
         g_datalist_foreach((GData**)&def->backend_settings.passthrough, write_fallback_key_value, kf);
     }
 
-    g_autofree char* escaped_netdef_id = g_uri_escape_string(def->id, NULL, TRUE);
-    if (ap) {
-        g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
-        /* TODO: make use of netplan_netdef_get_output_filename() */
-        g_autofree char* candidate_basename = g_strjoin(NULL, "netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
-        const char* ssid_part = escaped_ssid;
-        g_autofree char* hashed_ssid = NULL;
-        if (strlen(candidate_basename) > NAME_MAX) {
-            /* SSID contains multi-byte chars (e.g. emojis) that percent-encode to too many bytes.
-             * Use SHA-256 of the raw SSID bytes to guarantee a valid-length unique filename. */
-            hashed_ssid = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ap->ssid, -1);
-            ssid_part = hashed_ssid;
+    /* Determine the output filename via the centralized API, which also handles
+     * NAME_MAX overflow for SSIDs with multi-byte characters (LP: #2147259). */
+    {
+        char fname_buf[PATH_MAX];
+        ssize_t r = netplan_netdef_get_output_filename(def, ap ? ap->ssid : NULL,
+                                                       fname_buf, sizeof(fname_buf));
+        if (r <= 0) {
+            g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+                        "Could not determine output filename for '%s'", def->id);
+            return FALSE;
         }
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", escaped_netdef_id, "-", ssid_part, ".nmconnection", NULL);
+        /* netplan_netdef_get_output_filename() returns an absolute path ("/run/NM/...").
+         * Strip the leading '/' so rootdir can be prepended cleanly below. */
+        conf_path = g_strdup(fname_buf[0] == '/' ? fname_buf + 1 : fname_buf);
+    }
 
+    if (ap) {
         g_key_file_set_string(kf, "wifi", "ssid", ap->ssid);
         if (ap->mode < NETPLAN_WIFI_MODE_OTHER)
             g_key_file_set_string(kf, "wifi", "mode", wifi_mode_str(ap->mode));
@@ -1049,8 +1051,6 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             g_datalist_foreach((GData**)&ap->backend_settings.passthrough, write_fallback_key_value, kf);
         }
     } else {
-        /* TODO: make use of netplan_netdef_get_output_filename() */
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", escaped_netdef_id, ".nmconnection", NULL);
         if (def->has_auth) {
             write_dot1x_auth_parameters(&def->auth, kf);
         }
