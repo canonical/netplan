@@ -98,6 +98,8 @@ Description=WPA supplicant for netplan %(iface)s
 DefaultDependencies=no
 Requires=sys-subsystem-net-devices-%(iface)s.device
 After=sys-subsystem-net-devices-%(iface)s.device
+Requires=netplan-configure.service
+After=netplan-configure.service
 Before=network.target
 Wants=network.target
 
