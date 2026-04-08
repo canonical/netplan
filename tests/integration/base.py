@@ -478,7 +478,7 @@ class IntegrationTestsBase(unittest.TestCase):
 
         # Check systemd-networkd files
         base_path = '/run/systemd/network'
-        files = glob.glob(f'{base_path}/*.network') + glob.glob(f'{base_path}/*.netdev')
+        files = glob.glob(f'{base_path}/*netplan*.network') + glob.glob(f'{base_path}/*netplan*.netdev')
         for file in files:
             res = os.stat(file)
             user = pwd.getpwuid(res.st_uid)
@@ -489,7 +489,7 @@ class IntegrationTestsBase(unittest.TestCase):
 
         # Check Network Manager files
         base_path = '/run/NetworkManager/system-connections'
-        files = glob.glob(f'{base_path}/*.nmconnection')
+        files = glob.glob(f'{base_path}/*netplan*.nmconnection')
         for file in files:
             res = os.stat(file)
             user = pwd.getpwuid(res.st_uid)
