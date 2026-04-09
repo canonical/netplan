@@ -76,7 +76,6 @@ Connect with developers and users in real-time on `#netplan` (Libera.Chat). Plea
 * **[Report bugs](https://bugs.launchpad.net/netplan/+filebug)**:
 We want to know about the problems so we can fix them.
 
-
 * **[Contribute code](https://github.com/canonical/netplan)**:
 The code is open and we are open to accepting changes to it.
 
