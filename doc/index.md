@@ -68,13 +68,14 @@ feedback.
 As a community we adhere to the Ubuntu code of conduct.
 
 * **[Get support](https://askubuntu.com/questions/tagged/netplan)**:
-Ask Ubuntu is a question and answer site for Ubuntu users and developers.
+Ask Ubuntu is the primary site for community support. Remember to use the `netplan` tag when asking questions.
 
 * **[Join our online chat](https://web.libera.chat/gamja/?channels=%23netplan)**:
-Meet us in `#netplan` on IRC Libera.Chat.
+Connect with developers and users in real-time on `#netplan` (Libera.Chat). Please be patient as members are across different time zones.
 
 * **[Report bugs](https://bugs.launchpad.net/netplan/+filebug)**:
 We want to know about the problems so we can fix them.
+
 
 * **[Contribute code](https://github.com/canonical/netplan)**:
 The code is open and we are open to accepting changes to it.
