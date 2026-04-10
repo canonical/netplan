@@ -48,6 +48,49 @@ Steps to build Netplan using the [Meson](https://mesonbuild.com) build system in
 * meson test -C build --verbose [TEST_NAME]
 * meson install -C build --destdir ../tmproot
 
+# Test a local build (backend: networkd)
+
+After `meson install -C _build --destdir ../tmproot`, test the local build without touching the system install by passing environment variables that redirect the CLI to your build tree (`NETPLAN_GENERATE_PATH`, `NETPLAN_CONFIGURE_PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`). These are needed because the Python CLI resolves binary and library paths at runtime.
+
+Prepare a test config (replace `eth0` with an interface present on your system):
+
+```sh
+cat > test.yaml << 'EOF'
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp4-overrides:
+        route-metric: 200   # safe to verify: check with 'ip route show' after apply
+EOF
+chmod 600 test.yaml  # netplan enforces strict file permissions
+```
+
+`route-metric` is a good test knob: it changes the preference value on the DHCP-assigned default route (visible in `ip route show` as `metric 200`), but does not drop or alter the route itself, so connectivity is unaffected.
+
+**Try** (safest — auto-reverts on timeout; press Enter to accept):
+
+> Pass environment variables inline (`sudo VAR=VAL ...`) rather than `sudo -E`.
+> Most systems enable `env_reset` in `/etc/sudoers`, which strips user variables even with `-E`.
+
+```sh
+sudo \
+  NETPLAN_GENERATE_PATH="$(pwd)/_build/src/generate" \
+  NETPLAN_CONFIGURE_PATH="$(pwd)/_build/src/configure" \
+  LD_LIBRARY_PATH="$(pwd)/_build/src" \
+  PYTHONPATH="$(pwd)/_build/python-cffi:$(pwd)" \
+  tmproot/usr/sbin/netplan try --timeout 60 --config-file test.yaml
+```
+
+**Verify:**
+
+```sh
+sudo tmproot/usr/sbin/netplan get                        # merged config
+networkctl status eth0                                   # runtime state
+sudo cat /run/systemd/network/10-netplan-eth0.network    # backend files
+```
+
 # Bug reports
 
 Please file bug reports in [Launchpad](https://bugs.launchpad.net/netplan/+filebug).
