@@ -191,15 +191,18 @@ void
 test_netplan_netdef_get_output_filename_nm_with_long_ssid(__unused void** state)
 {
     NetplanNetDefinition netdef;
-    /* 20x U+1F600 (grinning face emoji): 80 raw UTF-8 bytes -> 240 escaped chars.
-     * basename = "netplan-" (8) + "wlan0" (5) + "-" (1) + 240 + ".nmconnection" (13) = 267 > NAME_MAX (255).
+    /* NM stores non-ASCII SSIDs as semicolon-delimited decimal bytes.
+     * 20x U+1F600 (😀, UTF-8: F0 9F 98 80) in NM format = "240;159;152;128;" x20
+     * (320 chars, 80 semicolons).  g_uri_escape_string() encodes each ';' as
+     * '%3B', yielding a 480-char encoded SSID.
+     * basename = "netplan-" (8) + "wlan0" (5) + "-" (1) + 480 + ".nmconnection" (13) = 507 > NAME_MAX.
      * Expects SHA-256 of raw SSID bytes used in filename instead of escaped form. */
     const char ssid[] =
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80";
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;";
     char out_buffer[256] = { 0 };
 
     netdef.backend = NETPLAN_BACKEND_NM;
@@ -218,18 +221,25 @@ test_netplan_netdef_get_output_filename_nm_with_long_ssid(__unused void** state)
     assert_true(g_str_has_suffix(out_buffer, ".nmconnection"));
     /* Returned size must match string length + 1 */
     assert_int_equal(ret, (ssize_t)(strlen(out_buffer) + 1));
+    /* Must contain the SHA-256 hash of the raw SSID, not the escaped form */
+    g_autofree char* expected_hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ssid, -1);
+    g_autofree char* expected_suffix = g_strdup_printf("-%s.nmconnection", expected_hash);
+    assert_true(g_str_has_suffix(out_buffer, expected_suffix));
 }
 
 void
 test_netplan_get_id_from_nm_filepath_with_hashed_ssid(__unused void** state)
 {
-    /* Same 20-emoji SSID as test above */
+    /* Same NM decimal-byte SSID as test above; escaped form exceeds NAME_MAX
+     * so netplan_netdef_get_output_filename() uses the SHA-256 hash path.
+     * netplan_get_id_from_nm_filepath() must fall back to the hash when the
+     * escaped suffix is not found in the filename. */
     const char ssid[] =
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80"
-        "\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80\xF0\x9F\x98\x80";
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;";
     /* Get the hashed filename from the public API */
     NetplanNetDefinition netdef = { .backend = NETPLAN_BACKEND_NM, .id = "wlan0" };
     char hashed_path[256] = { 0 };

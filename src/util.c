@@ -132,7 +132,7 @@ void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* roo
     if (pw && gr) {
         ret = chown(full_path, pw->pw_uid, gr->gr_gid);
         if (ret != 0) {
-            g_debug("Failed to set owner and group for file %s: %s", full_path, strerror(errno));
+            g_debug("Failed to set owner and group for file %s: %s", full_path, strerror(errno)); // LCOV_EXCL_LINE
         }
     }
 }
