@@ -2,6 +2,7 @@
 VER = $(shell meson introspect _build/ --projectinfo | jq -r '.version' && rm -rf _build)
 
 DESTDIR ?= ../tmproot
+PWD := $(shell pwd)
 
 default: _build
 	meson compile -C _build --verbose
@@ -51,3 +52,10 @@ check-coverage: pre-coverage
 install: default
 	meson install -C _build --destdir $(DESTDIR)
 
+run:
+	sudo \
+	NETPLAN_GENERATE_PATH="$(PWD)/_build/src/generate" \
+	NETPLAN_CONFIGURE_PATH="$(PWD)/_build/src/configure" \
+	LD_LIBRARY_PATH="$(PWD)/_build/src" \
+	PYTHONPATH="$(PWD)/_build/python-cffi:$(PWD)" \
+	tmproot/usr/sbin/netplan $(ARGS)

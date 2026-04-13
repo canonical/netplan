@@ -41,6 +41,8 @@ If you face issues, refer to our [comprehensive contribution guide](https://netp
 
 # Build using Meson
 
+A Makefile wrapper is also provided for simplified usage. For that approach, please refer to the [Build using Makefile][makefile-section] section below.
+
 Steps to build Netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
 
 * meson setup build --prefix=/usr [-Db_coverage=true]
@@ -48,47 +50,90 @@ Steps to build Netplan using the [Meson](https://mesonbuild.com) build system in
 * meson test -C build --verbose [TEST_NAME]
 * meson install -C build --destdir ../tmproot
 
-# Test a local build (backend: networkd)
+# Build using Makefile
 
-After `meson install -C _build --destdir ../tmproot`, test the local build without touching the system install by passing environment variables that redirect the CLI to your build tree (`NETPLAN_GENERATE_PATH`, `NETPLAN_CONFIGURE_PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`). These are needed because the Python CLI resolves binary and library paths at runtime.
+Convenience targets are available via `make`:
 
-Prepare a test config (replace `eth0` with an interface present on your system):
+- `make` or `make default`  
+  Set up the build directory (`_build`) and build the project
+
+- `make check`  
+  Build and run all tests in `_build`
+
+- `make linting`  
+  Run Meson `linting` and `codestyle` test targets
+
+- `make check-coverage`  
+  Set up a coverage build directory (`_build-cov`), build, and run coverage tests
+
+- `make install [DESTDIR=../tmproot]`  
+  Build and install into a staging root (defaults to `../tmproot`)
+
+- `make clean`  
+  Remove generated build and test artifacts
+
+- `make run ARGS='<command>'`  
+  Run the locally built CLI with the appropriate environment, e.g.:
+  ```sh
+  make run ARGS="help"
+  ```
+
+# Test local build
+
+After running:
 
 ```sh
-cat > test.yaml << 'EOF'
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: true
-      dhcp4-overrides:
-        route-metric: 200   # safe to verify: check with 'ip route show' after apply
-EOF
-chmod 600 test.yaml  # netplan enforces strict file permissions
+make
+make install
 ```
 
-`route-metric` is a good test knob: it changes the preference value on the DHCP-assigned default route (visible in `ip route show` as `metric 200`), but does not drop or alter the route itself, so connectivity is unaffected.
-
-**Try** (safest — auto-reverts on timeout; press Enter to accept):
-
-> Pass environment variables inline (`sudo VAR=VAL ...`) rather than `sudo -E`.
-> Most systems enable `env_reset` in `/etc/sudoers`, which strips user variables even with `-E`.
+you can test the locally built `netplan` without installing it system-wide:
 
 ```sh
-sudo \
-  NETPLAN_GENERATE_PATH="$(pwd)/_build/src/generate" \
-  NETPLAN_CONFIGURE_PATH="$(pwd)/_build/src/configure" \
-  LD_LIBRARY_PATH="$(pwd)/_build/src" \
-  PYTHONPATH="$(pwd)/_build/python-cffi:$(pwd)" \
-  tmproot/usr/sbin/netplan try --timeout 60 --config-file test.yaml
+make run ARGS="<command>"
 ```
 
-**Verify:**
+This wrapper sets the required environment variables automatically:
+
+`NETPLAN_GENERATE_PATH`
+`NETPLAN_CONFIGURE_PATH`
+`LD_LIBRARY_PATH`
+`PYTHONPATH`
+
+These are needed because the Python CLI resolves binary and library paths at runtime.
+
+**Example**:
 
 ```sh
-sudo tmproot/usr/sbin/netplan get                        # merged config
-networkctl status eth0                                   # runtime state
-sudo cat /run/systemd/network/10-netplan-eth0.network    # backend files
+# build and install
+make
+make install
+
+# run a command (netplan info)
+make run ARGS="info"
+```
+
+*output*:
+
+```sh
+netplan.io:
+  website: "https://netplan.io/"
+  features:
+  - dhcp-use-domains
+  - auth-phase2
+  - ipv6-mtu
+  - modems
+  - sriov
+  - openvswitch
+  - activation-mode
+  - eswitch-mode
+  - infiniband
+  - regdom
+  - vrf
+  - vxlan
+  - virtual-ethernet
+  - dbus-config
+  - generated-suppl
 ```
 
 # Bug reports
@@ -103,3 +148,4 @@ Our mailing list is [here](https://lists.launchpad.net/netplan-developers/).
 
 Email the list at [netplan-developers@lists.launchpad.net](mailto:netplan-developers@lists.launchpad.net).
 
+[makefile-section]: #build-using-makefile
