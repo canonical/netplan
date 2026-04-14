@@ -41,28 +41,35 @@ If you face issues, refer to our [comprehensive contribution guide](https://netp
 
 # Build dependencies
 
+> If you prefer using a prebuilt development environment, see the dev container image definition in [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile).
+
 Install the required build and test dependencies (Ubuntu/Debian):
 
 ```sh
 sudo apt install \
-    build-essential \
-    pkg-config \
-    meson \
-    libglib2.0-dev \
-    libyaml-dev \
-    libsystemd-dev \
-    uuid-dev \
     bash-completion \
-    python3-dev \
+    build-essential \
+    cmake \
+    gcovr \
+    libcmocka-dev \
+    libglib2.0-dev \
+    libsystemd-dev \
+    libyaml-dev \
+    meson \
+    network-manager \
+    pandoc \
+    pkg-config \
+    pycodestyle \
+    pyflakes3 \
     python3-cffi \
     python3-coverage \
+    python3-dev \
     python3-pytest \
     python3-pytest-cov \
-    pyflakes3 \
-    pycodestyle \
-    libcmocka-dev \
-    gcovr \
-    pandoc
+    python3-yaml \
+    systemd \
+    udev \
+    uuid-dev
 ```
 
 # Build using Meson
