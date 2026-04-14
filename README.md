@@ -39,9 +39,35 @@ To contribute documentation, these steps should get you started:
 
 If you face issues, refer to our [comprehensive contribution guide](https://netplan.readthedocs.io/en/stable/contribute-docs/).
 
+# Build dependencies
+
+Install the required build and test dependencies (Ubuntu/Debian):
+
+```sh
+sudo apt install \
+    build-essential \
+    pkg-config \
+    meson \
+    libglib2.0-dev \
+    libyaml-dev \
+    libsystemd-dev \
+    uuid-dev \
+    bash-completion \
+    python3-dev \
+    python3-cffi \
+    python3-coverage \
+    python3-pytest \
+    python3-pytest-cov \
+    pyflakes3 \
+    pycodestyle \
+    libcmocka-dev \
+    gcovr \
+    pandoc
+```
+
 # Build using Meson
 
-A Makefile wrapper is also provided for simplified usage. For that approach, please refer to the [Build using Makefile][makefile-section] section below.
+A Makefile wrapper is also provided for simplified usage. For that approach, please refer to the [Build using Makefile](#build-using-makefile) section below.
 
 Steps to build Netplan using the [Meson](https://mesonbuild.com) build system inside the `build/` directory:
 
@@ -63,9 +89,6 @@ Convenience targets are available via `make`:
 - `make linting`  
   Run Meson `linting` and `codestyle` test targets
 
-- `make check-coverage`  
-  Set up a coverage build directory (`_build-cov`), build, and run coverage tests
-
 - `make install [DESTDIR=../tmproot]`  
   Build and install into a staging root (defaults to `../tmproot`)
 
@@ -73,9 +96,9 @@ Convenience targets are available via `make`:
   Remove generated build and test artifacts
 
 - `make run ARGS='<command>'`  
-  Run the locally built CLI with the appropriate environment, e.g.:
+  Run the locally built netplan CLI with the appropriate environment, for example, to run `netplan help`:
   ```sh
-  make run ARGS="help"
+  $ make run ARGS="help"
   ```
 
 # Test local build
@@ -83,57 +106,29 @@ Convenience targets are available via `make`:
 After running:
 
 ```sh
-make
-make install
+$ make
+$ make install
 ```
 
-you can test the locally built `netplan` without installing it system-wide:
+the locally built `netplan` can be tested without installing it system-wide:
 
 ```sh
-make run ARGS="<command>"
+$ make run ARGS="<command>"
 ```
 
-This wrapper sets the required environment variables automatically:
+This wrapper sets the required environment variables (such as `NETPLAN_GENERATE_PATH`) automatically. These are needed because the Python CLI resolves binary and library paths at runtime.
 
-`NETPLAN_GENERATE_PATH`
-`NETPLAN_CONFIGURE_PATH`
-`LD_LIBRARY_PATH`
-`PYTHONPATH`
-
-These are needed because the Python CLI resolves binary and library paths at runtime.
-
-**Example**:
+As an example, let's use `make run` to run `netplan info`:
 
 ```sh
-# build and install
-make
-make install
-
-# run a command (netplan info)
-make run ARGS="info"
-```
-
-*output*:
-
-```sh
+$ make run ARGS="info"
+# output:
 netplan.io:
   website: "https://netplan.io/"
   features:
   - dhcp-use-domains
   - auth-phase2
-  - ipv6-mtu
-  - modems
-  - sriov
-  - openvswitch
-  - activation-mode
-  - eswitch-mode
-  - infiniband
-  - regdom
-  - vrf
-  - vxlan
-  - virtual-ethernet
-  - dbus-config
-  - generated-suppl
+  ...
 ```
 
 # Bug reports
@@ -147,5 +142,3 @@ Please join us on [IRC in #netplan](https://web.libera.chat/gamja/?channels=%23n
 Our mailing list is [here](https://lists.launchpad.net/netplan-developers/).
 
 Email the list at [netplan-developers@lists.launchpad.net](mailto:netplan-developers@lists.launchpad.net).
-
-[makefile-section]: #build-using-makefile
