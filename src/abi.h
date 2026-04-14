@@ -244,7 +244,7 @@ struct netplan_net_definition {
     GArray* address_options;
     gboolean ip6_privacy;
     guint ip6_addr_gen_mode;
-    char* ip6_addr_gen_token;
+    char* ip6_addr_gen_token; /* deprecated: use ip6_addr_gen_tokens for multiple tokens */
     char* gateway4;
     char* gateway6;
     GArray* ip4_nameservers;
@@ -431,4 +431,7 @@ struct netplan_net_definition {
     NetplanTristate bridge_learning;
 
     NetplanRAOverrides ra_overrides;
+
+    /* netplan-feature: ipv6-address-token-array */
+    GArray* ip6_addr_gen_tokens; /* array of char* - added for multiple token support */
 };

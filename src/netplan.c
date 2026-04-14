@@ -802,7 +802,28 @@ _serialize_yaml(
     YAML_STRING(def, event, emitter, "macaddress", def->set_mac);
     YAML_STRING(def, event, emitter, "set-name", def->set_name);
     YAML_NONNULL_STRING(event, emitter, "ipv6-address-generation", netplan_addr_gen_mode_name(def->ip6_addr_gen_mode));
-    YAML_STRING(def, event, emitter, "ipv6-address-token", def->ip6_addr_gen_token);
+    /* Serialize ipv6-address-token as array if multiple tokens, scalar if single */
+    if (def->ip6_addr_gen_tokens && def->ip6_addr_gen_tokens->len > 0) {
+        if (def->ip6_addr_gen_tokens->len == 1) {
+            /* Single token - output as scalar for backward compatibility */
+            YAML_STRING(def, event, emitter, "ipv6-address-token", g_array_index(def->ip6_addr_gen_tokens, char*, 0));
+        } else {
+            /* Multiple tokens - output as sequence */
+            YAML_SCALAR_PLAIN(event, emitter, "ipv6-address-token");
+            YAML_SEQUENCE_OPEN(event, emitter);
+            for (unsigned i = 0; i < def->ip6_addr_gen_tokens->len; ++i)
+                YAML_SCALAR_PLAIN(event, emitter, g_array_index(def->ip6_addr_gen_tokens, char*, i));
+            YAML_SEQUENCE_CLOSE(event, emitter);
+        }
+    } else if (def->ip6_addr_gen_token) {
+        /* Fallback to old field for backward compatibility.
+         * This path is only hit when code directly sets ip6_addr_gen_token via C API
+         * without going through the YAML parser (which always sets both fields).
+         * Excluded from coverage as it's defensive code for ABI compatibility. */
+        /* LCOV_EXCL_START */
+        YAML_STRING(def, event, emitter, "ipv6-address-token", def->ip6_addr_gen_token);
+        /* LCOV_EXCL_STOP */
+    }
     YAML_BOOL_TRUE(def, event, emitter, "ipv6-privacy", def->ip6_privacy);
     YAML_UINT_0(def, event, emitter, "ipv6-mtu", def->ipv6_mtubytes);
     YAML_UINT_0(def, event, emitter, "mtu", def->mtubytes);

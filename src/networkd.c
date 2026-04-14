@@ -799,8 +799,18 @@ _netplan_netdef_write_network_file(
     if (def->ip6_addresses)
         for (unsigned i = 0; i < def->ip6_addresses->len; ++i)
             g_string_append_printf(network, "Address=%s\n", g_array_index(def->ip6_addresses, char*, i));
-    if (def->ip6_addr_gen_token) {
+    /* Handle multiple IPv6 tokens */
+    if (def->ip6_addr_gen_tokens && def->ip6_addr_gen_tokens->len > 0) {
+        for (unsigned i = 0; i < def->ip6_addr_gen_tokens->len; ++i)
+            g_string_append_printf(network, "IPv6Token=static:%s\n", g_array_index(def->ip6_addr_gen_tokens, char*, i));
+    } else if (def->ip6_addr_gen_token) {
+        /* Fallback to old single token field for backward compatibility.
+         * This path is only hit when code directly sets ip6_addr_gen_token via C API
+         * without going through the YAML parser (which always sets both fields).
+         * Excluded from coverage as it's defensive code for ABI compatibility. */
+        /* LCOV_EXCL_START */
         g_string_append_printf(network, "IPv6Token=static:%s\n", def->ip6_addr_gen_token);
+        /* LCOV_EXCL_STOP */
     } else {
         switch (def->ip6_addr_gen_mode) {
             /* EUI-64 mode is enabled by default, if no IPv6Token= is specified */

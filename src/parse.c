@@ -809,13 +809,63 @@ handle_netdef_addrgen(NetplanParser* npp, yaml_node_t* node, __unused const void
 }
 
 STATIC gboolean
-handle_netdef_addrtok(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+handle_netdef_addrtok(NetplanParser* npp, yaml_node_t* node, __unused const char* prefix, const void* data, GError** error)
 {
     g_assert(npp->current.netdef);
-    gboolean ret = handle_netdef_str(npp, node, data, error);
-    if (!is_ip6_address(npp->current.netdef->ip6_addr_gen_token))
-        return yaml_error(npp, node, error, "invalid ipv6-address-token '%s'", scalar(node));
-    return ret;
+    
+    /* Handle both scalar (single token) and sequence (multiple tokens) */
+    if (node->type == YAML_SCALAR_NODE) {
+        /* Single token - use original handler then validate */
+        gboolean ret = handle_netdef_str(npp, node, data, error);
+        if (!ret)
+            return FALSE; // LCOV_EXCL_LINE - handle_netdef_str only fails on catastrophic errors
+        
+        if (!is_ip6_address(npp->current.netdef->ip6_addr_gen_token))
+            return yaml_error(npp, node, error, "invalid ipv6-address-token '%s'", scalar(node));
+        
+        /* Also store in new array field (duplicate to avoid double-free) */
+        if (!npp->current.netdef->ip6_addr_gen_tokens)
+            npp->current.netdef->ip6_addr_gen_tokens = g_array_new(FALSE, FALSE, sizeof(char*));
+        char* s = g_strdup(npp->current.netdef->ip6_addr_gen_token);
+        g_array_append_val(npp->current.netdef->ip6_addr_gen_tokens, s);
+        mark_data_as_dirty(npp, &npp->current.netdef->ip6_addr_gen_tokens);
+        
+        return TRUE;
+    } else if (node->type == YAML_SEQUENCE_NODE) {
+        /* Multiple tokens - check not empty first */
+        if (node->data.sequence.items.start >= node->data.sequence.items.top)
+            return yaml_error(npp, node, error, "ipv6-address-token must not be empty");
+        
+        /* Validate all tokens first before storing any */
+        for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+            yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+            assert_type(npp, entry, YAML_SCALAR_NODE);
+            
+            if (!is_ip6_address(scalar(entry)))
+                return yaml_error(npp, entry, error, "invalid ipv6-address-token '%s'", scalar(entry));
+        }
+        
+        /* All tokens are valid, now store them */
+        if (!npp->current.netdef->ip6_addr_gen_tokens)
+            npp->current.netdef->ip6_addr_gen_tokens = g_array_new(FALSE, FALSE, sizeof(char*));
+        
+        for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+            yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+            char* s = g_strdup(scalar(entry));
+            g_array_append_val(npp->current.netdef->ip6_addr_gen_tokens, s);
+        }
+        
+        /* For backward compatibility, store first token in old field (duplicate to avoid double-free) */
+        if (npp->current.netdef->ip6_addr_gen_tokens->len > 0) {
+            npp->current.netdef->ip6_addr_gen_token = g_strdup(g_array_index(npp->current.netdef->ip6_addr_gen_tokens, char*, 0));
+            mark_data_as_dirty(npp, &npp->current.netdef->ip6_addr_gen_token);
+        }
+        
+        mark_data_as_dirty(npp, &npp->current.netdef->ip6_addr_gen_tokens);
+        return TRUE;
+    }
+    
+    return yaml_error(npp, node, error, "invalid type for ipv6-address-token: must be a scalar or sequence");
 }
 
 STATIC gboolean
@@ -2980,7 +3030,8 @@ static const mapping_entry_handler ra_overrides_handlers[] = {
     {"gateway4", YAML_SCALAR_NODE, {.generic=handle_gateway4}, NULL}, \
     {"gateway6", YAML_SCALAR_NODE, {.generic=handle_gateway6}, NULL}, \
     {"ipv6-address-generation", YAML_SCALAR_NODE, {.generic=handle_netdef_addrgen}, NULL}, \
-    {"ipv6-address-token", YAML_SCALAR_NODE, {.generic=handle_netdef_addrtok}, netdef_offset(ip6_addr_gen_token)}, \
+    /* Type 0 (YAML_NO_NODE) accepts both scalar and sequence; .variable handler gets prefix parameter */ \
+    {"ipv6-address-token", 0, {.variable=handle_netdef_addrtok}, netdef_offset(ip6_addr_gen_token)}, \
     {"ipv6-mtu", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(ipv6_mtubytes)}, \
     {"ipv6-privacy", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ip6_privacy)}, \
     {"link-local", YAML_SEQUENCE_NODE, {.generic=handle_link_local}, NULL}, \
