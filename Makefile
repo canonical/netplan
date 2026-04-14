@@ -53,7 +53,7 @@ install: default
 	meson install -C _build --destdir $(DESTDIR)
 
 run:
-	sudo \
+	@sudo \
 	NETPLAN_GENERATE_PATH="$(PWD)/_build/src/generate" \
 	NETPLAN_CONFIGURE_PATH="$(PWD)/_build/src/configure" \
 	LD_LIBRARY_PATH="$(PWD)/_build/src" \
