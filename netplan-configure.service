@@ -8,9 +8,9 @@ Wants=systemd-udevd.service
 Conflicts=shutdown.target
 Before=shutdown.target network-pre.target
 Before=systemd-networkd.service NetworkManager.service
-# Run After=nss-user-lookup.target, to allow lookup of the "systemd-network" GID
+# Run After=systemd-sysusers.service, to allow lookup of the "systemd-network" GID
 # (LP: #2071747)
-After=local-fs.target nss-user-lookup.target systemd-udevd-control.socket
+After=local-fs.target systemd-sysusers.service systemd-udevd-control.socket
 
 [Service]
 Type=oneshot
