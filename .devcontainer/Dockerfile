@@ -2,12 +2,12 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# netplan dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash-completion \
     build-essential \
     cmake \
     gcovr \
-    git \
     libcmocka-dev \
     libglib2.0-dev \
     libsystemd-dev \
@@ -24,16 +24,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pytest \
     python3-pytest-cov \
     python3-yaml \
-    sudo \
     systemd \
     udev \
     uuid-dev \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash netplan && \
-    usermod -aG sudo netplan && \
-    echo "netplan ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/netplan
+# devcontainer dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    sudo \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu \
+    && chmod 0440 /etc/sudoers.d/ubuntu
 
 WORKDIR /workspace
 
-USER netplan
+USER ubuntu

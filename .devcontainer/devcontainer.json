@@ -4,5 +4,5 @@
       "dockerfile": "Dockerfile",
       "context": ".."
     },
-  "remoteUser": "netplan"
+  "remoteUser": "ubuntu"
 }
