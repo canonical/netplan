@@ -21,7 +21,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # Setup LXD + Docker fixes
       - uses: canonical/setup-lxd@v0.1.1
         with:
@@ -34,6 +34,8 @@ jobs:
       - name: Install dependencies
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          echo 'Acquire::Retries "3";'           | sudo tee /etc/apt/apt.conf.d/80-retries
+          echo 'Acquire::http::Timeout "20";'    | sudo tee /etc/apt/apt.conf.d/81-timeout
           sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
@@ -67,5 +69,7 @@ jobs:
             --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
             --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
             --setup-commands='mkdir -p /etc/systemd/system/NetworkManager.service.d && echo "[Service]\nCapabilityBoundingSet=CAP_CHOWN\n" > /etc/systemd/system/NetworkManager.service.d/override.conf && systemctl daemon-reload' \
+            --setup-commands='echo "Acquire::Retries \"3\";" > /etc/apt/apt.conf.d/80-retries' \
+            --setup-commands='echo "Acquire::http::Timeout \"20\";" > /etc/apt/apt.conf.d/81-timeout' \
             -- lxd autopkgtest/ubuntu/noble/amd64 \
             || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)
