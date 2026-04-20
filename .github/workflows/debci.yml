@@ -42,7 +42,7 @@ jobs:
           sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
           sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
           echo "lxc.apparmor.profile = unconfined" | sudo tee -a /etc/lxc/default.conf
-          sudo debci setup -s testing -a amd64 -b lxc
+          sudo debci setup -s stable -a amd64 -b lxc
       - name: Prepare test
         run: |
           # pull-debian-source netplan.io  # snapshot.debian.org is not up-to-date

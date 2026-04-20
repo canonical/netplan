@@ -34,14 +34,30 @@ jobs:
       - name: Install dependencies
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          echo 'Acquire::Retries "6";' | sudo tee /etc/apt/apt.conf.d/80-retries
+          echo 'Acquire::http::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/81-timeout
+          echo '--- apt retry/timeout config ---'
+          cat /etc/apt/apt.conf.d/80-retries /etc/apt/apt.conf.d/81-timeout
           sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
+          echo '--- apt sources ---'
+          cat /etc/apt/sources.list.d/*.list 2>/dev/null || true
           sudo apt update
           sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
+          echo '--- installed versions ---'
+          dpkg-query -W autopkgtest lxd-installer 2>/dev/null || true
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
           sudo patch /usr/share/autopkgtest/lib/build-lxd.sh .github/workflows/snapd.patch
           autopkgtest-build-lxd ubuntu-daily:noble
+          # Make apt inside the testbed more resilient to transient mirror issues.
+          lxc start autopkgtest/ubuntu/noble/amd64
+          lxc exec autopkgtest/ubuntu/noble/amd64 -- sh -ec 'echo "Acquire::Retries \"6\";" > /etc/apt/apt.conf.d/80-retries && echo "Acquire::http::Timeout \"30\";" > /etc/apt/apt.conf.d/81-timeout'
+          echo '--- apt config inside testbed ---'
+          lxc exec autopkgtest/ubuntu/noble/amd64 -- cat /etc/apt/apt.conf.d/80-retries /etc/apt/apt.conf.d/81-timeout
+          echo '--- LXD image list ---'
+          lxc image list
+          lxc stop autopkgtest/ubuntu/noble/amd64
       - name: Prepare test
         run: |
           # Ugly workaround for the "cloud-init.sh" test while waiting for 1.1.2-8 in Ubuntu
@@ -63,9 +79,25 @@ jobs:
           dch -v "$VER" "Autopkgtest CI testing (Noble)"
       - name: Run autopkgtest (incl. build)
         run: |
-          autopkgtest . -U \
-            --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
-            --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
-            --setup-commands='mkdir -p /etc/systemd/system/NetworkManager.service.d && echo "[Service]\nCapabilityBoundingSet=CAP_CHOWN\n" > /etc/systemd/system/NetworkManager.service.d/override.conf && systemctl daemon-reload' \
-            -- lxd autopkgtest/ubuntu/noble/amd64 \
-            || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)
+          run_autopkgtest() {
+            autopkgtest . -U \
+              --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
+              --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
+              --setup-commands='mkdir -p /etc/systemd/system/NetworkManager.service.d && echo "[Service]\nCapabilityBoundingSet=CAP_CHOWN\n" > /etc/systemd/system/NetworkManager.service.d/override.conf && systemctl daemon-reload' \
+              -- lxd autopkgtest/ubuntu/noble/amd64
+          }
+
+          run_autopkgtest || {
+            rc=$?
+            echo "autopkgtest exited with code $rc"
+            # Retry once to absorb transient apt mirror sync mismatches in the testbed.
+            if [ "$rc" -ne 2 ]; then
+              echo "First autopkgtest attempt failed with exit code $rc, retrying once..."
+              echo '--- LXD container list before retry ---'
+              lxc list
+              run_autopkgtest
+              rc=$?
+              echo "autopkgtest retry exited with code $rc"
+            fi
+            test "$rc" -eq 0 -o "$rc" -eq 2  # allow wifi test to be skipped (exit code = 2)
+          }

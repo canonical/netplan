@@ -2,7 +2,7 @@
 
 See also:
 * [Netplan D-Bus reference](/netplan-dbus)
-* [`busctl` reference](https://www.freedesktop.org/software/systemd/man/busctl.html)
+* [`busctl` reference](https://man7.org/linux/man-pages/man1/busctl.1.html)
 
 Copy the current state from `/{etc,run,lib}/netplan/*.yaml` by creating a new configuration object:
 
