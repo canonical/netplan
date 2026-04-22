@@ -43,24 +43,38 @@ If you face issues, refer to our [comprehensive contribution guide](https://netp
 
 A Docker-based development environment is available via `.devcontainer/` for consistent builds across machines.
 
-## Using the Dev Container
-
-### With VS Code
-
-1. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-2. Open the workspace in a container: Open the Command Palette and run "Dev Containers: Reopen in Container"
-3. The container automatically installs all dependencies and configures the `ubuntu` user
-
-### Manual Docker Build
-
-```sh
-$ docker build -t netplan-dev -f .devcontainer/Dockerfile .
-$ docker run -it --rm -v $(pwd):/workspace --name netplan-dev netplan-dev bash
-```
+For development workflows (including VS Code container usage), see [HACKING.md](HACKING.md).
 
 # Build dependencies
 
-For a manual setup without containers, install the required build and test dependencies. The full list of dependencies is defined in [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile#L6) under the `# netplan dependencies` section.
+For a manual setup without containers, install the required build and test dependencies:
+
+```sh
+$ sudo apt install \
+    bash-completion \
+    build-essential \
+    cmake \
+    gcovr \
+    libcmocka-dev \
+    libglib2.0-dev \
+    libsystemd-dev \
+    libyaml-dev \
+    meson \
+    network-manager \
+    pandoc \
+    pkg-config \
+    pycodestyle \
+    pyflakes3 \
+    python3-cffi \
+    python3-coverage \
+    python3-dev \
+    python3-pytest \
+    python3-pytest-cov \
+    python3-yaml \
+    systemd \
+    udev \
+    uuid-dev \
+```
 
 # Build using Meson
 
