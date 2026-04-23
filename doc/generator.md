@@ -2,7 +2,7 @@
 title: "Netplan Generator"
 ---
 
-Netplan uses a [systemd-generator](https://www.freedesktop.org/software/systemd/man/latest/systemd.generator.html)
+Netplan uses a [systemd-generator](https://man7.org/linux/man-pages/man7/systemd.generator.7.html)
 to emit network configuration at boot time. This generator is called very early during the boot
 process to ensure that all the configuration needed will be available for the back end
 the user chose to use.
