@@ -13,4 +13,4 @@ A devcontainer is provided under `.devcontainer/`.
 ## Notes
 
 - The Docker image is useful for reproducible builds and many tests.
-- Some system-level integration scenarios (for example, full network service lifecycle behavior) are better exercised in LXD or VM-based environments.
+- Some system-level integration scenarios (for example, full network service lifecycle behavior) are better exercised VM-based environments.
