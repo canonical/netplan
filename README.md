@@ -39,10 +39,6 @@ To contribute documentation, these steps should get you started:
 
 If you face issues, refer to our [comprehensive contribution guide](https://netplan.readthedocs.io/en/stable/contribute-docs/).
 
-# Development Container
-
-A Docker-based development environment is available via `.devcontainer/` for consistent builds across machines.
-
 For development workflows (including VS Code container usage), see [HACKING.md](HACKING.md).
 
 # Build dependencies
@@ -51,29 +47,24 @@ For a manual setup without containers, install the required build and test depen
 
 ```sh
 $ sudo apt install \
-    bash-completion \
     build-essential \
-    cmake \
-    gcovr \
-    libcmocka-dev \
-    libglib2.0-dev \
-    libsystemd-dev \
-    libyaml-dev \
-    meson \
-    network-manager \
-    pandoc \
     pkg-config \
-    pycodestyle \
-    pyflakes3 \
+    meson \
+    libglib2.0-dev \
+    libyaml-dev \
+    libsystemd-dev \
+    uuid-dev \
+    bash-completion \
+    python3-dev \
     python3-cffi \
     python3-coverage \
-    python3-dev \
     python3-pytest \
     python3-pytest-cov \
-    python3-yaml \
-    systemd \
-    udev \
-    uuid-dev \
+    pyflakes3 \
+    pycodestyle \
+    libcmocka-dev \
+    gcovr \
+    pandoc
 ```
 
 # Build using Meson

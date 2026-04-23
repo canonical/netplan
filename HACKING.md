@@ -2,20 +2,6 @@
 
 ## Container Usage
 
-### Manual Docker Workflow
-
-Build the development image:
-
-```sh
-$ docker build -t netplan-dev -f .devcontainer/Dockerfile .
-```
-
-Run an interactive shell:
-
-```sh
-$ docker run -it --rm -v "$(pwd):/workspace" --name netplan-dev netplan-dev bash
-```
-
 ### VS Code Dev Container
 
 A devcontainer is provided under `.devcontainer/`.
