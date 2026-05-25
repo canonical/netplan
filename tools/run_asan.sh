@@ -7,10 +7,10 @@ BUILDDIR="_leakcheckbuild"
 CLEANBUILDDIR="_cleanbuild"
 CC=gcc
 
-meson setup ${BUILDDIR} -Db_sanitize=address,undefined
+meson setup ${BUILDDIR} -Db_sanitize=address,undefined -Dprefix=/usr
 meson compile -C ${BUILDDIR} --verbose
 
-meson setup ${CLEANBUILDDIR}
+meson setup ${CLEANBUILDDIR} -Dprefix=/usr
 meson compile -C ${CLEANBUILDDIR} --verbose
 
 ${CC} tools/keyfile_to_yaml.c -o tools/keyfile_to_yaml \
