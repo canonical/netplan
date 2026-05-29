@@ -244,6 +244,8 @@ class _CommonTests():
         out = subprocess.check_output(['ip', '-6', 'tunnel', 'show', 'tun0'], text=True)
         self.assertIn("key 1234", out)
 
+    # LP: #2124257 - invalid iproute2 vxlan JSON output (fan map attribute)
+    @unittest.skip("LP: #2124257 - Enable when tests migrate to Ubuntu Resolute+ with iproute2 fix")
     def test_tunnel_vxlan(self):
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'vx0'], stderr=subprocess.DEVNULL)
         self.setup_eth(None, False)
