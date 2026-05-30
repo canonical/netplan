@@ -78,6 +78,7 @@ typedef struct ra_overrides {
     NetplanTristate use_dns;
     NetplanUseDomainMode use_domains;
     guint table;
+    NetplanTristate use_mtu;
 } NetplanRAOverrides;
 
 typedef enum {

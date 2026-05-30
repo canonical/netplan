@@ -157,6 +157,7 @@ reset_ra_overrides(NetplanRAOverrides* overrides)
     overrides->use_dns = NETPLAN_TRISTATE_UNSET;
     overrides->use_domains = NETPLAN_USE_DOMAIN_MODE_UNSET;
     overrides->table = NETPLAN_ROUTE_TABLE_UNSPEC;
+    overrides->use_mtu = NETPLAN_TRISTATE_UNSET;
 }
 
 void
