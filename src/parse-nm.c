@@ -792,7 +792,15 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         }
     }
     g_free(tmp_str);
+    /* NM only supports a single token, store in both old and new fields */
     keyfile_handle_generic_str(kf, "ipv6", "token", &nd->ip6_addr_gen_token);
+    if (nd->ip6_addr_gen_token) {
+        if (!nd->ip6_addr_gen_tokens)
+            nd->ip6_addr_gen_tokens = g_array_new(FALSE, FALSE, sizeof(char*));
+        /* Duplicate to avoid double-free */
+        char* s = g_strdup(nd->ip6_addr_gen_token);
+        g_array_append_val(nd->ip6_addr_gen_tokens, s);
+    }
 
     /* ip6-privacy is not fully supported, NM supports additional modes, like -1 or 1
      * handle known modes, but keep any unsupported "ip6-privacy" value in passthrough */
