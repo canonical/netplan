@@ -350,6 +350,11 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     memset(&netdef->tunnel, 0, sizeof(netdef->tunnel));
     netdef->tunnel.mode = NETPLAN_TUNNEL_MODE_UNKNOWN;
 
+    /* Reset XFRM parameters */
+    memset(&netdef->xfrm, 0, sizeof(netdef->xfrm));
+    netdef->xfrm.independent = FALSE;
+    netdef->xfrm.link = NULL;
+
     reset_auth_settings(&netdef->auth);
     netdef->has_auth = FALSE;
 

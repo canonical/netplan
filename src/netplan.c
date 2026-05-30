@@ -865,6 +865,15 @@ _serialize_yaml(
     if (def->type == NETPLAN_DEF_TYPE_VRF)
         YAML_UINT_DEFAULT(def, event, emitter, "table", def->vrf_table, G_MAXUINT);
 
+    /* XFRM settings */
+    if (def->type == NETPLAN_DEF_TYPE_XFRM) {
+        YAML_UINT_DEFAULT(def, event, emitter, "if_id", def->xfrm.interface_id, 0);
+        if (def->xfrm.link)
+            YAML_STRING(def, event, emitter, "link", def->xfrm.link->id);
+        if (def->xfrm.independent)
+            YAML_BOOL_TRUE(def, event, emitter, "independent", def->xfrm.independent);
+    }
+
     /* Tunnel settings */
     if (def->type == NETPLAN_DEF_TYPE_TUNNEL) {
         write_tunnel_settings(event, emitter, def);
