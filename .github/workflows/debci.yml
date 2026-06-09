@@ -32,6 +32,11 @@ jobs:
           sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
           sudo apt install debci lxc lxc-templates debian-archive-keyring autopkgtest ubuntu-dev-tools devscripts linux-modules-extra-$(uname -r) #openvswitch-switch
+          # The lxc-debian template includes isc-dhcp-client as part of the
+          # container bootstrap, but that package is currently absent from
+          # Debian testing release, breaking the testbed bootstrap. The top of
+          # lxc-debian template uses dhcpcd-base for upcoming debian releases.
+          sudo sed -i 's|^isc-dhcp-client,\\$|dhcpcd-base,\\|' /usr/share/lxc/templates/lxc-debian
       # See: https://discourse.ubuntu.com/t/containers-lxc/11526 (Apparmor section)
       #      (LP: #1950787, LP: #1998943)
       - name: Preparing autopkgtest-build-lxc
