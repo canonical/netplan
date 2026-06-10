@@ -124,6 +124,10 @@ write_bridge_params_networkd(GString* s, const NetplanNetDefinition* def)
         if (def->bridge_params.max_age)
             g_string_append_printf(params, "MaxAgeSec=%s\n", def->bridge_params.max_age);
         g_string_append_printf(params, "STP=%s\n", def->bridge_params.stp ? "true" : "false");
+        if (def->bridge_params.vlan_default_pvid)
+            g_string_append_printf(params, "DefaultPVID=%s\n", def->bridge_params.vlan_default_pvid);
+        if(def->bridge_params.vlan_filtering || def->bridge_params.vlans)
+            g_string_append_printf(params, "VLANFiltering=true\n");
 
         g_string_append_printf(s, "\n[Bridge]\n%s", params->str);
 
@@ -717,6 +721,47 @@ combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* co
 }
 
 /**
+ * Return networkd vlan string.
+ */
+GString*
+bridge_vlan_networkd_str(const NetplanBridgeVlan* vlan)
+{
+    GString *id = g_string_sized_new(9);
+    GString *def = g_string_sized_new(200);
+
+    g_string_append_printf(id, "%u", vlan->vid);
+    if (vlan->vid_to)
+        g_string_append_printf(id, "-%u", vlan->vid_to);
+
+    
+    if (vlan->pvid)
+        g_string_append_printf(def, "PVID=%s\n", id->str);
+    else {
+        g_string_append_printf(def, "VLAN=%s\n", id->str);
+    }
+
+    if (vlan->untagged)
+        g_string_append_printf(def, "EgressUntagged=%s\n", id->str);
+
+    g_string_free(id, TRUE);
+
+    return def;
+}
+
+/**
+ * Write the needed networkd .network BridgeVLAN configuration for the selected vlan definition.
+ */
+STATIC void
+write_vlans(GString_autoptr network, GArray* data) {
+    g_string_append(network, "\n[BridgeVLAN]\n");
+    for (unsigned i = 0; i < data->len; ++i) {
+        GString* v = bridge_vlan_networkd_str(g_array_index(data,NetplanBridgeVlan*, i));
+        g_string_append_printf(network, "%s", v->str);
+        g_string_free(v, TRUE);
+    }
+}
+
+/**
  * Write the needed networkd .network configuration for the selected netplan definition.
  */
 gboolean
@@ -868,8 +913,17 @@ _netplan_netdef_write_network_file(
             g_string_append_printf(network, "Learning=%s\n", def->bridge_learning ? "true" : "false");
         if (def->bridge_neigh_suppress != NETPLAN_TRISTATE_UNSET)
             g_string_append_printf(network, "NeighborSuppression=%s\n", def->bridge_neigh_suppress ? "true" : "false");
-
+        if (def->bridge_params.port_vlans) {
+            // port's .network file
+            write_vlans(network, def->bridge_params.port_vlans);
+        }
     }
+
+    if (!def->bridge && !def->bond && def->backend != NETPLAN_BACKEND_OVS && def->bridge_params.vlans) {
+        // bridge's .network file
+        write_vlans(network, def->bridge_params.vlans);
+    }
+
     if (def->bond && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bond=%s\n", def->bond);
 
