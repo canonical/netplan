@@ -147,6 +147,11 @@ export const common_properties = {
                                 label: {
                                     type: "string",
                                     maxLength: 15,
+                                },
+                                "duplicate-address-detection": {
+                                {
+                                    type: "string",
+                                    enum: ["ipv4", "ipv6", "both", "none"],
                                 }
                             }
                         }

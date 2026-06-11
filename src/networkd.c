@@ -652,6 +652,8 @@ write_addr_option(NetplanAddressOptions* o, GString* s)
     g_assert(o->address != NULL);
     g_string_append_printf(s, "Address=%s\n", o->address);
 
+    if (o->duplicate_address_detection)
+        g_string_append_printf(s, "DuplicateAddressDetection=%s\n", o->duplicate_address_detection);
     if (o->lifetime)
         g_string_append_printf(s, "PreferredLifetime=%s\n", o->lifetime);
     if (o->label)
