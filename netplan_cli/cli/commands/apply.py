@@ -115,7 +115,7 @@ class NetplanApply(utils.NetplanCommand):
             old_ovs_glob.remove(ovs_cleanup_service)
         old_files_ovs = bool(old_ovs_glob)
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces = utils.nm_interfaces(old_nm_glob, utils.get_interfaces())
+        nm_ifaces = NetplanApply._get_nm_interfaces(old_nm_glob, utils.get_interfaces(), exit_on_error)
         old_files_nm = bool(old_nm_glob)
 
         configure = []
@@ -157,7 +157,7 @@ class NetplanApply(utils.NetplanCommand):
             restart_networkd = True
 
         restart_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
-        nm_ifaces.update(utils.nm_interfaces(restart_nm_glob, devices))
+        nm_ifaces.update(NetplanApply._get_nm_interfaces(restart_nm_glob, devices, exit_on_error))
         restart_nm = bool(restart_nm_glob)
         if not restart_nm and old_files_nm:
             restart_nm = True
@@ -289,7 +289,7 @@ class NetplanApply(utils.NetplanCommand):
         if restart_nm:
             # Flush all IP addresses of NM managed interfaces, to avoid NM creating
             # new, non netplan-* connection profiles, using the existing IPs.
-            nm_interfaces = utils.nm_interfaces(restart_nm_glob, devices)
+            nm_interfaces = NetplanApply._get_nm_interfaces(restart_nm_glob, devices, exit_on_error)
             for iface in nm_interfaces:
                 utils.ip_addr_flush(iface)
             # clear NM state, especially the [device].managed=true config, as that might have been
@@ -412,3 +412,13 @@ class NetplanApply(utils.NetplanCommand):
             logging.warning('Cannot call Open vSwitch: {}.'.format(e))
         except OvsDbServerNotInstalled as e:
             logging.debug('Cannot call Open vSwitch: %s.', e)
+
+    @staticmethod
+    def _get_nm_interfaces(paths, devices, exit_on_error):
+        try:
+            return utils.nm_interfaces(paths, devices)
+        except PermissionError as e:
+            logging.error('%s', e)
+            if exit_on_error:
+                sys.exit(os.EX_NOPERM)
+            raise

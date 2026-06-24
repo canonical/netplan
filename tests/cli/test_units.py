@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import errno
 import os
 import shutil
 import sys
@@ -214,3 +215,28 @@ class TestCLI(unittest.TestCase):
 
             args = log.call_args.args
             self.assertIn("VRF routes table mismatch", args[0])
+
+    @patch('netplan_cli.cli.utils.nm_interfaces')
+    def test_get_nm_interfaces_permission_error_exits(self, mock_nm):
+        """LP#2154081: PermissionError with exit_on_error=True must exit
+        cleanly with EX_NOPERM, not crash with an uncaught exception."""
+        file_path = '/run/NetworkManager/system-connections/netplan-eth0.nmconnection'
+        mock_nm.side_effect = PermissionError(errno.EACCES, os.strerror(errno.EACCES), file_path)
+        with self.assertLogs('', level='ERROR') as ctx:
+            with self.assertRaises(SystemExit) as e:
+                NetplanApply._get_nm_interfaces([file_path],
+                                                ['eth0'], exit_on_error=True)
+        self.assertEqual(e.exception.code, os.EX_NOPERM)
+        self.assertTrue(any(os.strerror(errno.EACCES) in msg for msg in ctx.output))
+
+    @patch('netplan_cli.cli.utils.nm_interfaces')
+    def test_get_nm_interfaces_permission_error_raises(self, mock_nm):
+        """LP#2154081: PermissionError with exit_on_error=False must re-raise
+        so that netplan try can catch it and trigger a revert."""
+        file_path = '/run/NetworkManager/system-connections/netplan-eth0.nmconnection'
+        mock_nm.side_effect = PermissionError(errno.EACCES, os.strerror(errno.EACCES), file_path)
+        with self.assertLogs('', level='ERROR') as ctx:
+            with self.assertRaises(PermissionError):
+                NetplanApply._get_nm_interfaces([file_path],
+                                                ['eth0'], exit_on_error=False)
+        self.assertTrue(any(os.strerror(errno.EACCES) in msg for msg in ctx.output))
