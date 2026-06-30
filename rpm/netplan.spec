@@ -37,6 +37,7 @@ BuildRequires:  python3-devel
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  %{_bindir}/pandoc
 BuildRequires:  python3dist(cffi)
+BuildRequires:  python3dist(setuptools)
 %if %{with tests}
 # For tests
 BuildRequires:  %{_sbindir}/ip
