@@ -787,6 +787,8 @@ network:
 
     > Set a source IP address for traffic going through the route.
     > (NetworkManager: as of v1.8.0)
+    >
+    > This is equivalent to iproute2's `src` route option.
 
   - **`to`** (scalar)
 
