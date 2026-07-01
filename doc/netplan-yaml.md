@@ -65,6 +65,10 @@ network:
 
   > Configures Virtual Routing and Forwarding (VRF) devices.
 
+- [**`xfrm-interfaces`**](#properties-for-device-type-xfrm-interfaces) (mapping)
+
+  > Creates and configures XFRM devices for offloaded IPsec.
+
 - [**`wifis`**](#properties-for-device-type-wifis) (mapping)
 
   > Configures physical Wi-Fi interfaces as `client`, `adhoc` or `access point`.
@@ -1955,6 +1959,45 @@ VXLAN specific keys:
 
   > Allows setting the IPv4 Do not Fragment (DF) bit in outgoing packets.
   > Takes a boolean value. When unset, the kernel default will be used.
+
+(yaml-xfrm-interfaces)=
+## Properties for device type `xfrm-interfaces`
+
+**Status**: Optional.
+
+**Purpose**: Use the `xfrm-interfaces` key to create virtual XFRM (IPsec) interfaces.
+
+**Structure**: The key consists of a mapping of XFRM interface names. Each
+`xfrm-interface` requires an `if_id`. The general configuration structure for
+XFRM interfaces is shown below.
+
+```yaml
+network:
+  xfrm-interfaces:
+    xfrm0:
+      if_id: 10
+      link: eth0
+      ...
+```
+
+When applied, a virtual interface called `xfrm0` will be created in the system.
+
+XFRM interfaces provide the kernel interface for IPsec transform operations.
+
+The specific settings for `xfrm-interfaces` are defined below.
+
+- **`if_id`** (scalar)
+
+  > The XFRM interface ID (if_id). This is a required parameter.
+  > Takes a number in the range `1..4294967295`.
+
+- **`link`** (scalar)
+
+  > The underlying physical interface for this XFRM interface.
+
+- **`independent`** (boolean)
+
+  > If set to `true`, the XFRM interface is independent of the underlying interface (`link`). Defaults to `false`.
 
 ## Properties for device type `virtual-ethernets`
 
