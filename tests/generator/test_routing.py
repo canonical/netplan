@@ -656,6 +656,75 @@ To=10.10.10.0/24
 TypeOfService=250
 '''})
 
+    def test_ip_rule_type(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          type: blackhole
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+To=10.10.10.0/24
+Type=blackhole
+'''})
+
+    def test_ip_rule_iif(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          iif: engreen
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+To=10.10.10.0/24
+IncomingInterface=engreen
+'''})
+
+    def test_ip_rule_oif(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          oif: engreen
+          ''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=192.168.14.2/24
+
+[RoutingPolicyRule]
+To=10.10.10.0/24
+OutgoingInterface=engreen
+'''})
+
     def test_use_routes(self):
         """[networkd] Validate config generation when use-routes DHCP override is used"""
         self.generate('''network:
@@ -1124,6 +1193,96 @@ wake-on-lan=0
 method=manual
 address1=192.168.14.2/24
 routing-rule1=priority 99 to 10.10.10.0/24 table 100
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_ip_rule_type(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          type: blackhole
+          priority: 99
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 type blackhole
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_ip_rule_iif(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          iif: engreen
+          priority: 99
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 iif engreen
+
+[ipv6]
+method=ignore
+'''})
+
+    def test_ip_rule_oif(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      addresses: ["192.168.14.2/24"]
+      routing-policy:
+        - to: 10.10.10.0/24
+          priority: 99
+          oif: engreen
+          ''')
+
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=manual
+address1=192.168.14.2/24
+routing-rule1=priority 99 to 10.10.10.0/24 oif engreen
 
 [ipv6]
 method=ignore

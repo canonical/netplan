@@ -894,6 +894,22 @@ network:
     > Match this policy rule based on the type of service number applied to
     > the traffic.
 
+  - **`type`** (scalar)
+
+    > The type of the rule. Valid options are `unicast` (default),
+    > `blackhole`, `unreachable`, `prohibit` and `nat`.
+
+  - **`iif`** (scalar)
+
+    > select the incoming device to match. If the interface is loopback
+    > the rule only matches packets originating from this host.
+
+  - **`oif`** (scalar)
+
+    > Select the outgoing device to match.
+    > The outgoing interface is only available for packets originating
+    > from local sockets that are bound to a device.
+
 (yaml-auth)=
 ## Authentication
 

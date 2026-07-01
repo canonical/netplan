@@ -1,0 +1,29 @@
+network:
+  version: 2
+  ethernets:
+    eno0:
+      addresses:
+       - 192.168.3.42/24
+      dhcp4: no
+      routes:
+       - to: default
+         via: 192.168.3.1
+    eno1:
+      addresses:
+       - 192.168.4.24/24
+    eno2:
+      addresses:
+       - 192.168.5.78/24
+      routes:
+       - to: default
+         via: 192.168.4.1
+         table: 100
+      routing-policy:
+        - from: 192.168.5.0/24
+          iif: eno1
+          table: 100
+          preference: 100
+        - from: 192.168.5.0/24
+          iif: eno1
+          type: blackhole
+          preference: 200
