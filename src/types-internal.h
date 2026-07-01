@@ -97,6 +97,7 @@ typedef struct {
     char* address;
     char* lifetime;
     char* label;
+    char* duplicate_address_detection;
 } NetplanAddressOptions;
 
 struct address_iter {

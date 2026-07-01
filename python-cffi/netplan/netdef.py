@@ -211,10 +211,11 @@ class NetDefinitionIterator():
 
 
 class NetplanAddress:
-    def __init__(self, address: str, lifetime: str, label: str):
+    def __init__(self, address: str, lifetime: str, label: str, duplicate_address_detection: str):
         self.address = address
         self.lifetime = lifetime
         self.label = label
+        self.duplicate_address_detection = duplicate_address_detection
 
     def __str__(self) -> str:
         return self.address
@@ -241,7 +242,9 @@ class _NetdefAddressIterator:
         address = ffi.string(content.address).decode('utf-8') if content.address else None
         lifetime = ffi.string(content.lifetime).decode('utf-8') if content.lifetime else None
         label = ffi.string(content.label).decode('utf-8') if content.label else None
-        return NetplanAddress(address, lifetime, label)
+        duplicate_address_detection = ffi.string(content.duplicate_address_detection).decode('utf-8') \
+            if content.duplicate_address_detection else None
+        return NetplanAddress(address, lifetime, label, duplicate_address_detection)
 
 
 class _NetdefNameserverIterator:
