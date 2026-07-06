@@ -115,6 +115,9 @@ _netplan_netdef_get_sriov_vlan_filter(const NetplanNetDefinition* netdef);
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_critical(const NetplanNetDefinition* netdef);
 
+NETPLAN_INTERNAL NetplanKeepConfiguration
+_netplan_netdef_get_keep_configuration(const NetplanNetDefinition* netdef);
+
 NETPLAN_INTERNAL gboolean
 _netplan_netdef_get_optional(const NetplanNetDefinition* netdef);
 

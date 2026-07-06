@@ -618,6 +618,45 @@ class TestNetDefinition(TestBase):
         self.assertTrue(state['eth0'].critical)
         self.assertFalse(state['eth1'].critical)
 
+    def test_keep_configuration(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      critical: static
+    eth1:
+      critical: true
+    eth2:
+      critical: dynamic
+    eth3: {}
+    eth4:
+      critical: dynamic-on-stop
+    eth5:
+      critical: dhcp
+    eth6:
+      critical: dhcp-on-stop
+    eth7:
+      critical: false''')
+
+        from netplan.netdef import KeepConfiguration
+        self.assertEqual(state['eth0'].keep_configuration, KeepConfiguration.STATIC)
+        self.assertEqual(state['eth1'].keep_configuration, KeepConfiguration.TRUE)
+        self.assertEqual(state['eth2'].keep_configuration, KeepConfiguration.DYNAMIC)
+        self.assertEqual(state['eth3'].keep_configuration, KeepConfiguration.FALSE)
+        self.assertEqual(state['eth4'].keep_configuration, KeepConfiguration.DYNAMIC_ON_STOP)
+        # dhcp/dhcp-on-stop are legacy aliases for dynamic/dynamic-on-stop
+        self.assertEqual(state['eth5'].keep_configuration, KeepConfiguration.DYNAMIC)
+        self.assertEqual(state['eth6'].keep_configuration, KeepConfiguration.DYNAMIC_ON_STOP)
+        self.assertEqual(state['eth7'].keep_configuration, KeepConfiguration.FALSE)
+        # Backwards-compatible bool check
+        self.assertTrue(state['eth0'].critical)
+        self.assertTrue(state['eth1'].critical)
+        self.assertTrue(state['eth2'].critical)
+        self.assertFalse(state['eth3'].critical)
+        self.assertTrue(state['eth4'].critical)
+        self.assertTrue(state['eth5'].critical)
+        self.assertTrue(state['eth6'].critical)
+        self.assertFalse(state['eth7'].critical)
+
     def test_eq(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:
