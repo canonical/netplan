@@ -773,8 +773,18 @@ _serialize_yaml(
 
     if (def->optional)
         YAML_NONNULL_STRING_PLAIN(event, emitter, "optional", "true");
-    if (def->critical)
-        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "true");
+    if (def->critical) {
+        const char* critical_val = "true";
+        if (def->critical == NETPLAN_KEEP_CONFIGURATION_STATIC)
+            critical_val = "static";
+        else if (def->critical == NETPLAN_KEEP_CONFIGURATION_DYNAMIC)
+            critical_val = "dynamic";
+        else if (def->critical == NETPLAN_KEEP_CONFIGURATION_DYNAMIC_ON_STOP)
+            critical_val = "dynamic-on-stop";
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", critical_val);
+    } else if DIRTY(def, def->critical) {
+        YAML_NONNULL_STRING_PLAIN(event, emitter, "critical", "false");
+    }
 
     if (def->ignore_carrier)
         YAML_NONNULL_STRING_PLAIN(event, emitter, "ignore-carrier", "true");
