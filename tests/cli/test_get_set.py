@@ -187,6 +187,31 @@ class TestSet(unittest.TestCase):
             yml = yaml.safe_load(f)
             self.assertEqual(1005, yml['network']['vrfs']['vrf0']['table'])
 
+    def test_set_conflicting_default_route_not_written(self):
+        defaults = os.path.join(self.workdir.name, 'etc', 'netplan', '0-existing.yaml')
+        with open(defaults, 'w') as f:
+            f.write('''network:
+  version: 2
+  ethernets:
+    ens33:
+      routes:
+      - to: default
+        via: 192.168.17.253
+        metric: 200
+''')
+        with self.assertRaises(NetplanException) as e:
+            self._set(['ethernets.ens33.routes=[{to: default, via: 192.168.17.252, metric: 200}]'])
+        self.assertIn('Conflicting default route declarations for IPv4', str(e.exception))
+        # the fallback output file should not have been written
+        self.assertFalse(os.path.isfile(self.path))
+        # the original (pre-existing) file should stay untouched
+        self.assertTrue(os.path.isfile(defaults))
+        with open(defaults, 'r') as f:
+            yml = yaml.safe_load(f)
+            routes = yml['network']['ethernets']['ens33']['routes']
+            self.assertEqual(1, len(routes))
+            self.assertEqual('192.168.17.253', routes[0]['via'])
+
     def test_set_origin_hint_extend(self):
         p = os.path.join(self.workdir.name, 'etc', 'netplan', '90-snapd-config.yaml')
         with open(p, 'w') as f:

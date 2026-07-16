@@ -23,6 +23,7 @@ import io
 
 from ..utils import NetplanCommand
 import netplan
+from netplan.parser import Flags
 
 FALLBACK_FILENAME = '70-netplan-set.yaml'
 GLOBAL_KEYS = ['renderer', 'version']
@@ -68,6 +69,8 @@ class NetplanSet(NetplanCommand):
         yaml_path = [s.replace(r'\.', '.') for s in re.split(r'(?<!\\)\.', key)]
 
         parser = netplan.Parser()
+        # Reject writing a configuration with conflicting default routes.
+        parser.flags = Flags.STRICT_DEFAULT_ROUTES
         with tempfile.TemporaryFile() as tmp:
             netplan._create_yaml_patch(yaml_path, value, tmp)
             tmp.flush()
