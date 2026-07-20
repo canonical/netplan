@@ -1,5 +1,5 @@
 project('netplan', 'c',
-        version: '1.1',
+        version: '1.2',
         license: 'GPL3',
         default_options: [
             'c_std=c99',
