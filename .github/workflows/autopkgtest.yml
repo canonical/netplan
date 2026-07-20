@@ -16,7 +16,7 @@ on:
 jobs:
   lxd-ubuntu-lts:
     # The type of runner that the job will run on
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -29,37 +29,33 @@ jobs:
       - run: |
           git fetch --unshallow --tags
       # Install openvswitch-switch to make the OVS integration tests work
-      # Install linux-modules-extra-azure to provide the 'vrf' kernel module,
-      # it's needed (will be auto-loaded) by routing.test_vrf_basic
       - name: Install dependencies
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
-          sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
-          sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
+          sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
           sudo patch /usr/share/autopkgtest/lib/build-lxd.sh .github/workflows/snapd.patch
-          autopkgtest-build-lxd ubuntu-daily:noble
+          autopkgtest-build-lxd ubuntu-daily:resolute
       - name: Prepare test
         run: |
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          sed -i 's|systemd (>= 258~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
           echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
           echo 'usr/lib/systemd/system/netplan-configure.service' >> debian/netplan-generator.install
           sed -i 's|libexec/netplan/generate|libexec/netplan/configure|g' debian/netplan-generator.postinst
           TAG=$(git describe --tags $(git rev-list --tags --max-count=1))  # find latest (stable) tag
           REV=$(git rev-parse --short HEAD)  # get current git revision
           VER="$TAG+git~$REV"
-          dch -v "$VER" "Autopkgtest CI testing (Noble)"
+          dch -v "$VER" "Autopkgtest CI testing (Resolute)"
       - name: Run autopkgtest (incl. build)
         run: |
           autopkgtest . -U \
             --env=DPKG_GENSYMBOLS_CHECK_LEVEL=0 \
             --env=NETPLAN_PARSER_IGNORE_ERRORS=1 \
             --setup-commands='mkdir -p /etc/systemd/system/NetworkManager.service.d && echo "[Service]\nCapabilityBoundingSet=CAP_CHOWN\n" > /etc/systemd/system/NetworkManager.service.d/override.conf && systemctl daemon-reload' \
-            -- lxd autopkgtest/ubuntu/noble/amd64 \
+            -- lxd autopkgtest/ubuntu/resolute/amd64 \
             || test $? -eq 2  # allow wifi test to be skipped (exit code = 2)

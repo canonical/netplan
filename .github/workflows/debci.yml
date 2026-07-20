@@ -16,7 +16,7 @@ on:
 jobs:
   lxc-debian-testing:
     # The type of runner that the job will run on
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -25,13 +25,10 @@ jobs:
       - run: |
           git fetch --unshallow --tags
       # Install openvswitch-switch to make the OVS integration tests work
-      # Install linux-modules-extra-azure to provide the 'vrf' kernel module,
-      # it's needed (will be auto-loaded) by routing.test_vrf_basic
       - name: Install dependencies
         run: |
-          sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
-          sudo apt install debci lxc lxc-templates debian-archive-keyring autopkgtest ubuntu-dev-tools devscripts linux-modules-extra-$(uname -r) #openvswitch-switch
+          sudo apt install debci lxc lxc-templates debian-archive-keyring autopkgtest ubuntu-dev-tools devscripts #openvswitch-switch
           # The lxc-debian template includes isc-dhcp-client as part of the
           # container bootstrap, but that package is currently absent from
           # Debian testing release, breaking the testbed bootstrap. The top of

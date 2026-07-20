@@ -263,10 +263,7 @@ def is_valid_macaddress(macaddress: str) -> bool:
 
 def route_table_lookup() -> dict:
     lookup_table = {}
-    path = NEW_RT_TABLES_PATH
-
-    if not os.path.exists(path):
-        path = OLD_RT_TABLES_PATH
+    path = NEW_RT_TABLES_PATH if os.path.exists(NEW_RT_TABLES_PATH) else OLD_RT_TABLES_PATH
 
     try:
         with open(path, 'r') as rt_tables:

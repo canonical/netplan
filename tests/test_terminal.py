@@ -17,19 +17,23 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import fcntl
-import sys
 import os
 import termios
 import unittest
+import pty
 
 import netplan_cli.terminal
 
 
-@unittest.skipUnless(sys.__stdin__.isatty(), "not supported when run from a script")
 class TestTerminal(unittest.TestCase):
 
     def setUp(self):
-        self.terminal = netplan_cli.terminal.Terminal(sys.stdin.fileno())
+        self.control_fd, self.device_fd = pty.openpty()
+        self.terminal = netplan_cli.terminal.Terminal(self.device_fd)
+
+    def tearDown(self):
+        os.close(self.device_fd)
+        os.close(self.control_fd)
 
     def test_echo(self):
         self.terminal.disable_echo()
