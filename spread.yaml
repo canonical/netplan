@@ -2,10 +2,10 @@ project: netplan
 
 backends:
   lxd:
-    systems: [ubuntu-24.04]
+    systems: [ubuntu-26.04]
   qemu:
     systems:
-      - ubuntu-24.04-64:
+      - ubuntu-26.04-64:
           username: ubuntu
           password: ubuntu
 
@@ -18,7 +18,6 @@ path: /home/tests
 prepare: |
   # FIXME: having the debian packging available would allow "apt
   # build-dep -y ./" would make this easier :)
-  add-apt-repository -y -u -s ppa:slyon/netplan-ci
   apt update -qq
   apt install -y ubuntu-dev-tools devscripts equivs
   pull-lp-source netplan.io

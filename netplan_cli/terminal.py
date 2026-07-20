@@ -23,7 +23,6 @@ import fcntl
 import os
 import termios
 import select
-import sys
 
 
 class Terminal(object):
@@ -38,14 +37,14 @@ class Terminal(object):
         self.save()
 
     def enable_echo(self):
-        if sys.stdin.isatty():
+        if os.isatty(self.fd):
             attrs = termios.tcgetattr(self.fd)
             attrs[3] = attrs[3] | termios.ICANON
             attrs[3] = attrs[3] | termios.ECHO
             termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
 
     def disable_echo(self):
-        if sys.stdin.isatty():
+        if os.isatty(self.fd):
             attrs = termios.tcgetattr(self.fd)
             attrs[3] = attrs[3] & ~termios.ICANON
             attrs[3] = attrs[3] & ~termios.ECHO
@@ -83,15 +82,16 @@ class Terminal(object):
 
         print("Press ENTER before the timeout to {}\n\n".format(message))
         timeout_now = timeout
+        stdin_file = os.fdopen(self.fd, 'r', closefd=False)
         while (timeout_now > 0):
             print("Changes will revert in {:>{}} seconds".format(timeout_now, len(str(timeout))), end='\r')
 
             # wait at most 1 second for usable input from stdin
-            select.select([sys.stdin], [], [], 1)
+            select.select([stdin_file], [], [], 1)
             try:
                 # retrieve any input from the terminal. select() either has
                 # timed out with no input, or found something we can retrieve.
-                c = sys.stdin.read()
+                c = stdin_file.read()
                 if (c == '\n'):
                     self.reset(settings)
                     # Yay, user has accepted the changes!
@@ -119,7 +119,7 @@ class Terminal(object):
         """
         orig_flags = fcntl.fcntl(self.fd, fcntl.F_GETFL)
         orig_term = None
-        if sys.stdin.isatty():
+        if os.isatty(self.fd):
             orig_term = termios.tcgetattr(self.fd)
         if dest is not None:
             dest.update({'flags': orig_flags,
@@ -143,7 +143,7 @@ class Terminal(object):
         else:
             orig_term = self.orig_term
             orig_flags = self.orig_flags
-        if sys.stdin.isatty():
+        if os.isatty(self.fd):
             termios.tcsetattr(self.fd, termios.TCSAFLUSH, orig_term)
         fcntl.fcntl(self.fd, fcntl.F_SETFL, orig_flags)
 

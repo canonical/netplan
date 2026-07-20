@@ -13,21 +13,20 @@ jobs:
   # This workflow contains a single job called "test-and-coverage"
   test-and-coverage:
     # The type of runner that the job will run on
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Installs the build dependencies, simulating a TTY/PTY via 'unbuffer' to
       # to fix test_terminal.py on GA (https://github.com/actions/runner/issues/241)
       # Always include phased updates (LP: #1979244)
       - name: Install build depends
         run: |
           echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
           sudo apt update
-          sudo apt install curl expect ubuntu-dev-tools devscripts equivs gcovr
+          sudo apt install curl ubuntu-dev-tools devscripts equivs gcovr
           pull-lp-source netplan.io
           mk-build-deps -i -B -s sudo netplan.io-*/debian/control
           rm -rf netplan.io-*/
@@ -37,7 +36,7 @@ jobs:
         run: |
           meson setup _build-cov --prefix=/usr -Db_coverage=true -Dunit_testing=true
           meson compile -C _build-cov
-          unbuffer meson test -C _build-cov --verbose
+          meson test -C _build-cov --verbose
 
       # Checks the coverage diff to the main branch
       #- name: Upload coverage to Codecov
@@ -46,3 +45,13 @@ jobs:
       #    name: check-coverage
       #    fail_ci_if_error: true
       #    verbose: true
+      - name: Archive build & test logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-cov-logs
+          path: |
+            _build-cov/meson-logs/
+            _build-cov/**/*.log
+          retention-days: 7
+          if-no-files-found: warn

@@ -16,7 +16,7 @@ on:
 jobs:
   lxd-network-manager:
     # The type of runner that the job will run on
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -29,19 +29,15 @@ jobs:
       - run: |
           git fetch --unshallow --tags
       # Install openvswitch-switch to make the OVS integration tests work
-      # Install linux-modules-extra-azure to provide the 'vrf' kernel module,
-      # it's needed (will be auto-loaded) by routing.test_vrf_basic
       - name: Install dependencies
         run: |
-          sudo add-apt-repository -y -n -s ppa:slyon/netplan-ci
           sudo apt update
-          sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch linux-modules-extra-$(uname -r)
+          sudo apt install autopkgtest dnsmasq-base ubuntu-dev-tools devscripts openvswitch-switch
       - name: Prepare test
         run: |
           pull-lp-source netplan.io
           cp -r netplan.io-*/debian .
           rm -r debian/patches/  # clear any distro patches
-          sed -i 's|systemd (>= 258~),|systemd (>= 248~),|g' debian/control  # see https://github.com/canonical/netplan/pull/535
           echo 'usr/libexec/netplan/configure' >> debian/netplan-generator.install
           echo 'usr/lib/systemd/system/netplan-configure.service' >> debian/netplan-generator.install
           sed -i 's|libexec/netplan/generate|libexec/netplan/configure|g' debian/netplan-generator.postinst
@@ -56,19 +52,19 @@ jobs:
           DEB_BUILD_OPTIONS: nocheck
           DPKG_GENSYMBOLS_CHECK_LEVEL: 0
         with:
-          docker-image: ubuntu:noble
+          docker-image: ubuntu:resolute
           buildpackage-opts: --build=binary --no-sign
           #extra-build-deps: python3-cffi libpython3-dev
       # work around LP: #1878225 as fallback
       - name: Preparing autopkgtest-build-lxd
         run: |
           sudo patch /usr/share/autopkgtest/lib/build-lxd.sh .github/workflows/snapd.patch
-          MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:noble # LP: #2052639
+          MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:resolute # LP: #2052639
       - name: Run autopkgtest
         run: |
           # When we introduce ABI breaking changes, we need to rebuild NM in DEP-8
-          #pull-lp-source network-manager noble
-          sudo autopkgtest -U \
+          #pull-lp-source network-manager resolute
+          autopkgtest -U \
             --env=DEB_BUILD_OPTIONS=nocheck \
             --apt-pocket=proposed=src:network-manager \
-            debian/artifacts/*.deb network-manager -- lxd autopkgtest/ubuntu/noble/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+            debian/artifacts/*.deb network-manager -- lxd autopkgtest/ubuntu/resolute/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)

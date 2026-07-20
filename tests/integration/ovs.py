@@ -462,6 +462,7 @@ class _CommonTests():
     # Netplan shouldn't crash if openvswitch is installed but not running: LP#1995598
     def test_ovsdb_server_is_not_running(self):
         self.setup_eth(None, False)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovsdb-server.service'])
         self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovs-vswitchd.service'])
         subprocess.check_call(['systemctl', 'stop', 'ovsdb-server.service'])
