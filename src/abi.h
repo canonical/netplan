@@ -87,6 +87,14 @@ typedef enum {
 } NetplanRAMode;
 
 typedef enum {
+    NETPLAN_KEEP_CONFIGURATION_FALSE = 0,
+    NETPLAN_KEEP_CONFIGURATION_TRUE,
+    NETPLAN_KEEP_CONFIGURATION_STATIC,
+    NETPLAN_KEEP_CONFIGURATION_DYNAMIC,
+    NETPLAN_KEEP_CONFIGURATION_DYNAMIC_ON_STOP,
+} NetplanKeepConfiguration;
+
+typedef enum {
     NETPLAN_IB_MODE_KERNEL,
     NETPLAN_IB_MODE_DATAGRAM,
     NETPLAN_IB_MODE_CONNECTED,
@@ -230,7 +238,7 @@ struct netplan_net_definition {
     /* status options */
     gboolean optional;
     NetplanOptionalAddressFlag optional_addresses;
-    gboolean critical;
+    NetplanKeepConfiguration critical;
 
     /* addresses */
     gboolean dhcp4;
