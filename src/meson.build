@@ -45,9 +45,11 @@ executable(
     dependencies: [glib, gio, yaml, uuid],
     install_dir: libexec_netplan,
     install: true)
-meson.add_install_script(meson_make_symlink,
-    join_paths(get_option('prefix'), libexec_netplan, 'generate'),
-    join_paths(systemd_generator_dir, 'netplan'))
+if systemd_generator_dir != 'no'
+    meson.add_install_script(meson_make_symlink,
+        join_paths(get_option('prefix'), libexec_netplan, 'generate'),
+        join_paths(systemd_generator_dir, 'netplan'))
+endif
 executable(
     'configure',
     'configure.c',
