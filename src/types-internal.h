@@ -276,6 +276,9 @@ struct netplan_parser {
      * when the flag IGNORE_ERRORS is set
      * */
     unsigned int error_count;
+
+    /* Hash table to track XFRM interface IDs to ensure uniqueness */
+    GHashTable* xfrm_if_ids;
 };
 
 struct netplan_state_iterator {

@@ -37,6 +37,7 @@ IPv
 InfiniBand
 InterVLAN
 IoT
+IPsec
 KVM
 LACPDUs
 LAI
@@ -102,6 +103,7 @@ WakeOnWLan
 Wi
 Wi-Fi
 WireGuard
+XFRM
 adapters
 autostart
 boolean
