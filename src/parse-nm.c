@@ -105,14 +105,16 @@ kf_matches(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* matc
     return g_strcmp0(kf_value, match) == 0;
 }
 
-STATIC void
+STATIC gboolean
 set_true_on_match(GKeyFile* kf, const gchar* group, const gchar* key, const gchar* match, const void* dataptr)
 {
     g_assert(dataptr != NULL);
     if (kf_matches(kf, group, key, match)) {
         *((gboolean*) dataptr) = TRUE;
         _kf_clear_key(kf, group, key);
+        return TRUE;
     }
+    return FALSE;
 }
 
 STATIC void
@@ -678,6 +680,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         nd_id = g_strconcat("NM-", uuid, NULL);
     g_free(tmp_str);
     nd = netplan_netdef_new(npp, nd_id, nd_type, NETPLAN_BACKEND_NM);
+    /* Required for explicit marking of 'false' values as dirty,
+     * so they are written to YAML */
+    npp->current.netdef = nd;
 
     /* Handle uuid & NM name/id */
     nd->backend_settings.uuid = g_strdup(uuid);
@@ -754,9 +759,22 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
         nd->has_match = TRUE;
     }
 
-    /* DHCPv4/v6 */
-    set_true_on_match(kf, "ipv4", "method", "auto", &nd->dhcp4);
-    set_true_on_match(kf, "ipv6", "method", "auto", &nd->dhcp6);
+    /* Handle IP Addressing method (auto or manual).
+     * Explicitly mark dhcp4/dhcp6 as dirty when method=manual,
+     * so the YAML serializer writes "dhcp4: false" / "dhcp6: false". */
+    if (!set_true_on_match(kf, "ipv4", "method", "auto", &nd->dhcp4)) {
+        g_autofree gchar *m4 = g_key_file_get_string(kf, "ipv4", "method", NULL);
+        if (m4 && g_strcmp0(m4, "manual") == 0) {
+            mark_data_as_dirty(npp, &nd->dhcp4);
+        }
+    }
+    if (!set_true_on_match(kf, "ipv6", "method", "auto", &nd->dhcp6)) {
+        g_autofree gchar *m6 = g_key_file_get_string(kf, "ipv6", "method", NULL);
+        if (m6 && g_strcmp0(m6, "manual") == 0) {
+            mark_data_as_dirty(npp, &nd->dhcp6);
+        }
+    }
+
     parse_dhcp_overrides(kf, "ipv4", &nd->dhcp4_overrides);
     parse_dhcp_overrides(kf, "ipv6", &nd->dhcp6_overrides);
 

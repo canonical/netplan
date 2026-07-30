@@ -1,0 +1,13 @@
+--- a/debian/tests/nm-netplan.py
++++ b/debian/tests/nm-netplan.py
+@@ -266,8 +266,8 @@ class TestNetplan(unittest.TestCase):
+         yaml_data = self._load_netplan_yaml_for_connection(connection)
+
+         # Validating some of the expected flags
+-        self.assertNotIn('dhcp4', yaml_data['network']['bridges']['bridge0'])
+-        self.assertNotIn('dhcp6', yaml_data['network']['bridges']['bridge0'])
++        self.assertFalse(yaml_data['network']['bridges']['bridge0']['dhcp4'])
++        self.assertFalse(yaml_data['network']['bridges']['bridge0']['dhcp6'])
+
+         addresses = yaml_data['network']['bridges']['bridge0']['addresses']
+         expected_addresses = ['10.20.30.40/24', '10.20.30.41/24', 'dead:beef::1/64', 'dead:beef::2/64']
