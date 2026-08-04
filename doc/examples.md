@@ -217,12 +217,17 @@ See also: [NetworkManager default configuration](/nm-all)
 
 # How to configure interface bonding
 
-Bonding is configured by declaring a bond interface with a list of physical interfaces and a bonding mode:
+Bonding is configured by declaring a bond interface with a list of physical interfaces and a bonding mode. The member interfaces must also be defined under `ethernets` (or another interface type):
 
 ```yaml
 network:
   version: 2
   renderer: networkd
+  ethernets:
+    enp3s0:
+      dhcp4: no
+    enp4s0:
+      dhcp4: no
   bonds:
     bond0:
       dhcp4: yes
