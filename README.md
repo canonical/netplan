@@ -39,9 +39,11 @@ To contribute documentation, these steps should get you started:
 
 If you face issues, refer to our [comprehensive contribution guide](https://netplan.readthedocs.io/en/stable/contribute-docs/).
 
+For development workflows (including VS Code container usage), see [HACKING.md](HACKING.md).
+
 # Build dependencies
 
-Install the required build and test dependencies (Ubuntu/Debian):
+For a manual setup without containers, install the required build and test dependencies:
 
 ```sh
 sudo apt install \
@@ -98,7 +100,7 @@ Convenience targets are available via `make`:
 - `make run ARGS='<command>'`  
   Run the locally built netplan CLI with the appropriate environment, for example, to run `netplan help`:
   ```sh
-  $ make run ARGS="help"
+  make run ARGS="help"
   ```
 
 # Test local build
@@ -106,14 +108,14 @@ Convenience targets are available via `make`:
 After running:
 
 ```sh
-$ make
-$ make install
+make
+make install
 ```
 
 the locally built `netplan` can be tested without installing it system-wide:
 
 ```sh
-$ make run ARGS="<command>"
+make run ARGS="<command>"
 ```
 
 This wrapper sets the required environment variables (such as `NETPLAN_GENERATE_PATH`) automatically. These are needed because the Python CLI resolves binary and library paths at runtime.
@@ -121,7 +123,7 @@ This wrapper sets the required environment variables (such as `NETPLAN_GENERATE_
 As an example, let's use `make run` to run `netplan info`:
 
 ```sh
-$ make run ARGS="info"
+make run ARGS="info"
 # output:
 netplan.io:
   website: "https://netplan.io/"
