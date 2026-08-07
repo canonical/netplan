@@ -732,6 +732,12 @@ networkd back end).
     > Some values are already in use to refer to specific routing tables:
     > see `{/etc,/usr/share}/iproute2/rt_tables`.
 
+  - **`use-mtu`** (boolean) - since X.X
+
+    > Default: `true`. When `true`, the MTU received in the Router
+    > Advertisement will be used. Currently only has an effect on
+    > the networkd back end.
+
 ## Routing
 
 Complex routing is possible with Netplan. Standard static routes as well
