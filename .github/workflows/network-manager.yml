@@ -62,9 +62,12 @@ jobs:
           MIRROR=http://archive.ubuntu.com/ubuntu autopkgtest-build-lxd ubuntu-daily:resolute # LP: #2052639
       - name: Run autopkgtest
         run: |
-          # When we introduce ABI breaking changes, we need to rebuild NM in DEP-8
-          #pull-lp-source network-manager resolute
+          # LP#2160170 - Patch NM test to expect dhcp4/dhcp6: false when NM file method=manual
+          pull-lp-source network-manager resolute
+          cd network-manager-*/
+          patch -p1 < $GITHUB_WORKSPACE/.github/workflows/lp2160170-nm-netplan.patch
+          cd ../
           autopkgtest -U \
             --env=DEB_BUILD_OPTIONS=nocheck \
             --apt-pocket=proposed=src:network-manager \
-            debian/artifacts/*.deb network-manager -- lxd autopkgtest/ubuntu/resolute/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)
+            debian/artifacts/*.deb network-manager-*/ -- lxd autopkgtest/ubuntu/resolute/amd64 || test $? -eq 2  # allow for skipped tests (exit code = 2)

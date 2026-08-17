@@ -308,6 +308,8 @@ route2=4:5:6:7:8:9:0:1/63,,5
         - dead:beef::2
       gateway4: 6.6.6.6
       gateway6: 6:6::6
+      dhcp4: false
+      dhcp6: false
       ipv6-address-generation: "stable-privacy"
       ipv6-privacy: true
       routes:
@@ -358,6 +360,7 @@ address1=192.168.123.123/24
       renderer: NetworkManager
       addresses:
       - "192.168.123.123/24"
+      dhcp4: false
       networkmanager:
         uuid: "{}"
         name: "Test"
@@ -1035,6 +1038,7 @@ method=ignore
       renderer: NetworkManager
       addresses:
       - "1.2.3.4/24"
+      dhcp4: false
       id: 1
       link: "en1"
       networkmanager:
@@ -1327,6 +1331,8 @@ route4=5:6:7:8:9:0:1:2/62
         - 4.2.2.2
         - 1::cafe
         - 2::cafe
+      dhcp4: false
+      dhcp6: false
       ipv6-address-generation: "stable-privacy"
       mtu: 900
       routes:
@@ -1732,6 +1738,8 @@ dns-search=wallaceandgromit.com;
         - 4.2.2.2
         - 1::cafe
         - 2::cafe
+      dhcp4: false
+      dhcp6: false
       mtu: 900
       wakeonlan: true
       networkmanager:
@@ -1776,6 +1784,7 @@ method=auto
       renderer: NetworkManager
       addresses:
       - "1.2.3.4/24"
+      dhcp4: false
       dhcp6: true
       networkmanager:
         uuid: "{}"
@@ -2433,6 +2442,7 @@ route1_options=advmss=1400
         name: "engreen"
       addresses:
       - "192.168.14.2/24"
+      dhcp4: false
       routes:
       - to: "10.10.10.0/24"
         via: "192.168.1.20"
@@ -2506,6 +2516,7 @@ addr-gen-mode=default
       renderer: NetworkManager
       addresses:
       - "100.85.0.1/24"
+      dhcp4: false
       dhcp4-overrides:
         route-metric: 95
       networkmanager:
@@ -2546,6 +2557,7 @@ addr-gen-mode=default
       renderer: NetworkManager
       addresses:
       - "fdeb:446c:912d:8da::/64"
+      dhcp6: false
       dhcp6-overrides:
         route-metric: 95
       networkmanager:
