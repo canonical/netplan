@@ -454,11 +454,21 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > Stateless Address Auto-configuration.
   > Possible values are `eui64` or `stable-privacy`.
 
-- **`ipv6-address-token`** (scalar) – since 0.100
+- **`ipv6-address-token`** (scalar or sequence) – since 0.100
 
-  > Define an IPv6 address token for creating a static interface identifier for
-  > IPv6 Stateless Address Auto-configuration. This is mutually exclusive with
-  > `ipv6-address-generation`.
+  > Define one or more IPv6 address tokens for creating static interface 
+  > identifiers for IPv6 Stateless Address Auto-configuration. This is mutually 
+  > exclusive with `ipv6-address-generation`.
+  >
+  > Multiple tokens (as a sequence) are supported since 1.3. When using 
+  > systemd-networkd as the back end renderer, multiple tokens can be specified 
+  > to configure multiple IPv6 addresses. NetworkManager only supports a single 
+  > token; if multiple tokens are specified, only the first will be used.
+
+  Examples:
+
+  - Single token: `ipv6-address-token: ::42`
+  - Multiple tokens: `ipv6-address-token: [::31, ::32, ::33]`
 
 - **`gateway4`**, **`gateway6`** (scalar)
 
