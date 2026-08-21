@@ -802,6 +802,7 @@ _netplan_address_iter_next(struct address_iter* it)
         options->address = g_strdup(netdef_options->address);
         options->lifetime = g_strdup(netdef_options->lifetime);
         options->label = g_strdup(netdef_options->label);
+        options->duplicate_address_detection = g_strdup(netdef_options->duplicate_address_detection);
         it->last_address = options;
         return options;
     }
