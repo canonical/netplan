@@ -189,6 +189,47 @@ class NetDefinition():
         '''
         return bool(lib._netplan_netdef_is_trivial_compound_itf(self._ptr))
 
+    @property
+    def _devlink_params(self) -> dict:
+        params = {}
+        it = lib._netplan_netdef_new_devlink_params_iter(self._ptr)
+        try:
+            out_key = ffi.new("char**")
+            out_val = ffi.new("char**")
+            while lib._netplan_devlink_params_iter_next(it, out_key, out_val):
+                k = ffi.string(out_key[0]).decode('utf-8')
+                v = ffi.string(out_val[0]).decode('utf-8')
+                params[k] = v
+        finally:
+            lib._netplan_devlink_params_iter_free(it)
+        return params
+
+    @property
+    def _sub_functions(self) -> list:
+        sfs = []
+        it = lib._netplan_netdef_new_sub_function_iter(self._ptr)
+        try:
+            while True:
+                sf_ptr = lib._netplan_sub_function_iter_next(it)
+                if not sf_ptr:
+                    break
+                state_val = sf_ptr.state
+                state_str = None
+                if state_val == lib.NETPLAN_SUBFUNCTION_STATE_ACTIVE:
+                    state_str = 'active'
+                elif state_val == lib.NETPLAN_SUBFUNCTION_STATE_INACTIVE:
+                    state_str = 'inactive'
+
+                hw_addr = ffi.string(sf_ptr.hw_address).decode('utf-8') if sf_ptr.hw_address else None
+                sfs.append(NetplanSubFunction(
+                    sfnum=sf_ptr.sfnum,
+                    hw_address=hw_addr,
+                    state=state_str
+                ))
+        finally:
+            lib._netplan_sub_function_iter_free(it)
+        return sfs
+
 
 class NetDefinitionIterator():
     def __init__(self, np_state, dev_type: str = None):
@@ -278,6 +319,13 @@ class _NetdefSearchDomainIterator:
         if not next_value:
             raise StopIteration
         return ffi.string(next_value).decode('utf-8')
+
+
+@dataclass
+class NetplanSubFunction:
+    sfnum: int
+    hw_address: Optional[str] = None
+    state: Optional[str] = None
 
 
 @dataclass

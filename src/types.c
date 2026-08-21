@@ -101,6 +101,23 @@ free_wireguard_peer(void* ptr)
     g_free(wg);
 }
 
+void
+free_sub_function(void* ptr)
+{
+    NetplanSubFunction* sf = ptr;
+    g_free(sf->hw_address);
+    g_free(sf);
+}
+
+void
+sub_function_clear(NetplanSubFunction** sf)
+{
+    if (!sf || !*sf)
+        return;
+    g_free((*sf)->hw_address);
+    FREE_AND_NULLIFY(*sf);
+}
+
 STATIC void
 reset_auth_settings(NetplanAuthenticationSettings* auth)
 {
@@ -263,6 +280,12 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     free_garray_with_destructor(&netdef->routes, free_route);
     free_garray_with_destructor(&netdef->ip_rules, free_ip_rules);
     free_garray_with_destructor(&netdef->wireguard_peers, free_wireguard_peer);
+    free_garray_with_destructor(&netdef->sub_functions, free_sub_function);
+
+    if (netdef->devlink_params) {
+        g_hash_table_destroy(netdef->devlink_params);
+        netdef->devlink_params = NULL;
+    }
 
     netdef->linklocal.ipv4 = FALSE;
     netdef->linklocal.ipv6 = TRUE;

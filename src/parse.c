@@ -48,6 +48,7 @@
 #define route_offset(field) GUINT_TO_POINTER(offsetof(NetplanIPRoute, field))
 #define wireguard_peer_offset(field) GUINT_TO_POINTER(offsetof(NetplanWireguardPeer, field))
 #define vxlan_offset(field) GUINT_TO_POINTER(offsetof(NetplanVxlan, field))
+#define sub_function_offset(field) GUINT_TO_POINTER(offsetof(NetplanSubFunction, field))
 
 /* convenience macro to avoid strdup'ing a string into a field if it's already set. */
 #define set_str_if_null(dst, src) { if (dst == NULL) {\
@@ -2727,6 +2728,77 @@ handle_wireguard_peers(NetplanParser* npp, yaml_node_t* node, __unused const voi
     return TRUE;
 }
 
+STATIC gboolean
+handle_sub_function_str(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_str(npp, node, npp->current.sub_function, data, error);
+}
+
+STATIC gboolean
+handle_sub_function_guint(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    return handle_generic_guint(npp, node, npp->current.sub_function, data, error);
+}
+
+STATIC gboolean
+handle_sub_function_mac(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    if (!_is_valid_macaddress(scalar(node)))
+        return yaml_error(npp, node, error, "Malformed MAC address '%s'", scalar(node));
+    return handle_sub_function_str(npp, node, data, error);
+}
+
+STATIC gboolean
+handle_sub_function_state(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    if (g_strcmp0(scalar(node), "active") == 0)
+        npp->current.sub_function->state = NETPLAN_SUBFUNCTION_STATE_ACTIVE;
+    else if (g_strcmp0(scalar(node), "inactive") == 0)
+        npp->current.sub_function->state = NETPLAN_SUBFUNCTION_STATE_INACTIVE;
+    else
+        return yaml_error(npp, node, error, "Invalid sub-function state '%s', must be 'active' or 'inactive'", scalar(node));
+    return TRUE;
+}
+
+static const mapping_entry_handler sub_function_handlers[] = {
+    {"sfnum", YAML_SCALAR_NODE, {.generic=handle_sub_function_guint}, sub_function_offset(sfnum)},
+    {"hw-address", YAML_SCALAR_NODE, {.generic=handle_sub_function_mac}, sub_function_offset(hw_address)},
+    {"state", YAML_SCALAR_NODE, {.generic=handle_sub_function_state}, NULL},
+    {NULL}
+};
+
+STATIC gboolean
+handle_sub_functions(NetplanParser* npp, yaml_node_t* node, __unused const void* _, GError** error)
+{
+    if (!npp->current.netdef->sub_functions)
+        npp->current.netdef->sub_functions = g_array_new(FALSE, TRUE, sizeof(NetplanSubFunction*));
+
+    ptrdiff_t item_count = node->data.sequence.items.top - node->data.sequence.items.start;
+    g_assert(item_count >= 0);
+    if (npp->current.netdef->sub_functions->len == (guint)item_count) {
+        g_debug("%s: all sub-functions have already been added", npp->current.netdef->id);
+        return TRUE;
+    }
+
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_MAPPING_NODE);
+
+        g_assert(npp->current.sub_function == NULL);
+        npp->current.sub_function = g_new0(NetplanSubFunction, 1);
+        g_debug("%s: adding new sub-function", npp->current.netdef->id);
+
+        if (!process_mapping(npp, entry, NULL, sub_function_handlers, NULL, error)) {
+            sub_function_clear(&npp->current.sub_function);
+            npp->current.sub_function = NULL;
+            return FALSE;
+        }
+        g_array_append_val(npp->current.netdef->sub_functions, npp->current.sub_function);
+        npp->current.sub_function = NULL;
+    }
+    return TRUE;
+}
+
 /****************************************************
  * Grammar and handlers for network devices
  ****************************************************/
@@ -3025,6 +3097,8 @@ static const mapping_entry_handler ethernet_def_handlers[] = {
     {"embedded-switch-mode", YAML_SCALAR_NODE, {.generic=handle_embedded_switch_mode}, netdef_offset(embedded_switch_mode)},
     {"delay-virtual-functions-rebind", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(sriov_delay_virtual_functions_rebind)},
     {"infiniband-mode", YAML_SCALAR_NODE, {.generic=handle_ib_mode}, netdef_offset(ib_mode)},
+    {"devlink-params", YAML_MAPPING_NODE, {.map={.custom=handle_netdef_map}}, netdef_offset(devlink_params)},
+    {"sub-functions", YAML_SEQUENCE_NODE, {.generic=handle_sub_functions}, NULL},
     {NULL}
 };
 
