@@ -2,7 +2,7 @@
 
 To allow communication between the host server, its virtual machines, and the devices in the local VLANs, disable netfilter for bridged interfaces:
 
-1. Add the following lines to the `/etc/systemctl.conf` configuration file:
+1. Add the following lines to the `/etc/sysctl.conf` configuration file:
 
     ```
     net.bridge.bridge-nf-call-iptables = 0
