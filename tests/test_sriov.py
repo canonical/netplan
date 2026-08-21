@@ -1390,16 +1390,13 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
 
     @patch.object(sriov.PCIDevice, 'driver', new_callable=unittest.mock.PropertyMock)
     @patch.object(sriov.PCIDevice, 'devlink_param_set')
-    def test_PCIDevice_ensure_mlx5_switchdev_prerequisites_fallback(self, param_set_mock, driver_mock):
+    def test_PCIDevice_ensure_mlx5_switchdev_prerequisites_unsupported(self, param_set_mock, driver_mock):
         driver_mock.return_value = 'mlx5_core'
-        param_set_mock.side_effect = [subprocess.CalledProcessError(1, None), None]
+        param_set_mock.side_effect = subprocess.CalledProcessError(1, None)
         pcidev = sriov.PCIDevice('0000:03:00.0')
+        # Should catch the error and not raise
         pcidev.ensure_mlx5_switchdev_prerequisites()
-        self.assertEqual(param_set_mock.call_count, 2)
-        param_set_mock.assert_has_calls([
-            call('flow_steering_mode', 'smfs'),
-            call('steering_mode', 'smfs')
-        ])
+        param_set_mock.assert_called_once_with('flow_steering_mode', 'smfs')
 
     @patch.object(sriov.PCIDevice, 'driver', new_callable=unittest.mock.PropertyMock)
     @patch.object(sriov.PCIDevice, 'devlink_param_set')

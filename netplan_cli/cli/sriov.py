@@ -186,11 +186,8 @@ class PCIDevice(object):
         if self.driver in ['mlx5_core']:
             try:
                 self.devlink_param_set('flow_steering_mode', 'smfs')
-            except Exception:
-                try:
-                    self.devlink_param_set('steering_mode', 'smfs')
-                except Exception as e:
-                    logging.debug(f'Could not set flow steering mode for {self.pci_addr}: {e}')
+            except Exception as e:
+                logging.debug(f'Could not set flow steering mode for {self.pci_addr}: {e}')
 
     def devlink_eswitch_mode(self) -> str:
         """Query eswitch mode via devlink for the PCI device
