@@ -281,11 +281,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     free_garray_with_destructor(&netdef->ip_rules, free_ip_rules);
     free_garray_with_destructor(&netdef->wireguard_peers, free_wireguard_peer);
     free_garray_with_destructor(&netdef->sub_functions, free_sub_function);
-
-    if (netdef->devlink_params) {
-        g_hash_table_destroy(netdef->devlink_params);
-        netdef->devlink_params = NULL;
-    }
+    free_hashtable_with_destructor(&netdef->devlink_params, g_free);
 
     netdef->linklocal.ipv4 = FALSE;
     netdef->linklocal.ipv6 = TRUE;
