@@ -201,13 +201,13 @@ test_netplan_parser_devlink_params_and_sub_functions(__unused void** state)
     while (_netplan_devlink_params_iter_next(diter, &key, &val)) {
         assert_non_null(key);
         assert_non_null(val);
-        if (strcmp(key, "flow-steering-mode") == 0)
+        if (strcmp(key, "flow-steering-mode") == 0) {
             assert_string_equal(val, "smfs");
-        else if (strcmp(key, "lag-port-select-mode") == 0)
+            count++;
+        } else if (strcmp(key, "lag-port-select-mode") == 0) {
             assert_string_equal(val, "multi-port-esw");
-        else
-            assert_true(FALSE);
-        count++;
+            count++;
+        }
     }
     assert_int_equal(count, 2);
     _netplan_devlink_params_iter_free(diter);
@@ -231,7 +231,81 @@ test_netplan_parser_devlink_params_and_sub_functions(__unused void** state)
     assert_null(_netplan_sub_function_iter_next(siter));
     _netplan_sub_function_iter_free(siter);
 
+    /* Test dumping state to YAML (covers sub-functions YAML emission with active & inactive states) */
+    int outfd = memfd_create("netplan-sf-dump", 0);
+    assert_true(netplan_state_dump_yaml(np_state, outfd, NULL));
+    size_t size = (size_t)lseek(outfd, 0, SEEK_CUR) + 1;
+    char* dumped_yaml = malloc(size);
+    memset(dumped_yaml, 0, size);
+    lseek(outfd, 0, SEEK_SET);
+    ssize_t res = read(outfd, dumped_yaml, size - 1);
+    assert_true(res > 0);
+    assert_non_null(strstr(dumped_yaml, "state: active"));
+    assert_non_null(strstr(dumped_yaml, "state: inactive"));
+    assert_non_null(strstr(dumped_yaml, "sfnum: 1"));
+    assert_non_null(strstr(dumped_yaml, "sfnum: 2"));
+    free(dumped_yaml);
+    close(outfd);
+
     netplan_state_clear(&np_state);
+
+    /* Test re-parsing sub-functions when already added (covers duplicate sequence handling) */
+    NetplanParser* npp = netplan_parser_new();
+    GError* error = NULL;
+    int memfd = memfd_create("test_repeat", 0);
+    ssize_t written = write(memfd, yaml, strlen(yaml));
+    assert_int_equal(written, strlen(yaml));
+    lseek(memfd, 0, SEEK_SET);
+    assert_true(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    lseek(memfd, 0, SEEK_SET);
+    assert_true(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    close(memfd);
+    netplan_parser_clear(&npp);
+}
+
+void
+test_netplan_parser_sub_functions_invalid(__unused void** state)
+{
+    const char* yaml_bad_mac =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eno1:\n"
+        "      sub-functions:\n"
+        "        - sfnum: 1\n"
+        "          hw-address: \"invalid-mac\"\n";
+
+    const char* yaml_bad_state =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eno1:\n"
+        "      sub-functions:\n"
+        "        - sfnum: 1\n"
+        "          state: unknown\n";
+
+    NetplanParser* npp = netplan_parser_new();
+    GError* error = NULL;
+    int memfd = memfd_create("test_bad_mac", 0);
+    ssize_t written = write(memfd, yaml_bad_mac, strlen(yaml_bad_mac));
+    assert_int_equal(written, strlen(yaml_bad_mac));
+    lseek(memfd, 0, SEEK_SET);
+    assert_false(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    assert_non_null(error);
+    netplan_error_clear(&error);
+    close(memfd);
+    netplan_parser_clear(&npp);
+
+    npp = netplan_parser_new();
+    memfd = memfd_create("test_bad_state", 0);
+    written = write(memfd, yaml_bad_state, strlen(yaml_bad_state));
+    assert_int_equal(written, strlen(yaml_bad_state));
+    lseek(memfd, 0, SEEK_SET);
+    assert_false(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    assert_non_null(error);
+    netplan_error_clear(&error);
+    close(memfd);
+    netplan_parser_clear(&npp);
 }
 
 /* process_document() shouldn't return a missing interface as error if a previous error happened
@@ -526,6 +600,7 @@ main()
            cmocka_unit_test(test_netplan_parser_interface_has_peer_netdef),
            cmocka_unit_test(test_netplan_parser_sriov_embedded_switch),
            cmocka_unit_test(test_netplan_parser_devlink_params_and_sub_functions),
+           cmocka_unit_test(test_netplan_parser_sub_functions_invalid),
            cmocka_unit_test(test_netplan_parser_process_document_proper_error),
            cmocka_unit_test(test_netplan_parser_process_document_missing_interface_error),
            cmocka_unit_test(test_nm_device_backend_is_nm_by_default),
