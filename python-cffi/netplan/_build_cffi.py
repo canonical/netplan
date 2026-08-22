@@ -44,6 +44,8 @@ ffibuilder.cdef("""
     struct address_iter { ...; };
     struct nameserver_iter { ...; };
     struct route_iter { ...; };
+    struct devlink_params_iter { ...; };
+    struct sub_function_iter { ...; };
 
     // TODO: Introduce getters for all these fields to avoid exposing the raw struct
     typedef struct {
@@ -61,6 +63,18 @@ ffibuilder.cdef("""
         guint advertised_receive_window;
         guint advmss;
     } NetplanIPRoute;
+
+    typedef enum {
+        NETPLAN_SUBFUNCTION_STATE_UNSET = 0,
+        NETPLAN_SUBFUNCTION_STATE_INACTIVE,
+        NETPLAN_SUBFUNCTION_STATE_ACTIVE,
+    } NetplanSubFunctionState;
+
+    typedef struct {
+        guint sfnum;
+        char* hw_address;
+        NetplanSubFunctionState state;
+    } NetplanSubFunction;
 
     // Error handling
     uint64_t netplan_error_code(NetplanError* error);
@@ -144,6 +158,12 @@ ffibuilder.cdef("""
     struct route_iter* _netplan_netdef_new_route_iter(NetplanNetDefinition* netdef);
     NetplanIPRoute* _netplan_route_iter_next(struct route_iter* it);
     void _netplan_route_iter_free(struct route_iter* it);
+    struct devlink_params_iter* _netplan_netdef_new_devlink_params_iter(NetplanNetDefinition* netdef);
+    gboolean _netplan_devlink_params_iter_next(struct devlink_params_iter* it, const char** out_key, const char** out_val);
+    void _netplan_devlink_params_iter_free(struct devlink_params_iter* it);
+    struct sub_function_iter* _netplan_netdef_new_sub_function_iter(NetplanNetDefinition* netdef);
+    NetplanSubFunction* _netplan_sub_function_iter_next(struct sub_function_iter* it);
+    void _netplan_sub_function_iter_free(struct sub_function_iter* it);
 
     // Utils
     gboolean netplan_util_dump_yaml_subtree(const char* prefix, int input_fd, int output_fd, NetplanError** error);

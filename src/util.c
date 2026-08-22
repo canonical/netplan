@@ -1334,3 +1334,60 @@ _netplan_scrub_systemd_unit_contents(const char* content)
 
     return g_string_free(s, FALSE);
 }
+
+struct devlink_params_iter*
+_netplan_netdef_new_devlink_params_iter(NetplanNetDefinition* netdef)
+{
+    struct devlink_params_iter* it = g_malloc0(sizeof(struct devlink_params_iter));
+    it->netdef = netdef;
+    if (netdef && netdef->devlink_params) {
+        g_hash_table_iter_init(&it->iter, netdef->devlink_params);
+        it->initialized = TRUE;
+    }
+    return it;
+}
+
+gboolean
+_netplan_devlink_params_iter_next(struct devlink_params_iter* it, const char** out_key, const char** out_val)
+{
+    gpointer k = NULL, v = NULL;
+    if (!it || !it->initialized)
+        return FALSE;
+    if (g_hash_table_iter_next(&it->iter, &k, &v)) {
+        if (out_key)
+            *out_key = (const char*)k;
+        if (out_val)
+            *out_val = (const char*)v;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void
+_netplan_devlink_params_iter_free(struct devlink_params_iter* it)
+{
+    g_free(it);
+}
+
+struct sub_function_iter*
+_netplan_netdef_new_sub_function_iter(NetplanNetDefinition* netdef)
+{
+    struct sub_function_iter* it = g_malloc0(sizeof(struct sub_function_iter));
+    it->netdef = netdef;
+    it->index = 0;
+    return it;
+}
+
+NetplanSubFunction*
+_netplan_sub_function_iter_next(struct sub_function_iter* it)
+{
+    if (it && it->netdef && it->netdef->sub_functions && it->index < it->netdef->sub_functions->len)
+        return g_array_index(it->netdef->sub_functions, NetplanSubFunction*, it->index++);
+    return NULL;
+}
+
+void
+_netplan_sub_function_iter_free(struct sub_function_iter* it)
+{
+    g_free(it);
+}

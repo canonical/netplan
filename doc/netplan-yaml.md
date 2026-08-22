@@ -1063,6 +1063,32 @@ some additional properties that can be used for SR-IOV devices.
   >
   > **Requires feature: `infiniband`**
 
+- **`devlink-params`** (mapping) – since 1.2
+
+  > (SR-IOV devices only) A key-value mapping of generic and vendor-specific devlink
+  > parameters to set on the PCI device (e.g. `flow_steering_mode: smfs`).
+  >
+  > **Requires feature: `devlink-params`**
+
+- **`sub-functions`** (sequence of mappings) – since 1.2
+
+  > (SR-IOV devices only) A list of PCIe Sub-Functions (SFs) to configure on the
+  > Physical Function using devlink.
+  >
+  > - **`sfnum`** (scalar)
+  >
+  >   > The subfunction number.
+  >
+  > - **`hw-address`** (scalar)
+  >
+  >   > The hardware address (MAC) for the subfunction port.
+  >
+  > - **`state`** (scalar)
+  >
+  >   > The operational state of the subfunction (`active` or `inactive`).
+  >
+  > **Requires feature: `sub-functions`**
+
 (yaml-modems)=
 ## Properties for device type `modems`
 

@@ -161,9 +161,13 @@ _netplan_state_finish_sriov_generate(const NetplanState* np_state, const char* g
         for (GList* iterator = np_state->netdefs_ordered; iterator; iterator = iterator->next) {
             def = (NetplanNetDefinition*) iterator->data;
             pf = NULL;
-            if (def->sriov_explicit_vf_count < G_MAXUINT || def->sriov_link || def->embedded_switch_mode) {
+            gboolean is_pf_config = (def->sriov_explicit_vf_count < G_MAXUINT ||
+                                     def->embedded_switch_mode ||
+                                     (def->devlink_params && g_hash_table_size(def->devlink_params) > 0) ||
+                                     (def->sub_functions && def->sub_functions->len > 0));
+            if (is_pf_config || def->sriov_link) {
                 any_sriov = TRUE;
-                if (def->sriov_explicit_vf_count < G_MAXUINT || def->embedded_switch_mode)
+                if (is_pf_config)
                     pf = def;
                 else if (def->sriov_link)
                     pf = def->sriov_link;
