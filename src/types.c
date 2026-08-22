@@ -109,15 +109,6 @@ free_sub_function(void* ptr)
     g_free(sf);
 }
 
-void
-sub_function_clear(NetplanSubFunction** sf)
-{
-    if (!sf || !*sf)
-        return;
-    g_free((*sf)->hw_address);
-    FREE_AND_NULLIFY(*sf);
-}
-
 STATIC void
 reset_auth_settings(NetplanAuthenticationSettings* auth)
 {
@@ -519,6 +510,7 @@ access_point_clear(NetplanWifiAccessPoint** ap, NetplanBackend backend)
 }
 
 CLEAR_FROM_FREE(free_wireguard_peer, wireguard_peer_clear, NetplanWireguardPeer);
+CLEAR_FROM_FREE(free_sub_function, sub_function_clear, NetplanSubFunction);
 CLEAR_FROM_FREE(free_ip_rules, ip_rule_clear, NetplanIPRule);
 CLEAR_FROM_FREE(free_route, route_clear, NetplanIPRoute);
 CLEAR_FROM_FREE(free_address_options, address_options_clear, NetplanAddressOptions);

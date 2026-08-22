@@ -3872,6 +3872,7 @@ netplan_parser_reset(NetplanParser* npp)
 
     access_point_clear(&npp->current.access_point, npp->current.backend);
     wireguard_peer_clear(&npp->current.wireguard_peer);
+    sub_function_clear(&npp->current.sub_function);
     address_options_clear(&npp->current.addr_options);
     route_clear(&npp->current.route);
     ip_rule_clear(&npp->current.ip_rule);
