@@ -22,6 +22,7 @@ from ._utils import _checked_lib_call
 
 class Flags(IntEnum):
     IGNORE_ERRORS = 1 << 0
+    STRICT_DEFAULT_ROUTES = 1 << 1
 
 
 class Parser():

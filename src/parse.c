@@ -3709,6 +3709,13 @@ netplan_state_import_parser_results(NetplanState* np_state, NetplanParser* npp, 
             return FALSE;
 
         if (!validate_default_route_consistency(npp, npp->parsed_defs, &recoverable)) {
+            // When strict mode is requested (e.g. by `netplan set`), treat a
+            // conflicting default route as a fatal error so the invalid config
+            // is not written to disk.
+            if (npp->flags & NETPLAN_PARSER_STRICT_DEFAULT_ROUTES) {
+                g_propagate_error(error, recoverable);
+                return FALSE;
+            }
             g_warning("Problem encountered while validating default route consistency."
                       "Please set up multiple routing tables and use `routing-policy` instead.\n"
                       "Error: %s", (recoverable) ? recoverable->message : "");
