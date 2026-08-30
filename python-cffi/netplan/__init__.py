@@ -19,7 +19,7 @@ import os
 from typing import Union, List, IO
 
 from ._netplan_cffi import lib
-from .netdef import NetDefinition, NetDefinitionIterator
+from .netdef import NetDefinition, NetDefinitionIterator, KeepConfiguration
 from .parser import Parser
 from .state import State
 from ._utils import _checked_lib_call
@@ -67,6 +67,7 @@ def _create_yaml_patch(patch_object_path: List[str], patch_payload: Union[str, d
 
 # Re-export submodules
 __all__ = ['Parser', 'State', 'NetDefinition', 'NetDefinitionIterator',
+           'KeepConfiguration',
            '_dump_yaml_subtree', '_create_yaml_patch',
            'NetplanException', 'NetplanBackendException', 'NetplanEmitterException',
            'NetplanFileException', 'NetplanFormatException', 'NetplanParserException',

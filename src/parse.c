@@ -1317,6 +1317,42 @@ handle_accept_ra(NetplanParser* npp, yaml_node_t* node, const void* data, GError
 }
 
 STATIC gboolean
+handle_critical(NetplanParser* npp, yaml_node_t* node, __unused const void* data, GError** error)
+{
+    const char* val = scalar(node);
+    NetplanKeepConfiguration mode;
+
+    /* Backwards compatible: accept boolean values */
+    if (g_ascii_strcasecmp(val, "true") == 0 ||
+        g_ascii_strcasecmp(val, "on") == 0 ||
+        g_ascii_strcasecmp(val, "yes") == 0 ||
+        g_ascii_strcasecmp(val, "y") == 0)
+        mode = NETPLAN_KEEP_CONFIGURATION_TRUE;
+    else if (g_ascii_strcasecmp(val, "false") == 0 ||
+             g_ascii_strcasecmp(val, "off") == 0 ||
+             g_ascii_strcasecmp(val, "no") == 0 ||
+             g_ascii_strcasecmp(val, "n") == 0)
+        mode = NETPLAN_KEEP_CONFIGURATION_FALSE;
+    /* Scalar values matching systemd-networkd KeepConfiguration= */
+    else if (g_ascii_strcasecmp(val, "static") == 0)
+        mode = NETPLAN_KEEP_CONFIGURATION_STATIC;
+    else if (g_ascii_strcasecmp(val, "dynamic") == 0 ||
+             g_ascii_strcasecmp(val, "dhcp") == 0)
+        mode = NETPLAN_KEEP_CONFIGURATION_DYNAMIC;
+    else if (g_ascii_strcasecmp(val, "dynamic-on-stop") == 0 ||
+             g_ascii_strcasecmp(val, "dhcp-on-stop") == 0)
+        mode = NETPLAN_KEEP_CONFIGURATION_DYNAMIC_ON_STOP;
+    else
+        return yaml_error(npp, node, error,
+            "invalid value '%s' for critical, must be a boolean or one of "
+            "'static', 'dynamic', 'dynamic-on-stop'", val);
+
+    npp->current.netdef->critical = mode;
+    mark_data_as_dirty(npp, &npp->current.netdef->critical);
+    return TRUE;
+}
+
+STATIC gboolean
 handle_activation_mode(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     if (g_strcmp0(scalar(node), "manual") && g_strcmp0(scalar(node), "off"))
@@ -2969,7 +3005,7 @@ static const mapping_entry_handler ra_overrides_handlers[] = {
     {"accept-ra", YAML_SCALAR_NODE, {.generic=handle_accept_ra}, netdef_offset(accept_ra)}, \
     {"activation-mode", YAML_SCALAR_NODE, {.generic=handle_activation_mode}, netdef_offset(activation_mode)}, \
     {"addresses", YAML_SEQUENCE_NODE, {.generic=handle_addresses}, NULL}, \
-    {"critical", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(critical)}, \
+    {"critical", YAML_SCALAR_NODE, {.generic=handle_critical}, NULL}, \
     {"ignore-carrier", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(ignore_carrier)}, \
     {"dhcp4", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(dhcp4)}, \
     {"dhcp6", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(dhcp6)}, \

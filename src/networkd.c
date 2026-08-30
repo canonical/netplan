@@ -846,8 +846,16 @@ _netplan_netdef_write_network_file(
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL || def->ignore_carrier)
         g_string_append(network, "ConfigureWithoutCarrier=yes\n");
 
-    if (def->critical)
-        g_string_append_printf(network, "KeepConfiguration=true\n");
+    if (def->critical) {
+        if (def->critical == NETPLAN_KEEP_CONFIGURATION_TRUE)
+            g_string_append(network, "KeepConfiguration=true\n");
+        else if (def->critical == NETPLAN_KEEP_CONFIGURATION_STATIC)
+            g_string_append(network, "KeepConfiguration=static\n");
+        else if (def->critical == NETPLAN_KEEP_CONFIGURATION_DYNAMIC)
+            g_string_append(network, "KeepConfiguration=dynamic\n");
+        else if (def->critical == NETPLAN_KEEP_CONFIGURATION_DYNAMIC_ON_STOP)
+            g_string_append(network, "KeepConfiguration=dynamic-on-stop\n");
+    }
 
     if (def->bridge && def->backend != NETPLAN_BACKEND_OVS) {
         g_string_append_printf(network, "Bridge=%s\n", def->bridge);

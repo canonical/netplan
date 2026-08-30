@@ -618,6 +618,28 @@ class TestNetDefinition(TestBase):
         self.assertTrue(state['eth0'].critical)
         self.assertFalse(state['eth1'].critical)
 
+    def test_keep_configuration(self):
+        state = state_from_yaml(self.confdir, '''network:
+  ethernets:
+    eth0:
+      critical: static
+    eth1:
+      critical: true
+    eth2:
+      critical: dynamic
+    eth3: {}''')
+
+        from netplan.netdef import KeepConfiguration
+        self.assertEqual(state['eth0'].keep_configuration, KeepConfiguration.STATIC)
+        self.assertEqual(state['eth1'].keep_configuration, KeepConfiguration.TRUE)
+        self.assertEqual(state['eth2'].keep_configuration, KeepConfiguration.DYNAMIC)
+        self.assertEqual(state['eth3'].keep_configuration, KeepConfiguration.FALSE)
+        # Backwards-compatible bool check
+        self.assertTrue(state['eth0'].critical)
+        self.assertTrue(state['eth1'].critical)
+        self.assertTrue(state['eth2'].critical)
+        self.assertFalse(state['eth3'].critical)
+
     def test_eq(self):
         state = state_from_yaml(self.confdir, '''network:
   ethernets:
