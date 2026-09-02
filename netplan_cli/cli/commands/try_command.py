@@ -82,10 +82,25 @@ class NetplanTry(utils.NetplanCommand):
         self.parse_args()
         self.run_command()
 
+    def _safe_revert(self, reason: str | None = None) -> int:
+        """Attempt to revert configuration. Returns 0 on successful revert, 1 on revert failure."""
+        if reason:
+            print(f"\n{reason}")
+        print("\nReverting.")
+        try:
+            self.revert()
+            return 0
+        except Exception as e:
+            print(f"\nAn error occurred while reverting: {e}")
+            print("\nPlease check the configuration state")
+            return 1
+
     def command_try(self):  # pragma: nocover (requires user input)
         if not self.is_revertable():
             sys.exit(os.EX_CONFIG)
 
+        # 0 - user action success, 1 - failed
+        exit_code = 0
         try:
             fd = sys.stdin.fileno()
             self.t = terminal.Terminal(fd)
@@ -105,19 +120,17 @@ class NetplanTry(utils.NetplanCommand):
             self.touch_ready_stamp()
             self.t.get_confirmation_input(timeout=self.timeout)
         except terminal.InputRejected:
-            print("\nReverting.")
-            self.revert()
+            exit_code = self._safe_revert()
         except terminal.InputAccepted:
             print("\nConfiguration accepted.")
         except Exception as e:
-            print("\nAn error occurred: %s" % e)
-            print("\nReverting.")
-            self.revert()
+            exit_code = self._safe_revert(f"An error occurred: {e}")
         finally:
             if self.t:
                 self.t.reset(self.t_settings)
             self.cleanup()
             self.clear_ready_stamp()
+        sys.exit(exit_code)
 
     def backup(self):  # pragma: nocover (requires user input)
         backup_config_dir = False
@@ -135,16 +148,20 @@ class NetplanTry(utils.NetplanCommand):
         self.configuration_changed = True
 
     def revert(self):  # pragma: nocover (requires user input)
-        # backup the state we just tried to apply
         tempdir = tempfile.mkdtemp()
-        confdir = os.path.join(tempdir, 'etc', 'netplan')
-        os.makedirs(confdir)
-        self.config_manager.copy_tree('/etc/netplan', confdir, dirs_exist_ok=True)
-        # restore previous state
-        self.config_manager.revert()
-        NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False, state_dir=tempdir)
-        # clear the backup
-        shutil.rmtree(tempdir)
+        try:
+            # backup the state we just tried to apply
+            confdir = os.path.join(tempdir, 'etc', 'netplan')
+            os.makedirs(confdir)
+            self.config_manager.copy_tree('/etc/netplan', confdir, dirs_exist_ok=True)
+            # restore previous state
+            self.config_manager.revert()
+            NetplanApply().command_apply(run_generate=False, sync=True, exit_on_error=False, state_dir=tempdir)
+        finally:
+            try:
+                shutil.rmtree(tempdir)
+            except Exception as e:
+                logging.warning("Failed to remove temporary directory %s: %s", tempdir, e)
 
     def cleanup(self):  # pragma: nocover (requires user input)
         self.config_manager.cleanup()
