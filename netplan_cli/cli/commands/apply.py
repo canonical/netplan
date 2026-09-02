@@ -134,7 +134,12 @@ class NetplanApply(utils.NetplanCommand):
                     raise ConfigurationError("the configuration could not be generated")
             # Running 'systemctl daemon-reload' will re-run the netplan systemd generator.
             logging.debug('executing Netplan systemd-generator via daemon-reload')
-            utils.systemctl_daemon_reload()
+            res = utils.systemctl_daemon_reload()
+            if res != 0:
+                if exit_on_error:
+                    sys.exit(res)
+                else:
+                    raise RuntimeError("systemctl daemon-reload call failed: error %d" % res)
 
         devices = utils.get_interfaces()
 

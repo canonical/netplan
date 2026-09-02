@@ -124,7 +124,10 @@ class NetplanGenerate(utils.NetplanCommand):
                 # automatically reloads systemd, as we might have changed
                 # service units, such as
                 # /run/systemd/generator.late/systemd-networkd-wait-online.service.d/10-netplan.conf
-                utils.systemctl_daemon_reload()
+                res = utils.systemctl_daemon_reload()
+                if res != 0:
+                    logging.error("systemctl daemon-reload call failed: error %d", res)
+                    sys.exit(res)
 
             logging.debug('command configure: running %s', argv)
             res = subprocess.call(argv)
