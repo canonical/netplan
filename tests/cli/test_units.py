@@ -240,3 +240,19 @@ class TestCLI(unittest.TestCase):
                 NetplanApply._get_nm_interfaces([file_path],
                                                 ['eth0'], exit_on_error=False)
         self.assertTrue(any(os.strerror(errno.EACCES) in msg for msg in ctx.output))
+
+    def test_safe_revert_success(self):
+        """_safe_revert returns 0 when revert() succeeds."""
+        cmd = NetplanTry()
+        with patch.object(cmd, 'revert') as mock_revert:
+            self.assertEqual(cmd._safe_revert("test reason"), 0)
+            mock_revert.assert_called_once()
+
+    def test_safe_revert_failure(self):
+        """_safe_revert must catch exceptions from revert()
+        (e.g., insufficient privileges) and return 1 instead of letting
+        the unhandled exception propagate as an apport crash report)."""
+        cmd = NetplanTry()
+        with patch.object(cmd, 'revert',
+                          side_effect=FileNotFoundError(2, 'No such file', '/etc/netplan')):
+            self.assertEqual(cmd._safe_revert("test reason"), 1)
