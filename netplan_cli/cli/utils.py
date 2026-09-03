@@ -170,7 +170,7 @@ def systemctl_is_installed(unit_pattern):
 
 def systemctl_daemon_reload():
     '''Reload systemd unit files from disk and re-calculate its dependencies'''
-    subprocess.check_call(['systemctl', 'daemon-reload', '--no-ask-password'])
+    return subprocess.call(['systemctl', 'daemon-reload', '--no-ask-password'])
 
 
 def ip_addr_flush(iface):

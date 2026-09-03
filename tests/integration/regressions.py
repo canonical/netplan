@@ -38,6 +38,36 @@ class _CommonTests():
             f.write('''''')
         self.generate_and_settle([])
 
+    def test_unprivileged_user_no_traceback(self):
+        """LP#2161924: netplan commands should not trigger sys.excepthook
+        (which would cause apport crash reports) when run without privileges."""
+
+        # Create a temporary user for testing the scenario of a regular user (non-root)
+        # running netplan commands without sudo privileges.
+        test_user = 'netplantest'
+        subprocess.run(['userdel', '-rf', test_user],
+                       stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        subprocess.run(['useradd', '-m', '-s', '/bin/sh', test_user], check=True)
+        self.addCleanup(subprocess.run, ['userdel', '-rf', test_user],
+                        stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+
+        for command in ['generate', 'apply', 'try']:
+            with self.subTest(command=command):
+                result = subprocess.run(
+                    ['runuser', '-u', test_user, '--',
+                     'netplan', command],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                # Check that no Python traceback was printed to stderr
+                # (tracebacks indicate unhandled exceptions that trigger apport)
+                self.assertNotIn(
+                    'Traceback (most recent call last):',
+                    result.stderr,
+                    f"netplan {command} produced a traceback (unhandled exception):\n"
+                    f"STDERR: {result.stderr}")
+
 
 @unittest.skipIf("networkd" not in test_backends,
                  "skipping as networkd backend tests are disabled")
