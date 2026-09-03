@@ -1337,6 +1337,13 @@ The specific settings for bridges are defined below.
               eth1: 20
     ```
 
+  - **`port-vlans`** (sequence of scalars)
+
+    > Array of bridge VLAN objects. The VLAN list can be specified with the
+    > following syntax: $vid [pvid] [untagged] [, $vid [pvid] [untagged]]..
+    > where $vid is either a single id between 1 and 4094 or a range,
+    > represented as a couple of ids separated by a dash.
+
   - **`forward-delay`** (scalar)
 
     > Specify the period of time the bridge will remain in Listening and
@@ -1344,6 +1351,21 @@ The specific settings for bridges are defined below.
     > maps to the `ForwardDelaySec=` property for the networkd renderer.
     > If no time suffix is specified, the value will be interpreted as
     > seconds.
+
+  - **`vlans`** (sequence of scalars)
+    > Array of bridge VLAN objects. The VLAN list can be specified with the
+    > following syntax: $vid [pvid] [untagged] [, $vid [pvid] [untagged]]..
+    > where $vid is either a single id between 1 and 4094 or a range,
+    > represented as a couple of ids separated by a dash.
+
+  - **`vlan-filtering`** (boolean)
+
+    > Enables VLAN filtering. Will be enabled by default if *vlans* are defined.
+  
+  - **`vlan-default-pvid`** (scalar)
+
+    > Specifies the default port VLAN ID. Can be set to values between 1 and 4094,
+    > or to value `none` if `networkd` is used as a renderer. Defaults to `1`.
 
   - **`hello-time`** (scalar)
 

@@ -2167,6 +2167,153 @@ handle_bridge_port_priority(NetplanParser* npp, yaml_node_t* node, const char* k
     return TRUE;
 }
 
+STATIC gboolean
+handle_generic_vlans(NetplanParser* npp, yaml_node_t* node, GArray** entryptr, GError** error)
+{
+    static regex_t re;
+    static gboolean re_inited = FALSE;
+
+    if (!re_inited) {
+        g_assert(regcomp(&re, "^([0-9]+)(-([0-9]+))?( (pvid))?( (untagged))?$", REG_EXTENDED) == 0);
+        re_inited = TRUE;
+    }
+
+    unsigned pvids = 0;
+    for (yaml_node_item_t *i = node->data.sequence.items.start; i < node->data.sequence.items.top; i++) {
+        g_autofree char* vlan = NULL;
+        yaml_node_t *entry = yaml_document_get_node(&npp->doc, *i);
+        assert_type(npp, entry, YAML_SCALAR_NODE);
+
+        vlan = g_strdup(scalar(entry));
+
+        size_t maxGroups = 7+1;
+        regmatch_t groups[maxGroups];
+
+        guint minVid = npp->global_backend == NETPLAN_BACKEND_NETWORKD ? 0:1;
+
+        /* does it match the vlans= definition? */
+        if (regexec(&re, vlan, maxGroups, groups, 0) == 0) {
+            NetplanBridgeVlan* data = g_new0(NetplanBridgeVlan, 1);
+            for (unsigned g = 1; g < maxGroups; g = g+2) {
+                if (groups[g].rm_so == (int)(size_t)-1)
+                    continue; // Invalid group
+
+                char cursorCopy[strlen(vlan) + 1];
+                strcpy(cursorCopy, vlan);
+                cursorCopy[groups[g].rm_eo] = 0;
+                guint v = 0;
+                switch (g) {
+                    case 1:
+                        v = (guint) g_ascii_strtoull(cursorCopy + groups[g].rm_so, NULL, 10);
+                        if (v < minVid || v > 4094) {
+                            g_free(data);
+                            return yaml_error(npp, node, error, "malformed vlan vid '%u', must be in range [%d..4094]", v, minVid);
+                        }
+                        data->vid = v;
+                        break;
+                    case 3:
+                        v = (guint) g_ascii_strtoull(cursorCopy + groups[g].rm_so, NULL, 10);
+                        if (v < 1 || v > 4094) {
+                            g_free(data);
+                            return yaml_error(npp, node, error, "malformed vlan vid '%u', must be in range [1..4094]", v);
+                        }
+                            
+                        else if (v <= data->vid) {
+                            guint vid = data->vid;
+                            g_free(data);
+                            return yaml_error(npp, node, error, "malformed vlan vid range '%s': %u > %u!", scalar(entry), vid, v);
+                        }
+                            
+                        data->vid_to = v;
+                        break;
+                    case 5:
+                        data->pvid = TRUE;
+                        if (++pvids > 1) {
+                            g_free(data);
+                            return yaml_error(npp, node, error, "malformed vlan pvid '%s': only single pvid can be defined", scalar(entry));
+                        }
+                        break;
+                    case 7:
+                        data->untagged = TRUE;
+                        break;
+                    default: g_assert_not_reached(); // LCOV_EXCL_LINE
+                }
+            }
+
+            if (npp->global_backend == NETPLAN_BACKEND_NETWORKD && !data->pvid && data->vid == 0) {
+                g_free(data);
+                return yaml_error(npp, node, error, "malformed vlan '%s': value cannot be defined as 0 for non-pvid", scalar(entry));
+            }
+
+            if (data->vid_to > 0 && data->pvid) {
+                g_free(data);
+                return yaml_error(npp, node, error, "malformed vlan '%s': pvid cannot be defined as a range", scalar(entry));
+            }
+            if (!*entryptr)
+                *entryptr = g_array_new(FALSE, FALSE, sizeof(NetplanBridgeVlan*));
+            g_array_append_val(*entryptr, data);
+            continue;
+        }
+
+        return yaml_error(npp, node, error, "malformed vlan '%s', must be: $vid [pvid] [untagged] [, $vid [pvid] [untagged]]", scalar(entry));
+    }
+
+    return TRUE;
+}
+
+STATIC gboolean
+handle_bridge_vlans(NetplanParser* npp, yaml_node_t* node, const void *, GError** error)
+{
+    return handle_generic_vlans(npp, node, &(npp->current.netdef->bridge_params.vlans), error);
+}
+
+STATIC gboolean
+handle_bridge_port_vlans(NetplanParser* npp, yaml_node_t* node, const char*, const void*, GError** error)
+{
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key, *value;
+        NetplanNetDefinition *component;
+        GArray** ref_ptr;
+
+        key = yaml_document_get_node(&npp->doc, entry->key);
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        value = yaml_document_get_node(&npp->doc, entry->value);
+        assert_type(npp, value, YAML_SEQUENCE_NODE);
+
+        component = g_hash_table_lookup(npp->parsed_defs, scalar(key));
+        if (!component) {
+            add_missing_node(npp, key);
+        } else {
+            ref_ptr = &(component->bridge_params.port_vlans);
+            if (*ref_ptr)
+                return yaml_error(npp, node, error, "%s: interface '%s' already has port vlans",
+                                  npp->current.netdef->id, scalar(key));
+
+            if (!handle_generic_vlans(npp, value, ref_ptr, error))
+                return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/**
+ * Handler for vlan-default-pvid.
+ * @data: offset into NetplanNetDefinition where the const char* field to write is
+ *        located
+ */
+STATIC gboolean
+handle_vlan_default_pvid(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
+{
+    const char* pvid = scalar(node);
+    GError** err = NULL;
+    guint64 val = 0;
+    if (strcmp(pvid, "none") != 0 && !g_ascii_string_to_unsigned(pvid, 10, 1, 4094 , &val, err)) {
+        return yaml_error(npp, node, error, "malformed value of vlan-default-pvid '%s': vlan-default-pvid can only be defined as a single port ID", pvid);
+    }
+
+    return handle_netdef_str(npp, node, data, error);
+}
+
 static const mapping_entry_handler bridge_params_handlers[] = {
     {"ageing-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.ageing_time)},
     {"aging-time", YAML_SCALAR_NODE, {.generic=handle_netdef_str}, netdef_offset(bridge_params.ageing_time)},
@@ -2177,6 +2324,10 @@ static const mapping_entry_handler bridge_params_handlers[] = {
     {"port-priority", YAML_MAPPING_NODE, {.map={.custom=handle_bridge_port_priority}}, netdef_offset(bridge_params.port_priority)},
     {"priority", YAML_SCALAR_NODE, {.generic=handle_netdef_guint}, netdef_offset(bridge_params.priority)},
     {"stp", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bridge_params.stp)},
+    {"port-vlans", YAML_MAPPING_NODE, {.map={.custom=handle_bridge_port_vlans}}, netdef_offset(bridge_params.port_vlans)},
+    {"vlans", YAML_SEQUENCE_NODE, {.generic=handle_bridge_vlans}, netdef_offset(bridge_params.vlans)},
+    {"vlan-filtering", YAML_SCALAR_NODE, {.generic=handle_netdef_bool}, netdef_offset(bridge_params.vlan_filtering)},
+    {"vlan-default-pvid", YAML_SCALAR_NODE, {.generic=handle_vlan_default_pvid}, netdef_offset(bridge_params.vlan_default_pvid)},
     {NULL}
 };
 
@@ -3668,6 +3819,7 @@ netplan_parser_load_yaml(NetplanParser* npp, const char* filename, GError** erro
 
     if (!load_yaml(filename, doc, error))
         return FALSE;
+
     return _netplan_parser_load_single_file(npp, filename, doc, error);
 }
 

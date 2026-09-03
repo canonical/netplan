@@ -29,3 +29,6 @@ _netplan_netdef_write_nm(
 
 NETPLAN_INTERNAL gboolean
 _netplan_nm_cleanup(const char* rootdir);
+
+NETPLAN_INTERNAL GString*
+bridge_vlan_str(const NetplanBridgeVlan* vlan);
