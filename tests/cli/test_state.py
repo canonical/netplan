@@ -591,3 +591,90 @@ class TestInterface(unittest.TestCase):
                 'abcd::5678/64': 'DHCPv6'}
         }
         self.assertDictEqual(expected, itf.data_sources)
+
+    def test_dhcpv4_label_from_config_source_no_gateway(self):
+        # DHCPv4 address must be labelled (dhcp) via networkd ConfigSource even
+        # when no dhcp-protocol routes exist.
+        nd_data = [{
+            'Index': 42,
+            'Addresses': [
+                {
+                    'Address': [10, 211, 1, 250],
+                    'PrefixLength': 23,
+                    'ConfigSource': 'DHCPv4',
+                },
+            ],
+        }]
+
+        fake_dev = {
+            'ifindex': 42,
+            'ifname': 'fakedev0',
+            'flags': [],
+            'operstate': 'UP',
+            'addr_info': [
+                {
+                    'local': '10.211.1.250',
+                    'prefixlen': 23,
+                    'dynamic': True,
+                }
+            ]
+        }
+
+        # No 'dhcp'-protocol route
+        routes_no_gateway = (
+            [
+                {'family': 2, 'type': 'unicast', 'dst': '10.211.0.0/23',
+                 'dev': 'fakedev0', 'table': 'main', 'protocol': 'kernel',
+                 'scope': 'link', 'prefsrc': '10.211.1.250', 'metric': 100, 'flags': []},
+                {'family': 2, 'type': 'local', 'dst': '10.211.1.250',
+                 'dev': 'fakedev0', 'table': 'local', 'protocol': 'kernel',
+                 'scope': 'host', 'prefsrc': '10.211.1.250', 'flags': []},
+            ],
+            None,
+        )
+
+        itf = Interface(fake_dev, nd_data, [], (None, None), routes_no_gateway)
+
+        self.assertIsNotNone(itf.addresses)
+        self.assertEqual(len(itf.addresses), 1)
+        _, meta = list(itf.addresses[0].items())[0]
+        self.assertIn('dhcp', meta.get('flags', []),
+                      'Expected (dhcp) flag on DHCPv4 address when no gateway route exists')
+
+    def test_dhcpv4_label_route_fallback_still_works(self):
+        # When networkd ConfigSource data is absent, a dhcp-protocol route must
+        # still produce the (dhcp) flag.
+        fake_dev = {
+            'ifindex': 42,
+            'ifname': 'fakedev0',
+            'flags': [],
+            'operstate': 'UP',
+            'addr_info': [
+                {
+                    'local': '192.168.178.62',
+                    'prefixlen': 24,
+                    'dynamic': True,
+                }
+            ]
+        }
+
+        routes_with_gateway = (
+            [
+                {'family': 2, 'type': 'unicast', 'dst': 'default',
+                 'gateway': '192.168.178.1', 'dev': 'fakedev0', 'table': 'main',
+                 'protocol': 'dhcp', 'scope': 'global', 'prefsrc': '192.168.178.62',
+                 'metric': 100, 'flags': []},
+                {'family': 2, 'type': 'unicast', 'dst': '192.168.178.0/24',
+                 'dev': 'fakedev0', 'table': 'main', 'protocol': 'kernel',
+                 'scope': 'link', 'prefsrc': '192.168.178.62', 'metric': 100, 'flags': []},
+            ],
+            None,
+        )
+
+        itf = Interface(fake_dev, [], [], (None, None), routes_with_gateway)
+
+        self.assertIsNotNone(itf.addresses)
+        self.assertEqual(len(itf.addresses), 1)
+        _, meta = list(itf.addresses[0].items())[0]
+        self.assertIn('dhcp', meta.get('flags', []),
+                      'Expected (dhcp) flag on DHCPv4 address via dhcp-protocol route fallback')

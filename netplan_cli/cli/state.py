@@ -190,7 +190,11 @@ class Interface():
                         if ip_ds == 'DHCPv6':
                             flags.append('dhcp')
 
-                if self.routes:
+                if ip_ds := self.data_sources.get('addresses', {}).get(str(ip_addr)):
+                    if ip_ds == 'DHCPv4' and 'dhcp' not in flags:
+                        flags.append('dhcp')
+
+                if self.routes and 'dhcp' not in flags:
                     for route in self.routes:
                         if ('from' in route and
                                 ipaddress.ip_address(route['from']) == ipaddress.ip_address(addr['local'])):
