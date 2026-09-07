@@ -14,10 +14,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Optional
 
 from ._netplan_cffi import ffi, lib
 from ._utils import _string_realloc_call_no_error, NetplanException
+
+
+class KeepConfiguration(IntEnum):
+    FALSE = 0
+    TRUE = 1
+    STATIC = 2
+    DYNAMIC = 3
+    DYNAMIC_ON_STOP = 4
 
 
 class NetDefinition():
@@ -108,6 +117,10 @@ class NetDefinition():
     @property
     def critical(self) -> bool:
         return bool(lib._netplan_netdef_get_critical(self._ptr))
+
+    @property
+    def keep_configuration(self) -> KeepConfiguration:
+        return KeepConfiguration(lib._netplan_netdef_get_keep_configuration(self._ptr))
 
     @property
     def links(self) -> dict:

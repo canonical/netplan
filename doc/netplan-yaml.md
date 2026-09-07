@@ -372,11 +372,23 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > (networkd back end only) Allow the specified interface to be configured even
   > if it has no carrier.
 
-- **`critical`** (boolean)
+- **`critical`** (boolean or scalar)
 
   > Designate the connection as "critical to the system", meaning that special
   > care will be taken by to not release the assigned IP when the daemon is
   > restarted. (not recognised by NetworkManager)
+  >
+  > Accepts boolean values (`true`/`false`) for backwards compatibility, or
+  > one of the following scalar values that map directly to the systemd-networkd
+  > `KeepConfiguration=` setting:
+  >
+  > - `true` (default when set) – preserve all routes and addresses
+  > - `static` – preserve only static routes and addresses
+  > - `dynamic` – preserve dynamically assigned (DHCP/SLAAC) routes and addresses
+  > - `dynamic-on-stop` – preserve dynamic leases only when networkd stops
+  >
+  > The legacy aliases `dhcp` and `dhcp-on-stop` are also accepted as input
+  > (mapped to `dynamic` and `dynamic-on-stop` respectively).
 
 - **`dhcp-identifier`** (scalar)
 

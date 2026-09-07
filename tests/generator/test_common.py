@@ -478,6 +478,95 @@ LinkLocalAddressing=ipv6
 KeepConfiguration=true
 '''})
 
+    def test_critical_static(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      critical: static
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+KeepConfiguration=static
+'''})
+
+    def test_critical_dynamic(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      critical: dynamic
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+KeepConfiguration=dynamic
+'''})
+
+    def test_critical_dynamic_on_stop(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      critical: dynamic-on-stop
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+KeepConfiguration=dynamic-on-stop
+'''})
+
+    def test_critical_dhcp_alias(self):
+        """dhcp/dhcp-on-stop are accepted as legacy aliases for dynamic/dynamic-on-stop"""
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      critical: dhcp
+''', skip_generated_yaml_validation=True)
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+KeepConfiguration=dynamic
+'''})
+
+    def test_critical_false(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      critical: false
+''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+'''})
+
+    def test_critical_invalid(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      critical: invalid-value
+''', expect_fail=True)
+        self.assertIn("invalid value 'invalid-value' for critical", err)
+
     def test_dhcp_identifier_mac(self):
         self.generate('''network:
   version: 2
