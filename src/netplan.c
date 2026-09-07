@@ -28,6 +28,7 @@
 #include "yaml-helpers.h"
 #include "util-internal.h"
 #include "names.h"
+#include "nm.h"
 
 gchar *tmp = NULL;
 
@@ -308,6 +309,55 @@ write_bridge_params(yaml_event_t* event, yaml_emitter_t* emitter, const NetplanN
                 YAML_UINT_0(nd, event, emitter, nd->id, nd->bridge_params.path_cost);
             }
             YAML_MAPPING_CLOSE(event, emitter);
+        }
+
+        gboolean has_port_vlans = FALSE;
+        for (unsigned i = 0; i < interfaces->len; ++i) {
+            NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+            if (nd->bridge_params.port_vlans || DIRTY(nd, nd->bridge_params.port_vlans)) {
+                has_port_vlans = TRUE;
+                break;
+            }
+        }
+
+        if (has_port_vlans) {
+            YAML_SCALAR_PLAIN(event, emitter, "port-vlans");
+            YAML_MAPPING_OPEN(event, emitter);
+            for (unsigned i = 0; i < interfaces->len; ++i) {
+                NetplanNetDefinition *nd = g_array_index(interfaces, NetplanNetDefinition*, i);
+                if (nd->bridge_params.port_vlans || DIRTY(nd, nd->bridge_params.port_vlans)) {
+                    YAML_SCALAR_PLAIN(event, emitter, nd->id);
+                    YAML_SEQUENCE_OPEN(event, emitter);
+                    for (unsigned i = 0; i < nd->bridge_params.port_vlans->len; ++i) {
+                        NetplanBridgeVlan* vlan = g_array_index(nd->bridge_params.port_vlans, NetplanBridgeVlan*, i);
+                        GString* v = bridge_vlan_str(vlan);
+                        YAML_SCALAR_PLAIN(event, emitter, v->str);
+                        g_string_free(v, TRUE);
+                    }
+                    YAML_SEQUENCE_CLOSE(event, emitter);
+                }
+                
+            }
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+
+        if (def->bridge_params.vlan_filtering || def->bridge_params.vlans || DIRTY(def, def->bridge_params.vlans)) {
+            YAML_STRING(def, event, emitter, "vlan-filtering", "true");
+            if (def->bridge_params.vlans || DIRTY(def, def->bridge_params.vlans)) {
+                YAML_SCALAR_PLAIN(event, emitter, "vlans");
+                YAML_SEQUENCE_OPEN(event, emitter);
+                for (unsigned i = 0; i < def->bridge_params.vlans->len; ++i) {
+                    NetplanBridgeVlan* vlan = g_array_index(def->bridge_params.vlans, NetplanBridgeVlan*, i);
+                    GString* v = bridge_vlan_str(vlan);
+                    YAML_SCALAR_PLAIN(event, emitter, v->str);
+                    g_string_free(v, TRUE);
+                }
+                YAML_SEQUENCE_CLOSE(event, emitter);
+            }
+        }
+
+        if (def->bridge_params.vlan_default_pvid) {
+            YAML_STRING(def, event, emitter, "vlan-default-pvid", def->bridge_params.vlan_default_pvid);
         }
 
         YAML_MAPPING_CLOSE(event, emitter);
