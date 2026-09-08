@@ -1105,6 +1105,11 @@ _netplan_netdef_write_nm(
         return FALSE;
     }
 
+    if (netdef->type == NETPLAN_DEF_TYPE_XFRM) {
+        g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_UNSUPPORTED, "ERROR: %s: XFRM interfaces are not supported by NetworkManager\n", netdef->id);
+        return FALSE;
+    }
+
     if (netdef->type == NETPLAN_DEF_TYPE_VETH) {
         /*
          * Final validation of veths that can't be fully done during parsing due to the

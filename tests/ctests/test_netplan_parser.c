@@ -444,6 +444,57 @@ tear_down(__unused void** state)
     return 0;
 }
 
+void
+test_netplan_parser_xfrm_basic(__unused void** state)
+{
+    const char* yaml = "network:\n"
+                      "  version: 2\n"
+                      "  xfrm-interfaces:\n"
+                      "    xfrm0:\n"
+                      "      if_id: 42\n"
+                      "      independent: true\n";
+    
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    assert_non_null(np_state);
+    
+    // Check that the XFRM interface was parsed correctly
+    NetplanNetDefinition* netdef = netplan_state_get_netdef(np_state, "xfrm0");
+    assert_non_null(netdef);
+    assert_int_equal(netdef->type, NETPLAN_DEF_TYPE_XFRM);
+    assert_int_equal(netdef->xfrm.interface_id, 42);
+    assert_true(netdef->xfrm.independent);
+    
+    netplan_state_clear(&np_state);
+}
+
+void
+test_netplan_parser_xfrm_with_link(__unused void** state)
+{
+    const char* yaml = "network:\n"
+                      "  version: 2\n"
+                      "  ethernets:\n"
+                      "    eth0:\n"
+                      "      dhcp4: true\n"
+                      "  xfrm-interfaces:\n"
+                      "    xfrm0:\n"
+                      "      if_id: 100\n"
+                      "      link: eth0\n";
+    
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    assert_non_null(np_state);
+    
+    // Check XFRM interface
+    NetplanNetDefinition* netdef = netplan_state_get_netdef(np_state, "xfrm0");
+    assert_non_null(netdef);
+    assert_int_equal(netdef->type, NETPLAN_DEF_TYPE_XFRM);
+    assert_int_equal(netdef->xfrm.interface_id, 100);
+    assert_false(netdef->xfrm.independent);
+    assert_non_null(netdef->xfrm.link);
+    assert_string_equal(netdef->xfrm.link->id, "eth0");
+    
+    netplan_state_clear(&np_state);
+}
+
 int
 main()
 {
@@ -465,6 +516,8 @@ main()
            cmocka_unit_test(test_parser_flags_bad_flags),
            cmocka_unit_test(test_parser_flags_ignore_errors),
            cmocka_unit_test(test_parse_utf8_characters),
+           cmocka_unit_test(test_netplan_parser_xfrm_basic),
+           cmocka_unit_test(test_netplan_parser_xfrm_with_link),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
