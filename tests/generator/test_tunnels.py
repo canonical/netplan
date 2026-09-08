@@ -568,6 +568,30 @@ persistent-keepalive=23
 endpoint=[2001:fe:ad:de:ad:be:ef:11]:5
 allowed-ips=0.0.0.0/0;2001:fe:ad:de:ad:be:ef:1/24;''')})
 
+    def test_ipv6_linklocal_remote(self):
+        """[wireguard] Validate generation of wireguard config with v6 linklocal remote endpoint"""
+        config = prepare_wg_config(listen=12345, privkey='4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=',
+                                   peers=[{'public-key': 'M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=',
+                                           'allowed-ips': '[0.0.0.0/0, "::/0"]',
+                                           'keepalive': 23,
+                                           'endpoint': '"[fe80::5054:ff:fe75:5b1f%enp1s0]:5"'}], renderer=self.backend)
+        self.generate(config, expect_fail=False)
+        if self.backend == 'networkd':
+            self.assert_networkd({'wg0.netdev': ND_WG % ('=4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
+[WireGuardPeer]
+PublicKey=M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=
+AllowedIPs=0.0.0.0/0,::/0
+PersistentKeepalive=23
+Endpoint=[fe80::5054:ff:fe75:5b1f%enp1s0]:5'''),
+                                  'wg0.network': ND_WITHIPGW % ('wg0', '15.15.15.15/24', '2001:de:ad:be:ef:ca:fe:1/128',
+                                                                '20.20.20.21')})
+        elif self.backend == 'NetworkManager':
+            self.assert_nm({'wg0.nmconnection': NM_WG % ('4GgaQCy68nzNsUE5aJ9fuLzHhB65tAlwbmA72MWnOm8=', '12345', '''
+[wireguard-peer.M9nt4YujIOmNrRmpIRTmYSfMdrpvE7u6WkG8FY8WjG4=]
+persistent-keepalive=23
+endpoint=[fe80::5054:ff:fe75:5b1f%enp1s0]:5
+allowed-ips=0.0.0.0/0;::/0;''')})
+
     def test_vxlan(self):
         out = self.generate('''network:
   renderer: %(r)s

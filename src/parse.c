@@ -2647,11 +2647,16 @@ handle_wireguard_endpoint(NetplanParser* npp, yaml_node_t* node, __unused const 
         return yaml_error(npp, node, error, "invalid endpoint address or hostname '%s'", scalar(node));
     }
     if (endpoint[0] == '[') {
-        /* this is an ipv6 endpoint in [ad:rr:ee::ss]:port form */
+        /* this is an ipv6 endpoint in [ad:rr:ee::ss%zoneIdx]:port form. The zone index is optional */
         char *endbrace = strrchr(endpoint, ']');
         if (!endbrace)
             return yaml_error(npp, node, error, "invalid address in endpoint '%s'", scalar(node));
         address = endpoint + 1;
+        /* If a zone index is specified, use the % sign to delimit the ipv6 address portion of the endpoint */
+        char *zone_separator = strrchr(address, '%');
+        if (zone_separator) {
+            endbrace = zone_separator;
+        }
         *endbrace = '\0';
         port = strrchr(endbrace + 1, ':');
     } else {
