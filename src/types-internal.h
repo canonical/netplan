@@ -168,6 +168,12 @@ typedef struct {
     guint fwmark;
     /* type-of-service: between 0 and 255 */
     guint tos;
+    /* type of rule (eg. blackhole, prohibit, ...)*/
+    char* type;
+    /* Input and/or Output interface string*/
+    char* iif;
+    char* oif;
+
 } NetplanIPRule;
 
 struct netplan_vxlan {
@@ -298,6 +304,9 @@ typedef enum {
 #define NETPLAN_IP_RULE_PRIO_UNSPEC G_MAXUINT
 #define NETPLAN_IP_RULE_FW_MARK_UNSPEC 0
 #define NETPLAN_IP_RULE_TOS_UNSPEC G_MAXUINT
+#define NETPLAN_IP_RULE_TYPE_UNSPEC 0
+#define NETPLAN_IP_RULE_IIF_UNSPEC 0
+#define NETPLAN_IP_RULE_OIF_UNSPEC 0
 #define NETPLAN_ADVMSS_UNSPEC 0
 
 #if defined(UNITTESTS)
