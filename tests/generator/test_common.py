@@ -823,6 +823,54 @@ RouteMetric=100
 UseMTU=true
 '''})
 
+    def test_dhcp6_token_multiple(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-token:
+        - ::31
+        - ::32
+        - ::33''')
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+IPv6Token=static:::31
+IPv6Token=static:::32
+IPv6Token=static:::33
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
+    def test_dhcp6_token_single_element_array(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-token:
+        - ::42''', skip_generated_yaml_validation=True)
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=ipv6
+LinkLocalAddressing=ipv6
+IPv6Token=static:::42
+
+[DHCP]
+RouteMetric=100
+UseMTU=true
+'''})
+
     def test_nd_udev_rules_escaped(self):
         self.generate('''network:
   version: 2
@@ -1426,6 +1474,36 @@ method=link-local
 
 [ipv6]
 method=ignore
+'''})
+
+    def test_dhcp6_token_multiple_nm_uses_first(self):
+        out = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp6: yes
+      ipv6-address-token:
+        - ::31
+        - ::32
+        - ::33''')
+        self.assertIn('engreen: NetworkManager does not support multiple IPv6 address tokens', out)
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=auto
+addr-gen-mode=0
+token=::31
+ip6-privacy=0
 '''})
 
 

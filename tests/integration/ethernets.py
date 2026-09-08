@@ -230,6 +230,27 @@ class _CommonTests():
         self.generate_and_settle([self.state(self.dev_e_client, '::42')])
         self.assert_iface_up(self.dev_e_client, ['inet6 2600::42/64'])
 
+    def test_ip6_token_multiple(self):
+        self.setup_eth('ra-only')
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  version: 2
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      dhcp6: yes
+      accept-ra: yes
+      ipv6-address-token:
+        - ::31
+        - ::32
+        - ::33''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.state(self.dev_e_client, '::31')])
+        # NetworkManager only supports single token, networkd supports multiple
+        if self.backend == 'NetworkManager':
+            self.assert_iface_up(self.dev_e_client, ['inet6 2600::31/64'])
+        else:
+            self.assert_iface_up(self.dev_e_client, ['inet6 2600::31/64', 'inet6 2600::32/64', 'inet6 2600::33/64'])
+
     def test_ip6_stable_privacy(self):
         self.setup_eth('ra-stateless')
         with open(self.config, 'w') as f:
