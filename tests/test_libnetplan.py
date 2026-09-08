@@ -200,17 +200,23 @@ class TestNetdefAddressesIterator(TestBase):
         - 172.16.0.1/24:
             lifetime: 0
             label: label1
+            duplicate-address-detection: none
         - 1234:4321:abcd::cdef/96:
             lifetime: forever
-            label: label2''')
+            label: label2
+            duplicate-address-detection: both''')
 
         expected_ips = set(["1234:4321:abcd::cdef/96", "192.168.0.1/24", "172.16.0.1/24"])
         expected_lifetime_options = set([None, "0", "forever"])
         expected_label_options = set([None, "label1", "label2"])
+        expected_duplicate_address_detection_options = set([None, "none", "both"])
         netdef = next(netplan.netdef.NetDefinitionIterator(state, "ethernets"))
         self.assertSetEqual(expected_ips, set(ip.address for ip in netdef.addresses))
         self.assertSetEqual(expected_lifetime_options, set(ip.lifetime for ip in netdef.addresses))
         self.assertSetEqual(expected_label_options, set(ip.label for ip in netdef.addresses))
+        self.assertSetEqual(
+            expected_duplicate_address_detection_options, set(ip.duplicate_address_detection for ip in netdef.addresses)
+        )
 
     def test_drop_iterator_before_finishing(self):
         state = state_from_yaml(self.confdir, '''network:

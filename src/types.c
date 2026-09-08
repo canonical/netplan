@@ -66,6 +66,7 @@ free_address_options(void* ptr)
     g_free(opts->address);
     g_free(opts->label);
     g_free(opts->lifetime);
+    g_free(opts->duplicate_address_detection);
     g_free(opts);
 }
 
