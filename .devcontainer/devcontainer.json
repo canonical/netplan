@@ -1,0 +1,8 @@
+{
+  "name": "Netplan Development",
+  "build": {
+      "dockerfile": "Dockerfile",
+      "context": ".."
+    },
+  "remoteUser": "ubuntu"
+}
