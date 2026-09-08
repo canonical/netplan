@@ -3,8 +3,10 @@
 #include <stddef.h>
 #include <setjmp.h>
 
+#include <string.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <linux/limits.h>
 
 #include <cmocka.h>
 
@@ -183,6 +185,71 @@ test_netplan_netdef_get_output_filename_invalid_backend(__unused void** state)
     ssize_t ret = netplan_netdef_get_output_filename(&netdef, NULL, out_buffer, sizeof(out_buffer) - 1);
 
     assert_int_equal(ret, 0);
+}
+
+void
+test_netplan_netdef_get_output_filename_nm_with_long_ssid(__unused void** state)
+{
+    NetplanNetDefinition netdef;
+    /* NM stores non-ASCII SSIDs as semicolon-delimited decimal bytes.
+     * 20x U+1F600 (😀, UTF-8: F0 9F 98 80) in NM format = "240;159;152;128;" x20
+     * (320 chars, 80 semicolons).  g_uri_escape_string() encodes each ';' as
+     * '%3B', yielding a 480-char encoded SSID.
+     * basename = "netplan-" (8) + "wlan0" (5) + "-" (1) + 480 + ".nmconnection" (13) = 507 > NAME_MAX.
+     * Expects SHA-256 of raw SSID bytes used in filename instead of escaped form. */
+    const char ssid[] =
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;";
+    char out_buffer[256] = { 0 };
+
+    netdef.backend = NETPLAN_BACKEND_NM;
+    netdef.id = "wlan0";
+
+    ssize_t ret = netplan_netdef_get_output_filename(&netdef, ssid, out_buffer, sizeof(out_buffer) - 1);
+
+    /* Basename must NOT exceed NAME_MAX */
+    const char* basename = strrchr(out_buffer, '/');
+    assert_true(basename != NULL);
+    assert_true(strlen(basename + 1) <= NAME_MAX);
+    /* Must use the expected prefix */
+    assert_true(g_str_has_prefix(out_buffer,
+        "/run/NetworkManager/system-connections/netplan-wlan0-"));
+    /* Must end with .nmconnection */
+    assert_true(g_str_has_suffix(out_buffer, ".nmconnection"));
+    /* Returned size must match string length + 1 */
+    assert_int_equal(ret, (ssize_t)(strlen(out_buffer) + 1));
+    /* Must contain the SHA-256 hash of the raw SSID, not the escaped form */
+    g_autofree char* expected_hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ssid, -1);
+    g_autofree char* expected_suffix = g_strdup_printf("-%s.nmconnection", expected_hash);
+    assert_true(g_str_has_suffix(out_buffer, expected_suffix));
+}
+
+void
+test_netplan_get_id_from_nm_filepath_with_hashed_ssid(__unused void** state)
+{
+    /* Same NM decimal-byte SSID as test above; escaped form exceeds NAME_MAX
+     * so netplan_netdef_get_output_filename() uses the SHA-256 hash path.
+     * netplan_get_id_from_nm_filepath() must fall back to the hash when the
+     * escaped suffix is not found in the filename. */
+    const char ssid[] =
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;"
+        "240;159;152;128;240;159;152;128;240;159;152;128;240;159;152;128;";
+    /* Get the hashed filename from the public API */
+    NetplanNetDefinition netdef = { .backend = NETPLAN_BACKEND_NM, .id = "wlan0" };
+    char hashed_path[256] = { 0 };
+    netplan_netdef_get_output_filename(&netdef, ssid, hashed_path, sizeof(hashed_path) - 1);
+
+    char id[16] = { 0 };
+    ssize_t bytes_copied = netplan_get_id_from_nm_filepath(hashed_path, ssid, id, sizeof(id));
+
+    assert_string_equal(id, "wlan0");
+    assert_int_equal(bytes_copied, 6); /* strlen("wlan0") + 1 */
 }
 
 void
@@ -575,6 +642,8 @@ main()
            cmocka_unit_test(test_netplan_netdef_get_output_filename_networkd),
            cmocka_unit_test(test_netplan_netdef_get_output_filename_buffer_is_too_small),
            cmocka_unit_test(test_netplan_netdef_get_output_filename_invalid_backend),
+           cmocka_unit_test(test_netplan_netdef_get_output_filename_nm_with_long_ssid),
+           cmocka_unit_test(test_netplan_get_id_from_nm_filepath_with_hashed_ssid),
            cmocka_unit_test(test_netplan_netdef_write_yaml),
            cmocka_unit_test(test_netplan_netdef_write_yaml_90NM),
            cmocka_unit_test(test_util_is_route_present),
