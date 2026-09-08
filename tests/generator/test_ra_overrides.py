@@ -62,6 +62,7 @@ network:
         use-dns: false
         use-domains: route
         table: 701
+        use-mtu: false
 '''
         networkd_config = '''\
 [Match]
@@ -74,6 +75,7 @@ LinkLocalAddressing=ipv6
 UseDNS=false
 UseDomains=route
 RouteTable=701
+UseMTU=false
 '''
         self.generate(yaml_config)
         self.assert_networkd({'engreen.network': networkd_config})
@@ -89,6 +91,10 @@ RouteTable=701
 
     def test_ra_overrides_table(self):
         self.assert_ra_overrides_key_value('table', '727', 'RouteTable', '727')
+
+    def test_ra_overrides_use_mtu(self):
+        self.assert_ra_overrides_key_value('use-mtu', 'false', 'UseMTU', 'false')
+        self.assert_ra_overrides_key_value('use-mtu', 'true', 'UseMTU', 'true')
 
     def test_ra_overrides_all_fields(self):
         self.assert_ra_overrides_all_fields()
