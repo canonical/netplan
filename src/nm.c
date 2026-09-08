@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <linux/limits.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -1005,7 +1006,16 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     if (ap) {
         g_autofree char* escaped_ssid = g_uri_escape_string(ap->ssid, NULL, TRUE);
         /* TODO: make use of netplan_netdef_get_output_filename() */
-        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
+        g_autofree char* candidate_basename = g_strjoin(NULL, "netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
+        const char* ssid_part = escaped_ssid;
+        g_autofree char* hashed_ssid = NULL;
+        if (strlen(candidate_basename) > NAME_MAX) {
+            /* SSID contains multi-byte chars (e.g. emojis) that percent-encode to too many bytes.
+             * Use SHA-256 of the raw SSID bytes to guarantee a valid-length unique filename. */
+            hashed_ssid = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ap->ssid, -1);
+            ssid_part = hashed_ssid;
+        }
+        conf_path = g_strjoin(NULL, "run/NetworkManager/system-connections/netplan-", escaped_netdef_id, "-", ssid_part, ".nmconnection", NULL);
 
         g_key_file_set_string(kf, "wifi", "ssid", ap->ssid);
         if (ap->mode < NETPLAN_WIFI_MODE_OTHER)
