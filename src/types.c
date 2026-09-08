@@ -87,6 +87,8 @@ free_ip_rules(void* ptr)
     NetplanIPRule* rule = ptr;
     g_free(rule->to);
     g_free(rule->from);
+    g_free(rule->iif);
+    g_free(rule->oif);
     g_free(rule);
 }
 
