@@ -823,6 +823,36 @@ _serialize_yaml(
     YAML_BOOL_TRUE(def, event, emitter, "delay-virtual-functions-rebind",
                    def->sriov_delay_virtual_functions_rebind);
 
+    if (def->devlink_params && g_hash_table_size(def->devlink_params) > 0) {
+        GHashTableIter diter;
+        gpointer dkey, dvalue;
+        YAML_SCALAR_PLAIN(event, emitter, "devlink-params");
+        YAML_MAPPING_OPEN(event, emitter);
+        g_hash_table_iter_init(&diter, def->devlink_params);
+        while (g_hash_table_iter_next(&diter, &dkey, &dvalue)) {
+            YAML_NONNULL_STRING(event, emitter, dkey, dvalue);
+        }
+        YAML_MAPPING_CLOSE(event, emitter);
+    }
+
+    if (def->sub_functions && def->sub_functions->len > 0) {
+        YAML_SCALAR_PLAIN(event, emitter, "sub-functions");
+        YAML_SEQUENCE_OPEN(event, emitter);
+        for (unsigned i = 0; i < def->sub_functions->len; ++i) {
+            NetplanSubFunction *sf = g_array_index(def->sub_functions, NetplanSubFunction*, i);
+            YAML_MAPPING_OPEN(event, emitter);
+            YAML_UINT_0(def, event, emitter, "sfnum", sf->sfnum);
+            YAML_STRING(def, event, emitter, "hw-address", sf->hw_address);
+            if (sf->state == NETPLAN_SUBFUNCTION_STATE_ACTIVE) {
+                YAML_NONNULL_STRING_PLAIN(event, emitter, "state", "active");
+            } else if (sf->state == NETPLAN_SUBFUNCTION_STATE_INACTIVE) {
+                YAML_NONNULL_STRING_PLAIN(event, emitter, "state", "inactive");
+            }
+            YAML_MAPPING_CLOSE(event, emitter);
+        }
+        YAML_SEQUENCE_CLOSE(event, emitter);
+    }
+
     if (def->type == NETPLAN_DEF_TYPE_VETH && def->veth_peer_link)
         YAML_STRING(def, event, emitter, "peer", def->veth_peer_link->id);
 

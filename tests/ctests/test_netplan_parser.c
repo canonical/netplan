@@ -167,6 +167,147 @@ test_netplan_parser_sriov_embedded_switch(__unused void** state)
     netplan_state_clear(&np_state);
 }
 
+void
+test_netplan_parser_devlink_params_and_sub_functions(__unused void** state)
+{
+    const char* yaml =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eno1:\n"
+        "      devlink-params:\n"
+        "        flow-steering-mode: smfs\n"
+        "        lag-port-select-mode: multi-port-esw\n"
+        "      sub-functions:\n"
+        "        - sfnum: 1\n"
+        "          hw-address: \"00:11:22:33:44:55\"\n"
+        "          state: active\n"
+        "        - sfnum: 2\n"
+        "          hw-address: \"00:11:22:33:44:56\"\n"
+        "          state: inactive\n";
+
+    NetplanState* np_state = load_string_to_netplan_state(yaml);
+    assert_non_null(np_state);
+
+    NetplanNetDefinition* interface = netplan_state_get_netdef(np_state, "eno1");
+    assert_non_null(interface);
+
+    /* Test devlink_params iterator */
+    struct devlink_params_iter* diter = _netplan_netdef_new_devlink_params_iter(interface);
+    assert_non_null(diter);
+    const char* key = NULL;
+    const char* val = NULL;
+    int count = 0;
+    while (_netplan_devlink_params_iter_next(diter, &key, &val)) {
+        assert_non_null(key);
+        assert_non_null(val);
+        if (strcmp(key, "flow-steering-mode") == 0) {
+            assert_string_equal(val, "smfs");
+            count++;
+        } else if (strcmp(key, "lag-port-select-mode") == 0) {
+            assert_string_equal(val, "multi-port-esw");
+            count++;
+        }
+    }
+    assert_int_equal(count, 2);
+    _netplan_devlink_params_iter_free(diter);
+
+    /* Test sub_functions iterator */
+    struct sub_function_iter* siter = _netplan_netdef_new_sub_function_iter(interface);
+    assert_non_null(siter);
+
+    NetplanSubFunction* sf1 = _netplan_sub_function_iter_next(siter);
+    assert_non_null(sf1);
+    assert_int_equal(sf1->sfnum, 1);
+    assert_string_equal(sf1->hw_address, "00:11:22:33:44:55");
+    assert_int_equal(sf1->state, NETPLAN_SUBFUNCTION_STATE_ACTIVE);
+
+    NetplanSubFunction* sf2 = _netplan_sub_function_iter_next(siter);
+    assert_non_null(sf2);
+    assert_int_equal(sf2->sfnum, 2);
+    assert_string_equal(sf2->hw_address, "00:11:22:33:44:56");
+    assert_int_equal(sf2->state, NETPLAN_SUBFUNCTION_STATE_INACTIVE);
+
+    assert_null(_netplan_sub_function_iter_next(siter));
+    _netplan_sub_function_iter_free(siter);
+
+    /* Test dumping state to YAML (covers sub-functions YAML emission with active & inactive states) */
+    int outfd = memfd_create("netplan-sf-dump", 0);
+    assert_true(netplan_state_dump_yaml(np_state, outfd, NULL));
+    size_t size = (size_t)lseek(outfd, 0, SEEK_CUR) + 1;
+    char* dumped_yaml = malloc(size);
+    memset(dumped_yaml, 0, size);
+    lseek(outfd, 0, SEEK_SET);
+    ssize_t res = read(outfd, dumped_yaml, size - 1);
+    assert_true(res > 0);
+    assert_non_null(strstr(dumped_yaml, "state: active"));
+    assert_non_null(strstr(dumped_yaml, "state: inactive"));
+    assert_non_null(strstr(dumped_yaml, "sfnum: 1"));
+    assert_non_null(strstr(dumped_yaml, "sfnum: 2"));
+    free(dumped_yaml);
+    close(outfd);
+
+    netplan_state_clear(&np_state);
+
+    /* Test re-parsing sub-functions when already added (covers duplicate sequence handling) */
+    NetplanParser* npp = netplan_parser_new();
+    GError* error = NULL;
+    int memfd = memfd_create("test_repeat", 0);
+    ssize_t written = write(memfd, yaml, strlen(yaml));
+    assert_int_equal(written, strlen(yaml));
+    lseek(memfd, 0, SEEK_SET);
+    assert_true(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    lseek(memfd, 0, SEEK_SET);
+    assert_true(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    close(memfd);
+    netplan_parser_clear(&npp);
+}
+
+void
+test_netplan_parser_sub_functions_invalid(__unused void** state)
+{
+    const char* yaml_bad_mac =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eno1:\n"
+        "      sub-functions:\n"
+        "        - sfnum: 1\n"
+        "          hw-address: \"invalid-mac\"\n";
+
+    const char* yaml_bad_state =
+        "network:\n"
+        "  version: 2\n"
+        "  ethernets:\n"
+        "    eno1:\n"
+        "      sub-functions:\n"
+        "        - sfnum: 1\n"
+        "          state: unknown\n";
+
+    NetplanParser* npp = netplan_parser_new();
+    GError* error = NULL;
+    int memfd = memfd_create("test_bad_mac", 0);
+    ssize_t written = write(memfd, yaml_bad_mac, strlen(yaml_bad_mac));
+    assert_int_equal(written, strlen(yaml_bad_mac));
+    lseek(memfd, 0, SEEK_SET);
+    assert_false(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    assert_non_null(error);
+    netplan_error_clear(&error);
+    close(memfd);
+    netplan_parser_clear(&npp);
+
+    npp = netplan_parser_new();
+    memfd = memfd_create("test_bad_state", 0);
+    written = write(memfd, yaml_bad_state, strlen(yaml_bad_state));
+    assert_int_equal(written, strlen(yaml_bad_state));
+    lseek(memfd, 0, SEEK_SET);
+    assert_false(netplan_parser_load_yaml_from_fd(npp, memfd, &error));
+    assert_non_null(error);
+    netplan_error_clear(&error);
+    close(memfd);
+    netplan_parser_clear(&npp);
+}
+
 /* process_document() shouldn't return a missing interface as error if a previous error happened
  * LP#2000324
  */
@@ -458,6 +599,8 @@ main()
            cmocka_unit_test(test_netplan_parser_interface_has_bond_netdef),
            cmocka_unit_test(test_netplan_parser_interface_has_peer_netdef),
            cmocka_unit_test(test_netplan_parser_sriov_embedded_switch),
+           cmocka_unit_test(test_netplan_parser_devlink_params_and_sub_functions),
+           cmocka_unit_test(test_netplan_parser_sub_functions_invalid),
            cmocka_unit_test(test_netplan_parser_process_document_proper_error),
            cmocka_unit_test(test_netplan_parser_process_document_missing_interface_error),
            cmocka_unit_test(test_nm_device_backend_is_nm_by_default),

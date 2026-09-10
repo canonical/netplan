@@ -199,6 +199,28 @@ _netplan_netdef_pertype_iter_next(struct netdef_pertype_iter* it);
 NETPLAN_INTERNAL void
 _netplan_netdef_pertype_iter_free(struct netdef_pertype_iter* it);
 
+struct devlink_params_iter;
+
+NETPLAN_INTERNAL struct devlink_params_iter*
+_netplan_netdef_new_devlink_params_iter(NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL gboolean
+_netplan_devlink_params_iter_next(struct devlink_params_iter* it, const char** out_key, const char** out_val);
+
+NETPLAN_INTERNAL void
+_netplan_devlink_params_iter_free(struct devlink_params_iter* it);
+
+struct sub_function_iter;
+
+NETPLAN_INTERNAL struct sub_function_iter*
+_netplan_netdef_new_sub_function_iter(NetplanNetDefinition* netdef);
+
+NETPLAN_INTERNAL NetplanSubFunction*
+_netplan_sub_function_iter_next(struct sub_function_iter* it);
+
+NETPLAN_INTERNAL void
+_netplan_sub_function_iter_free(struct sub_function_iter* it);
+
 /**
  * @brief   Get the `gateway4` setting of a given @ref NetplanNetDefinition.
  * @details Copies a `NUL`-terminated string into a sized @p out_buffer. If the

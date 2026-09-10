@@ -66,6 +66,7 @@ OpenVPN
 OVS
 performant
 PCI
+PCIe
 PSK
 QEMU
 RDNSS
@@ -73,6 +74,8 @@ RSA
 SIGINT
 SIGUSR
 SLAAC
+SF
+SFs
 SR
 SSID
 SSIDs
@@ -110,6 +113,7 @@ checksums
 config
 curtin
 decrypt
+devlink
 dir
 dmz
 failover
@@ -137,9 +141,10 @@ renderer
 reselection
 runtime
 stateful
-stateful
 statelessly
 subnet
+subfunction
+subfunctions
 systemd
 udev
 unconfigured

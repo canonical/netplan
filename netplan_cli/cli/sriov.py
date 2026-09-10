@@ -19,6 +19,7 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
 import typing
 from typing import Dict, List, Optional, Set
@@ -179,6 +180,120 @@ class PCIDevice(object):
         # {"dev":{}}
         return json_output.get("dev", {}).get(pci, {}).get('mode', '__undetermined')
 
+    def devlink_param_set(self, name: str, value: str, cmode: str = "runtime"):
+        """Set devlink parameter for the PCI device
+        :param name: parameter name
+        :type: str
+        :param value: parameter value
+        :type: str
+        :param cmode: configuration mode (default: runtime)
+        :type: str
+        """
+        devlink_bin = shutil.which("devlink") or "/sbin/devlink"
+        param_name = name.replace("-", "_")
+        subprocess.check_call(
+            [
+                devlink_bin,
+                "dev",
+                "param",
+                "set",
+                f"pci/{self.pci_addr}",
+                "name",
+                param_name,
+                "value",
+                str(value),
+                "cmode",
+                cmode,
+            ]
+        )
+
+    def devlink_get_ports(self) -> dict:
+        """Query devlink ports
+        :return: dictionary of devlink ports
+        :rtype: dict
+        """
+        devlink_bin = shutil.which("devlink") or "/sbin/devlink"
+        try:
+            output = subprocess.check_output(
+                [
+                    devlink_bin,
+                    "-j",
+                    "port",
+                    "show",
+                ],
+                stderr=subprocess.DEVNULL,
+            )
+            json_output = json.loads(output)
+            return json_output.get("port", {})
+        except (subprocess.CalledProcessError, json.JSONDecodeError):
+            return {}
+
+    def devlink_add_sf(self, port_index: int, sfnum: int, pfnum: int = 0):
+        """Add devlink subfunction port
+        :param port_index: port index number
+        :type: int
+        :param sfnum: subfunction number
+        :type: int
+        :param pfnum: physical function number
+        :type: int
+        """
+        devlink_bin = shutil.which("devlink") or "/sbin/devlink"
+        port = f"pci/{self.pci_addr}/{port_index}"
+        subprocess.check_call(
+            [
+                devlink_bin,
+                "port",
+                "add",
+                port,
+                "flavour",
+                "pcisf",
+                "pfnum",
+                str(pfnum),
+                "sfnum",
+                str(sfnum),
+            ]
+        )
+
+    def devlink_set_sf_hw_addr(self, port_identifier: str, hw_addr: str):
+        """Set subfunction HW address
+        :param port_identifier: port identifier (e.g. pci/0000:03:00.0/1)
+        :type: str
+        :param hw_addr: MAC address
+        :type: str
+        """
+        devlink_bin = shutil.which("devlink") or "/sbin/devlink"
+        subprocess.check_call(
+            [
+                devlink_bin,
+                "port",
+                "function",
+                "set",
+                port_identifier,
+                "hw_addr",
+                hw_addr,
+            ]
+        )
+
+    def devlink_set_sf_state(self, port_identifier: str, state: str):
+        """Set subfunction state
+        :param port_identifier: port identifier (e.g. pci/0000:03:00.0/1)
+        :type: str
+        :param state: state (active or inactive)
+        :type: str
+        """
+        devlink_bin = shutil.which("devlink") or "/sbin/devlink"
+        subprocess.check_call(
+            [
+                devlink_bin,
+                "port",
+                "function",
+                "set",
+                port_identifier,
+                "state",
+                state,
+            ]
+        )
+
     def __str__(self) -> str:
         """String represenation of object
         :return: PCI address of string
@@ -281,9 +396,8 @@ def _get_physical_functions(np_state: netplan.State) -> Dict[str, str]:
             if iface := _get_interface_name_for_netdef(np_state[link.id]):
                 pfs[link.id] = iface
         else:
-            # If a netdef also defines the embedded_switch_mode key we consider it's a PF
-            # This enables us to change the eswitch mode even when the PF has no VFs.
-            if netdef._embedded_switch_mode:
+            # If a netdef also defines embedded_switch_mode, devlink_params, or sub_functions, we consider it's a PF
+            if netdef._embedded_switch_mode or netdef._devlink_params or netdef._sub_functions:
                 if iface := _get_interface_name_for_netdef(netdef):
                     pfs[netdef.id] = iface
 
@@ -532,6 +646,59 @@ def apply_sriov_config(config_manager, rootdir='/'):
                     if pcidev.vfs:
                         if not netdef._delay_virtual_functions_rebind:
                             bind_vfs(pcidev.vfs, pcidev.driver)
+
+    # Walk the SR-IOV PFs and configure devlink parameters
+    for netdef_id, iface in pfs.items():
+        netdef = np_state[netdef_id]
+        if devlink_params := netdef._devlink_params:
+            pci_addr = _get_pci_slot_name(iface)
+            pcidev = PCIDevice(pci_addr)
+            for param_name, param_val in devlink_params.items():
+                logging.debug(f'Setting devlink param {param_name}={param_val} on {netdef_id} ({pci_addr})')
+                try:
+                    pcidev.devlink_param_set(param_name, param_val)
+                except Exception as e:
+                    logging.warning(f'Failed to set devlink param {param_name}={param_val} on {netdef_id}: {str(e)}')
+
+    # Walk the SR-IOV PFs and configure sub-functions
+    for netdef_id, iface in pfs.items():
+        netdef = np_state[netdef_id]
+        if sub_functions := netdef._sub_functions:
+            pci_addr = _get_pci_slot_name(iface)
+            pcidev = PCIDevice(pci_addr)
+            existing_ports = pcidev.devlink_get_ports()
+            existing_sfs = {}
+            for port_id, port_data in existing_ports.items():
+                if port_id.startswith(f"pci/{pci_addr}/"):
+                    if port_data.get("flavour") == "pcisf" and "sfnum" in port_data:
+                        existing_sfs[int(port_data["sfnum"])] = (port_id, port_data)
+
+            for sf in sub_functions:
+                sfnum = sf.sfnum
+                if sfnum in existing_sfs:
+                    port_id, port_data = existing_sfs[sfnum]
+                else:
+                    port_id = f"pci/{pci_addr}/{sfnum}"
+                    logging.debug(f'Adding SF sfnum={sfnum} on {netdef_id} as {port_id}')
+                    try:
+                        pcidev.devlink_add_sf(port_index=sfnum, sfnum=sfnum)
+                    except Exception as e:
+                        logging.warning(f'Failed to add SF {sfnum} on {netdef_id}: {str(e)}')
+                        continue
+
+                if sf.hw_address:
+                    try:
+                        logging.debug(f'Setting hw_addr={sf.hw_address} on SF {port_id}')
+                        pcidev.devlink_set_sf_hw_addr(port_id, sf.hw_address)
+                    except Exception as e:
+                        logging.warning(f'Failed to set hw_addr on SF {port_id}: {str(e)}')
+
+                if sf.state:
+                    try:
+                        logging.debug(f'Setting state={sf.state} on SF {port_id}')
+                        pcidev.devlink_set_sf_state(port_id, sf.state)
+                    except Exception as e:
+                        logging.warning(f'Failed to set state on SF {port_id}: {str(e)}')
 
     filtered_vlans_set = set()
     for vlan, netdef in np_state.vlans.items():

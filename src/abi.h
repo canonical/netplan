@@ -217,6 +217,18 @@ typedef struct netplan_backend_settings {
 
 typedef struct netplan_vxlan NetplanVxlan;
 
+typedef enum {
+    NETPLAN_SUBFUNCTION_STATE_UNSET = 0,
+    NETPLAN_SUBFUNCTION_STATE_INACTIVE,
+    NETPLAN_SUBFUNCTION_STATE_ACTIVE,
+} NetplanSubFunctionState;
+
+typedef struct {
+    guint32 sfnum;
+    char* hw_address;
+    NetplanSubFunctionState state;
+} NetplanSubFunction;
+
 /* Keep 'struct netplan_net_definition' in a separate header file, to allow for
  * abidiff to consider it "public API" (although it isn't) and notify us about
  * ABI compatibility issues. */
@@ -431,4 +443,10 @@ struct netplan_net_definition {
     NetplanTristate bridge_learning;
 
     NetplanRAOverrides ra_overrides;
+
+    /* netplan-feature: devlink-params */
+    GHashTable* devlink_params;
+
+    /* netplan-feature: sub-functions */
+    GArray* sub_functions;
 };
