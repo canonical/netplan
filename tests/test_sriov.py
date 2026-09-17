@@ -18,6 +18,7 @@
 
 from io import StringIO
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -1014,10 +1015,15 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         self.assertEqual(len(writes), handle().write.call_count)
         self.assertEqual(handle().write.call_args_list, [call(elem[1]) for elem in writes])
 
-        self.assertEqual(2, scc.call_count)
+        self.assertEqual(3, scc.call_count)
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
         scc.assert_has_calls([
-            call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.0', 'mode', 'legacy']),
-            call(['/sbin/devlink', 'dev', 'eswitch', 'set', 'pci/0000:03:00.1', 'mode', 'switchdev'])
+            call([devlink_bin, 'dev', 'eswitch', 'set', 'pci/0000:03:00.0', 'mode', 'legacy']),
+            call([
+                devlink_bin, 'dev', 'param', 'set', 'pci/0000:03:00.1',
+                'name', 'flow_steering_mode', 'value', 'smfs', 'cmode', 'runtime'
+            ]),
+            call([devlink_bin, 'dev', 'eswitch', 'set', 'pci/0000:03:00.1', 'mode', 'switchdev'])
         ])
 
     @patch('netplan_cli.cli.sriov.unbind_vfs')
@@ -1339,8 +1345,9 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         pcidev = sriov.PCIDevice('0000:03:00.0')
         check_output_mock.return_value = '{"dev":{"pci/0000:03:00.0":{"mode":"switchdev"}}}'
         self.assertEqual(pcidev.devlink_eswitch_mode(), 'switchdev')
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
         check_output_mock.assert_has_calls([
-            call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+            call([devlink_bin, '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
         ])
 
     @patch('subprocess.check_output')
@@ -1348,8 +1355,9 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         pcidev = sriov.PCIDevice('0000:03:00.0')
         check_output_mock.return_value = '{"dev":{}}'
         self.assertEqual(pcidev.devlink_eswitch_mode(), '__undetermined')
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
         check_output_mock.assert_has_calls([
-            call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+            call([devlink_bin, '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
         ])
 
     @patch('subprocess.check_output')
@@ -1357,9 +1365,46 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         pcidev = sriov.PCIDevice('0000:03:00.0')
         check_output_mock.side_effect = subprocess.CalledProcessError(1, None)
         self.assertEqual(pcidev.devlink_eswitch_mode(), '__undetermined')
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
         check_output_mock.assert_has_calls([
-            call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+            call([devlink_bin, '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
         ])
+
+    @patch('subprocess.check_call')
+    def test_PCIDevice_devlink_param_set(self, check_call_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.devlink_param_set('flow_steering_mode', 'smfs')
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
+        check_call_mock.assert_called_once_with([
+            devlink_bin, 'dev', 'param', 'set', 'pci/0000:03:00.0',
+            'name', 'flow_steering_mode', 'value', 'smfs', 'cmode', 'runtime'
+        ])
+
+    @patch.object(sriov.PCIDevice, 'driver', new_callable=unittest.mock.PropertyMock)
+    @patch.object(sriov.PCIDevice, 'devlink_param_set')
+    def test_PCIDevice_ensure_mlx5_switchdev_prerequisites_success(self, param_set_mock, driver_mock):
+        driver_mock.return_value = 'mlx5_core'
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.ensure_mlx5_switchdev_prerequisites()
+        param_set_mock.assert_called_once_with('flow_steering_mode', 'smfs')
+
+    @patch.object(sriov.PCIDevice, 'driver', new_callable=unittest.mock.PropertyMock)
+    @patch.object(sriov.PCIDevice, 'devlink_param_set')
+    def test_PCIDevice_ensure_mlx5_switchdev_prerequisites_unsupported(self, param_set_mock, driver_mock):
+        driver_mock.return_value = 'mlx5_core'
+        param_set_mock.side_effect = subprocess.CalledProcessError(1, None)
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        # Should catch the error and not raise
+        pcidev.ensure_mlx5_switchdev_prerequisites()
+        param_set_mock.assert_called_once_with('flow_steering_mode', 'smfs')
+
+    @patch.object(sriov.PCIDevice, 'driver', new_callable=unittest.mock.PropertyMock)
+    @patch.object(sriov.PCIDevice, 'devlink_param_set')
+    def test_PCIDevice_ensure_mlx5_switchdev_prerequisites_other_driver(self, param_set_mock, driver_mock):
+        driver_mock.return_value = 'i40e'
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.ensure_mlx5_switchdev_prerequisites()
+        param_set_mock.assert_not_called()
 
 
 class TestParser(TestBase):
@@ -1382,6 +1427,7 @@ class TestParser(TestBase):
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
 After=netplan-sriov-apply.service
+After=openibd.service
 After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-enblue.device
 
@@ -1391,6 +1437,7 @@ ExecStart=/usr/sbin/netplan rebind --debug engreen enblue
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
+After=openibd.service
 Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-enblue.device
@@ -1414,6 +1461,7 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
 After=netplan-sriov-apply.service
+After=openibd.service
 After=sys-subsystem-net-devices-engreen.device
 
 [Service]
@@ -1422,6 +1470,7 @@ ExecStart=/usr/sbin/netplan rebind --debug engreen
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
+After=openibd.service
 Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 
@@ -1462,6 +1511,7 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
 After=netplan-sriov-apply.service
+After=openibd.service
 After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-enblue.device
 
@@ -1471,6 +1521,7 @@ ExecStart=/usr/sbin/netplan rebind --debug engreen enblue
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
+After=openibd.service
 Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-enblue.device
@@ -1505,6 +1556,7 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
 Description=(Re-)bind SR-IOV Virtual Functions to their driver
 After=network.target
 After=netplan-sriov-apply.service
+After=openibd.service
 After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-;en \\; a\\t;\\tb ;\\tc\\t; d; \\n;\\nabc.device
 
@@ -1514,6 +1566,7 @@ ExecStart=/usr/sbin/netplan rebind --debug engreen ;en \\; a\\t;\\tb ;\\tc\\t; d
 ''', 'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
+After=openibd.service
 Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 After=sys-subsystem-net-devices-;en \\; a\\t;\\tb ;\\tc\\t; d; \\n;\\nabc.device
@@ -1538,6 +1591,7 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
         self.assert_sriov({'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
+After=openibd.service
 Before=network-pre.target
 After=sys-subsystem-net-devices-engreen.device
 
@@ -1562,6 +1616,7 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
         self.assert_sriov({'apply.service': '''[Unit]
 Description=Apply SR-IOV configuration
 DefaultDependencies=no
+After=openibd.service
 Before=network-pre.target
 
 [Service]

@@ -19,6 +19,7 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
 import typing
 from typing import Dict, List, Optional, Set
@@ -138,9 +139,10 @@ class PCIDevice(object):
         :param value: value to set for property
         :type: str
         """
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
         subprocess.check_call(
             [
-                "/sbin/devlink",
+                devlink_bin,
                 "dev",
                 obj_name,
                 "set",
@@ -150,16 +152,54 @@ class PCIDevice(object):
             ]
         )
 
+    def devlink_param_set(self, param: str, value: str, cmode: str = 'runtime'):
+        """Set devlink parameter for the PCI device
+        :param param: devlink param name
+        :type: str
+        :param value: value to set
+        :type: str
+        :param cmode: configuration mode (default: runtime)
+        :type: str
+        """
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
+        subprocess.check_call(
+            [
+                devlink_bin,
+                "dev",
+                "param",
+                "set",
+                f"pci/{self.pci_addr}",
+                "name",
+                param,
+                "value",
+                value,
+                "cmode",
+                cmode,
+            ]
+        )
+
+    def ensure_mlx5_switchdev_prerequisites(self):
+        """
+        In DOCA-OFED / MLNX_OFED, transitioning to switchdev mode requires
+        the flow steering mode (smfs) to be configured prior to the transition.
+        """
+        if self.driver in ['mlx5_core']:
+            try:
+                self.devlink_param_set('flow_steering_mode', 'smfs')
+            except Exception as e:
+                logging.debug(f'Could not set flow steering mode for {self.pci_addr}: {e}')
+
     def devlink_eswitch_mode(self) -> str:
         """Query eswitch mode via devlink for the PCI device
         :return: the eswitch mode or '__undetermined' if it can't be retrieved
         :rtype: str
         """
         pci = f"pci/{self.pci_addr}"
+        devlink_bin = shutil.which('devlink') or '/sbin/devlink'
         try:
             output = subprocess.check_output(
                 [
-                    "/sbin/devlink",
+                    devlink_bin,
                     "-j",
                     "dev",
                     "eswitch",
@@ -465,6 +505,34 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # interface that they're currently matching to
     vfs_set = _get_virtual_functions(np_state)
     pfs = _get_physical_functions(np_state)
+    # Walk the SR-IOV PFs and check if we need to change the eswitch mode
+    # NOTE: eSwitch mode and prerequisite flow steering must be configured
+    # BEFORE allocating or increasing the number of VFs (especially for DOCA-OFED).
+    for netdef_id, iface in pfs.items():
+        netdef = np_state[netdef_id]
+        eswitch_mode = netdef._embedded_switch_mode
+        if eswitch_mode in ['switchdev', 'legacy']:
+            pci_addr = _get_pci_slot_name(iface)
+            pcidev = PCIDevice(pci_addr)
+            current_eswitch_mode_system = pcidev.devlink_eswitch_mode()
+            if eswitch_mode != current_eswitch_mode_system:
+                if pcidev.is_pf:
+                    logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
+                    if pcidev.vfs:
+                        try:
+                            unbind_vfs(pcidev.vfs, pcidev.driver)
+                        except Exception as e:
+                            logging.warning(f'Unbinding of VFs for {netdef_id} failed: {str(e)}')
+
+                    if eswitch_mode == 'switchdev':
+                        pcidev.ensure_mlx5_switchdev_prerequisites()
+
+                    logging.debug(f'Changing eswitch mode from {current_eswitch_mode_system} to {eswitch_mode} for: {netdef_id}')
+                    pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
+
+                    if pcidev.vfs:
+                        if not netdef._delay_virtual_functions_rebind:
+                            bind_vfs(pcidev.vfs, pcidev.driver)
 
     # setup the required number of VFs per PF
     # at the same time store which PFs got changed in case the NICs
@@ -508,30 +576,6 @@ def apply_sriov_config(config_manager, rootdir='/'):
         else:
             if vf in interfaces:
                 vfs[vf] = vf
-
-    # Walk the SR-IOV PFs and check if we need to change the eswitch mode
-    for netdef_id, iface in pfs.items():
-        netdef = np_state[netdef_id]
-        eswitch_mode = netdef._embedded_switch_mode
-        if eswitch_mode in ['switchdev', 'legacy']:
-            pci_addr = _get_pci_slot_name(iface)
-            pcidev = PCIDevice(pci_addr)
-            current_eswitch_mode_system = pcidev.devlink_eswitch_mode()
-            if eswitch_mode != current_eswitch_mode_system:
-                if pcidev.is_pf:
-                    logging.debug("Found VFs of {}: {}".format(pcidev, pcidev.vf_addrs))
-                    if pcidev.vfs:
-                        try:
-                            unbind_vfs(pcidev.vfs, pcidev.driver)
-                        except Exception as e:
-                            logging.warning(f'Unbinding of VFs for {netdef_id} failed: {str(e)}')
-
-                    logging.debug(f'Changing eswitch mode from {current_eswitch_mode_system} to {eswitch_mode} for: {netdef_id}')
-                    pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
-
-                    if pcidev.vfs:
-                        if not netdef._delay_virtual_functions_rebind:
-                            bind_vfs(pcidev.vfs, pcidev.driver)
 
     filtered_vlans_set = set()
     for vlan, netdef in np_state.vlans.items():

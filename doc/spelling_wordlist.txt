@@ -17,6 +17,7 @@ dbus
 DBus
 decrypt
 dev
+devlink
 dhcp
 dir
 distil
@@ -76,6 +77,7 @@ nmconnection
 openvswitch
 ovs
 passthrough
+PCIe
 pre
 prefixtlb
 preshared
@@ -85,10 +87,14 @@ recognise
 renderer
 reselection
 rulebook
+SF
+SFs
 SSIDs
 stateful
 statelessly
 subnet
+subfunction
+subfunctions
 subtree
 systemd
 tcp
