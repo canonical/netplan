@@ -546,6 +546,29 @@ test_scrub_systemd_unit_content(__unused void** state)
     g_free(res);
 }
 
+void
+test_util_free_to_file_with_permissions_umask(__unused void** state)
+{
+    char template[] = "/tmp/netplan-test-XXXXXX";
+    char* tempdir = mkdtemp(template);
+    assert_non_null(tempdir);
+
+    GString* s = g_string_new("test data\n");
+    mode_t old_umask = umask(0077);
+
+    _netplan_g_string_free_to_file_with_permissions(s, tempdir, "testfile", ".conf", "root", "root", 0640);
+
+    umask(old_umask);
+
+    g_autofree char* filepath = g_build_filename(tempdir, "testfile.conf", NULL);
+    struct stat st;
+    assert_int_equal(stat(filepath, &st), 0);
+    assert_int_equal(st.st_mode & 0777, 0640);
+
+    unlink(filepath);
+    rmdir(tempdir);
+}
+
 int
 setup(__unused void** state)
 {
@@ -584,6 +607,7 @@ main()
            cmocka_unit_test(test_util_get_link_local_true),
            cmocka_unit_test(test_util_get_link_local_false),
            cmocka_unit_test(test_scrub_systemd_unit_content),
+           cmocka_unit_test(test_util_free_to_file_with_permissions_umask),
        };
 
        return cmocka_run_group_tests(tests, setup, tear_down);
