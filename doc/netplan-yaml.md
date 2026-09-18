@@ -434,6 +434,12 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
   > In addition to the addresses themselves one can specify configuration
   > parameters as mappings. Current supported options are:
 
+  - **`duplicate-address-detection`** (scalar)
+
+    > Configure the duplicate address detection (DAD). Valid options
+    > are `ipv4`, `ipv6`, `both` or `none`. Currently supported on the
+    > networkd back end only.
+
   - **`lifetime`** (scalar) – since 0.100
 
     > Default: `forever`. This can be `forever` or `0` and corresponds
@@ -457,6 +463,8 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
             - "10.0.0.15/24":
                 lifetime: 0
                 label: "maas"
+            - "169.254.10.1/24":
+                duplicate-address-detection: "none"
             - "2001:1::1/64"
     ```
 
