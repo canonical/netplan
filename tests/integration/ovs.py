@@ -463,8 +463,17 @@ class _CommonTests():
     def test_ovsdb_server_is_not_running(self):
         self.setup_eth(None, False)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'br0'], stderr=subprocess.DEVNULL)
+        # ovsdb-server.socket (added in OVS 4.0.0) must be stopped too, otherwise
+        # systemd socket activation will restart ovsdb-server.service on the next
+        # connection attempt (e.g. from ovs-vsctl show), making the database
+        # reachable again despite the service being stopped. Older OVS releases
+        # don't ship this unit, so failures here are ignored on purpose to preserve
+        # current functionality.
+        self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovsdb-server.socket'],
+                        stderr=subprocess.DEVNULL)
         self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovsdb-server.service'])
         self.addCleanup(subprocess.call, ['systemctl', 'start', 'ovs-vswitchd.service'])
+        subprocess.call(['systemctl', 'stop', 'ovsdb-server.socket'], stderr=subprocess.DEVNULL)
         subprocess.check_call(['systemctl', 'stop', 'ovsdb-server.service'])
         with open(self.config, 'w') as f:
             f.write('''network:
