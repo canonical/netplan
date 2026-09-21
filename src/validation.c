@@ -520,8 +520,8 @@ validate_sriov_rules(const NetplanParser* npp, NetplanNetDefinition* nd, GError*
                 }
             }
         }
-        /* Does it set the eswitch mode? It can be set regardless if the interface has VFs */
-        if (nd->embedded_switch_mode) {
+        /* Does it set the eswitch mode, devlink params, or sub-functions? They can be set regardless if the interface has VFs */
+        if (nd->embedded_switch_mode || (nd->devlink_params && g_hash_table_size(nd->devlink_params) > 0) || (nd->sub_functions && nd->sub_functions->len > 0)) {
             is_sriov_pf = TRUE;
         }
         if (nd->sriov_delay_virtual_functions_rebind && !is_sriov_pf) {
