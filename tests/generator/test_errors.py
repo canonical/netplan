@@ -360,6 +360,18 @@ class TestConfigErrors(TestBase):
       ipv6-address-generation: eui64''', expect_fail=True)
         self.assertIn("engreen: ipv6-address-generation and ipv6-address-token are mutually exclusive", err)
 
+    def test_addr_gen_mode_and_addr_gen_token_array(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      ipv6-address-token:
+        - ::31
+        - ::32
+      ipv6-address-generation: stable-privacy''', expect_fail=True)
+        self.assertIn("engreen: ipv6-address-generation and ipv6-address-token are mutually exclusive", err)
+
     def test_invalid_addr_gen_token(self):
         err = self.generate('''network:
   version: 2
@@ -368,6 +380,38 @@ class TestConfigErrors(TestBase):
     engreen:
       ipv6-address-token: INVALID''', expect_fail=True)
         self.assertIn("invalid ipv6-address-token 'INVALID'", err)
+
+    def test_invalid_addr_gen_token_in_array(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      ipv6-address-token:
+        - ::31
+        - INVALID
+        - ::33''', expect_fail=True)
+        self.assertIn("invalid ipv6-address-token 'INVALID'", err)
+
+    def test_empty_addr_gen_token_array(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      dhcp6: true
+      ipv6-address-token: []''', expect_fail=True)
+        self.assertIn("ipv6-address-token must not be empty", err)
+
+    def test_invalid_type_addr_gen_token(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    engreen:
+      dhcp6: true
+      ipv6-address-token: {foo: bar}''', expect_fail=True)
+        self.assertIn("invalid type for ipv6-address-token: must be a scalar or sequence", err)
 
     def test_nm_devices_missing_passthrough(self):
         err = self.generate('''network:

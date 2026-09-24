@@ -436,7 +436,8 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
         }
     }
 
-    if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && nd->ip6_addr_gen_token) {
+    if (nd->ip6_addr_gen_mode != NETPLAN_ADDRGEN_DEFAULT && 
+        (nd->ip6_addr_gen_token || (nd->ip6_addr_gen_tokens && nd->ip6_addr_gen_tokens->len > 0))) {
         return yaml_error(npp, NULL, error, "%s: ipv6-address-generation and ipv6-address-token are mutually exclusive", nd->id);
     }
 

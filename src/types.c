@@ -253,6 +253,7 @@ reset_netdef(NetplanNetDefinition* netdef, NetplanDefType new_type, NetplanBacke
     netdef->ip6_privacy = FALSE;
     netdef->ip6_addr_gen_mode = NETPLAN_ADDRGEN_DEFAULT;
     FREE_AND_NULLIFY(netdef->ip6_addr_gen_token);
+    free_garray_with_destructor(&netdef->ip6_addr_gen_tokens, g_free);
 
     FREE_AND_NULLIFY(netdef->gateway4);
     FREE_AND_NULLIFY(netdef->gateway6);
