@@ -2424,6 +2424,19 @@ handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* da
     char** ref_ptr;
 
     component = g_hash_table_lookup(npp->parsed_defs, scalar(node));
+    if (!component && npp->parsed_defs) {
+        GHashTableIter iter;
+        gpointer k, v;
+        g_hash_table_iter_init(&iter, npp->parsed_defs);
+        while (g_hash_table_iter_next(&iter, &k, &v)) {
+            NetplanNetDefinition* nd = (NetplanNetDefinition*) v;
+            if (!g_strcmp0(nd->set_name, scalar(node)) ||
+                !g_strcmp0(nd->match.original_name, scalar(node))) {
+                component = nd;
+                break;
+            }
+        }
+    }
     if (!component) {
         add_missing_node(npp, node);
     } else {
@@ -3575,6 +3588,18 @@ process_missing_ids(NetplanParser* npp, __unused GError** error)
          */
         if (netdef->type == NETPLAN_DEF_TYPE_VETH && backend == NETPLAN_BACKEND_NM) {
             netdef->veth_peer_link = netplan_netdef_new(npp, scalar(missing->node), NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
+            g_hash_table_iter_remove(&iter);
+        }
+
+        /* BOND primary case: NetworkManager doesn't enforce the existence or file ordering of
+         * the primary interface in order to create a bond. NM writes each connection into a
+         * separate YAML file, and member netdef IDs may use NM-<UUID> instead of the interface name.
+         */
+        if (netdef->type == NETPLAN_DEF_TYPE_BOND && backend == NETPLAN_BACKEND_NM) {
+            NetplanNetDefinition* placeholder = netplan_netdef_new(npp, scalar(missing->node), NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
+            placeholder->bond_params.primary_member = g_strdup(scalar(missing->node));
+            netdef->bond_params.primary_member = g_strdup(scalar(missing->node));
+            mark_data_as_dirty(npp, &netdef->bond_params.primary_member);
             g_hash_table_iter_remove(&iter);
         }
     }
