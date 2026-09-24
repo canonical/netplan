@@ -1019,3 +1019,124 @@ class TestConfigErrors(TestBase):
   bridges:
     br1:
       interfaces: [bond0]''')
+
+    def test_bond_primary_nm_matched_by_name(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0:
+      match:
+        name: "cockpit"
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: "cockpit"
+''')
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+            'NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0': '''[connection]
+id=netplan-NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0
+type=ethernet
+interface-name=cockpit
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_primary_is_allowed_to_be_missing_for_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: cockpit
+''')
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_primary_with_missing_netdef_found_in_the_next_file_wont_fail(self):
+        self.generate('''network:
+  renderer: NetworkManager
+  version: 2
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: cockpit''', confs={'b': '''network:
+  renderer: NetworkManager
+  version: 2
+  ethernets:
+    NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0:
+      match:
+        name: "cockpit"'''})
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+            'NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0': '''[connection]
+id=netplan-NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0
+type=ethernet
+interface-name=cockpit
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
