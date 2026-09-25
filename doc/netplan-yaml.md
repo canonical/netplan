@@ -1585,6 +1585,7 @@ The specific settings for bonds are defined below.
     > Set whether to set all ports to the same MAC address when adding
     > them to the bond, or how else the system should handle MAC addresses.
     > The possible values are `none`, `active` and `follow`.
+    > This only works with specific bonding modes such as active-backup.
 
   - **`gratuitous-arp`** (scalar)
 
