@@ -1,2 +1,9 @@
 option('testing', type: 'boolean', value: true)
 option('unit_testing', type: 'boolean', value: true)
+
+option('systemdsystemunitdir', type : 'string',
+       description : 'directory to install systemd system units into ["no" disables]')
+option('systemdsystemgeneratordir', type : 'string',
+       description : 'directory to install systemd system generators into ["no" disables]')
+option('completionsdir', type : 'string',
+       description : 'directory to install bash completions into ["no" disables]')
