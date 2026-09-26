@@ -97,7 +97,22 @@ class TestNetworkd(TestBase):
       dhcp6-overrides:
         %s: no
 ''' % (override_name, override_name))
-        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen' + '%s=false\n' % networkd_name})
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCPv4]
+RouteMetric=100
+UseMTU=true
+%s=false
+
+[DHCPv6]
+RouteMetric=100
+%s=false
+''' % (networkd_name, networkd_name)})
 
         # mismatched values
         err = self.generate('''network:
@@ -151,7 +166,22 @@ class TestNetworkd(TestBase):
       dhcp6-overrides:
         %s: foo
 ''' % (override_name, override_name))
-        self.assert_networkd({'engreen.network': ND_DHCPYES % 'engreen' + '%s=foo\n' % networkd_name})
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCPv4]
+RouteMetric=100
+UseMTU=true
+%s=foo
+
+[DHCPv6]
+RouteMetric=100
+%s=foo
+''' % (networkd_name, networkd_name)})
 
         # mismatched values
         err = self.generate('''network:
@@ -278,7 +308,7 @@ Name=engreen
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=6000
 UseMTU=true
 '''})
@@ -299,9 +329,8 @@ Name=engreen
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv6]
 RouteMetric=6000
-UseMTU=true
 '''})
 
         # dhcp4 and dhcp6
@@ -323,9 +352,12 @@ Name=engreen
 DHCP=yes
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=6000
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=6000
 '''})
 
         # mismatched values
@@ -369,7 +401,60 @@ UseMTU=true
         self.assert_dhcp_overrides_guint('route-metric', 'RouteMetric')
 
     def test_dhcp_overrides_use_routes(self):
-        self.assert_dhcp_overrides_bool('use-routes', 'UseRoutes')
+        # dhcp4 only
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        use-routes: no
+''')
+        self.assert_networkd({'engreen.network': ND_DHCP4 % 'engreen' + 'UseRoutes=false\n'})
+
+        # dhcp4 and dhcp6
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        use-routes: no
+      dhcp6: yes
+      dhcp6-overrides:
+        use-routes: no
+''')
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+
+[DHCPv4]
+RouteMetric=100
+UseMTU=true
+UseRoutes=false
+
+[DHCPv6]
+RouteMetric=100
+'''})
+
+        # mismatched values
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      dhcp4: yes
+      dhcp4-overrides:
+        use-routes: yes
+      dhcp6: yes
+      dhcp6-overrides:
+        use-routes: no
+''', expect_fail=True)
+        self.assertIn('ERROR: engreen: networkd requires that '
+                      'use-routes has the same value in both dhcp4_overrides and dhcp6_overrides',
+                      err.strip())
 
 
 class TestNetworkManager(TestBase):

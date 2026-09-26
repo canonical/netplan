@@ -43,7 +43,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -71,9 +71,8 @@ LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 ''',
                               'br0.netdev': '''[NetDev]
 Name=br0
@@ -104,7 +103,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -129,7 +128,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -157,7 +156,7 @@ LinkLocalAddressing=ipv6
 Address=1.2.3.4/12
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -187,7 +186,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -234,7 +233,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -282,7 +281,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
