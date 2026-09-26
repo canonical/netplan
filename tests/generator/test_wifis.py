@@ -168,7 +168,7 @@ LinkLocalAddressing=ipv6
 Destination=10.10.10.0/24
 Gateway=8.8.8.8
 
-[DHCP]
+[DHCPv4]
 RouteMetric=600
 UseMTU=true
 '''})

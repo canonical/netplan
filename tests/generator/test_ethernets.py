@@ -143,7 +143,7 @@ PermanentMACAddress=11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 
@@ -179,7 +179,7 @@ Driver=ixgbe
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -297,7 +297,7 @@ UseMTU=true
       dhcp4: true''')
 
         self.assert_networkd({'def1.network': '[Match]\n\n[Network]\nDHCP=ipv4\nLinkLocalAddressing=ipv6\n\n'
-                                              '[DHCP]\nRouteMetric=100\nUseMTU=true\n'})
+                                              '[DHCPv4]\nRouteMetric=100\nUseMTU=true\n'})
         self.assert_networkd_udev(None)
         self.assert_nm(None, '''[device-netplan.ethernets.def1]
 match-device=type:ethernet
@@ -321,7 +321,7 @@ Name=en1s*
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
