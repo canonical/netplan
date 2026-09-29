@@ -45,6 +45,7 @@ write_sriov_rebind_systemd_unit(GHashTable* pfs, const char* generator_dir, gboo
     g_string_append(s, "Description=(Re-)bind SR-IOV Virtual Functions to their driver\n");
     g_string_append_printf(s, "After=network.target\n");
     g_string_append_printf(s, "After=netplan-sriov-apply.service\n");
+    g_string_append_printf(s, "After=openibd.service\n");
 
     /* Run after udev */
     g_hash_table_iter_init(&iter, pfs);
@@ -98,6 +99,7 @@ write_sriov_apply_systemd_unit(GHashTable* pfs, const char* generator_dir, gbool
     GString* s = g_string_new("[Unit]\n");
     g_string_append(s, "Description=Apply SR-IOV configuration\n");
     g_string_append(s, "DefaultDependencies=no\n");
+    g_string_append(s, "After=openibd.service\n");
     g_string_append(s, "Before=network-pre.target\n");
 
     g_hash_table_iter_init(&iter, pfs);
