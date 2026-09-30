@@ -556,7 +556,7 @@ test_util_free_to_file_with_permissions_umask(__unused void** state)
     GString* s = g_string_new("test data\n");
     mode_t old_umask = umask(0077);
 
-    _netplan_g_string_free_to_file_with_permissions(s, tempdir, "testfile", ".conf", "root", "root", 0640);
+    _netplan_g_string_free_to_file_with_permissions(NULL, s, tempdir, "testfile", ".conf", "root", "root", 0640);
 
     umask(old_umask);
 

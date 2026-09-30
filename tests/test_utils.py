@@ -293,7 +293,7 @@ class TestUtils(unittest.TestCase):
         utils.systemctl('start', ['service1', 'service2'])
         self.assertEqual(self.mock_systemctl.calls(), [['systemctl', 'start', '--no-block', 'service1', 'service2']])
 
-    def test_networkd_interfaces(self):
+    def test_networkd_failed_interfaces(self):
         self.mock_networkctl = MockCmd('networkctl')
         path_env = os.environ['PATH']
         os.environ['PATH'] = os.path.dirname(self.mock_networkctl.path) + os.pathsep + path_env
@@ -301,11 +301,11 @@ class TestUtils(unittest.TestCase):
   1 lo              loopback carrier    unmanaged
   2 ens3            ether    routable   configured
   3 wlan0           wlan     routable   configuring
+  4 ens4            ether    off        failed
 174 wwan0           wwan     off        linger''')
-        res = utils.networkd_interfaces()
+        res = utils.networkd_failed_interfaces()
         self.assertEqual(self.mock_networkctl.calls(), [['networkctl', '--no-pager', '--no-legend']])
-        self.assertIn('2', res)
-        self.assertIn('3', res)
+        self.assertEqual(res, {'4'})
 
     def test_networkctl_reload(self):
         self.mock_networkctl = MockCmd('networkctl')

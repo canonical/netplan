@@ -64,6 +64,20 @@ _netplan_safe_mkdir_p_dir(const char* file_path)
     umask(orig_umask);
 }
 
+/* TRUE if @full_path already holds exactly @contents. Leaving such a file alone
+ * keeps its inode and mtime, so systemd-networkd's reload does not reconfigure
+ * links whose configuration did not change. */
+static gboolean
+file_has_contents(const char* full_path, const char* contents)
+{
+    g_autofree gchar* existing = NULL;
+    gsize len = 0;
+
+    if (!g_file_get_contents(full_path, &existing, &len, NULL))
+        return FALSE;
+    return len == strlen(contents) && memcmp(existing, contents, len) == 0;
+}
+
 /**
  * Write a GString to a file and free it. Create necessary parent directories
  * and exit with error message on error.
@@ -93,7 +107,9 @@ void _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char*
     }
 }
 
-void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, int mode)
+/* @np_state, if given, records the written (or unchanged) file so
+ * _netplan_networkd_cleanup_stale() can tell it apart from stale ones. */
+void _netplan_g_string_free_to_file_with_permissions(const NetplanState* np_state, GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, int mode)
 {
     g_autofree char* full_path = NULL;
     g_autofree char* path_suffix = NULL;
@@ -105,15 +121,20 @@ void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* roo
 
     path_suffix = g_strjoin(NULL, path, suffix, NULL);
     full_path = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S, path_suffix, NULL);
-    _netplan_safe_mkdir_p_dir(full_path);
-    if (!g_file_set_contents_full(full_path, contents, -1, G_FILE_SET_CONTENTS_CONSISTENT | G_FILE_SET_CONTENTS_ONLY_EXISTING, mode, &error)) {
-        /* the mkdir() just succeeded, there is no sensible
-         * method to test this without root privileges, bind mounts, and
-         * simulating ENOSPC */
-        // LCOV_EXCL_START
-        g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
-        exit(1);
-        // LCOV_EXCL_STOP
+    if (np_state && np_state->written_files)
+        g_hash_table_add(np_state->written_files, g_strdup(full_path));
+    /* owner and mode are still enforced below, even if the write is skipped */
+    if (!file_has_contents(full_path, contents)) {
+        _netplan_safe_mkdir_p_dir(full_path);
+        if (!g_file_set_contents_full(full_path, contents, -1, G_FILE_SET_CONTENTS_CONSISTENT | G_FILE_SET_CONTENTS_ONLY_EXISTING, mode, &error)) {
+            /* the mkdir() just succeeded, there is no sensible
+             * method to test this without root privileges, bind mounts, and
+             * simulating ENOSPC */
+            // LCOV_EXCL_START
+            g_fprintf(stderr, "ERROR: cannot create file %s: %s\n", path, error->message);
+            exit(1);
+            // LCOV_EXCL_STOP
+        }
     }
 
     /* Here we take the owner and group names and look up for their IDs in the passwd and group files.
@@ -143,14 +164,14 @@ void _netplan_g_string_free_to_file_with_permissions(GString* s, const char* roo
 }
 
 /**
- * Remove all files matching given glob.
+ * Remove files matching given glob that are not listed in @written (may be NULL).
  */
 void
-_netplan_unlink_glob(const char* rootdir, const char* _glob)
+_netplan_unlink_glob_except_written(GHashTable* written, const char* rootdir, const char* _glob)
 {
     glob_t gl;
     int rc;
-    g_autofree char* rglob = g_strjoin(NULL, rootdir != NULL ? rootdir : "", G_DIR_SEPARATOR_S, _glob, NULL);
+    g_autofree char* rglob = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S, _glob, NULL);
 
     rc = glob(rglob, GLOB_BRACE, NULL, &gl);
     if (rc != 0 && rc != GLOB_NOMATCH) {
@@ -161,8 +182,18 @@ _netplan_unlink_glob(const char* rootdir, const char* _glob)
     }
 
     for (size_t i = 0; i < gl.gl_pathc; ++i)
-        unlink(gl.gl_pathv[i]);
+        if (!written || !g_hash_table_contains(written, gl.gl_pathv[i]))
+            unlink(gl.gl_pathv[i]);
     globfree(&gl);
+}
+
+/**
+ * Remove all files matching given glob.
+ */
+void
+_netplan_unlink_glob(const char* rootdir, const char* _glob)
+{
+    _netplan_unlink_glob_except_written(NULL, rootdir, _glob);
 }
 
 /**

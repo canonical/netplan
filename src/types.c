@@ -397,6 +397,7 @@ netplan_state_new()
 {
     NetplanState* np_state = g_new0(NetplanState, 1);
     netplan_state_reset(np_state);
+    np_state->written_files = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
     return np_state;
 }
 
@@ -426,6 +427,7 @@ netplan_state_clear(NetplanState** np_state_p)
     NetplanState* np_state = *np_state_p;
     *np_state_p = NULL;
     netplan_state_reset(np_state);
+    g_hash_table_destroy(np_state->written_files);
     g_free(np_state);
 }
 
@@ -462,6 +464,9 @@ netplan_state_reset(NetplanState* np_state)
         g_hash_table_destroy(np_state->global_renderer);
         np_state->global_renderer = NULL;
     }
+
+    if (np_state->written_files)
+        g_hash_table_remove_all(np_state->written_files);
 
     np_state->flags = 0;
 }

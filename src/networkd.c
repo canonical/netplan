@@ -221,7 +221,7 @@ write_wireguard_params(GString* s, const NetplanNetDefinition* def)
 }
 
 STATIC void
-write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char* path, gboolean validation_only)
+write_link_file(const NetplanState* np_state, const NetplanNetDefinition* def, const char* rootdir, const char* path, gboolean validation_only)
 {
     GString* s = NULL;
 
@@ -300,7 +300,7 @@ write_link_file(const NetplanNetDefinition* def, const char* rootdir, const char
         return;
     }
 
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".link", "root", "root", 0640);
+    _netplan_g_string_free_to_file_with_permissions(np_state, s, rootdir, path, ".link", "root", "root", 0640);
 }
 
 STATIC gboolean
@@ -479,7 +479,7 @@ write_vxlan_parameters(const NetplanNetDefinition* def, GString* s)
 }
 
 STATIC void
-write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const char* path, gboolean validation_only)
+write_netdev_file(const NetplanState* np_state, const NetplanNetDefinition* def, const char* rootdir, const char* path, gboolean validation_only)
 {
     GString* s = NULL;
 
@@ -585,7 +585,7 @@ write_netdev_file(const NetplanNetDefinition* def, const char* rootdir, const ch
         return;
     }
 
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".netdev", "root", NETWORKD_GROUP, 0640);
+    _netplan_g_string_free_to_file_with_permissions(np_state, s, rootdir, path, ".netdev", "root", NETWORKD_GROUP, 0640);
 }
 
 STATIC void
@@ -1019,7 +1019,7 @@ _netplan_netdef_write_network_file(
             return TRUE;
         }
 
-        _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, ".network", "root", NETWORKD_GROUP, 0640);
+        _netplan_g_string_free_to_file_with_permissions(np_state, s, rootdir, path, ".network", "root", NETWORKD_GROUP, 0640);
     }
 
     SET_OPT_OUT_PTR(has_been_written, TRUE);
@@ -1072,7 +1072,7 @@ write_rules_file(const NetplanNetDefinition* def, const char* rootdir, gboolean 
         return;
     }
 
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0640);
+    _netplan_g_string_free_to_file_with_permissions(NULL, s, rootdir, path, NULL, "root", "root", 0640);
 }
 
 STATIC gboolean
@@ -1332,7 +1332,7 @@ write_wpa_conf(const NetplanNetDefinition* def, const char* rootdir, gboolean va
         return TRUE;
     }
 
-    _netplan_g_string_free_to_file_with_permissions(s, rootdir, path, NULL, "root", "root", 0600);
+    _netplan_g_string_free_to_file_with_permissions(NULL, s, rootdir, path, NULL, "root", "root", 0600);
     return TRUE;
 }
 
@@ -1361,7 +1361,7 @@ _netplan_netdef_write_networkd(
     /* We want this for all backends when renaming, as *.link and *.rules files are
      * evaluated by udev, not networkd itself or NetworkManager. The regulatory
      * domain applies to all backends, too. */
-    write_link_file(def, rootdir, path_base, validation_only);
+    write_link_file(np_state, def, rootdir, path_base, validation_only);
     write_rules_file(def, rootdir, validation_only);
 
     if (def->backend != NETPLAN_BACKEND_NETWORKD) {
@@ -1396,7 +1396,7 @@ _netplan_netdef_write_networkd(
     }
 
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
-        write_netdev_file(def, rootdir, path_base, validation_only);
+        write_netdev_file(np_state, def, rootdir, path_base, validation_only);
     if (!_netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
         return FALSE;
     SET_OPT_OUT_PTR(has_been_written, TRUE);
@@ -1421,7 +1421,8 @@ _netplan_networkd_write_wait_online(__unused const NetplanState* np_state, __unu
 void
 _netplan_networkd_cleanup(const char* rootdir)
 {
-    _netplan_unlink_glob(rootdir, "/run/systemd/network/10-netplan-*");
+    /* /run/systemd/network/10-netplan-* is kept until after the new files are
+     * written, see _netplan_networkd_cleanup_stale(). */
     _netplan_unlink_glob(rootdir, "/run/netplan/wpa-*.conf");
     _netplan_unlink_glob(rootdir, "/run/udev/rules.d/99-netplan-*");
     // Drop after next release (once the sd-generator binary is established), as
@@ -1431,4 +1432,15 @@ _netplan_networkd_cleanup(const char* rootdir)
     _netplan_unlink_glob(rootdir, "/run/systemd/system/network.target.wants/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/netplan-regdom.service");
     _netplan_unlink_glob(rootdir, "/run/systemd/system/systemd-networkd-wait-online.service.d/10-netplan*.conf");
+}
+
+/**
+ * Remove networkd configuration left over from netdefs that no longer exist,
+ * keeping the files written (or found unchanged) by @np_state. Call once, after
+ * every networkd writer has run for this state.
+ */
+void
+_netplan_networkd_cleanup_stale(const NetplanState* np_state, const char* rootdir)
+{
+    _netplan_unlink_glob_except_written(np_state->written_files, rootdir, "/run/systemd/network/10-netplan-*");
 }

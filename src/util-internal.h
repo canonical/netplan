@@ -53,10 +53,13 @@ NETPLAN_INTERNAL void
 _netplan_g_string_free_to_file(GString* s, const char* rootdir, const char* path, const char* suffix);
 
 void
-_netplan_g_string_free_to_file_with_permissions(GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, int mode);
+_netplan_g_string_free_to_file_with_permissions(const NetplanState* np_state, GString* s, const char* rootdir, const char* path, const char* suffix, const char* owner, const char* group, int mode);
 
 NETPLAN_INTERNAL void
 _netplan_unlink_glob(const char* rootdir, const char* _glob);
+
+void
+_netplan_unlink_glob_except_written(GHashTable* written, const char* rootdir, const char* _glob);
 
 NETPLAN_INTERNAL int
 _netplan_find_yaml_glob(const char* rootdir, glob_t* out_glob);

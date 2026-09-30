@@ -189,6 +189,7 @@ int main(int argc, char** argv)
         }
         if (!nm_only) CHECK_CALL(netplan_state_finish_sriov_write(np_state, rootdir, &error), ignore_errors);
     }
+    if (!nm_only) _netplan_networkd_cleanup_stale(np_state, rootdir);
 
     /* Disable /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
      * (which restricts NM to wifi and wwan) if "renderer: NetworkManager" is used anywhere */

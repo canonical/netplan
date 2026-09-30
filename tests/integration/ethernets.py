@@ -363,6 +363,26 @@ class _CommonTests():
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
+    def test_apply_leaves_unchanged_interface_alone(self):
+        self.setup_eth(None, False)
+        config = '''network:
+  renderer: %(r)s
+  ethernets:
+    %(ec)s:
+      addresses: ["172.16.42.99/18"]
+    %(e2c)s:
+      addresses: ["172.16.1.2/24"]''' % {'r': self.backend, 'ec': self.dev_e_client, 'e2c': self.dev_e2_client}
+        with open(self.config, 'w') as f:
+            f.write(config)
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client])
+        # networkd drops foreign addresses from a link it (re)configures
+        subprocess.check_call(['ip', 'a', 'add', '10.99.99.1/32', 'dev', self.dev_e2_client])
+        with open(self.config, 'w') as f:
+            f.write(config.replace('172.16.42.99/18', '172.16.42.98/18'))
+        self.generate_and_settle([self.dev_e_client, self.dev_e2_client])
+        self.assert_iface_up(self.dev_e_client, ['inet 172.16.42.98/18'], ['inet 172.16.42.99/18'])
+        self.assert_iface_up(self.dev_e2_client, ['inet 172.16.1.2/24', 'inet 10.99.99.1/32'])
+
     def test_eth_dhcp6_off(self):
         self.setup_eth('slaac')
         with open(self.config, 'w') as f:

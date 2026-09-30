@@ -205,6 +205,10 @@ struct netplan_state {
     GHashTable* sources;
     GHashTable* global_renderer;
 
+    /* Paths of the networkd files this state has written (or found unchanged),
+     * so the cleanup can remove only what is stale. Owns its glib-allocated keys. */
+    GHashTable* written_files;
+
     /* Flags used to change the state's behavior */
     unsigned int flags;
 };

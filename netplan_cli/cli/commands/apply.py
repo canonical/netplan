@@ -146,9 +146,9 @@ class NetplanApply(utils.NetplanCommand):
         # Re-start service when
         # 1. We have configuration files for it
         # 2. Previously we had config files for it but not anymore
-        # Ideally we should compare the content of the *netplan-* files before and
-        # after generation to minimize the number of re-starts, but the conditions
-        # above works too.
+        # Not gated on a content diff: the files may already have been regenerated
+        # before apply ran (LP: #2078009). Unchanged files are left untouched, so
+        # networkd only reconfigures the links whose configuration changed.
         restart_networkd = bool(glob.glob('/run/systemd/network/*netplan-*'))
         if not restart_networkd and old_files_networkd:
             restart_networkd = True
@@ -278,11 +278,13 @@ class NetplanApply(utils.NetplanCommand):
             # exclude the special 'netplan-ovs-cleanup.service' unit
             netplan_ovs = [os.path.basename(f) for f in glob.glob(self.generator_late_dir + '*.wants/netplan-ovs-*.service')
                            if not f.endswith('/' + OVS_CLEANUP_SERVICE)]
+            NetplanApply.touch_links_of_missing_netdevs(utils.get_interfaces())
             # Run 'systemctl start' command synchronously, to avoid race conditions
             # with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
             try:
                 utils.networkctl_reload()
-                utils.networkctl_reconfigure(utils.networkd_interfaces())
+                # up to systemd 256, reload does not retry links that failed to configure
+                utils.networkctl_reconfigure(utils.networkd_failed_interfaces())
             except subprocess.CalledProcessError:
                 # (re-)start systemd-networkd if it is not running, yet
                 logging.warning('Falling back to a hard restart of systemd-networkd.service')
@@ -357,6 +359,46 @@ class NetplanApply(utils.NetplanCommand):
                 logging.warning('Could not delete interface {}'.format(link))
 
         return dropped_interfaces
+
+    @staticmethod
+    def touch_links_of_missing_netdevs(devices, networkd_dir='/run/systemd/network'):
+        """
+        networkd re-creates a missing virtual device on reload, but it only
+        attaches bond, bridge and VRF members, and creates stacked devices like
+        VLANs, while configuring the member or parent link. Reload skips those
+        links if their .network file is unchanged, so mark it as changed, e.g.
+        after 'ip link delete dev bond0'.
+        """
+        netdevs = set()
+        for path in glob.glob(os.path.join(networkd_dir, '10-netplan-*.netdev')):
+            netdevs.update(NetplanApply._networkd_values(path, 'NetDev', ['Name']))
+        missing = netdevs - set(devices)
+        if not missing:
+            return []
+
+        touched = []
+        for path in sorted(glob.glob(os.path.join(networkd_dir, '10-netplan-*.network'))):
+            if missing & NetplanApply._networkd_values(path, 'Network', ['Bond', 'Bridge', 'VRF', 'VLAN', 'VXLAN']):
+                os.utime(path)
+                touched.append(path)
+        logging.debug('missing virtual devices %s, reconfiguring %s', sorted(missing), touched)
+        return touched
+
+    @staticmethod
+    def _networkd_values(path, section, keys):
+        """Values of the given keys in a section of a systemd-networkd file."""
+        values = set()
+        current = None
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('['):
+                    current = line[1:-1]
+                elif current == section and '=' in line:
+                    key, value = line.split('=', 1)
+                    if key in keys:
+                        values.add(value)
+        return values
 
     @staticmethod
     def process_link_changes(interfaces, config_manager: ConfigManager):  # pragma: nocover (covered in autopkgtest)

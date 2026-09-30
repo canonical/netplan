@@ -55,3 +55,6 @@ _netplan_networkd_generate_wait_online(const NetplanState* np_state, const char*
 
 NETPLAN_INTERNAL void
 _netplan_networkd_cleanup(const char* rootdir);
+
+NETPLAN_INTERNAL void
+_netplan_networkd_cleanup_stale(const NetplanState* np_state, const char* rootdir);
