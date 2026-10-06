@@ -711,6 +711,120 @@ class TestSRIOV(unittest.TestCase):
         # only one had a hardware vlan
         apply_vlan.assert_called_once_with('enp2', 'enp2s16f1', 'vf1.15', 15)
 
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_param_set')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_get_ports')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_add_sf')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_set_sf_hw_addr')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_set_sf_state')
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
+    @patch('netplan_cli.cli.sriov._get_interface_name_for_netdef')
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_devlink_params_and_sub_functions(self, netifs, iface_for_netdef, pci_slot,
+                                                    set_state, set_mac, add_sf, get_ports, param_set):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  ethernets:
+    enp3s0f0:
+      devlink-params:
+        flow-steering-mode: smfs
+      sub-functions:
+        - sfnum: 1
+          hw-address: "00:11:22:33:44:55"
+          state: active
+''', file=fd)
+        netifs.return_value = ['enp3s0f0']
+        iface_for_netdef.return_value = 'enp3s0f0'
+        pci_slot.return_value = '0000:03:00.0'
+        get_ports.return_value = {}
+
+        sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+
+        param_set.assert_called_once_with('flow-steering-mode', 'smfs')
+        add_sf.assert_called_once_with(port_index=1, sfnum=1)
+        set_mac.assert_called_once_with('pci/0000:03:00.0/1', '00:11:22:33:44:55')
+        set_state.assert_called_once_with('pci/0000:03:00.0/1', 'active')
+
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_param_set')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_get_ports')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_add_sf')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_set_sf_hw_addr')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_set_sf_state')
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
+    @patch('netplan_cli.cli.sriov._get_interface_name_for_netdef')
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_devlink_params_and_sub_functions_existing_sf(self, netifs, iface_for_netdef, pci_slot,
+                                                                set_state, set_mac, add_sf, get_ports, param_set):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  ethernets:
+    enp3s0f0:
+      sub-functions:
+        - sfnum: 1
+          hw-address: "00:11:22:33:44:55"
+          state: active
+''', file=fd)
+        netifs.return_value = ['enp3s0f0']
+        iface_for_netdef.return_value = 'enp3s0f0'
+        pci_slot.return_value = '0000:03:00.0'
+        get_ports.return_value = {
+            'pci/0000:03:00.0/5': {
+                'flavour': 'pcisf',
+                'sfnum': 1,
+            },
+            'pci/other:01:00.0/1': {
+                'flavour': 'pcisf',
+                'sfnum': 1,
+            },
+            'pci/0000:03:00.0/9': {
+                'flavour': 'physical',
+            }
+        }
+
+        sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+
+        add_sf.assert_not_called()
+        set_mac.assert_called_once_with('pci/0000:03:00.0/5', '00:11:22:33:44:55')
+        set_state.assert_called_once_with('pci/0000:03:00.0/5', 'active')
+
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_param_set')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_get_ports')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_add_sf')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_set_sf_hw_addr')
+    @patch('netplan_cli.cli.sriov.PCIDevice.devlink_set_sf_state')
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
+    @patch('netplan_cli.cli.sriov._get_interface_name_for_netdef')
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_devlink_params_and_sub_functions_errors(self, netifs, iface_for_netdef, pci_slot,
+                                                           set_state, set_mac, add_sf, get_ports, param_set):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+  version: 2
+  ethernets:
+    enp3s0f0:
+      devlink-params:
+        flow-steering-mode: smfs
+      sub-functions:
+        - sfnum: 1
+          hw-address: "00:11:22:33:44:55"
+          state: active
+''', file=fd)
+        netifs.return_value = ['enp3s0f0']
+        iface_for_netdef.return_value = 'enp3s0f0'
+        pci_slot.return_value = '0000:03:00.0'
+        get_ports.return_value = {}
+        param_set.side_effect = subprocess.CalledProcessError(1, 'devlink')
+        add_sf.side_effect = subprocess.CalledProcessError(1, 'devlink')
+
+        # Should log warnings and continue without raising
+        sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+
+        add_sf.side_effect = None
+        set_mac.side_effect = subprocess.CalledProcessError(1, 'devlink')
+        set_state.side_effect = subprocess.CalledProcessError(1, 'devlink')
+        sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+
     @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
     @patch('netplan_cli.cli.sriov._get_virtual_functions')
     @patch('netplan_cli.cli.sriov._get_physical_functions')
@@ -1361,6 +1475,69 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
             call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
         ])
 
+    @patch('shutil.which', return_value='/sbin/devlink')
+    @patch('subprocess.check_call')
+    def test_PCIDevice_devlink_param_set(self, check_call_mock, which_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.devlink_param_set('flow-steering-mode', 'smfs')
+        check_call_mock.assert_called_once_with([
+            '/sbin/devlink', 'dev', 'param', 'set', 'pci/0000:03:00.0',
+            'name', 'flow_steering_mode', 'value', 'smfs', 'cmode', 'runtime'
+        ])
+
+    @patch('shutil.which', return_value=None)
+    @patch('subprocess.check_output')
+    def test_PCIDevice_devlink_get_ports(self, check_output_mock, which_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        check_output_mock.return_value = '{"port":{"pci/0000:03:00.0/1":{"flavour":"pcisf","sfnum":1}}}'
+        ports = pcidev.devlink_get_ports()
+        self.assertEqual(ports, {"pci/0000:03:00.0/1": {"flavour": "pcisf", "sfnum": 1}})
+        check_output_mock.assert_called_once_with([
+            '/sbin/devlink', '-j', 'port', 'show'
+        ], stderr=-3)
+
+    @patch('subprocess.check_output')
+    def test_PCIDevice_devlink_get_ports_called_process_error(self, check_output_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        check_output_mock.side_effect = subprocess.CalledProcessError(1, None)
+        self.assertEqual(pcidev.devlink_get_ports(), {})
+
+    @patch('subprocess.check_output')
+    def test_PCIDevice_devlink_get_ports_json_decode_error(self, check_output_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        check_output_mock.return_value = 'not valid json'
+        self.assertEqual(pcidev.devlink_get_ports(), {})
+
+    @patch('shutil.which', return_value='/sbin/devlink')
+    @patch('subprocess.check_call')
+    def test_PCIDevice_devlink_add_sf(self, check_call_mock, which_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.devlink_add_sf(port_index=1, sfnum=1, pfnum=0)
+        check_call_mock.assert_called_once_with([
+            '/sbin/devlink', 'port', 'add', 'pci/0000:03:00.0/1',
+            'flavour', 'pcisf', 'pfnum', '0', 'sfnum', '1'
+        ])
+
+    @patch('shutil.which', return_value='/sbin/devlink')
+    @patch('subprocess.check_call')
+    def test_PCIDevice_devlink_set_sf_hw_addr(self, check_call_mock, which_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.devlink_set_sf_hw_addr('pci/0000:03:00.0/1', '00:11:22:33:44:55')
+        check_call_mock.assert_called_once_with([
+            '/sbin/devlink', 'port', 'function', 'set', 'pci/0000:03:00.0/1',
+            'hw_addr', '00:11:22:33:44:55'
+        ])
+
+    @patch('shutil.which', return_value='/sbin/devlink')
+    @patch('subprocess.check_call')
+    def test_PCIDevice_devlink_set_sf_state(self, check_call_mock, which_mock):
+        pcidev = sriov.PCIDevice('0000:03:00.0')
+        pcidev.devlink_set_sf_state('pci/0000:03:00.0/1', 'active')
+        check_call_mock.assert_called_once_with([
+            '/sbin/devlink', 'port', 'function', 'set', 'pci/0000:03:00.0/1',
+            'state', 'active'
+        ])
+
 
 class TestParser(TestBase):
     def test_eswitch_mode(self):
@@ -1588,3 +1765,62 @@ ExecStart=/usr/sbin/netplan apply --sriov-only
     engreen:
       embedded-switch-mode: invalid''', expect_fail=True)
         self.assertIn("needs to be 'switchdev' or 'legacy'", err)
+
+    def test_devlink_params_and_sub_functions_service_generation(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    enp3s0:
+      devlink-params:
+        flow-steering-mode: smfs
+      sub-functions:
+        - sfnum: 1
+          hw-address: 00:11:22:33:44:55
+          state: active
+''')
+        self.assert_sriov({'apply.service': '''[Unit]
+Description=Apply SR-IOV configuration
+DefaultDependencies=no
+Before=network-pre.target
+After=sys-subsystem-net-devices-enp3s0.device
+
+[Service]
+Type=oneshot
+ExecStartPre=udevadm control --reload
+ExecStartPre=udevadm trigger --action=add --subsystem-match=net
+ExecStartPre=udevadm settle
+ExecStart=/usr/sbin/netplan apply --sriov-only
+'''})
+
+    def test_devlink_params_and_sub_functions_cffi(self):
+        from utils import state_from_yaml
+        state = state_from_yaml(self.workdir.name, '''network:
+  version: 2
+  ethernets:
+    enp3s0:
+      devlink-params:
+        flow-steering-mode: smfs
+        lag-port-select-mode: multi-port-esw
+      sub-functions:
+        - sfnum: 1
+          hw-address: 00:11:22:33:44:55
+          state: active
+        - sfnum: 2
+          hw-address: 00:11:22:33:44:56
+          state: inactive
+''')
+        netdef = state['enp3s0']
+        self.assertEqual(netdef._devlink_params, {
+            'flow-steering-mode': 'smfs',
+            'lag-port-select-mode': 'multi-port-esw',
+        })
+        self.assertEqual(len(netdef._sub_functions), 2)
+        sf1 = netdef._sub_functions[0]
+        self.assertEqual(sf1.sfnum, 1)
+        self.assertEqual(sf1.hw_address, '00:11:22:33:44:55')
+        self.assertEqual(sf1.state, 'active')
+
+        sf2 = netdef._sub_functions[1]
+        self.assertEqual(sf2.sfnum, 2)
+        self.assertEqual(sf2.hw_address, '00:11:22:33:44:56')
+        self.assertEqual(sf2.state, 'inactive')

@@ -119,6 +119,17 @@ struct route_iter {
     NetplanNetDefinition* netdef;
 };
 
+struct devlink_params_iter {
+    NetplanNetDefinition* netdef;
+    GHashTableIter iter;
+    gboolean initialized;
+};
+
+struct sub_function_iter {
+    NetplanNetDefinition* netdef;
+    guint index;
+};
+
 typedef struct {
     NetplanWifiMode mode;
     char* ssid;
@@ -236,6 +247,7 @@ struct netplan_parser {
         NetplanIPRoute* route;
         NetplanIPRule* ip_rule;
         NetplanVxlan* vxlan;
+        NetplanSubFunction* sub_function;
         const char *filepath;
 
         /* Plain old data representing the backend for which we are
@@ -332,6 +344,12 @@ ip_rule_clear(NetplanIPRule** rule);
 
 void
 route_clear(NetplanIPRoute** route);
+
+void
+sub_function_clear(NetplanSubFunction** sf);
+
+void
+free_sub_function(void* ptr);
 
 gboolean
 netplan_state_has_nondefault_globals(const NetplanState* np_state);
