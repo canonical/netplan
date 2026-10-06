@@ -26,6 +26,8 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 
+#include <net/if.h>
+
 #include <sys/stat.h>
 #include <yaml.h>
 
@@ -1433,6 +1435,9 @@ handle_address_option_lifetime(NetplanParser* npp, yaml_node_t* node, const void
 STATIC gboolean
 handle_address_option_label(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
+    if (strnlen(scalar(node), IF_NAMESIZE) == IF_NAMESIZE) {
+        return yaml_error(npp, node, error, "label '%s' exceeds 15 character maximum", scalar(node));
+    }
     return handle_generic_str(npp, node, npp->current.addr_options, data, error);
 }
 

@@ -398,6 +398,16 @@ class TestConfigErrors(TestBase):
           lifetime: 0''', expect_fail=True)
         self.assertIn("malformed address '0.0.0.0.0/24', must be X.X.X.X/NN or X:X:X:X:X:X:X:X/NN", err)
 
+    def test_invalid_address_option_label(self):
+        err = self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+      - 192.168.1.15/24:
+          label: this-is-16-chars''', expect_fail=True)
+        self.assertIn("label 'this-is-16-chars' exceeds 15 character maximum", err)
+
     def test_invalid_address_option_lifetime(self):
         err = self.generate('''network:
   version: 2
