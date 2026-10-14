@@ -282,6 +282,11 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.get_interface_macaddress('eth42'), '00:01:02:03:04:05')
 
     @patch('subprocess.check_output')
+    def test_get_interfaces(self, subp):
+        subp.return_value = b'[{"ifname": "eth0"}, {"ifname": "lo"}]'
+        self.assertListEqual(utils.get_interfaces(), ['eth0', 'lo'])
+
+    @patch('subprocess.check_output')
     def test_get_interfaces_empty(self, subp):
         subp.side_effect = Exception
         self.assertListEqual(utils.get_interfaces(), [])

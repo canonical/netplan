@@ -686,7 +686,7 @@ class TestSRIOV(unittest.TestCase):
         # set up all the mock objects
         netifs.return_value = ['enp1', 'enp2', 'enp5', 'wlp6s0',
                                'enp1s16f1', 'enp1s16f2', 'enp2s16f1']
-        set_numvfs.side_effect = lambda pf, _: False if pf == 'enp2' else True
+        set_numvfs.side_effect = lambda pf, _, manage_autoprobe=False: False if pf == 'enp2' else True
         gidn.return_value = 'foodriver'
         gim.return_value = '00:01:02:03:04:05'
 
@@ -703,8 +703,8 @@ class TestSRIOV(unittest.TestCase):
         # we had 2 PFs, one having two VFs and the other only one
         self.assertEqual(set_numvfs.call_count, 2)
         self.assertListEqual(set_numvfs.call_args_list,
-                             [call('enp1', 2),
-                              call('enp2', 1)])
+                             [call('enp1', 2, False),
+                              call('enp2', 1, False)])
         # one of the pfs already had sufficient VFs allocated, so only enp1
         # changed the vf count and only that one should trigger quirks
         quirks.assert_called_once_with('enp1')
@@ -753,7 +753,7 @@ class TestSRIOV(unittest.TestCase):
         get_num.return_value = {'enp1': 2, 'enp2': 1}
         get_virt.return_value = {'enp1s16f1': None, 'enp1s16f2': None, 'customvf1': None}
         get_phys.return_value = {'enp1': 'enp1', 'enpx': 'enp2'}
-        set_numvfs.side_effect = lambda pf, _: False if pf == 'enp2' else True
+        set_numvfs.side_effect = lambda pf, _, manage_autoprobe=False: False if pf == 'enp2' else True
         gidn.return_value = 'foodriver'
         gim.return_value = '00:01:02:03:04:05'
 
@@ -830,7 +830,7 @@ class TestSRIOV(unittest.TestCase):
         get_num.return_value = {'enp1': 2, 'enp2': 1}
         get_virt.return_value = {'enp1s16f1': None, 'enp1s16f2': None, 'customvf1': None}
         get_phys.return_value = {'enp1': 'enp1', 'enpx': 'enp2'}
-        set_numvfs.side_effect = lambda pf, _: False if pf == 'enp2' else True
+        set_numvfs.side_effect = lambda pf, _, manage_autoprobe=False: False if pf == 'enp2' else True
         gidn.return_value = 'foodriver'
         gim.return_value = '00:01:02:03:04:05'
 
@@ -880,7 +880,7 @@ class TestSRIOV(unittest.TestCase):
         get_num.return_value = {'enp1': 2, 'enp2': 1}
         get_virt.return_value = {'enp1s16f1': None, 'enp1s16f2': None, 'customvf1': None}
         get_phys.return_value = {'enp1': 'enp1', 'enpx': 'enp2'}
-        set_numvfs.side_effect = lambda pf, _: False if pf == 'enp2' else True
+        set_numvfs.side_effect = lambda pf, _, manage_autoprobe=False: False if pf == 'enp2' else True
         gidn.return_value = 'foodriver'
         gim.return_value = '00:01:02:03:04:05'
 
@@ -1359,6 +1359,135 @@ MODALIAS=pci:v00008086d0000156Fsv000017AAsd00002245bc02sc00i00
         self.assertEqual(pcidev.devlink_eswitch_mode(), '__undetermined')
         check_output_mock.assert_has_calls([
             call(['/sbin/devlink', '-j', 'dev', 'eswitch', 'show', 'pci/0000:03:00.0'], stderr=-3),
+        ])
+
+    def test_unit_PCIDevice_sriov_drivers_autoprobe_property(self):
+        pci_addr = '0000:03:00.0'
+        with patch('netplan_cli.cli.sriov.PCIDevice.sys',
+                   new_callable=unittest.mock.PropertyMock) as sys_mock:
+            pcidev = sriov.PCIDevice(pci_addr)
+            sys_mock.return_value = os.path.join(self.workdir.name, 'sys_mock')
+            pcidev_path = os.path.join(self.workdir.name,
+                                       'sys_mock/bus/pci/devices/', pci_addr)
+            os.makedirs(pcidev_path)
+
+            # Case 1: sysfs file missing -> available check returns False
+            self.assertFalse(pcidev.is_autoprobe_available)
+            # Case 1.1: sysfs file missing -> getter returns False, logs warning
+            with self.assertLogs(level='WARNING') as log:
+                self.assertFalse(pcidev.sriov_drivers_autoprobe)
+            self.assertIn('Get sriov_drivers_autoprobe: path does not exist',
+                          log.output[0])
+            # Case 1.2: sysfs file missing -> setter logs warning (no-op)
+            with self.assertLogs(level='WARNING') as log:
+                pcidev.sriov_drivers_autoprobe = False
+            self.assertIn('Set sriov_drivers_autoprobe: path does not exist',
+                          log.output[0])
+
+            # Case 2: file exists with "1" -> getter returns True
+            autoprobe_file = os.path.join(pcidev_path, 'sriov_drivers_autoprobe')
+            with open(autoprobe_file, 'w') as f:
+                f.write('1\n')
+            self.assertTrue(pcidev.sriov_drivers_autoprobe)
+
+            # Case 3: setter writes "0"
+            pcidev.sriov_drivers_autoprobe = False
+            with open(autoprobe_file) as f:
+                self.assertEqual(f.read().strip(), '0')
+            self.assertFalse(pcidev.sriov_drivers_autoprobe)
+
+            # Case 4: setter writes "1"
+            pcidev.sriov_drivers_autoprobe = True
+            with open(autoprobe_file) as f:
+                self.assertEqual(f.read().strip(), '1')
+            self.assertTrue(pcidev.sriov_drivers_autoprobe)
+
+    @patch('netplan_cli.cli.sriov.PCIDevice.sriov_drivers_autoprobe',
+           new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
+    def test_set_numvfs_for_pf_manage_autoprobe(self, mock_slot, mock_autoprobe):
+        mock_slot.return_value = '0000:03:00.0'
+        mock_autoprobe.return_value = True   # pre-apply autoprobe was 1
+        sriov_open = MockSRIOVOpen()
+        sriov_open.read_queue = ['8\n']
+
+        with patch('builtins.open', sriov_open.open):
+            ret = sriov.set_numvfs_for_pf('enp1', 2, manage_autoprobe=True)
+
+        self.assertTrue(ret)
+        mock_slot.assert_called_once_with('enp1')
+        # called to get, disable (False), then restore (True)
+        self.assertEqual(mock_autoprobe.call_args_list,
+                         [call(), call(False), call(True)])
+        # numvfs write happened between the two autoprobe writes (sysfs state proven)
+        handle = sriov_open.open()
+        handle.write.assert_called_once_with('2')
+
+    @patch('netplan_cli.cli.sriov.PCIDevice.sriov_drivers_autoprobe',
+           new_callable=unittest.mock.PropertyMock)
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name')
+    def test_set_numvfs_for_pf_manage_autoprobe_restores_on_write_failure(
+            self, mock_slot, mock_autoprobe):
+        mock_slot.return_value = '0000:03:00.0'
+        mock_autoprobe.return_value = True
+        sriov_open = MockSRIOVOpen()
+        sriov_open.read_queue = ['8\n']
+        # First numvfs write fails with EBUSY (triggers workaround),
+        # workaround's first write (to 0) also fails -> RuntimeError propagates
+        sriov_open.write_queue = [IOError(16, 'Error'), IOError(16, 'Error')]
+
+        with patch('builtins.open', sriov_open.open):
+            with self.assertRaises(RuntimeError):
+                sriov.set_numvfs_for_pf('enp1', 2, manage_autoprobe=True)
+
+        # Despite the RuntimeError, autoprobe was restored
+        self.assertEqual(mock_autoprobe.call_args_list,
+                         [call(), call(False), call(True)])
+
+    @patch('netplan_cli.cli.sriov.PCIDevice')
+    @patch('netplan_cli.cli.sriov._get_pci_slot_name', return_value='0000:03:00.0')
+    @patch('netplan_cli.cli.sriov._get_vf_number_per_pf')
+    @patch('netplan_cli.cli.sriov._get_virtual_functions')
+    @patch('netplan_cli.cli.sriov._get_physical_functions')
+    @patch('netplan_cli.cli.sriov.set_numvfs_for_pf')
+    @patch('netplan_cli.cli.sriov.perform_hardware_specific_quirks')
+    @patch('netplan_cli.cli.utils.get_interface_driver_name')
+    @patch('netplan_cli.cli.utils.get_interface_macaddress')
+    @patch('netplan_cli.cli.utils.get_interfaces')
+    def test_apply_sriov_config_manage_autoprobe_scope(
+            self, netifs, gim, gidn, quirks, set_numvfs,
+            get_phys, get_virt, get_num, gpsn, pcidev_cls):
+        with open(os.path.join(self.workdir.name, "etc/netplan/test.yaml"), 'w') as fd:
+            print('''network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        enp1:
+          embedded-switch-mode: "switchdev"
+        enp2:
+          embedded-switch-mode: "legacy"
+        enp3:
+          mtu: 1500
+    ''', file=fd)
+        netifs.return_value = ['enp1', 'enp2', 'enp3']
+        get_num.return_value = {'enp1': 1, 'enp2': 1, 'enp3': 1}
+        get_virt.return_value = {}
+        get_phys.return_value = {'enp1': 'enp1', 'enp2': 'enp2', 'enp3': 'enp3'}
+        set_numvfs.return_value = True
+
+        # Make PCIDevice(..) return a mock whose eswitch mode already matches
+        # => no transition work, no VF bind writes.
+        pcidev_instance = pcidev_cls.return_value
+        pcidev_instance.devlink_eswitch_mode.side_effect = ['switchdev', 'legacy']
+        pcidev_instance.vfs = []
+        pcidev_instance.driver = 'mlx5_core'
+
+        sriov.apply_sriov_config(self.configmanager, rootdir=self.workdir.name)
+
+        self.assertEqual(set_numvfs.call_args_list, [
+            call('enp1', 1, True),
+            call('enp2', 1, True),
+            call('enp3', 1, False),
         ])
 
 

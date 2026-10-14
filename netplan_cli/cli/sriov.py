@@ -129,6 +129,39 @@ class PCIDevice(object):
         """
         return [PCIDevice(addr) for addr in self.vf_addrs]
 
+    @property
+    def is_autoprobe_available(self) -> bool:
+        """Determine if SR-IOV drivers autoprobe is available
+        :return: whether SR-IOV drivers autoprobe is available
+        :rtype: bool
+        """
+        return os.path.exists(self.subpath("sriov_drivers_autoprobe"))
+
+    @property
+    def sriov_drivers_autoprobe(self) -> bool:
+        """Get the current value of SR-IOV drivers autoprobe
+        :return: True if autoprobe is enabled, False if disabled or unavailable
+        :rtype: bool
+       """
+        if self.is_autoprobe_available:
+            with open(self.subpath("sriov_drivers_autoprobe"), "r") as f:
+                return f.read().strip() == "1"
+        else:
+            logging.warning(
+                "Get sriov_drivers_autoprobe: path does not exist for %s",
+                self.pci_addr)
+        return False
+
+    @sriov_drivers_autoprobe.setter
+    def sriov_drivers_autoprobe(self, value: bool) -> None:
+        if self.is_autoprobe_available:
+            with open(self.subpath("sriov_drivers_autoprobe"), "w") as f:
+                f.write("1" if value else "0")
+        else:
+            logging.warning(
+                "Set sriov_drivers_autoprobe: path does not exist for %s",
+                self.pci_addr)
+
     def devlink_set(self, obj_name: str, prop: str, value: str):
         """Set devlink options for the PCI device
         :param obj_name: devlink object to set options on
@@ -332,7 +365,7 @@ def _get_virtual_functions(np_state: netplan.State) -> Set[str]:
     return vfs
 
 
-def set_numvfs_for_pf(pf, vf_count):
+def set_numvfs_for_pf(pf, vf_count, manage_autoprobe: bool = False):
     """
     Allocate the required number of VFs for the selected PF.
     """
@@ -355,6 +388,12 @@ def set_numvfs_for_pf(pf, vf_count):
         raise ConfigurationError(
             'cannot allocate more VFs for PF %s than supported: %s > %s (sriov_totalvfs)' % (pf, vf_count, vf_max))
 
+    if manage_autoprobe:
+        pci_addr = _get_pci_slot_name(pf)
+        pcidev = PCIDevice(pci_addr)
+        prev_autoprobe = pcidev.sriov_drivers_autoprobe
+        pcidev.sriov_drivers_autoprobe = False
+
     try:
         with open(numvfs_path, 'w') as f:
             f.write(str(vf_count))
@@ -375,6 +414,9 @@ def set_numvfs_for_pf(pf, vf_count):
                 bail = False
         if bail:
             raise RuntimeError('failed setting sriov_numvfs to %s for %s: %s' % (vf_count, pf, str(e)))
+    finally:
+        if manage_autoprobe:
+            pcidev.sriov_drivers_autoprobe = prev_autoprobe
 
     return True
 
@@ -453,7 +495,6 @@ def apply_sriov_config(config_manager, rootdir='/'):
     them and perform all other necessary setup.
     """
     config_manager.parse()
-    interfaces = utils.get_interfaces()
     np_state = config_manager.np_state
 
     # for sr-iov devices, we identify VFs by them having a link: field
@@ -465,6 +506,7 @@ def apply_sriov_config(config_manager, rootdir='/'):
     # interface that they're currently matching to
     vfs_set = _get_virtual_functions(np_state)
     pfs = _get_physical_functions(np_state)
+    pf_to_netdef = {iface: np_state[nid] for nid, iface in pfs.items()}
 
     # setup the required number of VFs per PF
     # at the same time store which PFs got changed in case the NICs
@@ -472,7 +514,15 @@ def apply_sriov_config(config_manager, rootdir='/'):
     vf_count_changed = []
     if vf_counts:
         for pf, vf_count in vf_counts.items():
-            if not set_numvfs_for_pf(pf, vf_count):
+            # Disabling sriov_drivers_autoprobe before updating sriov_numvfs
+            # is a suggested sequence to reduce load on NIC card's resources.
+            # We start cautiously by implementing this suggestion only when
+            # embedded-switch-mode is explicitly specified. (LP#2166228)
+            manage_autoprobe = False
+            netdef = pf_to_netdef.get(pf)
+            if netdef:
+                manage_autoprobe = netdef._embedded_switch_mode in ['switchdev', 'legacy']
+            if not set_numvfs_for_pf(pf, vf_count, manage_autoprobe):
                 continue
 
             vf_count_changed.append(pf)
@@ -482,32 +532,6 @@ def apply_sriov_config(config_manager, rootdir='/'):
         # number of enabled VFs
         for pf in vf_count_changed:
             perform_hardware_specific_quirks(pf)
-
-        # also, since the VF number changed, the interfaces list also
-        # changed, so we need to refresh it
-        interfaces = utils.get_interfaces()
-
-    # now in theory we should have all the new VFs set up and existing;
-    # this is needed because we will have to now match the defined VF
-    # entries to existing interfaces, otherwise we won't be able to set
-    # filtered VLANs for those.
-    # XXX: does matching those even make sense?
-    vfs = {}
-    for vf in vfs_set:
-        netdef = np_state[vf]
-        if netdef._has_match:
-            # right now we only match by name, as I don't think matching per
-            # driver and/or macaddress makes sense
-            # TODO: print warning if other matches are provided
-
-            for interface in interfaces:
-                if netdef._match_interface(iface_name=interface):
-                    if vf in vfs and vfs[vf]:
-                        raise ConfigurationError('matched more than one interface for a VF device: %s' % vf)
-                    vfs[vf] = interface
-        else:
-            if vf in interfaces:
-                vfs[vf] = vf
 
     # Walk the SR-IOV PFs and check if we need to change the eswitch mode
     for netdef_id, iface in pfs.items():
@@ -529,9 +553,32 @@ def apply_sriov_config(config_manager, rootdir='/'):
                     logging.debug(f'Changing eswitch mode from {current_eswitch_mode_system} to {eswitch_mode} for: {netdef_id}')
                     pcidev.devlink_set('eswitch', 'mode', eswitch_mode)
 
-                    if pcidev.vfs:
-                        if not netdef._delay_virtual_functions_rebind:
-                            bind_vfs(pcidev.vfs, pcidev.driver)
+            if pcidev.vfs:
+                if not netdef._delay_virtual_functions_rebind:
+                    bind_vfs(pcidev.vfs, pcidev.driver)
+
+    # now in theory we should have all the new VFs set up and existing;
+    # this is needed because we will have to now match the defined VF
+    # entries to existing interfaces, otherwise we won't be able to set
+    # filtered VLANs for those.
+    # XXX: does matching those even make sense?
+    vfs = {}
+    interfaces = utils.get_interfaces() if vfs_set else []
+    for vf in vfs_set:
+        netdef = np_state[vf]
+        if netdef._has_match:
+            # right now we only match by name, as I don't think matching per
+            # driver and/or macaddress makes sense
+            # TODO: print warning if other matches are provided
+
+            for interface in interfaces:
+                if netdef._match_interface(iface_name=interface):
+                    if vf in vfs and vfs[vf]:
+                        raise ConfigurationError('matched more than one interface for a VF device: %s' % vf)
+                    vfs[vf] = interface
+        else:
+            if vf in interfaces:
+                vfs[vf] = vf
 
     filtered_vlans_set = set()
     for vlan, netdef in np_state.vlans.items():
