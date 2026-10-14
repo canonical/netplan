@@ -196,6 +196,7 @@ cloned-mac-address=00:11:22:33:44:55
 [ipv4]
 dns-search=
 method=auto
+ignore-auto-dns=true
 ignore-auto-routes=true
 never-default=true
 route-metric=4242
@@ -205,6 +206,7 @@ addr-gen-mode=eui64
 dns-search=
 method=auto
 ip6-privacy=0
+ignore-auto-dns=true
 ignore-auto-routes=true
 never-default=true
 route-metric=4242
@@ -233,9 +235,109 @@ route-metric=4242
         name: "Test"
         passthrough:
           ipv4.dns-search: ""
+          ipv4.ignore-auto-dns: "true"
           ipv6.dns-search: ""
+          ipv6.ignore-auto-dns: "true"
           proxy._: ""
 '''.format(UUID, UUID)})
+
+    def test_keyfile_ignore_auto_dns_keeps_other_access_point(self):
+        home_uuid = '1b55d430-ea66-407f-9a58-767a18fca4d9'
+        with open(os.path.join(self.confdir, '10-wifi.yaml'), 'w') as f:
+            os.chmod(f.name, 0o600)
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+  wifis:
+    wlan0:
+      dhcp4: true
+      dhcp6: true
+      access-points:
+        Office:
+          networkmanager:
+            uuid: {}
+            name: Office
+        Home:
+          networkmanager:
+            uuid: {}
+            name: Home
+'''.format(UUID, home_uuid))
+        office_keyfile = '''[connection]
+id=Office
+uuid={}
+type=wifi
+interface-name=wlan0
+
+[wifi]
+ssid=Office
+mode=infrastructure
+
+[ipv4]
+method=auto
+ignore-auto-dns=true
+
+[ipv6]
+method=auto
+ip6-privacy=0
+ignore-auto-dns=true
+'''.format(UUID)
+        self.generate_from_keyfile(office_keyfile, netdef_id='wlan0', regenerate=False)
+        self.assert_nm_regenerate({
+            'netplan-wlan0-Office.nmconnection': office_keyfile,
+            'netplan-wlan0-Home.nmconnection': '''[connection]
+id=Home
+uuid={}
+type=wifi
+interface-name=wlan0
+
+[wifi]
+ssid=Home
+mode=infrastructure
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+ip6-privacy=0
+'''.format(home_uuid)})
+
+    def test_keyfile_ignore_auto_dns_overrides_earlier_passthrough(self):
+        with open(os.path.join(self.confdir, '10-ethernet.yaml'), 'w') as f:
+            os.chmod(f.name, 0o600)
+            f.write('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: true
+      networkmanager:
+        uuid: {}
+        passthrough:
+          ipv4.ignore-auto-dns: "false"
+          ipv6.ignore-auto-dns: "false"
+'''.format(UUID))
+        keyfile = '''[connection]
+id=netplan-eth0
+uuid={}
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+ignore-auto-dns=true
+
+[ipv6]
+method=auto
+ip6-privacy=0
+ignore-auto-dns=true
+'''.format(UUID)
+        self.generate_from_keyfile(keyfile, netdef_id='eth0', regenerate=False)
+        self.assert_nm_regenerate({'netplan-eth0.nmconnection': keyfile})
 
     def test_keyfile_fail_validation(self):
         err = self.generate_from_keyfile('''[connection]

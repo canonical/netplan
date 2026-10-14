@@ -626,8 +626,8 @@ Match devices by MAC when setting options like: `wakeonlan` or `*-offload`.
 
 ## DHCP Overrides
 Several DHCP behaviour overrides are available. Most currently only have any
-effect when using the `networkd` back end, with the exception of `use-routes`
-and `route-metric`.
+effect when using the `networkd` back end, with the exception of `use-dns`,
+`use-routes` and `route-metric`.
 
 Overrides only have an effect if the corresponding `dhcp4` or `dhcp6` is
 set to `true`.
@@ -649,9 +649,14 @@ client processes as specified in the Netplan YAML.
   - **`use-dns`** (boolean)
 
     > Default: `true`. When `true`, the DNS servers received from the
-    > DHCP server will be used and take precedence over any statically
-    > configured ones. Currently only has an effect on the networkd
-    > back end.
+    > DHCP server will be used. Available for both the networkd and
+    > NetworkManager back ends. With networkd, these servers take precedence
+    > over any statically configured ones.
+    >
+    > With NetworkManager, setting this to `false` also ignores automatically
+    > obtained DNS search domains. For `dhcp6-overrides`, this includes DNS
+    > servers and search domains received through IPv6 Router Advertisements,
+    > as NetworkManager does not control these separately from DHCP DNS.
 
   - **`use-ntp`** (boolean)
 

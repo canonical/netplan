@@ -936,6 +936,9 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
             return FALSE;
     }
 
+    if (def->dhcp4 && !def->dhcp4_overrides.use_dns)
+        g_key_file_set_boolean(kf, "ipv4", "ignore-auto-dns", TRUE);
+
     if (!def->dhcp4_overrides.use_routes) {
         g_key_file_set_boolean(kf, "ipv4", "ignore-auto-routes", TRUE);
         g_key_file_set_boolean(kf, "ipv4", "never-default", TRUE);
@@ -982,6 +985,9 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
 
         if (!write_ip_rules_nm(def, kf, AF_INET6, error))
             return FALSE;
+
+        if (def->dhcp6 && !def->dhcp6_overrides.use_dns)
+            g_key_file_set_boolean(kf, "ipv6", "ignore-auto-dns", TRUE);
 
         if (!def->dhcp6_overrides.use_routes) {
             g_key_file_set_boolean(kf, "ipv6", "ignore-auto-routes", TRUE);

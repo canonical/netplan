@@ -131,7 +131,9 @@ redirects = {
 # Links to ignore when checking links
 
 linkcheck_ignore = [
-    'http://127.0.0.1:8000'
+    'http://127.0.0.1:8000',
+    # Ask Ubuntu blocks automated requests.
+    r'https://askubuntu\.com/questions/tagged/netplan$',
 ]
 
 # Pages on which to ignore anchors

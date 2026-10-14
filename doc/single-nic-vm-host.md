@@ -23,7 +23,7 @@ This guide shows how to configure a virtual-machine host using Netplan and the `
 - Router
   - IPv4: 192.168.150.254/24
   - DNS and DHCP configured
-- Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
+- Firewall configured; see [UFW](https://ubuntu.com/server/docs/how-to/security/firewalls/#ufw-uncomplicated-firewall).
 
 
 ```{include} reuse/configure-vm-disable-netfilter.md

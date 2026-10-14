@@ -26,7 +26,7 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
   - VLAN40 IPv4: 192.168.151.254/24
   - VLAN41 IPv4: 192.168.152.254/24
   - InterVLAN routing, DNS, and DHCP configured
-- Firewall configured; see [UFW](https://help.ubuntu.com/community/UFW).
+- Firewall configured; see [UFW](https://ubuntu.com/server/docs/how-to/security/firewalls/#ufw-uncomplicated-firewall).
 
 
 ```{include} reuse/configure-vm-disable-netfilter.md

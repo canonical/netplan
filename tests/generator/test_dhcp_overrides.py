@@ -374,6 +374,118 @@ UseMTU=true
 
 class TestNetworkManager(TestBase):
 
+    def test_override_use_dns(self):
+        for dns4, dns6 in ((None, None), ('true', 'true'), ('false', 'false'),
+                           ('false', 'true'), ('true', 'false')):
+            with self.subTest(use_dns4=dns4, use_dns6=dns6):
+                overrides = ''.join(
+                    '      dhcp{}-overrides:\n        use-dns: {}\n'.format(family, value)
+                    for family, value in ((4, dns4), (6, dns6)) if value is not None)
+                self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      nameservers:
+        addresses: [192.0.2.53, "2001:db8::53"]
+        search: [example.com]
+''' + overrides)
+                self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+dns=192.0.2.53;
+dns-search=example.com;
+{dns4}
+[ipv6]
+method=auto
+ip6-privacy=0
+dns=2001:db8::53;
+dns-search=example.com;
+{dns6}'''.format(dns4='ignore-auto-dns=true\n' if dns4 == 'false' else '',
+                 dns6='ignore-auto-dns=true\n' if dns6 == 'false' else '')})
+
+    def test_override_use_dns_without_dhcp(self):
+        for dhcp4, dhcp6, addresses in (('false', 'false', False), ('false', 'false', True),
+                                        ('true', 'false', True), ('false', 'true', True)):
+            with self.subTest(dhcp4=dhcp4, dhcp6=dhcp6, addresses=addresses):
+                self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: {dhcp4}
+      dhcp6: {dhcp6}
+      dhcp4-overrides:
+        use-dns: false
+      dhcp6-overrides:
+        use-dns: false
+'''.format(dhcp4=dhcp4, dhcp6=dhcp6)
+                              + ('      addresses: [192.0.2.1/24, "2001:db8::1/64"]\n' if addresses else ''))
+                ipv4 = 'method=manual\naddress1=192.0.2.1/24\n' if addresses else 'method=link-local\n'
+                ipv6 = 'method=manual\naddress1=2001:db8::1/64\nip6-privacy=0\n' if addresses else 'method=ignore\n'
+                if dhcp4 == 'true':
+                    ipv4 = ipv4.replace('method=manual', 'method=auto') + 'ignore-auto-dns=true\n'
+                if dhcp6 == 'true':
+                    ipv6 = ipv6.replace('method=manual', 'method=auto') + 'ignore-auto-dns=true\n'
+                self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+{ipv4}
+[ipv6]
+{ipv6}'''.format(ipv4=ipv4, ipv6=ipv6)})
+
+    def test_override_use_dns_passthrough(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    engreen:
+      dhcp4: true
+      dhcp6: true
+      dhcp4-overrides:
+        use-dns: false
+      dhcp6-overrides:
+        use-dns: false
+      networkmanager:
+        passthrough:
+          ipv4.ignore-auto-dns: "false"
+          ipv6.ignore-auto-dns: "false"
+''')
+        self.assert_nm({'engreen': '''[connection]
+id=netplan-engreen
+type=ethernet
+interface-name=engreen
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+#Netplan: passthrough override
+ignore-auto-dns=false
+
+[ipv6]
+method=auto
+ip6-privacy=0
+#Netplan: passthrough override
+ignore-auto-dns=false
+'''})
+
     def test_override_default_metric_v4(self):
         self.generate('''network:
   version: 2
