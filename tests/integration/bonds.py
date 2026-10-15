@@ -305,6 +305,26 @@ class _CommonTests():
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
+    def test_bond_recreated_after_delete(self):
+        self.setup_eth(None)
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+  bonds:
+    mybond:
+      interfaces: [ethbn]
+      dhcp4: yes''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
+        # the documented way to re-create a bond; the configuration is unchanged
+        subprocess.check_call(['ip', 'link', 'delete', 'mybond'])
+        self.generate_and_settle([self.dev_e_client, self.state_dhcp4('mybond')])
+        self.assert_iface_up(self.dev_e_client, ['master mybond'], ['inet '])  # wokeignore:rule=master
+        self.assert_iface_up('mybond', ['inet 192.168.5.[0-9]+/24'])
+
     def test_bond_mac(self):
         self.setup_eth(None)
         self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'mybond'], stderr=subprocess.DEVNULL)

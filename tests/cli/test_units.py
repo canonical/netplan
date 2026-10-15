@@ -256,3 +256,41 @@ class TestCLI(unittest.TestCase):
         with patch.object(cmd, 'revert',
                           side_effect=FileNotFoundError(2, 'No such file', '/etc/netplan')):
             self.assertEqual(cmd._safe_revert("test reason"), 1)
+
+    def test_touch_links_of_missing_netdevs(self):
+        with tempfile.TemporaryDirectory() as networkd_dir:
+            files = {
+                '10-netplan-bond0.netdev': '[NetDev]\nName=bond0\nKind=bond\n',
+                '10-netplan-bond0.network': '[Match]\nName=bond0\n\n[Network]\nVLAN=bond0.100\nVLAN=bond0.200\n',
+                '10-netplan-bond0.100.netdev': '[NetDev]\nName=bond0.100\nKind=vlan\n',
+                '10-netplan-bond0.200.netdev': '[NetDev]\nName=bond0.200\nKind=vlan\n',
+                '10-netplan-eth0.network': '[Match]\nName=eth0\n\n[Network]\nBond=bond0\n',
+                '10-netplan-eth1.network': '[Match]\nName=eth1\n\n[Network]\nBond=bond0\n',
+                # a matching value outside [Network] is not a reference
+                '10-netplan-eth2.network': '[Match]\nName=bond0.200\n\n[Network]\nAddress=10.0.0.1/24\n',
+            }
+            for name, content in files.items():
+                path = os.path.join(networkd_dir, name)
+                with open(path, 'w') as f:
+                    f.write(content)
+                os.utime(path, (1, 1))
+
+            def mtimes():
+                return {name: os.stat(os.path.join(networkd_dir, name)).st_mtime for name in files}
+
+            # every virtual device exists: nothing is touched
+            self.assertEqual(NetplanApply.touch_links_of_missing_netdevs(
+                ['eth0', 'eth1', 'eth2', 'bond0', 'bond0.100', 'bond0.200'], networkd_dir), [])
+            self.assertEqual(set(mtimes().values()), {1})
+
+            # a deleted VLAN marks its parent as changed
+            self.assertEqual(NetplanApply.touch_links_of_missing_netdevs(
+                ['eth0', 'eth1', 'eth2', 'bond0', 'bond0.100'], networkd_dir),
+                [os.path.join(networkd_dir, '10-netplan-bond0.network')])
+            self.assertEqual({name for name, mtime in mtimes().items() if mtime > 1}, {'10-netplan-bond0.network'})
+
+            # a deleted bond (which takes its VLANs with it) marks its members and itself
+            self.assertEqual(NetplanApply.touch_links_of_missing_netdevs(['eth0', 'eth1', 'eth2'], networkd_dir),
+                             [os.path.join(networkd_dir, name) for name in
+                              ['10-netplan-bond0.network', '10-netplan-eth0.network', '10-netplan-eth1.network']])
+            self.assertEqual(mtimes()['10-netplan-eth2.network'], 1)

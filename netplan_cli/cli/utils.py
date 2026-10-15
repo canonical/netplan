@@ -122,12 +122,12 @@ def systemctl(action: str, services: list, sync: bool = False):
         subprocess.check_call(command)
 
 
-def networkd_interfaces():
+def networkd_failed_interfaces():
     interfaces = set()
     out = subprocess.check_output(['networkctl', '--no-pager', '--no-legend'], text=True)
     for line in out.splitlines():
         s = line.strip().split(' ')
-        if s[0].isnumeric() and s[-1] not in ['unmanaged', 'linger']:
+        if s[0].isnumeric() and s[-1] == 'failed':
             interfaces.add(s[0])
     return interfaces
 

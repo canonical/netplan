@@ -93,6 +93,26 @@ class _CommonTests():
 class TestNetworkd(IntegrationTestsBase, _CommonTests):
     backend = 'networkd'
 
+    def test_vlan_recreated_after_delete(self):
+        self.setup_eth('ra-only')
+        self.addCleanup(subprocess.call, ['ip', 'link', 'delete', 'myvlan'], stderr=subprocess.DEVNULL)
+        with open(self.config, 'w') as f:
+            f.write('''network:
+  renderer: %(r)s
+  ethernets:
+    ethbn:
+      match: {name: %(ec)s}
+  vlans:
+    myvlan:
+      id: 101
+      link: ethbn
+      addresses: [10.9.8.7/24]''' % {'r': self.backend, 'ec': self.dev_e_client})
+        self.generate_and_settle([self.dev_e_client, 'myvlan'])
+        # the configuration is unchanged, so only the missing VLAN tells apply to re-create it
+        subprocess.check_call(['ip', 'link', 'delete', 'myvlan'])
+        self.generate_and_settle([self.dev_e_client, 'myvlan'])
+        self.assert_iface_up('myvlan', ['myvlan@' + self.dev_e_client, 'inet 10.9.8.7/24'])
+
 
 @unittest.skipIf("NetworkManager" not in test_backends,
                  "skipping as NetworkManager backend tests are disabled")
