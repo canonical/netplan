@@ -168,6 +168,11 @@ typedef struct {
     guint fwmark;
     /* type-of-service: between 0 and 255 */
     guint tos;
+
+    /* incoming interface */
+    char* iif;
+    /* outgoing interface */
+    char* oif;
 } NetplanIPRule;
 
 struct netplan_vxlan {
