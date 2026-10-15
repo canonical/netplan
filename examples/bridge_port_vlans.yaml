@@ -1,0 +1,16 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eno1: {}
+    switchport: {}
+  bridges:
+    br0:
+      interfaces: [eno1, eno2]
+      parameters:
+        vlan-filtering: true
+        vlan-default-pvid: 42
+        vlans: [10 pvid untagged, 20 untagged, 50]
+        port-vlans:
+          eno1: [2 pvid untagged, 4 untagged]
+          eno2: [4000-4094, 0 pvid, 30 untagged] # 0 pvid can only be used with networkd backend
