@@ -17,10 +17,23 @@ libsystemd = dependency('libsystemd')
 
 meson_make_symlink = meson.current_source_dir() + '/tools/meson-make-symlink.sh'
 
-systemd = dependency('systemd')
-completions = dependency('bash-completion')
-systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')
-bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
+service_dir = get_option('systemdsystemunitdir')
+if service_dir == ''
+    systemd = dependency('systemd')
+    service_dir = systemd.get_variable(pkgconfig: 'systemdsystemunitdir')
+endif
+
+systemd_generator_dir = get_option('systemdsystemgeneratordir')
+if systemd_generator_dir == ''
+    systemd = dependency('systemd')
+    systemd_generator_dir = systemd.get_variable(pkgconfig: 'systemdsystemgeneratordir')
+endif
+
+bash_completions_dir = get_option('completionsdir')
+if bash_completions_dir == ''
+    completions = dependency('bash-completion')
+    bash_completions_dir = completions.get_variable(pkgconfig: 'completionsdir', default_value: '/etc/bash_completion.d')
+endif
 
 # Order: Fedora/Mageia/openSUSE || Debian/Ubuntu
 pyflakes = find_program('pyflakes-3', 'pyflakes3', required: get_option('testing'))
@@ -56,16 +69,19 @@ pkg_mod.generate(
     filebase: 'netplan',
     description: 'YAML network configuration abstraction runtime library')
 
-install_data(
-    'netplan.completions',
-    rename: 'netplan',
-    install_dir: bash_completions_dir)
+if bash_completions_dir != 'no'
+    install_data    (
+        'netplan.completions',
+        rename: 'netplan',
+        install_dir: bash_completions_dir)
+endif
 
-service_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir')
-# XXX: should we use configure_file() instead?
-install_data(
-    'netplan-configure.service',
-    install_dir: service_dir)
+if service_dir != 'no'
+    # XXX: should we use configure_file() instead?
+    install_data(
+        'netplan-configure.service',
+        install_dir: service_dir)
+endif
 
 ###########
 # Testing #
