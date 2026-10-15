@@ -367,6 +367,8 @@ gboolean
 validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GError** error)
 {
     guint missing_id_count = g_hash_table_size(npp->missing_id);
+    gboolean missing_dependencies = (missing_id_count > 0 &&
+                                     (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) == 0);
     gboolean valid = FALSE;
     NetplanBackend backend = nd->backend;
 
@@ -375,7 +377,25 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
     /* Skip all validation if we're missing some definition IDs (devices).
      * The ones we have yet to see may be necessary for validation to succeed,
      * we can complete it on the next parser pass. */
-    if (missing_id_count > 0 && (npp->flags & NETPLAN_PARSER_IGNORE_ERRORS) == 0) {
+    /* XFRM interfaces have some validation that does not require all
+     * referenced definitions to be available (most notably the if_id
+     * range/uniqueness checks). Run those always so that we can fail fast
+     * even if we are still waiting for other definitions to be parsed. */
+    if (nd->type == NETPLAN_DEF_TYPE_XFRM) {
+        if (nd->xfrm.interface_id == 0 || nd->xfrm.interface_id > 0xffffffff) {
+            return yaml_error(npp, NULL, error, "%s: 'if_id' property must be in range [1..4294967295] or [0x1..0xffffffff]", nd->id);
+        }
+
+        NetplanNetDefinition* existing_def = g_hash_table_lookup(npp->xfrm_if_ids,
+                                                                 GINT_TO_POINTER(nd->xfrm.interface_id));
+        if (existing_def != NULL && existing_def != nd) {
+            return yaml_error(npp, NULL, error, "%s: duplicate if_id '%u' (already used by %s)",
+                              nd->id, nd->xfrm.interface_id, existing_def->id);
+        }
+        g_hash_table_insert(npp->xfrm_if_ids, GINT_TO_POINTER(nd->xfrm.interface_id), nd);
+    }
+
+    if (missing_dependencies) {
         return TRUE;
     }
 
@@ -414,6 +434,13 @@ validate_netdef_grammar(const NetplanParser* npp, NetplanNetDefinition* nd, GErr
         if (nd->vxlan->flow_label != G_MAXUINT && nd->vxlan->flow_label > 1048575) {
             return yaml_error(npp, NULL, error, "%s: VXLAN 'flow-label' "
                               "must be in range [0..1048575]", nd->id);
+        }
+    }
+
+    /* Validate XFRM interface configuration that requires resolved links */
+    if (nd->type == NETPLAN_DEF_TYPE_XFRM) {
+        if (!nd->xfrm.independent && nd->xfrm.link == NULL) {
+            return yaml_error(npp, NULL, error, "%s: non-independent XFRM interface requires 'link' property", nd->id);
         }
     }
 
