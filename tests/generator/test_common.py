@@ -394,6 +394,34 @@ Address=192.168.14.2/24
 Label=test-label
 '''})
 
+    def test_eth_address_option_duplicate_address_detection(self):
+        self.generate('''network:
+  version: 2
+  ethernets:
+    engreen:
+      addresses:
+        - 192.168.14.2/24:
+             duplicate-address-detection: ipv4
+        - 2001:FFfe::1/64:
+            duplicate-address-detection: none
+        - 10.0.0.1/24''')
+
+        self.assert_networkd({'engreen.network': '''[Match]
+Name=engreen
+
+[Network]
+LinkLocalAddressing=ipv6
+Address=10.0.0.1/24
+
+[Address]
+Address=192.168.14.2/24
+DuplicateAddressDetection=ipv4
+
+[Address]
+Address=2001:FFfe::1/64
+DuplicateAddressDetection=none
+'''})
+
     def test_eth_address_option_multi_pass(self):
         self.generate('''network:
   version: 2

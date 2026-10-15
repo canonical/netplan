@@ -40,6 +40,7 @@ ffibuilder.cdef("""
         char* address;
         char* lifetime;
         char* label;
+        char* duplicate_address_detection;
     } NetplanAddressOptions;
     struct address_iter { ...; };
     struct nameserver_iter { ...; };
