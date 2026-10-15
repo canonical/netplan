@@ -42,9 +42,8 @@ LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 ''',
                               'bond0.netdev': '''[NetDev]
 Name=bond0
@@ -75,7 +74,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -104,7 +103,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -136,7 +135,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -209,7 +208,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -284,7 +283,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -327,7 +326,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -363,7 +362,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -444,7 +443,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',

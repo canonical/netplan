@@ -39,9 +39,8 @@ Name=eth0
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
         self.assert_networkd_udev(None)
 
@@ -87,9 +86,8 @@ ActivationPolicy=always-down
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
         self.assert_networkd_udev(None)
 
@@ -110,9 +108,8 @@ ActivationPolicy=manual
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
         self.assert_networkd_udev(None)
 
@@ -236,9 +233,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6AcceptRA=no
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
 
     def test_eth_dhcp6_accept_ra(self):
@@ -256,9 +252,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6AcceptRA=yes
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
 
     def test_eth_dhcp6_accept_ra_unset(self):
@@ -274,9 +269,8 @@ Name=eth0
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
 
     def test_eth_dhcp4_and_6(self):
@@ -323,7 +317,7 @@ LinkLocalAddressing=ipv6
 Address=192.168.14.2/24
 Address=2001:FFfe::1/64
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -600,7 +594,7 @@ Name=engreen
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 ClientIdentifier=mac
 RouteMetric=100
 UseMTU=true
@@ -623,7 +617,7 @@ Name=engreen
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -643,9 +637,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6PrivacyExtensions=yes
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
 
     def test_eth_ignore_carrier_true(self):
@@ -795,9 +788,12 @@ Name=engreen
 DHCP=yes
 LinkLocalAddressing=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=100
 '''})
 
     def test_link_local_ipv4(self):
@@ -817,9 +813,12 @@ Name=engreen
 DHCP=yes
 LinkLocalAddressing=ipv4
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=100
 '''})
 
     def test_link_local_ipv6(self):
@@ -839,9 +838,12 @@ Name=engreen
 DHCP=yes
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=100
 '''})
 
     def test_link_local_disabled(self):
@@ -861,9 +863,12 @@ Name=engreen
 DHCP=yes
 LinkLocalAddressing=no
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=100
 '''})
 
     def test_ip6_addr_gen_mode(self):
@@ -883,18 +888,16 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6Token=prefixstable
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 ''',
                               'enblue.network': '''[Match]\nName=enblue\n
 [Network]
 DHCP=ipv6
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
 
     def test_ip6_addr_gen_token(self):
@@ -914,9 +917,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6Token=static:::2
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 ''',
                               'enblue.network': '''[Match]\nName=enblue\n
 [Network]
@@ -924,9 +926,8 @@ DHCP=ipv6
 LinkLocalAddressing=ipv6
 IPv6Token=static:::2
 
-[DHCP]
+[DHCPv6]
 RouteMetric=100
-UseMTU=true
 '''})
 
     def test_nd_udev_rules_escaped(self):
@@ -1567,7 +1568,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -1660,7 +1661,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -1894,7 +1895,7 @@ DHCP=ipv4
 LinkLocalAddressing=ipv6
 ConfigureWithoutCarrier=yes
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',

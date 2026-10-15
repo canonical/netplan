@@ -674,7 +674,7 @@ Name=engreen
 DHCP=ipv4
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 UseRoutes=false
@@ -704,9 +704,12 @@ Name=engreen
 DHCP=yes
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=3333
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=3333
 ''',
                               'enred.network': '''[Match]
 Name=enred
@@ -715,9 +718,12 @@ Name=enred
 DHCP=yes
 LinkLocalAddressing=ipv6
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
+
+[DHCPv6]
+RouteMetric=100
 '''})
 
     def test_default_scope_link_lp1805038(self):
@@ -746,7 +752,7 @@ LinkLocalAddressing=ipv6
 Destination=10.96.0.0/24
 Scope=link
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 ''',
@@ -762,7 +768,7 @@ Destination=10.97.0.0/24
 Scope=link
 Type=broadcast
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -801,7 +807,7 @@ Scope=host
 Type=local
 Table=100
 
-[DHCP]
+[DHCPv4]
 RouteMetric=100
 UseMTU=true
 '''})
@@ -1661,7 +1667,7 @@ route-metric=5050
           via: 10.0.0.200
           table: 1002'''})
 
-        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCP]', 'VLAN=vlan100\n\n[DHCP]'),
+        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCPv4]', 'VLAN=vlan100\n\n[DHCPv4]'),
                               'vlan100.netdev': ND_VLAN % ('vlan100', 100),
                               'vlan100.network': ND_EMPTY % ('vlan100', 'ipv6') + '''
 [Route]
@@ -1727,7 +1733,7 @@ Table=1002
           via: 10.0.0.100
           table: 1001'''})
 
-        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCP]', 'VLAN=vlan100\n\n[DHCP]'),
+        self.assert_networkd({'eth0.network': (ND_DHCP4 % 'eth0').replace('\n[DHCPv4]', 'VLAN=vlan100\n\n[DHCPv4]'),
                               'vlan100.netdev': ND_VLAN % ('vlan100', 100),
                               'vlan100.network': ND_EMPTY % ('vlan100', 'ipv6') + '''
 [Route]

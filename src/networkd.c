@@ -935,49 +935,72 @@ _netplan_netdef_write_network_file(
     }
 
     if (def->dhcp4 || def->dhcp6) {
-        /* NetworkManager compatible route metrics */
-        g_string_append(network, "\n[DHCP]\n");
-    }
-
-    if (def->dhcp4 || def->dhcp6) {
-        if (def->dhcp_identifier)
-            g_string_append_printf(network, "ClientIdentifier=%s\n", def->dhcp_identifier);
-
         NetplanDHCPOverrides combined_dhcp_overrides;
         if (!combine_dhcp_overrides(def, &combined_dhcp_overrides, error))
             return FALSE;
 
-        if (combined_dhcp_overrides.metric == NETPLAN_METRIC_UNSPEC) {
-            g_string_append_printf(network, "RouteMetric=%i\n", (def->type == NETPLAN_DEF_TYPE_WIFI ? 600 : 100));
-        } else {
-            g_string_append_printf(network, "RouteMetric=%u\n",
-                                   combined_dhcp_overrides.metric);
+        if (def->dhcp4) {
+            g_string_append(network, "\n[DHCPv4]\n");
+            if (def->dhcp_identifier)
+                g_string_append_printf(network, "ClientIdentifier=%s\n", def->dhcp_identifier);
+
+            if (combined_dhcp_overrides.metric == NETPLAN_METRIC_UNSPEC) {
+                g_string_append_printf(network, "RouteMetric=%i\n", (def->type == NETPLAN_DEF_TYPE_WIFI ? 600 : 100));
+            } else {
+                g_string_append_printf(network, "RouteMetric=%u\n",
+                                       combined_dhcp_overrides.metric);
+            }
+
+            /* Only set MTU from DHCP if use-mtu dhcp-override is not false. */
+            if (!combined_dhcp_overrides.use_mtu) {
+                /* isc-dhcp dhclient compatible UseMTU, networkd default is to
+                 * not accept MTU, which breaks clouds */
+                g_string_append_printf(network, "UseMTU=false\n");
+            } else {
+                g_string_append_printf(network, "UseMTU=true\n");
+            }
+
+            /* Only write DHCP options that differ from the networkd default. */
+            if (!combined_dhcp_overrides.use_routes)
+                g_string_append_printf(network, "UseRoutes=false\n");
+            if (!combined_dhcp_overrides.use_dns)
+                g_string_append_printf(network, "UseDNS=false\n");
+            if (combined_dhcp_overrides.use_domains)
+                g_string_append_printf(network, "UseDomains=%s\n", combined_dhcp_overrides.use_domains);
+            if (!combined_dhcp_overrides.use_ntp)
+                g_string_append_printf(network, "UseNTP=false\n");
+            if (!combined_dhcp_overrides.send_hostname)
+                g_string_append_printf(network, "SendHostname=false\n");
+            if (!combined_dhcp_overrides.use_hostname)
+                g_string_append_printf(network, "UseHostname=false\n");
+            if (combined_dhcp_overrides.hostname)
+                g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
         }
 
-        /* Only set MTU from DHCP if use-mtu dhcp-override is not false. */
-        if (!combined_dhcp_overrides.use_mtu) {
-            /* isc-dhcp dhclient compatible UseMTU, networkd default is to
-             * not accept MTU, which breaks clouds */
-            g_string_append_printf(network, "UseMTU=false\n");
-        } else {
-            g_string_append_printf(network, "UseMTU=true\n");
-        }
+        if (def->dhcp6) {
+            g_string_append(network, "\n[DHCPv6]\n");
 
-        /* Only write DHCP options that differ from the networkd default. */
-        if (!combined_dhcp_overrides.use_routes)
-            g_string_append_printf(network, "UseRoutes=false\n");
-        if (!combined_dhcp_overrides.use_dns)
-            g_string_append_printf(network, "UseDNS=false\n");
-        if (combined_dhcp_overrides.use_domains)
-            g_string_append_printf(network, "UseDomains=%s\n", combined_dhcp_overrides.use_domains);
-        if (!combined_dhcp_overrides.use_ntp)
-            g_string_append_printf(network, "UseNTP=false\n");
-        if (!combined_dhcp_overrides.send_hostname)
-            g_string_append_printf(network, "SendHostname=false\n");
-        if (!combined_dhcp_overrides.use_hostname)
-            g_string_append_printf(network, "UseHostname=false\n");
-        if (combined_dhcp_overrides.hostname)
-            g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
+            if (combined_dhcp_overrides.metric == NETPLAN_METRIC_UNSPEC) {
+                g_string_append_printf(network, "RouteMetric=%i\n", (def->type == NETPLAN_DEF_TYPE_WIFI ? 600 : 100));
+            } else {
+                g_string_append_printf(network, "RouteMetric=%u\n",
+                                       combined_dhcp_overrides.metric);
+            }
+
+            /* Only write DHCP options that differ from the networkd default. */
+            if (!combined_dhcp_overrides.use_dns)
+                g_string_append_printf(network, "UseDNS=false\n");
+            if (combined_dhcp_overrides.use_domains)
+                g_string_append_printf(network, "UseDomains=%s\n", combined_dhcp_overrides.use_domains);
+            if (!combined_dhcp_overrides.use_ntp)
+                g_string_append_printf(network, "UseNTP=false\n");
+            if (!combined_dhcp_overrides.send_hostname)
+                g_string_append_printf(network, "SendHostname=false\n");
+            if (!combined_dhcp_overrides.use_hostname)
+                g_string_append_printf(network, "UseHostname=false\n");
+            if (combined_dhcp_overrides.hostname)
+                g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
+        }
     }
 
     /* IP-over-InfiniBand, IPoIB */
