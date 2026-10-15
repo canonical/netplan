@@ -413,6 +413,38 @@ address1=192.168.123.123/24
     def test_keyfile_type_tunnel(self):
         self._template_keyfile_type('tunnels', 'ip-tunnel')
 
+    def test_keyfile_match_name_glob(self):
+        self.generate_from_keyfile('''[connection]
+id=Test
+uuid={}
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[match]
+interface-name=en*;
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''.format(UUID))
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    NM-{}:
+      renderer: NetworkManager
+      match: {{}}
+      dhcp4: true
+      networkmanager:
+        uuid: "{}"
+        name: "Test"
+        passthrough:
+          match.interface-name: "en*;"
+'''.format(UUID, UUID)})
+
     def test_keyfile_type_wifi(self):
         self.generate_from_keyfile('''[connection]
 type=wifi

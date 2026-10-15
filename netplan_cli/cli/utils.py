@@ -88,6 +88,27 @@ def nm_interfaces(paths, devices):
     return interfaces
 
 
+def nm_active_interfaces(paths):
+    """Find physical devices using these connection files."""
+    paths = set(paths)
+    if not paths:
+        return set()
+    try:
+        output = nmcli_out(['-t', '--escape', 'no', '-f', 'TYPE,DEVICE,FILENAME',
+                            'connection', 'show', '--active'])
+    except (OSError, subprocess.SubprocessError) as e:
+        logging.debug('Cannot query active NetworkManager interfaces: %s', e)
+        return set()
+    interfaces = set()
+    for line in output.splitlines():
+        connection_type, _, rest = line.partition(':')
+        device, _, filename = rest.partition(':')
+        if (connection_type in ('802-3-ethernet', '802-11-wireless', 'gsm', 'cdma', 'infiniband')
+                and device and filename in paths):
+            interfaces.add(device)
+    return interfaces
+
+
 def nm_get_connection_for_interface(interface: str) -> str:
     output = nmcli_out(['-m', 'tabular', '-f', 'GENERAL.CONNECTION', 'device', 'show', interface])
     lines = output.strip().split('\n')

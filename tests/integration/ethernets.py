@@ -494,6 +494,40 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i %
 class TestNetworkManager(IntegrationTestsBase, _CommonTests):
     backend = 'NetworkManager'
 
+    def test_eth_glob_multiple(self):
+        self.setup_eth(None)
+        config = '''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    englob:
+      match: {name: "eth4?"}
+      dhcp4: true
+      networkmanager:
+        passthrough:
+          ipv4.dad-timeout: "0"
+'''
+        address = '203.0.113.5/24'
+        for add_address in (True, False):
+            with open(self.config, 'w') as f:
+                f.write(config)
+                if add_address:
+                    f.write('      addresses: [%s]\n' % address)
+            self.generate_and_settle([self.state_dhcp4(self.dev_e_client),
+                                      self.state_dhcp4(self.dev_e2_client)])
+            self.assert_iface_up(self.dev_e_client, ['inet 192.168.5.[0-9]+/24'])
+            self.assert_iface_up(self.dev_e2_client, ['inet 192.168.6.[0-9]+/24'])
+
+            uuid = subprocess.check_output(['nmcli', '-g', 'connection.uuid',
+                                            'connection', 'show', 'netplan-englob'], text=True).strip()
+            self.assertTrue(uuid)
+            for iface in (self.dev_e_client, self.dev_e2_client):
+                active_uuid = subprocess.check_output(['nmcli', '-g', 'GENERAL.CON-UUID',
+                                                       'device', 'show', iface], text=True).strip()
+                self.assertEqual(active_uuid, uuid)
+                addresses = subprocess.check_output(['ip', '-4', 'addr', 'show', 'dev', iface], text=True)
+                self.assertEqual(address in addresses, add_address)
+
     @unittest.skip("NetworkManager does not disable accept_ra: bug LP: #1704210")
     def test_eth_dhcp6_off(self):
         self.setup_eth('slaac')

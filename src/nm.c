@@ -895,6 +895,8 @@ write_nm_conf_access_point(const NetplanNetDefinition* def, const char* rootdir,
     if (match_interface_name) {
         const gchar* list[1] = {match_interface_name};
         g_key_file_set_string_list(kf, "match", "interface-name", list, 1);
+        /* Allow this profile on all matching devices at once. */
+        g_key_file_set_integer(kf, "connection", "multi-connect", 3);
     }
 
     if (ap && ap->mode == NETPLAN_WIFI_MODE_AP)

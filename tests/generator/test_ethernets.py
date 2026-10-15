@@ -763,9 +763,45 @@ method=ignore
         self.assert_nm({'def1': '''[connection]
 id=netplan-def1
 type=ethernet
+multi-connect=3
 
 [ethernet]
 wake-on-lan=0
+
+[match]
+interface-name=en*;
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''})
+        self.assert_networkd({})
+
+    def test_eth_match_name_glob_passthrough(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    def1:
+      match:
+        name: "en*"
+        macaddress: 00:11:22:33:44:55
+      dhcp4: true
+      networkmanager:
+        passthrough:
+          connection.multi-connect: "1"''')
+
+        self.assert_nm({'def1': '''[connection]
+id=netplan-def1
+type=ethernet
+#Netplan: passthrough override
+multi-connect=1
+
+[ethernet]
+wake-on-lan=0
+mac-address=00:11:22:33:44:55
 
 [match]
 interface-name=en*;

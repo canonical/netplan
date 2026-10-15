@@ -116,6 +116,7 @@ class NetplanApply(utils.NetplanCommand):
         old_files_ovs = bool(old_ovs_glob)
         old_nm_glob = glob.glob('/run/NetworkManager/system-connections/netplan-*')
         nm_ifaces = NetplanApply._get_nm_interfaces(old_nm_glob, utils.get_interfaces(), exit_on_error)
+        nm_ifaces.update(utils.nm_active_interfaces(old_nm_glob))
         old_files_nm = bool(old_nm_glob)
 
         configure = []

@@ -22,6 +22,7 @@ import unittest
 import tempfile
 import glob
 import netplan
+import subprocess
 
 from contextlib import redirect_stdout
 from netplan_cli.cli.core import Netplan
@@ -167,6 +168,41 @@ class TestUtils(unittest.TestCase):
         self.assertTrue('ens3' in ifaces)
         self.assertTrue('ens4' in ifaces)
         self.assertTrue(len(ifaces) == 4)
+
+    @patch('netplan_cli.cli.utils.nmcli_out')
+    def test_nm_active_interfaces(self, nmcli_out):
+        path = '/run/NetworkManager/system-connections/netplan-englob.nmconnection'
+        wifi_path = '/run/NetworkManager/system-connections/netplan-wlan0-Office:Guest.nmconnection'
+        vpn_path = '/run/NetworkManager/system-connections/netplan-vpn.nmconnection'
+        nmcli_out.return_value = '\n'.join([
+            '802-3-ethernet:eth0:' + path,
+            '802-3-ethernet:eth1:' + path,
+            '802-11-wireless:wlan0:' + wifi_path,
+            'gsm:wwan0:' + path,
+            'cdma:wwan1:' + path,
+            'infiniband:ib0:' + path,
+            '802-3-ethernet:ens3:/etc/NetworkManager/system-connections/other.nmconnection',
+            'vpn:ens3:' + vpn_path,
+            '802-3-ethernet::' + path,
+            'loopback:lo:',
+            '',
+        ])
+        self.assertEqual(utils.nm_active_interfaces([path, wifi_path, vpn_path]),
+                         {'eth0', 'eth1', 'wlan0', 'wwan0', 'wwan1', 'ib0'})
+        nmcli_out.assert_called_once_with(['-t', '--escape', 'no', '-f', 'TYPE,DEVICE,FILENAME',
+                                          'connection', 'show', '--active'])
+
+    @patch('netplan_cli.cli.utils.nmcli_out')
+    def test_nm_active_interfaces_no_profiles(self, nmcli_out):
+        self.assertEqual(utils.nm_active_interfaces([]), set())
+        nmcli_out.assert_not_called()
+
+    @patch('netplan_cli.cli.utils.nmcli_out')
+    def test_nm_active_interfaces_unavailable(self, nmcli_out):
+        for error in (FileNotFoundError(), subprocess.CalledProcessError(8, 'nmcli')):
+            with self.subTest(error=error):
+                nmcli_out.side_effect = error
+                self.assertEqual(utils.nm_active_interfaces(['profile.nmconnection']), set())
 
     # For the matching tests, we mock out the functions querying extra data
     @patch('netplan_cli.cli.utils.get_interface_driver_name')
