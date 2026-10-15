@@ -131,6 +131,18 @@ netplan.io:
   ...
 ```
 
+# Releasing Netplan
+
+> **Note:** This section is for project maintainers.
+
+1. Go to https://github.com/canonical/netplan/releases/
+2. Click `Draft a new release`
+3. Click `Select tag`, then `Create new tag`. Enter a new tag, for example 1.2.3
+4. Fill in the Release title. For example, `Netplan v1.2.3`
+5. Click `Generate release notes`. This creates default release notes. Please add further details as required.
+6. In the `Release label` section, select `Latest` and Click `Publish release`
+7. This generates the upstream release artifacts used by downstream packaging.
+
 # Bug reports
 
 Please file bug reports in [Launchpad](https://bugs.launchpad.net/netplan/+filebug).
