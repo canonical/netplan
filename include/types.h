@@ -172,5 +172,6 @@ enum NETPLAN_FORMAT_ERRORS {
  */
 enum NETPLAN_PARSER_FLAGS {
     NETPLAN_PARSER_IGNORE_ERRORS = 1 << 0, ///< Ignore parsing errors such as bad YAML files and definitions.
+    NETPLAN_PARSER_STRICT_DEFAULT_ROUTES = 1 << 1, ///< Treat conflicting default route declarations as a fatal error instead of a warning.
     NETPLAN_PARSER_FLAGS_MAX_,
 };
