@@ -1281,19 +1281,18 @@ NetplanNetDefinition*
 _netplan_parser_find_bond_for_primary_member(const NetplanParser* npp, const char* primary)
 {
     GList* iter = npp->ordered;
-    NetplanNetDefinition* netdef = NULL;
 
     while (iter) {
-        netdef = iter->data;
+        NetplanNetDefinition* netdef = iter->data;
         if (netdef->type == NETPLAN_DEF_TYPE_BOND) {
             if (!g_strcmp0(netdef->bond_params.primary_member, primary)) {
-                break;
+                return netdef;
             }
         }
         iter = iter->next;
     }
 
-    return netdef;
+    return NULL;
 }
 
 gchar*

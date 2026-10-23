@@ -195,7 +195,7 @@ scalar(const yaml_node_t* node)
     return (const char*) node->data.scalar.value;
 }
 
-STATIC void
+STATIC NetplanMissingNode*
 add_missing_node(NetplanParser *npp, const yaml_node_t* node)
 {
     NetplanMissingNode* missing;
@@ -210,6 +210,7 @@ add_missing_node(NetplanParser *npp, const yaml_node_t* node)
 
     g_debug("recording missing yaml_node_t %s", scalar(node));
     g_hash_table_insert(npp->missing_id, (gpointer)scalar(node), missing);
+    return missing;
 }
 
 /**
@@ -2421,28 +2422,36 @@ STATIC gboolean
 handle_bond_primary_member(NetplanParser* npp, yaml_node_t* node, const void* data, GError** error)
 {
     NetplanNetDefinition *component;
+    NetplanNetDefinition *existing_bond;
     char** ref_ptr;
+    const char *cur = npp->current.netdef->bond_params.primary_member;
 
-    component = g_hash_table_lookup(npp->parsed_defs, scalar(node));
-    if (!component) {
-        add_missing_node(npp, node);
-    } else {
-        /* If this is not the primary pass, the primary member might already be equally set. */
-        if (!g_strcmp0(npp->current.netdef->bond_params.primary_member, scalar(node))) {
-            return TRUE;
-        } else if (npp->current.netdef->bond_params.primary_member)
-            return yaml_error(npp, node, error, "%s: bond already has a primary member: %s",
-                              npp->current.netdef->id, npp->current.netdef->bond_params.primary_member);
+    if (cur && g_strcmp0(cur, scalar(node)) != 0)
+        return yaml_error(npp, node, error, "%s: bond already has a primary member: %s",
+                          npp->current.netdef->id, cur);
 
-        ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
-        if (*ref_ptr) {
-            NetplanNetDefinition* bond = _netplan_parser_find_bond_for_primary_member(npp, *ref_ptr);
+    if (!cur) {
+        /* Verify no other bond already claims this primary member */
+        existing_bond = _netplan_parser_find_bond_for_primary_member(npp, scalar(node));
+        if (existing_bond)
             return yaml_error(npp, node, error, "%s: interface '%s' is already a primary of %s",
-                              npp->current.netdef->id, *ref_ptr, bond->id);
-        }
-        *ref_ptr = g_strdup(scalar(node));
+                              npp->current.netdef->id, scalar(node), existing_bond->id);
+
         npp->current.netdef->bond_params.primary_member = g_strdup(scalar(node));
+    }
+
+    /* Keep member marking idempotent across multiple passes (e.g. when bond appears before member) */
+    component = g_hash_table_lookup(npp->parsed_defs, scalar(node));
+    if (component) {
+        ref_ptr = ((char**) ((void*) component + GPOINTER_TO_UINT(data)));
+        if (!*ref_ptr)
+            *ref_ptr = g_strdup(scalar(node));
         mark_data_as_dirty(npp, ref_ptr);
+    } else {
+        if (!g_hash_table_lookup(npp->missing_id, scalar(node))) {
+            NetplanMissingNode* missing = add_missing_node(npp, node);
+            missing->is_bond_primary = TRUE;
+        }
     }
 
     mark_data_as_dirty(npp, &npp->current.netdef->bond_params.primary_member);
@@ -3564,6 +3573,7 @@ process_missing_ids(NetplanParser* npp, __unused GError** error)
         if (netdef->type == NETPLAN_DEF_TYPE_VLAN && backend == NETPLAN_BACKEND_NM) {
             netdef->vlan_link = netplan_netdef_new(npp, scalar(missing->node), NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
             g_hash_table_iter_remove(&iter);
+            continue;
         }
 
         /* VETH case: NetworkManager doesn't enforce the existence of the veth peer.
@@ -3576,6 +3586,16 @@ process_missing_ids(NetplanParser* npp, __unused GError** error)
         if (netdef->type == NETPLAN_DEF_TYPE_VETH && backend == NETPLAN_BACKEND_NM) {
             netdef->veth_peer_link = netplan_netdef_new(npp, scalar(missing->node), NETPLAN_DEF_TYPE_NM_PLACEHOLDER_, NETPLAN_BACKEND_NM);
             g_hash_table_iter_remove(&iter);
+            continue;
+        }
+
+        /* BOND primary case: NetworkManager doesn't enforce the existence or file ordering of
+         * the primary interface in order to create a bond. NM writes each connection into a
+         * separate YAML file, and member netdef IDs may use NM-<UUID> instead of the interface name.
+         */
+        if (netdef->type == NETPLAN_DEF_TYPE_BOND && backend == NETPLAN_BACKEND_NM && missing->is_bond_primary) {
+            g_hash_table_iter_remove(&iter);
+            continue;
         }
     }
 }

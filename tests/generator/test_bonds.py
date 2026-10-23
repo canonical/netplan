@@ -1019,3 +1019,270 @@ class TestConfigErrors(TestBase):
   bridges:
     br1:
       interfaces: [bond0]''')
+
+    def test_bond_primary_nm_matched_by_name(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0:
+      match:
+        name: "cockpit"
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: "cockpit"
+''')
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+            'NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0': '''[connection]
+id=netplan-NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0
+type=ethernet
+interface-name=cockpit
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_primary_is_allowed_to_be_missing_for_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: cockpit
+''')
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_primary_with_missing_netdef_found_in_the_next_file_wont_fail(self):
+        self.generate('''network:
+  renderer: NetworkManager
+  version: 2
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: cockpit''', confs={'b': '''network:
+  renderer: NetworkManager
+  version: 2
+  ethernets:
+    NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0:
+      match:
+        name: "cockpit"'''})
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+            'NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0': '''[connection]
+id=netplan-NM-b1cf8d0b-13cf-4ef2-89aa-6ba9936c89e0
+type=ethernet
+interface-name=cockpit
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_nonexistent_interface_fails_with_nm(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bonds:
+    tbond:
+      interfaces: [nonexistent_eth]
+      parameters:
+        mode: active-backup''', expect_fail=True)
+        self.assertIn("tbond: interface 'nonexistent_eth' is not defined", err)
+
+    def test_bond_primary_nm_renderer_after_bonds(self):
+        self.generate('''network:
+  version: 2
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: cockpit
+  renderer: NetworkManager''')
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=cockpit
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_nonexistent_interface_in_interfaces_and_primary_fails_with_nm(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bonds:
+    tbond:
+      interfaces: [nonexistent_eth]
+      parameters:
+        mode: active-backup
+        primary: nonexistent_eth''', expect_fail=True)
+        self.assertIn("tbond: interface 'nonexistent_eth' is not defined", err)
+
+    def test_bond_primary_missing_multiple_assignments(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+        primary: eth0
+    bond1:
+      parameters:
+        mode: active-backup
+        primary: eth0''', expect_fail=True)
+        self.assertIn("bond1: interface 'eth0' is already a primary of bond0", err)
+
+    def test_bond_primary_missing_fails_with_networkd(self):
+        err = self.generate('''network:
+  version: 2
+  renderer: networkd
+  bonds:
+    bond0:
+      parameters:
+        mode: active-backup
+        primary: nonexistent_eth''', expect_fail=True)
+        self.assertIn("bond0: interface 'nonexistent_eth' is not defined", err)
+
+    def test_bond_primary_and_vlan_same_missing_interface_nm(self):
+        self.generate('''network:
+  version: 2
+  renderer: NetworkManager
+  vlans:
+    vl10:
+      id: 10
+      link: eth0
+  bonds:
+    tbond:
+      parameters:
+        mode: active-backup
+        primary: eth0''')
+        self.assert_nm({
+            'tbond': '''[connection]
+id=netplan-tbond
+type=bond
+interface-name=tbond
+
+[bond]
+mode=active-backup
+primary=eth0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+''',
+            'vl10': '''[connection]
+id=netplan-vl10
+type=vlan
+interface-name=vl10
+
+[vlan]
+id=10
+parent=eth0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+'''
+        })
+
+    def test_bond_primary_member_networkd_bond_before_ethernet(self):
+        self.generate('''network:
+  version: 2
+  renderer: networkd
+  bonds:
+    bn0:
+      interfaces: [eno1]
+      parameters:
+        mode: active-backup
+        primary: eno1
+  ethernets:
+    eno1: {}''')
+        self.assert_networkd({
+            'bn0.netdev': '[NetDev]\nName=bn0\nKind=bond\n\n'
+                          '[Bond]\n'
+                          'Mode=active-backup\n',
+            'bn0.network': '[Match]\nName=bn0\n\n'
+                           '[Network]\nLinkLocalAddressing=ipv6\n'
+                           'ConfigureWithoutCarrier=yes\n',
+            'eno1.network': '[Match]\nName=eno1\n\n'
+                            '[Network]\nLinkLocalAddressing=no\nBond=bn0\n'
+                            'PrimarySlave=true\n',  # wokeignore:rule=slave
+        })

@@ -65,6 +65,7 @@ extern struct NetplanWifiWowlanType NETPLAN_WIFI_WOWLAN_TYPES[];
 typedef struct missing_node {
     char* netdef_id;
     const yaml_node_t* node;
+    gboolean is_bond_primary;
 } NetplanMissingNode;
 
 struct private_netdef_data {
