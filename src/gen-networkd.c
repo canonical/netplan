@@ -273,6 +273,20 @@ _netplan_netdef_generate_networkd(
     return TRUE;
 }
 
+static gboolean
+_is_resolved_masked(const char* rootdir)
+{
+    const char* unit_dirs[] = {"etc/systemd/system", "run/systemd/system", NULL};
+    for (const char** dir = unit_dirs; *dir; dir++) {
+        g_autofree gchar* unit = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
+                                              *dir, "systemd-resolved.service", NULL);
+        g_autofree gchar* target = g_file_read_link(unit, NULL);
+        if (g_strcmp0(target, "/dev/null") == 0)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /**
  * Implementing Ubuntu's "Definition of an "online" system specification:
  * https://discourse.ubuntu.com/t/spec-definition-of-an-online-system/27838
@@ -385,7 +399,8 @@ _netplan_networkd_generate_wait_online(const NetplanState* np_state, const char*
     }
 
     // allow waiting for "--dns"
-    if (routable_str->len > 0) {
+    gboolean wait_dns = routable_str->len > 0 && !_is_resolved_masked(rootdir);
+    if (wait_dns) {
         g_string_append(content, "After=systemd-resolved.service\n");
     }
     // clear old s-n-wait-online command
@@ -398,7 +413,8 @@ _netplan_networkd_generate_wait_online(const NetplanState* np_state, const char*
     g_string_free(linklocal_str, TRUE);
     // wait for any routable interface
     if (routable_str->len > 0) {
-        g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable%s\n", routable_str->str);
+        g_string_append_printf(content, "ExecStart=/lib/systemd/systemd-networkd-wait-online --any%s -o routable%s\n",
+                               wait_dns ? " --dns" : "", routable_str->str);
     }
     g_string_free(routable_str, TRUE);
 

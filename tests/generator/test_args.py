@@ -317,6 +317,27 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded
 ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i br0
 ''')
 
+    def test_systemd_wait_online_resolved_masked(self):
+        unit_dir = os.path.join(self.workdir.name, 'etc', 'systemd', 'system')
+        os.makedirs(unit_dir, exist_ok=True)
+        os.symlink('/dev/null', os.path.join(unit_dir, 'systemd-resolved.service'))
+        self.generate('''network:
+  version: 2
+  bridges:
+    br0:
+      dhcp4: true''')
+        override = os.path.join(self.generator_late_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
+        self.assertTrue(os.path.isfile(override))
+        with open(override, 'r') as f:
+            self.assertEqual(f.read(), '''[Unit]
+ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i br0
+''')
+
     def test_systemd_generator_noconf(self):
         self.generate('')
         # no enablement symlink here (in multi-user.target.wants)
