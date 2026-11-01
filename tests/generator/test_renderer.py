@@ -1,8 +1,5 @@
-#
-# Common tests for netplan generator
-#
-# Copyright (C) 2018 Canonical, Ltd.
-# Author: Mathieu Trudel-Lapierre <mathieu.trudel.lapierre@canonical.com>
+# SPDX-License-Identifier: GPL-3.0-only
+# Regression tests for per-type renderer selection.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
