@@ -3329,6 +3329,24 @@ node_is_nulled_out(yaml_document_t* doc, yaml_node_t* node, const char* key_pref
     return TRUE;
 }
 
+STATIC gboolean
+network_type_entry_is_ignored(NetplanParser* npp, yaml_node_t* value, const char* full_key)
+{
+    if (!full_key)
+        return FALSE;
+    /* Ignore NULL fields (about to be deleted). */
+    if (npp->null_fields && (g_hash_table_contains(npp->null_fields, full_key) || node_is_nulled_out(&npp->doc, value, full_key, npp->null_fields)))
+        return TRUE;
+    /* Respect the origin-hint file when processing overrides. */
+    if (npp->null_overrides) {
+        const gchar* origin_hint = g_hash_table_lookup(npp->null_overrides, full_key);
+        g_autofree gchar* basename = npp->current.filepath ? g_path_get_basename(npp->current.filepath) : NULL;
+        if (origin_hint && basename && g_strcmp0(origin_hint, basename) != 0)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /**
  * Callback for a net device type entry like "ethernets:" in "network:"
  * @data: netdef_type (as pointer)
@@ -3336,6 +3354,25 @@ node_is_nulled_out(yaml_document_t* doc, yaml_node_t* node, const char* key_pref
 STATIC gboolean
 handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefix, const void* data, GError** error)
 {
+    /* Resolve the per-type default before creating any definitions. YAML
+     * mapping order must not decide which devices inherit this renderer. */
+    for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
+        yaml_node_t* key = yaml_document_get_node(&npp->doc, entry->key);
+        yaml_node_t* value = yaml_document_get_node(&npp->doc, entry->value);
+        g_autofree char* full_key = NULL;
+
+        assert_type(npp, key, YAML_SCALAR_NODE);
+        if (strcmp(scalar(key), "renderer") != 0)
+            continue;
+        if (key_prefix && (npp->null_fields || npp->null_overrides))
+            full_key = g_strdup_printf("%s\trenderer", key_prefix);
+        if (network_type_entry_is_ignored(npp, value, full_key))
+            continue;
+        assert_type(npp, value, YAML_SCALAR_NODE);
+        if (!parse_renderer(npp, value, &npp->current.backend, error))
+            return FALSE;
+    }
+
     for (yaml_node_pair_t* entry = node->data.mapping.pairs.start; entry < node->data.mapping.pairs.top; entry++) {
         yaml_node_t* key, *value;
         const mapping_entry_handler* handlers;
@@ -3350,28 +3387,14 @@ handle_network_type(NetplanParser* npp, yaml_node_t* node, const char* key_prefi
 
         value = yaml_document_get_node(&npp->doc, entry->value);
 
-        if (key_prefix && (npp->null_fields || npp->null_overrides)) {
+        if (key_prefix && (npp->null_fields || npp->null_overrides))
             full_key = g_strdup_printf("%s\t%s", key_prefix, key->data.scalar.value);
-            /* Ignore NULL fields (about to be deleted) */
-            if (npp->null_fields && (g_hash_table_contains(npp->null_fields, full_key) || node_is_nulled_out(&npp->doc, value, full_key, npp->null_fields)))
-                continue;
-            /* Ignore this netdef if it is supposed to be part of the resulting
-             * origin-hint file, but we're not currently processing said filepath. */
-            if (npp->null_overrides) {
-                const gchar* origin_hint = g_hash_table_lookup(npp->null_overrides, full_key);
-                g_autofree gchar* basename = npp->current.filepath ?
-                    g_path_get_basename(npp->current.filepath) : NULL;
-                if (origin_hint && basename && g_strcmp0(origin_hint, basename) != 0)
-                    continue;
-            }
-        }
-
-        /* special-case "renderer:" key to set the per-type backend */
-        if (strcmp(scalar(key), "renderer") == 0) {
-            if (!parse_renderer(npp, value, &npp->current.backend, error))
-                return FALSE;
+        if (network_type_entry_is_ignored(npp, value, full_key))
             continue;
-        }
+
+        /* The per-type renderer was already processed above. */
+        if (strcmp(scalar(key), "renderer") == 0)
+            continue;
 
         assert_type(npp, value, YAML_MAPPING_NODE);
 
