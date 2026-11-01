@@ -1,9 +1,5 @@
-#!/usr/bin/python3
-# Functional tests of netplan CLI. These are run during "make check" and don't
-# touch the system configuration at all.
-#
-# Copyright (C) 2021 Canonical, Ltd.
-# Author: Lukas Märdian <slyon@ubuntu.com>
+# SPDX-License-Identifier: GPL-3.0-only
+# Tests for selecting configured links during apply.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
