@@ -219,7 +219,7 @@ class NetplanApply(utils.NetplanCommand):
         # because of the NamePolicy=keep default:
         # https://www.freedesktop.org/software/systemd/man/systemd.net-naming-scheme.html
         devices = utils.get_interfaces()
-        for device in devices:
+        for device in self._get_link_devices(devices, config_manager):
             logging.debug('netplan triggering .link rules for %s', device)
             try:
                 subprocess.check_call(['udevadm', 'test-builtin',
@@ -357,6 +357,29 @@ class NetplanApply(utils.NetplanCommand):
                 logging.warning('Could not delete interface {}'.format(link))
 
         return dropped_interfaces
+
+    @staticmethod
+    def _get_link_devices(interfaces, config_manager: ConfigManager):
+        """Select configured physical links, including already renamed interfaces."""
+        devices = []
+        definitions = config_manager.physical_interfaces.values()
+        for interface in interfaces:
+            attributes = None
+            for netdef in definitions:
+                if interface == netdef.set_name or netdef._match_interface(iface_name=interface):
+                    devices.append(interface)
+                    break
+                if not netdef._has_match:
+                    continue
+                if attributes is None:
+                    attributes = {
+                        'iface_driver': utils.get_interface_driver_name(interface),
+                        'iface_mac': utils.get_interface_macaddress(interface),
+                    }
+                if netdef._match_interface(iface_name=interface, **attributes):
+                    devices.append(interface)
+                    break
+        return devices
 
     @staticmethod
     def process_link_changes(interfaces, config_manager: ConfigManager):  # pragma: nocover (covered in autopkgtest)
