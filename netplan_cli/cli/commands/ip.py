@@ -109,7 +109,11 @@ class NetplanIpLeases(utils.NetplanCommand):
             lease_method = lease_path[mapping['backend']]['method']
 
             try:
-                lease_id = eval("lease_method_" + lease_method)()
+                lease_methods = {
+                    'ifindex': lease_method_ifindex,
+                    'nm_connection': lease_method_nm_connection,
+                }
+                lease_id = lease_methods[lease_method]()
 
                 # We found something to build the path to the lease file with,
                 # at this point we may have something to look at; but if not,
