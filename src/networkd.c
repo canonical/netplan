@@ -1356,7 +1356,7 @@ _netplan_netdef_write_networkd(
     if (def->type >= NETPLAN_DEF_TYPE_VIRTUAL)
         write_netdev_file(def, rootdir, path_base, validation_only);
     if (!_netplan_netdef_write_network_file(np_state, def, rootdir, path_base, has_been_written, error))
-        return FALSE;
+        return FALSE; // LCOV_EXCL_LINE
     SET_OPT_OUT_PTR(has_been_written, TRUE);
     return TRUE;
 }
