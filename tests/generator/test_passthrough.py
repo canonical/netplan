@@ -26,6 +26,43 @@ class TestNetworkd(TestBase):
 
 class TestNetworkManager(TestBase):
 
+    def test_passthrough_user_namespaces(self):
+        self.generate('''network:
+  ethernets:
+    metadata-test:
+      renderer: NetworkManager
+      match: {}
+      networkmanager:
+        passthrough:
+          user.org.example.owner: token
+          user.example.enabled: "true"
+          tc.filters.ingress.protocol: "ip"''')
+        self.assert_nm({'metadata-test': '''[connection]
+id=netplan-metadata-test
+type=ethernet
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=ignore
+
+[user]
+#Netplan: passthrough setting
+org.example.owner=token
+#Netplan: passthrough setting
+example.enabled=true
+
+[tc]
+#Netplan: passthrough setting
+filters.ingress.protocol=ip
+'''}, '''[device-netplan.ethernets.metadata-test]
+match-device=type:ethernet
+managed=1\n\n''')
+
     def test_passthrough_basic(self):
         self.generate('''network:
   version: 2

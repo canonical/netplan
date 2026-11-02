@@ -629,10 +629,12 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
 {
     GKeyFile *kf = user_data;
     gchar* val = value;
-    /* Group name may contain dots, but key name may not.
-     * The "tc" group is a special case, where it is the other way around, e.g.:
+    /* Group names may contain dots (wireguard-peer.<public-key>). The "tc"
+     * and "user" groups instead allow dotted keys, including arbitrary-depth
+     * user namespaces. Preserve the entire suffix, e.g.:
      *   tc->qdisc.root
-     *   tc->tfilter.ffff: */
+     *   tc->tfilter.ffff:
+     *   user->org.example.application.owner */
     const gchar* key = g_quark_to_string(key_id);
     gchar **group_key = g_strsplit(key, ".", -1);
     guint len = g_strv_length(group_key);
@@ -640,8 +642,8 @@ write_fallback_key_value(GQuark key_id, gpointer value, gpointer user_data)
     gboolean has_key = FALSE;
     g_autofree gchar* k = NULL;
     g_autofree gchar* group = NULL;
-    if (!g_strcmp0(group_key[0], "tc") && len > 2) {
-        k = g_strconcat(group_key[1], ".", group_key[2], NULL);
+    if ((!g_strcmp0(group_key[0], "tc") || !g_strcmp0(group_key[0], "user")) && len > 2) {
+        k = g_strjoinv(".", group_key + 1);
         group = g_strdup(group_key[0]);
     } else {
         k = group_key[len-1];
