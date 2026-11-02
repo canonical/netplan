@@ -67,6 +67,10 @@ jobs:
           cd network-manager-*/
           patch -p1 < $GITHUB_WORKSPACE/.github/workflows/lp2160170-nm-netplan.patch
           cd ../
+          # The debs come out of build-deb-action owned by root. autopkgtest
+          # hard-links them, and fs.protected_hardlinks only allows that for
+          # files we own.
+          sudo chown "$(id -u):$(id -g)" debian/artifacts/*.deb
           autopkgtest -U \
             --env=DEB_BUILD_OPTIONS=nocheck \
             --apt-pocket=proposed=src:network-manager \
