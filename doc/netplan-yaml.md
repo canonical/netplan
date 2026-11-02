@@ -632,14 +632,11 @@ and `route-metric`.
 Overrides only have an effect if the corresponding `dhcp4` or `dhcp6` is
 set to `true`.
 
-If both `dhcp4` and `dhcp6` are `true`, the networkd back end requires
-that `dhcp4-overrides` and `dhcp6-overrides` contain the same keys and
-values. If the values do not match, an error will be shown and the network
-configuration will not be applied.
-
-When using the NetworkManager back end, different values may be specified for
-`dhcp4-overrides` and `dhcp6-overrides`, and will be applied to the DHCP
-client processes as specified in the Netplan YAML.
+`dhcp4-overrides` and `dhcp6-overrides` are applied independently, so they
+may have different values. The networkd back end writes them to the
+`[DHCPv4]` and `[DHCPv6]` sections; `use-mtu` and `use-routes` have no
+effect in `dhcp6-overrides` there, since the `[DHCPv6]` section has no such
+options.
 
 - **`dhcp4-overrides`**, **`dhcp6-overrides`** (mapping)
 

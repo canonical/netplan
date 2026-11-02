@@ -1056,8 +1056,8 @@ ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs-br non-ovs-bond
                               'ovs-br.network': ND_EMPTY % ('ovs-br', 'ipv6'),
                               'non-ovs-bond.netdev': '[NetDev]\nName=non-ovs-bond\nKind=bond\n'})
 
-    def test_ovs_invalid_networkd_config(self):
-        err = self.generate('''network:
+    def test_ovs_dhcp_overrides(self):
+        self.generate('''network:
   version: 2
   bridges:
     br0:
@@ -1068,9 +1068,27 @@ ExecStart=''' + OVS_VSCTL_PATH + ''' --may-exist add-port ovs-br non-ovs-bond
       dhcp6: true
       dhcp6-overrides:
         use-domains: false
-''', expect_fail=True)
-        self.assert_ovs({'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
-        self.assertIn('br0: networkd requires that use-domains has the same value', err)
+''')
+        self.assert_ovs({'br0.service': OVS_BR_EMPTY % {'iface': 'br0'},
+                         'cleanup.service': OVS_CLEANUP % {'iface': 'cleanup'}})
+        # each of dhcp4-overrides and dhcp6-overrides goes into its own section
+        self.assert_networkd({'br0.network': '''[Match]
+Name=br0
+
+[Network]
+DHCP=yes
+LinkLocalAddressing=ipv6
+ConfigureWithoutCarrier=yes
+
+[DHCPv4]
+RouteMetric=100
+UseMTU=true
+UseDomains=true
+
+[DHCPv6]
+RouteMetric=100
+UseDomains=false
+'''})
 
     def test_ovs_duplicates_when_parser_needs_second_pass(self):
         ''' Test case for LP: #2007682

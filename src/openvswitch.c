@@ -53,7 +53,7 @@ _netplan_netdef_write_ovs(const NetplanState* np_state, const NetplanNetDefiniti
         /* TODO: make use of netplan_netdef_get_output_filename() */
         base_config_path = g_strjoin(NULL, "run/systemd/network/10-netplan-", escaped_netdef_id, NULL);
         if (!_netplan_netdef_write_network_file(np_state, def, rootdir, base_config_path, has_been_written, error))
-            return FALSE;
+            return FALSE; // LCOV_EXCL_LINE
     }
     return TRUE;
 }
