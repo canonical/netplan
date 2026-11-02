@@ -14,7 +14,7 @@ This guide shows how to configure a virtual machine (VM) host using Netplan and 
   - 1 NIC dedicated to be used in passthrough mode (out of scope of this how to)
   - 3 NICs bonded using 802.3ad for the host, VMs, and containers
 - Ubuntu Server installed.
-- KVM and QEMU installed; see [KVM installation](https://help.ubuntu.com/community/KVM/Installation).
+- KVM and QEMU installed; see [KVM installation](https://ubuntu.com/server/docs/how-to/virtualisation/libvirt/).
 - Administrator privileges.
 
 
