@@ -635,8 +635,8 @@ set to `true`.
 `dhcp4-overrides` and `dhcp6-overrides` are applied independently, so they
 may have different values. The networkd back end writes them to the
 `[DHCPv4]` and `[DHCPv6]` sections; `use-mtu` and `use-routes` have no
-effect in `dhcp6-overrides` there, since networkd's DHCPv6 client has no
-such options.
+effect in `dhcp6-overrides` there, since the `[DHCPv6]` section has no such
+options.
 
 - **`dhcp4-overrides`**, **`dhcp6-overrides`** (mapping)
 
