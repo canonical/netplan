@@ -658,64 +658,6 @@ write_addr_option(NetplanAddressOptions* o, GString* s)
         g_string_append_printf(s, "Label=%s\n", o->label);
 }
 
-#define DHCP_OVERRIDES_ERROR                                            \
-    "ERROR: %s: networkd requires that %s has the same value in both "  \
-    "dhcp4_overrides and dhcp6_overrides\n"
-
-STATIC gboolean
-combine_dhcp_overrides(const NetplanNetDefinition* def, NetplanDHCPOverrides* combined_dhcp_overrides, GError** error)
-{
-    /* if only one of dhcp4 or dhcp6 is enabled, those overrides are used */
-    if (def->dhcp4 && !def->dhcp6) {
-        *combined_dhcp_overrides = def->dhcp4_overrides;
-    } else if (!def->dhcp4 && def->dhcp6) {
-        *combined_dhcp_overrides = def->dhcp6_overrides;
-    } else {
-        /* networkd doesn't support separately configuring dhcp4 and dhcp6, so
-         * we enforce that they are the same.
-         */
-        if (def->dhcp4_overrides.use_dns != def->dhcp6_overrides.use_dns) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-dns");
-            return FALSE;
-        }
-        if (g_strcmp0(def->dhcp4_overrides.use_domains, def->dhcp6_overrides.use_domains) != 0){
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-domains");
-            return FALSE;
-        }
-        if (def->dhcp4_overrides.use_ntp != def->dhcp6_overrides.use_ntp) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-ntp");
-            return FALSE;
-        }
-        if (def->dhcp4_overrides.send_hostname != def->dhcp6_overrides.send_hostname) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "send-hostname");
-            return FALSE;
-        }
-        if (def->dhcp4_overrides.use_hostname != def->dhcp6_overrides.use_hostname) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-hostname");
-            return FALSE;
-        }
-        if (def->dhcp4_overrides.use_mtu != def->dhcp6_overrides.use_mtu) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-mtu");
-            return FALSE;
-        }
-        if (g_strcmp0(def->dhcp4_overrides.hostname, def->dhcp6_overrides.hostname) != 0) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "hostname");
-            return FALSE;
-        }
-        if (def->dhcp4_overrides.metric != def->dhcp6_overrides.metric) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "route-metric");
-            return FALSE;
-        }
-        if (def->dhcp4_overrides.use_routes != def->dhcp6_overrides.use_routes) {
-            g_set_error(error, NETPLAN_BACKEND_ERROR, NETPLAN_ERROR_VALIDATION, DHCP_OVERRIDES_ERROR, def->id, "use-routes");
-            return FALSE;
-        }
-        /* Just use dhcp4_overrides now, since we know they are the same. */
-        *combined_dhcp_overrides = def->dhcp4_overrides;
-    }
-    return TRUE;
-}
-
 /**
  * Write the needed networkd .network configuration for the selected netplan definition.
  */
@@ -726,7 +668,7 @@ _netplan_netdef_write_network_file(
         const char *rootdir,
         const char* path,
         gboolean* has_been_written,
-        GError** error)
+        __unused GError** error)
 {
     g_autoptr(GString) network = NULL;
     g_autoptr(GString) link = NULL;
@@ -935,24 +877,20 @@ _netplan_netdef_write_network_file(
     }
 
     if (def->dhcp4 || def->dhcp6) {
-        NetplanDHCPOverrides combined_dhcp_overrides;
-        if (!combine_dhcp_overrides(def, &combined_dhcp_overrides, error))
-            return FALSE;
-
         /* NetworkManager compatible route metrics: 600 for Wi-Fi, 100 for other */
-        guint metric = combined_dhcp_overrides.metric == NETPLAN_METRIC_UNSPEC ?
-                       (def->type == NETPLAN_DEF_TYPE_WIFI ? 600 : 100) :
-                       combined_dhcp_overrides.metric;
+        guint default_metric = def->type == NETPLAN_DEF_TYPE_WIFI ? 600 : 100;
 
         if (def->dhcp4) {
             g_string_append(network, "\n[DHCPv4]\n");
             if (def->dhcp_identifier)
                 g_string_append_printf(network, "ClientIdentifier=%s\n", def->dhcp_identifier);
 
-            g_string_append_printf(network, "RouteMetric=%u\n", metric);
+            g_string_append_printf(network, "RouteMetric=%u\n",
+                                   def->dhcp4_overrides.metric == NETPLAN_METRIC_UNSPEC ?
+                                   default_metric : def->dhcp4_overrides.metric);
 
             /* Only set MTU from DHCP if use-mtu dhcp-override is not false. */
-            if (!combined_dhcp_overrides.use_mtu) {
+            if (!def->dhcp4_overrides.use_mtu) {
                 /* isc-dhcp dhclient compatible UseMTU, networkd default is to
                  * not accept MTU, which breaks clouds */
                 g_string_append_printf(network, "UseMTU=false\n");
@@ -961,40 +899,42 @@ _netplan_netdef_write_network_file(
             }
 
             /* Only write DHCP options that differ from the networkd default. */
-            if (!combined_dhcp_overrides.use_routes)
+            if (!def->dhcp4_overrides.use_routes)
                 g_string_append_printf(network, "UseRoutes=false\n");
-            if (!combined_dhcp_overrides.use_dns)
+            if (!def->dhcp4_overrides.use_dns)
                 g_string_append_printf(network, "UseDNS=false\n");
-            if (combined_dhcp_overrides.use_domains)
-                g_string_append_printf(network, "UseDomains=%s\n", combined_dhcp_overrides.use_domains);
-            if (!combined_dhcp_overrides.use_ntp)
+            if (def->dhcp4_overrides.use_domains)
+                g_string_append_printf(network, "UseDomains=%s\n", def->dhcp4_overrides.use_domains);
+            if (!def->dhcp4_overrides.use_ntp)
                 g_string_append_printf(network, "UseNTP=false\n");
-            if (!combined_dhcp_overrides.send_hostname)
+            if (!def->dhcp4_overrides.send_hostname)
                 g_string_append_printf(network, "SendHostname=false\n");
-            if (!combined_dhcp_overrides.use_hostname)
+            if (!def->dhcp4_overrides.use_hostname)
                 g_string_append_printf(network, "UseHostname=false\n");
-            if (combined_dhcp_overrides.hostname)
-                g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
+            if (def->dhcp4_overrides.hostname)
+                g_string_append_printf(network, "Hostname=%s\n", def->dhcp4_overrides.hostname);
         }
 
         if (def->dhcp6) {
             g_string_append(network, "\n[DHCPv6]\n");
 
-            g_string_append_printf(network, "RouteMetric=%u\n", metric);
+            g_string_append_printf(network, "RouteMetric=%u\n",
+                                   def->dhcp6_overrides.metric == NETPLAN_METRIC_UNSPEC ?
+                                   default_metric : def->dhcp6_overrides.metric);
 
             /* Only write DHCP options that differ from the networkd default. */
-            if (!combined_dhcp_overrides.use_dns)
+            if (!def->dhcp6_overrides.use_dns)
                 g_string_append_printf(network, "UseDNS=false\n");
-            if (combined_dhcp_overrides.use_domains)
-                g_string_append_printf(network, "UseDomains=%s\n", combined_dhcp_overrides.use_domains);
-            if (!combined_dhcp_overrides.use_ntp)
+            if (def->dhcp6_overrides.use_domains)
+                g_string_append_printf(network, "UseDomains=%s\n", def->dhcp6_overrides.use_domains);
+            if (!def->dhcp6_overrides.use_ntp)
                 g_string_append_printf(network, "UseNTP=false\n");
-            if (!combined_dhcp_overrides.send_hostname)
+            if (!def->dhcp6_overrides.send_hostname)
                 g_string_append_printf(network, "SendHostname=false\n");
-            if (!combined_dhcp_overrides.use_hostname)
+            if (!def->dhcp6_overrides.use_hostname)
                 g_string_append_printf(network, "UseHostname=false\n");
-            if (combined_dhcp_overrides.hostname)
-                g_string_append_printf(network, "Hostname=%s\n", combined_dhcp_overrides.hostname);
+            if (def->dhcp6_overrides.hostname)
+                g_string_append_printf(network, "Hostname=%s\n", def->dhcp6_overrides.hostname);
         }
     }
 
