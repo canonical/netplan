@@ -398,6 +398,39 @@ address1=192.168.123.123/24
     def test_keyfile_ethernet(self):
         self._template_keyfile_type('ethernets', 'ethernet')
 
+    def test_keyfile_ethernet_netdef_id_equals_interface_name(self):
+        # A physical netdef whose ID is the interface name (e.g. "ethernets:
+        # eth0:") is rendered with interface-name=eth0. When the resulting
+        # keyfile is parsed back with that netdef ID, the name must survive the
+        # round trip, or the regenerated profile applies to any ethernet device.
+        self.generate_from_keyfile('''[connection]
+id=netplan-eth0
+type=ethernet
+interface-name=eth0
+uuid={}
+
+[ethernet]
+wake-on-lan=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+'''.format(UUID), netdef_id='eth0')
+        self.assert_netplan({UUID: '''network:
+  version: 2
+  ethernets:
+    eth0:
+      renderer: NetworkManager
+      match:
+        name: "eth0"
+      dhcp4: true
+      networkmanager:
+        uuid: "{}"
+        name: "netplan-eth0"
+'''.format(UUID)})
+
     def test_keyfile_type_modem_gsm(self):
         self._template_keyfile_type('modems', 'gsm')
 

@@ -668,7 +668,9 @@ netplan_parser_load_keyfile(NetplanParser* npp, const char* filename, GError** e
      * Else: generate a "NM-<UUID>" ID */
     if (netdef_id_size > 0) {
         nd_id = g_strdup(netdef_id);
-        if (g_strcmp0(netdef_id, tmp_str) == 0)
+        /* The netdef ID equals interface-name only for virtual devices; a
+         * physical device needs it, as it becomes match.name (has_match is always set) */
+        if (g_strcmp0(netdef_id, tmp_str) == 0 && nd_type >= NETPLAN_DEF_TYPE_VIRTUAL)
             _kf_clear_key(kf, "connection", "interface-name");
     } else if (tmp_str && nd_type != NETPLAN_DEF_TYPE_NM
                 && nd_type >= NETPLAN_DEF_TYPE_VIRTUAL
