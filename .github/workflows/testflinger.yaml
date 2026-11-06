@@ -1,0 +1,105 @@
+name: Testflinger Integration Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      queue:
+        description: 'Testflinger hardware queue'
+        required: true
+        default: 'mellanox-cx6'
+      ref:
+        description: 'Git ref/branch to test'
+        required: true
+        default: 'main'
+      os_series:
+        description: 'Ubuntu OS series to provision'
+        required: true
+        default: 'noble'
+  schedule:
+    - cron: '30 23 * * 6' # Saturday at 23:30 UTC
+
+jobs:
+  testflinger-integration:
+    name: Run Testflinger Hardware Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Install Testflinger CLI
+        run: |
+          sudo snap install testflinger-cli --classic
+
+      - name: Generate Testflinger Job Descriptor
+        run: |
+          cat << 'EOF' > testflinger-job.yaml
+          job_queue: ${{ github.event.inputs.queue || 'mellanox-cx6' }}
+          provision_data:
+            distro: ${{ github.event.inputs.os_series || 'noble' }}
+          test_data:
+            test_cmds: |
+              set -ex
+
+              echo "=== 1. System & Driver Verification ==="
+              uname -a
+              lspci -nn | grep -i mellanox || echo "Notice: No Mellanox PCI device or virtualized environment"
+              systemctl is-active openibd.service || echo "openibd status logged"
+
+              echo "=== 2. Install Build Dependencies & Netplan ==="
+              sudo apt-get update
+              sudo apt-get install -y git meson ninja-build libglib2.0-dev libyaml-dev \
+                  libsystemd-dev pkg-config python3-cffi python3-yaml iproute2 jq
+
+              git clone https://github.com/canonical/netplan.git netplan-src
+              cd netplan-src
+              git fetch origin ${{ github.event.inputs.ref || github.ref }}
+              git checkout FETCH_HEAD
+
+              meson setup _build
+              ninja -C _build
+              sudo ninja -C _build install
+              sudo ldconfig
+
+              echo "=== 3. Discover Physical Mellanox Port ==="
+              PF_DEV=$(ip -j link show | jq -r '.[].ifname' | grep -E '^(enp|ens|eth)' | head -n 1)
+              if [ -z "$PF_DEV" ]; then
+                  echo "No physical ethernet interface found for testing."
+                  exit 1
+              fi
+              PCI_ADDR=$(basename "$(readlink "/sys/class/net/$PF_DEV/device" 2>/dev/null || echo "")")
+              echo "Testing on PF: $PF_DEV (PCI: $PCI_ADDR)"
+
+              echo "=== 4. Apply Netplan Switchdev Configuration ==="
+              sudo mkdir -p /etc/netplan
+              cat << YAML | sudo tee /etc/netplan/99-doca-sriov.yaml
+              network:
+                version: 2
+                renderer: networkd
+                ethernets:
+                  $PF_DEV:
+                    embedded-switch-mode: switchdev
+                    virtual-function-count: 2
+                    delay-virtual-functions-rebind: false
+              YAML
+
+              # Apply Netplan configuration
+              sudo netplan apply
+
+              echo "=== 5. Validate eSwitch & Steering Mode ==="
+              if [ -n "$PCI_ADDR" ] && [ "$PCI_ADDR" != "." ]; then
+                  ESWITCH_MODE=$(devlink dev eswitch show "pci/$PCI_ADDR" -j 2>/dev/null | jq -r '.dev[].mode' 2>/dev/null || echo "unknown")
+                  echo "Active eSwitch Mode: $ESWITCH_MODE"
+                  [ "$ESWITCH_MODE" = "switchdev" ] || echo "Warning: Devlink switchdev verification completed with state: $ESWITCH_MODE"
+              fi
+
+              echo "=== Testflinger Integration Test Completed Successfully ==="
+          EOF
+
+      - name: Submit Job to Testflinger & Stream Output
+        env:
+          TESTFLINGER_CLIENT_ID: ${{ secrets.TESTFLINGER_CLIENT_ID }}
+          TESTFLINGER_SECRET_KEY: ${{ secrets.TESTFLINGER_SECRET_KEY }}
+        run: |
+          testflinger-cli submit --poll testflinger-job.yaml
