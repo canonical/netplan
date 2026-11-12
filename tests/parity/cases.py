@@ -7,7 +7,7 @@
 #          (content is str or bytes)
 #          where path is "{ROOT}/..." or under one of the sandboxed system
 #          directories (/etc/netplan, /etc/network, /run, /sys/class/net,
-#          /usr/lib/netplan); files default to mode 0600
+#          /usr/lib/netplan, /usr/share/iproute2); files default to mode 0600
 #   mocks  {command: [rule, ...]}, see mock_cmd.py
 #   env    extra environment variables
 #   abs_mocks  absolute paths at which to also place mocks (logged and

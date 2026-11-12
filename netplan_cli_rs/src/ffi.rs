@@ -79,6 +79,34 @@ pub const NETPLAN_DEF_TYPE_VETH: NetplanDefType = 12;
 /// is too small.
 pub const NETPLAN_BUFFER_TOO_SMALL: isize = -2;
 
+// ── Structs exposed to the Python bindings (see python-cffi/_build_cffi.py) ──
+
+/// `NetplanAddressOptions`
+#[repr(C)]
+pub struct NetplanAddressOptions {
+    pub address: *mut c_char,
+    pub lifetime: *mut c_char,
+    pub label: *mut c_char,
+}
+
+/// `NetplanIPRoute`
+#[repr(C)]
+pub struct NetplanIPRoute {
+    pub family: c_int,
+    pub type_: *mut c_char,
+    pub scope: *mut c_char,
+    pub table: GUint,
+    pub from: *mut c_char,
+    pub to: *mut c_char,
+    pub via: *mut c_char,
+    pub onlink: GBoolean,
+    pub metric: GUint,
+    pub mtubytes: GUint,
+    pub congestion_window: GUint,
+    pub advertised_receive_window: GUint,
+    pub advmss: GUint,
+}
+
 // ── libnetplan C API ──────────────────────────────────────────────────────────
 
 extern "C" {
@@ -238,6 +266,31 @@ extern "C" {
     pub fn _netplan_netdef_pertype_iter_next(it: *mut c_void) -> *mut NetplanNetDefinition;
 
     pub fn _netplan_netdef_pertype_iter_free(it: *mut c_void);
+
+    pub fn _netplan_netdef_get_gateway4(
+        netdef: *const NetplanNetDefinition,
+        out_buffer: *mut c_char,
+        out_buffer_size: usize,
+    ) -> isize;
+    pub fn _netplan_netdef_get_gateway6(
+        netdef: *const NetplanNetDefinition,
+        out_buffer: *mut c_char,
+        out_buffer_size: usize,
+    ) -> isize;
+
+    pub fn _netplan_netdef_new_address_iter(netdef: *mut NetplanNetDefinition) -> *mut c_void;
+    pub fn _netplan_address_iter_next(it: *mut c_void) -> *mut NetplanAddressOptions;
+    pub fn _netplan_address_iter_free(it: *mut c_void);
+    pub fn _netplan_netdef_new_nameserver_iter(netdef: *mut NetplanNetDefinition) -> *mut c_void;
+    pub fn _netplan_nameserver_iter_next(it: *mut c_void) -> *mut c_char;
+    pub fn _netplan_nameserver_iter_free(it: *mut c_void);
+    pub fn _netplan_netdef_new_search_domain_iter(netdef: *mut NetplanNetDefinition)
+        -> *mut c_void;
+    pub fn _netplan_search_domain_iter_next(it: *mut c_void) -> *mut c_char;
+    pub fn _netplan_search_domain_iter_free(it: *mut c_void);
+    pub fn _netplan_netdef_new_route_iter(netdef: *mut NetplanNetDefinition) -> *mut c_void;
+    pub fn _netplan_route_iter_next(it: *mut c_void) -> *mut NetplanIPRoute;
+    pub fn _netplan_route_iter_free(it: *mut c_void);
 
     pub fn netplan_util_create_yaml_patch(
         conf_obj_path: *const c_char,

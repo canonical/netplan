@@ -167,8 +167,8 @@ class TestStatusRust(unittest.TestCase):
         '''JSON output uses Python json.dumps() separators and insertion order.'''
         fake_ip = json.dumps([FAKE_DEV])
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD) as env:
-            out = call_cli_rust(['status', '-a', '--format=json',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=json',
+                           '--root-dir', env.root_dir])
         self.assertEqual(
             out,
             '{"netplan-global-state": {"online": false, "nameservers": '
@@ -182,8 +182,8 @@ class TestStatusRust(unittest.TestCase):
         resolv = '# This is /run/systemd/resolve/stub-resolv.conf\nnameserver 127.0.0.53\n'
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD,
                            resolv_conf=resolv) as env:
-            out = call_cli_rust(['status', '-a', '--format=json',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=json',
+                           '--root-dir', env.root_dir])
         data = json.loads(out)
         ns = data['netplan-global-state']['nameservers']
         self.assertEqual(ns['addresses'], ['127.0.0.53'])
@@ -195,8 +195,8 @@ class TestStatusRust(unittest.TestCase):
         '''YAML output has alphabetically sorted keys matching yaml.dump() format.'''
         fake_ip = json.dumps([FAKE_DEV])
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD) as env:
-            out = call_cli_rust(['status', '-a', '--format=yaml',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=yaml',
+                           '--root-dir', env.root_dir])
         self.assertEqual(out.strip(), '''\
 fakedev0:
   adminstate: DOWN
@@ -215,7 +215,7 @@ netplan-global-state:
         '''Tabular output shows online state and interface.'''
         fake_ip = json.dumps([FAKE_DEV])
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD) as env:
-            out = call_cli_rust(['status', '-a', '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--root-dir', env.root_dir])
         # strip() removes the leading PAD spaces on the first line
         self.assertEqual(out.strip(), '''\
 Online state: offline
@@ -277,7 +277,7 @@ Online state: offline
         wlan0 = next(i for i in yaml.safe_load(IPROUTE2) if i['ifname'] == 'wlan0')
         fake_ip = json.dumps([FAKE_DEV, wlan0])
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD) as env:
-            out = call_cli_rust(['status', 'fakedev0', '--root-dir', env.root_dir])
+            out = env.call(['status', 'fakedev0', '--root-dir', env.root_dir])
         self.assertEqual(out.strip(), '''\
 Online state: offline
 

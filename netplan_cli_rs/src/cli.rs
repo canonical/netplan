@@ -167,10 +167,9 @@ pub fn main(argv0: &str, args: &[String]) -> i32 {
         unsafe { std::env::set_var("G_MESSAGES_DEBUG", "all") };
     }
 
-    let runner = crate::utils::process::NativeCommandRunner::new();
     let result = match subcommand.as_str() {
         "help" => Err(print_usage(&top)),
-        cmd => crate::commands::run(cmd, argv0, &rest, &runner),
+        cmd => crate::commands::run(cmd, argv0, &rest),
     };
     match result {
         Ok(code) => code,

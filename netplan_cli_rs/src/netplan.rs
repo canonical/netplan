@@ -276,28 +276,30 @@ impl State {
         Ok(())
     }
 
-    /// Iterate over all `NetDefinition` objects in this state.
-    ///
-    /// The returned iterator borrows `self` for the duration of iteration.
-    pub fn netdefs(&self) -> impl Iterator<Item = NetDef> + '_ {
-        let mut iter = ffi::NetplanStateIterator {
-            placeholder: std::ptr::null_mut(),
-        };
-        // SAFETY: `self.0` is a valid state pointer; `iter` is a freshly
-        // initialised, stack-allocated iterator struct.
-        unsafe { ffi::netplan_state_iterator_init(self.0, &mut iter) };
-        NetDefIter { iter }
+    /// All netdefs in state order, like the Python bindings' `State.netdefs`
+    /// (a per-type iterator with a NULL type; `netplan_state_iterator_*`
+    /// would walk a hash table instead).
+    pub fn netdefs(&self) -> Vec<NetDef> {
+        self.netdefs_pertype(None)
     }
 
     /// The netdefs of one type (e.g. "ethernets"), in state order, like the
     /// Python bindings' `State.ethernets` & co.
     pub fn netdefs_of_type(&self, def_type: &str) -> Vec<NetDef> {
-        let ctype = CString::new(def_type).unwrap_or_default();
+        self.netdefs_pertype(Some(def_type))
+    }
+
+    fn netdefs_pertype(&self, def_type: Option<&str>) -> Vec<NetDef> {
+        let ctype = def_type.map(|t| CString::new(t).unwrap_or_default());
         let mut out = vec![];
-        // SAFETY: `self.0` is a valid state pointer; the iterator is freed
-        // below and the returned netdefs are owned by the state.
+        // SAFETY: `self.0` is a valid state pointer; the type is NULL or a
+        // valid NUL-terminated string; the iterator is freed below and the
+        // returned netdefs are owned by the state.
         unsafe {
-            let it = ffi::_netplan_state_new_netdef_pertype_iter(self.0, ctype.as_ptr());
+            let it = ffi::_netplan_state_new_netdef_pertype_iter(
+                self.0,
+                ctype.as_ref().map_or(std::ptr::null(), |c| c.as_ptr()),
+            );
             loop {
                 let nd = ffi::_netplan_netdef_pertype_iter_next(it);
                 if nd.is_null() {
@@ -361,36 +363,6 @@ impl Drop for State {
         // SAFETY: `self.0` was created by `netplan_state_new` and is only
         // freed here, on drop.
         unsafe { ffi::netplan_state_clear(&mut self.0) };
-    }
-}
-
-// ── NetDefIter ────────────────────────────────────────────────────────────────
-
-/// Iterator over `NetDef` references inside a `State`.
-///
-/// The pointed-to objects are owned by the `State`; do not outlive it.
-/// Constructed only via [`State::netdefs`].
-struct NetDefIter {
-    iter: ffi::NetplanStateIterator,
-}
-
-impl Iterator for NetDefIter {
-    type Item = NetDef;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // SAFETY: `self.iter` was initialised by `netplan_state_iterator_init`
-        // and is only ever accessed through this iterator.
-        if unsafe { ffi::netplan_state_iterator_has_next(&mut self.iter) } == 0 {
-            return None;
-        }
-        // SAFETY: `has_next` returned true, so the iterator has at least one
-        // more element to yield.
-        let ptr = unsafe { ffi::netplan_state_iterator_next(&mut self.iter) };
-        if ptr.is_null() {
-            None
-        } else {
-            Some(NetDef(ptr))
-        }
     }
 }
 
@@ -615,6 +587,133 @@ impl NetDef {
         }
     }
 
+    /// `NetDefinition.type`: `netplan_def_type_name()`, e.g. "ethernets"
+    pub fn type_name(&self) -> &'static str {
+        match self.def_type() {
+            ffi::NETPLAN_DEF_TYPE_ETHERNET => "ethernets",
+            ffi::NETPLAN_DEF_TYPE_WIFI => "wifis",
+            ffi::NETPLAN_DEF_TYPE_MODEM => "modems",
+            ffi::NETPLAN_DEF_TYPE_BRIDGE => "bridges",
+            ffi::NETPLAN_DEF_TYPE_BOND => "bonds",
+            ffi::NETPLAN_DEF_TYPE_VLAN => "vlans",
+            ffi::NETPLAN_DEF_TYPE_VRF => "vrfs",
+            ffi::NETPLAN_DEF_TYPE_TUNNEL => "tunnels",
+            ffi::NETPLAN_DEF_TYPE_DUMMY => "dummy-devices",
+            ffi::NETPLAN_DEF_TYPE_VETH => "virtual-ethernets",
+            ffi::NETPLAN_DEF_TYPE_PORT => "_ovs-ports",
+            ffi::NETPLAN_DEF_TYPE_NM => "nm-devices",
+            _ => "",
+        }
+    }
+
+    /// `NetDefinition._gateway4`
+    pub fn gateway4(&self) -> Result<Option<String>> {
+        // SAFETY: `self.0` is a valid netdef pointer; `buf`/`len` describe the
+        // growable buffer owned by `read_string_buf`.
+        let s = read_string_buf(|buf, len| unsafe {
+            ffi::_netplan_netdef_get_gateway4(self.0, buf, len)
+        })?;
+        Ok(if s.is_empty() { None } else { Some(s) })
+    }
+
+    /// `NetDefinition._gateway6`
+    pub fn gateway6(&self) -> Result<Option<String>> {
+        // SAFETY: as for `gateway4`.
+        let s = read_string_buf(|buf, len| unsafe {
+            ffi::_netplan_netdef_get_gateway6(self.0, buf, len)
+        })?;
+        Ok(if s.is_empty() { None } else { Some(s) })
+    }
+
+    /// `NetDefinition.addresses`
+    pub fn addresses(&self) -> Vec<NetplanAddress> {
+        let mut out = vec![];
+        // SAFETY: `self.0` is a valid netdef pointer; the iterator is freed
+        // below and the returned structs are owned by the netdef.
+        unsafe {
+            let it = ffi::_netplan_netdef_new_address_iter(self.0);
+            loop {
+                let a = ffi::_netplan_address_iter_next(it);
+                if a.is_null() {
+                    break;
+                }
+                out.push(NetplanAddress {
+                    address: cstr_opt((*a).address),
+                    lifetime: cstr_opt((*a).lifetime),
+                    label: cstr_opt((*a).label),
+                });
+            }
+            ffi::_netplan_address_iter_free(it);
+        }
+        out
+    }
+
+    /// `NetDefinition.nameserver_addresses`
+    pub fn nameserver_addresses(&self) -> Vec<String> {
+        let mut out = vec![];
+        // SAFETY: `self.0` is a valid netdef pointer; the iterator is freed
+        // below and the returned strings are owned by the netdef.
+        unsafe {
+            let it = ffi::_netplan_netdef_new_nameserver_iter(self.0);
+            loop {
+                let n = ffi::_netplan_nameserver_iter_next(it);
+                if n.is_null() {
+                    break;
+                }
+                out.push(cstr_opt(n).unwrap_or_default());
+            }
+            ffi::_netplan_nameserver_iter_free(it);
+        }
+        out
+    }
+
+    /// `NetDefinition.nameserver_search`
+    pub fn nameserver_search(&self) -> Vec<String> {
+        let mut out = vec![];
+        // SAFETY: as for `nameserver_addresses`.
+        unsafe {
+            let it = ffi::_netplan_netdef_new_search_domain_iter(self.0);
+            loop {
+                let n = ffi::_netplan_search_domain_iter_next(it);
+                if n.is_null() {
+                    break;
+                }
+                out.push(cstr_opt(n).unwrap_or_default());
+            }
+            ffi::_netplan_search_domain_iter_free(it);
+        }
+        out
+    }
+
+    /// `NetDefinition.routes`
+    pub fn routes(&self) -> Vec<RawRoute> {
+        let mut out = vec![];
+        // SAFETY: `self.0` is a valid netdef pointer; the iterator is freed
+        // below and the returned structs are owned by the netdef.
+        unsafe {
+            let it = ffi::_netplan_netdef_new_route_iter(self.0);
+            loop {
+                let r = ffi::_netplan_route_iter_next(it);
+                if r.is_null() {
+                    break;
+                }
+                let r = &*r;
+                out.push(RawRoute {
+                    to: cstr_opt(r.to),
+                    via: cstr_opt(r.via),
+                    from_addr: cstr_opt(r.from),
+                    type_: cstr_opt(r.type_),
+                    scope: cstr_opt(r.scope),
+                    table: r.table as i64,
+                    family: r.family as i64,
+                    metric: r.metric as i64,
+                });
+            }
+            ffi::_netplan_route_iter_free(it);
+        }
+        out
+    }
+
     /// Returns `true` if `name`/`mac`/`driver` all satisfy this netdef's
     /// match rules.  `None` arguments are passed as NULL (wildcard).
     pub fn matches_interface(&self, name: &str, mac: Option<&str>, driver: Option<&str>) -> bool {
@@ -632,6 +731,39 @@ impl NetDef {
                 cd.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
             ) != 0
         }
+    }
+}
+
+/// An entry of `NetDefinition.addresses` (`NetplanAddress` in Python).
+pub struct NetplanAddress {
+    pub address: Option<String>,
+    #[allow(dead_code)] // unused by `netplan status`
+    pub lifetime: Option<String>,
+    #[allow(dead_code)]
+    pub label: Option<String>,
+}
+
+/// The fields of a libnetplan `NetplanIPRoute` that `netplan status` uses.
+pub struct RawRoute {
+    pub to: Option<String>,
+    pub via: Option<String>,
+    pub from_addr: Option<String>,
+    pub type_: Option<String>,
+    pub scope: Option<String>,
+    pub table: i64,
+    pub family: i64,
+    pub metric: i64,
+}
+
+/// `ffi.string(p).decode('utf-8') if p else None`
+///
+/// # Safety
+/// `p` must be NULL or point to a NUL-terminated string.
+unsafe fn cstr_opt(p: *const c_char) -> Option<String> {
+    if p.is_null() {
+        None
+    } else {
+        Some(std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned())
     }
 }
 

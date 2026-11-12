@@ -211,6 +211,7 @@ pub fn apply_ovs_cleanup(
     // config_manager.netdefs: {nd.id: nd}
     let netdefs: Vec<(String, NetDef)> = state
         .netdefs()
+        .into_iter()
         .map(|nd| (nd.id().unwrap_or_default(), nd))
         .collect();
     let mut ovs_ifaces: HashSet<&str> = HashSet::new();

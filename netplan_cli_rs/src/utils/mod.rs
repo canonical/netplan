@@ -20,7 +20,6 @@
 //! the same exceptions (see [`sub`]), and helpers that swallow errors in
 //! Python swallow the same errors here.
 
-pub mod process;
 pub mod sub;
 
 use std::path::{Path, PathBuf};
@@ -204,13 +203,11 @@ pub fn networkctl_reconfigure(interfaces: &[String]) -> Result<()> {
 }
 
 /// Return True if at least one matching unit is running
-#[allow(dead_code)] // used by `netplan status` (port pending)
 pub fn systemctl_is_active(unit_pattern: &str) -> Result<bool> {
     Ok(sub::call(&["systemctl", "--quiet", "is-active", unit_pattern])? == 0)
 }
 
 /// Return True if output is "masked" or "masked-runtime"
-#[allow(dead_code)] // used by `netplan status` (port pending)
 pub fn systemctl_is_masked(unit_pattern: &str) -> Result<bool> {
     let res = sub::run(
         &["systemctl", "is-enabled", unit_pattern],
@@ -221,7 +218,6 @@ pub fn systemctl_is_masked(unit_pattern: &str) -> Result<bool> {
 }
 
 /// Return True if returncode is other than "not-found" (4)
-#[allow(dead_code)] // used by `netplan status` (port pending)
 pub fn systemctl_is_installed(unit_pattern: &str) -> Result<bool> {
     let res = sub::run(&["systemctl", "status", unit_pattern], Io::Pipe, Io::Pipe)?;
     Ok(res.returncode != 4)

@@ -100,13 +100,16 @@ fi
 
 
 class MockStatusEnv:
-    """Sets up mock system commands (ip, networkctl, nmcli, busctl) on PATH
+    """Sets up mock system commands (ip, networkctl, nmcli, busctl, systemctl) on PATH
     and a temporary --root-dir containing a fake /etc/resolv.conf.
 
     Usage::
 
         with MockStatusEnv(iproute2=..., networkd=...) as env:
             out = call_cli(['status', '-a', '--root-dir', env.root_dir])
+
+    `netplan status` reads the real /etc/resolv.conf (not the one under
+    --root-dir); use env.call() to run it with resolv_conf in its place.
     """
 
     def __init__(self, iproute2='[]', networkd='{"Interfaces":[]}',
@@ -153,7 +156,10 @@ esac
 ''')
         self._write_script('nmcli', f'#!/bin/sh\ncat "{cmds}/nmcli.txt"\n')
         self._write_script('busctl', '#!/bin/sh\nexit 1\n')
+        # 'systemctl --quiet is-active systemd-networkd.service' succeeds
+        self._write_script('systemctl', '#!/bin/sh\nexit 0\n')
 
+        self._resolv_conf = resolv_conf
         os.makedirs(os.path.join(self._root_dir, 'etc'), exist_ok=True)
         with open(os.path.join(self._root_dir, 'etc', 'resolv.conf'), 'w') as f:
             f.write(resolv_conf)
@@ -168,6 +174,9 @@ esac
     def root_dir(self):
         return self._root_dir
 
+    def call(self, args):
+        return call_cli_with_resolv_conf(args, self._resolv_conf)
+
     def __enter__(self):
         self._orig_path = os.environ.get('PATH', '')
         os.environ['PATH'] = self._cmds_dir + os.pathsep + self._orig_path
@@ -178,6 +187,44 @@ esac
             os.environ['PATH'] = self._orig_path
         shutil.rmtree(self._cmds_dir, ignore_errors=True)
         shutil.rmtree(self._root_dir, ignore_errors=True)
+
+
+def _cli_binary():
+    binary = os.environ.get('NETPLAN_CLI_BINARY')
+    if not binary:
+        gen_path = os.environ.get('NETPLAN_GENERATE_PATH', '')
+        if os.path.basename(gen_path) == 'netplan':
+            binary = gen_path
+    return binary
+
+
+def _run_cli_binary(argv):
+    result = subprocess.run(argv, capture_output=True, text=True)
+    if result.returncode != 0:
+        msg = result.stderr.strip()
+        if msg.startswith('Command failed: '):
+            msg = msg[len('Command failed: '):]
+        elif 'Traceback (most recent call last):' in msg:
+            # str() of the uncaught exception: last line minus "Type: "
+            msg = msg.splitlines()[-1].split(': ', 1)[-1]
+        raise Exception(msg)
+    return result.stdout
+
+
+def call_cli_with_resolv_conf(args, resolv_conf):
+    """call_cli() for the CLI binary, with /etc/resolv.conf replaced by
+    `resolv_conf` (in a private user+mount namespace): `netplan status`
+    always reads /etc/resolv.conf, whatever --root-dir says."""
+    binary = _cli_binary()
+    target = os.path.realpath('/etc/resolv.conf')
+    if not binary or not shutil.which('unshare') or not os.path.isfile(target):
+        raise unittest.SkipTest('needs the CLI binary, unshare and an /etc/resolv.conf')
+    with tempfile.NamedTemporaryFile('w', suffix='.conf') as f:
+        f.write(resolv_conf)
+        f.flush()
+        script = 'mount --bind "$0" "$1" && shift && exec "$@"'
+        return _run_cli_binary(['unshare', '--user', '--map-root-user', '--mount', 'sh', '-c', script,
+                                f.name, target, binary] + args)
 
 
 def call_cli(args):
@@ -194,22 +241,9 @@ def call_cli(args):
 
     Raises Exception on non-zero exit.
     """
-    binary = os.environ.get('NETPLAN_CLI_BINARY')
-    if not binary:
-        gen_path = os.environ.get('NETPLAN_GENERATE_PATH', '')
-        if os.path.basename(gen_path) == 'netplan':
-            binary = gen_path
+    binary = _cli_binary()
     if binary:
-        result = subprocess.run([binary] + args, capture_output=True, text=True)
-        if result.returncode != 0:
-            msg = result.stderr.strip()
-            if msg.startswith('Command failed: '):
-                msg = msg[len('Command failed: '):]
-            elif 'Traceback (most recent call last):' in msg:
-                # str() of the uncaught exception: last line minus "Type: "
-                msg = msg.splitlines()[-1].split(': ', 1)[-1]
-            raise Exception(msg)
-        return result.stdout
+        return _run_cli_binary([binary] + args)
 
     old_sys_argv = sys.argv
     sys.argv = [old_sys_argv[0]] + args

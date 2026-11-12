@@ -72,7 +72,7 @@ fn returncode(status: std::process::ExitStatus) -> i32 {
 pub struct Completed {
     pub returncode: i32,
     pub stdout: String,
-    #[allow(dead_code)] // used by `netplan status` (port pending)
+    #[allow(dead_code)] // Python keeps it; nothing reads it yet
     pub stderr: String,
 }
 

@@ -24,11 +24,18 @@ mod cli;
 mod commands;
 mod configmanager;
 mod ffi;
+mod ipaddress;
 mod netplan;
 mod ovs;
 mod py;
+mod pyjson;
+mod pyyaml;
+mod rich;
 mod sriov;
+mod state;
+mod state_diff;
 mod utils;
+#[allow(dead_code)] // no user at the moment (`netplan status` used to)
 mod yaml;
 
 fn main() -> ExitCode {

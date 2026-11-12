@@ -68,14 +68,10 @@ impl Exception {
 
     /// `subprocess.CalledProcessError` as raised by `check_call()` / `check_output()`.
     pub fn called_process_error(argv: &[&str], code: i32) -> anyhow::Error {
-        let cmd = argv
-            .iter()
-            .map(|a| format!("'{}'", a))
-            .collect::<Vec<_>>()
-            .join(", ");
+        let cmd = crate::utils::py_repr_list(argv);
         Self::err(
             "subprocess.CalledProcessError",
-            format!("Command '[{cmd}]' returned non-zero exit status {code}."),
+            format!("Command '{cmd}' returned non-zero exit status {code}."),
         )
     }
 }
@@ -286,6 +282,10 @@ pub fn warning(msg: &str) {
 
 pub fn error(msg: &str) {
     log("ERROR", msg);
+}
+
+pub fn critical(msg: &str) {
+    log("CRITICAL", msg);
 }
 
 // ── stdout ────────────────────────────────────────────────────────────────────

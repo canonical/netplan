@@ -11,11 +11,9 @@ pub mod try_command;
 
 use anyhow::Result;
 
-use crate::utils::process::CommandRunner;
-
 /// Run the netplan subcommand `cmd` with the arguments left over from the
 /// top-level parse.
-pub fn run(cmd: &str, argv0: &str, args: &[String], runner: &impl CommandRunner) -> Result<i32> {
+pub fn run(cmd: &str, argv0: &str, args: &[String]) -> Result<i32> {
     match cmd {
         "apply" => apply::command(argv0, args),
         "generate" => generate::command(argv0, args),
@@ -25,7 +23,7 @@ pub fn run(cmd: &str, argv0: &str, args: &[String], runner: &impl CommandRunner)
         "migrate" => migrate::command(argv0, args),
         "set" => set::command(argv0, args),
         "rebind" => sriov_rebind::command(argv0, args),
-        "status" => status::command(argv0, args, runner),
+        "status" => status::command(argv0, args),
         "try" => try_command::command(argv0, args),
         _ => unreachable!("argparse only accepts known subcommands"),
     }

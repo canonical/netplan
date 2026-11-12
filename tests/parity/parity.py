@@ -5,9 +5,9 @@
 #
 # Each invocation runs in a private user+mount namespace where /etc/netplan,
 # /etc/network, /run, /sys/class/net, /sys/bus/pci, /sys/kernel/debug,
-# /usr/lib/netplan and /usr/libexec/netplan are replaced by sandbox
-# directories and external commands (systemctl, ip, nmcli, devlink, ...) are
-# mocked and logged. Compared:
+# /usr/lib/netplan, /usr/share/iproute2 and /usr/libexec/netplan are replaced
+# by sandbox directories and external commands (systemctl, ip, nmcli,
+# devlink, ...) are mocked and logged. Compared:
 #
 #   exit code, stdout, stderr, the resulting sandbox file tree (content,
 #   mode, symlinks) and the sequence of external commands called.
@@ -65,6 +65,7 @@ MOUNTS = [
     ('/usr/lib/netplan', 'usr/lib/netplan'),
     ('/sys/bus/pci', 'sys/bus/pci'),
     ('/sys/kernel/debug', 'sys/kernel/debug'),
+    ('/usr/share/iproute2', 'usr/share/iproute2'),
 ]
 MOCKED_COMMANDS = ['ip', 'systemctl', 'udevadm', 'networkctl', 'nmcli', 'busctl',
                    'ethtool', 'resolvectl', 'ovs-vsctl', 'iw']

@@ -250,8 +250,8 @@ class TestStateRust(unittest.TestCase):
         fake_ip = json.dumps([FAKE_DEV])
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD,
                            resolv_conf='') as env:
-            out = call_cli_rust(['status', '-a', '--format=json',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=json',
+                           '--root-dir', env.root_dir])
         ns = json.loads(out)['netplan-global-state']['nameservers']
         self.assertEqual(ns['addresses'], [])
         self.assertEqual(ns['search'], [])
@@ -263,8 +263,8 @@ class TestStateRust(unittest.TestCase):
         resolv = '# This is /run/systemd/resolve/stub-resolv.conf\nnameserver 127.0.0.53\n'
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD,
                            resolv_conf=resolv) as env:
-            out = call_cli_rust(['status', '-a', '--format=json',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=json',
+                           '--root-dir', env.root_dir])
         ns = json.loads(out)['netplan-global-state']['nameservers']
         self.assertEqual(ns['mode'], 'stub')
         self.assertIn('127.0.0.53', ns['addresses'])
@@ -275,8 +275,8 @@ class TestStateRust(unittest.TestCase):
         resolv = '# This is /run/systemd/resolve/resolv.conf\nnameserver 8.8.8.8\n'
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD,
                            resolv_conf=resolv) as env:
-            out = call_cli_rust(['status', '-a', '--format=json',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=json',
+                           '--root-dir', env.root_dir])
         ns = json.loads(out)['netplan-global-state']['nameservers']
         self.assertEqual(ns['mode'], 'compat')
 
@@ -286,8 +286,8 @@ class TestStateRust(unittest.TestCase):
         resolv = 'nameserver 1.1.1.1\nsearch example.com local.domain\n'
         with MockStatusEnv(iproute2=fake_ip, networkd=NETWORKD,
                            resolv_conf=resolv) as env:
-            out = call_cli_rust(['status', '-a', '--format=json',
-                                 '--root-dir', env.root_dir])
+            out = env.call(['status', '-a', '--format=json',
+                           '--root-dir', env.root_dir])
         ns = json.loads(out)['netplan-global-state']['nameservers']
         self.assertIn('1.1.1.1', ns['addresses'])
         self.assertIn('example.com', ns['search'])
