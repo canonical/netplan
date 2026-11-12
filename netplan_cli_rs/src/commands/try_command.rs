@@ -15,509 +15,426 @@
 
 //! `netplan try` – apply config with automatic rollback on timeout or rejection.
 //!
-//! Mirrors `netplan_cli/cli/commands/try_command.py` and `configmanager.py`.
+//! Port of `netplan_cli/cli/commands/try_command.py` and `netplan_cli/terminal.py`.
 //!
-//! Signal protocol (mirrors Python):
-//!   SIGUSR1 → accept   (sent by netplan-dbus Apply() while try is active)
-//!   SIGINT  → reject   (sent by netplan-dbus Cancel(), or user Ctrl-C)
-//!   SIGTERM → reject   (external kill; dbus also restores YAML independently)
+//! Signals: SIGUSR1 accepts and, once the configuration has been changed,
+//! SIGINT rejects (both sent by netplan-dbus). SIGTERM keeps its default
+//! action. Python raises the resulting exception wherever it happens to be;
+//! here it takes effect at the next step boundary or confirmation tick.
 
-use std::io::{BufRead, Write};
-use std::os::raw::c_int;
+use std::os::fd::{AsFd, BorrowedFd};
 use std::path::Path;
-use std::process::ExitCode;
-use std::sync::atomic::{AtomicI64, Ordering};
-use std::time::Duration;
+use std::sync::atomic::{AtomicI32, Ordering};
 
-use jiff::Timestamp;
+use anyhow::Result;
+use nix::fcntl::{fcntl, FcntlArg, OFlag};
+use nix::sys::signal::{self, SigHandler, Signal};
+use nix::sys::termios::{self, LocalFlags, SetArg, Termios};
 
-use anyhow::{Context, Result};
-use clap::Args;
+use crate::argparse::{Arg, Type, Value};
+use crate::commands::apply::NetplanApply;
+use crate::configmanager::{self, ConfigManager, CONFIG_ERRORS};
+use crate::utils::{self, sub};
+use crate::{cli, py};
 
-use crate::utils::process::CommandRunner;
+// Keep a timeout long enough to allow the network to converge, 60 seconds may
+// be slightly short given some complex configs, i.e. if STP must reconverge.
+const DEFAULT_INPUT_TIMEOUT: i64 = 120;
 
-const DEFAULT_TIMEOUT: u64 = 120;
+/// `os.EX_CONFIG`
+const EX_CONFIG: i32 = 78;
 
-// ── Signal constants (Linux) ──────────────────────────────────────────────────
-const SIGINT: c_int = 2;
-const SIGTERM: c_int = 15;
-const SIGUSR1: c_int = 10;
-
-// Stores the last signal number received (0 = none). `c_int` is only
-// guaranteed to be `i32` on the platforms we care about, so widen it to
-// `i64` here to avoid relying on that equivalence.
-static SIGNAL_RECEIVED: AtomicI64 = AtomicI64::new(0);
-
-unsafe extern "C" fn signal_handler(sig: c_int) {
-    SIGNAL_RECEIVED.store(sig as i64, Ordering::SeqCst);
-}
-
-extern "C" {
-    fn signal(
-        signum: c_int,
-        handler: Option<unsafe extern "C" fn(c_int)>,
-    ) -> Option<unsafe extern "C" fn(c_int)>;
-    fn isatty(fd: c_int) -> c_int;
-}
-
-// ── termios (Linux x86-64 / aarch64, glibc layout, NCCS=32, sizeof=60) ───────
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct Termios {
-    c_iflag: u32,
-    c_oflag: u32,
-    c_cflag: u32,
-    c_lflag: u32,
-    c_line: u8,
-    c_cc: [u8; 32], // NCCS=32 in glibc; c_ispeed follows at 4-byte-aligned offset
-    c_ispeed: u32,
-    c_ospeed: u32,
-}
-
-const TCSANOW: c_int = 0;
-const ECHO: u32 = 8; // 0000010 octal
-
-extern "C" {
-    fn tcgetattr(fd: c_int, termios_p: *mut Termios) -> c_int;
-    fn tcsetattr(fd: c_int, optional_actions: c_int, termios_p: *const Termios) -> c_int;
-}
-
-// ── Args ──────────────────────────────────────────────────────────────────────
-
-#[derive(Args, Debug)]
-pub struct TryArgs {
-    /// Apply this config file in addition to the current configuration
-    #[arg(long)]
-    config_file: Option<String>,
-
-    /// Seconds to wait for user confirmation before reverting (default 120)
-    #[arg(long, default_value_t = DEFAULT_TIMEOUT)]
-    timeout: u64,
-
-    /// Directory containing previous YAML configuration (for virtual link cleanup)
-    #[arg(long)]
-    state: Option<String>,
-}
-
-// ── Entry point ───────────────────────────────────────────────────────────────
-
-pub fn run(args: TryArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
-    let rootdir = std::env::var("DBUS_TEST_NETPLAN_ROOT").unwrap_or_else(|_| "/".to_string());
-    let stamp = format!(
-        "{}run/netplan/netplan-try.ready",
-        rootdir.trim_end_matches('/').to_string() + "/"
+/// `netplan try [--config-file FILE] [--timeout SECONDS] [--state DIR]`
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "try", cli::description("try"));
+    p.add(
+        Arg::new(&["--config-file"])
+            .help("Apply the config file in argument in addition to current configuration."),
     );
-
-    // ── Validate config is parseable ──────────────────────────────────────────
-    if let Err(e) = crate::netplan::load_state(&rootdir) {
-        eprintln!("[netplan] Configuration error: {}", e);
-        return Ok(ExitCode::from(78)); // EX_CONFIG
-    }
-    if let Some(ref cf) = args.config_file {
-        // Validate the extra file too
-        if let Err(e) = validate_extra_config(&rootdir, cf) {
-            eprintln!("[netplan] Configuration error: {}", e);
-            return Ok(ExitCode::from(78));
-        }
-    }
-
-    // ── Save terminal state, install signal handlers ──────────────────────────
-    let term = TermState::save(0 /* stdin fd */);
-    install_signals();
-
-    // ── Backup ────────────────────────────────────────────────────────────────
-    let backup_dir = make_tempdir("netplan-try-backup-")?;
-    let _backup_cleanup = DirCleanup(&backup_dir);
-
-    backup(&rootdir, args.config_file.is_some(), &backup_dir)
-        .context("Failed to back up configuration")?;
-
-    // ── Setup: copy --config-file if given ────────────────────────────────────
-    let extra_file_dest = if let Some(ref cf) = args.config_file {
-        Some(install_config_file(cf)?)
-    } else {
-        None
+    p.add(
+        Arg::new(&["--timeout"])
+            .typ(Type::Int)
+            .default(Value::Int(DEFAULT_INPUT_TIMEOUT))
+            .help("Maximum number of seconds to wait for the user's confirmation"),
+    );
+    p.add(Arg::new(&["--state"]).help("Directory containing previous YAML configuration"));
+    let ns = cli::parse_leaf(&p, args)?;
+    let rootdir = std::env::var("DBUS_TEST_NETPLAN_ROOT").unwrap_or_else(|_| "/".into());
+    let mut t = NetplanTry {
+        config_file: ns.str("config_file"),
+        timeout: ns.int("timeout").unwrap_or(DEFAULT_INPUT_TIMEOUT),
+        state: ns.str("state"),
+        stamp: Path::new(&rootdir)
+            .join(utils::TRY_READY_STAMP)
+            .to_string_lossy()
+            .into_owned(),
+        config_manager: ConfigManager::new(&rootdir),
+        rootdir,
     };
-
-    // ── Apply the new configuration ───────────────────────────────────────────
-    let mut apply_args: Vec<&str> = vec!["apply"];
-    // Reborrow so the &str lives long enough
-    let state_ref: Option<&str> = args.state.as_deref();
-    if let Some(s) = state_ref {
-        apply_args.push("--state");
-        apply_args.push(s);
-    }
-    let apply_rc = run_self(&apply_args, runner)?;
-    if apply_rc != 0 {
-        return Ok(ExitCode::from(apply_rc as u8));
-    }
-
-    // ── Touch the ready stamp (signals netplan-dbus we're waiting) ────────────
-    touch_stamp(&stamp)?;
-    let _stamp_cleanup = StampCleanup(&stamp);
-
-    // ── Wait for confirmation ─────────────────────────────────────────────────
-    let result = wait_for_confirmation(args.timeout);
-
-    // ── Handle outcome ────────────────────────────────────────────────────────
-    term.restore(0);
-
-    match result {
-        Outcome::Accepted => {
-            println!("\nConfiguration accepted.");
-        }
-        Outcome::Rejected => {
-            println!("\nReverting.");
-            if let Err(e) = revert(
-                &rootdir,
-                &backup_dir,
-                &stamp,
-                extra_file_dest.as_deref(),
-                runner,
-            ) {
-                eprintln!("[netplan] Revert failed: {}", e);
-            }
-        }
-    }
-
-    Ok(ExitCode::SUCCESS)
+    t.command_try()
 }
 
-// ── Confirmation wait loop ────────────────────────────────────────────────────
+struct NetplanTry {
+    config_file: Option<String>,
+    timeout: i64,
+    state: Option<String>,
+    rootdir: String,
+    stamp: String,
+    config_manager: ConfigManager,
+}
 
+/// How the confirmation (or a signal) ended the try.
 enum Outcome {
     Accepted,
     Rejected,
 }
 
-fn wait_for_confirmation(timeout: u64) -> Outcome {
-    println!("Do you want to keep these settings?\n");
-    println!("Press ENTER before the timeout to accept the new configuration\n");
+// ── signals ───────────────────────────────────────────────────────────────────
 
-    let width = timeout.to_string().len();
+static PENDING_SIGNAL: AtomicI32 = AtomicI32::new(0);
+static CONFIGURATION_CHANGED: AtomicI32 = AtomicI32::new(0);
 
-    // Spawn a thread to do a blocking stdin read (waiting for ENTER)
-    let (tx, rx) = std::sync::mpsc::channel::<bool>();
-    std::thread::spawn(move || {
-        let stdin = std::io::stdin();
-        let mut line = String::new();
-        // A successful read_line means the user pressed Enter (or EOF)
-        let _ = stdin.lock().read_line(&mut line);
-        let _ = tx.send(true);
-    });
+extern "C" fn signal_handler(sig: i32) {
+    // SIGINT before the configuration was changed is ignored
+    if sig == Signal::SIGUSR1 as i32 || CONFIGURATION_CHANGED.load(Ordering::SeqCst) != 0 {
+        PENDING_SIGNAL.store(sig, Ordering::SeqCst);
+    }
+}
 
-    for remaining in (0..=timeout).rev() {
-        print!("Changes will revert in {remaining:>width$} seconds\r");
-        std::io::stdout().flush().ok();
+/// The exception a received signal raises, if any.
+fn pending_outcome() -> Option<Outcome> {
+    match PENDING_SIGNAL.swap(0, Ordering::SeqCst) {
+        0 => None,
+        s if s == Signal::SIGUSR1 as i32 => Some(Outcome::Accepted),
+        _ => Some(Outcome::Rejected),
+    }
+}
 
-        // Check for ENTER (wait up to 1 second)
-        match rx.recv_timeout(Duration::from_secs(1)) {
-            Ok(_) => return Outcome::Accepted,
-            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                // stdin closed
-                return Outcome::Rejected;
+impl NetplanTry {
+    fn clear_ready_stamp(&self) -> Result<bool> {
+        if Path::new(&self.stamp).is_file() {
+            std::fs::remove_file(&self.stamp)
+                .map_err(|e| utils::oserror(&e, Path::new(&self.stamp)))?;
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    fn touch_ready_stamp(&self) -> Result<()> {
+        let dir = format!("{}/run/netplan", self.rootdir);
+        std::fs::DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(&dir)
+            .map_err(|e| utils::oserror(&e, Path::new(&dir)))?;
+        std::fs::File::create(&self.stamp)
+            .map_err(|e| utils::oserror(&e, Path::new(&self.stamp)))?;
+        Ok(())
+    }
+
+    fn safe_revert(&mut self, reason: Option<&str>) -> Result<i32> {
+        if let Some(r) = reason {
+            crate::pyprintln!("\n{r}");
+        }
+        crate::pyprintln!("\nReverting.");
+        match self.revert() {
+            Ok(()) => Ok(0),
+            Err(e) if sub::is_exception(&e, &["Exception"]) => {
+                crate::pyprintln!("\nAn error occurred while reverting: {e}");
+                crate::pyprintln!("\nPlease check the configuration state");
+                Ok(1)
             }
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
-        }
-
-        // Check for signals
-        let sig = SIGNAL_RECEIVED.swap(0, Ordering::SeqCst);
-        if sig == SIGUSR1 as i64 {
-            return Outcome::Accepted;
-        }
-        if sig == SIGINT as i64 || sig == SIGTERM as i64 {
-            return Outcome::Rejected;
-        }
-    }
-
-    // Countdown reached zero
-    Outcome::Rejected
-}
-
-// ── Revert ────────────────────────────────────────────────────────────────────
-
-fn revert(
-    rootdir: &str,
-    backup_dir: &str,
-    stamp: &str,
-    extra_file_dest: Option<&str>,
-    runner: &impl CommandRunner,
-) -> Result<()> {
-    // 1. Save current /etc/netplan as the "tried state" for apply --state
-    let state_dir = make_tempdir("netplan-revert-state-")?;
-    let _state_cleanup = DirCleanup(&state_dir);
-
-    let etc_src = format!(
-        "{}etc/netplan",
-        rootdir.trim_end_matches('/').to_string() + "/"
-    );
-    let etc_dst = format!("{}/etc/netplan", state_dir);
-    std::fs::create_dir_all(&etc_dst)?;
-    copy_tree(&etc_src, &etc_dst, true)?;
-
-    // 2. Remove the --config-file copy from /etc/netplan (if present)
-    if let Some(dest) = extra_file_dest {
-        let _ = std::fs::remove_file(dest);
-    }
-
-    // 3. Restore backed-up run directories
-    restore_run_dirs(rootdir, backup_dir)?;
-
-    // 4. Clear stamp so that apply → generate doesn't refuse to run
-    clear_stamp(stamp);
-
-    // 5. Re-apply with --state pointing to the tried config (best-effort)
-    match run_self(&["apply", "--state", state_dir.as_str()], runner) {
-        Ok(rc) if rc != 0 => {
-            eprintln!("[netplan] Warning: apply during revert exited with code {rc}")
-        }
-        Err(e) => eprintln!("[netplan] Warning: apply during revert failed: {e}"),
-        Ok(_) => {}
-    }
-
-    Ok(())
-}
-
-// ── Backup / restore ──────────────────────────────────────────────────────────
-
-fn backup(rootdir: &str, include_etc: bool, backup_dir: &str) -> Result<()> {
-    let root = rootdir.trim_end_matches('/');
-
-    if include_etc {
-        let src = format!("{}/etc/netplan", root);
-        let dst = format!("{}/etc/netplan", backup_dir);
-        std::fs::create_dir_all(&dst)?;
-        copy_tree(&src, &dst, true)?;
-    }
-
-    let run_dirs = [
-        (
-            "run/NetworkManager/system-connections",
-            "run/NetworkManager/system-connections",
-        ),
-        ("run/systemd/network", "run/systemd/network"),
-    ];
-
-    for (rel_src, rel_dst) in &run_dirs {
-        let src = format!("{}/{}", root, rel_src);
-        let dst = format!("{}/{}", backup_dir, rel_dst);
-        if Path::new(&src).exists() {
-            std::fs::create_dir_all(&dst)?;
-            copy_tree(&src, &dst, true)?;
-        }
-    }
-
-    Ok(())
-}
-
-fn restore_run_dirs(rootdir: &str, backup_dir: &str) -> Result<()> {
-    let root = rootdir.trim_end_matches('/');
-
-    let run_dirs = [
-        "run/NetworkManager/system-connections",
-        "run/systemd/network",
-    ];
-
-    for rel in &run_dirs {
-        let backup_src = format!("{}/{}", backup_dir, rel);
-        let live_dst = format!("{}/{}", root, rel);
-
-        if Path::new(&backup_src).exists() {
-            if let Err(e) = std::fs::remove_dir_all(&live_dst) {
-                eprintln!("[netplan] Warning: could not remove {live_dst} during revert: {e}");
-            }
-            std::fs::create_dir_all(&live_dst)?;
-            copy_tree(&backup_src, &live_dst, true)?;
-        }
-    }
-
-    Ok(())
-}
-
-// ── Config file installation ──────────────────────────────────────────────────
-
-fn install_config_file(config_file: &str) -> Result<String> {
-    let dest_dir = "/etc/netplan";
-    let base = Path::new(config_file)
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("netplan-try-extra");
-    let ts = Timestamp::now().as_second();
-    let dest = format!("{}/{}.{}.yaml", dest_dir, base, ts);
-    std::fs::copy(config_file, &dest)
-        .with_context(|| format!("Failed to copy {} to {}", config_file, dest))?;
-    Ok(dest)
-}
-
-fn validate_extra_config(rootdir: &str, config_file: &str) -> Result<()> {
-    // Parse the full hierarchy plus the extra file to check validity
-    let mut parser = crate::netplan::Parser::new()?;
-    parser.load_yaml_hierarchy(rootdir)?;
-    parser.load_yaml_file(config_file)?;
-    let mut state = crate::netplan::State::new()?;
-    state.import_parser_results(&mut parser)?;
-    Ok(())
-}
-
-// ── Stamp file ────────────────────────────────────────────────────────────────
-
-fn touch_stamp(path: &str) -> Result<()> {
-    let p = Path::new(path);
-    if let Some(parent) = p.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::write(path, b"").context("Failed to create try-ready stamp")?;
-    Ok(())
-}
-
-fn clear_stamp(path: &str) {
-    let _ = std::fs::remove_file(path);
-}
-
-// ── Run self as subprocess ────────────────────────────────────────────────────
-
-/// Invoke the current binary with `args` and return the raw exit code.
-fn run_self(args: &[&str], runner: &impl CommandRunner) -> Result<i32> {
-    use crate::utils::process::{Command, ProcessError};
-    use std::process::Stdio;
-    let exe = std::env::current_exe().context("Cannot determine current executable path")?;
-    let exe_str = exe.to_string_lossy();
-    match Command::new(&exe_str)
-        .args(args.iter().copied())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .run_with(runner)
-    {
-        Ok(_) => Ok(0),
-        Err(e) => match e.downcast::<ProcessError>() {
-            Ok(pe) => Ok(pe.status.code().unwrap_or(1)),
             Err(e) => Err(e),
-        },
-    }
-}
-
-// ── Tree copy ─────────────────────────────────────────────────────────────────
-
-/// Recursively copy `src` directory into `dst` (which must already exist).
-/// When `missing_ok` is true, a non-existent `src` is silently ignored.
-fn copy_tree(src: &str, dst: &str, missing_ok: bool) -> Result<()> {
-    let src_path = Path::new(src);
-    if !src_path.exists() {
-        if missing_ok {
-            return Ok(());
         }
-        return Err(anyhow::anyhow!("Source directory does not exist: {}", src));
     }
 
-    for entry in walkdir(src_path) {
-        let (entry_path, metadata) = entry;
-        let relative = entry_path.strip_prefix(src_path).unwrap_or(&entry_path);
-        let dest = Path::new(dst).join(relative);
+    fn command_try(&mut self) -> Result<i32> {
+        if !self.is_revertable()? {
+            return py::exit(EX_CONFIG);
+        }
 
-        if metadata.is_dir() {
-            std::fs::create_dir_all(&dest)?;
-        } else {
-            if let Some(parent) = dest.parent() {
-                std::fs::create_dir_all(parent)?;
+        let stdin = std::io::stdin();
+        let fd = stdin.as_fd();
+        let mut terminal: Option<Terminal> = None;
+        let result = (|| -> Result<Outcome> {
+            terminal = Some(Terminal::new(fd)?);
+
+            // we really don't want to be interrupted while doing backup/revert operations
+            // SAFETY: the handler only stores into atomics.
+            unsafe {
+                signal::signal(Signal::SIGINT, SigHandler::Handler(signal_handler))?;
+                signal::signal(Signal::SIGUSR1, SigHandler::Handler(signal_handler))?;
             }
-            std::fs::copy(&entry_path, &dest)
-                .with_context(|| format!("Failed to copy {:?} → {:?}", entry_path, dest))?;
-            std::fs::set_permissions(&dest, metadata.permissions())
-                .with_context(|| format!("Failed to set permissions on {:?}", dest))?;
-        }
-    }
-    Ok(())
-}
 
-/// Minimal recursive directory walker returning (path, metadata) pairs.
-fn walkdir(dir: &Path) -> Vec<(std::path::PathBuf, std::fs::Metadata)> {
-    let mut result = Vec::new();
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return result;
-    };
-    for entry in entries.flatten() {
-        let Ok(meta) = entry.metadata() else { continue };
-        result.push((entry.path(), meta.clone()));
-        if meta.is_dir() {
-            result.extend(walkdir(&entry.path()));
-        }
-    }
-    result
-}
+            self.config_manager.backup(self.config_file.is_some())?;
+            if let Some(o) = pending_outcome() {
+                return Ok(o);
+            }
+            self.setup()?;
+            if let Some(o) = pending_outcome() {
+                return Ok(o);
+            }
 
-// ── Temp directory ────────────────────────────────────────────────────────────
+            let mut apply = NetplanApply::default();
+            apply.command_apply(true, true, false, self.state.as_deref())?;
+            if let Some(o) = pending_outcome() {
+                return Ok(o);
+            }
 
-fn make_tempdir(prefix: &str) -> Result<String> {
-    let pid = std::process::id();
-    let ts = Timestamp::now().as_nanosecond();
-    let path = format!("/tmp/{}{}-{}", prefix, pid, ts);
-    std::fs::create_dir_all(&path).context("Failed to create temp directory")?;
-    Ok(path)
-}
+            // Touch stamp file, it is the signal (for netplan-dbus) that we're
+            // ready to accept any Accept/Reject input (like SIGUSR1 or SIGTERM)
+            self.touch_ready_stamp()?;
+            terminal
+                .as_ref()
+                .unwrap()
+                .get_confirmation_input(self.timeout)
+        })();
 
-// ── RAII guards ───────────────────────────────────────────────────────────────
-
-struct DirCleanup<'a>(&'a str);
-impl Drop for DirCleanup<'_> {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(self.0);
-    }
-}
-
-struct StampCleanup<'a>(&'a str);
-impl Drop for StampCleanup<'_> {
-    fn drop(&mut self) {
-        clear_stamp(self.0);
-    }
-}
-
-// ── Terminal state ────────────────────────────────────────────────────────────
-
-struct TermState {
-    is_tty: bool,
-    orig: Termios,
-}
-
-impl TermState {
-    /// Save current terminal attributes for `fd`.
-    fn save(fd: c_int) -> Self {
-        let mut is_tty = unsafe { isatty(fd) } != 0;
-        let mut orig = Termios {
-            c_iflag: 0,
-            c_oflag: 0,
-            c_cflag: 0,
-            c_lflag: 0,
-            c_line: 0,
-            c_cc: [0; 32],
-            c_ispeed: 0,
-            c_ospeed: 0,
+        let mut exit_code = 0;
+        let outcome = match result {
+            Ok(Outcome::Rejected) => self.safe_revert(None),
+            Ok(Outcome::Accepted) => {
+                crate::pyprintln!("\nConfiguration accepted.");
+                Ok(0)
+            }
+            Err(e) if sub::is_exception(&e, &["Exception"]) => {
+                self.safe_revert(Some(&format!("An error occurred: {e}")))
+            }
+            Err(e) => Err(e),
         };
-        if is_tty {
-            if unsafe { tcgetattr(fd, &mut orig) } != 0 {
-                is_tty = false;
-            } else {
-                let mut no_echo = orig;
-                no_echo.c_lflag &= !ECHO;
-                unsafe { tcsetattr(fd, TCSANOW, &no_echo) };
+        // finally:
+        if let Some(t) = &terminal {
+            t.reset(&t.orig)?;
+        }
+        self.config_manager.cleanup()?;
+        self.clear_ready_stamp()?;
+        exit_code = outcome.map(|c| c.max(exit_code))?;
+        py::exit(exit_code)
+    }
+
+    fn setup(&mut self) -> Result<()> {
+        if let Some(cf) = &self.config_file {
+            let base = Path::new(cf)
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            // str.rstrip('.yaml') strips any trailing '.', 'y', 'a', 'm', 'l'
+            let dest_name = base.trim_end_matches(['.', 'y', 'a', 'm', 'l']);
+            let dest_path = format!("/etc/netplan/{dest_name}.{}.yaml", py_time());
+            self.config_manager.add(&[(cf.clone(), dest_path)])?;
+        }
+        CONFIGURATION_CHANGED.store(1, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn revert(&mut self) -> Result<()> {
+        let tempdir = configmanager::mkdtemp("tmp")?;
+        let result = (|| -> Result<()> {
+            // backup the state we just tried to apply
+            let confdir = tempdir.join("etc").join("netplan");
+            std::fs::create_dir_all(&confdir).map_err(|e| utils::oserror(&e, &confdir))?;
+            configmanager::copy_tree(Path::new("/etc/netplan"), &confdir, false, true)?;
+            // restore previous state
+            self.config_manager.revert()?;
+            let mut apply = NetplanApply::default();
+            apply.command_apply(false, true, false, Some(&tempdir.to_string_lossy()))
+        })();
+        if let Err(e) = std::fs::remove_dir_all(&tempdir) {
+            py::warning(&format!(
+                "Failed to remove temporary directory {}: {}",
+                tempdir.display(),
+                utils::py_oserror_str(&e, &tempdir)
+            ));
+        }
+        result
+    }
+
+    /// Check if the configuration is revertable: bridges and bonds with
+    /// custom parameters cannot be reliably reverted by the backends.
+    fn is_revertable(&mut self) -> Result<bool> {
+        let extra: Vec<String> = self.config_file.iter().cloned().collect();
+        match self.config_manager.parse(&extra) {
+            Ok(_) => {}
+            Err(e) if sub::is_exception(&e, CONFIG_ERRORS) => {
+                py::error(&e.to_string());
+                return py::exit(EX_CONFIG);
+            }
+            Err(e) => return Err(e),
+        }
+        let state = self.config_manager.np_state.as_ref().unwrap();
+
+        let mut multi_iface: Vec<(String, bool)> = vec![];
+        for t in ["bridges", "bonds"] {
+            for nd in state.netdefs_of_type(t) {
+                let id = nd.id().unwrap_or_default();
+                let trivial = nd.is_trivial_compound_itf();
+                match multi_iface.iter_mut().find(|(k, _)| *k == id) {
+                    Some(e) => e.1 = trivial,
+                    None => multi_iface.push((id, trivial)),
+                }
             }
         }
-        TermState { is_tty, orig }
+        let reason = "reverting custom parameters for bridges and bonds is not supported";
+        let unsupported: Vec<&String> = multi_iface
+            .iter()
+            .filter(|(_, t)| !t)
+            .map(|(id, _)| id)
+            .collect();
+        if !unsupported.is_empty() {
+            for ifname in unsupported {
+                crate::pyprintln!("{ifname}: {reason}");
+            }
+            crate::pyprintln!(
+                "\nPlease carefully review the configuration and use 'netplan apply' directly."
+            );
+            return Ok(false);
+        }
+        Ok(true)
+    }
+}
+
+/// `str(time.time())`
+fn py_time() -> String {
+    let t = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    let s = format!("{t}");
+    if s.contains('.') {
+        s
+    } else {
+        s + ".0"
+    }
+}
+
+// ── Terminal (netplan_cli/terminal.py) ────────────────────────────────────────
+
+/// Saved terminal attributes and file status flags.
+#[derive(Clone)]
+struct Settings {
+    flags: OFlag,
+    term: Option<Termios>,
+}
+
+/// Minimal terminal mangling to prompt users for input.
+struct Terminal<'a> {
+    fd: BorrowedFd<'a>,
+    orig: Settings,
+}
+
+impl<'a> Terminal<'a> {
+    fn new(fd: BorrowedFd<'a>) -> Result<Self> {
+        let orig = Self::save(fd)?;
+        Ok(Terminal { fd, orig })
     }
 
-    /// Restore saved terminal attributes for `fd`.
-    fn restore(&self, fd: c_int) {
-        if self.is_tty {
-            unsafe { tcsetattr(fd, TCSANOW, &self.orig) };
+    fn save(fd: BorrowedFd<'_>) -> Result<Settings> {
+        let flags = OFlag::from_bits_retain(fcntl(fd, FcntlArg::F_GETFL).map_err(errno_error)?);
+        let term = if nix::unistd::isatty(fd).unwrap_or(false) {
+            Some(termios::tcgetattr(fd).map_err(errno_error)?)
+        } else {
+            None
+        };
+        Ok(Settings { flags, term })
+    }
+
+    /// Reset the terminal to the given attributes and flags.
+    fn reset(&self, settings: &Settings) -> Result<()> {
+        if nix::unistd::isatty(self.fd).unwrap_or(false) {
+            if let Some(t) = &settings.term {
+                termios::tcsetattr(self.fd, SetArg::TCSAFLUSH, t).map_err(errno_error)?;
+            }
+        }
+        fcntl(self.fd, FcntlArg::F_SETFL(settings.flags)).map_err(errno_error)?;
+        Ok(())
+    }
+
+    fn disable_echo(&self) -> Result<()> {
+        if nix::unistd::isatty(self.fd).unwrap_or(false) {
+            let mut attrs = termios::tcgetattr(self.fd).map_err(errno_error)?;
+            attrs
+                .local_flags
+                .remove(LocalFlags::ICANON | LocalFlags::ECHO);
+            termios::tcsetattr(self.fd, SetArg::TCSANOW, &attrs).map_err(errno_error)?;
+        }
+        Ok(())
+    }
+
+    fn enable_nonblocking_io(&self) -> Result<()> {
+        let flags =
+            OFlag::from_bits_retain(fcntl(self.fd, FcntlArg::F_GETFL).map_err(errno_error)?);
+        fcntl(self.fd, FcntlArg::F_SETFL(flags | OFlag::O_NONBLOCK)).map_err(errno_error)?;
+        Ok(())
+    }
+
+    /// Get a "confirmation" input from the user, for at most `timeout`
+    /// seconds: accepted only if a one-second poll reads exactly "\n".
+    fn get_confirmation_input(&self, timeout: i64) -> Result<Outcome> {
+        crate::pyprintln!("Do you want to keep these settings?\n\n");
+
+        let settings = Self::save(self.fd)?;
+        self.disable_echo()?;
+        self.enable_nonblocking_io()?;
+
+        let message = "accept the new configuration";
+        crate::pyprintln!("Press ENTER before the timeout to {message}\n\n");
+        let width = timeout.to_string().len();
+        let mut timeout_now = timeout;
+        while timeout_now > 0 {
+            crate::pyprint!("Changes will revert in {timeout_now:>width$} seconds\r");
+
+            // wait at most 1 second for usable input from stdin
+            let mut fds = [nix::poll::PollFd::new(
+                self.fd,
+                nix::poll::PollFlags::POLLIN,
+            )];
+            let _ = nix::poll::poll(&mut fds, nix::poll::PollTimeout::from(1000u16));
+            if let Some(o) = pending_outcome() {
+                self.reset(&settings)?;
+                return Ok(o);
+            }
+            // retrieve any input from the terminal. poll() either has
+            // timed out with no input, or found something we can retrieve.
+            if read_available(self.fd).as_deref() == Some("\n") {
+                self.reset(&settings)?;
+                // Yay, user has accepted the changes!
+                return Ok(Outcome::Accepted);
+            }
+            timeout_now -= 1;
+        }
+
+        // We reached the timeout for our loop, now revert our change for
+        // non-blocking I/O and signal the caller the changes were essentially
+        // rejected.
+        self.reset(&settings)?;
+        Ok(Outcome::Rejected)
+    }
+}
+
+/// A non-blocking text `read()` of everything available: `None` when
+/// nothing is available yet, `""` at end of file.
+fn read_available(fd: BorrowedFd<'_>) -> Option<String> {
+    let mut data = Vec::new();
+    let mut buf = [0u8; 4096];
+    loop {
+        match nix::unistd::read(fd, &mut buf) {
+            Ok(0) => break,
+            Ok(n) => data.extend_from_slice(&buf[..n]),
+            Err(nix::errno::Errno::EINTR) => continue,
+            Err(_) if data.is_empty() => return None,
+            Err(_) => break,
         }
     }
+    // universal newlines
+    Some(
+        String::from_utf8_lossy(&data)
+            .replace("\r\n", "\n")
+            .replace('\r', "\n"),
+    )
 }
 
-// ── Signal installation ───────────────────────────────────────────────────────
-
-fn install_signals() {
-    unsafe {
-        signal(SIGINT, Some(signal_handler));
-        signal(SIGUSR1, Some(signal_handler));
-        signal(SIGTERM, Some(signal_handler));
-    }
+fn errno_error(e: nix::errno::Errno) -> anyhow::Error {
+    py::Exception::err("OSError", format!("[Errno {}] {}", e as i32, e.desc()))
 }
+
+use std::os::unix::fs::DirBuilderExt;

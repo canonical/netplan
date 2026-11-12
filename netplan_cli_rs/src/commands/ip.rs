@@ -15,194 +15,224 @@
 
 //! `netplan ip leases` – display DHCP lease information for a network interface.
 //!
-//! Mirrors `netplan_cli/cli/commands/ip.py`.
+//! Port of `netplan_cli/cli/commands/ip.py`.
 
-use std::fs;
-use std::path::PathBuf;
-use std::process::ExitCode;
+use std::path::Path;
 
-use anyhow::{anyhow, Context, Result};
-use clap::{Args, Subcommand};
+use anyhow::Result;
 
-use crate::utils::process::CommandRunner;
+use crate::argparse::Arg;
+use crate::utils::{self, sub};
+use crate::{cli, py};
 
-// ── Argument types ────────────────────────────────────────────────────────────
-
-#[derive(Args, Debug)]
-pub struct IpArgs {
-    #[command(subcommand)]
-    subcommand: Option<IpSubcommand>,
-}
-
-#[derive(Subcommand, Debug)]
-enum IpSubcommand {
-    /// Display DHCP lease information for a network interface
-    Leases(LeasesArgs),
-}
-
-#[derive(Args, Debug)]
-pub struct LeasesArgs {
-    /// Network interface to display lease for
-    interface: String,
-
-    /// Search for configuration files in this root directory instead of /
-    #[arg(long, default_value = "/")]
-    root_dir: String,
-}
-
-// ── Entry point ───────────────────────────────────────────────────────────────
-
-pub fn run(args: IpArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
-    match args.subcommand {
-        Some(IpSubcommand::Leases(a)) => run_leases(a, runner),
-        None => Err(anyhow!("Available commands:\n  leases   Display IP leases")),
+/// `netplan ip <subcommand>`
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::group_parser(argv0, "ip", cli::description("ip"));
+    p.add_parser("leases", Some("Display IP leases"), false);
+    let (sub, rest) = cli::parse_group(&p, args)?;
+    match sub.as_str() {
+        "leases" => leases(argv0, &rest),
+        _ => unreachable!("argparse only accepts known subcommands"),
     }
 }
 
-// ── ip leases ─────────────────────────────────────────────────────────────────
+/// `netplan ip leases INTERFACE [--root-dir DIR]`
+fn leases(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "ip leases", "Display IP leases");
+    p.add(Arg::new(&["interface"]).help("Interface for which to display IP lease settings."));
+    p.add(
+        Arg::new(&["--root-dir"])
+            .help("Search for configuration files in this root directory instead of /"),
+    );
+    let ns = cli::parse_leaf(&p, args)?;
+    let interface = ns.str("interface").unwrap_or_default();
+    let root_dir = ns.str("root_dir").filter(|r| !r.is_empty());
 
-fn run_leases(args: LeasesArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
-    let iface = &args.interface;
-    let root_dir = &args.root_dir;
-
-    // Use libnetplan to resolve which netdef manages this interface.
-    // Mirrors find_interface() in generate.c: match by id, set-name, or match rules.
-    let state = crate::netplan::load_state(root_dir)
-        .map_err(|_| anyhow!("No lease found for interface '{iface}' (not managed by Netplan)"))?;
-
-    let matches: Vec<_> = state
-        .netdefs()
-        .filter(|nd| {
-            nd.id().as_deref().unwrap_or("") == iface.as_str()
-                || nd.set_name().ok().flatten().as_deref() == Some(iface.as_str())
-                || nd.matches_interface(iface, None, None)
-        })
-        .collect();
-
-    let netdef = match matches.as_slice() {
-        [netdef] => netdef,
-        [] => {
-            return Err(anyhow!(
-                "No lease found for interface '{iface}' (not managed by Netplan)"
-            ))
-        }
-        _ => {
-            return Err(anyhow!(
-                "No lease found for interface '{iface}': multiple netplan configurations match it"
-            ))
-        }
-    };
-
-    let backend = netdef.backend_name();
-
-    let lease_result = match backend {
-        "networkd" => find_networkd_lease(iface, root_dir),
-        "NetworkManager" => find_nm_lease(iface, root_dir, runner),
-        other => return Err(anyhow!("unknown backend '{other}' for interface '{iface}'")),
-    };
-
-    match lease_result {
-        Ok(path) => {
-            let content = fs::read_to_string(&path).with_context(|| {
-                format!("No lease found for interface '{iface}': cannot read {path:?}")
-            })?;
-            for line in content.lines() {
-                println!("{line}");
-            }
-            Ok(ExitCode::SUCCESS)
-        }
-        Err(e) => Err(anyhow!("No lease found for interface '{iface}': {e}")),
+    if interface == "help" {
+        return Err(cli::print_usage(&p));
     }
+
+    // XXX: This code path is only still supported for legacy reasons and
+    // not supposed to be called in the scope of a systemd generator. The
+    // 'netplan status' command should be used instead.
+    let generator = utils::get_generator_path();
+    let mut argv: Vec<&str> = vec![&generator];
+    if let Some(r) = &root_dir {
+        argv.extend(["--root-dir", r]);
+    }
+    argv.extend(["--mapping", &interface]);
+
+    // Extract out of the generator our mapping in a dict.
+    py::debug(&format!(
+        "command ip leases: running {}",
+        utils::py_repr_list(&argv)
+    ));
+    let out = match sub::check_output(&argv) {
+        Ok(o) => o,
+        Err(e) if sub::is_exception(&e, &["subprocess.CalledProcessError"]) => {
+            py::flush_stdout();
+            eprintln!("No lease found for interface '{interface}' (not managed by Netplan)");
+            return py::exit(1);
+        }
+        Err(e) => return Err(e),
+    };
+    let mut mapping: Vec<(String, String)> = vec![];
+    for keyvalue in out.split(',') {
+        let parts: Vec<&str> = keyvalue.trim().split('=').collect();
+        if parts.len() != 2 {
+            return Err(py::Exception::err("ValueError", unpack_error(parts.len())));
+        }
+        match mapping.iter_mut().find(|(k, _)| k == parts[0]) {
+            Some(e) => e.1 = parts[1].to_string(),
+            None => mapping.push((parts[0].to_string(), parts[1].to_string())),
+        }
+    }
+
+    find_lease_file(&interface, root_dir.as_deref(), &mapping)
 }
 
-// ── Backend-specific lease finders ───────────────────────────────────────────
-
-fn find_networkd_lease(iface: &str, root_dir: &str) -> Result<PathBuf> {
-    let ifindex_path = format!("/sys/class/net/{}/ifindex", iface);
-    let ifindex = fs::read_to_string(&ifindex_path)
-        .with_context(|| format!("Cannot read {}", ifindex_path))?;
-    let ifindex = ifindex.trim();
-
-    let lease_path = PathBuf::from(root_dir)
-        .join("run/systemd/netif/leases")
-        .join(ifindex);
-
-    if lease_path.exists() {
-        Ok(lease_path)
+/// The ValueError of `key, value = s.split('=')`
+fn unpack_error(n: usize) -> String {
+    if n < 2 {
+        format!("not enough values to unpack (expected 2, got {n})")
     } else {
-        Err(anyhow!("no lease file at {:?}", lease_path))
+        format!("too many values to unpack (expected 2, got {n})")
     }
 }
 
-fn find_nm_lease(iface: &str, root_dir: &str, runner: &impl CommandRunner) -> Result<PathBuf> {
-    use crate::utils::process::{Command, ProcessError};
+fn find_lease_file(
+    interface: &str,
+    root_dir: Option<&str>,
+    mapping: &[(String, String)],
+) -> Result<i32> {
+    let get = |key: &str| -> Result<String> {
+        mapping
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.clone())
+            .ok_or_else(|| py::Exception::err("KeyError", utils::py_repr_str(key)))
+    };
+    let backend = get("backend")?;
+    let (pattern, nm) = match backend.as_str() {
+        "networkd" => ("run/systemd/netif/leases/{lease_id}", false),
+        "NetworkManager" => (
+            "var/lib/NetworkManager/internal-{lease_id}-{interface}.lease",
+            true,
+        ),
+        other => return Err(py::Exception::err("KeyError", utils::py_repr_str(other))),
+    };
 
-    // Step 1: get the NM connection name via `nmcli dev show <iface>`.
-    let dev_out = Command::new("nmcli")
-        .args(["dev", "show", iface])
-        .run_with(runner)
-        .map_err(|e| match e.downcast::<ProcessError>() {
-            Ok(pe) => anyhow!(
-                "Could not find a NetworkManager connection for the interface: \
-                 nmcli exited with {}",
-                pe.status
-            ),
-            Err(e) => e,
-        })?;
-
-    let dev_text = String::from_utf8_lossy(&dev_out.stdout);
-    let conn_id = dev_text
-        .lines()
-        .find(|l| l.contains("GENERAL.CONNECTION"))
-        .and_then(|l| l.split_once(':'))
-        .map(|(_, v)| v.trim().to_string())
-        .filter(|s| !s.is_empty() && s != "--");
-
-    let conn_id = conn_id.ok_or_else(|| {
-        anyhow::anyhow!("Could not find a NetworkManager connection for the interface")
-    })?;
-
-    // Step 2: get the connection UUID via `nmcli con show id <conn_id>`.
-    let con_out = Command::new("nmcli")
-        .args(["con", "show", "id", &conn_id])
-        .run_with(runner)
-        .map_err(|e| match e.downcast::<ProcessError>() {
-            Ok(pe) => anyhow!(
-                "Could not find a NetworkManager connection for the interface: \
-                 nmcli exited with {}",
-                pe.status
-            ),
-            Err(e) => e,
-        })?;
-
-    let con_text = String::from_utf8_lossy(&con_out.stdout);
-    let uuid = con_text
-        .lines()
-        .find(|l| l.contains("connection.uuid"))
-        .and_then(|l| l.split_once(':'))
-        .map(|(_, v)| v.trim().to_string())
-        .filter(|s| !s.is_empty());
-
-    let uuid = uuid.ok_or_else(|| {
-        anyhow::anyhow!("Could not find a NetworkManager connection for the interface")
-    })?;
-
-    let base = PathBuf::from(root_dir).join("var/lib/NetworkManager");
-
-    // NM internal DHCP client lease (preferred).
-    let internal = base.join(format!("internal-{}-{}.lease", uuid, iface));
-    if internal.exists() {
-        return Ok(internal);
+    let result = (|| -> Result<()> {
+        let lease_id = if nm {
+            lease_method_nm_connection(interface)?
+        } else {
+            lease_method_ifindex(interface)?
+        };
+        // We found something to build the path to the lease file with,
+        // at this point we may have something to look at; but if not,
+        // we'll rely on open() throwing an error.
+        let rel = pattern
+            .replace("{lease_id}", &lease_id)
+            .replace("{interface}", interface);
+        let mut path = match root_dir {
+            Some(r) => format!("{}/{rel}", abspath(r).trim_end_matches('/')),
+            None => format!("/{rel}"),
+        };
+        // Fallback to 'dhclient' if no lease of NetworkManager's
+        // internal DHCP client is found
+        if !Path::new(&path).is_file() {
+            path = path.replace("NetworkManager/internal-", "NetworkManager/dhclient-");
+        }
+        let content = utils::read_text(&path)?;
+        for line in content.split_inclusive('\n') {
+            crate::pyprintln!("{}", line.trim_end());
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => Ok(0),
+        Err(e) if sub::is_exception(&e, &["Exception"]) => {
+            py::flush_stdout();
+            eprintln!("No lease found for interface '{interface}': {e}");
+            py::exit(1)
+        }
+        Err(e) => Err(e),
     }
+}
 
-    // dhclient fallback.
-    let dhclient = base.join(format!("dhclient-{}-{}.lease", uuid, iface));
-    if dhclient.exists() {
-        return Ok(dhclient);
+fn lease_method_ifindex(interface: &str) -> Result<String> {
+    let ifindex_f = format!("/sys/class/net/{interface}/ifindex");
+    let result = utils::read_text(&ifindex_f).and_then(|content| {
+        content
+            .split_inclusive('\n')
+            .next()
+            .map(|l| l.trim().to_string())
+            .ok_or_else(|| py::Exception::err("IndexError", "list index out of range"))
+    });
+    if let Err(e) = &result {
+        py::debug(&format!("Cannot read file {ifindex_f}: {e}"));
     }
+    result
+}
 
-    Err(anyhow!(
-        "no lease file found (tried internal and dhclient paths in {:?})",
-        base
-    ))
+fn lease_method_nm_connection(interface: &str) -> Result<String> {
+    // FIXME: handle older versions of NM where 'nmcli dev show' doesn't exist
+    let found = (|| -> Result<Option<String>> {
+        let nmcli_dev_out = utils::nmcli_out(&["dev", "show", interface])?;
+        for line in utils::py_splitlines(&nmcli_dev_out) {
+            if line.contains("GENERAL.CONNECTION") {
+                let conn_id = field_after_colon(line)?;
+                let nmcli_con_out = utils::nmcli_out(&["con", "show", "id", &conn_id])?;
+                for line in utils::py_splitlines(&nmcli_con_out) {
+                    if line.contains("connection.uuid") {
+                        return Ok(Some(field_after_colon(line)?));
+                    }
+                }
+            }
+        }
+        Ok(None)
+    })();
+    match found {
+        Ok(Some(uuid)) => Ok(uuid),
+        Ok(None) => Err(py::Exception::err(
+            "Exception",
+            "Could not find a NetworkManager connection for the interface",
+        )),
+        Err(e) if sub::is_exception(&e, &["Exception"]) => Err(py::Exception::err(
+            "Exception",
+            format!("Could not find a NetworkManager connection for the interface: {e}"),
+        )),
+        Err(e) => Err(e),
+    }
+}
+
+/// `line.split(':')[1].rstrip().strip()`
+fn field_after_colon(line: &str) -> Result<String> {
+    line.split(':')
+        .nth(1)
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| py::Exception::err("IndexError", "list index out of range"))
+}
+
+/// `os.path.abspath(path)`
+fn abspath(path: &str) -> String {
+    let joined = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        let cwd = std::env::current_dir()
+            .map(|c| c.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        format!("{cwd}/{path}")
+    };
+    let mut parts: Vec<&str> = vec![];
+    for c in joined.split('/') {
+        match c {
+            "" | "." => {}
+            ".." => {
+                parts.pop();
+            }
+            c => parts.push(c),
+        }
+    }
+    format!("/{}", parts.join("/"))
 }

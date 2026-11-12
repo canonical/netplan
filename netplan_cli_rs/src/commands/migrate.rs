@@ -22,25 +22,43 @@ use std::fmt;
 use std::fs;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 use std::str::FromStr;
 
+use crate::argparse::Arg;
+use crate::cli;
 use anyhow::{anyhow, Context, Result};
-use clap::Args;
 
 use crate::utils;
 
 // ── Argument types ────────────────────────────────────────────────────────────
 
-#[derive(Args, Debug)]
 pub struct MigrateArgs {
-    /// Search for and generate configuration files in this root directory instead of /
-    #[arg(long, default_value = "/")]
     root_dir: String,
-
-    /// Print converted netplan configuration to stdout instead of writing/changing files
-    #[arg(long)]
     dry_run: bool,
+}
+
+/// `netplan migrate [--root-dir DIR] [--dry-run]` (test command)
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "migrate", cli::description("migrate"));
+    p.add(
+        Arg::new(&["--root-dir"]).help(
+            "Search for and generate configuration files in this root directory instead of /",
+        ),
+    );
+    p.add(
+        Arg::new(&["--dry-run"]).store_true().help(
+            "Print converted netplan configuration to stdout instead of writing/changing files",
+        ),
+    );
+    let ns = cli::parse_leaf(&p, args)?;
+    run(MigrateArgs {
+        // `if self.root_dir:` -- unset or empty means /
+        root_dir: ns
+            .str("root_dir")
+            .filter(|r| !r.is_empty())
+            .unwrap_or_else(|| "/".to_string()),
+        dry_run: ns.bool("dry_run"),
+    })
 }
 
 // ── Parsed ifupdown state ─────────────────────────────────────────────────────
@@ -85,7 +103,7 @@ struct IfupdownConfig {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-pub fn run(args: MigrateArgs) -> Result<ExitCode> {
+pub fn run(args: MigrateArgs) -> Result<i32> {
     let rootdir = args.root_dir.trim_end_matches('/').to_string();
     let dry_run = args.dry_run;
 
@@ -93,7 +111,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{e}");
-            return Ok(ExitCode::from(2));
+            return Ok(2);
         }
     };
     let IfupdownConfig {
@@ -108,7 +126,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
         for (family, config) in families {
             if !auto_ifaces.contains(iface.as_str()) {
                 eprintln!("{iface}: non-automatic interfaces are not supported");
-                return Ok(ExitCode::from(2));
+                return Ok(2);
             }
 
             match config.method {
@@ -121,11 +139,11 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
 
                     if let Err(e) = parse_dns_options(&mut opts, c) {
                         eprintln!("{e}");
-                        return Ok(ExitCode::from(2));
+                        return Ok(2);
                     }
                     if let Err(e) = parse_hwaddress(iface, &mut opts, c) {
                         eprintln!("{e}");
-                        return Ok(ExitCode::from(2));
+                        return Ok(2);
                     }
 
                     if !opts.is_empty() {
@@ -133,7 +151,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                             "{iface}: option(s) {} are not supported for dhcp method",
                             opts.keys().cloned().collect::<Vec<_>>().join(", ")
                         );
-                        return Ok(ExitCode::from(2));
+                        return Ok(2);
                     }
 
                     if *family == AddressFamily::Inet {
@@ -153,15 +171,15 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
 
                     if let Err(e) = parse_dns_options(&mut opts, c) {
                         eprintln!("{e}");
-                        return Ok(ExitCode::from(2));
+                        return Ok(2);
                     }
                     if let Err(e) = parse_mtu(&base_iface, &mut opts, c) {
                         eprintln!("{e}");
-                        return Ok(ExitCode::from(2));
+                        return Ok(2);
                     }
                     if let Err(e) = parse_hwaddress(&base_iface, &mut opts, c) {
                         eprintln!("{e}");
-                        return Ok(ExitCode::from(2));
+                        return Ok(2);
                     }
 
                     if *family == AddressFamily::Inet {
@@ -177,7 +195,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                             Some(a) => a,
                             None => {
                                 eprintln!("{base_iface}: no address supplied in static method");
-                                return Ok(ExitCode::from(2));
+                                return Ok(2);
                             }
                         };
 
@@ -191,7 +209,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                     eprintln!(
                                         "{base_iface}: address does not specify prefix length, and netmask not specified"
                                     );
-                                    return Ok(ExitCode::from(2));
+                                    return Ok(2);
                                 }
                             };
                             (addr_str.clone(), format!("{addr_str}/{netmask}"))
@@ -203,7 +221,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                 eprintln!(
                                     "{base_iface}: error parsing \"{addr_part}\" as an IPv4 address: {e}"
                                 );
-                                return Ok(ExitCode::from(2));
+                                return Ok(2);
                             }
                         };
 
@@ -213,7 +231,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                 eprintln!(
                                     "{base_iface}: error parsing \"{net_spec}\" as an IPv4 network: {e}"
                                 );
-                                return Ok(ExitCode::from(2));
+                                return Ok(2);
                             }
                         };
 
@@ -245,7 +263,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                             Some(a) => a,
                             None => {
                                 eprintln!("{base_iface}: no address supplied in static method");
-                                return Ok(ExitCode::from(2));
+                                return Ok(2);
                             }
                         };
 
@@ -259,7 +277,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                     eprintln!(
                                         "{base_iface}: address does not specify prefix length, and netmask not specified"
                                     );
-                                    return Ok(ExitCode::from(2));
+                                    return Ok(2);
                                 }
                             };
                             (addr_str.clone(), format!("{addr_str}/{netmask}"))
@@ -271,7 +289,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                 eprintln!(
                                     "{base_iface}: error parsing \"{addr_part}\" as an IPv6 address: {e}"
                                 );
-                                return Ok(ExitCode::from(2));
+                                return Ok(2);
                             }
                         };
 
@@ -281,7 +299,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                 eprintln!(
                                     "{base_iface}: error parsing \"{net_spec}\" as an IPv6 network: {e}"
                                 );
-                                return Ok(ExitCode::from(2));
+                                return Ok(2);
                             }
                         };
 
@@ -297,13 +315,13 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                                 "1" => c.accept_ra = Some(true),
                                 "2" => {
                                     eprintln!("{base_iface}: netplan does not support accept_ra=2");
-                                    return Ok(ExitCode::from(2));
+                                    return Ok(2);
                                 }
                                 other => {
                                     eprintln!(
                                         "{base_iface}: unexpected accept_ra value \"{other}\""
                                     );
-                                    return Ok(ExitCode::from(2));
+                                    return Ok(2);
                                 }
                             }
                         }
@@ -342,7 +360,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
                         "{} already exists; remove it if you want to run the migration again",
                         dest.display()
                     );
-                    return Ok(ExitCode::from(3));
+                    return Ok(3);
                 }
                 Err(e) => {
                     return Err(e).with_context(|| format!("failed to write {dest:?}"));
@@ -364,7 +382,7 @@ pub fn run(args: MigrateArgs) -> Result<ExitCode> {
             .with_context(|| format!("failed to rename {if_config:?}"))?;
     }
 
-    Ok(ExitCode::SUCCESS)
+    Ok(0)
 }
 
 // ── Netplan config structure ──────────────────────────────────────────────────
@@ -444,7 +462,7 @@ fn check_options(
     opts: &HashMap<String, String>,
     supported: &[&str],
     unsupported: &[&str],
-) -> Option<ExitCode> {
+) -> Option<i32> {
     for key in opts.keys() {
         if !supported.contains(&key.as_str()) {
             if unsupported.contains(&key.as_str()) {
@@ -452,7 +470,7 @@ fn check_options(
             } else {
                 eprintln!("{iface}: unknown {family} option \"{key}\"");
             }
-            return Some(ExitCode::from(2));
+            return Some(2);
         }
     }
     None

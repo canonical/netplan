@@ -20,49 +20,85 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::process::ExitCode;
 
+use crate::argparse::{Arg, Nargs};
+use crate::cli;
 use anyhow::{Context, Result};
-use clap::Args;
 use serde_json::{Map, Value};
 
 use crate::utils::process::CommandRunner;
 
 // ── Argument types ────────────────────────────────────────────────────────────
 
-#[derive(Args, Debug)]
 pub struct StatusArgs {
-    /// Show only this interface
     pub ifname: Option<String>,
-
-    /// Show all interface data (incl. inactive)
-    #[arg(short = 'a', long)]
     pub all: bool,
-
-    /// Show extra information (all route tables, etc.)
-    #[arg(short = 'v', long)]
     pub verbose: bool,
-
-    /// Output format: tabular (default), json, or yaml
-    #[arg(short = 'f', long, default_value = "tabular")]
     pub format: String,
-
-    /// Show the differences between the system's and netplan's states
-    #[arg(long)]
     pub diff: bool,
-
-    /// Only show the differences between the system's and netplan's states
-    #[arg(long)]
     pub diff_only: bool,
-
-    /// Search for configuration files in this root directory instead of /
-    #[arg(long, default_value = "/")]
     pub root_dir: String,
+}
+
+/// `netplan status [ifname] [-a] [-v] [-f FORMAT] [--diff] [--diff-only] [--root-dir DIR]`
+pub fn command(argv0: &str, args: &[String], runner: &impl CommandRunner) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "status", cli::description("status"));
+    p.add(
+        Arg::new(&["ifname"])
+            .nargs(Nargs::Optional)
+            .help("Show only this interface"),
+    );
+    p.add(
+        Arg::new(&["-a", "--all"])
+            .store_true()
+            .help("Show all interface data (incl. inactive)"),
+    );
+    p.add(
+        Arg::new(&["-v", "--verbose"])
+            .store_true()
+            .help("Show extra information"),
+    );
+    p.add(
+        Arg::new(&["-f", "--format"])
+            .default_str("tabular")
+            .help("Output in machine readable `json` or `yaml` format"),
+    );
+    p.add(
+        Arg::new(&["--diff"])
+            .store_true()
+            .help("Show the differences between the system's and netplan's states"),
+    );
+    p.add(
+        Arg::new(&["--diff-only"])
+            .store_true()
+            .help("Only show the differences between the system's and netplan's states"),
+    );
+    p.add(
+        Arg::new(&["--root-dir"])
+            .help("Search for configuration files in this root directory instead of /"),
+    );
+    let ns = cli::parse_leaf(&p, args)?;
+    run(
+        StatusArgs {
+            ifname: ns.str("ifname"),
+            all: ns.bool("all"),
+            verbose: ns.bool("verbose"),
+            format: ns.str("format").unwrap_or_default(),
+            diff: ns.bool("diff"),
+            diff_only: ns.bool("diff_only"),
+            // PORT PENDING: Python passes None through; "/" is equivalent for now
+            root_dir: ns
+                .str("root_dir")
+                .filter(|r| !r.is_empty())
+                .unwrap_or_else(|| "/".into()),
+        },
+        runner,
+    )
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-pub fn run(args: StatusArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
+pub fn run(args: StatusArgs, runner: &impl CommandRunner) -> Result<i32> {
     // --diff-only implies --diff, both need all interfaces
     let show_all = args.all || args.diff || args.diff_only;
 
@@ -71,7 +107,7 @@ pub fn run(args: StatusArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
     let networkd = query_networkd(runner).context("Cannot query systemd-networkd")?;
     if iproute2.is_empty() || networkd.is_empty() {
         eprintln!("Could not query iproute2 or systemd-networkd");
-        return Ok(ExitCode::from(1));
+        return Ok(1);
     }
 
     let nm_data = query_nm(runner);
@@ -107,7 +143,7 @@ pub fn run(args: StatusArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
     if let Some(ifname) = &args.ifname {
         if !ifaces.iter().any(|i| i.name == *ifname) {
             eprintln!("Could not find interface {}", ifname);
-            return Ok(ExitCode::from(1));
+            return Ok(1);
         }
     }
 
@@ -176,7 +212,7 @@ pub fn run(args: StatusArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
         }
     }
 
-    Ok(ExitCode::SUCCESS)
+    Ok(0)
 }
 
 // ── Device type mapping ───────────────────────────────────────────────────────

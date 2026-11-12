@@ -219,6 +219,25 @@ extern "C" {
         buf_size: usize,
     ) -> isize;
 
+    /// Error domain in the upper 32 bits, error code in the lower 32 bits.
+    pub fn netplan_error_code(error: *mut NetplanError) -> u64;
+
+    // ── util-internal.h (exported for the Python bindings) ───────────────────
+
+    pub fn _netplan_netdef_get_critical(netdef: *const NetplanNetDefinition) -> GBoolean;
+
+    pub fn _netplan_netdef_is_trivial_compound_itf(netdef: *const NetplanNetDefinition)
+        -> GBoolean;
+
+    pub fn _netplan_state_new_netdef_pertype_iter(
+        np_state: *mut NetplanState,
+        def_type: *const c_char,
+    ) -> *mut c_void;
+
+    pub fn _netplan_netdef_pertype_iter_next(it: *mut c_void) -> *mut NetplanNetDefinition;
+
+    pub fn _netplan_netdef_pertype_iter_free(it: *mut c_void);
+
     pub fn netplan_util_create_yaml_patch(
         conf_obj_path: *const c_char,
         obj_payload: *const c_char,

@@ -1,18 +1,3 @@
-// Copyright (C) 2026 Canonical, Ltd.
-// SPDX-License-Identifier: GPL-3.0-only
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; version 3.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 pub mod apply;
 pub mod generate;
 pub mod get;
@@ -20,5 +5,28 @@ pub mod info;
 pub mod ip;
 pub mod migrate;
 pub mod set;
+pub mod sriov_rebind;
 pub mod status;
 pub mod try_command;
+
+use anyhow::Result;
+
+use crate::utils::process::CommandRunner;
+
+/// Run the netplan subcommand `cmd` with the arguments left over from the
+/// top-level parse.
+pub fn run(cmd: &str, argv0: &str, args: &[String], runner: &impl CommandRunner) -> Result<i32> {
+    match cmd {
+        "apply" => apply::command(argv0, args),
+        "generate" => generate::command(argv0, args),
+        "get" => get::command(argv0, args),
+        "info" => info::command(argv0, args),
+        "ip" => ip::command(argv0, args),
+        "migrate" => migrate::command(argv0, args),
+        "set" => set::command(argv0, args),
+        "rebind" => sriov_rebind::command(argv0, args),
+        "status" => status::command(argv0, args, runner),
+        "try" => try_command::command(argv0, args),
+        _ => unreachable!("argparse only accepts known subcommands"),
+    }
+}

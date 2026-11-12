@@ -205,6 +205,9 @@ def call_cli(args):
             msg = result.stderr.strip()
             if msg.startswith('Command failed: '):
                 msg = msg[len('Command failed: '):]
+            elif 'Traceback (most recent call last):' in msg:
+                # str() of the uncaught exception: last line minus "Type: "
+                msg = msg.splitlines()[-1].split(': ', 1)[-1]
             raise Exception(msg)
         return result.stdout
 

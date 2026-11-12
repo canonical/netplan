@@ -49,18 +49,36 @@ pub fn memfd(name: &str) -> Result<std::fs::File> {
 /// call `*error` is `NULL`.
 pub unsafe fn drain_error(error: *mut ffi::NetplanError) -> anyhow::Error {
     if error.is_null() {
-        return anyhow!("unknown libnetplan error");
+        return crate::py::NetplanError::from_lib(0, "Unknown error".to_string());
     }
-    let mut buf = [0u8; 2048];
-    let n = ffi::netplan_error_message(error, buf.as_mut_ptr() as *mut c_char, buf.len());
+    let code = ffi::netplan_error_code(error);
+    // Same growing-buffer strategy as the Python bindings
+    // (_string_realloc_call_no_error), up to 1 MiB.
+    let mut message = None;
+    let mut size = 16usize;
+    while size < 1_048_576 {
+        let mut buf = vec![0u8; size];
+        let n = ffi::netplan_error_message(error, buf.as_mut_ptr() as *mut c_char, buf.len());
+        if n == ffi::NETPLAN_BUFFER_TOO_SMALL {
+            size *= 2;
+            continue;
+        }
+        if n > 0 {
+            let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+            message = Some(String::from_utf8_lossy(&buf[..end]).into_owned());
+        }
+        break;
+    }
     // netplan_error_clear takes **NetplanError; we pass a pointer to a local copy
     let mut p = error;
     ffi::netplan_error_clear(&mut p);
-    if n > 1 {
-        let n = (n as usize - 1).min(buf.len()); // exclude NUL terminator
-        anyhow!("{}", String::from_utf8_lossy(&buf[..n]))
-    } else {
-        anyhow!("unknown libnetplan error")
+    match message {
+        Some(m) => crate::py::NetplanError::from_lib(code, m),
+        None if size >= 1_048_576 => {
+            crate::py::NetplanError::from_lib(0, "Halting due to string buffer size > 1M".into())
+        }
+        // `None` message: Python formats it as the string "None"
+        None => crate::py::NetplanError::from_lib(code, "None".into()),
     }
 }
 
@@ -270,6 +288,27 @@ impl State {
         unsafe { ffi::netplan_state_iterator_init(self.0, &mut iter) };
         NetDefIter { iter }
     }
+
+    /// The netdefs of one type (e.g. "ethernets"), in state order, like the
+    /// Python bindings' `State.ethernets` & co.
+    pub fn netdefs_of_type(&self, def_type: &str) -> Vec<NetDef> {
+        let ctype = CString::new(def_type).unwrap_or_default();
+        let mut out = vec![];
+        // SAFETY: `self.0` is a valid state pointer; the iterator is freed
+        // below and the returned netdefs are owned by the state.
+        unsafe {
+            let it = ffi::_netplan_state_new_netdef_pertype_iter(self.0, ctype.as_ptr());
+            loop {
+                let nd = ffi::_netplan_netdef_pertype_iter_next(it);
+                if nd.is_null() {
+                    break;
+                }
+                out.push(NetDef(nd));
+            }
+            ffi::_netplan_netdef_pertype_iter_free(it);
+        }
+        out
+    }
 }
 
 impl Drop for State {
@@ -324,32 +363,6 @@ impl NetDef {
         unsafe { ffi::netplan_netdef_get_type(self.0) }
     }
 
-    /// Returns `true` for ethernet / wifi / modem (physical) types.
-    pub fn is_physical(&self) -> bool {
-        matches!(
-            self.def_type(),
-            ffi::NETPLAN_DEF_TYPE_ETHERNET
-                | ffi::NETPLAN_DEF_TYPE_WIFI
-                | ffi::NETPLAN_DEF_TYPE_MODEM
-        )
-    }
-
-    /// Returns `true` for virtual interface types (bridge, bond, vlan, …).
-    pub fn is_virtual(&self) -> bool {
-        matches!(
-            self.def_type(),
-            ffi::NETPLAN_DEF_TYPE_BRIDGE   // = VIRTUAL
-                | ffi::NETPLAN_DEF_TYPE_BOND
-                | ffi::NETPLAN_DEF_TYPE_VLAN
-                | ffi::NETPLAN_DEF_TYPE_TUNNEL
-                | ffi::NETPLAN_DEF_TYPE_PORT
-                | ffi::NETPLAN_DEF_TYPE_VRF
-                | ffi::NETPLAN_DEF_TYPE_NM
-                | ffi::NETPLAN_DEF_TYPE_DUMMY
-                | ffi::NETPLAN_DEF_TYPE_VETH
-        )
-    }
-
     /// The Netplan ID string (equals interface name for virtual interfaces).
     pub fn id(&self) -> Result<String> {
         // SAFETY: `self.0` is a valid netdef pointer; `buf`/`len` describe the
@@ -367,24 +380,22 @@ impl NetDef {
         Ok(if s.is_empty() { None } else { Some(s) })
     }
 
+    /// `NetDefinition.critical`
+    pub fn critical(&self) -> bool {
+        // SAFETY: `self.0` is a valid netdef pointer.
+        unsafe { ffi::_netplan_netdef_get_critical(self.0) != 0 }
+    }
+
+    /// `NetDefinition._is_trivial_compound_itf`
+    pub fn is_trivial_compound_itf(&self) -> bool {
+        // SAFETY: `self.0` is a valid netdef pointer.
+        unsafe { ffi::_netplan_netdef_is_trivial_compound_itf(self.0) != 0 }
+    }
+
     /// `true` if the netdef contains a `match:` stanza.
     pub fn has_match(&self) -> bool {
         // SAFETY: `self.0` is a valid netdef pointer.
         unsafe { ffi::netplan_netdef_has_match(self.0) != 0 }
-    }
-
-    pub fn backend(&self) -> ffi::NetplanBackend {
-        // SAFETY: `self.0` is a valid netdef pointer.
-        unsafe { ffi::netplan_netdef_get_backend(self.0) }
-    }
-
-    pub fn backend_name(&self) -> &'static str {
-        match self.backend() {
-            ffi::NETPLAN_BACKEND_NETWORKD => "networkd",
-            ffi::NETPLAN_BACKEND_NM => "NetworkManager",
-            ffi::NETPLAN_BACKEND_OVS => "openvswitch",
-            _ => "none",
-        }
     }
 
     pub fn dhcp4(&self) -> bool {

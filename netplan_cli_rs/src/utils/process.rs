@@ -135,16 +135,6 @@ impl<'args, A> Command<'args, A> {
         self.stdin = Some(stdin.into());
         self
     }
-
-    pub(crate) fn stdout(mut self, stdout: impl Into<Stdio>) -> Self {
-        self.stdout = Some(stdout.into());
-        self
-    }
-
-    pub(crate) fn stderr(mut self, stderr: impl Into<Stdio>) -> Self {
-        self.stderr = Some(stderr.into());
-        self
-    }
 }
 
 impl<'args, A> Command<'args, A>

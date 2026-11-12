@@ -20,32 +20,45 @@
 
 use std::io::Seek;
 use std::io::SeekFrom;
-use std::process::ExitCode;
 
+use crate::argparse::Arg;
+use crate::cli;
 use anyhow::{anyhow, Context, Result};
-use clap::Args;
 
 use crate::{netplan, utils};
 
 const FALLBACK_FILENAME: &str = "70-netplan-set.yaml";
 
-#[derive(Args, Debug)]
 pub struct SetArgs {
-    /// Dotted key=value pair.  Use NULL as the value to delete a key.
-    /// Example: "ethernets.eth0.dhcp4=true"
     key_value: String,
-
-    /// Basename hint for the output YAML file (.yaml appended automatically).
-    /// If omitted, changes go to "70-netplan-set.yaml".
-    #[arg(long)]
     origin_hint: Option<String>,
-
-    /// Write configuration in this root directory instead of /
-    #[arg(long, default_value = "/")]
     root_dir: String,
 }
 
-pub fn run(args: SetArgs) -> Result<ExitCode> {
+/// `netplan set key=value [--origin-hint HINT] [--root-dir DIR]`
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "set", cli::description("set"));
+    p.add(
+        Arg::new(&["key_value"])
+            .help("The nested key=value pair in dotted format. Value can be NULL to delete a key."),
+    );
+    p.add(Arg::new(&["--origin-hint"]).help(
+        "Can be used to help choose a name for the overwrite YAML file. A .yaml suffix will be appended automatically.",
+    ));
+    p.add(
+        Arg::new(&["--root-dir"])
+            .default_str("/")
+            .help("Overwrite configuration files in this root directory instead of /"),
+    );
+    let ns = cli::parse_leaf(&p, args)?;
+    run(SetArgs {
+        key_value: ns.str("key_value").unwrap_or_default(),
+        origin_hint: ns.str("origin_hint"),
+        root_dir: ns.str("root_dir").unwrap_or_default(),
+    })
+}
+
+pub fn run(args: SetArgs) -> Result<i32> {
     // Validate origin-hint is non-empty when provided
     if let Some(ref hint) = args.origin_hint {
         if hint.is_empty() {
@@ -98,7 +111,7 @@ pub fn run(args: SetArgs) -> Result<ExitCode> {
         // If no origin-hint, write via update_yaml_hierarchy and done
         if filename.is_none() {
             state.update_yaml_hierarchy(FALLBACK_FILENAME, &args.root_dir)?;
-            return Ok(ExitCode::SUCCESS);
+            return Ok(0);
         }
     }
 
@@ -131,5 +144,5 @@ pub fn run(args: SetArgs) -> Result<ExitCode> {
         state_out.write_yaml_file(&filename, &args.root_dir)?;
     }
 
-    Ok(ExitCode::SUCCESS)
+    Ok(0)
 }

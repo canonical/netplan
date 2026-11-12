@@ -15,58 +15,90 @@
 
 //! `netplan apply` – apply current netplan config to the running system.
 //!
-//! Mirrors `netplan_cli/cli/commands/apply.py`.
+//! Port of `netplan_cli/cli/commands/apply.py`.
 
-use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::process::{Command, ExitCode, Stdio};
 
-use anyhow::{anyhow, Result};
-use clap::Args;
+use anyhow::Result;
 
-use crate::utils::process::CommandRunner;
-use crate::{netplan, utils};
+use crate::argparse::Arg;
+use crate::configmanager::{self, ConfigManager, CONFIG_ERRORS};
+use crate::utils::sub::{self, Io};
+use crate::utils::{self, GENERATOR_LATE_DIR};
+use crate::{cli, ovs, py, sriov};
 
-const MAX_IF_NAME_SIZE: usize = 16;
+pub const OVS_CLEANUP_SERVICE: &str = "netplan-ovs-cleanup.service";
 
-/// `busctl call` exit code when the D-Bus call was denied by polkit
-/// (interactive authentication was required but cancelled/unavailable).
-const BUSCTL_EXIT_PERMISSION_DENIED: i32 = 130;
+const IF_NAMESIZE: usize = 16;
 
-#[derive(Args, Debug)]
-pub struct ApplyArgs {
-    /// Only apply SR-IOV related configuration and exit
-    #[arg(long)]
-    sriov_only: bool,
+/// `os.EX_CONFIG`
+pub const EX_CONFIG: i32 = 78;
+/// `os.EX_NOPERM`
+const EX_NOPERM: i32 = 77;
 
-    /// Only clean up old OpenVSwitch interfaces and exit
-    #[arg(long)]
-    only_ovs_cleanup: bool,
-
-    /// Directory containing previous YAML configuration (for virtual link cleanup)
-    #[arg(long)]
-    state: Option<String>,
+/// `NetplanApply`
+#[derive(Default)]
+pub struct NetplanApply {
+    pub sriov_only: bool,
+    pub only_ovs_cleanup: bool,
+    pub state: Option<String>,
 }
 
-pub fn run(args: ApplyArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
-    // SR-IOV-only path (stub — not exposed through public libnetplan API)
-    if args.sriov_only {
-        return Err(anyhow!(
-            "SR-IOV config apply is not supported in the Rust CLI"
-        ));
-    }
+/// `netplan apply [--sriov-only] [--only-ovs-cleanup] [--state DIR]`
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "apply", cli::description("apply"));
+    p.add(
+        Arg::new(&["--sriov-only"])
+            .store_true()
+            .help("Only apply SR-IOV related configuration and exit"),
+    );
+    p.add(
+        Arg::new(&["--only-ovs-cleanup"])
+            .store_true()
+            .help("Only clean up old OpenVSwitch interfaces and exit"),
+    );
+    p.add(Arg::new(&["--state"]).help("Directory containing previous YAML configuration"));
+    let ns = cli::parse_leaf(&p, args)?;
+    let mut apply = NetplanApply {
+        sriov_only: ns.bool("sriov_only"),
+        only_ovs_cleanup: ns.bool("only_ovs_cleanup"),
+        state: ns.str("state"),
+    };
+    apply.command_apply(true, false, true, None)?;
+    Ok(0)
+}
 
-    // OVS-cleanup-only path (stub)
-    if args.only_ovs_cleanup {
-        return Err(anyhow!("OVS cleanup is not supported in the Rust CLI"));
-    }
+impl NetplanApply {
+    pub fn command_apply(
+        &mut self,
+        run_generate: bool,
+        mut sync: bool,
+        exit_on_error: bool,
+        state_dir: Option<&str>,
+    ) -> Result<()> {
+        let mut config_manager = ConfigManager::new("/");
+        if let Some(s) = state_dir {
+            self.state = Some(s.to_string());
+        }
 
-    // ── SNAP environment: delegate to D-Bus ──────────────────────────────────
-    if std::env::var("SNAP").is_ok() {
-        let busctl =
-            utils::which("busctl").ok_or_else(|| anyhow::anyhow!("'busctl' not found in PATH"))?;
-        let rc = Command::new(&busctl)
-            .args([
+        // For certain use-cases, we might want to only apply specific configuration.
+        // If we only need SR-IOV configuration, do that and exit early.
+        if self.sriov_only {
+            return process_sriov_config(&mut config_manager, exit_on_error);
+        }
+        // If we only need OpenVSwitch cleanup, do that and exit early.
+        if self.only_ovs_cleanup {
+            return process_ovs_cleanup(&mut config_manager, false, false, exit_on_error);
+        }
+
+        // if we are inside a snap, then call dbus to run netplan apply instead
+        if std::env::var_os("SNAP").is_some() {
+            let Some(busctl) = utils::which("busctl") else {
+                return Err(py::Exception::err("RuntimeError", "missing busctl utility"));
+            };
+            let busctl = busctl.to_string_lossy().into_owned();
+            let res = sub::call(&[
+                &busctl,
                 "call",
                 "--quiet",
                 "--system",
@@ -74,392 +106,473 @@ pub fn run(args: ApplyArgs, runner: &impl CommandRunner) -> Result<ExitCode> {
                 "/io/netplan/Netplan",
                 "io.netplan.Netplan",
                 "Apply",
-            ])
-            .status()
-            .map_err(|e| anyhow::anyhow!("failed to run busctl: {}", e))?
-            .code()
-            .unwrap_or(1);
-
-        if rc == BUSCTL_EXIT_PERMISSION_DENIED {
-            return Err(anyhow!(
-                "PermissionError: failed to communicate with dbus service"
-            ));
-        } else if rc != 0 {
-            return Err(anyhow!(
-                "failed to communicate with dbus service: error {}",
-                rc
-            ));
+            ])?;
+            if res != 0 {
+                if exit_on_error {
+                    return py::exit(res);
+                } else if res == 130 {
+                    return Err(py::Exception::err(
+                        "PermissionError",
+                        "failed to communicate with dbus service",
+                    ));
+                } else {
+                    return Err(py::Exception::err(
+                        "RuntimeError",
+                        format!("failed to communicate with dbus service: error {res}"),
+                    ));
+                }
+            }
+            return Ok(());
         }
-        return Ok(ExitCode::SUCCESS);
-    }
 
-    let ovs_cleanup_path = Path::new(utils::GENERATOR_LATE_DIR)
-        .join(utils::OVS_CLEANUP_SERVICE)
-        .to_string_lossy()
-        .into_owned();
+        let ovs_cleanup_service = format!("{GENERATOR_LATE_DIR}{OVS_CLEANUP_SERVICE}");
+        let old_files_networkd = !utils::glob_paths("/run/systemd/network/*netplan-*").is_empty();
+        let mut old_ovs_glob = utils::glob_paths(&format!("{GENERATOR_LATE_DIR}netplan-ovs-*"));
+        // Ignore netplan-ovs-cleanup.service, as it can always be there
+        remove_first(&mut old_ovs_glob, &ovs_cleanup_service);
+        let old_files_ovs = !old_ovs_glob.is_empty();
+        let old_nm_glob = utils::glob_paths("/run/NetworkManager/system-connections/netplan-*");
+        let mut nm_ifaces =
+            get_nm_interfaces(&old_nm_glob, &utils::get_interfaces(), exit_on_error)?;
+        let old_files_nm = !old_nm_glob.is_empty();
 
-    // ── Snapshot pre-generate state ───────────────────────────────────────────
-    let old_files_networkd = !utils::glob_paths("/run/systemd/network/*netplan-*").is_empty();
-
-    let mut old_ovs_glob =
-        utils::glob_paths(&format!("{}netplan-ovs-*", utils::GENERATOR_LATE_DIR));
-    old_ovs_glob.retain(|p| p != &ovs_cleanup_path);
-    let old_files_ovs = !old_ovs_glob.is_empty();
-
-    let old_nm_glob = utils::glob_paths("/run/NetworkManager/system-connections/netplan-*");
-    let old_files_nm = !old_nm_glob.is_empty();
-
-    // Collect interface names for NM interface detection (pre-generate snapshot)
-    let pre_devices = utils::iface::all();
-    let pre_names: Vec<String> = pre_devices.iter().map(|(n, _, _)| n.clone()).collect();
-    let mut nm_ifaces: HashSet<String> = utils::nm::interfaces(&old_nm_glob, &pre_names)
-        .into_iter()
-        .cloned()
-        .collect();
-
-    // ── Run configure + daemon-reload ─────────────────────────────────────────
-    let configure = utils::configure_path();
-    let rc = Command::new(&configure)
-        .status()
-        .map_err(|e| anyhow::anyhow!("failed to run configure ({}): {}", configure.display(), e))?
-        .code()
-        .unwrap_or(1);
-    if rc != 0 {
-        return Ok(ExitCode::from(78)); // EX_CONFIG
-    }
-    utils::systemctl::daemon_reload(runner)?;
-
-    // ── Re-glob to determine what needs restarting ────────────────────────────
-    let restart_networkd_new = !utils::glob_paths("/run/systemd/network/*netplan-*").is_empty();
-    let mut restart_networkd = restart_networkd_new || old_files_networkd;
-
-    let mut restart_ovs_glob =
-        utils::glob_paths(&format!("{}netplan-ovs-*", utils::GENERATOR_LATE_DIR));
-    restart_ovs_glob.retain(|p| p != &ovs_cleanup_path);
-    let restart_ovs = !restart_ovs_glob.is_empty();
-    if !restart_ovs && old_files_ovs {
-        restart_networkd = true;
-    }
-
-    let restart_nm_glob = utils::glob_paths("/run/NetworkManager/system-connections/netplan-*");
-    // Accumulate NM ifaces from the post-generate glob (still using pre-stop device list)
-    for iface in utils::nm::interfaces(&restart_nm_glob, &pre_names) {
-        nm_ifaces.insert(iface.clone());
-    }
-    let restart_nm = !restart_nm_glob.is_empty() || old_files_nm;
-
-    // ── Stop backends that need restarting ────────────────────────────────────
-    if restart_networkd {
-        utils::systemctl::run("stop", &["netplan-wpa-*.service"], false, runner);
-    }
-
-    let mut loopback_connection = String::new();
-    if restart_nm && utils::nm::running() {
-        if nm_ifaces.contains("lo") {
-            loopback_connection = utils::nm::connection_for_interface("lo");
+        let mut configure: Vec<String> = vec![];
+        let mut configure_out = Io::Inherit;
+        if std::env::var_os("NETPLAN_PROFILE").is_some() {
+            configure.extend(["valgrind".to_string(), "--leak-check=full".to_string()]);
+            configure_out = Io::Stdout;
         }
-        // Disconnect NM-managed interfaces before stopping NM
-        for name in &pre_names {
-            if nm_ifaces.contains(name.as_str()) {
-                utils::nm::run(&["device", "disconnect", name]);
+        configure.push(utils::get_configure_path());
+        if run_generate {
+            py::debug(&format!(
+                "command configure: running {}",
+                utils::py_repr_list(&configure)
+            ));
+            let argv: Vec<&str> = configure.iter().map(String::as_str).collect();
+            if sub::call_with(&argv, Io::Inherit, configure_out)? != 0 {
+                if exit_on_error {
+                    return py::exit(EX_CONFIG);
+                }
+                return Err(configmanager::configuration_error(
+                    "the configuration could not be generated".into(),
+                ));
+            }
+            // Running 'systemctl daemon-reload' will re-run the netplan systemd generator.
+            py::debug("executing Netplan systemd-generator via daemon-reload");
+            let res = utils::systemctl_daemon_reload()?;
+            if res != 0 {
+                if exit_on_error {
+                    return py::exit(res);
+                }
+                return Err(py::Exception::err(
+                    "RuntimeError",
+                    format!("systemctl daemon-reload call failed: error {res}"),
+                ));
             }
         }
-        utils::systemctl::network_manager("stop", false, runner);
-    }
 
-    // ── Refresh devices after stops ───────────────────────────────────────────
-    let devices = utils::iface::all();
-    let device_names: Vec<String> = devices.iter().map(|(n, _, _)| n.clone()).collect();
+        let mut devices = utils::get_interfaces();
 
-    // ── Parse current config and process link changes ─────────────────────────
-    let state = netplan::load_state("/")?;
-    let changes = process_link_changes(&devices, &state);
+        // Re-start service when
+        // 1. We have configuration files for it
+        // 2. Previously we had config files for it but not anymore
+        let mut restart_networkd = !utils::glob_paths("/run/systemd/network/*netplan-*").is_empty();
+        if !restart_networkd && old_files_networkd {
+            restart_networkd = true;
+        }
+        let mut restart_ovs_glob = utils::glob_paths(&format!("{GENERATOR_LATE_DIR}netplan-ovs-*"));
+        remove_first(&mut restart_ovs_glob, &ovs_cleanup_service);
+        let restart_ovs = !restart_ovs_glob.is_empty();
+        if !restart_ovs && old_files_ovs {
+            // OVS is managed via systemd units
+            restart_networkd = true;
+        }
 
-    // ── Delete virtual links removed from config ──────────────────────────────
-    if let Some(ref state_dir) = args.state {
-        // Best-effort: `--state` points at a snapshot of the previous config
-        // taken before this apply started. It may be missing or unreadable
-        // (e.g. first-ever apply), in which case there is nothing to compare
-        // against and virtual-link cleanup is simply skipped.
-        if let Ok(prev_state) = netplan::load_state(state_dir) {
-            let prev_links: Vec<String> = prev_state
-                .netdefs()
-                .filter(|nd| nd.is_virtual())
-                .filter_map(|nd| nd.id().ok())
+        let restart_nm_glob = utils::glob_paths("/run/NetworkManager/system-connections/netplan-*");
+        for i in get_nm_interfaces(&restart_nm_glob, &devices, exit_on_error)? {
+            if !nm_ifaces.contains(&i) {
+                nm_ifaces.push(i);
+            }
+        }
+        let mut restart_nm = !restart_nm_glob.is_empty();
+        if !restart_nm && old_files_nm {
+            restart_nm = true;
+        }
+
+        // stop backends
+        if restart_networkd {
+            py::debug("netplan generated networkd configuration changed, reloading networkd");
+            // Clean up any old netplan related OVS ports/bonds/bridges, if applicable
+            process_ovs_cleanup(
+                &mut config_manager,
+                old_files_ovs,
+                restart_ovs,
+                exit_on_error,
+            )?;
+            utils::systemctl("stop", &["netplan-wpa-*.service"], sync)?;
+        } else {
+            py::debug("no netplan generated networkd configuration exists");
+        }
+
+        let mut loopback_connection = String::new();
+        if restart_nm {
+            py::debug("netplan generated NM configuration changed, restarting NM");
+            if utils::nm_running()? {
+                if nm_ifaces.iter().any(|i| i == "lo") {
+                    loopback_connection = utils::nm_get_connection_for_interface("lo")?;
+                }
+                // restarting NM does not cause new config to be applied, need to shut down devices first
+                for device in &devices {
+                    if !nm_ifaces.contains(device) {
+                        continue; // do not touch this interface
+                    }
+                    // ignore failures here -- some/many devices might not be managed by NM
+                    match utils::nmcli(&["device", "disconnect", device]) {
+                        Err(e) if sub::is_exception(&e, &["subprocess.CalledProcessError"]) => {}
+                        other => other?,
+                    }
+                }
+                utils::systemctl_network_manager("stop", sync)?;
+            }
+        } else {
+            py::debug("no netplan generated NM configuration exists");
+        }
+
+        // Refresh devices now; restarting a backend might have made something appear.
+        devices = utils::get_interfaces();
+
+        // evaluate config for extra steps we need to take (like renaming)
+        // for now, only applies to non-virtual (real) devices.
+        config_manager.parse(&[])?;
+        let changes = process_link_changes(&devices, &config_manager);
+        // delete virtual interfaces that have been defined in a previous state
+        // but are not configured anymore in the current YAML
+        if let Some(state) = self.state.as_deref().filter(|s| !s.is_empty()) {
+            let mut cm = ConfigManager::new(state);
+            cm.parse(&[])?; // get previous configuration state
+            let prev_links: Vec<String> = cm
+                .virtual_interfaces()
+                .into_iter()
+                .map(|(k, _)| k)
                 .collect();
-            let curr_links: Vec<String> = state
-                .netdefs()
-                .filter(|nd| nd.is_virtual())
-                .filter_map(|nd| nd.id().ok())
+            let curr_links: Vec<String> = config_manager
+                .virtual_interfaces()
+                .into_iter()
+                .map(|(k, _)| k)
                 .collect();
-            clear_virtual_links(&prev_links, &curr_links, &device_names);
+            clear_virtual_links(&prev_links, &curr_links, &devices)?;
         }
-    }
 
-    // ── Trigger .link rules via udevadm ───────────────────────────────────────
-    // udevadm failures are intentionally ignored: this is best-effort, matching
-    // the upstream Python CLI which also discards the exit status here.
-    for (dev, _, _) in &devices {
-        let syspath = format!("/sys/class/net/{}", dev);
-        let _ = Command::new("udevadm")
-            .args(["test-builtin", "net_setup_link", &syspath])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        let _ = Command::new("udevadm")
-            .args(["test", &syspath])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-    }
-
-    let devices_after_udev = utils::iface::names();
-
-    // ── Apply interface renames ────────────────────────────────────────────────
-    // `ip link set` failures are intentionally ignored: this is best-effort,
-    // matching the upstream Python CLI which also discards the exit status here.
-    for (iface, new_name) in &changes {
-        if new_name.len() >= MAX_IF_NAME_SIZE {
-            eprintln!(
-                "[netplan] Interface name {} is too long; {} will not be renamed",
-                new_name, iface
-            );
-            continue;
+        // if the interface is up, we can still apply some .link file changes
+        // but we cannot apply the interface rename via udev, as it won't touch
+        // the interface name, if it was already renamed once (e.g. during boot),
+        // because of the NamePolicy=keep default:
+        // https://www.freedesktop.org/software/systemd/man/systemd.net-naming-scheme.html
+        devices = utils::get_interfaces();
+        for device in &devices {
+            py::debug(&format!("netplan triggering .link rules for {device}"));
+            let syspath = format!("/sys/class/net/{device}");
+            let result = sub::check_call_with(
+                &["udevadm", "test-builtin", "net_setup_link", &syspath],
+                Io::Null,
+                Io::Null,
+            )
+            .and_then(|_| sub::check_call_with(&["udevadm", "test", &syspath], Io::Null, Io::Null));
+            match result {
+                Err(e) if sub::is_exception(&e, &["subprocess.CalledProcessError"]) => {
+                    py::debug(&format!("Ignoring device without syspath: {device}"));
+                }
+                other => other?,
+            }
         }
-        // Skip if rename already happened via udevadm
-        if device_names.contains(iface) && devices_after_udev.contains(new_name) {
-            continue;
-        }
-        let _ = Command::new("ip")
-            .args(["link", "set", "dev", iface, "down"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        let _ = Command::new("ip")
-            .args(["link", "set", "dev", iface, "name", new_name])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-    }
 
-    // ── udevadm reload + trigger ──────────────────────────────────────────────
-    let _ = Command::new("udevadm")
-        .args(["control", "--reload"])
-        .status();
-    // Returns 1 in containers (LP: #2095203) — ignore the error
-    let _ = Command::new("udevadm")
-        .args([
+        let devices_after_udev = utils::get_interfaces();
+        // apply some more changes manually
+        for (iface, new_name) in &changes {
+            // rename non-critical network interfaces
+            if new_name.is_empty() {
+                continue;
+            }
+            if new_name.chars().count() >= IF_NAMESIZE {
+                py::warning(&format!(
+                    "Interface name {new_name} is too long. {iface} will not be renamed"
+                ));
+                continue;
+            }
+            if devices.contains(iface) && devices_after_udev.contains(new_name) {
+                py::debug(&format!(
+                    "Interface rename {iface} -> {new_name} already happened."
+                ));
+                continue; // re-name already happened via 'udevadm test'
+            }
+            // bring down the interface, using its current (matched) interface name
+            sub::check_call_with(
+                &["ip", "link", "set", "dev", iface, "down"],
+                Io::Null,
+                Io::Null,
+            )?;
+            // rename the interface to the name given via 'set-name'
+            sub::check_call_with(
+                &["ip", "link", "set", "dev", iface, "name", new_name],
+                Io::Null,
+                Io::Null,
+            )?;
+        }
+
+        sub::check_call(&["udevadm", "control", "--reload"])?;
+
+        match sub::check_call(&[
+            "udevadm",
             "trigger",
             "--action=move",
             "--subsystem-match=net",
             "--settle",
-        ])
-        .status();
-
-    // ── Regulatory domain ─────────────────────────────────────────────────────
-    if Path::new(utils::GENERATOR_LATE_DIR)
-        .join("netplan-regdom.service")
-        .exists()
-    {
-        utils::systemctl::run("start", &["netplan-regdom.service"], false, runner);
-    }
-
-    // ── (Re)start networkd backend ────────────────────────────────────────────
-    if restart_networkd {
-        let netplan_wpa = glob_wants_services(utils::GENERATOR_LATE_DIR, "netplan-wpa-*.service");
-        let netplan_ovs: Vec<String> =
-            glob_wants_services(utils::GENERATOR_LATE_DIR, "netplan-ovs-*.service")
-                .into_iter()
-                .filter(|name| name != utils::OVS_CLEANUP_SERVICE)
-                .collect();
-
-        // networkctl reload/reconfigure; fall back to hard restart if it fails
-        if utils::networkd::reload(runner).is_err()
-            || utils::networkd::reconfigure(&utils::networkd::managed_interfaces(), runner).is_err()
-        {
-            eprintln!("[netplan] Falling back to hard restart of systemd-networkd.service");
-            utils::systemctl::run("restart", &["systemd-networkd.service"], true, runner);
+        ]) {
+            // udevadm trigger returns 1 if it cannot trigger devices since
+            // systemd v248, e.g. in containers (LP: #2095203)
+            Err(e) if sub::is_exception(&e, &["subprocess.CalledProcessError"]) => {
+                py::warning(&format!("Ignoring device trigger error: {e}"));
+            }
+            other => other?,
         }
 
-        // 1st: OVS cleanup (synchronous, avoids races)
-        utils::systemctl::run("start", &[utils::OVS_CLEANUP_SERVICE], true, runner);
+        // apply any SR-IOV related changes, if applicable
+        process_sriov_config(&mut config_manager, exit_on_error)?;
 
-        // 2nd: WPA + other OVS services (synchronous for oneshot units)
-        let start: Vec<&str> = netplan_wpa
-            .iter()
-            .chain(netplan_ovs.iter())
-            .map(String::as_str)
-            .collect();
-        if !start.is_empty() {
-            utils::systemctl::run("start", &start, true, runner);
+        // (re)set global regulatory domain
+        if Path::new(&format!("{GENERATOR_LATE_DIR}netplan-regdom.service")).exists() {
+            utils::systemctl("start", &["netplan-regdom.service"], false)?;
         }
-    }
-
-    // ── (Re)start NetworkManager backend ──────────────────────────────────────
-    if restart_nm {
-        // Use the refreshed (post-stop) device list for final NM interface detection
-        let nm_ifaces_final: Vec<String> = utils::nm::interfaces(&restart_nm_glob, &device_names)
-            .into_iter()
-            .cloned()
-            .collect();
-
-        for iface in &nm_ifaces_final {
-            utils::iface::flush_addrs(iface);
+        // (re)start backends
+        if restart_networkd {
+            let basenames = |pattern: &str| -> Vec<String> {
+                utils::glob_paths(pattern)
+                    .into_iter()
+                    .filter(|f| !f.ends_with(&format!("/{OVS_CLEANUP_SERVICE}")))
+                    .map(|f| f.rsplit('/').next().unwrap_or_default().to_string())
+                    .collect()
+            };
+            let netplan_wpa = basenames(&format!(
+                "{GENERATOR_LATE_DIR}*.wants/netplan-wpa-*.service"
+            ));
+            // exclude the special 'netplan-ovs-cleanup.service' unit
+            let netplan_ovs = basenames(&format!(
+                "{GENERATOR_LATE_DIR}*.wants/netplan-ovs-*.service"
+            ));
+            // Run 'systemctl start' command synchronously, to avoid race conditions
+            // with 'oneshot' systemd service units, e.g. netplan-ovs-*.service.
+            let reload = utils::networkctl_reload()
+                .and_then(|_| utils::networkd_interfaces())
+                .and_then(|ifaces| utils::networkctl_reconfigure(&ifaces));
+            match reload {
+                Err(e) if sub::is_exception(&e, &["subprocess.CalledProcessError"]) => {
+                    // (re-)start systemd-networkd if it is not running, yet
+                    py::warning("Falling back to a hard restart of systemd-networkd.service");
+                    utils::systemctl("restart", &["systemd-networkd.service"], true)?;
+                }
+                other => other?,
+            }
+            // 1st: execute OVS cleanup, to avoid races while applying OVS config
+            utils::systemctl("start", &[OVS_CLEANUP_SERVICE], true)?;
+            // 2nd: start all other services
+            let start: Vec<String> = netplan_wpa.into_iter().chain(netplan_ovs).collect();
+            utils::systemctl("start", &start, true)?;
         }
+        if restart_nm {
+            // Flush all IP addresses of NM managed interfaces, to avoid NM creating
+            // new, non netplan-* connection profiles, using the existing IPs.
+            let nm_interfaces = get_nm_interfaces(&restart_nm_glob, &devices, exit_on_error)?;
+            for iface in &nm_interfaces {
+                utils::ip_addr_flush(iface)?;
+            }
+            // clear NM state, especially the [device].managed=true config, as that might have been
+            // re-set via an udev rule setting "NM_UNMANAGED=1"
+            let _ = std::fs::remove_dir_all("/run/NetworkManager/devices");
+            utils::systemctl_network_manager("start", sync)?;
 
-        // Clear NM runtime state (NM_UNMANAGED udev rules etc.)
-        let _ = std::fs::remove_dir_all("/run/NetworkManager/devices");
+            // If 'lo' is in the nm_interfaces set we flushed it's IPs (see above) and disconnected it.
+            // NM will not bring it back automatically after restarting and we need to do that manually.
+            // For that, we need NM up and ready to accept commands
+            let lo_managed = nm_interfaces.iter().any(|i| i == "lo");
+            if lo_managed {
+                sync = true;
+            }
 
-        utils::systemctl::network_manager("start", false, runner);
-
-        // If 'lo' was managed by NM, wait for NM to be ready then bring it back
-        let nm_ifaces_set: HashSet<&str> = nm_ifaces_final.iter().map(String::as_str).collect();
-
-        if nm_ifaces_set.contains("lo") {
-            // Wait up to ~5 s for NM to report connected
-            for _ in 0..10 {
-                let out = Command::new("nmcli").args(["general", "status"]).output();
-                match out {
-                    Ok(o) if o.status.code() == Some(8) => {
+            if sync {
+                // wait a bit for 'connected (site/local-only)' or
+                // 'connected' to appear in 'nmcli general' STATE
+                for _ in 0..10 {
+                    let out = sub::run(&["nmcli", "general", "status"], Io::Pipe, Io::Pipe)?;
+                    // Handle nmcli's "not running" return code (8) gracefully,
+                    // giving some more time for NetworkManager startup
+                    if out.returncode == 8 {
                         std::thread::sleep(std::time::Duration::from_secs(1));
                         continue;
                     }
-                    Ok(o) => {
-                        if String::from_utf8_lossy(&o.stdout).contains("\nconnected") {
-                            break;
-                        }
-                        std::thread::sleep(std::time::Duration::from_millis(500));
+                    if out.stdout.contains("\nconnected") {
+                        break;
                     }
-                    Err(_) => break,
+                    std::thread::sleep(std::time::Duration::from_millis(500));
                 }
             }
 
-            if !loopback_connection.is_empty() {
-                let _ = Command::new("nmcli")
-                    .args(["connection", "up", &loopback_connection])
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status();
+            // If "lo" is managed by NM through Netplan, apply will flush its addresses and disconnect it.
+            // NM will not bring it back automatically.
+            if lo_managed && !loopback_connection.is_empty() {
+                utils::nm_bring_interface_up(&loopback_connection)?;
             }
         }
+        Ok(())
     }
-
-    Ok(ExitCode::SUCCESS)
 }
 
-// ── process_link_changes ──────────────────────────────────────────────────────
+fn remove_first(list: &mut Vec<String>, item: &str) {
+    if let Some(i) = list.iter().position(|x| x == item) {
+        list.remove(i);
+    }
+}
 
-/// Find physical interfaces that have a `set-name` + `match:` stanza and
-/// return a map of `current_name -> new_name` for those that need renaming.
-fn process_link_changes(
-    interfaces: &[(String, Option<String>, Option<String>)],
-    state: &netplan::State,
-) -> HashMap<String, String> {
-    let mut changes = HashMap::new();
-
-    for netdef in state.netdefs() {
-        if !netdef.is_physical() {
-            continue;
+/// Calculate the delta of virtual links. And remove the links that were
+/// dropped from the YAML config, if they were not dropped by the backend
+/// already.
+pub fn clear_virtual_links(
+    prev_links: &[String],
+    curr_links: &[String],
+    devices: &[String],
+) -> Result<Vec<String>> {
+    if devices.is_empty() {
+        py::warning("Cannot clear virtual links: no network interfaces provided.");
+        return Ok(vec![]);
+    }
+    let dropped: Vec<String> = prev_links
+        .iter()
+        .filter(|l| !curr_links.contains(l))
+        .cloned()
+        .collect();
+    // some interfaces might have been cleaned up already, e.g. by the
+    // NetworkManager backend
+    for link in dropped.iter().filter(|l| devices.contains(l)) {
+        match sub::check_call(&["ip", "link", "delete", "dev", link]) {
+            Err(e) if sub::is_exception(&e, &["subprocess.CalledProcessError"]) => {
+                py::warning(&format!("Could not delete interface {link}"));
+            }
+            other => other?,
         }
-        let Some(new_name) = netdef.set_name().ok().flatten() else {
-            continue;
+    }
+    Ok(dropped)
+}
+
+/// Go through the pending changes and pick what needs special handling.
+/// Only applies to non-critical interfaces which can be safely updated.
+/// Returns `(current name, new name)` pairs.
+fn process_link_changes(
+    interfaces: &[String],
+    config_manager: &ConfigManager,
+) -> Vec<(String, String)> {
+    let mut changes: Vec<(String, String)> = vec![];
+
+    // Find physical interfaces which need a rename
+    // But do not rename virtual interfaces
+    for (id, netdef) in config_manager.physical_interfaces() {
+        let Some(newname) = netdef.set_name().ok().flatten() else {
+            continue; // Skip if no new name needs to be set
         };
         if !netdef.has_match() {
-            continue;
+            continue; // Skip if no match for current name is given
         }
-
-        let Some(current_iface) = find_matching_iface(interfaces, &netdef) else {
-            eprintln!(
-                "[netplan] Cannot find unique matching interface for {}",
-                netdef.id().as_deref().unwrap_or("(unknown)")
-            );
+        // Find current name of the interface, according to match conditions and globs (name, mac, driver)
+        let Some(current_iface_name) = utils::find_matching_iface(interfaces, &netdef) else {
+            py::warning(&format!("Cannot find unique matching interface for {id}"));
             continue;
         };
-
-        if current_iface == new_name {
-            continue; // already correctly named
+        if current_iface_name == newname {
+            // Skip interface if it already has the correct name
+            py::debug(&format!("Skipping correctly named interface: {newname}"));
+            continue;
+        }
+        if netdef.critical() {
+            // Skip interfaces defined as critical, as we should not take them down in order to rename
+            py::warning(&format!(
+                "Cannot rename {id} ({current_iface_name} -> {newname}) at runtime (needs reboot), due to being critical"
+            ));
+            continue;
         }
 
-        changes.insert(current_iface, new_name);
+        // record the interface rename change
+        match changes.iter_mut().find(|(k, _)| *k == current_iface_name) {
+            Some(entry) => entry.1 = newname,
+            None => changes.push((current_iface_name, newname)),
+        }
     }
 
+    if py::debug_enabled() {
+        let items: Vec<String> = changes
+            .iter()
+            .map(|(k, v)| {
+                format!(
+                    "{}: {{'name': {}}}",
+                    utils::py_repr_str(k),
+                    utils::py_repr_str(v)
+                )
+            })
+            .collect();
+        py::debug(&format!("Link changes: {{{}}}", items.join(", ")));
+    }
     changes
 }
 
-/// Return the single interface from `interfaces` whose name, MAC, and driver
-/// all satisfy `netdef`'s match rules.  Returns `None` when zero or multiple
-/// interfaces match (ambiguous).
-fn find_matching_iface(
-    interfaces: &[(String, Option<String>, Option<String>)],
-    netdef: &netplan::NetDef,
-) -> Option<String> {
-    let candidates: Vec<_> = interfaces
-        .iter()
-        .filter(|(name, mac, driver)| {
-            netdef.matches_interface(name, mac.as_deref(), driver.as_deref())
-        })
-        .map(|(name, _, _)| name)
-        .collect();
-
-    match candidates.as_slice() {
-        [name] => Some((*name).clone()),
-        _ => None,
-    }
-}
-
-// ── clear_virtual_links ───────────────────────────────────────────────────────
-
-/// Delete virtual interfaces that were in the previous config but are absent
-/// from the current config, if they still exist on the system.
-fn clear_virtual_links(prev: &[String], curr: &[String], devices: &[String]) {
-    if devices.is_empty() {
-        eprintln!("[netplan] Cannot clear virtual links: no network interfaces provided.");
-        return;
-    }
-    let curr_set: HashSet<&str> = curr.iter().map(String::as_str).collect();
-    let dev_set: HashSet<&str> = devices.iter().map(String::as_str).collect();
-
-    for link in prev {
-        if curr_set.contains(link.as_str()) || !dev_set.contains(link.as_str()) {
-            continue;
-        }
-        let rc = Command::new("ip")
-            .args(["link", "delete", "dev", link])
-            .status()
-            .map(|s| s.code().unwrap_or(1))
-            .unwrap_or(1);
-        if rc != 0 {
-            eprintln!("[netplan] Could not delete interface {}", link);
-        }
-    }
-}
-
-// ── Glob helpers ──────────────────────────────────────────────────────────────
-
-/// Collect the basenames of files matching `file_pat` inside every `*.wants/`
-/// subdirectory of `base_dir`.
-///
-/// Equivalent to `[os.path.basename(f) for f in glob.glob(base_dir + "*.wants/" + file_pat)]`.
-fn glob_wants_services(base_dir: &str, file_pat: &str) -> Vec<String> {
-    let Ok(entries) = std::fs::read_dir(base_dir) else {
-        return vec![];
-    };
-
-    let mut results = Vec::new();
-    for entry in entries.flatten() {
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if !name.ends_with(".wants") {
-            continue;
-        }
-        let Ok(sub) = std::fs::read_dir(entry.path()) else {
-            continue;
-        };
-        for svc in sub.flatten() {
-            let svc_name = svc.file_name().to_string_lossy().into_owned();
-            if utils::fnmatch(file_pat, &svc_name) {
-                results.push(svc_name);
+pub fn process_sriov_config(config_manager: &mut ConfigManager, exit_on_error: bool) -> Result<()> {
+    match sriov::apply_sriov_config(config_manager, "/") {
+        Err(e) if sub::is_exception(&e, CONFIG_ERRORS) => {
+            py::error(&e.to_string());
+            if exit_on_error {
+                return py::exit(1);
             }
+            Ok(())
         }
+        other => other,
     }
-    results
+}
+
+pub fn process_ovs_cleanup(
+    config_manager: &mut ConfigManager,
+    ovs_old: bool,
+    ovs_current: bool,
+    exit_on_error: bool,
+) -> Result<()> {
+    match ovs::apply_ovs_cleanup(config_manager, ovs_old, ovs_current) {
+        Err(e) if sub::is_exception(&e, &["OSError", "RuntimeError"]) => {
+            py::error(&e.to_string());
+            if exit_on_error {
+                return py::exit(1);
+            }
+            Ok(())
+        }
+        Err(e) if sub::is_exception(&e, &[ovs::OVS_DB_SERVER_NOT_RUNNING]) => {
+            py::warning(&format!("Cannot call Open vSwitch: {e}."));
+            Ok(())
+        }
+        Err(e) if sub::is_exception(&e, &[ovs::OVS_DB_SERVER_NOT_INSTALLED]) => {
+            py::debug(&format!("Cannot call Open vSwitch: {e}."));
+            Ok(())
+        }
+        other => other,
+    }
+}
+
+fn get_nm_interfaces(
+    paths: &[String],
+    devices: &[String],
+    exit_on_error: bool,
+) -> Result<Vec<String>> {
+    match utils::nm_interfaces(paths, devices) {
+        Err(e) if sub::is_exception(&e, &["PermissionError"]) => {
+            py::error(&e.to_string());
+            if exit_on_error {
+                return py::exit(EX_NOPERM);
+            }
+            Err(e)
+        }
+        other => other,
+    }
 }

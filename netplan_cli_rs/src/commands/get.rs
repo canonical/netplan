@@ -18,26 +18,39 @@
 //! Mirrors `netplan_cli/cli/commands/get.py` and the `NetplanConfigState`
 //! class in `cli/state.py`.
 
-use std::process::ExitCode;
-
+use crate::argparse::{Arg, Nargs};
+use crate::cli;
 use anyhow::Result;
-use clap::Args;
 
 use crate::{netplan, utils};
 
-#[derive(Args, Debug)]
 pub struct GetArgs {
-    /// Nested key in dotted format, e.g. "ethernets.eth0.addresses".
-    /// Use "all" (default) to dump the entire configuration.
-    #[arg(default_value = "all")]
     key: String,
-
-    /// Read configuration from this root directory instead of /
-    #[arg(long, default_value = "/")]
     root_dir: String,
 }
 
-pub fn run(args: GetArgs) -> Result<ExitCode> {
+/// `netplan get [key] [--root-dir DIR]`
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "get", cli::description("get"));
+    p.add(
+        Arg::new(&["key"])
+            .nargs(Nargs::Optional)
+            .default_str("all")
+            .help("The nested key in dotted format"),
+    );
+    p.add(
+        Arg::new(&["--root-dir"])
+            .default_str("/")
+            .help("Read configuration files from this root directory instead of /"),
+    );
+    let ns = cli::parse_leaf(&p, args)?;
+    run(GetArgs {
+        key: ns.str("key").unwrap_or_default(),
+        root_dir: ns.str("root_dir").unwrap_or_default(),
+    })
+}
+
+pub fn run(args: GetArgs) -> Result<i32> {
     // Parse the YAML hierarchy and validate
     let state = netplan::load_state(&args.root_dir)?;
 
@@ -62,5 +75,5 @@ pub fn run(args: GetArgs) -> Result<ExitCode> {
 
     // Print without a trailing newline, matching Python's `print(state, end='')`
     print!("{}", output);
-    Ok(ExitCode::SUCCESS)
+    Ok(0)
 }

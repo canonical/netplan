@@ -18,10 +18,9 @@
 //! Feature flags are extracted from `src/*.{h,c}` at build time by `build.rs`
 //! and embedded as a `&[&str]` constant, mirroring `_features.py`.
 
-use std::process::ExitCode;
-
+use crate::argparse::Arg;
+use crate::cli;
 use anyhow::Result;
-use clap::{Args, ValueEnum};
 use serde_json::json;
 
 // Feature flags generated at build time from /* netplan-feature: <name> */
@@ -30,24 +29,28 @@ mod features {
     include!(concat!(env!("OUT_DIR"), "/features.rs"));
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
-enum Format {
-    Yaml,
-    Json,
-}
-
-#[derive(Args, Debug)]
 pub struct InfoArgs {
-    /// Output in JSON format
-    #[arg(long, conflicts_with = "yaml")]
     json: bool,
-
-    /// Output in YAML format (default)
-    #[arg(long, conflicts_with = "json")]
-    yaml: bool,
 }
 
-pub fn run(args: InfoArgs) -> Result<ExitCode> {
+/// `netplan info [--json | --yaml]`
+pub fn command(argv0: &str, args: &[String]) -> Result<i32> {
+    let mut p = cli::command_parser(argv0, "info", cli::description("info"));
+    p.add_mutually_exclusive(vec![
+        Arg::new(&["--json"])
+            .store_const("version_format", "json")
+            .help("Output version and features in JSON format"),
+        Arg::new(&["--yaml"])
+            .store_const("version_format", "yaml")
+            .help("Output version and features in YAML format"),
+    ]);
+    let ns = cli::parse_leaf(&p, args)?;
+    run(InfoArgs {
+        json: ns.str("version_format").as_deref() == Some("json"),
+    })
+}
+
+pub fn run(args: InfoArgs) -> Result<i32> {
     let flags = features::FEATURE_FLAGS;
     let website = "https://netplan.io/";
 
@@ -69,5 +72,5 @@ pub fn run(args: InfoArgs) -> Result<ExitCode> {
             println!("  - {}", f);
         }
     }
-    Ok(ExitCode::SUCCESS)
+    Ok(0)
 }
