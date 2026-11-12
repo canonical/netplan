@@ -476,6 +476,20 @@ impl NetDef {
         Ok(if id.is_empty() { None } else { Some(id) })
     }
 
+    /// The backend name, like the Python bindings' `NetDefinition.backend`
+    /// (e.g. "networkd", "NetworkManager", "OpenVSwitch").
+    pub fn backend(&self) -> String {
+        // SAFETY: `self.0` is a valid netdef pointer; `netplan_backend_name`
+        // returns a static string or NULL.
+        unsafe {
+            let ptr = ffi::netplan_backend_name(ffi::netplan_netdef_get_backend(self.0));
+            if ptr.is_null() {
+                return String::new();
+            }
+            std::ffi::CStr::from_ptr(ptr).to_string_lossy().into_owned()
+        }
+    }
+
     #[allow(dead_code)]
     pub fn type_str(&self) -> &'static str {
         match self.def_type() {

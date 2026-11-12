@@ -198,6 +198,7 @@ extern "C" {
         out_buffer_size: usize,
     ) -> isize;
     pub fn netplan_netdef_get_backend(netdef: *const NetplanNetDefinition) -> NetplanBackend;
+    pub fn netplan_backend_name(val: NetplanBackend) -> *const c_char;
 
     pub fn netplan_netdef_get_bridge_link(
         netdef: *const NetplanNetDefinition,
