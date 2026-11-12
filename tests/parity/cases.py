@@ -24,6 +24,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import glob
+import importlib.util
 import os
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -288,6 +290,17 @@ def misc_cases():
     ]
 
 
+def extra_cases():
+    '''Cases from tests/parity/cases_*.py, each defining all_cases().'''
+    out = []
+    for path in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cases_*.py'))):
+        spec = importlib.util.spec_from_file_location(os.path.basename(path)[:-3], path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        out += module.all_cases()
+    return out
+
+
 def all_cases():
     return (args_cases() + example_cases() + get_set_cases() + config_error_cases() + info_cases() +
-            generate_cases() + apply_cases() + ip_cases() + migrate_cases() + misc_cases())
+            generate_cases() + apply_cases() + ip_cases() + migrate_cases() + misc_cases() + extra_cases())
