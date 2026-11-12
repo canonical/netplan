@@ -4,9 +4,10 @@
 # throw-away sandbox, and reports every observable difference.
 #
 # Each invocation runs in a private user+mount namespace where /etc/netplan,
-# /etc/network, /run, /sys/class/net, /usr/lib/netplan and
-# /usr/libexec/netplan are replaced by sandbox directories and external
-# commands (systemctl, ip, nmcli, ...) are mocked and logged. Compared:
+# /etc/network, /run, /sys/class/net, /sys/bus/pci, /sys/kernel/debug,
+# /usr/lib/netplan and /usr/libexec/netplan are replaced by sandbox
+# directories and external commands (systemctl, ip, nmcli, devlink, ...) are
+# mocked and logged. Compared:
 #
 #   exit code, stdout, stderr, the resulting sandbox file tree (content,
 #   mode, symlinks) and the sequence of external commands called.
@@ -62,9 +63,14 @@ MOUNTS = [
     ('/run', 'run'),
     ('/sys/class/net', 'sys/class/net'),
     ('/usr/lib/netplan', 'usr/lib/netplan'),
+    ('/sys/bus/pci', 'sys/bus/pci'),
+    ('/sys/kernel/debug', 'sys/kernel/debug'),
 ]
 MOCKED_COMMANDS = ['ip', 'systemctl', 'udevadm', 'networkctl', 'nmcli', 'busctl',
                    'ethtool', 'resolvectl', 'ovs-vsctl', 'iw']
+# Commands called by absolute path: the mock is bind-mounted over the binary
+# (which must exist on the host to be a mount point).
+MOCKED_PATHS = [('devlink', '/usr/sbin/devlink')]
 TRACEBACK = 'Traceback (most recent call last):'
 # GLib log lines carry a PID and timestamp: "** (netplan:1234): WARNING **: 21:24:59.157: ..."
 GLIB_LOG = re.compile(r'\*\* \(([^:)]+):\d+\): ([A-Z-]+) \*\*: \d\d:\d\d:\d\d\.\d+:')
@@ -155,7 +161,7 @@ def run_impl(case, impl, opts):
 
     mocks = os.path.join(w, 'mocks')
     os.makedirs(mocks)
-    for name in MOCKED_COMMANDS:
+    for name in MOCKED_COMMANDS + [name for name, _ in MOCKED_PATHS]:
         mock_shim(os.path.join(mocks, name), name)
     overlays = abs_mock_overlays(case, w)
     with open(os.path.join(w, 'mock-spec.json'), 'w') as f:
@@ -186,7 +192,8 @@ def run_impl(case, impl, opts):
     with open(spec_path, 'w') as f:
         json.dump({
             'mounts': [[os.path.join(fs, sub), sys_path] for sys_path, sub in MOUNTS] +
-                      [[libexec, '/usr/libexec/netplan']],
+                      [[libexec, '/usr/libexec/netplan']] +
+                      [[os.path.join(mocks, name), path] for name, path in MOCKED_PATHS if os.path.exists(path)],
             'overlays': overlays,
             'argv': argv,
             'env': env,

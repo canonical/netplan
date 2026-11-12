@@ -246,6 +246,47 @@ extern "C" {
         error: *mut *mut NetplanError,
     ) -> GBoolean;
 
+    // ── SR-IOV accessors (used by sriov.rs / rebind) ─────────────────────────
+
+    pub fn netplan_state_get_netdef(
+        np_state: *const NetplanState,
+        id: *const c_char,
+    ) -> *mut NetplanNetDefinition;
+
+    pub fn netplan_netdef_get_sriov_link(
+        netdef: *const NetplanNetDefinition,
+    ) -> *mut NetplanNetDefinition;
+
+    pub fn netplan_netdef_get_vlan_link(
+        netdef: *const NetplanNetDefinition,
+    ) -> *mut NetplanNetDefinition;
+
+    pub fn _netplan_netdef_get_embedded_switch_mode(
+        netdef: *const NetplanNetDefinition,
+        out_buffer: *mut c_char,
+        out_buf_size: usize,
+    ) -> isize;
+
+    pub fn _netplan_netdef_get_sriov_vlan_filter(netdef: *const NetplanNetDefinition) -> GBoolean;
+
+    pub fn _netplan_netdef_get_vlan_id(netdef: *const NetplanNetDefinition) -> GUint;
+
+    pub fn _netplan_netdef_get_delay_virtual_functions_rebind(
+        netdef: *const NetplanNetDefinition,
+    ) -> GBoolean;
+
+    pub fn _netplan_state_get_vf_count_for_def(
+        np_state: *const NetplanState,
+        netdef: *const NetplanNetDefinition,
+        error: *mut *mut NetplanError,
+    ) -> c_int;
+
+    pub fn _netplan_netdef_get_bond_mode(
+        netdef: *const NetplanNetDefinition,
+        out_buffer: *mut c_char,
+        out_buf_size: usize,
+    ) -> isize;
+
     pub fn netplan_util_dump_yaml_subtree(
         prefix: *const c_char,
         input_fd: c_int,

@@ -309,6 +309,51 @@ impl State {
         }
         out
     }
+
+    /// `State[netdef_id]`, or `None` where Python raises `IndexError`.
+    pub fn get_netdef(&self, id: &str) -> Option<NetDef> {
+        let cid = CString::new(id).ok()?;
+        // SAFETY: `self.0` is a valid state pointer; `cid` is a valid
+        // NUL-terminated string. The result is NULL or owned by the state.
+        let ptr = unsafe { ffi::netplan_state_get_netdef(self.0, cid.as_ptr()) };
+        (!ptr.is_null()).then_some(NetDef(ptr))
+    }
+
+    /// `NetDefinition._vf_count`: `Err(message)` where the Python bindings
+    /// raise `NetplanException(message)`.
+    pub fn vf_count_for_def(&self, netdef: &NetDef) -> std::result::Result<i32, String> {
+        let mut err: *mut ffi::NetplanError = std::ptr::null_mut();
+        // SAFETY: `self.0` and `netdef.0` are valid pointers owned by this
+        // state; `err` is a valid out-pointer.
+        let count = unsafe { ffi::_netplan_state_get_vf_count_for_def(self.0, netdef.0, &mut err) };
+        if count >= 0 {
+            return Ok(count);
+        }
+        let mut message = String::from("None");
+        if !err.is_null() {
+            let mut size = 16usize;
+            while size < 1_048_576 {
+                let mut buf = vec![0u8; size];
+                // SAFETY: `err` is a valid error set by the call above; `buf`
+                // is a writable buffer of `buf.len()` bytes.
+                let n = unsafe {
+                    ffi::netplan_error_message(err, buf.as_mut_ptr() as *mut c_char, buf.len())
+                };
+                if n == ffi::NETPLAN_BUFFER_TOO_SMALL {
+                    size *= 2;
+                    continue;
+                }
+                if n > 0 {
+                    let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+                    message = String::from_utf8_lossy(&buf[..end]).into_owned();
+                }
+                break;
+            }
+            // SAFETY: `err` is a valid error owned by us; freed exactly once.
+            unsafe { ffi::netplan_error_clear(&mut err) };
+        }
+        Err(message)
+    }
 }
 
 impl Drop for State {
@@ -488,6 +533,69 @@ impl NetDef {
             }
             std::ffi::CStr::from_ptr(ptr).to_string_lossy().into_owned()
         }
+    }
+
+    /// `links['sriov']`
+    pub fn sriov_link(&self) -> Option<NetDef> {
+        // SAFETY: `self.0` is a valid netdef pointer; the result is NULL or a
+        // netdef owned by the same state.
+        let ptr = unsafe { ffi::netplan_netdef_get_sriov_link(self.0) };
+        (!ptr.is_null()).then_some(NetDef(ptr))
+    }
+
+    /// `links['vlan']`
+    pub fn vlan_link(&self) -> Option<NetDef> {
+        // SAFETY: `self.0` is a valid netdef pointer; the result is NULL or a
+        // netdef owned by the same state.
+        let ptr = unsafe { ffi::netplan_netdef_get_vlan_link(self.0) };
+        (!ptr.is_null()).then_some(NetDef(ptr))
+    }
+
+    /// `links['bond']`
+    pub fn bond_link(&self) -> Option<NetDef> {
+        // SAFETY: `self.0` is a valid netdef pointer; the result is NULL or a
+        // netdef owned by the same state.
+        let ptr = unsafe { ffi::netplan_netdef_get_bond_link(self.0) };
+        (!ptr.is_null()).then_some(NetDef(ptr))
+    }
+
+    /// `_embedded_switch_mode` (`None` if unset)
+    pub fn embedded_switch_mode(&self) -> Result<Option<String>> {
+        // SAFETY: `self.0` is a valid netdef pointer; `buf`/`len` describe the
+        // growable buffer owned by `read_string_buf`.
+        let s = read_string_buf(|buf, len| unsafe {
+            ffi::_netplan_netdef_get_embedded_switch_mode(self.0, buf, len)
+        })?;
+        Ok(if s.is_empty() { None } else { Some(s) })
+    }
+
+    /// `_bond_mode` (`None` if unset)
+    pub fn bond_mode(&self) -> Result<Option<String>> {
+        // SAFETY: `self.0` is a valid netdef pointer; `buf`/`len` describe the
+        // growable buffer owned by `read_string_buf`.
+        let s = read_string_buf(|buf, len| unsafe {
+            ffi::_netplan_netdef_get_bond_mode(self.0, buf, len)
+        })?;
+        Ok(if s.is_empty() { None } else { Some(s) })
+    }
+
+    /// `_has_sriov_vlan_filter`
+    pub fn has_sriov_vlan_filter(&self) -> bool {
+        // SAFETY: `self.0` is a valid netdef pointer.
+        unsafe { ffi::_netplan_netdef_get_sriov_vlan_filter(self.0) != 0 }
+    }
+
+    /// `_vlan_id` (`None` if unset)
+    pub fn vlan_id(&self) -> Option<u32> {
+        // SAFETY: `self.0` is a valid netdef pointer.
+        let id = unsafe { ffi::_netplan_netdef_get_vlan_id(self.0) };
+        (id != u32::MAX).then_some(id)
+    }
+
+    /// `_delay_virtual_functions_rebind`
+    pub fn delay_virtual_functions_rebind(&self) -> bool {
+        // SAFETY: `self.0` is a valid netdef pointer.
+        unsafe { ffi::_netplan_netdef_get_delay_virtual_functions_rebind(self.0) != 0 }
     }
 
     #[allow(dead_code)]
