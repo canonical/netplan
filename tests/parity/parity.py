@@ -138,7 +138,7 @@ def run_impl(case, impl, opts):
         raise ValueError('%s: fixture path %s is outside the sandbox' % (case['id'], path))
 
     for path, spec in case.get('files', {}).items():
-        if isinstance(spec, str):
+        if isinstance(spec, (str, bytes)):
             spec = {'content': spec}
         dest = resolve(path)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -148,8 +148,9 @@ def run_impl(case, impl, opts):
             os.makedirs(dest, exist_ok=True)
             os.chmod(dest, spec.get('mode', 0o755))
         else:
-            with open(dest, 'w') as f:
-                f.write(spec['content'])
+            content = spec['content']
+            with open(dest, 'wb' if isinstance(content, bytes) else 'w') as f:
+                f.write(content)
             os.chmod(dest, spec.get('mode', 0o600))
 
     # The netplan C helpers, as installed under /usr/libexec/netplan

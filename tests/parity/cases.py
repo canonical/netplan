@@ -4,6 +4,7 @@
 #   id     unique name
 #   argv   CLI arguments; "{ROOT}" is replaced by the sandbox root directory
 #   files  {path: content | {"content", "mode"} | {"symlink"} | {"dir": True}}
+#          (content is str or bytes)
 #          where path is "{ROOT}/..." or under one of the sandboxed system
 #          directories (/etc/netplan, /etc/network, /run, /sys/class/net,
 #          /usr/lib/netplan); files default to mode 0600
