@@ -68,6 +68,8 @@ MOCKED_COMMANDS = ['ip', 'systemctl', 'udevadm', 'networkctl', 'nmcli', 'busctl'
 TRACEBACK = 'Traceback (most recent call last):'
 # GLib log lines carry a PID and timestamp: "** (netplan:1234): WARNING **: 21:24:59.157: ..."
 GLIB_LOG = re.compile(r'\*\* \(([^:)]+):\d+\): ([A-Z-]+) \*\*: \d\d:\d\d:\d\d\.\d+:')
+# g_debug() lines on stdout: "** (process:1234): DEBUG: 21:24:59.157: ..."
+GLIB_DEBUG = re.compile(r'\*\* \(([^:)]+):\d+\): ([A-Z-]+): \d\d:\d\d:\d\d\.\d+:')
 
 
 def default_mocks(case):
@@ -80,6 +82,35 @@ def default_mocks(case):
     mocks = {name: list(rules) for name, rules in case.get('mocks', {}).items()}
     mocks.setdefault('ip', []).append({'argv': ['--json', 'link'], 'stdout': json.dumps(link) + '\n'})
     return mocks
+
+
+def mock_shim(path, name):
+    with open(path, 'w') as f:
+        f.write('#!/bin/sh\nexec /usr/bin/python3 -I %s %s "$@"\n' % (os.path.join(HERE, 'mock_cmd.py'), name))
+    os.chmod(path, 0o755)
+
+
+def abs_mock_overlays(case, w):
+    '''Mocks at absolute paths (case key "abs_mocks", e.g. ["/usr/bin/ovs-vsctl"]),
+    for code that runs a command by its full path rather than via $PATH.
+    Each mock is placed in a read-only overlayfs mounted over the closest
+    existing ancestor directory of its path, layered above the real
+    directory (which stays visible underneath). The mock logs and replays
+    exactly like the $PATH mock of the same basename. Returns the
+    [lowerdir, target] pairs for sandbox_exec.py.'''
+    overlays = {}
+    for path in case.get('abs_mocks', []):
+        assert os.path.isabs(path), path
+        target = os.path.dirname(path)
+        while not os.path.isdir(target):
+            target = os.path.dirname(target)
+        lower = os.path.join(w, 'abs-mocks', target.lstrip('/'))
+        overlays[target] = lower
+        dest = os.path.join(lower, os.path.relpath(path, target))
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        mock_shim(dest, os.path.basename(path))
+    # mount parents before children
+    return [[overlays[t], t] for t in sorted(overlays, key=lambda t: t.count('/'))]
 
 
 def run_impl(case, impl, opts):
@@ -125,10 +156,8 @@ def run_impl(case, impl, opts):
     mocks = os.path.join(w, 'mocks')
     os.makedirs(mocks)
     for name in MOCKED_COMMANDS:
-        shim = os.path.join(mocks, name)
-        with open(shim, 'w') as f:
-            f.write('#!/bin/sh\nexec /usr/bin/python3 -I %s %s "$@"\n' % (os.path.join(HERE, 'mock_cmd.py'), name))
-        os.chmod(shim, 0o755)
+        mock_shim(os.path.join(mocks, name), name)
+    overlays = abs_mock_overlays(case, w)
     with open(os.path.join(w, 'mock-spec.json'), 'w') as f:
         json.dump(default_mocks(case), f)
     call_log = os.path.join(w, 'calls.jsonl')
@@ -158,6 +187,7 @@ def run_impl(case, impl, opts):
         json.dump({
             'mounts': [[os.path.join(fs, sub), sys_path] for sys_path, sub in MOUNTS] +
                       [[libexec, '/usr/libexec/netplan']],
+            'overlays': overlays,
             'argv': argv,
             'env': env,
             'cwd': os.path.join(w, 'home'),
@@ -175,6 +205,7 @@ def run_impl(case, impl, opts):
 
     def norm(s):
         s = GLIB_LOG.sub(r'** (\1:PID): \2 **: TIME:', s)
+        s = GLIB_DEBUG.sub(r'** (\1:PID): \2: TIME:', s)
         return s.replace(root, '<ROOT>').replace(fs, '').replace(w, '<W>')
     result['stdout'] = norm(result['stdout'])
     result['stderr'] = norm(result['stderr'])

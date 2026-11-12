@@ -9,6 +9,9 @@
 #          /usr/lib/netplan); files default to mode 0600
 #   mocks  {command: [rule, ...]}, see mock_cmd.py
 #   env    extra environment variables
+#   abs_mocks  absolute paths at which to also place mocks (logged and
+#          replayed like the $PATH mock of the same basename), for commands
+#          run by full path, e.g. ["/usr/bin/ovs-vsctl"]
 #
 # Copyright (C) 2026 Canonical, Ltd.
 #

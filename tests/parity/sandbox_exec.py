@@ -26,6 +26,10 @@ def main():
     with open(sys.argv[1]) as f:
         spec = json.load(f)
 
+    # Absolute-path mocks: read-only overlays (mock dir above the real one)
+    for lower, dst in spec.get('overlays', []):
+        subprocess.run(['mount', '-t', 'overlay', 'overlay', '-o', 'lowerdir=%s:%s' % (lower, dst), dst],
+                       check=True)
     for src, dst in spec['mounts']:
         subprocess.run(['mount', '--bind', src, dst], check=True)
 
