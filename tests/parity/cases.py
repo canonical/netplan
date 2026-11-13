@@ -10,6 +10,8 @@
 #          /usr/lib/netplan, /usr/share/iproute2); files default to mode 0600
 #   mocks  {command: [rule, ...]}, see mock_cmd.py
 #   env    extra environment variables
+#   signal {"when_exists": path, "signal": "SIGINT"}: send the signal once the
+#          (system) path exists, e.g. the 'netplan try' ready stamp
 #   abs_mocks  absolute paths at which to also place mocks (logged and
 #          replayed like the $PATH mock of the same basename), for commands
 #          run by full path, e.g. ["/usr/bin/ovs-vsctl"]

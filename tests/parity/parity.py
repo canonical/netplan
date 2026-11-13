@@ -197,6 +197,7 @@ def run_impl(case, impl, opts):
                       [[libexec, '/usr/libexec/netplan']] +
                       [[os.path.join(mocks, name), path] for name, path in MOCKED_PATHS if os.path.exists(path)],
             'overlays': overlays,
+            'signal': case.get('signal'),
             'argv': argv,
             'env': env,
             'cwd': os.path.join(w, 'home'),
