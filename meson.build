@@ -44,6 +44,9 @@ subdir('include')
 subdir('src')
 subdir('dbus')
 subdir('netplan_cli')
+if get_option('cli') == 'rust'
+    subdir('netplan_cli_rs')
+endif
 subdir('python-cffi')
 subdir('examples')
 subdir('doc')
@@ -105,9 +108,44 @@ if get_option('testing')
     #TODO: split out dbus tests into own test() instance, to run in parallel
     test('unit-tests',
          pycoverage,
-         args: ['run', '-a', '-m', 'pytest', '-s', '-v', '--cov-append', meson.current_source_dir()],
+         # tests/cli-rs needs the Rust CLI, see 'rust-cli-tests' below
+         args: ['run', '-a', '-m', 'pytest', '-s', '-v', '--cov-append',
+                '--ignore=' + join_paths(meson.current_source_dir(), 'tests', 'cli-rs'),
+                meson.current_source_dir()],
          timeout: 600,
          env: test_env)
+
+    if get_option('cli') == 'rust'
+        rust_test_env = test_env + ['NETPLAN_CLI_BINARY=' + netplan_rs.full_path()]
+        test('rust-legacy-tests',
+             find_program('tests/cli_rs_legacy.py'),
+             depends: netplan_rs,
+             timeout: 900,
+             env: rust_test_env)
+        test('rust-cli-tests',
+             pytest,
+             args: ['-q', '-p', 'no:cacheprovider', join_paths(meson.current_source_dir(), 'tests', 'cli-rs')],
+             depends: netplan_rs,
+             timeout: 600,
+             env: rust_test_env)
+        test('rust-unit-tests',
+             cargo_wrapper,
+             args: cargo_args + ['test'],
+             depends: libnetplan,
+             timeout: 900)
+        test('rust-lint',
+             cargo_wrapper,
+             args: cargo_args + ['lint'],
+             depends: libnetplan,
+             timeout: 900)
+        # Differential tests against the Python CLI. Needs unprivileged
+        # user namespaces (unshare --user --map-root-user --mount).
+        test('parity',
+             find_program('tests/parity/parity.py'),
+             args: ['--build-dir', meson.current_build_dir(), '--rust-bin', netplan_rs.full_path()],
+             depends: [netplan_rs, libnetplan],
+             timeout: 1800)
+    endif
 
     #TODO: the coverage section should probably be cleaned up a bit
     if get_option('b_coverage')

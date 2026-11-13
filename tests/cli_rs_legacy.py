@@ -22,14 +22,14 @@ import sys
 import subprocess
 import unittest
 import tempfile
-import shutil
 import yaml
 
 from tests.test_utils import MockCmd
 from generator.base import exe_generate
 
 rootdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-exe_cli = [os.path.join(rootdir, 'netplan_cli_rs', 'target', 'release', 'netplan')]
+exe_cli = [os.environ.get('NETPLAN_CLI_BINARY',
+                          os.path.join(rootdir, 'netplan_cli_rs', 'target', 'release', 'netplan'))]
 
 os.environ.update({'LD_LIBRARY_PATH': '.:{}'.format(os.environ.get('LD_LIBRARY_PATH'))})
 os.environ.setdefault('NETPLAN_GENERATE_PATH', os.path.join(rootdir, 'generate'))

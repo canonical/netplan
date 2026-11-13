@@ -1,0 +1,54 @@
+name: Rust CLI
+
+# Build the Rust netplan CLI (meson -Dcli=rust), run its tests and the
+# differential parity tests against the Python CLI (tests/parity).
+on:
+  push:
+    branches: [ main, cli-rust ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  rust-cli:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Always include phased updates (LP: #1979244)
+      - name: Install build depends
+        run: |
+          echo "APT::Get::Always-Include-Phased-Updates \"true\";" | sudo tee /etc/apt/apt.conf.d/90phased-updates
+          sudo apt update
+          sudo apt install curl ubuntu-dev-tools devscripts equivs
+          pull-lp-source netplan.io
+          mk-build-deps -i -B -s sudo netplan.io-*/debian/control
+          rm -rf netplan.io-*/
+
+      # The toolchain version and components come from netplan_cli_rs/rust-toolchain.toml
+      - name: Install rustup
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      # tests/parity runs each CLI in an unprivileged user + mount namespace
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Build
+        run: |
+          meson setup _build-rust --prefix=/usr -Dcli=rust
+          meson compile -C _build-rust
+
+      - name: Run Rust CLI tests
+        run: meson test -C _build-rust --verbose rust-lint rust-unit-tests rust-legacy-tests rust-cli-tests parity
+
+      - name: Archive build & test logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-rust-logs
+          path: |
+            _build-rust/meson-logs/
+          retention-days: 7
+          if-no-files-found: warn

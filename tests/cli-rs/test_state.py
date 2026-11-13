@@ -54,12 +54,12 @@ class TestStateRust(unittest.TestCase):
         fake_ip = json.dumps([
             {'ifindex': 1, 'ifname': 'lo',   'flags': ['UP'], 'operstate': 'UNKNOWN'},
             {'ifindex': 2, 'ifname': 'eth0',  'flags': ['UP'], 'operstate': 'UP'},
-            {'ifindex': 3, 'ifname': 'dummy0','flags': [],      'operstate': 'DOWN'},
+            {'ifindex': 3, 'ifname': 'dummy0', 'flags': [],      'operstate': 'DOWN'},
         ])
         nd = json.dumps({'Interfaces': [
             {'Index': 1, 'Name': 'lo',    'Type': 'loopback', 'SetupState': 'unmanaged'},
             {'Index': 2, 'Name': 'eth0',  'Type': 'ether',    'SetupState': 'unmanaged'},
-            {'Index': 3, 'Name': 'dummy0','Type': 'dummy',    'SetupState': 'unmanaged'},
+            {'Index': 3, 'Name': 'dummy0', 'Type': 'dummy',    'SetupState': 'unmanaged'},
         ]})
         with MockStatusEnv(iproute2=fake_ip, networkd=nd) as env:
             out = call_cli_rust(['status', '-a', '--format=json',
@@ -73,11 +73,11 @@ class TestStateRust(unittest.TestCase):
         '''Without -a only non-DOWN interfaces appear in JSON output.'''
         fake_ip = json.dumps([
             {'ifindex': 2, 'ifname': 'eth0',  'flags': ['UP'], 'operstate': 'UP'},
-            {'ifindex': 3, 'ifname': 'dummy0','flags': [],      'operstate': 'DOWN'},
+            {'ifindex': 3, 'ifname': 'dummy0', 'flags': [],      'operstate': 'DOWN'},
         ])
         nd = json.dumps({'Interfaces': [
             {'Index': 2, 'Name': 'eth0',  'Type': 'ether', 'SetupState': 'unmanaged'},
-            {'Index': 3, 'Name': 'dummy0','Type': 'dummy', 'SetupState': 'unmanaged'},
+            {'Index': 3, 'Name': 'dummy0', 'Type': 'dummy', 'SetupState': 'unmanaged'},
         ]})
         with MockStatusEnv(iproute2=fake_ip, networkd=nd) as env:
             out = call_cli_rust(['status', '--format=json', '--root-dir', env.root_dir])

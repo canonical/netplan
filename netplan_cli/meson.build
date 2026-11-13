@@ -1,8 +1,10 @@
 install_data('../src/netplan.script')
-install_symlink(
-    'netplan',
-    pointing_to: '../share/netplan/netplan.script',
-    install_dir: get_option('sbindir'))
+if get_option('cli') != 'rust'
+    install_symlink(
+        'netplan',
+        pointing_to: '../share/netplan/netplan.script',
+        install_dir: get_option('sbindir'))
+endif
 
 netplan_module = join_paths(get_option('datadir'), meson.project_name(), 'netplan_cli')
 features_py = custom_target(
