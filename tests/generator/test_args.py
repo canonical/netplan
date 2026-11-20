@@ -211,6 +211,7 @@ class TestConfigArgs(TestBase):
       dhcp4: true
       interfaces: [eth99.42, eth99.43, eth99.46]''')
         os.chmod(conf, mode=0o600)
+        self.install_resolved('sysinit.target.wants/systemd-resolved.service')
 
         generator = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system-generators', 'netplan')
         local_env = os.environ.copy()
@@ -295,6 +296,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i eth99.44:degraded
 ''')
 
     def test_systemd_wait_online_only_routable(self):
+        self.install_resolved('sysinit.target.wants/systemd-resolved.service')
         self.generate('''network:
   version: 2
   bridges:
@@ -317,26 +319,54 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded
 ExecStart=/lib/systemd/systemd-networkd-wait-online --any --dns -o routable -i br0
 ''')
 
-    def test_systemd_wait_online_resolved_masked(self):
-        unit_dir = os.path.join(self.workdir.name, 'etc', 'systemd', 'system')
+    def install_resolved(self, *enablement_links):
+        unit_dir = os.path.join(self.workdir.name, 'usr', 'lib', 'systemd', 'system')
         os.makedirs(unit_dir, exist_ok=True)
-        os.symlink('/dev/null', os.path.join(unit_dir, 'systemd-resolved.service'))
+        with open(os.path.join(unit_dir, 'systemd-resolved.service'), 'w') as f:
+            f.write('[Unit]\n')
+        for link in enablement_links:
+            path = os.path.join(self.workdir.name, 'etc', 'systemd', 'system', link)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            os.symlink(os.path.join('/usr/lib/systemd/system', os.path.basename(link)), path)
+
+    def assert_wait_online_routable_br0(self, dns):
         self.generate('''network:
   version: 2
   bridges:
     br0:
       dhcp4: true''')
         override = os.path.join(self.generator_late_dir, 'systemd-networkd-wait-online.service.d', '10-netplan.conf')
-        self.assertTrue(os.path.isfile(override))
         with open(override, 'r') as f:
             self.assertEqual(f.read(), '''[Unit]
 ConditionPathIsSymbolicLink=/run/systemd/generator/network-online.target.wants/systemd-networkd-wait-online.service
-
+{}
 [Service]
 ExecStart=
 ExecStart=/lib/systemd/systemd-networkd-wait-online -i br0:degraded
-ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i br0
-''')
+ExecStart=/lib/systemd/systemd-networkd-wait-online --any{} -o routable -i br0
+'''.format('After=systemd-resolved.service\n' if dns else '', ' --dns' if dns else ''))
+
+    def test_systemd_wait_online_resolved_monitor_socket_enabled(self):
+        self.install_resolved('sockets.target.wants/systemd-resolved-monitor.socket')
+        self.assert_wait_online_routable_br0(dns=True)
+
+    def test_systemd_wait_online_resolved_masked(self):
+        self.install_resolved('sysinit.target.wants/systemd-resolved.service')
+        for mask_dir in ['etc', 'run']:
+            with self.subTest(mask_dir=mask_dir):
+                unit_dir = os.path.join(self.workdir.name, mask_dir, 'systemd', 'system')
+                os.makedirs(unit_dir, exist_ok=True)
+                mask = os.path.join(unit_dir, 'systemd-resolved.service')
+                os.symlink('/dev/null', mask)
+                self.assert_wait_online_routable_br0(dns=False)
+                os.unlink(mask)
+
+    def test_systemd_wait_online_resolved_disabled(self):
+        self.install_resolved()
+        self.assert_wait_online_routable_br0(dns=False)
+
+    def test_systemd_wait_online_resolved_not_installed(self):
+        self.assert_wait_online_routable_br0(dns=False)
 
     def test_systemd_generator_noconf(self):
         self.generate('')
@@ -366,6 +396,7 @@ ExecStart=/lib/systemd/systemd-networkd-wait-online --any -o routable -i br0
         name: lo
       set-name: "a ; b\\t; c\\t; d \\n 123 ; echo "
       addresses: ["127.0.0.1/8", "::1/128"]'''
+        self.install_resolved('sysinit.target.wants/systemd-resolved.service')
         self.generate(conf)
 
         n = os.path.join(self.workdir.name, 'run', 'systemd', 'network', '10-netplan-lo.network')

@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
+#include <glob.h>
 #include <net/if.h>
 #include <sys/stat.h>
 
@@ -274,15 +275,24 @@ _netplan_netdef_generate_networkd(
 }
 
 static gboolean
-_is_resolved_masked(const char* rootdir)
+_is_resolved_enabled(const char* rootdir)
 {
-    const char* unit_dirs[] = {"etc/systemd/system", "run/systemd/system", NULL};
-    for (const char** dir = unit_dirs; *dir; dir++) {
-        g_autofree gchar* unit = g_build_path(G_DIR_SEPARATOR_S, rootdir != NULL ? rootdir : G_DIR_SEPARATOR_S,
-                                              *dir, "systemd-resolved.service", NULL);
+    const gchar* unit_dirs[] = {"etc", "run", "usr/local/lib", "usr/lib", "lib", NULL};
+    const char* root = rootdir != NULL ? rootdir : "";
+    for (const gchar** dir = unit_dirs; *dir; dir++) {
+        g_autofree gchar* unit = g_strdup_printf("%s/%s/systemd/system/systemd-resolved.service", root, *dir);
+        if (!g_file_test(unit, G_FILE_TEST_EXISTS))
+            continue;
         g_autofree gchar* target = g_file_read_link(unit, NULL);
         if (g_strcmp0(target, "/dev/null") == 0)
-            return TRUE;
+            return FALSE;
+        g_autofree gchar* dirs = g_strjoinv(",", (gchar**) unit_dirs);
+        g_autofree gchar* links = g_strdup_printf(
+            "%s/{%s}/systemd/system/*.{wants,requires}/systemd-resolved{.service,-monitor.socket}", root, dirs);
+        glob_t gl;
+        gboolean enabled = glob(links, GLOB_BRACE, NULL, &gl) == 0;
+        globfree(&gl);
+        return enabled;
     }
     return FALSE;
 }
@@ -399,7 +409,7 @@ _netplan_networkd_generate_wait_online(const NetplanState* np_state, const char*
     }
 
     // allow waiting for "--dns"
-    gboolean wait_dns = routable_str->len > 0 && !_is_resolved_masked(rootdir);
+    gboolean wait_dns = routable_str->len > 0 && _is_resolved_enabled(rootdir);
     if (wait_dns) {
         g_string_append(content, "After=systemd-resolved.service\n");
     }
