@@ -686,11 +686,11 @@ netplan_netdef_get_output_filename(const NetplanNetDefinition* netdef, const cha
     if (netdef->backend == NETPLAN_BACKEND_NM) {
         if (ssid) {
             g_autofree char* escaped_ssid = g_uri_escape_string(ssid, NULL, TRUE);
-            /* Check if the basename would exceed NAME_MAX (255 bytes) */
+            /* Check if the basename (plus GLib's ".XXXXXX" temp-file suffix) would exceed NAME_MAX */
             g_autofree char* candidate_basename = g_strjoin(NULL, "netplan-", escaped_netdef_id, "-", escaped_ssid, ".nmconnection", NULL);
             const char* ssid_part = escaped_ssid;
             g_autofree char* hashed_ssid = NULL;
-            if (strlen(candidate_basename) > NAME_MAX) {
+            if (strlen(candidate_basename) > _NETPLAN_MAX_BASENAME_LEN) {
                 /* SSID contains multi-byte chars (e.g. emojis) that percent-encode to too many bytes.
                  * Use SHA-256 of the raw SSID bytes to guarantee a valid-length unique filename. */
                 hashed_ssid = g_compute_checksum_for_string(G_CHECKSUM_SHA256, ssid, -1);
