@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import copy
+import hashlib
 import json
 import os
 import shutil
@@ -26,6 +27,7 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import call, mock_open, patch
+from urllib import parse
 
 import yaml
 
@@ -458,6 +460,68 @@ class TestInterface(unittest.TestCase):
         itf = Interface(data, nd, nm, (None, None), (None, None))
         _, json = itf.json()
         self.assertEqual(json.get('ssid'), NM_SSID)
+
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    def test_netdef_id_nm_wifi_hashed_ssid(self, nm_ssid_mock):
+        """A 32-byte multi-byte SSID makes the escaped basename too long for
+        NAME_MAX once GLib's '.XXXXXX' temp-file suffix is accounted for, so
+        src/nm.c names the file after the SHA-256 of the SSID instead. The
+        reverse lookup here must follow (LP: #2147259)."""
+        NM_SSID = '\U0001F4F6' * 8  # 32 bytes, the maximum SSID length
+        nm_ssid_mock.return_value = NM_SSID
+
+        # NM stores a non-ascii SSID as semicolon-delimited decimal bytes
+        nm_form = ''.join('{};'.format(b) for b in NM_SSID.encode('utf-8'))
+        digest = hashlib.sha256(nm_form.encode('utf-8')).hexdigest()
+        netdef_id = 'NM-ff9b9d6a-0a1c-4b1e-8e6a-2f3c4d5e6f70'
+
+        data = {'ifname': 'wlan1', 'ifindex': 123}
+        nm = [{'device': 'wlan1', 'name': 'mycon', 'type': '802-11-wireless',
+               'filename': '/run/NetworkManager/system-connections/netplan-{}-{}.nmconnection'.format(
+                   netdef_id, digest)}]
+
+        itf = Interface(data, [], nm, (None, None), (None, None))
+        self.assertEqual(itf.netdef_id, netdef_id)
+
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    def test_netdef_id_nm_wifi_hashed_plain_ssid(self, nm_ssid_mock):
+        """Hand-written YAML can carry a plain-text SSID rather than NM's
+        decimal-byte form. If a long netdef id pushes that basename over the
+        limit, src/nm.c hashes the plain string, so the fallback has to try
+        that form too (LP: #2147259)."""
+        NM_SSID = '\u00e1\u00e9\u00ed\u00f3\u00fa'
+        nm_ssid_mock.return_value = NM_SSID
+
+        # digest of the PLAIN ssid, not of NM's decimal-byte rendering
+        digest = hashlib.sha256(NM_SSID.encode('utf-8')).hexdigest()
+        netdef_id = 'a-very-long-hand-written-netdef-id-' + 'x' * 160
+
+        data = {'ifname': 'wlan1', 'ifindex': 123}
+        nm = [{'device': 'wlan1', 'name': 'mycon', 'type': '802-11-wireless',
+               'filename': '/run/NetworkManager/system-connections/netplan-{}-{}.nmconnection'.format(
+                   netdef_id, digest)}]
+
+        itf = Interface(data, [], nm, (None, None), (None, None))
+        self.assertEqual(itf.netdef_id, netdef_id)
+
+    @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
+    def test_netdef_id_nm_wifi_escaped_ssid(self, nm_ssid_mock):
+        """The short-SSID path must keep working: the escaped SSID is still
+        used verbatim when the basename fits."""
+        NM_SSID = '\u00e1\u00e9\u00ed\u00f3\u00fa'
+        nm_ssid_mock.return_value = NM_SSID
+
+        nm_form = ''.join('{};'.format(b) for b in NM_SSID.encode('utf-8'))
+        escaped = parse.quote(nm_form)
+        netdef_id = 'NM-ff9b9d6a-0a1c-4b1e-8e6a-2f3c4d5e6f70'
+
+        data = {'ifname': 'wlan1', 'ifindex': 123}
+        nm = [{'device': 'wlan1', 'name': 'mycon', 'type': '802-11-wireless',
+               'filename': '/run/NetworkManager/system-connections/netplan-{}-{}.nmconnection'.format(
+                   netdef_id, escaped)}]
+
+        itf = Interface(data, [], nm, (None, None), (None, None))
+        self.assertEqual(itf.netdef_id, netdef_id)
 
     @patch('netplan_cli.cli.state.Interface.query_nm_ssid')
     def test_json_nm_wlan1_non_ascii(self, nm_ssid_mock):

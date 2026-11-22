@@ -18,6 +18,8 @@
 #pragma once
 
 #include <glob.h>
+#include <linux/limits.h>
+
 #include <glib.h>
 #include "types-internal.h"
 
@@ -39,6 +41,17 @@
 #define SET_OPT_OUT_PTR(ptr,val) { if (ptr) *ptr = val; }
 
 #define __unused __attribute__((unused))
+
+/* Maximum length of a basename we may generate.
+ *
+ * GLib writes our output files atomically (g_file_set_contents(), used by
+ * g_key_file_save_to_file() and _netplan_g_string_free_to_file*(), defaults to
+ * G_FILE_SET_CONTENTS_CONSISTENT). It does so by first creating a temporary
+ * file named "<basename>.XXXXXX" in the target directory, so the name that has
+ * to fit within NAME_MAX is the basename plus that suffix -- not the basename
+ * alone. Budgeting for NAME_MAX exactly still fails with ENAMETOOLONG on the
+ * temporary file (LP: #2147259). */
+#define _NETPLAN_MAX_BASENAME_LEN (NAME_MAX - (sizeof(".XXXXXX") - 1))
 
 extern GHashTable*
 wifi_frequency_24;

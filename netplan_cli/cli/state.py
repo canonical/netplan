@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import hashlib
 import ipaddress
 import json
 import logging
@@ -323,6 +324,7 @@ class Interface():
                 'run/NetworkManager/system-connections/netplan-')[1].split('.nmconnection')[0]
             if self.nm.get('type', '') == '802-11-wireless':
                 ssid = self.query_nm_ssid(self.nm.get('name'))
+                ssid_plain = ssid
                 if ssid not in netdef:
                     # If the plain SSID in not found in the netdef here
                     # it's probably because it contains non-ascii characters that
@@ -339,6 +341,16 @@ class Interface():
 
                     # Escape characters in the same way we do in src/nm.c.
                     ssid = parse.quote(ssid_nm_escaped)
+
+                    if ssid not in netdef:
+                        # Still not found: the escaped SSID made the basename too
+                        # long for NAME_MAX, so src/nm.c fell back to the SHA-256
+                        # digest of the SSID instead (LP: #2147259). Mirror that.
+                        for candidate in (ssid_nm_escaped, ssid_plain):
+                            digest = hashlib.sha256(candidate.encode('utf-8')).hexdigest()
+                            if digest in netdef:
+                                ssid = digest
+                                break
                 if ssid:
                     netdef = netdef.split('-' + ssid)[0]
             return netdef
