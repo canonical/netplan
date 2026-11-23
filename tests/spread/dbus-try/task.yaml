@@ -1,0 +1,78 @@
+summary: Check that netplan try via D-Bus applies, accepts, cancels and times out
+
+details: |
+  snapd changes the network configuration through the io.netplan.Netplan
+  D-Bus API: Config.Set, then Config.Try, then Config.Apply once its
+  connectivity check succeeds or Config.Cancel when it fails, relying on
+  the try timeout as the last resort. Check each outcome on both the YAML
+  and the generated backend configuration: a rejected try must leave the
+  previous backend configuration in place, not one regenerated from the
+  candidate YAML.
+
+environment:
+  OUTCOME/cancel: cancel
+  OUTCOME/apply: apply
+  OUTCOME/timeout: timeout
+
+prepare: |
+  . "$SPREAD_PATH"/tests/spread/lib.sh
+  # the default configuration has DHCPv4 on br54
+  br54_backend_has_dhcp4
+
+restore: |
+  . "$SPREAD_PATH"/tests/spread/lib.sh
+  wait_for_try_to_finish 60 || pkill -f 'netplan try' || true
+  rm -f /etc/netplan/90-test.yaml "$TRY_STAMP"
+
+debug: |
+  netplan get
+  ls -l /etc/netplan /run/netplan || true
+  cat /run/systemd/network/10-netplan-br54.network || true
+  journalctl -b --no-pager -n 100 || true
+
+execute: |
+  . "$SPREAD_PATH"/tests/spread/lib.sh
+  obj=$(netplan_config_object)
+  config_call "$obj" Set ss bridges.br54.dhcp4=false 90-test | MATCH 'b true'
+
+  case "$OUTCOME" in
+      timeout) timeout=5 ;;
+      *) timeout=120 ;;
+  esac
+  # Try() returns true once 'netplan try' has applied the candidate and is
+  # waiting for confirmation
+  config_call "$obj" Try u "$timeout" | MATCH 'b true'
+  test -e "$TRY_STAMP"
+  test -e /etc/netplan/90-test.yaml
+  netplan get bridges.br54.dhcp4 | MATCH false
+  not br54_backend_has_dhcp4
+
+  case "$OUTCOME" in
+      apply)
+          config_call "$obj" Apply | MATCH 'b true'
+          wait_for_try_to_finish 30
+          test -e /etc/netplan/90-test.yaml
+          netplan get bridges.br54.dhcp4 | MATCH false
+          not br54_backend_has_dhcp4
+          ;;
+      cancel)
+          config_call "$obj" Cancel | MATCH 'b true'
+          wait_for_try_to_finish 30
+          test ! -e /etc/netplan/90-test.yaml
+          netplan get bridges.br54.dhcp4 | MATCH true
+          br54_backend_has_dhcp4
+          ;;
+      timeout)
+          # 'netplan try' reverts by itself and netplan-dbus then restores
+          # the YAML
+          wait_for_try_to_finish 60
+          for _ in $(seq 30); do
+              test -e /etc/netplan/90-test.yaml || break
+              sleep 1
+          done
+          test ! -e /etc/netplan/90-test.yaml
+          netplan get bridges.br54.dhcp4 | MATCH true
+          br54_backend_has_dhcp4
+          ;;
+  esac
+  test ! -e "$TRY_STAMP"

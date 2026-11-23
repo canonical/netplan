@@ -1,0 +1,21 @@
+summary: Check that the netplan CLI of this variant is the one installed
+
+details: |
+  Every task runs once with the Python CLI and once with the Rust CLI.
+  Make sure /usr/sbin/netplan, which netplan-dbus and snapd run, really is
+  the implementation the variant claims, and that the basics work with it.
+
+execute: |
+  case "$NETPLAN_CLI" in
+      rust)
+          file -L /usr/sbin/netplan | MATCH 'ELF'
+          ;;
+      python)
+          head -n1 "$(readlink -f /usr/sbin/netplan)" | MATCH 'python3'
+          ;;
+  esac
+  netplan get bridges.br54.dhcp4 | MATCH true
+  netplan info | MATCH 'website: "https://netplan.io/"'
+  netplan generate
+  test -e /run/systemd/network/10-netplan-br54.network
+  netplan status --format json | MATCH '"br54"'
