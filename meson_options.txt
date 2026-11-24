@@ -1,2 +1,4 @@
 option('testing', type: 'boolean', value: true)
 option('unit_testing', type: 'boolean', value: true)
+option('cli', type: 'combo', choices: ['python', 'rust'], value: 'python',
+       description: 'Which netplan CLI to install as sbin/netplan; "rust" builds the Rust CLI with cargo')

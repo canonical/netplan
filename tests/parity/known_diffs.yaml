@@ -1,0 +1,3 @@
+# Differences between the Python and Rust CLIs that are accepted for now.
+# Map a case id (see cases.py) to the reason it is allowed to differ.
+# parity.py reports entries that no longer differ so they can be removed.

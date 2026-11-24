@@ -11,3 +11,4 @@ src/_features.h
 netplan_cli/_features.py
 dbus/io.netplan.Netplan.service
 tmproot/
+netplan_cli_rs/target

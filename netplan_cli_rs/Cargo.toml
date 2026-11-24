@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[package]
+name = "netplan"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+description = "Minimal Rust reimplementation of the netplan CLI"
+
+[[bin]]
+name = "netplan"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { version = "1", default-features = false, features = ["std"] }
+serde_json = { version = "1", default-features = false, features = ["std", "preserve_order"] }
+glob = { version = "0.3.3", default-features = false }
+log = { version = "0.4.32", default-features = false, features = ["std"] }
+nix = { version = "0.31.3", default-features = false, features = ["fs", "feature", "term", "signal", "poll"] }
+jiff = { version = "0.2", default-features = false, features = ["std"] }
+thiserror = { version = "2", default-features = false, features = ["std"] }
+
+[build-dependencies]
+anyhow = { version = "1", default-features = false, features = ["std"] }
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"
+codegen-units = 1
